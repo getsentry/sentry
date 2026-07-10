@@ -353,6 +353,16 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     .toSorted((a, b) => a - b);
   const earliestTimeStamp = allBoundaries.at(0);
   const latestTimeStamp = allBoundaries.at(-1);
+  const bubbleReleases = useMemo(
+    () =>
+      hasReleaseBubbles
+        ? props.releases?.map(({timestamp, version}) => ({
+            date: timestamp,
+            version,
+          }))
+        : [],
+    [hasReleaseBubbles, props.releases]
+  );
 
   const {
     connectReleaseBubbleChartRef,
@@ -364,12 +374,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     chartId: props.id,
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
-    releases: hasReleaseBubbles
-      ? props.releases?.map(({timestamp, version}) => ({
-          date: timestamp,
-          version,
-        }))
-      : [],
+    releases: bubbleReleases,
     legendSelected:
       props.legendSelection === undefined
         ? undefined

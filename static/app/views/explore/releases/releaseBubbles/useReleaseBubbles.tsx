@@ -37,6 +37,26 @@ interface LegendSelectChangedParams {
   selected: Record<string, boolean>;
 }
 
+const DEFAULT_BUBBLE_X_AXIS = {
+  axisLine: {onZero: true},
+  offset: 0,
+};
+
+const DEFAULT_BUBBLE_GRID = {
+  bottom: 0,
+};
+
+const RELEASE_BUBBLE_Y_AXIS = {
+  type: 'value' as const,
+  min: 0,
+  max: 100,
+  show: false,
+  // `axisLabel` causes an unwanted whitespace/width on the y-axis.
+  axisLabel: {show: false},
+  // The main y-axis may enable this via `tooltip.trigger=axis`.
+  axisPointer: {show: false},
+};
+
 // This needs to be debounced because some charts (e.g. in TimeseriesWidgets)
 // are in a group and share events. Thus on a page with 4 widgets, clicking on
 // a legend item would result in 4 events.
@@ -53,10 +73,8 @@ interface ReleaseBubbleSeriesProps {
   bubbleSize: number;
   buckets: Bucket[];
   chartRef: React.RefObject<ReactEchartsRef | null>;
-  dateFormatOptions: {
-    timezone: string;
-  };
   theme: Theme;
+  timezone: string;
   onBucketClick?: (bucket: Bucket) => void;
   yAxisIndex?: number;
 }
@@ -70,11 +88,11 @@ function createReleaseBubbleSeries({
   theme,
   bubbleSize,
   bubblePadding,
-  dateFormatOptions,
   alignInMiddle,
+  timezone,
   yAxisIndex,
   onBucketClick,
-}: ReleaseBubbleSeriesProps): CustomSeriesOption | null {
+}: ReleaseBubbleSeriesProps): CustomSeriesOption {
   const totalReleases = buckets.reduce(
     (acc, {releases, flags}) => acc + flags.length + releases.length,
     0
@@ -104,7 +122,7 @@ function createReleaseBubbleSeries({
       year: moment().year() !== moment(timestamp).year(),
     });
 
-    return moment.tz(timestamp, dateFormatOptions.timezone).format(format);
+    return moment.tz(timestamp, timezone).format(format);
   };
 
   /**
@@ -313,7 +331,7 @@ interface UseReleaseBubblesParams {
    */
   bubbleSize?: number;
   /**
-   * Unique ID for chart, used to load and render chart
+   * Unique ID used to associate the releases drawer with this chart.
    */
   chartId?: string;
   datetime?: Parameters<typeof normalizeDateTimeParams>[0];
@@ -374,25 +392,15 @@ export function useReleaseBubbles({
   // case of relative date selection). This is used for the tooltip to show the
   // proper timestamp for releases.
   const endTimeToUse = (datetime || selection.datetime).end;
-  const releasesMaxTime =
-    defined(endTimeToUse) && !Array.isArray(endTimeToUse)
-      ? new Date(endTimeToUse).getTime()
-      : Date.now();
+  const releasesMaxTime = useMemo(
+    () =>
+      defined(endTimeToUse) && !Array.isArray(endTimeToUse)
+        ? new Date(endTimeToUse).getTime()
+        : Date.now(),
+    [endTimeToUse]
+  );
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const totalBubblePaddingY = bubblePadding * 2;
-  const defaultBubbleXAxis = useMemo(
-    () => ({
-      axisLine: {onZero: true},
-      offset: 0,
-    }),
-    []
-  );
-  const defaultBubbleGrid = useMemo(
-    () => ({
-      bottom: 0,
-    }),
-    []
-  );
   const releaseBubbleXAxis = useMemo(
     () => ({
       // configure `axisLine` and `offset` to move axis line below 0 so that
@@ -401,22 +409,6 @@ export function useReleaseBubbles({
       offset: bubbleSize + totalBubblePaddingY - 1,
     }),
     [bubbleSize, totalBubblePaddingY]
-  );
-
-  const releaseBubbleYAxis = useMemo(
-    () => ({
-      type: 'value' as const,
-      min: 0,
-      max: 100,
-      show: false,
-      // `axisLabel` causes an unwanted whitespace/width on the y-axis
-      axisLabel: {show: false},
-      // Hides an axis line + tooltip when hovering on chart
-      // This is default `false`, but the main y-axis has
-      // `tooltip.trigger=axis` which will cause this to be enabled.
-      axisPointer: {show: false},
-    }),
-    []
   );
 
   const releaseBubbleGrid = useMemo(
@@ -501,8 +493,8 @@ export function useReleaseBubbles({
         // adjust the xAxis/grid accordingly when Releases are visible or
         // not
         echartsInstance.setOption({
-          xAxis: selected ? releaseBubbleXAxis : defaultBubbleXAxis,
-          grid: selected ? releaseBubbleGrid : defaultBubbleGrid,
+          xAxis: selected ? releaseBubbleXAxis : DEFAULT_BUBBLE_X_AXIS,
+          grid: selected ? releaseBubbleGrid : DEFAULT_BUBBLE_GRID,
         });
 
         trackLegend(params);
@@ -526,12 +518,34 @@ export function useReleaseBubbles({
         echartsInstance.off('legendselectchanged', handleLegendSelectChanged);
       };
     },
+    [legendSelected, releaseBubbleGrid, releaseBubbleXAxis]
+  );
+
+  const releaseBubbleSeries = useMemo(
+    () =>
+      releases && buckets.length
+        ? createReleaseBubbleSeries({
+            yAxisIndex,
+            alignInMiddle,
+            buckets,
+            bubbleSize,
+            bubblePadding,
+            chartRef,
+            theme,
+            timezone: options.timezone,
+            onBucketClick: handleBucketClick,
+          })
+        : null,
     [
-      defaultBubbleGrid,
-      defaultBubbleXAxis,
-      legendSelected,
-      releaseBubbleGrid,
-      releaseBubbleXAxis,
+      alignInMiddle,
+      bubblePadding,
+      bubbleSize,
+      buckets,
+      handleBucketClick,
+      options.timezone,
+      releases,
+      theme,
+      yAxisIndex,
     ]
   );
 
@@ -551,21 +565,9 @@ export function useReleaseBubbles({
     /**
      * Series to append to a chart's existing `series`
      */
-    releaseBubbleSeries: createReleaseBubbleSeries({
-      yAxisIndex,
-      alignInMiddle,
-      buckets,
-      bubbleSize,
-      bubblePadding,
-      chartRef,
-      theme,
-      onBucketClick: handleBucketClick,
-      dateFormatOptions: {
-        timezone: options.timezone,
-      },
-    }),
+    releaseBubbleSeries,
 
-    releaseBubbleYAxis,
+    releaseBubbleYAxis: RELEASE_BUBBLE_Y_AXIS,
 
     /**
      * ECharts xAxis configuration. Spread/override charts `xAxis` prop.
@@ -577,7 +579,7 @@ export function useReleaseBubbles({
      * selected" state.
      */
     releaseBubbleXAxis:
-      legendSelected === false ? defaultBubbleXAxis : releaseBubbleXAxis,
+      legendSelected === false ? DEFAULT_BUBBLE_X_AXIS : releaseBubbleXAxis,
 
     /**
      * ECharts grid configuration. Spread/override charts `grid` prop.
@@ -588,6 +590,6 @@ export function useReleaseBubbles({
      * undefined if the calling component does not keep its own "legend
      * selected" state.
      */
-    releaseBubbleGrid: legendSelected === false ? defaultBubbleGrid : releaseBubbleGrid,
+    releaseBubbleGrid: legendSelected === false ? DEFAULT_BUBBLE_GRID : releaseBubbleGrid,
   };
 }
