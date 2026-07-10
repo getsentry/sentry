@@ -1,16 +1,18 @@
 import logging
 
 from sentry import options
-from sentry.issues.action_log.backfill import BACKFILL_ACTIVITY_SOURCE
+from sentry.issues.action_log.backfill import (
+    BACKFILL_ACTIVITY_SOURCE,
+    bulk_insert_action_log_entries,
+)
 from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
-from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.action_log.activity_translator import activity_to_action
 
 logger = logging.getLogger(__name__)
@@ -131,8 +133,9 @@ def _backfill_project(
         },
     )
 
-    entries = []
+    params: list[object] = []
     skipped_count = 0
+    num_entries = 0
 
     for activity in activities:
         try:
@@ -153,27 +156,23 @@ def _backfill_project(
         else:
             actor = SYSTEM_ACTOR
 
-        entries.append(
-            GroupActionLogEntry(
-                group_id=activity.group_id,
-                project_id=activity.project_id,
-                type=action.get_type().value,
-                actor_type=actor.actor_type.value,
-                actor_id=actor.actor_id,
-                source=BACKFILL_ACTIVITY_SOURCE,
-                data=action.dict(),
-                date_added=activity.datetime,
-                date_updated=activity.datetime,
-                idempotency_key=f"activity:{activity.id}",
-            )
+        params.extend(
+            [
+                activity.group_id,
+                activity.project_id,
+                action.get_type().value,
+                actor.actor_type.value,
+                actor.actor_id,
+                BACKFILL_ACTIVITY_SOURCE,
+                json.dumps(action.dict()),
+                activity.datetime,
+                activity.datetime,  # date_updated
+                f"activity:{activity.id}",
+            ]
         )
+        num_entries += 1
 
-    if entries:
-        GroupActionLogEntry.objects.bulk_create(entries, ignore_conflicts=True)
-
-    # May over-count on re-runs since bulk_create(ignore_conflicts=True)
-    # doesn't report actual inserts. Acceptable for a one-time backfill.
-    converted_count = len(entries)
+    converted_count = bulk_insert_action_log_entries(params, num_entries)
 
     metrics.incr(
         "issues.backfill_group_action_log.activities_converted",
