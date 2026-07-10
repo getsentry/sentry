@@ -30,6 +30,12 @@ describe('getValidatedColumnData', () => {
       field: [
         {attrType: 'boolean', error: null, name: 'custom.enabled', valid: true},
         {attrType: 'number', error: null, name: 'custom.duration', valid: true},
+        {
+          attrType: 'number',
+          error: null,
+          name: 'avg(custom.duration)',
+          valid: true,
+        },
         {attrType: 'string', error: null, name: 'custom.user', valid: true},
         {attrType: null, error: 'unknown field', name: 'missing.field', valid: false},
       ],
@@ -63,12 +69,14 @@ describe('getValidatedColumnData', () => {
 
     expect(result.fields).toEqual(['custom.enabled', 'custom.duration']);
     expect(result.fieldTypes).toEqual({
+      'avg(custom.duration)': FieldValueType.NUMBER,
       'custom.enabled': FieldValueType.BOOLEAN,
       'custom.duration': FieldValueType.NUMBER,
       'custom.user': FieldValueType.STRING,
     });
     expect(result.attributes.boolean['custom.enabled']?.kind).toBe(FieldKind.BOOLEAN);
     expect(result.attributes.number['custom.duration']?.kind).toBe(FieldKind.MEASUREMENT);
+    expect(result.attributes.number['avg(custom.duration)']).toBeUndefined();
     expect(result.attributes.string['custom.duration']).toBeUndefined();
     expect(result.attributes.string['custom.user']?.kind).toBe(FieldKind.TAG);
     expect(

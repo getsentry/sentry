@@ -58,6 +58,13 @@ export function getValidatedColumnData({
   };
   const fieldTypes: Partial<Record<string, FieldValueType>> = {};
   const invalidFields = new Set<string>();
+  const aggregateExpressions = new Set<string>();
+
+  for (const aggregateField of aggregateFields) {
+    if (!isGroupBy(aggregateField)) {
+      aggregateExpressions.add(aggregateField.yAxis);
+    }
+  }
 
   for (const item of validationData?.field ?? []) {
     if (!item.name) {
@@ -71,6 +78,21 @@ export function getValidatedColumnData({
 
     if (item.attrType === 'boolean') {
       fieldTypes[item.name] = FieldValueType.BOOLEAN;
+    }
+
+    if (item.attrType === 'number') {
+      fieldTypes[item.name] = FieldValueType.NUMBER;
+    }
+
+    if (item.attrType === 'string') {
+      fieldTypes[item.name] = FieldValueType.STRING;
+    }
+
+    if (aggregateExpressions.has(item.name)) {
+      continue;
+    }
+
+    if (item.attrType === 'boolean') {
       delete validatedAttributes.number[item.name];
       delete validatedAttributes.string[item.name];
       validatedAttributes.boolean[item.name] ??= {
@@ -81,7 +103,6 @@ export function getValidatedColumnData({
     }
 
     if (item.attrType === 'number') {
-      fieldTypes[item.name] = FieldValueType.NUMBER;
       delete validatedAttributes.boolean[item.name];
       delete validatedAttributes.string[item.name];
       validatedAttributes.number[item.name] ??= {
@@ -92,7 +113,6 @@ export function getValidatedColumnData({
     }
 
     if (item.attrType === 'string') {
-      fieldTypes[item.name] = FieldValueType.STRING;
       delete validatedAttributes.boolean[item.name];
       delete validatedAttributes.number[item.name];
       validatedAttributes.string[item.name] ??= {
