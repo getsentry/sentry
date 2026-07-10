@@ -496,7 +496,7 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
             "project": self.project.id,
             "dataset": self.dataset,
         }
-        cases = [
+        cases: list[tuple[dict[str, object], str]] = [
             ({"yMin": 120}, "yMin and yMax must be provided together"),
             ({"yMin": "abc", "yMax": 720}, "yMin and yMax must be numbers"),
             ({"yMin": 720, "yMax": 120}, "yMax must be greater than or equal to yMin"),
