@@ -995,6 +995,7 @@ def is_issue_category_eligible(group: Group) -> bool:
         GroupCategory.FRONTEND,
         GroupCategory.DB_QUERY,
         GroupCategory.HTTP_CLIENT,
+        GroupCategory.CONFIGURATION,
     }
 
 
