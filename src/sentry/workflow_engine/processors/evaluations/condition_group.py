@@ -1,8 +1,12 @@
-from sentry.workflow_engine.processors.evaluations.base import BaseWorkflowEngineEvaluation
-from sentry.workflow_engine.processors.evaluations.condition import DataConditionEvaluation
+from dataclasses import dataclass, field
+
 from sentry.workflow_engine.types import ConditionError
 
+from .base import BaseWorkflowEngineEvaluation
+from .condition import DataConditionEvaluation
 
+
+@dataclass(frozen=True, kw_only=True)
 class DataConditionGroupEvaluation(
     BaseWorkflowEngineEvaluation[
         list[DataConditionEvaluation],
@@ -22,4 +26,4 @@ class DataConditionGroupEvaluation(
     - outcome: TriggerResult
     """
 
-    pass
+    result: list[DataConditionEvaluation] = field(default_factory=list)

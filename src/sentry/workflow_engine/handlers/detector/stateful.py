@@ -25,10 +25,8 @@ from sentry.workflow_engine.handlers.detector.base import (
     GroupedDetectorEvaluationResult,
 )
 from sentry.workflow_engine.models import DataPacket, DataSource, Detector, DetectorState
-from sentry.workflow_engine.processors.data_condition_group import (
-    ProcessedDataConditionGroup,
-    process_data_condition_group,
-)
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation
+from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorGroupKey,
@@ -352,7 +350,7 @@ class StatefulDetectorHandler(
 
     def build_detector_evidence_data(
         self,
-        evaluation_result: ProcessedDataConditionGroup,
+        group_evaluation: DataConditionGroupEvaluation,
         data_packet: DataPacket[DataPacketType],
         priority: DetectorPriorityLevel,
     ) -> dict[str, Any]:
@@ -388,7 +386,7 @@ class StatefulDetectorHandler(
 
     def _build_workflow_engine_evidence_data(
         self,
-        evaluation_result: ProcessedDataConditionGroup,
+        group_evaluation: DataConditionGroupEvaluation,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
     ) -> dict[str, Any]:
@@ -396,12 +394,15 @@ class StatefulDetectorHandler(
         Build the workflow engine specific evidence data.
         This is data that is common to all detectors.
         """
+
         base: dict[str, Any] = {
             "detector_id": self.detector.id,
             "value": evaluation_value,
             "data_packet_source_id": str(data_packet.source_id),
             "conditions": [
-                result.condition.get_snapshot() for result in evaluation_result.condition_results
+                condition_evaluation.condition.get_snapshot()
+                for condition_evaluation in group_evaluation.result
+                if condition_evaluation.outcome.triggered
             ],
             "config": self.detector.config,
             "data_sources": self._build_evidence_data_sources(data_packet),
@@ -427,14 +428,20 @@ class StatefulDetectorHandler(
 
             self.state_manager.enqueue_dedupe_update(group_key, dedupe_value)
 
-            condition_results, evaluated_priority = self._evaluation_detector_conditions(
+            detector_trigger_evaluation, evaluated_priority = self._evaluation_detector_conditions(
                 group_data_values[group_key]
             )
 
-            if condition_results is not None and condition_results.logic_result.is_tainted():
+            if (
+                detector_trigger_evaluation is not None
+                and detector_trigger_evaluation.outcome.is_tainted()
+            ):
                 tainted = True
 
-            if condition_results is None or condition_results.logic_result.triggered is False:
+            if (
+                detector_trigger_evaluation is None
+                or detector_trigger_evaluation.outcome.triggered is False
+            ):
                 # Invalid condition result, nothing we can do
                 # Or if we didn't match any conditions in the evaluation
                 continue
@@ -478,7 +485,7 @@ class StatefulDetectorHandler(
             results[group_key] = self._build_detector_evaluation_result(
                 group_key,
                 new_priority,
-                condition_results,
+                detector_trigger_evaluation,
                 data_packet,
                 data_value,
             )
@@ -488,7 +495,7 @@ class StatefulDetectorHandler(
 
     def _create_resolve_message(
         self,
-        condition_results: ProcessedDataConditionGroup,
+        group_evaluation: DataConditionGroupEvaluation,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
         group_key: DetectorGroupKey = None,
@@ -500,12 +507,12 @@ class StatefulDetectorHandler(
 
         evidence_data = {
             **self._build_workflow_engine_evidence_data(
-                evaluation_result=condition_results,
-                data_packet=data_packet,
-                evaluation_value=evaluation_value,
+                group_evaluation,
+                data_packet,
+                evaluation_value,
             ),
             **self.build_detector_evidence_data(
-                condition_results,
+                group_evaluation,
                 data_packet,
                 DetectorPriorityLevel.OK,
             ),
@@ -548,7 +555,7 @@ class StatefulDetectorHandler(
         self,
         group_key: DetectorGroupKey,
         new_priority: DetectorPriorityLevel,
-        condition_results: ProcessedDataConditionGroup,
+        group_evaluation: DataConditionGroupEvaluation,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
     ) -> DetectorEvaluationResult:
@@ -558,7 +565,7 @@ class StatefulDetectorHandler(
         if new_priority == DetectorPriorityLevel.OK:
             # Call the `create_resolve_message` method to create the status change.
             detector_result = self._create_resolve_message(
-                condition_results,
+                group_evaluation,
                 data_packet,
                 evaluation_value,
                 group_key,
@@ -566,12 +573,12 @@ class StatefulDetectorHandler(
         else:
             # Call the `create_occurrence` method to create the detector occurrence.
             detector_occurrence, event_data = self.create_occurrence(
-                condition_results, data_packet, new_priority
+                group_evaluation, data_packet, new_priority
             )
             detector_result = self._create_decorated_issue_occurrence(
                 data_packet,
                 detector_occurrence,
-                condition_results,
+                group_evaluation,
                 new_priority,
                 group_key,
                 evaluation_value,
@@ -615,7 +622,7 @@ class StatefulDetectorHandler(
         self,
         data_packet: DataPacket[DataPacketType],
         detector_occurrence: DetectorOccurrence,
-        evaluation_result: ProcessedDataConditionGroup,
+        group_evaluation: DataConditionGroupEvaluation,
         new_priority: DetectorPriorityLevel,
         group_key: DetectorGroupKey,
         data_value: DataPacketEvaluationType,
@@ -624,7 +631,7 @@ class StatefulDetectorHandler(
         Decorate the issue occurrence with the data from the detector's evaluation result.
         """
         evidence_data = self._build_workflow_engine_evidence_data(
-            evaluation_result,
+            group_evaluation,
             data_packet,
             data_value,
         )
@@ -644,7 +651,7 @@ class StatefulDetectorHandler(
 
     def _evaluation_detector_conditions(
         self, value: DataPacketEvaluationType
-    ) -> tuple[ProcessedDataConditionGroup | None, DetectorPriorityLevel]:
+    ) -> tuple[DataConditionGroupEvaluation | None, DetectorPriorityLevel]:
         """
         Evaluate the detector.workflow_condition_group against the value in the data packet.
 
@@ -655,8 +662,9 @@ class StatefulDetectorHandler(
             metrics.incr("workflow_engine.detector.skipping_invalid_condition_group")
             return None, new_priority
 
-        condition_evaluation, remaining_slow_conditions = process_data_condition_group(
-            self.condition_group, value
+        group_evaluation, remaining_slow_conditions = process_data_condition_group(
+            self.condition_group,
+            value,
         )
         if remaining_slow_conditions:
             logger.warning(
@@ -667,17 +675,24 @@ class StatefulDetectorHandler(
                 },
             )
 
-        if condition_evaluation.logic_result.triggered:
+        if group_evaluation.outcome.triggered:
+            """
+            TODO - @saponifi3d - split the conditions results that
+            don't have a DetectorPriorityLevel result.
+
+            Log any of those conditions, as they are likely invalid / misconfigured.
+            """
             validated_condition_results: list[DetectorPriorityLevel] = [
-                condition_result.result
-                for condition_result in condition_evaluation.condition_results
-                if condition_result.result is not None
-                and isinstance(condition_result.result, DetectorPriorityLevel)
+                condition_evaluation.result
+                for condition_evaluation in group_evaluation.result
+                if condition_evaluation.outcome.triggered
+                and isinstance(condition_evaluation.result, DetectorPriorityLevel)
             ]
+
             if validated_condition_results:
                 new_priority = max(new_priority, *validated_condition_results)
 
-        return condition_evaluation, new_priority
+        return group_evaluation, new_priority
 
     def _increment_detector_thresholds(
         self,

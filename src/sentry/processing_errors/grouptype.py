@@ -27,7 +27,7 @@ from sentry.workflow_engine.handlers.detector.stateful import (
     StatefulDetectorHandler,
 )
 from sentry.workflow_engine.models import DataPacket, DetectorState
-from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorGroupKey,
@@ -127,7 +127,7 @@ class ProcessingErrorDetectorHandler(
     @override
     def create_occurrence(
         self,
-        evaluation_result: ProcessedDataConditionGroup,
+        evaluation_result: DataConditionGroupEvaluation,
         data_packet: DataPacket[ProcessingErrorPacketValue],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
@@ -179,9 +179,14 @@ class ProcessingErrorDetectorHandler(
         data_value = self.extract_value(data_packet)
         results: dict[DetectorGroupKey, DetectorEvaluationResult] = {}
 
-        condition_results, evaluated_priority = self._evaluation_detector_conditions(data_value)
+        detector_trigger_evaluations, evaluated_priority = self._evaluation_detector_conditions(
+            data_value
+        )
 
-        if condition_results is None or condition_results.logic_result.triggered is False:
+        if (
+            detector_trigger_evaluations is None
+            or detector_trigger_evaluations.outcome.triggered is False
+        ):
             return GroupedDetectorEvaluationResult(result=results, tainted=False)
 
         # Only handle triggering (FAILURE → HIGH). Resolution is handled
@@ -200,7 +205,7 @@ class ProcessingErrorDetectorHandler(
         results[None] = self._build_detector_evaluation_result(
             None,
             DetectorPriorityLevel.HIGH,
-            condition_results,
+            detector_trigger_evaluations,
             data_packet,
             data_value,
         )

@@ -17,7 +17,7 @@ from sentry.workflow_engine.handlers.detector import (
 from sentry.workflow_engine.handlers.detector.stateful import DetectorCounters
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorGroupKey,
@@ -70,7 +70,7 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict[str, Any], int | Non
 
     def create_occurrence(
         self,
-        evaluation_result: ProcessedDataConditionGroup,
+        evaluation_result: DataConditionGroupEvaluation,
         data_packet: DataPacket[dict[str, Any]],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, dict[str, Any]]:
@@ -113,7 +113,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
             def create_occurrence(
                 self,
-                evaluation_result: ProcessedDataConditionGroup,
+                evaluation_result: DataConditionGroupEvaluation,
                 data_packet: DataPacket[dict[str, Any]],
                 priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, dict[str, Any]]:
@@ -145,7 +145,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
             def create_occurrence(
                 self,
-                evaluation_result: ProcessedDataConditionGroup,
+                evaluation_result: DataConditionGroupEvaluation,
                 data_packet: DataPacket[dict[str, Any]],
                 priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, dict[str, Any]]:

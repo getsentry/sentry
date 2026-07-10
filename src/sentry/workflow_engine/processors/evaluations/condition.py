@@ -29,5 +29,6 @@ class DataConditionEvaluation(BaseWorkflowEngineEvaluation[DataConditionResult, 
     Inherits `result`, `error`, and `outcome`.
     """
 
+    result: DataConditionResult = None
     value: Any
     condition: DataCondition
