@@ -175,9 +175,10 @@ def get_available_monitoring_providers(
     organization: Organization,
     user_id: int,
 ) -> list[dict[str, Any]]:
-    """Catalog of monitoring providers the agent may propose connecting mid-run.
+    """
+    Catalog of available monitoring providers that may or may not be connected to Seer.
 
-    Omits any provider the user has permanently dismissed ("don't ask again").
+    Omits any provider that the user has permanently dismissed ("don't ask again").
     Does not mark which providers are already connected.
     """
     if not features.has("organizations:seer-infra-telemetry", organization):
