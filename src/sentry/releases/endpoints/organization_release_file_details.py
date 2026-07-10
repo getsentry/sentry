@@ -34,9 +34,9 @@ class OrganizationReleaseFileDetailsEndpoint(
 ):
     owner = ApiOwner.COMMUNITY
     publish_status = {
-        "DELETE": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
@@ -86,7 +86,8 @@ class OrganizationReleaseFileDetailsEndpoint(
         )
 
     @extend_schema(
-        operation_id="Update an Organization Release's File",
+        operation_id="updateOrganizationReleaseFile",
+        summary="Update an Organization Release File",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION, ReleaseParams.FILE_ID],
         request=ReleaseFileSerializer,
         responses={
@@ -129,7 +130,7 @@ class OrganizationReleaseFileDetailsEndpoint(
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, version, file_id) -> Response:
+    def delete(self, request: Request, organization, version, file_id) -> Response[None]:
         """
         Permanently remove a file from a release. Also removes the physical file from
         storage.

@@ -73,7 +73,6 @@ describe('SeerDrawer', () => {
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
       body: AutofixSetupFixture({
         integration: {ok: true, reason: null},
-        githubWriteIntegration: {ok: true, repos: []},
       }),
     });
     MockApiClient.addMockResponse({
@@ -114,6 +113,10 @@ describe('SeerDrawer', () => {
     });
     MockApiClient.addMockResponse({
       url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/autofix-repos/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/seer/repos/`,
       body: [],
     });
   });

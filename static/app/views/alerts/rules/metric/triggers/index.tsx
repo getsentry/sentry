@@ -121,7 +121,6 @@ export class Triggers extends Component<Props> {
           <PanelBody>
             {comparisonType === AlertRuleComparisonType.DYNAMIC ? (
               <AnomalyDetectionFormField
-                disabled={disabled}
                 sensitivity={sensitivity}
                 onSensitivityChange={onSensitivityChange}
                 thresholdType={thresholdType}
@@ -154,7 +153,6 @@ export class Triggers extends Component<Props> {
           <ActionsPanel
             disabled={disabled}
             loading={availableActions === null}
-            error={false}
             availableActions={availableActions}
             currentProject={currentProject}
             organization={organization}

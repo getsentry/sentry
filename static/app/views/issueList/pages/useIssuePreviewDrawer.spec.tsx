@@ -1,3 +1,4 @@
+import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -47,6 +48,26 @@ describe('useIssuePreviewDrawer', () => {
         billing: {hasAutofixQuota: false},
         seerReposLinked: false,
       },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/42/events/recommended/',
+      body: EventFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/42/tags/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/42/external-issues/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/42/integrations/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/42/pull-requests/',
+      body: {pullRequests: []},
     });
   });
 

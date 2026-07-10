@@ -15,7 +15,6 @@ import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 import {ScmIntegrationSelect} from './scmIntegrationSelect';
 import {ScmProviderPills} from './scmProviderPills';
 import {ScmRepoSelector} from './scmRepoSelector';
-import {useMultiPlatformDetectionTest} from './useMultiPlatformDetectionTest';
 import {useScmPlatformDetection} from './useScmPlatformDetection';
 import {useScmProviders} from './useScmProviders';
 
@@ -78,9 +77,6 @@ export function ScmIntegrationConnect({
 
   // Pre-warm platform detection so results are cached when the user advances
   useScmPlatformDetection(selectedRepository);
-
-  // Measurement call, to judge latency (no UI impact).
-  useMultiPlatformDetectionTest(selectedRepository);
 
   // Derive integration from explicit selection, falling back to the first
   // active integration so the repo selector has something to search.
@@ -200,10 +196,10 @@ export function ScmIntegrationConnect({
         </Text>
       )}
       <Flex
-        direction={{sm: 'column-reverse', md: 'row'}}
+        direction={{'screen:sm': 'column-reverse', 'screen:md': 'row'}}
         width="100%"
         gap="md"
-        align={{sm: 'start', md: 'center'}}
+        align={{'screen:sm': 'start', 'screen:md': 'center'}}
       >
         <ScmRepoSelector
           analyticsFlow={analyticsFlow}

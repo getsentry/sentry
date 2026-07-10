@@ -42,13 +42,6 @@ export function getHasAgentNameFilter(): string {
 }
 
 /**
- * Returns a search filter matching specific agent names across both fields.
- */
-export function getAgentNameSearchFilter(searchTerm: string): string {
-  return `(${SpanFields.GEN_AI_AGENT_NAME}:*${searchTerm}* OR ${SpanFields.GEN_AI_FUNCTION_ID}:*${searchTerm}*)`;
-}
-
-/**
  * Returns a search filter for an exact set of agent names, checking both fields.
  */
 export function getAgentNamesFilter(agents: string[]): string {

@@ -527,7 +527,7 @@ export function PlanFeatures({
         gap="xl"
         direction="column"
       >
-        <Grid columns={{xs: '1fr', sm: 'repeat(2, 1fr)'}} gap="xl">
+        <Grid columns={{'screen:xs': '1fr', 'screen:sm': 'repeat(2, 1fr)'}} gap="xl">
           <MonitoringAndDataFeatures planOptions={planOptions} activePlan={activePlan} />
           <ExpansionPackFeatures activePlan={activePlan} />
         </Grid>

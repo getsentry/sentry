@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {
+  PreprodAppInfoFixture,
   PreprodBuildDetailsWithSizeInfoFixture,
   PreprodVcsInfoFullFixture,
 } from 'sentry-fixture/preprod';
@@ -153,6 +154,55 @@ describe('BuildDetails', () => {
 
     expect(await screen.findByText('v1.0.0 (123)')).toBeInTheDocument();
     expect(await screen.findByText('Build Metadata')).toBeInTheDocument();
+  });
+
+  it('prefers build_number_raw over the synthesized build_number', async () => {
+    MockApiClient.clearMockResponses();
+
+    MockApiClient.addMockResponse({
+      url: QUOTA_STATE_URL,
+      method: 'GET',
+      body: {hasSizeQuota: true, hasDistributionQuota: true},
+    });
+
+    MockApiClient.addMockResponse({
+      url: BUILD_DETAILS_URL,
+      method: 'GET',
+      body: PreprodBuildDetailsWithSizeInfoFixture(
+        {
+          state: BuildDetailsSizeAnalysisState.COMPLETED,
+          size_metrics: [
+            {
+              metrics_artifact_type: MetricsArtifactType.MAIN_ARTIFACT,
+              install_size_bytes: 1024000,
+              download_size_bytes: 512000,
+            },
+          ],
+          base_size_metrics: [],
+        },
+        {
+          app_info: PreprodAppInfoFixture({
+            build_number: '1000002000003',
+            build_number_raw: '1.2.3',
+          }),
+          vcs_info: PreprodVcsInfoFullFixture(),
+        }
+      ),
+    });
+
+    MockApiClient.addMockResponse({
+      url: SIZE_ANALYSIS_URL,
+      method: 'GET',
+      body: createMockSizeAnalysisData(),
+    });
+
+    render(<BuildDetails />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByText('v1.0.0 (1.2.3)')).toBeInTheDocument();
+    expect(screen.queryByText('v1.0.0 (1000002000003)')).not.toBeInTheDocument();
   });
 
   it('shows "Your app is still being analyzed..." text when size analysis is processing', async () => {

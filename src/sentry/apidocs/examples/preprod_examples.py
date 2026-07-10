@@ -350,6 +350,7 @@ class PreprodExamples:
         "image_file_name": "home_screen_iphone15.png",
         "width": 1170,
         "height": 2532,
+        "canvas_theme": "dark",
     }
 
     EXAMPLE_SNAPSHOT_DETAILS_DIFF = {
@@ -467,7 +468,7 @@ class PreprodExamples:
         "image_file_name": "home_screen_iphone15.png",
         "comparison_status": "changed",
         "head_image": {
-            "content_hash": "a1b2c3d4e5f6",
+            "key": "a1b2c3d4e5f6",
             "display_name": "Home Screen",
             "group": "iPhone 15",
             "image_file_name": "home_screen_iphone15.png",
@@ -476,10 +477,11 @@ class PreprodExamples:
             "diff_threshold": 0.01,
             "description": None,
             "tags": None,
+            "canvas_theme": "dark",
             "image_url": "/api/0/projects/org-slug/project-slug/files/images/a1b2c3d4e5f6/",
         },
         "base_image": {
-            "content_hash": "old_hash_123",
+            "key": "old_hash_123",
             "display_name": "Home Screen",
             "group": "iPhone 15",
             "image_file_name": "home_screen_iphone15.png",
@@ -488,6 +490,7 @@ class PreprodExamples:
             "diff_threshold": 0.01,
             "description": None,
             "tags": None,
+            "canvas_theme": "dark",
             "image_url": "/api/0/projects/org-slug/project-slug/files/images/old_hash_123/",
         },
         "diff_image_url": "/api/0/projects/org-slug/project-slug/files/images/diff_hash_456/",
@@ -499,7 +502,7 @@ class PreprodExamples:
         "image_file_name": "new_screen.png",
         "comparison_status": "added",
         "head_image": {
-            "content_hash": "new_hash_789",
+            "key": "new_hash_789",
             "display_name": "New Screen",
             "group": "iPhone 15",
             "image_file_name": "new_screen.png",
@@ -508,6 +511,7 @@ class PreprodExamples:
             "diff_threshold": None,
             "description": None,
             "tags": None,
+            "canvas_theme": "light",
             "image_url": "/api/0/projects/org-slug/project-slug/files/images/new_hash_789/",
         },
         "base_image": None,
@@ -545,6 +549,7 @@ class PreprodExamples:
                 "image_file_name": "home_screen_iphone15.png",
                 "width": 1170,
                 "height": 2532,
+                "canvas_theme": "dark",
                 "image_url": "/api/0/projects/org-slug/my-project/files/images/a1b2c3d4e5f6/",
             },
         ],

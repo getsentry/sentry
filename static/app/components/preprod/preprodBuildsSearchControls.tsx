@@ -72,8 +72,8 @@ export function PreprodBuildsSearchControls({
 }: PreprodBuildsSearchControlsProps) {
   return (
     <Flex
-      align={{xs: 'stretch', sm: 'center'}}
-      direction={{xs: 'column', sm: 'row'}}
+      align={{'screen:xs': 'stretch', 'screen:sm': 'center'}}
+      direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
       gap="md"
       wrap="wrap"
     >

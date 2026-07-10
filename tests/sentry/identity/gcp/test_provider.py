@@ -15,6 +15,7 @@ from django.test import Client, RequestFactory
 import sentry.identity
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.identity.gcp.provider import (
+    GCP_MCP_URLS,
     GCPIdentityProvider,
     GCPOAuth2LoginView,
 )
@@ -90,7 +91,7 @@ class GCPOAuth2LoginViewTest(TestCase):
 
 
 @control_silo_test
-class GCPIdentityProviderBuildIdentityTest(TestCase):
+class GCPIdentityProviderTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.provider = GCPIdentityProvider()
@@ -123,22 +124,32 @@ class GCPIdentityProviderBuildIdentityTest(TestCase):
     def test_build_identity_name_falls_back_to_email(self) -> None:
         id_token = _make_id_token({"sub": "google-user-123", "email": "user@example.com"})
         result = self.provider.build_identity(
-            {"data": {"id_token": id_token, "access_token": "token"}}
+            {"data": {"id_token": id_token, "access_token": "token", "refresh_token": "token"}}
         )
         assert result["name"] == "user@example.com"
 
+    def test_build_identity_missing_refresh_token(self) -> None:
+        with pytest.raises(IdentityNotValid, match="Missing refresh_token"):
+            self.provider.build_identity({"data": {"id_token": "token", "access_token": "token"}})
+
     def test_build_identity_missing_id_token(self) -> None:
         with pytest.raises(IdentityNotValid, match="Missing id_token"):
-            self.provider.build_identity({"data": {"access_token": "token"}})
+            self.provider.build_identity(
+                {"data": {"access_token": "token", "refresh_token": "token"}}
+            )
 
     def test_build_identity_missing_sub(self) -> None:
         id_token = _make_id_token({"email": "user@example.com"})
         with pytest.raises(IdentityNotValid, match="Missing sub claim"):
-            self.provider.build_identity({"data": {"id_token": id_token, "access_token": "token"}})
+            self.provider.build_identity(
+                {"data": {"id_token": id_token, "access_token": "token", "refresh_token": "token"}}
+            )
 
     def test_build_identity_malformed_jwt(self) -> None:
         with pytest.raises(IdentityNotValid, match="Unable to decode id_token"):
-            self.provider.build_identity({"data": {"id_token": "not-a-jwt"}})
+            self.provider.build_identity(
+                {"data": {"id_token": "not-a-jwt", "refresh_token": "token"}}
+            )
 
     def test_build_identity_invalid_json_payload(self) -> None:
         header = base64.urlsafe_b64encode(b"{}").rstrip(b"=").decode()
@@ -146,14 +157,9 @@ class GCPIdentityProviderBuildIdentityTest(TestCase):
         bad_token = f"{header}.{payload}.sig"
 
         with pytest.raises(IdentityNotValid, match="Unable to decode id_token payload"):
-            self.provider.build_identity({"data": {"id_token": bad_token}})
-
-
-@control_silo_test
-class GCPIdentityProviderRefreshTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.provider = GCPIdentityProvider()
+            self.provider.build_identity(
+                {"data": {"id_token": bad_token, "refresh_token": "token"}}
+            )
 
     def test_get_refresh_token_url(self) -> None:
         assert self.provider.get_refresh_token_url() == TOKEN_URL
@@ -174,6 +180,17 @@ class GCPIdentityProviderRefreshTest(TestCase):
             "client_id": "my-client-id",
             "client_secret": "my-client-secret",
         }
+
+    def test_build_mcp_urls(self) -> None:
+        urls = self.provider.build_mcp_urls({})
+        assert urls == list(GCP_MCP_URLS)
+        assert len(urls) == 3
+        assert "https://logging.googleapis.com/mcp" in urls
+        assert "https://monitoring.googleapis.com/mcp" in urls
+        assert "https://cloudtrace.googleapis.com/mcp" in urls
+
+    def test_build_mcp_urls_ignores_identity_data(self) -> None:
+        assert self.provider.build_mcp_urls({"some_key": "some_value"}) == list(GCP_MCP_URLS)
 
 
 class GCPTestProvider(DummyProvider):

@@ -32,6 +32,7 @@ from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils import snuba
 from sentry.utils.dates import parse_timestamp
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
 
@@ -71,7 +72,7 @@ def _save_split_decision_for_widget(
     widget.save()
 
 
-@sentry_sdk.trace
+@trace
 def _get_and_save_split_decision_for_dashboard_widget(
     widget_query: DashboardWidgetQuery, dry_run: bool
 ) -> tuple[int, bool]:

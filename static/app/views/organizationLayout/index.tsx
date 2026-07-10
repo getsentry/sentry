@@ -103,7 +103,7 @@ function AppLayout({organization}: LayoutProps) {
           flex="1"
           minWidth="0"
           minHeight="0"
-          direction={{sm: 'column', md: 'row'}}
+          direction={{'screen:sm': 'column', 'screen:md': 'row'}}
           position="relative"
         >
           <Navigation />
@@ -115,6 +115,7 @@ function AppLayout({organization}: LayoutProps) {
               flex="1"
               minWidth="0"
               background="secondary"
+              containerType="inline-size"
             >
               <DemoHeader />
               {organization && <OrganizationHeader organization={organization} />}

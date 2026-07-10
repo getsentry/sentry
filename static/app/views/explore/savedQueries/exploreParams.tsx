@@ -19,6 +19,7 @@ const MORE_TOKENS_WIDTH = 32;
 type SingleQueryProps = {
   query: string;
   visualizes: BaseVisualize[];
+  agent?: string[];
   groupBys?: string[]; // This needs to be passed in because saveQuery relies on being within the Explore PageParamsContext to fetch params
 };
 
@@ -26,6 +27,7 @@ export function ExploreParams({
   query,
   visualizes,
   groupBys,
+  agent,
   className,
 }: SingleQueryProps & {className?: string}) {
   const yAxes = visualizes.flatMap(visualize => visualize.yAxes);
@@ -112,6 +114,20 @@ export function ExploreParams({
           </Flex>
         );
       });
+  }
+  if (agent && agent.length > 0) {
+    tokens.push(
+      <Flex as="span" wrap="wrap" gap="xs" overflow="hidden" key="agent">
+        <ExploreParamTitle>{t('Agent')}</ExploreParamTitle>
+      </Flex>
+    );
+    agent.forEach((agentName, index) => {
+      tokens.push(
+        <Flex as="span" wrap="wrap" gap="xs" overflow="hidden" key={`agent-${index}`}>
+          <ExploreVisualizes>{agentName}</ExploreVisualizes>
+        </Flex>
+      );
+    });
   }
   if (groupBys && groupBys.length > 0) {
     tokens.push(

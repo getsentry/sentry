@@ -80,6 +80,38 @@ describe('getWidgetExploreUrl', () => {
     });
   });
 
+  it('includes the timestamp column when a logs widget has a group-by column', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.LOGS,
+      queries: [
+        WidgetQueryFixture({
+          fields: ['message', 'count()'],
+          aggregates: ['count()'],
+          columns: ['message'],
+          conditions: '',
+          orderby: '-count()',
+        }),
+      ],
+    });
+
+    const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+
+    expectUrl(url).toMatch({
+      path: '/organizations/org-slug/explore/logs/',
+      params: [
+        ['aggregateField', '{"chartType":1,"yAxes":["count(message)"]}'],
+        ['interval', '3h'],
+        ['logsFields', 'timestamp'],
+        ['logsFields', 'message'],
+        ['logsGroupBy', 'message'],
+        ['mode', 'aggregate'],
+        ['project', ''],
+        ['statsPeriod', '14d'],
+      ],
+    });
+  });
+
   it('returns the correct aggregate mode url for table widgets with equations sort', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.TABLE,
@@ -363,6 +395,37 @@ describe('getWidgetExploreUrl', () => {
 
     const url = getWidgetExploreUrl(widget, undefined, selection, organization);
     expect(url).toBeNull();
+  });
+
+  it('preserves timestamp column and sort when opening in explore', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          fields: ['span.description', 'timestamp'],
+          aggregates: [],
+          columns: ['span.description', 'timestamp'],
+          conditions: '',
+          orderby: '-timestamp',
+          name: '',
+        },
+      ],
+    });
+
+    const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+
+    expectUrl(url).toMatch({
+      path: '/organizations/org-slug/explore/traces/',
+      params: [
+        ['field', 'timestamp'],
+        ['field', 'span.description'],
+        ['interval', '30m'],
+        ['mode', 'samples'],
+        ['sort', '-timestamp'],
+        ['statsPeriod', '14d'],
+        ['project', ''],
+      ],
+    });
   });
 
   it('adds referrer query parameter if provided', () => {

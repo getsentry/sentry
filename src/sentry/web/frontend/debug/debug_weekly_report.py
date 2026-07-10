@@ -111,6 +111,10 @@ class DebugWeeklyReportView(MailPreviewView):
                 start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum)
                 for i in range(0, 7)
             }
+            project_context.issue_count_by_day = {
+                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum // 10)
+                for i in range(0, 7)
+            }
 
             project_context.accepted_error_count = sum(project_context.error_count_by_day.values())
             project_context.accepted_transaction_count = sum(
@@ -159,18 +163,10 @@ class DebugWeeklyReportView(MailPreviewView):
                 + project_context.regression_substatus_count
                 + project_context.ongoing_substatus_count
             )
+            project_context.prev_week_total_substatus_count = int(
+                project_context.total_substatus_count * random.uniform(0.5, 1.5)
+            )
 
-            # Array of (transaction_name, count_this_week, p95_this_week, count_last_week, p95_last_week)
-            project_context.key_transactions = [
-                (
-                    f"/test/transaction{random.randint(0, 3)}",
-                    random.randint(0, 1000),
-                    random.random() * 100,
-                    random.randint(0, 1000),
-                    random.random() * 100,
-                )
-                for _ in range(0, 3)
-            ]
             performance_issue_types = [
                 PerformanceSlowDBQueryGroupType,
                 PerformanceNPlusOneGroupType,

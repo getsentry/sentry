@@ -967,7 +967,6 @@ function IssueListOverviewInner({
           onActionTaken={onActionTaken}
         />
         <IssueViewsHeader
-          selectedProjectIds={selection.projects}
           title={title}
           description={titleDescription}
           realtimeActive={realtimeActive}
@@ -975,7 +974,7 @@ function IssueListOverviewInner({
           headerActions={headerActions}
         />
         <StyledBody>
-          <Grid area="content" padding={{sm: 'md lg', md: 'lg xl'}}>
+          <Grid area="content" padding={{'screen:sm': 'md lg', 'screen:md': 'lg xl'}}>
             <IssuesDataConsentBanner source="issues" />
             <IssueListFilters
               query={query}
@@ -995,7 +994,6 @@ function IssueListOverviewInner({
               allResultsVisible={allResultsVisible()}
               displayReprocessingActions={displayReprocessingActions}
               memberList={memberList}
-              selectedProjectIds={selection.projects}
               issuesLoading={issuesLoading || supergroupsLoading}
               statsLoading={statsLoading}
               supergroupLookup={supergroupLookup}

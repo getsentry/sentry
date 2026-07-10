@@ -1187,10 +1187,7 @@ export class EventView {
   }
 
   // Takes an EventView instance and converts it into the format required for the events API
-  getEventsAPIPayload(
-    location: Location,
-    forceAppendRawQueryString?: string
-  ): EventQuery & LocationQuery {
+  getEventsAPIPayload(location: Location): EventQuery & LocationQuery {
     // pick only the query strings that we care about
     const picked = pickRelevantLocationQueryStrings(location);
 
@@ -1208,10 +1205,7 @@ export class EventView {
     const project = this.project.map(String);
     const environment = this.environment as string[];
 
-    let queryString = this.getQueryWithAdditionalConditions();
-    if (forceAppendRawQueryString) {
-      queryString += ' ' + forceAppendRawQueryString;
-    }
+    const queryString = this.getQueryWithAdditionalConditions();
 
     // generate event query
     const eventQuery = Object.assign(

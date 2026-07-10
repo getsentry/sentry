@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from datetime import datetime
 from functools import partial
 
 import orjson
@@ -156,42 +155,42 @@ class DetectPerformanceIssuesStrategyFactory(ProcessingStrategyFactory[KafkaPayl
         self.pool.close()
 
 
+def _process_segment_bytes(segment_bytes: bytes, skip_produce: bool = False) -> list[KafkaPayload]:
+    segment = orjson.loads(segment_bytes)
+    skip_enrichment = segment.get("skip_enrichment", False)
+    processed = process_segment(
+        segment["spans"], skip_produce=skip_produce, skip_enrichment=skip_enrichment
+    )
+    processed = _check_span_duplicates(processed)
+    return [_serialize_payload(span) for span in processed]
+
+
 def _process_message(
     message: Message[KafkaPayload], skip_produce: bool = False
 ) -> list[Value[KafkaPayload]]:
-    if not options.get("spans.process-segments.consumer.enable"):
-        return []
-
     assert isinstance(message.value, BrokerValue)
 
     try:
         value = message.payload.value
-        segment = orjson.loads(value)
-        skip_enrichment = segment.get("skip_enrichment", False)
-        processed = process_segment(
-            segment["spans"], skip_produce=skip_produce, skip_enrichment=skip_enrichment
-        )
-        processed = _check_span_duplicates(processed)
-        return [_serialize_payload(span, message.timestamp) for span in processed]
+        return [
+            Value(payload, {}, message.timestamp)
+            for payload in _process_segment_bytes(value, skip_produce=skip_produce)
+        ]
     except Exception:
         logger.exception("segments.invalid-message")
         raise InvalidMessage(message.value.partition, message.value.offset)
 
 
-def _serialize_payload(span: CompatibleSpan, timestamp: datetime | None) -> Value[KafkaPayload]:
+def _serialize_payload(span: CompatibleSpan) -> KafkaPayload:
     item = convert_span_to_item(span)
 
-    return Value(
-        KafkaPayload(
-            None,
-            item.SerializeToString(),
-            [
-                ("item_type", str(item.item_type).encode("ascii")),
-                ("project_id", str(span["project_id"]).encode("ascii")),
-            ],
-        ),
-        {},
-        timestamp,
+    return KafkaPayload(
+        None,
+        item.SerializeToString(),
+        [
+            ("item_type", str(item.item_type).encode("ascii")),
+            ("project_id", str(span["project_id"]).encode("ascii")),
+        ],
     )
 
 

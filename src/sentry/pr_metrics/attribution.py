@@ -43,6 +43,18 @@ SIGNAL_TYPE_CONFIDENCE: dict[str, int] = {
 }
 
 
+class SentryAppSignalDetails(BaseModel):
+    """Typed signal_details for SENTRY_APP attribution signals.
+
+    Populated by both the GitHub webhook path and the Seer pr_created event.
+    Fields that are unavailable at a given source are left at their defaults.
+    """
+
+    pr_url: str
+    group_ids: list[int] = []
+    run_id: int | None = None
+
+
 class DelegatedAgentSignalDetails(BaseModel):
     """Typed signal_details for SEER_DELEGATED_* attribution signals."""
 
@@ -237,7 +249,11 @@ def attribute_seer_created_pull_requests(
             pr_number=pr_number,
             signal_type=PullRequestAttributionSignalType.SENTRY_APP,
             source=PullRequestAttributionSource.SEER_DATA,
-            signal_details={"run_id": run_id, "group_id": group_id, "pr_url": pr_url},
+            signal_details=SentryAppSignalDetails(
+                pr_url=pr_url or "",
+                group_ids=[int(group_id)] if group_id is not None else [],
+                run_id=int(run_id) if run_id is not None else None,
+            ).dict(),
             log_context=log_context,
         )
 

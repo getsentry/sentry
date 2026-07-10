@@ -35,6 +35,15 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
   );
   const displayYouAreHere = filteredTimelineEvents.length !== timelineEvents.length;
   const hasTitle = filteredTimelineEvents.length > 1 || displayYouAreHere;
+  const traceTargetLocation = area.startsWith('issue_details')
+    ? {
+        ...location,
+        query: {
+          groupId: event.groupID,
+          referrer: location.query.referrer,
+        },
+      }
+    : location;
 
   return (
     <UnstyledUnorderedList>
@@ -54,7 +63,7 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
       {filteredTimelineEvents.length > 3 && (
         <TraceItem>
           <Link
-            to={generateTraceTarget(event, organization, location)}
+            to={generateTraceTarget(event, organization, traceTargetLocation)}
             onClick={() => {
               if (area.startsWith('issue_details')) {
                 // Track this event for backwards compatibility. TODO: remove after issues team dashboards/queries are migrated

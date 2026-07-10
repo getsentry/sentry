@@ -1,6 +1,8 @@
-import type React from 'react';
+import React, {useMemo} from 'react';
+import {useRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import {mergeRefs} from '@react-aria/utils';
 
 import type {
   BorderVariant,
@@ -10,6 +12,7 @@ import type {
 } from 'sentry/utils/theme';
 
 import {
+  ContainerQueryProvider,
   getBorder,
   getMargin,
   getRadius,
@@ -60,6 +63,21 @@ interface ContainerLayoutProps {
   cursor?: Responsive<React.CSSProperties['cursor']>;
 
   contain?: Responsive<React.CSSProperties['contain']>;
+
+  /**
+   * Declares this element as a query container, so descendants' container
+   * responsive props (bare breakpoint keys like `{xs: …}`) resolve against its
+   * size. Maps to the CSS `container-type`.
+   *
+   * Prefer `inline-size`: it only contains the inline (width) axis, so height
+   * still flows from content. `size` additionally contains the block axis, so
+   * the element must get its height from elsewhere or its content collapses —
+   * only reach for it when you genuinely need height-based queries. `normal`
+   * (the default) means the element is not a size query container, so
+   * descendants resolve against the next container up — equivalent to omitting
+   * the prop.
+   */
+  containerType?: 'inline-size' | 'size' | 'normal';
 
   radius?: Responsive<Shorthand<RadiusSize, 4>>;
 
@@ -165,26 +183,34 @@ export type ContainerProps<T extends ContainerElement = 'div'> = ContainerLayout
     'style'
   >;
 
-export type ContainerPropsWithRenderFunction<T extends ContainerElement = 'div'> =
-  ContainerLayoutProps & {
-    children: (props: {className: string}) => React.ReactNode | undefined;
-    as?: never;
-    htmlFor?: never;
-    ref?: never;
-  } & Partial<
-      Record<
-        // HTMLAttributes extends from DOMAttributes which types children as React.ReactNode | undefined.
-        // Therefore, we need to exclude it from the map, or the children will produce a never type.
-        Exclude<
-          keyof React.DetailedHTMLProps<
-            React.HTMLAttributes<HTMLElementTagNameMap[T]>,
-            HTMLElementTagNameMap[T]
-          >,
-          'children'
+export type ContainerPropsWithRenderFunction<T extends ContainerElement = 'div'> = Omit<
+  ContainerLayoutProps,
+  'containerType'
+> & {
+  children: (props: {className: string}) => React.ReactNode | undefined;
+  as?: never;
+  /**
+   * Declaring a query container is not supported with the render-prop form: the
+   * styled component must own the DOM node to observe it for JS resolution,
+   * which the render prop hands to the caller. Use the standard children form.
+   */
+  containerType?: never;
+  htmlFor?: never;
+  ref?: never;
+} & Partial<
+    Record<
+      // HTMLAttributes extends from DOMAttributes which types children as React.ReactNode | undefined.
+      // Therefore, we need to exclude it from the map, or the children will produce a never type.
+      Exclude<
+        keyof React.DetailedHTMLProps<
+          React.HTMLAttributes<HTMLElementTagNameMap[T]>,
+          HTMLElementTagNameMap[T]
         >,
-        never
-      >
-    >;
+        'children'
+      >,
+      never
+    >
+  >;
 
 const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'alignSelf',
@@ -245,17 +271,45 @@ export const Container = styled(
       className?: string;
     }
   ) => {
+    // Hooks must run unconditionally, before the render-prop early return.
+    const containerRef = useRef<HTMLElement>(null);
+    const {as, containerType, ref, ...rest} = props;
+
+    // A query container needs its size observed in JS so descendants can resolve
+    // container-mode responsive props (e.g. Stack orientation). We only attach a
+    // ref + observer when this element is actually a container, keeping the
+    // common (non-container) path free of any ResizeObserver overhead.
+    const isContainer = !!containerType && containerType !== 'normal';
+
+    const containerRefs = useMemo(
+      () => (isContainer ? mergeRefs(ref as React.Ref<any>, containerRef) : ref),
+      [isContainer, ref]
+    );
+
     if (typeof props.children === 'function') {
       // When using render prop, only pass className to the child function
       return props.children({className: props.className ?? ''});
     }
 
-    const {as, ...rest} = props;
     const Component = as ?? 'div';
-    return <Component {...(rest as any)} />;
+
+    const node = <Component {...(rest as any)} ref={containerRefs} />;
+
+    if (isContainer) {
+      return (
+        <ContainerQueryProvider elementRef={containerRef}>{node}</ContainerQueryProvider>
+      );
+    }
+
+    return node;
   },
   {
     shouldForwardProp: prop => {
+      // containerType must reach the inner component to wire up the query
+      // container; it is stripped there so it never lands on the DOM.
+      if (prop === 'containerType') {
+        return true;
+      }
       if (omitContainerProps.has(prop as keyof ContainerLayoutProps | 'as')) {
         return false;
       }
@@ -263,6 +317,8 @@ export const Container = styled(
     },
   }
 )<ContainerProps<any> | ContainerPropsWithRenderFunction<any>>`
+  ${p => rc('container-type', p.containerType, p.theme)};
+
   ${p => rc('display', p.display, p.theme)};
   ${p => rc('position', p.position, p.theme)};
 

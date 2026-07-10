@@ -97,7 +97,6 @@ type LogsTableProps = {
     event?: Event;
     scrollToDisabled?: boolean;
   };
-  allowPagination?: boolean;
   booleanAttributes?: TagCollection;
   embedded?: boolean;
   embeddedOptions?: {
@@ -476,7 +475,7 @@ export function LogsInfiniteTable({
   );
 
   const renderRow = useCallback(
-    (dataRow: LogTableRowItem) => {
+    (dataRow: OurLogsResponseItem) => {
       const rowId = dataRow[OurLogKnownFieldKey.ID];
       const pinnedExpandKey = `pinned-${rowId}`;
       return (
@@ -565,7 +564,7 @@ export function LogsInfiniteTable({
         )}
         {!isPending && logsPinning && (
           <PinnedLogs
-            allRows={data}
+            allRows={data as OurLogsResponseItem[]}
             logsPinning={logsPinning}
             pinnedLogsQuery={pinnedLogsQuery}
             renderRow={renderRow}
@@ -622,7 +621,7 @@ export function LogsInfiniteTable({
             return (
               <Fragment key={virtualRow.key}>
                 <LogRowContent
-                  dataRow={dataRow}
+                  dataRow={dataRow as OurLogsResponseItem}
                   meta={meta}
                   highlightTerms={highlightTerms}
                   embedded={embedded}

@@ -121,6 +121,7 @@
 ## Dev
 /devenv/                                                 @getsentry/owners-sentry-dev @getsentry/dev-infra
 /devservices/                                            @getsentry/owners-sentry-dev @getsentry/dev-infra
+/devservices/config/taskbroker.yml                       @getsentry/streaming-platform
 /.github/                                                @getsentry/owners-sentry-dev
 /config/hooks/                                           @getsentry/owners-sentry-dev
 /scripts/                                                @getsentry/owners-sentry-dev
@@ -364,6 +365,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/insights/                                               @getsentry/dashboards
 
 /static/app/views/dashboards/                                             @getsentry/dashboards
+/static/app/utils/dashboards/                                             @getsentry/dashboards
 /static/app/components/modals/widgetViewerModal*                          @getsentry/dashboards
 
 /static/app/views/discover/                                               @getsentry/explore
@@ -371,6 +373,12 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/utils/discover/                                               @getsentry/explore
 /static/app/utils/timeSeries/                                             @getsentry/data-browsing
 ## Endof Visibility
+
+## Data Browsing Migration Tests
+/tests/sentry/migrations/test_1125_transactions_to_spans_alerts_self_hosted.py @getsentry/data-browsing
+/tests/sentry/migrations/test_1126_transactions_to_spans_widgets_self_hosted.py @getsentry/data-browsing
+/tests/sentry/migrations/test_1127_discover_to_explore_queries_self_hosted.py @getsentry/data-browsing
+## End of Data Browsing Migration Tests
 
 
 ## Profiling

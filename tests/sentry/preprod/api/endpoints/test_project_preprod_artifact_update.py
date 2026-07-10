@@ -527,6 +527,41 @@ class ProjectPreprodArtifactUpdateEndpointTest(TestCase):
         assert mobile_app_info.app_icon_id is None
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_stores_build_number_raw(self) -> None:
+        data = {
+            "build_version": "1.2.3",
+            "build_number": 1_000_002_000_003,
+            "build_number_raw": "1.2.3",
+        }
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        mobile_app_info = PreprodArtifactMobileAppInfo.objects.get(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert mobile_app_info.build_number == 1_000_002_000_003
+        assert mobile_app_info.extras == {"build_number_raw": "1.2.3"}
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
+    def test_update_preprod_artifact_build_number_raw_merges_into_existing_extras(self) -> None:
+        self.create_preprod_artifact_mobile_app_info(
+            self.preprod_artifact,
+            extras={"some_other_key": "keep-me"},
+        )
+
+        data = {"build_number_raw": "1.2.3"}
+        response = self._make_request(data)
+
+        assert response.status_code == 200
+        mobile_app_info = PreprodArtifactMobileAppInfo.objects.get(
+            preprod_artifact=self.preprod_artifact
+        )
+        assert mobile_app_info.extras == {
+            "some_other_key": "keep-me",
+            "build_number_raw": "1.2.3",
+        }
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=["test-secret-key"])
     def test_update_preprod_artifact_returns_requested_features(self) -> None:
         """Test that the response includes requestedFeatures with both features by default."""
         data = {"artifact_type": 1}
