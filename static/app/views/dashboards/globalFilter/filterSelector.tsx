@@ -49,6 +49,7 @@ import {
   getFilterToken,
   NO_VALUE_SENTINEL,
   NO_VALUE_SUPPORTED_OPERATORS,
+  operatorFromNoValueToken,
   parseFilterValue,
   stripUnsupportedNoValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
@@ -119,11 +120,7 @@ export function FilterSelector({
 
     // The "(no value)" token has no value, so you can't derive an operator from getOperatorInfo.
     const noValueOperator =
-      !filterToken && noValueToken
-        ? noValueToken.negated
-          ? TermOperator.DEFAULT
-          : TermOperator.NOT_EQUAL
-        : null;
+      !filterToken && noValueToken ? operatorFromNoValueToken(noValueToken) : undefined;
 
     return {
       initialOperator: noValueOperator ?? operatorInfo?.operator ?? TermOperator.DEFAULT,
@@ -245,6 +242,16 @@ export function FilterSelector({
       return noValueOption;
     };
 
+    const prependNoValueOption = (
+      opts: Array<SelectOption<string>>
+    ): Array<SelectOption<string>> => {
+      const noValueOption = buildNoValueOption();
+      if (noValueOption) {
+        opts.unshift(noValueOption);
+      }
+      return opts;
+    };
+
     if (predefinedValues && !canSelectMultipleValues) {
       const predefinedOptions: Array<SelectOption<string>> = predefinedValues.flatMap(
         section =>
@@ -253,11 +260,7 @@ export function FilterSelector({
             value: suggestion.value,
           }))
       );
-      const noValueOption = buildNoValueOption();
-      if (noValueOption) {
-        predefinedOptions.unshift(noValueOption);
-      }
-      return predefinedOptions;
+      return prependNoValueOption(predefinedOptions);
     }
 
     const optionMap = new Map<string, SelectOption<string>>();
@@ -319,17 +322,7 @@ export function FilterSelector({
         addOption(value, fixedOptionMap);
       }
     });
-    const allOptions = [
-      ...Array.from(fixedOptionMap.values()),
-      ...Array.from(optionMap.values()),
-    ];
-
-    const noValueOption = buildNoValueOption();
-    if (noValueOption) {
-      allOptions.unshift(noValueOption);
-    }
-
-    return allOptions;
+    return prependNoValueOption([...fixedOptionMap.values(), ...optionMap.values()]);
   }, [
     fetchedFilterValues,
     predefinedValues,
@@ -388,11 +381,7 @@ export function FilterSelector({
     }
 
     const newValue = includeNoValue
-      ? buildNoValueFilterQuery(
-          globalFilter.tag.key,
-          stagedOperator,
-          valueQuery || undefined
-        )
+      ? buildNoValueFilterQuery(globalFilter.tag.key, stagedOperator, valueQuery)
       : valueQuery;
 
     onUpdateFilter({

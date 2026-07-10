@@ -209,6 +209,10 @@ function isNegatedOperator(operator: TermOperator): boolean {
   );
 }
 
+export function operatorFromNoValueToken(token: TokenResult<Token.FILTER>): TermOperator {
+  return token.negated ? TermOperator.DEFAULT : TermOperator.NOT_EQUAL;
+}
+
 // Strip 'no value' as an option for operators that don't support this
 export function stripUnsupportedNoValue(
   values: string[],
