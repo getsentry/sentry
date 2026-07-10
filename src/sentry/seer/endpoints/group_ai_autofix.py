@@ -400,6 +400,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         run_id=resolved_run_id,
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
+                        user=request.user,
                     )
                 except NoSeerQuotaException:
                     return Response(

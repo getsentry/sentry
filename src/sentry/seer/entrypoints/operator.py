@@ -218,6 +218,7 @@ class SeerAutofixOperator[CachePayloadT]:
                         step=AutofixStep.ROOT_CAUSE,
                         referrer=AutofixReferrer.SLACK,
                         run_id=None,
+                        user=user,
                     )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                     trigger_push_changes(
@@ -235,6 +236,7 @@ class SeerAutofixOperator[CachePayloadT]:
                         step=AutofixStep.from_autofix_stopping_point(stopping_point),
                         referrer=AutofixReferrer.SLACK,
                         run_id=run_id,
+                        user=user,
                     )
             except NoSeerQuotaException:
                 error = "No budget for Seer Autofix"
