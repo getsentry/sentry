@@ -36,12 +36,6 @@ def _state(agent_id: str = "agent-123", agent_url: str | None = None) -> CodingA
 
 
 class FakeCodingAgentInstallation:
-    """Minimal stand-in for CodingAgentIntegration.launch(). launch_coding_agents only
-    ever calls installation.launch(request), so this doesn't need to be a real
-    (Django-integration-backed) IntegrationInstallation subclass -- just something
-    that implements the one method actually exercised, for real.
-    """
-
     def __init__(self, *results: CodingAgentState | Exception) -> None:
         self._results = list(results)
         self.launch_calls: list[CodingAgentLaunchRequest] = []
@@ -96,9 +90,6 @@ class TestLaunchCodingAgents(TestCase):
     def test_handoff_row_created_per_repo_before_seer_store(
         self, mock_validate, mock_store, mock_create_handoff
     ):
-        """Each repo's handoff row is created immediately after its own launch, not
-        batched after the loop -- a webhook can arrive as soon as launch() returns,
-        before Seer even knows about later repos or this run at all."""
         call_order: list[str] = []
         mock_create_handoff.side_effect = lambda *a, **k: call_order.append("create_handoff")
         mock_store.side_effect = lambda *a, **k: call_order.append("store_to_seer")
@@ -125,8 +116,6 @@ class TestLaunchCodingAgents(TestCase):
     def test_successful_launch_persists_seer_run_coding_agent_handoff_row(
         self, mock_validate, mock_store
     ):
-        """End-to-end: a successful launch against a real SeerRun mirror row
-        creates a matching SeerRunCodingAgentHandoff."""
         seer_run = self.create_seer_run(self.organization, seer_run_state_id=self.run_id)
         installation = FakeCodingAgentInstallation(
             _state("agent-123", agent_url="https://cursor.sh/agent")
@@ -150,9 +139,6 @@ class TestLaunchCodingAgents(TestCase):
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_marks_handoffs_failed_when_seer_storage_errors(self, mock_validate, mock_store):
-        """If Seer never learns about a launched agent at all, GitHub Copilot/Claude
-        polls will never discover it to check on later -- the row must not sit at
-        pending forever, looking like it's still in progress."""
         self.create_seer_run(self.organization, seer_run_state_id=self.run_id)
         mock_store.side_effect = SeerApiError("Seer unavailable", status=503)
         installation = FakeCodingAgentInstallation(_state("agent-123"))
