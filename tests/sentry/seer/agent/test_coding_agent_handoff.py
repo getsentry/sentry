@@ -64,14 +64,14 @@ class TestLaunchCodingAgents(TestCase):
             organization_id=self.organization.id,
         )
 
-    @patch("sentry.seer.agent.coding_agent_handoff.create_seer_run_coding_agent_handoffs")
+    @patch("sentry.seer.agent.coding_agent_handoff.create_seer_run_coding_agent_handoff")
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
-    def test_successful_launch_creates_seer_run_coding_agent_handoffs(
-        self, mock_validate, mock_store, mock_create_handoffs
+    def test_successful_launch_creates_seer_run_coding_agent_handoff(
+        self, mock_validate, mock_store, mock_create_handoff
     ):
-        """A successful launch records the resulting CodingAgentState(s) via
-        create_seer_run_coding_agent_handoffs, the Sentry-side tracking row."""
+        """A successful launch records the resulting CodingAgentState via
+        create_seer_run_coding_agent_handoff, the Sentry-side tracking row."""
         mock_integration = MagicMock()
         mock_integration.provider = "cursor"
         mock_installation = MagicMock()
@@ -87,9 +87,9 @@ class TestLaunchCodingAgents(TestCase):
             repos=[_repo("owner", "repo")],
         )
 
-        mock_create_handoffs.assert_called_once_with(self.organization, self.run_id, [mock_state])
+        mock_create_handoff.assert_called_once_with(self.organization, self.run_id, mock_state)
 
-    @patch("sentry.seer.agent.coding_agent_handoff.create_seer_run_coding_agent_handoffs")
+    @patch("sentry.seer.agent.coding_agent_handoff.create_seer_run_coding_agent_handoff")
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_handoff_row_created_per_repo_before_seer_store(

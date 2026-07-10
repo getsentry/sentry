@@ -6,7 +6,6 @@ outcome.
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
 
 from sentry.models.organization import Organization
 from sentry.seer.autofix.utils import (
@@ -21,17 +20,14 @@ from sentry.seer.models.run import SeerRunCodingAgentHandoff
 logger = logging.getLogger(__name__)
 
 
-def create_seer_run_coding_agent_handoffs(
+def create_seer_run_coding_agent_handoff(
     organization: Organization,
     run_id: int,
-    states: Sequence[CodingAgentState],
+    state: CodingAgentState,
 ) -> None:
-    """Record the coding agents launched for ``run_id``. Best-effort: any failure
-    is logged and swallowed rather than allowed to interrupt the launch flow.
+    """Record the coding agent just launched for ``run_id``. Best-effort: any
+    failure is logged and swallowed rather than allowed to interrupt the launch flow.
     """
-    if not states:
-        return
-
     log_context = {"organization_id": organization.id, "run_id": run_id}
 
     try:
@@ -40,17 +36,12 @@ def create_seer_run_coding_agent_handoffs(
             logger.info("seer.coding_agent_handoff.run_not_found", extra=log_context)
             return
 
-        SeerRunCodingAgentHandoff.objects.bulk_create(
-            [
-                SeerRunCodingAgentHandoff(
-                    seer_run=seer_run,
-                    provider=state.provider.value,
-                    agent_id=state.id,
-                    agent_url=state.agent_url,
-                    status=state.status.value,
-                )
-                for state in states
-            ]
+        SeerRunCodingAgentHandoff.objects.create(
+            seer_run=seer_run,
+            provider=state.provider.value,
+            agent_id=state.id,
+            agent_url=state.agent_url,
+            status=state.status.value,
         )
     except Exception:
         logger.exception("seer.coding_agent_handoff.create_failed", extra=log_context)

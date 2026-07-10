@@ -2,7 +2,7 @@ from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
 from sentry.seer.autofix.coding_agent_handoffs import (
-    create_seer_run_coding_agent_handoffs,
+    create_seer_run_coding_agent_handoff,
     sync_coding_agent_status,
 )
 from sentry.seer.autofix.utils import (
@@ -33,36 +33,37 @@ def _state(
     )
 
 
-class CreateSeerRunCodingAgentHandoffsTest(TestCase):
+class CreateSeerRunCodingAgentHandoffTest(TestCase):
     def setUp(self) -> None:
         self.seer_run = self.create_seer_run(
             self.organization, type=SeerRunType.FEATURE_RUN, seer_run_state_id=RUN_STATE_ID
         )
 
-    def test_creates_one_row_per_state(self) -> None:
-        states = [
-            _state(agent_id="agent-1"),
-            _state(agent_id="agent-2", provider=CodingAgentProviderType.CLAUDE_CODE_AGENT),
-        ]
+    def test_creates_row_for_state(self) -> None:
+        create_seer_run_coding_agent_handoff(self.organization, RUN_STATE_ID, _state())
 
-        create_seer_run_coding_agent_handoffs(self.organization, RUN_STATE_ID, states)
+        handoff = SeerRunCodingAgentHandoff.objects.get(seer_run=self.seer_run)
+        assert handoff.agent_id == "agent-1"
+        assert handoff.provider == "github_copilot_agent"
+        assert handoff.status == "running"
+
+    def test_called_once_per_launched_state(self) -> None:
+        create_seer_run_coding_agent_handoff(self.organization, RUN_STATE_ID, _state("agent-1"))
+        create_seer_run_coding_agent_handoff(
+            self.organization,
+            RUN_STATE_ID,
+            _state("agent-2", provider=CodingAgentProviderType.CLAUDE_CODE_AGENT),
+        )
 
         handoffs = SeerRunCodingAgentHandoff.objects.filter(seer_run=self.seer_run).order_by(
             "agent_id"
         )
         assert [h.agent_id for h in handoffs] == ["agent-1", "agent-2"]
-        assert handoffs[0].provider == "github_copilot_agent"
-        assert handoffs[0].status == "running"
         assert handoffs[1].provider == "claude_code_agent"
-
-    def test_noop_when_states_empty(self) -> None:
-        create_seer_run_coding_agent_handoffs(self.organization, RUN_STATE_ID, [])
-
-        assert not SeerRunCodingAgentHandoff.objects.exists()
 
     @patch("sentry.seer.autofix.coding_agent_handoffs.logger")
     def test_noop_when_run_not_found(self, mock_logger: Mock) -> None:
-        create_seer_run_coding_agent_handoffs(self.organization, 999, [_state()])
+        create_seer_run_coding_agent_handoff(self.organization, 999, _state())
 
         assert not SeerRunCodingAgentHandoff.objects.exists()
         mock_logger.info.assert_called_once_with(
