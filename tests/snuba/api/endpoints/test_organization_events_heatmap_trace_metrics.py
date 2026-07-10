@@ -442,7 +442,6 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
         assert response.data["meta"]["yAxis"]["bucketCount"] == 1
         assert response.data["meta"]["yAxis"]["start"] == pytest.approx(0.000008527, rel=1e-3)
 
-
     def test_pinned_bounds_applied(self) -> None:
         # Pinning yMin/yMax wider than the data forces those bounds onto the grid
         # instead of the auto-derived data min/max (120/720).
