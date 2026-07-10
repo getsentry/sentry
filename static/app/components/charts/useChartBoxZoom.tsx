@@ -226,26 +226,23 @@ export function useChartBoxZoom({
 
       const end = clampPointToBounds(mouseEventToPoint(evt), bounds);
 
-      // Delay the tooltip restore only for an actual zoom (which navigates); a
-      // click or too-small drag restores it immediately.
-      const isZoom = isDragAboveThreshold(start, end);
-      endDrag(isZoom);
+      // Resolve the zoom up front. A too-small drag, or a conversion that fails
+      // (non-finite / collapsed range), yields null — no zoom. The origin is
+      // read fresh here so a mid-drag chart move doesn't skew it.
+      const range = isDragAboveThreshold(start, end)
+        ? pixelBoxToDataRange(
+            chartInstance,
+            start,
+            end,
+            getChartOrigin(dom),
+            axesIndecesRef.current
+          )
+        : null;
 
-      if (!isZoom) {
-        return;
-      }
-
-      // Read the chart origin fresh at release rather than reusing the pointerdown
-      // one: if the chart moved during the drag (page scroll, resize), the fixed
-      // overlay covers whatever cells sit under it *now*, so converting against
-      // the current origin keeps the applied range matching what's on screen.
-      const range = pixelBoxToDataRange(
-        chartInstance,
-        start,
-        end,
-        getChartOrigin(dom),
-        axesIndecesRef.current
-      );
+      // Delay the tooltip restore only when a zoom actually applies (navigation
+      // follows and would otherwise flash it under the cursor); a click, tiny
+      // drag, or failed conversion restores it immediately.
+      endDrag(range !== null);
 
       if (range) {
         onZoomRef.current?.(range);
