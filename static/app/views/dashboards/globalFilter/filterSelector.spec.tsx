@@ -265,6 +265,34 @@ describe('FilterSelector', () => {
     });
   });
 
+  it('collapses "contains" to "is" when only "(no value)" is selected', async () => {
+    render(
+      <FilterSelector
+        globalFilter={mockGlobalFilter}
+        searchBarData={mockSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    const button = screen.getByRole('button', {
+      name: `${mockGlobalFilter.tag.key} contains All`,
+    });
+    await userEvent.click(button);
+
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Select (no value)'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    expect(mockOnUpdateFilter).toHaveBeenCalledWith({
+      ...mockGlobalFilter,
+      value: '!has:browser',
+    });
+
+    const trigger = screen.getByRole('button', {name: /browser/});
+    expect(trigger).not.toHaveTextContent('contains');
+    expect(trigger).toHaveTextContent('(no value)');
+  });
+
   it('rewrites the value without corrupting the query when editing a combined value + "(no value)" filter', async () => {
     render(
       <FilterSelector

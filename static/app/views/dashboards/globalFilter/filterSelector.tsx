@@ -45,6 +45,7 @@ import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {FilterSelectorTrigger} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import {
   buildNoValueFilterQuery,
+  canonicalNoValueOperator,
   deriveFilterState,
   getFilterToken,
   NO_VALUE_SENTINEL,
@@ -359,6 +360,11 @@ export function FilterSelector({
     const includeNoValue = opts.includes(NO_VALUE_SENTINEL);
     const valueOpts = opts.filter(opt => opt !== NO_VALUE_SENTINEL);
 
+    const isNoValueOnly = includeNoValue && valueOpts.length === 0;
+    const effectiveOperator = isNoValueOnly
+      ? canonicalNoValueOperator(stagedOperator)
+      : stagedOperator;
+
     let valueQuery = '';
     if (valueOpts.length > 0) {
       const cleanedValue = prepareInputValueForSaving(
@@ -376,13 +382,17 @@ export function FilterSelector({
         valueToRewrite.text,
         valueToRewrite,
         cleanedValue,
-        stagedOperator
+        effectiveOperator
       );
     }
 
     const newValue = includeNoValue
-      ? buildNoValueFilterQuery(globalFilter.tag.key, stagedOperator, valueQuery)
+      ? buildNoValueFilterQuery(globalFilter.tag.key, effectiveOperator, valueQuery)
       : valueQuery;
+
+    if (effectiveOperator !== stagedOperator) {
+      setStagedOperator(effectiveOperator);
+    }
 
     onUpdateFilter({
       ...globalFilter,
