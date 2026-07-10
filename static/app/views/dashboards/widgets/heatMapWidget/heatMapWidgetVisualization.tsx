@@ -28,6 +28,7 @@ import {defined} from 'sentry/utils/defined';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
+import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {formatTooltipYAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatTooltipYAxisValue';
 import {formatTooltipZAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatTooltipZAxisValue';
 import {
@@ -416,3 +417,5 @@ type HeatMapTooltipContext = HeatMapBucketBounds;
  * Context for a drag-selected region, handed to `onZoom`.
  */
 export type HeatMapZoomContext = HeatMapBucketBounds;
+
+HeatMapWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;

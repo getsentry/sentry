@@ -2,9 +2,13 @@ from datetime import datetime
 
 from drf_spectacular.utils import OpenApiExample
 
-from sentry.api.serializers.models.event import EventSerializerResponse, GroupEventDetailsResponse
+from sentry.api.serializers.models.event import (
+    EventSerializerResponse,
+    GroupEventDetailsResponse,
+    SimpleEventSerializerResponse,
+)
 
-SIMPLE_EVENT = {
+SIMPLE_EVENT: SimpleEventSerializerResponse = {
     "eventID": "9fac2ceed9344f2bbfdd1fdacb0ed9b1",
     "tags": [
         {"key": "browser", "value": "Chrome 60.0"},
@@ -16,7 +20,7 @@ SIMPLE_EVENT = {
         {"key": "release", "value": "17642328ead24b51867165985996d04b29310337"},
         {"key": "server_name", "value": "web1.example.com"},
     ],
-    "dateCreated": "2020-09-11T17:46:36Z",
+    "dateCreated": datetime.fromisoformat("2020-09-11T17:46:36Z"),
     "user": None,
     "message": "",
     "title": "This is an example Python exception",
@@ -28,7 +32,10 @@ SIMPLE_EVENT = {
     "location": "example.py:123",
     "culprit": "/books/new/",
     "projectID": "49271",
-    "metadata": None,
+    "metadata": {
+        "type": "ExampleException",
+        "value": "This is an example Python exception",
+    },
 }
 
 GROUP_EVENT: GroupEventDetailsResponse = {
