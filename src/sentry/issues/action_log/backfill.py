@@ -42,7 +42,7 @@ class BackfillEntry:
     idempotency_key: str
 
 
-def bulk_insert_action_log_entries(params: list[object], num_rows: int) -> int:
+def bulk_insert_action_log_entries(params: list[int | str | datetime], num_rows: int) -> int:
     """Low-level INSERT into GroupActionLogEntry with ON CONFLICT DO NOTHING.
 
     *params* is a flat list of values for *num_rows* rows, each with 10 columns:
@@ -97,7 +97,7 @@ def backfill_actions(
         if entries[i].date_added < entries[i - 1].date_added:
             raise ValueError("entries must be sorted by date_added ascending")
 
-    params: list[object] = []
+    params: list[int | str | datetime] = []
     for entry in entries:
         params.extend(
             [

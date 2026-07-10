@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 from sentry import options
 from sentry.issues.action_log.backfill import (
@@ -173,7 +174,7 @@ def _backfill_project(
         },
     )
 
-    params: list[object] = []
+    params: list[int | str | datetime] = []
     skipped_count = 0
     num_entries = 0
 
