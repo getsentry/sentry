@@ -89,6 +89,38 @@ class TestLaunchCodingAgents(TestCase):
 
         mock_create_handoffs.assert_called_once_with(self.organization, self.run_id, [mock_state])
 
+    @patch("sentry.seer.agent.coding_agent_handoff.create_seer_run_coding_agent_handoffs")
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
+    def test_handoff_row_created_per_repo_before_seer_store(
+        self, mock_validate, mock_store, mock_create_handoffs
+    ):
+        """Each repo's handoff row is created immediately after its own launch, not
+        batched after the loop -- a webhook can arrive as soon as launch() returns,
+        before Seer even knows about later repos or this run at all."""
+        call_order = []
+        mock_create_handoffs.side_effect = lambda *a, **k: call_order.append("create_handoffs")
+        mock_store.side_effect = lambda *a, **k: call_order.append("store_to_seer")
+
+        mock_integration = MagicMock()
+        mock_installation = MagicMock()
+        mock_installation.launch.side_effect = [
+            MagicMock(dict=lambda: {"id": "agent-1"}),
+            MagicMock(dict=lambda: {"id": "agent-2"}),
+        ]
+        mock_validate.return_value = (mock_integration, mock_installation)
+
+        launch_coding_agents(
+            organization=self.organization,
+            integration_id=1,
+            run_id=self.run_id,
+            prompt="Fix the bug",
+            repos=[_repo("owner", "repo1"), _repo("owner", "repo2")],
+        )
+
+        assert mock_create_handoffs.call_count == 2
+        assert call_order == ["create_handoffs", "create_handoffs", "store_to_seer"]
+
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
     def test_successful_launch_persists_seer_run_coding_agent_handoff_row(
