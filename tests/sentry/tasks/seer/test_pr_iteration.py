@@ -68,6 +68,8 @@ class TriggerPrIterationFromCommentTest(TestCase):
             feedback=self.feedback.json(),
         )
 
+    @patch(f"{TASK_PATH}._add_comment_eyes_reaction")
+    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
@@ -80,6 +82,8 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_reaction: MagicMock,
     ) -> None:
         mock_integration = self._mock_integration()
         mock_get_integration.return_value = mock_integration
@@ -89,9 +93,8 @@ class TriggerPrIterationFromCommentTest(TestCase):
         self._call()
 
         mock_has_access.assert_called_once_with(
-            organization_id=self.organization.id,
-            repo_id=self.repo.id,
-            github_username="octocat",
+            mock_make_scm.return_value,
+            "octocat",
         )
         mock_enqueue.assert_called_once()
         _, kwargs = mock_enqueue.call_args
@@ -113,8 +116,14 @@ class TriggerPrIterationFromCommentTest(TestCase):
         assert consume_kwargs["organization_id"] == self.organization.id
         assert consume_kwargs["run_state"] is agent_state
 
-        mock_integration.get_installation.return_value.get_client.return_value.create_comment_reaction.assert_called_once()
+        mock_reaction.assert_called_once_with(
+            mock_make_scm.return_value,
+            source_type="github-pr-comment",
+            pr_number=7,
+            comment_id=999,
+        )
 
+    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
@@ -127,13 +136,14 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
+        mock_make_scm: MagicMock,
     ) -> None:
         mock_get_integration.return_value = self._mock_integration()
         mock_get_state.return_value = self._agent_state()
 
         self._call()
 
-        mock_has_access.assert_called_once()
+        mock_has_access.assert_called_once_with(mock_make_scm.return_value, "octocat")
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
 
@@ -159,29 +169,36 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
 
+    @patch(f"{TASK_PATH}._add_comment_eyes_reaction")
+    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
-    def test_swallows_comment_reaction_exception(
+    def test_triggers_comment_reaction(
         self,
         mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_reaction: MagicMock,
     ) -> None:
         mock_integration = self._mock_integration()
-        mock_client = mock_integration.get_installation.return_value.get_client.return_value
-        mock_client.create_comment_reaction.side_effect = Exception("boom")
         mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = self._agent_state()
 
         self._call()
 
         mock_enqueue.assert_called_once()
-        mock_client.create_comment_reaction.assert_called_once()
+        mock_reaction.assert_called_once_with(
+            mock_make_scm.return_value,
+            source_type="github-pr-comment",
+            pr_number=7,
+            comment_id=999,
+        )
 
 
 class ConsumeQueuedAutofixFeedbackTest(TestCase):
