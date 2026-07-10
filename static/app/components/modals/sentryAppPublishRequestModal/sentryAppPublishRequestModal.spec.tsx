@@ -329,9 +329,7 @@ describe('SentryAppDetailsModal', () => {
 
     expect((await screen.findAllByText('Field is required')).length).toBeGreaterThan(0);
     // Empty URL fields report as required, not as an invalid link
-    expect(
-      screen.queryByText('Invalid link: URL must start with https://')
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Enter a valid URL')).not.toBeInTheDocument();
     expect(mockRequest).not.toHaveBeenCalled();
     expect(closeModal).not.toHaveBeenCalled();
   });
@@ -399,9 +397,7 @@ describe('SentryAppDetailsModal', () => {
     expect(submitButton).toBeEnabled();
     await userEvent.click(submitButton);
 
-    expect(
-      await screen.findByText('Invalid link: URL must start with https://')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Enter a valid URL')).toBeInTheDocument();
     expect(mockRequest).not.toHaveBeenCalled();
     expect(closeModal).not.toHaveBeenCalled();
   });

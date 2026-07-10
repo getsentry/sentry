@@ -21,14 +21,7 @@ import {safeURL} from 'sentry/utils/url/safeURL';
 const urlValidation = z
   .string()
   .min(1, t('Field is required'))
-  .pipe(
-    z
-      .string()
-      .refine(
-        value => Boolean(safeURL(value)),
-        t('Invalid link: URL must start with https://')
-      )
-  );
+  .pipe(z.string().refine(value => Boolean(safeURL(value)), t('Enter a valid URL')));
 
 const schema = z.object({
   question0: z.string().min(1, t('Field is required')),
