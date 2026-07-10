@@ -204,6 +204,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:preprod-build-distribution-pr-comments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable enforcement of preprod distribution quota checks (when disabled, distribution quota checks always return True)
     manager.add("organizations:preprod-enforce-distribution-quota", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable preprod PR comments for size analysis
+    manager.add("organizations:preprod-size-analysis-pr-comments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable preprod size monitors frontend
     manager.add("organizations:preprod-size-monitors-frontend", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the playstation ingestion in relay
@@ -213,8 +215,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:sourcemap-issue-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable profiling
     manager.add("organizations:profiling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
-    # Enabled for those orgs who participated in the profiling Beta program
-    manager.add("organizations:profiling-beta", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Enables dropping of profiles that may come from buggy sdks
     manager.add("organizations:profiling-reject-sdks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable global suspect functions in profiling
@@ -295,6 +295,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-use-agent-sandbox", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable delivery of custom webhook headers configured on a SentryApp
     manager.add("organizations:sentry-apps-custom-webhook-headers", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Allow SentryApps to subscribe to individual webhook events instead of whole resources
+    manager.add("organizations:sentry-apps-granular-events", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Disable select orgs from ingesting mobile replay events.
     # Enable double-read from EAP for session health data validation
     manager.add("organizations:session-health-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -342,6 +344,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-public-rpc", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Organizations on the old usage-based (v0) Seer plan
     manager.add("organizations:seer-added", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
+    # Enables auto-conversion of number operators for search query builder
+    manager.add("organizations:search-query-builder-number-operator-conversion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Organizations on the new seat-based Seer plan
     manager.add("organizations:seat-based-seer-enabled", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Render Sentry App schema-backed forms using the backend JSON form adapter.
