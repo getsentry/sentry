@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import posixpath
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Generator
 
 import sentry_sdk
 from symbolic.debuginfo import normalize_debug_id
@@ -623,7 +623,7 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
 
 def get_native_symbolication_functions(
     data: Mapping[str, Any], stacktraces: list[StacktraceInfo]
-) -> list[SymbolicatorFunction]:
+) -> Generator[SymbolicatorFunction]:
     """
     Yields the symbolication functions that will process the event,
     based on the Event `data` and the supplied `stacktraces`.
