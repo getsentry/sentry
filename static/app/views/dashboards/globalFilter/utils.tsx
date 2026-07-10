@@ -161,6 +161,37 @@ export function newNumericFilterQuery(
   return newFilterQuery;
 }
 
+type DerivedFilterState = {
+  fieldDefinition: FieldDefinition | null;
+  /** Token that represents a value clause (e.g. `browser:chrome`), or null */
+  filterToken: TokenResult<Token.FILTER> | null;
+  /** Token that represents the "(no value)" option, or null. */
+  noValueToken: TokenResult<Token.FILTER> | null;
+};
+
+/**
+ * Splits a stored global filter into its (up to two) clauses.
+ *
+ * filterToken is a value clause e.g (`browser:chrome`),
+ * noValueToken is a "(no value)" clause e.g (`!has:browser`)
+ */
+export function deriveFilterState(globalFilter: GlobalFilter): DerivedFilterState {
+  const fieldDefinition = getFieldDefinitionForDataset(
+    globalFilter.tag,
+    globalFilter.dataset
+  );
+
+  const tokens = globalFilter.value
+    ? parseFilterValue(globalFilter.value, globalFilter)
+    : [];
+
+  return {
+    fieldDefinition,
+    filterToken: tokens.find(token => token.filter !== FilterType.HAS) ?? null,
+    noValueToken: tokens.find(token => token.filter === FilterType.HAS) ?? null,
+  };
+}
+
 /** Sentinel for the "(no value)" option; never sent to the backend. */
 export const NO_VALUE_SENTINEL = '__no_value__';
 export const NO_VALUE_SUPPORTED_OPERATORS = new Set<TermOperator>([
@@ -178,48 +209,7 @@ function isNegatedOperator(operator: TermOperator): boolean {
   );
 }
 
-/**
- * A parsed global filter value, classified by what it represents:
- * - `empty`: no value set yet
- * - `value`: a plain tag value (e.g. `browser:chrome`)
- * - `noValue`: only "(no value)" (e.g. `!has:browser`)
- * - `valueAndNoValue`: a value combined with "(no value)"
- *   (e.g. `(browser:chrome OR !has:browser)`)
- *
- * Each variant only carries the fields that are meaningful for it:
- * `valueFilterToken` exists only when there's a real value clause, and
- * `noValueOperator` only when the "(no value)" option is selected.
- */
-export type ParsedFilterValue =
-  | {mode: 'empty'}
-  | {mode: 'value'; valueFilterToken: TokenResult<Token.FILTER>}
-  | {mode: 'noValue'; noValueOperator: TermOperator.DEFAULT | TermOperator.NOT_EQUAL}
-  | {
-      mode: 'valueAndNoValue';
-      noValueOperator: TermOperator.DEFAULT | TermOperator.NOT_EQUAL;
-      valueFilterToken: TokenResult<Token.FILTER>;
-    };
-
-export function classifyFilterValue(
-  filterTokens: Array<TokenResult<Token.FILTER>>
-): ParsedFilterValue {
-  const hasToken = filterTokens.find(token => token.filter === FilterType.HAS);
-  const valueFilterToken =
-    filterTokens.find(token => token.filter !== FilterType.HAS) ?? null;
-
-  if (!hasToken) {
-    return valueFilterToken ? {mode: 'value', valueFilterToken} : {mode: 'empty'};
-  }
-
-  const noValueOperator = hasToken.negated
-    ? TermOperator.DEFAULT
-    : TermOperator.NOT_EQUAL;
-
-  return valueFilterToken
-    ? {mode: 'valueAndNoValue', noValueOperator, valueFilterToken}
-    : {mode: 'noValue', noValueOperator};
-}
-
+// Strip 'no value' as an option for operators that don't support this
 export function stripUnsupportedNoValue(
   values: string[],
   operator: TermOperator

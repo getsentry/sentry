@@ -45,8 +45,7 @@ import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {FilterSelectorTrigger} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import {
   buildNoValueFilterQuery,
-  classifyFilterValue,
-  getFieldDefinitionForDataset,
+  deriveFilterState,
   getFilterToken,
   NO_VALUE_SENTINEL,
   NO_VALUE_SUPPORTED_OPERATORS,
@@ -82,73 +81,49 @@ export function FilterSelector({
   const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
   const stagedValueRef = useRef<string[]>([]);
 
-  const {fieldDefinition, filterToken, mode, noValueOperator} = useMemo(() => {
-    const fieldDef = getFieldDefinitionForDataset(globalFilter.tag, globalFilter.dataset);
+  const {fieldDefinition, filterToken, noValueToken} = useMemo(
+    () => deriveFilterState(globalFilter),
+    [globalFilter]
+  );
 
-    const allTokens = globalFilter.value
-      ? parseFilterValue(globalFilter.value, globalFilter)
-      : [];
-    const parsed = classifyFilterValue(allTokens);
+  // Effectively a filter token with a fallback to an empty placeholder when the filterToken is empty/has 'no value'.
+  const pickerToken = useMemo(
+    () => filterToken ?? getFilterToken({...globalFilter, value: ''}, fieldDefinition),
+    [filterToken, globalFilter, fieldDefinition]
+  );
 
-    switch (parsed.mode) {
-      case 'valueAndNoValue':
-        return {
-          fieldDefinition: fieldDef,
-          filterToken: parsed.valueFilterToken,
-          mode: parsed.mode,
-          noValueOperator: null,
-        };
-      case 'noValue':
-        return {
-          fieldDefinition: fieldDef,
-          filterToken: getFilterToken({...globalFilter, value: ''}, fieldDef),
-          mode: parsed.mode,
-          noValueOperator: parsed.noValueOperator,
-        };
-      case 'value':
-      case 'empty':
-      default:
-        return {
-          fieldDefinition: fieldDef,
-          filterToken: getFilterToken(globalFilter, fieldDef),
-          mode: parsed.mode,
-          noValueOperator: null,
-        };
-    }
-  }, [globalFilter]);
-
-  // Get initial selected values from the filter token
+  // Get initial selected values from the tokens
   const initialValues = useMemo(() => {
-    if (!filterToken) {
-      return [];
-    }
-
-    const tokenForParsing =
-      mode === 'value' || mode === 'valueAndNoValue' ? filterToken : null;
-    const initialValue = tokenForParsing
-      ? getInitialInputValue(tokenForParsing, true)
-      : '';
+    const initialValue = filterToken ? getInitialInputValue(filterToken, true) : '';
 
     const selectedValues = getSelectedValuesFromText(initialValue);
     const values = selectedValues.map(item => item.value);
 
-    if (mode === 'noValue' || mode === 'valueAndNoValue') {
+    if (noValueToken) {
       values.push(NO_VALUE_SENTINEL);
     }
 
     return values;
-  }, [filterToken, mode]);
+  }, [filterToken, noValueToken]);
 
-  // Get operator info from the filter token
+  // Get operator info from the picker or no value token
   const {initialOperator, operatorDropdownItems} = useMemo(() => {
-    if (!filterToken) {
+    if (!pickerToken) {
       return {
         initialOperator: TermOperator.DEFAULT,
         operatorDropdownItems: [],
       };
     }
 
-    const operatorInfo = getOperatorInfo({filterToken, fieldDefinition});
+    const operatorInfo = getOperatorInfo({filterToken: pickerToken, fieldDefinition});
+
+    // The "(no value)" token has no value, so you can't derive an operator from getOperatorInfo.
+    const noValueOperator =
+      !filterToken && noValueToken
+        ? noValueToken.negated
+          ? TermOperator.DEFAULT
+          : TermOperator.NOT_EQUAL
+        : null;
 
     return {
       initialOperator: noValueOperator ?? operatorInfo?.operator ?? TermOperator.DEFAULT,
@@ -169,7 +144,7 @@ export function FilterSelector({
         },
       })),
     };
-  }, [filterToken, fieldDefinition, noValueOperator]);
+  }, [pickerToken, filterToken, noValueToken, fieldDefinition]);
 
   const [stagedOperator, setStagedOperator] = useState(initialOperator);
   const [activeFilterValues, setActiveFilterValues] = useState(initialValues);
@@ -185,23 +160,22 @@ export function FilterSelector({
   const datasetFilterKeys = searchBarData.getFilterKeys();
   const fullTag = datasetFilterKeys[globalFilter.tag.key];
 
-  const canSelectMultipleValues = filterToken
-    ? tokenSupportsMultipleValues(filterToken, datasetFilterKeys, fieldDefinition)
+  const canSelectMultipleValues = pickerToken
+    ? tokenSupportsMultipleValues(pickerToken, datasetFilterKeys, fieldDefinition)
     : true;
 
   // Retrieve predefined values if the tag has any
   const predefinedValues = useMemo(() => {
-    if (!filterToken) {
+    if (!pickerToken) {
       return null;
     }
-    const filterValue = filterToken.value.text;
     return getPredefinedValues({
       key: fullTag,
-      filterValue,
-      token: filterToken,
+      filterValue: pickerToken.value.text,
+      token: pickerToken,
       fieldDefinition,
     });
-  }, [fullTag, filterToken, fieldDefinition]);
+  }, [fullTag, pickerToken, fieldDefinition]);
 
   // Only fetch values if the tag has no predefined values
   const shouldFetchValues = fullTag
@@ -375,7 +349,7 @@ export function FilterSelector({
     if (isEqual(opts, activeFilterValues) && stagedOperator === initialOperator) {
       return;
     }
-    if (!filterToken) {
+    if (!pickerToken) {
       return;
     }
 
@@ -395,15 +369,15 @@ export function FilterSelector({
     let valueQuery = '';
     if (valueOpts.length > 0) {
       const cleanedValue = prepareInputValueForSaving(
-        getFilterValueType(filterToken, fieldDefinition),
+        getFilterValueType(pickerToken, fieldDefinition),
         valueOpts
           .map(opt => escapeTagValueForSearch(opt, {allowArrayValue: false}))
           .join(',')
       );
-      const isolatedToken = parseFilterValue(filterToken.text, globalFilter)[0];
-      const valueToRewrite = isolatedToken ?? filterToken;
+      const isolatedToken = parseFilterValue(pickerToken.text, globalFilter)[0];
+      const valueToRewrite = isolatedToken ?? pickerToken;
       // Always rebuild the token with the operator the UI is showing.
-      // The synthetic filterToken used for "(no value)" defaults to the string
+      // The synthetic placeholder token used for "(no value)" defaults to the string
       // CONTAINS wildcard, so patching only the value would leak that operator.
       valueQuery = modifyFilterValue(
         valueToRewrite.text,
