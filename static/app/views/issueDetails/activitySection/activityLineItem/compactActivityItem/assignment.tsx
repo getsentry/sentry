@@ -49,18 +49,16 @@ function getAssignee(
 
 function AssignedActivityDetails({activity}: {activity: GroupActivityAssigned}) {
   const {data} = activity;
-  let teamIds: string[] | undefined;
-  if (data.assigneeType === 'team') {
-    teamIds = [data.assignee];
-  }
-  const teamLookup = useTeamsById({ids: teamIds});
+  const teamLookup = useTeamsById({
+    ids: data.assigneeType === 'team' ? [data.assignee] : undefined,
+  });
 
-  let assignee: React.ReactNode;
-  if (data.assigneeType === 'user' && data.assignee === activity.user?.id) {
-    assignee = t('themselves');
-  } else {
-    assignee = <AssigneePill assignee={getAssignee(data, teamLookup)} />;
-  }
+  const assignee =
+    data.assigneeType === 'user' && data.assignee === activity.user?.id ? (
+      t('themselves')
+    ) : (
+      <AssigneePill assignee={getAssignee(data, teamLookup)} />
+    );
   const integrationName = getAssignmentIntegrationName(data.integration);
 
   if (integrationName) {
