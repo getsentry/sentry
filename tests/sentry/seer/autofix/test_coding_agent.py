@@ -24,6 +24,8 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import TestCase
 
+MOCK_SYNC_STATUS_PATH = "sentry.seer.autofix.coding_agent.sync_coding_agent_status"
+
 
 class TestPollGithubCopilotAgents(TestCase):
     def setUp(self) -> None:
@@ -118,12 +120,10 @@ class TestPollGithubCopilotAgents(TestCase):
             user_id=self.user.id
         )
 
-    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
-    def test_poll_updates_state_when_pr_created(self, mock_identity_service, mock_update_state):
+    def test_poll_updates_state_when_pr_created(self, mock_identity_service, mock_sync_status):
         """Test that polling updates agent state when a PR is found"""
-        from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
-
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         mock_client = MagicMock()
@@ -166,19 +166,20 @@ class TestPollGithubCopilotAgents(TestCase):
 
         mock_client.get_task_status.assert_called_once_with("getsentry", "sentry", "task-123")
         mock_client.get_pr_from_graphql.assert_called_once_with("PR_abc123")
-        mock_update_state.assert_called_once()
+        mock_sync_status.assert_called_once()
 
-        call_kwargs = mock_update_state.call_args[1]
+        call_kwargs = mock_sync_status.call_args[1]
         assert call_kwargs["agent_id"] == "getsentry:sentry:task-123"
+        assert call_kwargs["organization_id"] == self.organization.id
         assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
         assert call_kwargs["result"].pr_url == "https://github.com/getsentry/sentry/pull/12345"
         assert call_kwargs["result"].description == "Fix the bug"
         assert call_kwargs["result"].repo_full_name == "getsentry/sentry"
 
-    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
     def test_poll_falls_back_to_branch_when_global_id_empty(
-        self, mock_identity_service, mock_update_state
+        self, mock_identity_service, mock_sync_status
     ):
         """When the Copilot API returns an empty global_id, resolve the PR via the head branch."""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
@@ -233,16 +234,16 @@ class TestPollGithubCopilotAgents(TestCase):
         mock_get_pr_from_graphql.assert_not_called()
         mock_get_pr_from_branch.assert_called_once_with("getsentry", "sentry", "copilot/fix-bug")
 
-        mock_update_state.assert_called_once()
-        call_kwargs = mock_update_state.call_args[1]
+        mock_sync_status.assert_called_once()
+        call_kwargs = mock_sync_status.call_args[1]
         assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
         assert call_kwargs["result"].pr_url == "https://github.com/getsentry/sentry/pull/46"
         assert call_kwargs["result"].description == "Fix the bug"
 
-    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
     def test_poll_marks_completed_without_pr_when_unresolved(
-        self, mock_identity_service, mock_update_state
+        self, mock_identity_service, mock_sync_status
     ):
         """A completed task flips to COMPLETED even when no PR can be resolved."""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
@@ -282,18 +283,19 @@ class TestPollGithubCopilotAgents(TestCase):
                     poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
         mock_get_pr_from_branch.assert_called_once_with("getsentry", "sentry", "copilot/fix-bug")
-        mock_update_state.assert_called_once()
-        call_kwargs = mock_update_state.call_args[1]
+        mock_sync_status.assert_called_once()
+        call_kwargs = mock_sync_status.call_args[1]
         assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
         assert call_kwargs["result"] is None
 
     @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
-    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
     def test_poll_attributes_pr_when_task_complete(
-        self, mock_identity_service, mock_update_state, mock_attribute
+        self, mock_identity_service, mock_sync_status, mock_attribute
     ):
-        """A completed Copilot task with a PR is attributed to the Copilot agent."""
+        """A completed Copilot task with a PR is attributed to the Copilot agent, and both
+        Seer's state and the Sentry-side SeerRunCodingAgentHandoff row are synced in one call."""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         mock_client = MagicMock()
@@ -347,68 +349,17 @@ class TestPollGithubCopilotAgents(TestCase):
             run_id=self.run_id,
         )
 
-    @patch("sentry.seer.autofix.coding_agent.update_seer_run_coding_agent_handoff")
-    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
-    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
-    def test_poll_updates_seer_run_coding_agent_handoff_when_task_complete(
-        self, mock_identity_service, mock_update_state, mock_update_handoff
-    ):
-        """A completed Copilot task updates the Sentry-side SeerRunCodingAgentHandoff row."""
-        mock_identity_service.get_access_token_for_user.return_value = "test_token"
-
-        mock_client = MagicMock()
-        mock_client.get_task_status.return_value = GithubCopilotTask(
-            id="task-123",
-            state="completed",
-            artifacts=[
-                GithubCopilotArtifact(
-                    provider="github",
-                    type="pull_request",
-                    data=GithubCopilotArtifactData(id=456, type="pull", global_id="PR_abc123"),
-                )
-            ],
-        )
-        mock_pr_info = MagicMock()
-        mock_pr_info.url = "https://github.com/getsentry/sentry/pull/12345"
-        mock_pr_info.title = "Fix the bug"
-        mock_client.get_pr_from_graphql.return_value = mock_pr_info
-
-        agents = {
-            "getsentry:sentry:task-123": CodingAgentState(
-                id="getsentry:sentry:task-123",
-                status=CodingAgentStatus.RUNNING,
-                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
-                name="GitHub Copilot",
-                started_at=datetime.now(UTC),
-            )
-        }
-        autofix_state = self._create_autofix_state_with_agents(agents)
-
-        with patch.object(GithubCopilotAgentClient, "__init__", return_value=None):
-            with patch.object(
-                GithubCopilotAgentClient, "get_task_status", mock_client.get_task_status
-            ):
-                with patch.object(
-                    GithubCopilotAgentClient, "get_pr_from_graphql", mock_client.get_pr_from_graphql
-                ):
-                    poll_github_copilot_agents(
-                        autofix_state,
-                        user_id=self.user.id,
-                        organization_id=self.organization.id,
-                    )
-
-        mock_update_handoff.assert_called_once()
-        call_kwargs = mock_update_handoff.call_args.kwargs
+        call_kwargs = mock_sync_status.call_args.kwargs
         assert call_kwargs["agent_id"] == "getsentry:sentry:task-123"
         assert call_kwargs["organization_id"] == self.organization.id
         assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
         assert call_kwargs["result"].pr_url == "https://github.com/getsentry/sentry/pull/12345"
 
     @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
-    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
     def test_poll_does_not_attribute_when_task_not_done(
-        self, mock_identity_service, mock_update_state, mock_attribute
+        self, mock_identity_service, mock_sync_status, mock_attribute
     ):
         """A PR seen while the task is still running is not attributed yet."""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
@@ -456,14 +407,10 @@ class TestPollGithubCopilotAgents(TestCase):
 
         mock_attribute.assert_not_called()
 
-    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
-    def test_poll_marks_agent_failed_on_error_status(
-        self, mock_identity_service, mock_update_state
-    ):
+    def test_poll_marks_agent_failed_on_error_status(self, mock_identity_service, mock_sync_status):
         """Test that polling marks agent as failed when task status is error"""
-        from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
-
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         mock_get_task_status = MagicMock(
@@ -488,16 +435,17 @@ class TestPollGithubCopilotAgents(TestCase):
             with patch.object(GithubCopilotAgentClient, "get_task_status", mock_get_task_status):
                 poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
-        mock_update_state.assert_called_once_with(
+        mock_sync_status.assert_called_once_with(
             agent_id="getsentry:sentry:task-123",
+            organization_id=self.organization.id,
             status=CodingAgentStatus.FAILED,
             result=None,
         )
 
-    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
     def test_poll_marks_completed_when_pr_resolution_errors(
-        self, mock_identity_service, mock_update_state
+        self, mock_identity_service, mock_sync_status
     ):
         """A GitHub API error during PR resolution must not block the terminal status update."""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
@@ -536,15 +484,15 @@ class TestPollGithubCopilotAgents(TestCase):
                     poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
         mock_get_pr_from_branch.assert_called_once()
-        mock_update_state.assert_called_once()
-        call_kwargs = mock_update_state.call_args[1]
+        mock_sync_status.assert_called_once()
+        call_kwargs = mock_sync_status.call_args[1]
         assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
         assert call_kwargs["result"] is None
 
-    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
     def test_poll_marks_failed_even_when_branch_has_pr(
-        self, mock_identity_service, mock_update_state
+        self, mock_identity_service, mock_sync_status
     ):
         """A failed/timed_out task is marked FAILED even if a PR exists on the head branch."""
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
@@ -587,18 +535,16 @@ class TestPollGithubCopilotAgents(TestCase):
                 ):
                     poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
-        mock_update_state.assert_called_once()
-        call_kwargs = mock_update_state.call_args[1]
+        mock_sync_status.assert_called_once()
+        call_kwargs = mock_sync_status.call_args[1]
         assert call_kwargs["status"] == CodingAgentStatus.FAILED
 
-    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
     def test_poll_keeps_running_status_when_task_not_done(
-        self, mock_identity_service, mock_update_state
+        self, mock_identity_service, mock_sync_status
     ):
         """Test that polling keeps RUNNING status when task is still in progress"""
-        from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
-
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         mock_get_task_status = MagicMock(
@@ -638,16 +584,14 @@ class TestPollGithubCopilotAgents(TestCase):
                 ):
                     poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
-        mock_update_state.assert_called_once()
-        call_kwargs = mock_update_state.call_args[1]
+        mock_sync_status.assert_called_once()
+        call_kwargs = mock_sync_status.call_args[1]
         assert call_kwargs["status"] == CodingAgentStatus.RUNNING
 
-    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
-    def test_poll_handles_api_exception(self, mock_identity_service, mock_update_state):
+    def test_poll_handles_api_exception(self, mock_identity_service, mock_sync_status):
         """Test that polling handles exceptions gracefully"""
-        from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
-
         mock_identity_service.get_access_token_for_user.return_value = "test_token"
 
         mock_get_task_status = MagicMock(side_effect=Exception("API Error"))
@@ -669,7 +613,7 @@ class TestPollGithubCopilotAgents(TestCase):
                 poll_github_copilot_agents(autofix_state, user_id=self.user.id)
 
         # State should not be updated when there's an error
-        mock_update_state.assert_not_called()
+        mock_sync_status.assert_not_called()
 
     def test_poll_skips_invalid_agent_id(self) -> None:
         """Test that polling skips agents with invalid IDs"""
@@ -690,7 +634,6 @@ class TestPollGithubCopilotAgents(TestCase):
 
 MOCK_CLIENT_CLASS_PATH = "sentry.integrations.claude_code.integration._get_client_class"
 MOCK_INTEGRATION_SERVICE_PATH = "sentry.seer.autofix.coding_agent.integration_service"
-MOCK_UPDATE_STATE_PATH = "sentry.seer.autofix.coding_agent.update_coding_agent_state"
 
 
 def _make_agent_event(text: str) -> ClaudeSessionEvent:
@@ -878,11 +821,11 @@ class TestPollClaudeCodeAgents(TestCase):
         poll_claude_code_agents(autofix_state=autofix_state)
         mock_integration_service.get_integration.assert_not_called()
 
-    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_polls_running_agent_and_updates_completed(
-        self, mock_integration_service, mock_import_string, mock_update_state
+        self, mock_integration_service, mock_import_string, mock_sync_status
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
@@ -908,19 +851,21 @@ class TestPollClaudeCodeAgents(TestCase):
         poll_claude_code_agents(autofix_state=autofix_state)
 
         mock_client.list_session_events.assert_called_once_with("claude-session-123")
-        mock_update_state.assert_called_once()
-        call_kwargs = mock_update_state.call_args[1]
+        mock_sync_status.assert_called_once()
+        call_kwargs = mock_sync_status.call_args[1]
         assert call_kwargs["agent_id"] == "claude-session-123"
+        assert call_kwargs["organization_id"] == self.organization.id
         assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
 
     @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
-    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_attributes_pr_on_completion(
-        self, mock_integration_service, mock_import_string, mock_update_state, mock_attribute
+        self, mock_integration_service, mock_import_string, mock_sync_status, mock_attribute
     ):
-        """A completed Claude session with a PR is attributed to the Claude agent."""
+        """A completed Claude session with a PR is attributed to the Claude agent, and both
+        Seer's state and the Sentry-side SeerRunCodingAgentHandoff row are synced in one call."""
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
         mock_client.list_session_events.return_value = [
@@ -956,52 +901,18 @@ class TestPollClaudeCodeAgents(TestCase):
             run_id=self.run_id,
         )
 
-    @patch("sentry.seer.autofix.coding_agent.update_seer_run_coding_agent_handoff")
-    @patch(MOCK_UPDATE_STATE_PATH)
-    @patch(MOCK_CLIENT_CLASS_PATH)
-    @patch(MOCK_INTEGRATION_SERVICE_PATH)
-    def test_updates_seer_run_coding_agent_handoff_on_completion(
-        self, mock_integration_service, mock_import_string, mock_update_state, mock_update_handoff
-    ):
-        """A completed Claude session updates the Sentry-side SeerRunCodingAgentHandoff row."""
-        self._mock_integration(mock_integration_service)
-        mock_client = MagicMock()
-        mock_client.list_session_events.return_value = [
-            {
-                "type": "agent.message",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": "PR created: https://github.com/getsentry/sentry/pull/999",
-                    }
-                ],
-            },
-            {"type": ClaudeSessionEventStatus.IDLE},
-        ]
-        mock_client.build_result_from_session.return_value = MagicMock(
-            pr_url="https://github.com/getsentry/sentry/pull/999",
-            repo_full_name="getsentry/sentry",
-            repo_provider="github",
-        )
-        mock_import_string.return_value = lambda **kwargs: mock_client
-
-        agents = {"claude-session-123": self._create_claude_agent()}
-        autofix_state = self._create_autofix_state_with_agents(agents)
-        poll_claude_code_agents(autofix_state=autofix_state)
-
-        mock_update_handoff.assert_called_once()
-        call_kwargs = mock_update_handoff.call_args.kwargs
+        call_kwargs = mock_sync_status.call_args.kwargs
         assert call_kwargs["agent_id"] == "claude-session-123"
         assert call_kwargs["organization_id"] == self.organization.id
         assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
         assert call_kwargs["result"].pr_url == "https://github.com/getsentry/sentry/pull/999"
 
     @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
-    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_does_not_attribute_when_no_pr_url(
-        self, mock_integration_service, mock_import_string, mock_update_state, mock_attribute
+        self, mock_integration_service, mock_import_string, mock_sync_status, mock_attribute
     ):
         """A completed session without a PR is not attributed."""
         self._mock_integration(mock_integration_service)
@@ -1018,11 +929,11 @@ class TestPollClaudeCodeAgents(TestCase):
 
         mock_attribute.assert_not_called()
 
-    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_marks_failed_when_no_pr_url(
-        self, mock_integration_service, mock_import_string, mock_update_state
+        self, mock_integration_service, mock_import_string, mock_sync_status
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
@@ -1037,15 +948,15 @@ class TestPollClaudeCodeAgents(TestCase):
         autofix_state = self._create_autofix_state_with_agents(agents)
         poll_claude_code_agents(autofix_state=autofix_state)
 
-        mock_update_state.assert_called_once()
-        call_kwargs = mock_update_state.call_args[1]
+        mock_sync_status.assert_called_once()
+        call_kwargs = mock_sync_status.call_args[1]
         assert call_kwargs["status"] == CodingAgentStatus.FAILED
 
-    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_no_update_when_status_unchanged(
-        self, mock_integration_service, mock_import_string, mock_update_state
+        self, mock_integration_service, mock_import_string, mock_sync_status
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
@@ -1057,13 +968,13 @@ class TestPollClaudeCodeAgents(TestCase):
         autofix_state = self._create_autofix_state_with_agents(agents)
         poll_claude_code_agents(autofix_state=autofix_state)
 
-        mock_update_state.assert_not_called()
+        mock_sync_status.assert_not_called()
 
-    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_no_update_when_events_empty(
-        self, mock_integration_service, mock_import_string, mock_update_state
+        self, mock_integration_service, mock_import_string, mock_sync_status
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
@@ -1074,14 +985,13 @@ class TestPollClaudeCodeAgents(TestCase):
         autofix_state = self._create_autofix_state_with_agents(agents)
         poll_claude_code_agents(autofix_state=autofix_state)
 
-        mock_update_state.assert_not_called()
+        mock_sync_status.assert_not_called()
 
-    @patch("sentry.seer.autofix.coding_agent.update_seer_run_coding_agent_handoff")
-    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_updates_pending_to_running_on_non_idle_event(
-        self, mock_integration_service, mock_import_string, mock_update_state, mock_update_handoff
+        self, mock_integration_service, mock_import_string, mock_sync_status
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
@@ -1092,23 +1002,18 @@ class TestPollClaudeCodeAgents(TestCase):
         autofix_state = self._create_autofix_state_with_agents(agents)
         poll_claude_code_agents(autofix_state=autofix_state)
 
-        mock_update_state.assert_called_once()
-        call_kwargs = mock_update_state.call_args[1]
-        assert call_kwargs["status"] == CodingAgentStatus.RUNNING
-
-        # The Sentry-side handoff row must track this transition too, not just Seer's copy.
-        mock_update_handoff.assert_called_once_with(
+        # A single call keeps Seer's state and the Sentry-side handoff row in lockstep.
+        mock_sync_status.assert_called_once_with(
             agent_id="claude-session-123",
             organization_id=self.organization.id,
             status=CodingAgentStatus.RUNNING,
         )
 
-    @patch("sentry.seer.autofix.coding_agent.update_seer_run_coding_agent_handoff")
-    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_stays_pending_on_status_rescheduling_event(
-        self, mock_integration_service, mock_import_string, mock_update_state, mock_update_handoff
+        self, mock_integration_service, mock_import_string, mock_sync_status
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
@@ -1121,18 +1026,16 @@ class TestPollClaudeCodeAgents(TestCase):
         autofix_state = self._create_autofix_state_with_agents(agents)
         poll_claude_code_agents(autofix_state=autofix_state)
 
-        mock_update_state.assert_not_called()
-        mock_update_handoff.assert_not_called()
+        mock_sync_status.assert_not_called()
 
-    @patch("sentry.seer.autofix.coding_agent.update_seer_run_coding_agent_handoff")
-    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_updates_running_to_pending_on_rescheduling_event(
-        self, mock_integration_service, mock_import_string, mock_update_state, mock_update_handoff
+        self, mock_integration_service, mock_import_string, mock_sync_status
     ):
-        """A RESCHEDULING event on a RUNNING session must sync the Sentry-side handoff
-        row back to pending, not just Seer's copy of the state."""
+        """A RESCHEDULING event on a RUNNING session must sync both Seer's state and the
+        Sentry-side handoff row back to pending, in one call."""
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()
         mock_client.list_session_events.return_value = [
@@ -1144,20 +1047,17 @@ class TestPollClaudeCodeAgents(TestCase):
         autofix_state = self._create_autofix_state_with_agents(agents)
         poll_claude_code_agents(autofix_state=autofix_state)
 
-        mock_update_state.assert_called_once_with(
-            agent_id="claude-session-123", status=CodingAgentStatus.PENDING
-        )
-        mock_update_handoff.assert_called_once_with(
+        mock_sync_status.assert_called_once_with(
             agent_id="claude-session-123",
             organization_id=self.organization.id,
             status=CodingAgentStatus.PENDING,
         )
 
-    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_uses_correct_integration_per_agent(
-        self, mock_integration_service, mock_get_client_class, mock_update_state
+        self, mock_integration_service, mock_get_client_class, mock_sync_status
     ):
         integration_a = MagicMock()
         integration_a.metadata = {
@@ -1212,11 +1112,11 @@ class TestPollClaudeCodeAgents(TestCase):
         clients["sk-ant-aaa"].list_session_events.assert_called_once_with("session-a")
         clients["sk-ant-bbb"].list_session_events.assert_called_once_with("session-b")
 
-    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_SYNC_STATUS_PATH)
     @patch(MOCK_CLIENT_CLASS_PATH)
     @patch(MOCK_INTEGRATION_SERVICE_PATH)
     def test_caches_client_for_same_integration(
-        self, mock_integration_service, mock_import_string, mock_update_state
+        self, mock_integration_service, mock_import_string, mock_sync_status
     ):
         self._mock_integration(mock_integration_service)
         mock_client = MagicMock()

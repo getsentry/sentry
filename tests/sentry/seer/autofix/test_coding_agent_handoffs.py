@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 from sentry.models.pullrequest import PullRequest
 from sentry.seer.autofix.coding_agent_handoffs import (
     create_seer_run_coding_agent_handoffs,
-    update_seer_run_coding_agent_handoff,
+    sync_coding_agent_status,
 )
 from sentry.seer.autofix.utils import (
     CodingAgentProviderType,
@@ -17,6 +17,7 @@ from sentry.testutils.cases import TestCase
 
 REPO_NAME = "getsentry/sentry"
 RUN_STATE_ID = 123
+MOCK_UPDATE_STATE_PATH = "sentry.seer.autofix.coding_agent_handoffs.update_coding_agent_state"
 
 
 def _state(
@@ -73,7 +74,7 @@ class CreateSeerRunCodingAgentHandoffsTest(TestCase):
         )
 
 
-class UpdateSeerRunCodingAgentHandoffTest(TestCase):
+class SyncCodingAgentStatusTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(self.project, name=REPO_NAME, provider="integrations:github")
         self.seer_run = self.create_seer_run(
@@ -83,19 +84,50 @@ class UpdateSeerRunCodingAgentHandoffTest(TestCase):
             self.seer_run, agent_id="agent-1", provider="github_copilot_agent"
         )
 
-    def test_updates_status_and_agent_url(self) -> None:
-        update_seer_run_coding_agent_handoff(
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_updates_seer_and_returns_known_to_seer(self, mock_update_state: Mock) -> None:
+        mock_update_state.return_value = True
+
+        known_to_seer = sync_coding_agent_status(
             agent_id="agent-1",
             organization_id=self.organization.id,
             status=CodingAgentStatus.COMPLETED,
             agent_url="https://github.com/copilot/agents/agent-1",
         )
 
+        mock_update_state.assert_called_once_with(
+            agent_id="agent-1",
+            status=CodingAgentStatus.COMPLETED,
+            agent_url="https://github.com/copilot/agents/agent-1",
+            result=None,
+        )
+        assert known_to_seer is True
+
         self.handoff.refresh_from_db()
         assert self.handoff.status == "completed"
         assert self.handoff.agent_url == "https://github.com/copilot/agents/agent-1"
 
-    def test_links_pull_request_on_completion(self) -> None:
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_returns_false_when_seer_does_not_recognize_agent(
+        self, mock_update_state: Mock
+    ) -> None:
+        mock_update_state.return_value = False
+
+        known_to_seer = sync_coding_agent_status(
+            agent_id="agent-1",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+        )
+
+        assert known_to_seer is False
+        # The Sentry-side row still updates even if Seer didn't recognize the agent --
+        # the two systems are independent, so the return value is informational only.
+        self.handoff.refresh_from_db()
+        assert self.handoff.status == "completed"
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_links_pull_request_on_completion(self, mock_update_state: Mock) -> None:
+        mock_update_state.return_value = True
         result = CodingAgentResult(
             description="Fixed the bug",
             repo_provider="github",
@@ -103,7 +135,7 @@ class UpdateSeerRunCodingAgentHandoffTest(TestCase):
             pr_url="https://github.com/getsentry/sentry/pull/42",
         )
 
-        update_seer_run_coding_agent_handoff(
+        sync_coding_agent_status(
             agent_id="agent-1",
             organization_id=self.organization.id,
             status=CodingAgentStatus.COMPLETED,
@@ -118,10 +150,14 @@ class UpdateSeerRunCodingAgentHandoffTest(TestCase):
         assert link.seer_run_id == self.seer_run.id
 
     @patch("sentry.seer.pull_requests.options.get", return_value=True)
-    def test_killswitch_disables_pull_request_linking(self, mock_option: Mock) -> None:
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_killswitch_disables_pull_request_linking(
+        self, mock_update_state: Mock, mock_option: Mock
+    ) -> None:
         """The seer.pull-request-linking killswitch must also gate the handoff path,
         not just Seer's own seer.pr_created path -- both write the same SeerRunPullRequest
         rows, so the switch must not be bypassable from either one."""
+        mock_update_state.return_value = True
         result = CodingAgentResult(
             description="Fixed the bug",
             repo_provider="github",
@@ -129,7 +165,7 @@ class UpdateSeerRunCodingAgentHandoffTest(TestCase):
             pr_url="https://github.com/getsentry/sentry/pull/42",
         )
 
-        update_seer_run_coding_agent_handoff(
+        sync_coding_agent_status(
             agent_id="agent-1",
             organization_id=self.organization.id,
             status=CodingAgentStatus.COMPLETED,
@@ -145,12 +181,14 @@ class UpdateSeerRunCodingAgentHandoffTest(TestCase):
         assert self.handoff.status == "completed"
         assert self.handoff.pull_request_id is None
 
-    def test_does_not_link_pull_request_without_pr_url(self) -> None:
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_does_not_link_pull_request_without_pr_url(self, mock_update_state: Mock) -> None:
+        mock_update_state.return_value = True
         result = CodingAgentResult(
             description="No PR yet", repo_provider="github", repo_full_name=REPO_NAME
         )
 
-        update_seer_run_coding_agent_handoff(
+        sync_coding_agent_status(
             agent_id="agent-1",
             organization_id=self.organization.id,
             status=CodingAgentStatus.RUNNING,
@@ -162,23 +200,29 @@ class UpdateSeerRunCodingAgentHandoffTest(TestCase):
         assert not SeerRunPullRequest.objects.exists()
 
     @patch("sentry.seer.autofix.coding_agent_handoffs.logger")
-    def test_noop_when_agent_id_not_found(self, mock_logger: Mock) -> None:
-        update_seer_run_coding_agent_handoff(
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_noop_when_agent_id_not_found(self, mock_update_state: Mock, mock_logger: Mock) -> None:
+        mock_update_state.return_value = True
+
+        known_to_seer = sync_coding_agent_status(
             agent_id="does-not-exist",
             organization_id=self.organization.id,
             status=CodingAgentStatus.COMPLETED,
         )
 
+        assert known_to_seer is True
         mock_logger.info.assert_called_once_with(
             "seer.coding_agent_handoff.not_found",
             extra={"agent_id": "does-not-exist", "organization_id": self.organization.id},
         )
 
     @patch("sentry.seer.autofix.coding_agent_handoffs.logger")
-    def test_rejects_cross_org_agent_id(self, mock_logger: Mock) -> None:
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_rejects_cross_org_agent_id(self, mock_update_state: Mock, mock_logger: Mock) -> None:
+        mock_update_state.return_value = True
         other_org = self.create_organization()
 
-        update_seer_run_coding_agent_handoff(
+        sync_coding_agent_status(
             agent_id="agent-1",
             organization_id=other_org.id,
             status=CodingAgentStatus.COMPLETED,

@@ -10,7 +10,12 @@ from collections.abc import Sequence
 
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import parse_pull_request_number
-from sentry.seer.autofix.utils import CodingAgentResult, CodingAgentState, CodingAgentStatus
+from sentry.seer.autofix.utils import (
+    CodingAgentResult,
+    CodingAgentState,
+    CodingAgentStatus,
+    update_coding_agent_state,
+)
 from sentry.seer.endpoints.utils import get_seer_run
 from sentry.seer.models.run import SeerRunCodingAgentHandoff
 from sentry.seer.pull_requests import _link_pull_request_to_seer_run
@@ -53,18 +58,30 @@ def create_seer_run_coding_agent_handoffs(
         logger.exception("seer.coding_agent_handoff.create_failed", extra=log_context)
 
 
-def update_seer_run_coding_agent_handoff(
+def sync_coding_agent_status(
     *,
     agent_id: str,
     organization_id: int,
     status: CodingAgentStatus,
     agent_url: str | None = None,
     result: CodingAgentResult | None = None,
-) -> None:
-    """Update a handoff's status/outcome, and link the resulting PR (if any) to its
-    run via :class:`SeerRunPullRequest`. Best-effort: any failure is logged and
-    swallowed rather than allowed to interrupt the caller's poll/webhook flow.
+) -> bool:
+    """Update both Seer's coding agent state and Sentry's own
+    :class:`SeerRunCodingAgentHandoff` tracking row, in lockstep -- a single call so
+    the two can never drift out of sync the way two separately-called functions can.
+
+    Also links the resulting PR (if any) to the handoff's run via
+    :class:`SeerRunPullRequest`. Best-effort: any failure updating the Sentry-side
+    row is logged and swallowed rather than allowed to interrupt the caller's
+    poll/webhook flow.
+
+    Returns whether Seer recognized this ``agent_id`` (mirrors
+    ``update_coding_agent_state``'s return value, e.g. for gating PR attribution).
     """
+    known_to_seer = update_coding_agent_state(
+        agent_id=agent_id, status=status, agent_url=agent_url, result=result
+    )
+
     log_context = {"agent_id": agent_id, "organization_id": organization_id}
 
     try:
@@ -73,13 +90,13 @@ def update_seer_run_coding_agent_handoff(
         )
     except SeerRunCodingAgentHandoff.DoesNotExist:
         logger.info("seer.coding_agent_handoff.not_found", extra=log_context)
-        return
+        return known_to_seer
 
     # agent_id is a bare, globally-unique lookup key — guard against acting on a
     # handoff from a different org (e.g. a caller passing the wrong organization_id).
     if handoff.seer_run.organization_id != organization_id:
         logger.warning("seer.coding_agent_handoff.org_mismatch", extra=log_context)
-        return
+        return known_to_seer
 
     try:
         handoff.status = status.value
@@ -90,10 +107,10 @@ def update_seer_run_coding_agent_handoff(
         handoff.save(update_fields=update_fields)
     except Exception:
         logger.exception("seer.coding_agent_handoff.update_failed", extra=log_context)
-        return
+        return known_to_seer
 
     if not result or not result.pr_url:
-        return
+        return known_to_seer
 
     pr_number = parse_pull_request_number(result.pr_url)
     link_log_context = {
@@ -119,3 +136,5 @@ def update_seer_run_coding_agent_handoff(
             logger.exception(
                 "seer.coding_agent_handoff.pr_link_save_failed", extra=link_log_context
             )
+
+    return known_to_seer

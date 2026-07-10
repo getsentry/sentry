@@ -25,12 +25,8 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.pullrequest import PullRequestAttributionSignalType
 from sentry.pr_metrics.attribution import attribute_delegated_agent_pull_request
-from sentry.seer.autofix.coding_agent_handoffs import update_seer_run_coding_agent_handoff
-from sentry.seer.autofix.utils import (
-    CodingAgentResult,
-    CodingAgentStatus,
-    update_coding_agent_state,
-)
+from sentry.seer.autofix.coding_agent_handoffs import sync_coding_agent_status
+from sentry.seer.autofix.utils import CodingAgentResult, CodingAgentStatus
 
 logger = logging.getLogger(__name__)
 
@@ -237,13 +233,7 @@ class CursorWebhookEndpoint(Endpoint):
             branch_name=branch_name,
         )
 
-        known_to_seer = self._update_coding_agent_status(
-            agent_id=agent_id,
-            status=status,
-            agent_url=agent_url,
-            result=result,
-        )
-        update_seer_run_coding_agent_handoff(
+        known_to_seer = sync_coding_agent_status(
             agent_id=agent_id,
             organization_id=self.organization_id,
             status=status,
@@ -285,27 +275,3 @@ class CursorWebhookEndpoint(Endpoint):
     def _validate_pr_url(self, pr_url: str, repo_full_name: str) -> bool:
         """Validates that the URL points to the expected repo."""
         return pr_url.startswith(f"https://github.com/{repo_full_name}/pull/")
-
-    def _update_coding_agent_status(
-        self,
-        agent_id: str,
-        status: CodingAgentStatus,
-        agent_url: str | None = None,
-        result: CodingAgentResult | None = None,
-    ) -> bool:
-        known_to_seer = update_coding_agent_state(
-            agent_id=agent_id,
-            status=status,
-            agent_url=agent_url,
-            result=result,
-        )
-        logger.info(
-            "cursor_webhook.status_updated_to_seer",
-            extra={
-                "agent_id": agent_id,
-                "status": status.value,
-                "has_result": result is not None,
-                "known_to_seer": known_to_seer,
-            },
-        )
-        return known_to_seer
