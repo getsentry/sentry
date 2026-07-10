@@ -109,8 +109,7 @@ def get_kafka_admin_cluster_options(
 
 
 def get_topic_definition(topic: Topic | str, kafka_slice_id: int | None = None) -> TopicDefinition:
-    private = isinstance(topic, str)
-    topic_name: str = topic if private else topic.value
+    topic_name = topic if isinstance(topic, str) else topic.value
 
     if kafka_slice_id is not None:
         sliced_topics = settings.SLICED_KAFKA_TOPICS
@@ -130,7 +129,7 @@ def get_topic_definition(topic: Topic | str, kafka_slice_id: int | None = None) 
 
     real_topic_name = settings.KAFKA_TOPIC_OVERRIDES.get(topic_name, topic_name)
 
-    if private:
+    if isinstance(topic, str):
         cluster = settings.KAFKA_TOPIC_TO_CLUSTER.get(real_topic_name, "default")
     else:
         cluster = settings.KAFKA_TOPIC_TO_CLUSTER[real_topic_name]
