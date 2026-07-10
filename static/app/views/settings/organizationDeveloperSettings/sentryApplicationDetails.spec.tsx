@@ -604,6 +604,128 @@ describe('Sentry Application Details', () => {
     });
   });
 
+  describe('Editing granular event subscriptions', () => {
+    const organization = OrganizationFixture({
+      features: ['sentry-apps-granular-events'],
+    });
+    const initialRouterConfig: RouterConfig = {
+      location: {
+        pathname: '/sentry-apps/sample-app/',
+      },
+      route: '/sentry-apps/:appSlug/',
+    };
+    function renderComponent() {
+      return render(<SentryApplicationDetails />, {initialRouterConfig, organization});
+    }
+
+    beforeEach(() => {
+      sentryApp = SentryAppFixture({
+        events: ['issue'],
+        webhookEvents: ['issue.created', 'issue.resolved'],
+        scopes: ['project:read', 'event:read'],
+      });
+
+      editAppRequest = MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        method: 'PUT',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [],
+      });
+    });
+
+    it('seeds the checkboxes from webhookEvents and submits them exactly', async () => {
+      renderComponent();
+      await screen.findByRole('button', {name: 'Save Changes'});
+
+      expect(screen.getByRole('checkbox', {name: 'issue'})).toBePartiallyChecked();
+      expect(screen.getByRole('checkbox', {name: 'issue.created'})).toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'issue.resolved'})).toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'issue.assigned'})).not.toBeChecked();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+      expect(editAppRequest).toHaveBeenCalledWith(
+        `/sentry-apps/${sentryApp.slug}/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            events: ['issue.created', 'issue.resolved'],
+          }),
+          method: 'PUT',
+        })
+      );
+    });
+
+    it('submits individual events after toggling', async () => {
+      renderComponent();
+      await screen.findByRole('button', {name: 'Save Changes'});
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'issue.created'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'comment.created'}));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+      expect(editAppRequest).toHaveBeenCalledWith(
+        `/sentry-apps/${sentryApp.slug}/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            events: ['issue.resolved', 'comment.created'],
+          }),
+          method: 'PUT',
+        })
+      );
+    });
+
+    it('maps the legacy issue.archived token to issue.ignored', async () => {
+      sentryApp.webhookEvents = ['issue.archived'];
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      renderComponent();
+      await screen.findByRole('button', {name: 'Save Changes'});
+
+      expect(screen.getByRole('checkbox', {name: 'issue.ignored'})).toBeChecked();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+      expect(editAppRequest).toHaveBeenCalledWith(
+        `/sentry-apps/${sentryApp.slug}/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            events: ['issue.ignored'],
+          }),
+          method: 'PUT',
+        })
+      );
+    });
+
+    it('expands the consolidated events when webhookEvents is absent', async () => {
+      sentryApp.webhookEvents = undefined;
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      renderComponent();
+      await screen.findByRole('button', {name: 'Save Changes'});
+
+      expect(screen.getByRole('checkbox', {name: 'issue'})).toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'issue.created'})).toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'issue.unresolved'})).toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'comment.created'})).not.toBeChecked();
+    });
+  });
+
   describe('Editing an existing public Sentry App with a scope error', () => {
     const initialRouterConfig: RouterConfig = {
       location: {

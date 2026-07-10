@@ -267,6 +267,9 @@ export type SentryApp = {
     id: number;
     slug: string;
   };
+  // The stored subscriptions as exact event tokens, where `events` consolidates
+  // them to resource names. Absent on older API responses.
+  webhookEvents?: string[];
   // Each entry is a "Header-Name: value" line. Saved values are masked by the API
   webhookHeaders?: string[];
 };
