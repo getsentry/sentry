@@ -1,3 +1,5 @@
+import {useQueryClient} from '@tanstack/react-query';
+
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {
   addErrorMessage,
@@ -15,6 +17,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
+import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 type GroupDetailsPriorityProps = {
   group: Group;
@@ -33,6 +37,8 @@ const getPriorityUpdateSuccessMessage = (priority: PriorityLevel) =>
 function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) => void) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const environments = useEnvironmentsFromUrl();
 
   return (nextPriority: PriorityLevel) => {
     if (nextPriority === group.priority) {
@@ -60,6 +66,13 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
       },
       {
         success: () => {
+          queryClient.invalidateQueries({
+            queryKey: groupApiOptions({
+              organizationSlug: organization.slug,
+              groupId: group.id,
+              environments,
+            }).queryKey,
+          });
           clearIndicators();
           addSuccessMessage(getPriorityUpdateSuccessMessage(nextPriority));
           onChange?.(nextPriority);

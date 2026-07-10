@@ -1,5 +1,6 @@
 import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -24,6 +25,8 @@ import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
+import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
+import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 interface ShareIssueModalProps extends ModalRenderProps {
   event: Event | null;
@@ -61,6 +64,8 @@ export function ShareIssueModal({
   const groups = useLegacyStore(GroupStore);
   const group = (groups as Group[]).find(item => item.id === groupId);
   const api = useApi({persistInFlight: true});
+  const queryClient = useQueryClient();
+  const environments = useEnvironmentsFromUrl();
   const [loading, setLoading] = useState(false);
   const isPublished = group?.isPublic;
 
@@ -109,6 +114,15 @@ export function ShareIssueModal({
         },
       },
       {
+        success: () => {
+          queryClient.invalidateQueries({
+            queryKey: groupApiOptions({
+              organizationSlug: organization.slug,
+              groupId,
+              environments,
+            }).queryKey,
+          });
+        },
         error: () => {
           addErrorMessage(t('Error sharing'));
         },

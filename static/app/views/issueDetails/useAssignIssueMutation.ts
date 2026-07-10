@@ -87,19 +87,20 @@ export function useAssignIssueMutation(
       return {changeId};
     },
     onSuccess: (response, variables, onMutateResult, context) => {
-      // Update react query cache so that useGroup() reflects the new assignee
-      queryClient.setQueryData(
-        groupApiOptions({
-          organizationSlug: variables.orgSlug,
-          groupId: variables.groupId,
-          environments,
-        }).queryKey,
-        prev =>
-          prev ? {...prev, json: {...prev.json, assignedTo: response.assignedTo}} : prev
+      const queryKey = groupApiOptions({
+        organizationSlug: variables.orgSlug,
+        groupId: variables.groupId,
+        environments,
+      }).queryKey;
+
+      // Update react query cache so that useGroup() reflects the new assignee.
+      queryClient.setQueryData(queryKey, prev =>
+        prev ? {...prev, json: {...prev.json, assignedTo: response.assignedTo}} : prev
       );
       // Dual-write to GroupStore
       // TODO: Remove this when we no longer rely on GroupStore for updates
       GroupStore.onAssignToSuccess(onMutateResult.changeId, variables.groupId, response);
+      queryClient.invalidateQueries({queryKey});
       addSuccessMessage(getAssignIssueSuccessMessage(response.assignedTo));
       options.onSuccess?.(response, variables, onMutateResult, context);
     },
