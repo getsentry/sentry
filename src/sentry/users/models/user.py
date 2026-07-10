@@ -548,7 +548,11 @@ class User(Model, AbstractBaseUser):
         """
         username_or_primary_taken = (
             cls.objects.exclude(id=exclude_user_id)
-            .filter(Q(username__iexact=username) | Q(email__iexact=username))
+            .filter(
+                Q(username__iexact=username)
+                | Q(email__iexact=username)
+                | Q(email_unique__iexact=username)
+            )
             .exists()
         )
         verified_email_taken = (
