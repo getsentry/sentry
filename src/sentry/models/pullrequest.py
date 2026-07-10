@@ -59,6 +59,11 @@ class PullRequestVerdict(models.TextChoices):
     MERGED_UNCHANGED = "merged_unchanged"
     MERGED_WITH_ITERATION = "merged_with_iteration"
     CLOSED_UNMERGED = "closed_unmerged"
+    # Merged with commits after open, decided without a judge — for attribution
+    # too weak to warrant the judge call (e.g. MCP), so it's distinct from
+    # MERGED_WITH_ITERATION, which is a judge verdict on judge-eligible
+    # attribution. See ``select_fallback_verdict``.
+    MERGED_WITH_PUSH_ACTIVITY = "merged_with_push_activity"
     # Transient, internal: a terminal event whose outcome a judge must decide has
     # been claimed and forwarded to Seer, but the judged verdict hasn't returned.
     # Reuses the verdict column as the redelivery guard so a redelivered terminal
