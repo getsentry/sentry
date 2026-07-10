@@ -26,6 +26,7 @@ const swcConfig: SwcOptions = {
         runtime: 'automatic',
         importSource: '@emotion/react',
       },
+      reactCompiler: true,
     },
     experimental: {
       plugins: [
