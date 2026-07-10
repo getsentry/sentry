@@ -78,14 +78,6 @@ function getAssignedAssignee(activity: GroupActivityAssigned, teams: Team[]) {
   return t('an unknown user');
 }
 
-function RuleSource({children}: {children: React.ReactNode}) {
-  return (
-    <Text as="span" variant="muted" bold={false} density="comfortable" wrap="nowrap">
-      {children}
-    </Text>
-  );
-}
-
 function RuleText({children}: {children: React.ReactNode}) {
   return (
     <Text
@@ -117,7 +109,7 @@ function AssignedActivityDetails({activity}: {activity: GroupActivityAssigned}) 
   if (integrationName) {
     return tct('to [assignee] due to [rule]', {
       assignee,
-      rule: <RuleSource>{integrationName}</RuleSource>,
+      rule: integrationName,
     });
   }
 
