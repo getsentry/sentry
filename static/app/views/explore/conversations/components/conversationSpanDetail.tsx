@@ -20,13 +20,8 @@ import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conv
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
-import {
-  getGenAiOpType,
-  getGenAiOpTypeIcon,
-  getSpanColor,
-  getTimelineColorByOpType,
-  getTraceNodeAttribute,
-} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
+import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {
   getDurationComparison,
@@ -92,7 +87,6 @@ export function ConversationSpanDetail({
   isLoading,
   scrollResetKey,
 }: ConversationSpanDetailProps) {
-  const theme = useTheme();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -123,7 +117,6 @@ export function ConversationSpanDetail({
 
   const title = node.op || node.description || t('Span');
   const duration = getNodeTimeBounds(node).duration;
-  const squareColor = getSpanColor(node, getTimelineColorByOpType(theme));
   const comparison = getDurationComparison(
     avgDuration,
     duration,
@@ -134,9 +127,7 @@ export function ConversationSpanDetail({
     <SpanDetailCard ref={scrollContainerRef} embedded={embedded}>
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
-          <Flex flexShrink={0} style={{color: squareColor}}>
-            {getGenAiOpTypeIcon(getGenAiOpType(node), 'md')}
-          </Flex>
+          <AiSpanStatusIcon node={node} />
           <Tooltip title={title} showOnlyOnOverflow skipWrapper>
             <Text size="lg" bold ellipsis>
               {title}

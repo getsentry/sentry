@@ -9,8 +9,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconFire} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
@@ -19,12 +17,12 @@ import {
   getNodeTimeBounds,
   type TraceBounds,
 } from 'sentry/views/insights/pages/agents/components/aiSpanList';
+import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
   type ColorByOpType,
   getToolInputPreview,
   getGenAiOpType,
-  getGenAiOpTypeIcon,
   getIsAiAgentNode,
   getNumberAttr,
   getSpanColor,
@@ -39,7 +37,6 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 interface SpanPresentation {
   color: string;
-  icon: React.ReactNode;
   isTool: boolean;
   secondary: string;
   title: string;
@@ -175,10 +172,7 @@ const TimelineRow = memo(function TimelineRow({
   const hasErrors = hasError(node);
   const colorByOpType = useMemo(() => getTimelineColorByOpType(theme), [theme]);
 
-  const {icon, title, secondary, isTool, color} = getSpanPresentation(
-    node,
-    colorByOpType
-  );
+  const {title, secondary, isTool, color} = getSpanPresentation(node, colorByOpType);
   const relativeTiming = calculateRelativeTiming(
     node,
     traceBounds,
@@ -199,25 +193,7 @@ const TimelineRow = memo(function TimelineRow({
         >
           <Stack gap="xs" flex="1" minWidth="0">
             <Flex align="center" gap="md" marginBottom={hasErrors ? 'sm' : undefined}>
-              <Flex align="center" position="relative" style={{color}} flexShrink={0}>
-                {icon}
-                {hasErrors && (
-                  <Tooltip title={t('This span encountered an error')} skipWrapper>
-                    <Container
-                      position="absolute"
-                      radius="full"
-                      style={{
-                        bottom: -6,
-                        right: -6,
-                        padding: 1,
-                        background: theme.tokens.background.primary,
-                      }}
-                    >
-                      <IconFire display="block" size="xs" variant="danger" />
-                    </Container>
-                  </Tooltip>
-                )}
-              </Flex>
+              <AiSpanStatusIcon node={node} />
               {isTool ? (
                 <Flex minWidth="0" maxWidth="50%">
                   <EllipsisTag
@@ -376,7 +352,6 @@ function getSpanPresentation(
         getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
         '';
       return {
-        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title: name || op,
@@ -387,7 +362,6 @@ function getSpanPresentation(
       const responseModel = getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL);
       const title = responseModel || description || op;
       return {
-        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title,
@@ -398,7 +372,6 @@ function getSpanPresentation(
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
       const inputPreview = getToolInputPreview(node);
       return {
-        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: true,
         title: toolName || op,
@@ -407,7 +380,6 @@ function getSpanPresentation(
     }
     case GenAiOperationType.HANDOFF:
       return {
-        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title: op,
@@ -415,7 +387,6 @@ function getSpanPresentation(
       };
     default:
       return {
-        icon: getGenAiOpTypeIcon(genAiOpType, 'md'),
         color,
         isTool: false,
         title: op,
