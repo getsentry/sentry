@@ -484,6 +484,12 @@
   </div>
   {% endif %}
 
+  {% if notification_settings_link %}
+  <div style="padding: 12px 16px; margin: 16px 0; background-color: #F5F3F7; border-radius: 4px; font-size: 14px; color: #80708F;">
+    Want to choose the projects you see in the weekly report? <a href="{% absolute_uri notification_settings_link %}">Customize your project preferences here!</a>
+  </div>
+  {% endif %}
+
 </div>
 {% endblock %}
 
