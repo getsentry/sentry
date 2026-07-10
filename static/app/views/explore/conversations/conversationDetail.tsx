@@ -84,18 +84,26 @@ export function ConversationViewContainer({children}: {children: React.ReactNode
   const organization = useOrganization();
   const hasConversationsRedesign = hasGenAiConversationsRedesignFeature(organization);
 
+  // The redesigned page flows into the document scroll, so it must not clip or
+  // pin its height. The legacy page stays viewport-constrained and scrolls
+  // internally, so it keeps the bounded, overflow-hidden shell.
   return (
     <Container
       flex={1}
-      minHeight="0"
-      overflow="hidden"
+      minHeight={hasConversationsRedesign ? undefined : '0'}
+      overflow={hasConversationsRedesign ? undefined : 'hidden'}
       border={hasConversationsRedesign ? undefined : 'primary'}
       radius={hasConversationsRedesign ? undefined : 'md'}
       maxWidth={hasConversationsRedesign ? '1340px' : undefined}
       background="primary"
       display="flex"
     >
-      <Flex flex={1} minWidth="0" minHeight="0" height="100%">
+      <Flex
+        flex={1}
+        minWidth="0"
+        minHeight={hasConversationsRedesign ? undefined : '0'}
+        height={hasConversationsRedesign ? undefined : '100%'}
+      >
         {children}
       </Flex>
     </Container>

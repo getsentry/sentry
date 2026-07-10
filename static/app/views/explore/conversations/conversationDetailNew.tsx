@@ -66,8 +66,12 @@ export function ConversationDetailPageNew() {
     setQueryState({spanId: null, focusedTool: null});
   }, [setQueryState]);
 
+  // Opt out of the viewport constraint (same as Logs' aggregates mode) so the
+  // page flows into the app's document scroll: the summary and tabs scroll away
+  // with the content, giving a single window scrollbar instead of a nested
+  // per-panel one.
   return (
-    <ViewportConstrainedPage background="secondary">
+    <ViewportConstrainedPage constrained={false} minWidth="0" background="secondary">
       <TopBar.Slot name="title">
         <ConversationsBreadcrumbs conversationId={conversationId} project={project} />
       </TopBar.Slot>
@@ -79,7 +83,7 @@ export function ConversationDetailPageNew() {
           isLoading={isLoading}
         />
       </Container>
-      <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">
+      <Stack padding="xl" gap="xl">
         <Flex flexShrink={0}>
           <Tabs value={queryState.tab} onChange={tab => setQueryState({tab})}>
             <TabList variant="floating">
