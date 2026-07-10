@@ -9,6 +9,7 @@ import logging
 from collections.abc import Sequence
 
 from sentry.models.organization import Organization
+from sentry.models.pullrequest import parse_pull_request_number
 from sentry.seer.autofix.utils import (
     CodingAgentResult,
     CodingAgentState,
@@ -17,6 +18,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.endpoints.utils import get_seer_run
 from sentry.seer.models.run import SeerRunCodingAgentHandoff
+from sentry.seer.pull_requests import _link_pull_request_to_seer_run
 
 logger = logging.getLogger(__name__)
 
@@ -68,8 +70,10 @@ def sync_coding_agent_status(
     :class:`SeerRunCodingAgentHandoff` tracking row, in lockstep -- a single call so
     the two can never drift out of sync the way two separately-called functions can.
 
-    Best-effort: any failure updating the Sentry-side row is logged and swallowed
-    rather than allowed to interrupt the caller's poll/webhook flow.
+    Also links the resulting PR (if any) to the handoff's run via
+    :class:`SeerRunPullRequest`. Best-effort: any failure updating the Sentry-side
+    row is logged and swallowed rather than allowed to interrupt the caller's
+    poll/webhook flow.
 
     Returns whether Seer recognized this ``agent_id`` (mirrors
     ``update_coding_agent_state``'s return value, e.g. for gating PR attribution).
@@ -103,5 +107,34 @@ def sync_coding_agent_status(
         handoff.save(update_fields=update_fields)
     except Exception:
         logger.exception("seer.coding_agent_handoff.update_failed", extra=log_context)
+        return known_to_seer
+
+    if not result or not result.pr_url:
+        return known_to_seer
+
+    pr_number = parse_pull_request_number(result.pr_url)
+    link_log_context = {
+        **log_context,
+        "repo_name": result.repo_full_name,
+        "provider": result.repo_provider,
+        "pr_number": pr_number,
+    }
+
+    pull_request = _link_pull_request_to_seer_run(
+        organization=handoff.seer_run.organization,
+        seer_run=handoff.seer_run,
+        repo_name=result.repo_full_name,
+        provider=result.repo_provider,
+        pr_number=pr_number,
+        log_context=link_log_context,
+    )
+    if pull_request is not None:
+        try:
+            handoff.pull_request = pull_request
+            handoff.save(update_fields=["pull_request", "date_updated"])
+        except Exception:
+            logger.exception(
+                "seer.coding_agent_handoff.pr_link_save_failed", extra=link_log_context
+            )
 
     return known_to_seer

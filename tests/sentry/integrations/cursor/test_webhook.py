@@ -139,6 +139,9 @@ class TestCursorWebhook(APITestCase):
         # rather than sync_coding_agent_status itself) so the real Sentry-side DB write
         # inside sync_coding_agent_status still runs and can be asserted on here.
         mock_update_state.return_value = True
+        repo = self.create_repo(
+            self.project, name="testorg/testrepo", provider="integrations:github"
+        )
         seer_run = self.create_seer_run(self.organization, seer_run_state_id=123)
         handoff = self.create_seer_run_coding_agent_handoff(
             seer_run, agent_id="agent-1", provider="cursor_background_agent"
@@ -151,6 +154,9 @@ class TestCursorWebhook(APITestCase):
         assert response.status_code == 204
         handoff.refresh_from_db()
         assert handoff.status == "completed"
+        assert handoff.pull_request is not None
+        assert handoff.pull_request.repository_id == repo.id
+        assert handoff.pull_request.key == "1"
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
     def test_unknown_agent_records_no_attribution(self, mock_update_state):
