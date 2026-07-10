@@ -150,112 +150,107 @@ export function SentryAppPublishRequestModal({
             )}
           </Text>
 
-          <Stack gap="xl">
-            <form.AppField name="question0">
-              {field => (
-                <field.Layout.Stack
-                  label={t(
-                    'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.'
-                  )}
-                  required
-                >
-                  <field.TextArea
-                    autosize
-                    rows={3}
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
+          <form.AppField name="question0">
+            {field => (
+              <field.Layout.Stack
+                label={t(
+                  'Provide a description about your integration, how this benefits developers using Sentry along with what’s needed to set up this integration.'
+                )}
+                required
+              >
+                <field.TextArea
+                  autosize
+                  rows={3}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
 
-            <form.AppField name="question1">
-              {field => (
-                <field.Layout.Stack
-                  label={tct(
-                    'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on [link:Sentry Integrations].',
-                    {
-                      link: <ExternalLink href="https://sentry.io/integrations/" />,
-                    }
-                  )}
-                  required
-                >
-                  <field.TextArea
-                    autosize
-                    rows={3}
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
+          <form.AppField name="question1">
+            {field => (
+              <field.Layout.Stack
+                label={tct(
+                  'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on [link:Sentry Integrations].',
+                  {
+                    link: <ExternalLink href="https://sentry.io/integrations/" />,
+                  }
+                )}
+                required
+              >
+                <field.TextArea
+                  autosize
+                  rows={3}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
 
-            <form.AppField name="question2">
-              {field => (
-                <field.Layout.Stack
-                  label={tct(
-                    'Select what category best describes your integration. [link:Documentation for reference.]',
-                    {
-                      link: (
-                        <ExternalLink href="https://docs.sentry.io/organization/integrations/" />
-                      ),
-                    }
-                  )}
-                  required
-                >
-                  <field.Select
-                    options={CATEGORY_OPTIONS}
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
+          <form.AppField name="question2">
+            {field => (
+              <field.Layout.Stack
+                label={tct(
+                  'Select what category best describes your integration. [link:Documentation for reference.]',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/organization/integrations/" />
+                    ),
+                  }
+                )}
+                required
+              >
+                <field.Select
+                  options={CATEGORY_OPTIONS}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
 
-            <form.AppField name="question3">
-              {field => (
-                <field.Layout.Stack
-                  label={t('Link to your documentation page.')}
-                  required
-                >
-                  <field.Input
-                    type="url"
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
+          <form.AppField name="question3">
+            {field => (
+              <field.Layout.Stack label={t('Link to your documentation page.')} required>
+                <field.Input
+                  type="url"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
 
-            <form.AppField name="supportEmail">
-              {field => (
-                <field.Layout.Stack label={t('Email address for user support.')} required>
-                  <field.Input
-                    type="email"
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
+          <form.AppField name="supportEmail">
+            {field => (
+              <field.Layout.Stack label={t('Email address for user support.')} required>
+                <field.Input
+                  type="email"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
 
-            <form.AppField name="question4">
-              {field => (
-                <field.Layout.Stack
-                  label={t(
-                    'Link to a video showing installation, setup and user flow for your submission.'
-                  )}
-                  required
-                >
-                  <field.Input
-                    type="url"
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
-          </Stack>
+          <form.AppField name="question4">
+            {field => (
+              <field.Layout.Stack
+                label={t(
+                  'Link to a video showing installation, setup and user flow for your submission.'
+                )}
+                required
+              >
+                <field.Input
+                  type="url"
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
 
           <Alert variant="info">
             <Stack gap="lg">
