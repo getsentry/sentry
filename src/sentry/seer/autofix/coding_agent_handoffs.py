@@ -10,6 +10,7 @@ from collections.abc import Sequence
 
 from sentry.models.organization import Organization
 from sentry.seer.autofix.utils import (
+    CodingAgentProviderType,
     CodingAgentResult,
     CodingAgentState,
     CodingAgentStatus,
@@ -82,13 +83,6 @@ def sync_coding_agent_status(
 ) -> bool:
     """Update Sentry's own SeerRunCodingAgentHandoff, then Seer's coding agent state.
 
-    Local update comes first and gates the Seer call: GitHub Copilot/Claude polls
-    only keep checking an agent while Seer's own state still shows it as
-    RUNNING/PENDING, so if Seer moved to a terminal status but our local save then
-    failed, nothing would ever retry it -- the row would be stuck permanently. If
-    the local save fails, skip telling Seer this time and let the next poll cycle
-    (Seer's state is untouched, so it still looks eligible for polling) retry both.
-
     Returns whether Seer recognized this ``agent_id`` (mirrors
     ``update_coding_agent_state``'s return value, e.g. for gating PR attribution).
     """
@@ -116,7 +110,8 @@ def sync_coding_agent_status(
             handoff.save(update_fields=update_fields)
         except Exception:
             logger.exception("seer.coding_agent_handoff.update_failed", extra=log_context)
-            return False
+            if handoff.provider != CodingAgentProviderType.CURSOR_BACKGROUND_AGENT.value:
+                return False
 
     return update_coding_agent_state(
         agent_id=agent_id, status=status, agent_url=agent_url, result=result
