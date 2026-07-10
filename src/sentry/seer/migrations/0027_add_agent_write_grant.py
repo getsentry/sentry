@@ -27,7 +27,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("seer", "0023_add_seer_run_pull_request"),
+        ("seer", "0026_add_night_shift_result_idempotency_key"),
         ("sentry", "1120_add_organization_identity"),
     ]
 
