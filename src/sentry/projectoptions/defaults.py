@@ -252,5 +252,10 @@ register(key="sentry:preprod_snapshot_pr_comments_post_on_changed", default=True
 # When True, treat snapshot renames as a diff worth posting a PR comment.
 register(key="sentry:preprod_snapshot_pr_comments_post_on_renamed", default=False)
 
+# Boolean to enable/disable size analysis PR comments for this project. Default
+# off; when enabled, the task posts/updates a comment based on the comment-specific
+# rules stored in sentry:preprod_size_pr_comments_rules.
+register(key="sentry:preprod_size_pr_comments_enabled", default=False)
+
 # Whether to enable on-demand source context fetching from SCM integrations
 register(key="sentry:scm_source_context_enabled", default=False)
