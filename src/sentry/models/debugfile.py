@@ -15,7 +15,7 @@ import time
 import uuid
 import zipfile
 from collections.abc import Container, Iterable, Mapping
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import IO, TYPE_CHECKING, Any, BinaryIO, ClassVar
 
 from django.db import models
@@ -273,6 +273,17 @@ class ProjectDebugFile(Model):
         if self.file is not None:
             return self.file.getfile()
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
+
+    def get_presigned_download_url(self, ttl: timedelta) -> str:
+        """
+        Returns a pre-signed URL authorizing a single GET of this debug file directly from
+        Objectstore, valid for `ttl`. Only valid when the file is stored in Objectstore.
+
+        The returned URL points at the Objectstore hostname configured for this cell; callers are
+        responsible for rewriting it to a caller-reachable host if needed.
+        """
+        assert self.storage_path is not None, "debug file is not stored in Objectstore"
+        return self._get_objectstore_session().presigned_object_url("GET", self.storage_path, ttl)
 
     def save_to(self, path: str) -> None:
         if self.storage_path is not None:

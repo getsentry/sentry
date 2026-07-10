@@ -5,13 +5,16 @@ import shutil
 import tempfile
 import uuid
 from collections.abc import Iterable, Mapping, Sequence, Set
+from datetime import timedelta
 from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard, cast
+from urllib.parse import urlsplit
 
 import jsonschema
 import orjson
 from django.db import IntegrityError, router
 from django.db.models import Case, Exists, F, IntegerField, Q, QuerySet, Value, When
-from django.http import Http404, HttpResponse, StreamingHttpResponse
+from django.http import Http404, HttpResponse, HttpResponseRedirect, StreamingHttpResponse
+from django.urls import reverse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from objectstore_client import RequestError
 from rest_framework import status
@@ -35,11 +38,12 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.debug_file import DebugFileSerializerResponse
-from sentry.api.utils import to_valid_int_id
+from sentry.api.utils import generate_locality_url, to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.dsym_examples import DebugFileExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth import system
 from sentry.auth.access import Access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
@@ -60,6 +64,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.release import Release, get_artifact_counts
 from sentry.models.releasefile import ReleaseFile
+from sentry.objectstore import rewrite_url_for_symbolicator
 from sentry.roles import organization_roles
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -71,6 +76,9 @@ from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger("sentry.api")
 ERR_FILE_EXISTS = "A file matching this debug identifier already exists"
+# Validity window of the pre-signed URL we redirect debug file downloads to. It only needs to
+# outlive the redirect itself (the client immediately follows the `Location`).
+OBJECTSTORE_PRESIGNED_URL_TTL = timedelta(minutes=5)
 DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 _release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
 
@@ -275,6 +283,11 @@ class DebugFilesEndpoint(ProjectEndpoint):
         if debug_file is None:
             raise Http404
 
+        # If the file lives in Objectstore, redirect the client to a pre-signed URL instead of
+        # streaming the bytes through Sentry.
+        if debug_file.storage_path is not None:
+            return self._redirect_to_objectstore(self.request, debug_file, project)
+
         try:
             fp = debug_file.get_file()
 
@@ -294,6 +307,45 @@ class DebugFilesEndpoint(ProjectEndpoint):
             return response
         except (OSError, RequestError, Project.DoesNotExist, HTTPError):
             raise Http404
+
+    def _redirect_to_objectstore(
+        self, request: Request, debug_file: ProjectDebugFile, project: Project
+    ) -> HttpResponseRedirect:
+        """
+        Redirects the client to a pre-signed URL pointing directly at the debug file in Objectstore,
+        avoiding streaming the bytes through Sentry.
+
+        Internal callers (e.g. Symbolicator) are redirected straight to the Objectstore host
+        configured for this cell. External callers are redirected to the public Sentry API
+        Objectstore proxy endpoint for the current cell, which forwards the request to Objectstore.
+        """
+        try:
+            presigned_url = debug_file.get_presigned_download_url(OBJECTSTORE_PRESIGNED_URL_TTL)
+        except (RequestError, Project.DoesNotExist, HTTPError):
+            raise Http404
+
+        if system.is_internal_ip(request):
+            url = rewrite_url_for_symbolicator(presigned_url)
+        else:
+            url = self._public_objectstore_url(presigned_url, project.organization_id)
+
+        return HttpResponseRedirect(url)
+
+    def _public_objectstore_url(self, presigned_url: str, organization_id: int) -> str:
+        """
+        Rewrites a pre-signed Objectstore URL to route through the public Sentry API Objectstore
+        proxy endpoint for the current cell, preserving the (signed) Objectstore path and query.
+        """
+        parts = urlsplit(presigned_url)
+        proxy_path = reverse(
+            "sentry-api-0-organization-objectstore",
+            kwargs={
+                "organization_id_or_slug": organization_id,
+                "path": parts.path.lstrip("/"),
+            },
+        )
+        base = generate_locality_url().rstrip("/")
+        return f"{base}{proxy_path}?{parts.query}"
 
     @extend_schema(
         operation_id="listProjectDebugFiles",

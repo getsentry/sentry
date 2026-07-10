@@ -2360,13 +2360,13 @@ SENTRY_INTERCOM_API_SECRET = ""
 SENTRY_RELAY_STATIC_AUTH: dict[str, Any] = {}
 SENTRY_OBJECTSTORE_CONFIG: dict[str, Any] = {
     "base_url": "http://127.0.0.1:8888",
-    # Test-only token generator with no permissions. Only active when no real
-    # objectstore config is deployed. Exists so mint_token() does not raise in
-    # test/dev environments that lack signing keys.
+    # Test/dev signing key. The matching public key is configured on the Objectstore server
+    # (see the objectstore devservices config), which enforces auth against it. The private key
+    # here signs both request JWTs and pre-signed URLs.
     "token_generator": {
         "kid": "test",
-        "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIOrZqzixETRBXsZl85d83N5nwb71ctTZ3/mwu1TX90vG\n-----END PRIVATE KEY-----\n",
-        "permissions": [],
+        "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIEkA1H+gMmMBURMXBcahTDpffH1nGVPtHF57LnQXJm7h\n-----END PRIVATE KEY-----\n",
+        "permissions": ["object.read", "object.write", "object.delete"],
     },
 }
 SENTRY_VIEWER_CONTEXT_ENABLED = True
