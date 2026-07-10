@@ -39,7 +39,6 @@ from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.locks import locks
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -51,7 +50,6 @@ from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
-from sentry.utils.retries import TimedRetryPolicy
 
 audit_logger = logging.getLogger("sentry.audit.user")
 logger = logging.getLogger(__name__)
@@ -603,20 +601,17 @@ class User(Model, AbstractBaseUser):
             if username_match:
                 return (username_match.pk, ImportKind.Existing)
 
-        # Suffix until the username collides with neither an existing username nor
-        # email; the standard slug helper (unique_db_instance) does not support cross-column checking.
+        # Suffix until the username collides with neither an existing username nor email.
+        # The standard slug helper (unique_db_instance) does not support cross-column checking.
         if not User.is_username_available(self.username):
-            lock = locks.get(f"user:username:{self.id}", duration=10, name="username")
-            with TimedRetryPolicy(10)(lock.acquire):
-                base = self.username[: MAX_USERNAME_LENGTH - 13]
-                for _ in range(3):
-                    suffix = get_random_string(
-                        12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789"
-                    )
-                    self.username = f"{base}-{suffix}"
-                    if User.is_username_available(self.username):
-                        return do_write()
-                raise RuntimeError("Could not generate a unique username during relocation import")
+            base = self.username[: MAX_USERNAME_LENGTH - 13]
+            for _ in range(3):
+                # 3 chances to create a random suffix - randomly selecting an exact duplicate should be almost impossible
+                suffix = get_random_string(12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
+                self.username = f"{base}-{suffix}"
+                if User.is_username_available(self.username):
+                    return do_write()
+            raise RuntimeError("Could not generate a unique username during relocation import")
 
         return do_write()
 
