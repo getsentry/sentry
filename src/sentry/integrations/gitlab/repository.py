@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
@@ -60,6 +61,18 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
             "integration_id": data["installation"],
         }
 
+    @staticmethod
+    def _webhook_fingerprint(model: Any) -> str:
+        """One-way digest of the token we push to GitLab (``external_id:webhook_secret``).
+
+        Stored on ``repo.config`` so we can tell, without any GitLab call, whether the
+        token we would push differs from what we last wrote to the hook. The secret is
+        derived from the OAuth ``client_id``, so it rotates when an org reinstalls
+        against a new OAuth app — precisely the case where we must re-push.
+        """
+        token = "{}:{}".format(model.external_id, model.metadata.get("webhook_secret", ""))
+        return hashlib.sha256(token.encode()).hexdigest()
+
     def on_create_repository(self, repo: RpcRepository, organization: RpcOrganization) -> None:
         existing_webhook_id = repo.config.get("webhook_id")
         # Namespaced under "gitlab.repository." so these attributes group together in the
@@ -80,8 +93,28 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
             },
         )
         installation = self.get_installation(repo.integration_id, repo.organization_id)
-        client = installation.get_client()
         project_id = repo.config["project_id"]
+        current_fingerprint = self._webhook_fingerprint(installation.model)
+
+        # Steady-state skip: if we already have a hook and the token we'd push is
+        # unchanged since we last wrote it, there is nothing to reconcile — return
+        # before touching GitLab (or even resolving the OAuth client). This is the
+        # common bulk-reactivation path (scm repo sync, auto-link-by-name), which
+        # would otherwise issue a PUT per repo for no reason.
+        #
+        # Trade-off: the fingerprint tracks OUR token, not the hook's existence on
+        # GitLab. A hook deleted out-of-band on GitLab *without* a secret rotation is
+        # not recreated until the secret rotates or the fingerprint is cleared. This
+        # is accepted: external deletion of a Sentry-managed hook is rare, and any
+        # secret change still flows through the heal path below.
+        if existing_webhook_id and repo.config.get("webhook_fingerprint") == current_fingerprint:
+            logger.info(
+                "gitlab.repository.webhook_unchanged",
+                extra={**log_extra, "gitlab.repository.webhook_id": existing_webhook_id},
+            )
+            return
+
+        client = installation.get_client()
 
         # A stored webhook_id can survive an uninstall/reinstall of the integration
         # (disassociate_organization_integration clears integration_id but leaves the
@@ -103,6 +136,8 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
             except Exception as e:
                 raise installation.raise_error(e)
             else:
+                repo.config["webhook_fingerprint"] = current_fingerprint
+                repository_service.update_repository(organization_id=organization.id, update=repo)
                 logger.info(
                     "gitlab.repository.webhook_refreshed",
                     extra={**log_extra, "gitlab.repository.webhook_id": existing_webhook_id},
@@ -114,6 +149,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         except Exception as e:
             raise installation.raise_error(e)
         repo.config["webhook_id"] = hook_id
+        repo.config["webhook_fingerprint"] = current_fingerprint
         repository_service.update_repository(organization_id=organization.id, update=repo)
         logger.info(
             # A prior webhook_id that 404'd means we replaced a stale hook rather than
