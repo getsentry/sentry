@@ -170,7 +170,7 @@ function MetricsSectionContent() {
       onSearch: (query: string) => setMetricsQuery(query),
       hiddenAttributeKeys: HiddenTraceMetricTraceViewSearchFields,
       attributeQuery,
-      recentSearchesQuery: attributeQuery,
+      disableRecentSearches: true,
       datetime,
     };
   }, [attributeQuery, datetime, initialQuery, placeholder, setMetricsQuery]);

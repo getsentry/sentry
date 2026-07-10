@@ -95,7 +95,7 @@ describe('TraceViewMetricsSection', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('scopes recent search requests to the trace', async () => {
+  it('disables recent searches', async () => {
     mockTraceMetricAttributes();
 
     render(
@@ -109,16 +109,11 @@ describe('TraceViewMetricsSection', () => {
       await screen.findByPlaceholderText('Search application metrics for this trace')
     );
 
+    const menu = await screen.findByRole('listbox');
     await waitFor(() => {
-      expect(recentSearchesRequest).toHaveBeenCalledWith(
-        `/organizations/${organization.slug}/recent-searches/`,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: `trace:[${traceId}]`,
-          }),
-        })
-      );
+      expect(within(menu).getByRole('option', {name: 'metric.name'})).toBeInTheDocument();
     });
+    expect(recentSearchesRequest).not.toHaveBeenCalled();
   });
 
   it('scopes attribute and value autocomplete requests to the trace', async () => {
