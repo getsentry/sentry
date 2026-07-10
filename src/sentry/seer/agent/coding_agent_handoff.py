@@ -193,8 +193,6 @@ def launch_coding_agents(
             }
         )
 
-        # Created per-repo, immediately, not batched after the loop -- a webhook
-        # can arrive as soon as launch() returns above.
         create_seer_run_coding_agent_handoff(organization, run_id, coding_agent_state)
 
     # Store the coding agent states to Seer

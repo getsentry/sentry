@@ -106,7 +106,7 @@ class SyncCodingAgentStatusTest(TestCase):
 
         self.handoff.refresh_from_db()
         assert self.handoff.status == "completed"
-        assert self.handoff.agent_url == "https://github.com/copilot/agents/agent-1"
+        assert self.handoff.extras["agent_url"] == "https://github.com/copilot/agents/agent-1"
 
     @patch(MOCK_UPDATE_STATE_PATH)
     def test_returns_false_when_seer_does_not_recognize_agent(

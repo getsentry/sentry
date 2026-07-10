@@ -16,7 +16,7 @@ from sentry.seer.autofix.utils import (
     update_coding_agent_state,
 )
 from sentry.seer.endpoints.utils import get_seer_run
-from sentry.seer.models.run import SeerRunCodingAgentHandoff
+from sentry.seer.models.run import SeerRunCodingAgentHandoff, SeerRunCodingAgentHandoffExtras
 from sentry.seer.pull_requests import _link_pull_request_to_seer_run
 
 logger = logging.getLogger(__name__)
@@ -27,9 +27,6 @@ def create_seer_run_coding_agent_handoff(
     run_id: int,
     state: CodingAgentState,
 ) -> None:
-    """Record the coding agent just launched for ``run_id``. Best-effort: any
-    failure is logged and swallowed rather than allowed to interrupt the launch flow.
-    """
     log_context = {"organization_id": organization.id, "run_id": run_id}
 
     try:
@@ -38,12 +35,13 @@ def create_seer_run_coding_agent_handoff(
             logger.info("seer.coding_agent_handoff.run_not_found", extra=log_context)
             return
 
+        extras: SeerRunCodingAgentHandoffExtras = {"agent_url": state.agent_url}
         SeerRunCodingAgentHandoff.objects.create(
             seer_run=seer_run,
             provider=state.provider.value,
             agent_id=state.id,
-            agent_url=state.agent_url,
             status=state.status.value,
+            extras=extras,
         )
     except Exception:
         logger.exception("seer.coding_agent_handoff.create_failed", extra=log_context)
@@ -57,14 +55,8 @@ def sync_coding_agent_status(
     agent_url: str | None = None,
     result: CodingAgentResult | None = None,
 ) -> bool:
-    """Update both Seer's coding agent state and Sentry's own
-    :class:`SeerRunCodingAgentHandoff` tracking row, in lockstep -- a single call so
-    the two can never drift out of sync the way two separately-called functions can.
-
-    Also links the resulting PR (if any) to the handoff's run via
-    :class:`SeerRunPullRequest`. Best-effort: any failure updating the Sentry-side
-    row is logged and swallowed rather than allowed to interrupt the caller's
-    poll/webhook flow.
+    """Update both Seer's coding agent state and Sentry's own SeerRunCodingAgentHandoff,
+    and link the resulting PR (if any) to the handoff's run via SeerRunPullRequest.
 
     Returns whether Seer recognized this ``agent_id`` (mirrors
     ``update_coding_agent_state``'s return value, e.g. for gating PR attribution).
@@ -87,8 +79,9 @@ def sync_coding_agent_status(
         handoff.status = status.value
         update_fields = ["status", "date_updated"]
         if agent_url is not None:
-            handoff.agent_url = agent_url
-            update_fields.append("agent_url")
+            extras: SeerRunCodingAgentHandoffExtras = {**handoff.extras, "agent_url": agent_url}
+            handoff.extras = extras
+            update_fields.append("extras")
         handoff.save(update_fields=update_fields)
     except Exception:
         logger.exception("seer.coding_agent_handoff.update_failed", extra=log_context)

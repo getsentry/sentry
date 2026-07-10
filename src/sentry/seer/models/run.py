@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import TypedDict
 from uuid import uuid4
 
 from django.db import models
@@ -116,11 +117,18 @@ class SeerRunPullRequest(DefaultFieldsModel):
 
 
 class SeerRunCodingAgentHandoffStatus(models.TextChoices):
+    """Keep in sync with sentry.seer.autofix.utils.CodingAgentStatus"""
+
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
-    # Values match sentry.seer.autofix.utils.CodingAgentStatus exactly.
+
+
+class SeerRunCodingAgentHandoffExtras(TypedDict, total=False):
+    # Deep link to the agent's session on the provider's own site (e.g. Cursor).
+    # Not every provider supplies one.
+    agent_url: str | None
 
 
 @cell_silo_model
@@ -136,15 +144,8 @@ class SeerRunCodingAgentHandoff(DefaultFieldsModel):
     seer_run = FlexibleForeignKey(
         "seer.SeerRun", on_delete=models.CASCADE, related_name="coding_agent_handoffs"
     )
-    # Plain field, not Django choices-enforced. Holds a CodingAgentProviderType value
-    # (sentry.seer.autofix.utils), e.g. "github_copilot_agent". Kept a bare CharField
-    # (mirroring SeerRun.referrer's convention) to avoid a models -> business-logic
-    # import cycle.
-    provider = models.CharField(max_length=64)
-    # The external agent/session id from the provider (join key for webhooks/polls that
-    # later report completion). Globally unique, not scoped per-org.
-    agent_id = models.CharField(max_length=255, unique=True)
-    agent_url = models.CharField(max_length=512, null=True)
+    provider = models.CharField(max_length=256)
+    agent_id = models.CharField(max_length=256, unique=True)
     status = models.CharField(
         max_length=32,
         choices=SeerRunCodingAgentHandoffStatus.choices,
@@ -157,6 +158,8 @@ class SeerRunCodingAgentHandoff(DefaultFieldsModel):
         null=True,
         related_name="seer_coding_agent_handoffs",
     )
+    # See SeerRunCodingAgentHandoffExtras for the expected shape.
+    extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:
         app_label = "seer"

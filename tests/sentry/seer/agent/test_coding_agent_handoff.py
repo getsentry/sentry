@@ -153,7 +153,7 @@ class TestLaunchCodingAgents(TestCase):
         handoff = SeerRunCodingAgentHandoff.objects.get(agent_id="agent-123")
         assert handoff.seer_run_id == seer_run.id
         assert handoff.provider == "cursor_background_agent"
-        assert handoff.agent_url == "https://cursor.sh/agent"
+        assert handoff.extras["agent_url"] == "https://cursor.sh/agent"
         assert handoff.status == "pending"
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
