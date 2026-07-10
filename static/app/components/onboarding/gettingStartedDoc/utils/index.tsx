@@ -87,7 +87,7 @@ export function getUploadSourceMapsStep({
   };
 }
 
-const SENTRY_FOR_AI_BASE_URL = 'https://skills.sentry.dev';
+const SENTRY_INSTRUMENT_SKILL_URL = 'https://skills.sentry.dev/instrument';
 
 function CopyPromptButton({prompt}: {prompt: string}) {
   const {copy} = useCopyToClipboard();
@@ -102,9 +102,9 @@ function CopyPromptButton({prompt}: {prompt: string}) {
   );
 }
 
-export function getAISetupStep({skillPath}: {skillPath: string}): OnboardingStep {
-  const skillUrl = `${SENTRY_FOR_AI_BASE_URL}/${skillPath}/SKILL.md`;
-  const prompt = `Read and follow: ${skillUrl}`;
+export function getAISetupStep({sdkName}: {sdkName?: string}): OnboardingStep {
+  const target = sdkName ? `the Sentry ${sdkName} SDK` : 'Sentry';
+  const prompt = `Use curl to download, read and follow ${SENTRY_INSTRUMENT_SKILL_URL} to set up ${target}.`;
 
   return {
     collapsible: true,
