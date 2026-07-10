@@ -2362,7 +2362,7 @@ SENTRY_REGION_API_URL_TEMPLATE: str | None = os.environ.get("SENTRY_REGION_API_U
 SENTRY_INTERCOM_API_SECRET = ""
 SENTRY_RELAY_STATIC_AUTH: dict[str, Any] = {}
 SENTRY_OBJECTSTORE_CONFIG: dict[str, Any] = {
-    "base_url": "http://127.0.0.1:8888",
+    "base_url": "http://host.docker.internal:8888",
     # Test-only token generator with no permissions. Only active when no real
     # objectstore config is deployed. Exists so mint_token() does not raise in
     # test/dev environments that lack signing keys.
