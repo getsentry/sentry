@@ -298,12 +298,17 @@ describe('SentryAppDetailsModal', () => {
     // Verify modal stays open
     expect(closeModal).not.toHaveBeenCalled();
   });
-  it('button is disabled if invalid urls are used', async () => {
+  it('shows a validation error and does not submit if invalid urls are used', async () => {
     const organization = OrganizationFixture();
+    const closeModal = jest.fn();
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/sentry-apps/${sentryApp.slug}/publish-request/`,
+      method: 'POST',
+    });
 
     render(
       <SentryAppPublishRequestModal
-        closeModal={jest.fn()}
+        closeModal={closeModal}
         Header={p => <span>{p.children}</span>}
         Footer={styledWrapper()}
         Body={styledWrapper()}
@@ -353,9 +358,13 @@ describe('SentryAppDetailsModal', () => {
     );
 
     const submitButton = screen.getByRole('button', {name: 'Request Publication'});
-    expect(submitButton).toBeDisabled();
+    expect(submitButton).toBeEnabled();
+    await userEvent.click(submitButton);
+
     expect(
-      screen.getByText('Invalid link: URL must start with https://')
+      await screen.findByText('Invalid link: URL must start with https://')
     ).toBeInTheDocument();
+    expect(mockRequest).not.toHaveBeenCalled();
+    expect(closeModal).not.toHaveBeenCalled();
   });
 });
