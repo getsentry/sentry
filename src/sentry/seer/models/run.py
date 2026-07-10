@@ -115,6 +115,57 @@ class SeerRunPullRequest(DefaultFieldsModel):
     __repr__ = sane_repr("seer_run_id", "pull_request_id")
 
 
+class SeerRunCodingAgentHandoffStatus(models.TextChoices):
+    PENDING = "pending"
+    RUNNING = "running"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    # Values match sentry.seer.autofix.utils.CodingAgentStatus exactly.
+
+
+@cell_silo_model
+class SeerRunCodingAgentHandoff(DefaultFieldsModel):
+    """Records a coding agent Seer handed a run off to (Cursor/GitHub Copilot/Claude
+    Code), and its outcome.
+
+    A run can hand off to multiple agents (one per repo), so ``seer_run`` is not unique.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    seer_run = FlexibleForeignKey(
+        "seer.SeerRun", on_delete=models.CASCADE, related_name="coding_agent_handoffs"
+    )
+    # Plain field, not Django choices-enforced. Holds a CodingAgentProviderType value
+    # (sentry.seer.autofix.utils), e.g. "github_copilot_agent". Kept a bare CharField
+    # (mirroring SeerRun.referrer's convention) to avoid a models -> business-logic
+    # import cycle.
+    provider = models.CharField(max_length=64)
+    # The external agent/session id from the provider (join key for webhooks/polls that
+    # later report completion). Globally unique, not scoped per-org.
+    agent_id = models.CharField(max_length=255, unique=True)
+    agent_url = models.CharField(max_length=512, null=True)
+    status = models.CharField(
+        max_length=32,
+        choices=SeerRunCodingAgentHandoffStatus.choices,
+        default=SeerRunCodingAgentHandoffStatus.PENDING,
+        db_default=SeerRunCodingAgentHandoffStatus.PENDING,
+    )
+    pull_request = FlexibleForeignKey(
+        "sentry.PullRequest",
+        on_delete=models.CASCADE,
+        null=True,
+        related_name="seer_coding_agent_handoffs",
+    )
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_seerruncodingagenthandoff"
+        indexes = [models.Index(fields=["seer_run", "status"])]
+
+    __repr__ = sane_repr("seer_run_id", "provider", "status")
+
+
 @cell_silo_model
 class SeerAgentRun(DefaultFieldsModel):
     """

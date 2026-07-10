@@ -10,9 +10,62 @@ from sentry import options
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.seer.endpoints.utils import get_seer_run
-from sentry.seer.models.run import SeerRunPullRequest
+from sentry.seer.models.run import SeerRun, SeerRunPullRequest
 
 logger = logging.getLogger(__name__)
+
+
+def _link_pull_request_to_seer_run(
+    *,
+    organization: Organization,
+    seer_run: SeerRun,
+    repo_name: str | None,
+    provider: str | None,
+    pr_number: int | str | None,
+    log_context: Mapping[str, Any],
+) -> PullRequest | None:
+    """Resolve one reported PR and idempotently link it to ``seer_run`` via
+    :class:`SeerRunPullRequest`. Returns the resolved PR, or ``None`` on any
+    failure. Best-effort: every failure is logged and swallowed rather than raised.
+    """
+    if not repo_name or pr_number is None:
+        logger.warning("seer.pr_link.missing_fields", extra=log_context)
+        return None
+
+    try:
+        resolved = PullRequest.objects.get_or_create_from_reference(
+            organization_id=organization.id,
+            repo_name=repo_name,
+            provider=provider,
+            key=pr_number,
+        )
+    except Exception:
+        logger.exception("seer.pr_link.resolve_failed", extra=log_context)
+        return None
+
+    if resolved.pull_request is None:
+        logger.warning("seer.pr_link.repo_unresolved", extra=log_context)
+        return None
+
+    try:
+        _, created = SeerRunPullRequest.objects.get_or_create(
+            pull_request=resolved.pull_request,
+            defaults={"seer_run": seer_run},
+        )
+    except Exception:
+        logger.exception(
+            "seer.pr_link.write_failed",
+            extra={**log_context, "pull_request_id": resolved.pull_request.id},
+        )
+        return None
+
+    if created:
+        logger.info(
+            "seer.pr_link.created",
+            extra={**log_context, "pull_request_id": resolved.pull_request.id},
+        )
+
+    return resolved.pull_request
 
 
 def link_seer_run_pull_requests(
@@ -54,39 +107,11 @@ def link_seer_run_pull_requests(
             "pr_number": pr_number,
         }
 
-        if not repo_name or pr_number is None:
-            logger.warning("seer.pr_link.missing_fields", extra=log_context)
-            continue
-
-        try:
-            resolved = PullRequest.objects.get_or_create_from_reference(
-                organization_id=organization.id,
-                repo_name=repo_name,
-                provider=provider,
-                key=pr_number,
-            )
-        except Exception:
-            logger.exception("seer.pr_link.resolve_failed", extra=log_context)
-            continue
-
-        if resolved.pull_request is None:
-            logger.warning("seer.pr_link.repo_unresolved", extra=log_context)
-            continue
-
-        try:
-            _, created = SeerRunPullRequest.objects.get_or_create(
-                pull_request=resolved.pull_request,
-                defaults={"seer_run": seer_run},
-            )
-        except Exception:
-            logger.exception(
-                "seer.pr_link.write_failed",
-                extra={**log_context, "pull_request_id": resolved.pull_request.id},
-            )
-            continue
-
-        if created:
-            logger.info(
-                "seer.pr_link.created",
-                extra={**log_context, "pull_request_id": resolved.pull_request.id},
-            )
+        _link_pull_request_to_seer_run(
+            organization=organization,
+            seer_run=seer_run,
+            repo_name=repo_name,
+            provider=provider,
+            pr_number=pr_number,
+            log_context=log_context,
+        )

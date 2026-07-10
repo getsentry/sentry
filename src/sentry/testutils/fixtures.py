@@ -1240,6 +1240,9 @@ class Fixtures:
     def create_seer_agent_run(self, run, **kwargs):
         return Factories.create_seer_agent_run(run=run, **kwargs)
 
+    def create_seer_run_coding_agent_handoff(self, seer_run, **kwargs):
+        return Factories.create_seer_run_coding_agent_handoff(seer_run=seer_run, **kwargs)
+
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot: InstaSnapshotter) -> None:
         self.insta_snapshot = insta_snapshot

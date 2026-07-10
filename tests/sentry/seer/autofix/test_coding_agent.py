@@ -347,6 +347,63 @@ class TestPollGithubCopilotAgents(TestCase):
             run_id=self.run_id,
         )
 
+    @patch("sentry.seer.autofix.coding_agent.update_seer_run_coding_agent_handoff")
+    @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
+    @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
+    def test_poll_updates_seer_run_coding_agent_handoff_when_task_complete(
+        self, mock_identity_service, mock_update_state, mock_update_handoff
+    ):
+        """A completed Copilot task updates the Sentry-side SeerRunCodingAgentHandoff row."""
+        mock_identity_service.get_access_token_for_user.return_value = "test_token"
+
+        mock_client = MagicMock()
+        mock_client.get_task_status.return_value = GithubCopilotTask(
+            id="task-123",
+            state="completed",
+            artifacts=[
+                GithubCopilotArtifact(
+                    provider="github",
+                    type="pull_request",
+                    data=GithubCopilotArtifactData(id=456, type="pull", global_id="PR_abc123"),
+                )
+            ],
+        )
+        mock_pr_info = MagicMock()
+        mock_pr_info.url = "https://github.com/getsentry/sentry/pull/12345"
+        mock_pr_info.title = "Fix the bug"
+        mock_client.get_pr_from_graphql.return_value = mock_pr_info
+
+        agents = {
+            "getsentry:sentry:task-123": CodingAgentState(
+                id="getsentry:sentry:task-123",
+                status=CodingAgentStatus.RUNNING,
+                provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
+                name="GitHub Copilot",
+                started_at=datetime.now(UTC),
+            )
+        }
+        autofix_state = self._create_autofix_state_with_agents(agents)
+
+        with patch.object(GithubCopilotAgentClient, "__init__", return_value=None):
+            with patch.object(
+                GithubCopilotAgentClient, "get_task_status", mock_client.get_task_status
+            ):
+                with patch.object(
+                    GithubCopilotAgentClient, "get_pr_from_graphql", mock_client.get_pr_from_graphql
+                ):
+                    poll_github_copilot_agents(
+                        autofix_state,
+                        user_id=self.user.id,
+                        organization_id=self.organization.id,
+                    )
+
+        mock_update_handoff.assert_called_once()
+        call_kwargs = mock_update_handoff.call_args.kwargs
+        assert call_kwargs["agent_id"] == "getsentry:sentry:task-123"
+        assert call_kwargs["organization_id"] == self.organization.id
+        assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
+        assert call_kwargs["result"].pr_url == "https://github.com/getsentry/sentry/pull/12345"
+
     @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
     @patch("sentry.seer.autofix.coding_agent.update_coding_agent_state")
     @patch("sentry.seer.autofix.coding_agent.github_copilot_identity_service")
@@ -898,6 +955,46 @@ class TestPollClaudeCodeAgents(TestCase):
             agent_id="claude-session-123",
             run_id=self.run_id,
         )
+
+    @patch("sentry.seer.autofix.coding_agent.update_seer_run_coding_agent_handoff")
+    @patch(MOCK_UPDATE_STATE_PATH)
+    @patch(MOCK_CLIENT_CLASS_PATH)
+    @patch(MOCK_INTEGRATION_SERVICE_PATH)
+    def test_updates_seer_run_coding_agent_handoff_on_completion(
+        self, mock_integration_service, mock_import_string, mock_update_state, mock_update_handoff
+    ):
+        """A completed Claude session updates the Sentry-side SeerRunCodingAgentHandoff row."""
+        self._mock_integration(mock_integration_service)
+        mock_client = MagicMock()
+        mock_client.list_session_events.return_value = [
+            {
+                "type": "agent.message",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "PR created: https://github.com/getsentry/sentry/pull/999",
+                    }
+                ],
+            },
+            {"type": ClaudeSessionEventStatus.IDLE},
+        ]
+        mock_client.build_result_from_session.return_value = MagicMock(
+            pr_url="https://github.com/getsentry/sentry/pull/999",
+            repo_full_name="getsentry/sentry",
+            repo_provider="github",
+        )
+        mock_import_string.return_value = lambda **kwargs: mock_client
+
+        agents = {"claude-session-123": self._create_claude_agent()}
+        autofix_state = self._create_autofix_state_with_agents(agents)
+        poll_claude_code_agents(autofix_state=autofix_state)
+
+        mock_update_handoff.assert_called_once()
+        call_kwargs = mock_update_handoff.call_args.kwargs
+        assert call_kwargs["agent_id"] == "claude-session-123"
+        assert call_kwargs["organization_id"] == self.organization.id
+        assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
+        assert call_kwargs["result"].pr_url == "https://github.com/getsentry/sentry/pull/999"
 
     @patch("sentry.seer.autofix.coding_agent.attribute_delegated_agent_pull_request")
     @patch(MOCK_UPDATE_STATE_PATH)

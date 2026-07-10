@@ -23,6 +23,7 @@ from sentry.integrations.services.github_copilot_identity import github_copilot_
 from sentry.integrations.services.integration import integration_service
 from sentry.models.pullrequest import PullRequestAttributionSignalType
 from sentry.pr_metrics.attribution import attribute_delegated_agent_pull_request
+from sentry.seer.autofix.coding_agent_handoffs import update_seer_run_coding_agent_handoff
 from sentry.seer.autofix.utils import (
     AutofixState,
     CodingAgentProviderType,
@@ -266,6 +267,12 @@ def poll_github_copilot_agents(
                     status=new_status,
                     result=result,
                 )
+                update_seer_run_coding_agent_handoff(
+                    agent_id=agent_id,
+                    organization_id=organization_id,
+                    status=new_status,
+                    result=result,
+                )
 
                 if is_task_done and pr_url:
                     try:
@@ -371,6 +378,12 @@ def poll_claude_agent(
         if new_status != agent_state.status:
             update_coding_agent_state(
                 agent_id=agent_id,
+                status=new_status,
+                result=result,
+            )
+            update_seer_run_coding_agent_handoff(
+                agent_id=agent_id,
+                organization_id=org_id,
                 status=new_status,
                 result=result,
             )

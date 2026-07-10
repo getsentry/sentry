@@ -149,7 +149,13 @@ from sentry.preprod.models import (
     PreprodSnapshotMetrics,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
-from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
+from sentry.seer.models.run import (
+    SeerAgentRun,
+    SeerRun,
+    SeerRunCodingAgentHandoff,
+    SeerRunCodingAgentHandoffStatus,
+    SeerRunType,
+)
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -2991,3 +2997,17 @@ class Factories:
         run: SeerRun, title: str = "Test run", source: str = "chat", **kwargs
     ) -> SeerAgentRun:
         return SeerAgentRun.objects.create(run=run, title=title, source=source, **kwargs)
+
+    @staticmethod
+    def create_seer_run_coding_agent_handoff(
+        seer_run: SeerRun,
+        provider: str = "github_copilot_agent",
+        agent_id: str | None = None,
+        status: str = SeerRunCodingAgentHandoffStatus.PENDING,
+        **kwargs,
+    ) -> SeerRunCodingAgentHandoff:
+        if agent_id is None:
+            agent_id = uuid4().hex
+        return SeerRunCodingAgentHandoff.objects.create(
+            seer_run=seer_run, provider=provider, agent_id=agent_id, status=status, **kwargs
+        )

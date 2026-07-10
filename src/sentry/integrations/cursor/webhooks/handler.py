@@ -25,6 +25,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.pullrequest import PullRequestAttributionSignalType
 from sentry.pr_metrics.attribution import attribute_delegated_agent_pull_request
+from sentry.seer.autofix.coding_agent_handoffs import update_seer_run_coding_agent_handoff
 from sentry.seer.autofix.utils import (
     CodingAgentResult,
     CodingAgentStatus,
@@ -238,6 +239,13 @@ class CursorWebhookEndpoint(Endpoint):
 
         known_to_seer = self._update_coding_agent_status(
             agent_id=agent_id,
+            status=status,
+            agent_url=agent_url,
+            result=result,
+        )
+        update_seer_run_coding_agent_handoff(
+            agent_id=agent_id,
+            organization_id=self.organization_id,
             status=status,
             agent_url=agent_url,
             result=result,

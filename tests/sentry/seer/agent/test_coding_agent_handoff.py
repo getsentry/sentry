@@ -1,11 +1,14 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from sentry.integrations.cursor.integration import CursorAgentIntegration
 from sentry.seer.agent.coding_agent_handoff import _resolve_client, launch_coding_agents
+from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState
 from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models.run import SeerRunCodingAgentHandoff
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import TestCase
 
@@ -60,6 +63,66 @@ class TestLaunchCodingAgents(TestCase):
             coding_agent_states=[mock_installation.launch.return_value],
             organization_id=self.organization.id,
         )
+
+    @patch("sentry.seer.agent.coding_agent_handoff.create_seer_run_coding_agent_handoffs")
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
+    def test_successful_launch_creates_seer_run_coding_agent_handoffs(
+        self, mock_validate, mock_store, mock_create_handoffs
+    ):
+        """A successful launch records the resulting CodingAgentState(s) via
+        create_seer_run_coding_agent_handoffs, the Sentry-side tracking row."""
+        mock_integration = MagicMock()
+        mock_integration.provider = "cursor"
+        mock_installation = MagicMock()
+        mock_state = MagicMock(dict=lambda: {"id": "agent-123", "url": "https://cursor.sh/agent"})
+        mock_installation.launch.return_value = mock_state
+        mock_validate.return_value = (mock_integration, mock_installation)
+
+        launch_coding_agents(
+            organization=self.organization,
+            integration_id=1,
+            run_id=self.run_id,
+            prompt="Fix the bug",
+            repos=[_repo("owner", "repo")],
+        )
+
+        mock_create_handoffs.assert_called_once_with(self.organization, self.run_id, [mock_state])
+
+    @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
+    @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
+    def test_successful_launch_persists_seer_run_coding_agent_handoff_row(
+        self, mock_validate, mock_store
+    ):
+        """End-to-end: a successful launch against a real SeerRun mirror row
+        creates a matching SeerRunCodingAgentHandoff."""
+        seer_run = self.create_seer_run(self.organization, seer_run_state_id=self.run_id)
+
+        mock_integration = MagicMock()
+        mock_integration.provider = "cursor"
+        mock_installation = MagicMock()
+        mock_installation.launch.return_value = CodingAgentState(
+            id="agent-123",
+            provider=CodingAgentProviderType.CURSOR_BACKGROUND_AGENT,
+            name="Cursor",
+            started_at=timezone.now(),
+            agent_url="https://cursor.sh/agent",
+        )
+        mock_validate.return_value = (mock_integration, mock_installation)
+
+        launch_coding_agents(
+            organization=self.organization,
+            integration_id=1,
+            run_id=self.run_id,
+            prompt="Fix the bug",
+            repos=[_repo("owner", "repo")],
+        )
+
+        handoff = SeerRunCodingAgentHandoff.objects.get(agent_id="agent-123")
+        assert handoff.seer_run_id == seer_run.id
+        assert handoff.provider == "cursor_background_agent"
+        assert handoff.agent_url == "https://cursor.sh/agent"
+        assert handoff.status == "pending"
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")

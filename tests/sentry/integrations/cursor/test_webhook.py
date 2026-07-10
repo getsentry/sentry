@@ -134,6 +134,28 @@ class TestCursorWebhook(APITestCase):
         assert attribution.pull_request.key == "1"
 
     @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
+    def test_finished_updates_seer_run_coding_agent_handoff(self, mock_update_state):
+        mock_update_state.return_value = True
+        repo = self.create_repo(
+            self.project, name="testorg/testrepo", provider="integrations:github"
+        )
+        seer_run = self.create_seer_run(self.organization, seer_run_state_id=123)
+        handoff = self.create_seer_run_coding_agent_handoff(
+            seer_run, agent_id="agent-1", provider="cursor_background_agent"
+        )
+        body = orjson.dumps(self._build_status_payload(status="FINISHED"))
+        headers = self._signed_headers(body)
+
+        response = self._post_with_headers(body, headers)
+
+        assert response.status_code == 204
+        handoff.refresh_from_db()
+        assert handoff.status == "completed"
+        assert handoff.pull_request is not None
+        assert handoff.pull_request.repository_id == repo.id
+        assert handoff.pull_request.key == "1"
+
+    @patch("sentry.integrations.cursor.webhooks.handler.update_coding_agent_state")
     def test_unknown_agent_records_no_attribution(self, mock_update_state):
         # Seer returns False (e.g. 404) for agent_ids it doesn't know about —
         # these are Cursor sessions not delegated by Seer, and must not be attributed.
