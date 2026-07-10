@@ -15,7 +15,7 @@ from sentry.seer.autofix.utils import (
     update_coding_agent_state,
 )
 from sentry.seer.endpoints.utils import get_seer_run
-from sentry.seer.models.run import SeerRunCodingAgentHandoff
+from sentry.seer.models.run import SeerRunCodingAgentHandoff, SeerRunCodingAgentHandoffExtras
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +33,13 @@ def create_seer_run_coding_agent_handoff(
             logger.info("seer.coding_agent_handoff.run_not_found", extra=log_context)
             return
 
+        extras: SeerRunCodingAgentHandoffExtras = {"agent_url": state.agent_url}
         SeerRunCodingAgentHandoff.objects.create(
             seer_run=seer_run,
             provider=state.provider.value,
             agent_id=state.id,
-            agent_url=state.agent_url,
             status=state.status.value,
+            extras=extras,
         )
     except Exception:
         logger.exception("seer.coding_agent_handoff.create_failed", extra=log_context)
@@ -75,8 +76,9 @@ def sync_coding_agent_status(
         handoff.status = status.value
         update_fields = ["status", "date_updated"]
         if agent_url is not None:
-            handoff.agent_url = agent_url
-            update_fields.append("agent_url")
+            extras: SeerRunCodingAgentHandoffExtras = {**handoff.extras, "agent_url": agent_url}
+            handoff.extras = extras
+            update_fields.append("extras")
         handoff.save(update_fields=update_fields)
     except Exception:
         logger.exception("seer.coding_agent_handoff.update_failed", extra=log_context)
