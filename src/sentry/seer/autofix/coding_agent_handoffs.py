@@ -55,16 +55,19 @@ def sync_coding_agent_status(
     agent_url: str | None = None,
     result: CodingAgentResult | None = None,
 ) -> bool:
-    """Update both Seer's coding agent state and Sentry's own SeerRunCodingAgentHandoff,
+    """Update Sentry's own SeerRunCodingAgentHandoff, then Seer's coding agent state,
     and link the resulting PR (if any) to the handoff's run via SeerRunPullRequest.
+
+    Local update comes first and gates the Seer call: GitHub Copilot/Claude polls
+    only keep checking an agent while Seer's own state still shows it as
+    RUNNING/PENDING, so if Seer moved to a terminal status but our local save then
+    failed, nothing would ever retry it -- the row would be stuck permanently. If
+    the local save fails, skip telling Seer this time and let the next poll cycle
+    (Seer's state is untouched, so it still looks eligible for polling) retry both.
 
     Returns whether Seer recognized this ``agent_id`` (mirrors
     ``update_coding_agent_state``'s return value, e.g. for gating PR attribution).
     """
-    known_to_seer = update_coding_agent_state(
-        agent_id=agent_id, status=status, agent_url=agent_url, result=result
-    )
-
     log_context = {"agent_id": agent_id, "organization_id": organization_id}
 
     try:
@@ -72,22 +75,30 @@ def sync_coding_agent_status(
             agent_id=agent_id, seer_run__organization_id=organization_id
         )
     except SeerRunCodingAgentHandoff.DoesNotExist:
+        handoff = None
         logger.info("seer.coding_agent_handoff.not_found", extra=log_context)
-        return known_to_seer
 
-    try:
-        handoff.status = status.value
-        update_fields = ["status", "date_updated"]
-        if agent_url is not None:
-            extras: SeerRunCodingAgentHandoffExtras = {**handoff.extras, "agent_url": agent_url}
-            handoff.extras = extras
-            update_fields.append("extras")
-        handoff.save(update_fields=update_fields)
-    except Exception:
-        logger.exception("seer.coding_agent_handoff.update_failed", extra=log_context)
-        return known_to_seer
+    if handoff is not None:
+        try:
+            handoff.status = status.value
+            update_fields = ["status", "date_updated"]
+            if agent_url is not None:
+                extras: SeerRunCodingAgentHandoffExtras = {
+                    **handoff.extras,
+                    "agent_url": agent_url,
+                }
+                handoff.extras = extras
+                update_fields.append("extras")
+            handoff.save(update_fields=update_fields)
+        except Exception:
+            logger.exception("seer.coding_agent_handoff.update_failed", extra=log_context)
+            return False
 
-    if not result or not result.pr_url:
+    known_to_seer = update_coding_agent_state(
+        agent_id=agent_id, status=status, agent_url=agent_url, result=result
+    )
+
+    if handoff is None or not result or not result.pr_url:
         return known_to_seer
 
     pr_number = parse_pull_request_number(result.pr_url)
