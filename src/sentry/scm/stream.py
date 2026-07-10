@@ -8,11 +8,9 @@
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import (
     CheckRunEvent,
-    CheckSuiteEvent,
     CommentEvent,
     EventType,
     PullRequestEvent,
-    PullRequestReviewEvent,
     SubscriptionEvent,
 )
 
@@ -36,16 +34,6 @@ def listen_for_pull_request(e):
     return None
 
 
-@scm_event_stream.listen_for(event_type="check_suite")
-def listen_for_check_suite(e):
-    return None
-
-
-@scm_event_stream.listen_for(event_type="pull_request_review")
-def listen_for_pull_request_review(e):
-    return None
-
-
 # Do not re-export your listener here.
 __all__ = [
     "scm_event_stream",
@@ -54,6 +42,4 @@ __all__ = [
     "PullRequestEvent",
     "CheckRunEvent",
     "SubscriptionEvent",
-    "CheckSuiteEvent",
-    "PullRequestReviewEvent",
 ]

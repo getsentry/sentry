@@ -14,18 +14,7 @@ from collections.abc import Callable
 from typing import assert_never, cast
 
 import msgspec
-from scm.types import (
-    BuildConclusion,
-    BuildStatus,
-    CheckRunAction,
-    CheckSuiteAction,
-    CommentAction,
-    CommentType,
-    ProviderName,
-    PullRequestAction,
-    PullRequestReviewAction,
-    PullRequestReviewState,
-)
+from scm.types import CheckRunAction, CommentAction, CommentType, ProviderName, PullRequestAction
 
 from sentry.scm.errors import SCMProviderEventNotSupported, SCMProviderNotSupported
 from sentry.scm.private.event_stream import SourceCodeManagerEventStream, scm_event_stream
@@ -37,13 +26,11 @@ from sentry.scm.private.helpers import (
 from sentry.scm.private.webhooks.github import deserialize_github_event
 from sentry.scm.types import (
     CheckRunEvent,
-    CheckSuiteEvent,
     CommentEvent,
     EventType,
     EventTypeHint,
     HybridCloudSilo,
     PullRequestEvent,
-    PullRequestReviewEvent,
     SubscriptionEvent,
 )
 from sentry.silo.base import SiloMode
@@ -118,38 +105,9 @@ class PullRequestEventParser(msgspec.Struct, gc=False, frozen=True):
     subscription_event: SubscriptionEventParser
 
 
-class CheckSuiteEventDataParser(msgspec.Struct, gc=False, frozen=True):
-    id: str
-    status: BuildStatus
-    conclusion: BuildConclusion | None
-    pull_request_ids: list[str]
-
-
-class CheckSuiteEventParser(msgspec.Struct, gc=False, frozen=True):
-    action: CheckSuiteAction
-    check_suite: CheckSuiteEventDataParser
-    subscription_event: SubscriptionEventParser
-
-
-class PullRequestReviewEventDataParser(msgspec.Struct, gc=False, frozen=True):
-    id: str
-    state: PullRequestReviewState
-    pull_request_id: str
-
-
-class PullRequestReviewEventParser(msgspec.Struct, gc=False, frozen=True):
-    action: PullRequestReviewAction
-    pull_request_review: PullRequestReviewEventDataParser
-    author: AuthorParser
-    is_bot: bool
-    subscription_event: SubscriptionEventParser
-
-
 check_run_event_decoder = msgspec.json.Decoder(CheckRunEventParser)
-check_suite_event_decoder = msgspec.json.Decoder(CheckSuiteEventParser)
 comment_event_decoder = msgspec.json.Decoder(CommentEventParser)
 pull_request_event_decoder = msgspec.json.Decoder(PullRequestEventParser)
-pull_request_review_event_decoder = msgspec.json.Decoder(PullRequestReviewEventParser)
 
 
 def _map_subscription_event(parsed: SubscriptionEventParser) -> SubscriptionEvent:
@@ -252,36 +210,6 @@ def deserialize_pull_request_event(event_data: str) -> PullRequestEvent:
     )
 
 
-def deserialize_check_suite_event(event_data: str) -> CheckSuiteEvent:
-    parsed = check_suite_event_decoder.decode(event_data)
-    return CheckSuiteEvent(
-        action=parsed.action,
-        check_suite={
-            "id": parsed.check_suite.id,
-            "status": parsed.check_suite.status,
-            "conclusion": parsed.check_suite.conclusion,
-            "html_url": "",
-            "pull_request_ids": parsed.check_suite.pull_request_ids,
-        },
-        subscription_event=_map_subscription_event(parsed.subscription_event),
-    )
-
-
-def deserialize_pull_request_review_event(event_data: str) -> PullRequestReviewEvent:
-    parsed = pull_request_review_event_decoder.decode(event_data)
-    return PullRequestReviewEvent(
-        action=parsed.action,
-        pull_request_review={
-            "id": parsed.pull_request_review.id,
-            "state": parsed.pull_request_review.state,
-            "pull_request_id": parsed.pull_request_review.pull_request_id,
-        },
-        author={"id": parsed.author.id, "username": parsed.author.username},
-        is_bot=parsed.is_bot,
-        subscription_event=_map_subscription_event(parsed.subscription_event),
-    )
-
-
 encoder = msgspec.json.Encoder()
 
 
@@ -352,51 +280,16 @@ def serialize_pull_request_event(event: PullRequestEvent) -> str:
     return encoder.encode(structured_event).decode("utf-8")
 
 
-def serialize_check_suite_event(event: CheckSuiteEvent) -> str:
-    check_suite_data = CheckSuiteEventDataParser(
-        id=event.check_suite["id"],
-        status=event.check_suite["status"],
-        conclusion=event.check_suite["conclusion"],
-        pull_request_ids=event.check_suite["pull_request_ids"],
-    )
-    structured_event = CheckSuiteEventParser(
-        action=event.action,
-        check_suite=check_suite_data,
-        subscription_event=_map_subscription_event_parser(event.subscription_event),
-    )
-    return encoder.encode(structured_event).decode("utf-8")
-
-
-def serialize_pull_request_review_event(event: PullRequestReviewEvent) -> str:
-    review_data = PullRequestReviewEventDataParser(
-        id=event.pull_request_review["id"],
-        state=event.pull_request_review["state"],
-        pull_request_id=event.pull_request_review["pull_request_id"],
-    )
-    structured_event = PullRequestReviewEventParser(
-        action=event.action,
-        pull_request_review=review_data,
-        author=AuthorParser(id=event.author["id"], username=event.author["username"]),
-        is_bot=event.is_bot,
-        subscription_event=_map_subscription_event_parser(event.subscription_event),
-    )
-    return encoder.encode(structured_event).decode("utf-8")
-
-
 def deserialize_event(event: str, event_type: EventTypeHint) -> EventType:
     """
     Given an encoded string return a deserialized event.
     """
     if event_type == "check_run":
         return deserialize_check_run_event(event)
-    elif event_type == "check_suite":
-        return deserialize_check_suite_event(event)
     elif event_type == "comment":
         return deserialize_comment_event(event)
     elif event_type == "pull_request":
         return deserialize_pull_request_event(event)
-    elif event_type == "pull_request_review":
-        return deserialize_pull_request_review_event(event)
     else:
         assert_never(event_type)
 
@@ -431,14 +324,10 @@ def serialize_event(event: EventType) -> str:
     """
     if isinstance(event, CheckRunEvent):
         return serialize_check_run_event(event)
-    elif isinstance(event, CheckSuiteEvent):
-        return serialize_check_suite_event(event)
     elif isinstance(event, CommentEvent):
         return serialize_comment_event(event)
     elif isinstance(event, PullRequestEvent):
         return serialize_pull_request_event(event)
-    elif isinstance(event, PullRequestReviewEvent):
-        return serialize_pull_request_review_event(event)
     else:
         assert_never(event)
 
@@ -480,18 +369,12 @@ def produce_to_listeners(
     if isinstance(parsed_event, CheckRunEvent):
         event_type_hint = "check_run"
         listeners = list(stream.check_run_listeners.keys())
-    elif isinstance(parsed_event, CheckSuiteEvent):
-        event_type_hint = "check_suite"
-        listeners = list(stream.check_suite_listeners.keys())
     elif isinstance(parsed_event, CommentEvent):
         event_type_hint = "comment"
         listeners = list(stream.comment_listeners.keys())
     elif isinstance(parsed_event, PullRequestEvent):
         event_type_hint = "pull_request"
         listeners = list(stream.pull_request_listeners.keys())
-    elif isinstance(parsed_event, PullRequestReviewEvent):
-        event_type_hint = "pull_request_review"
-        listeners = list(stream.pull_request_review_listeners.keys())
     else:
         assert_never(parsed_event)
 
@@ -582,14 +465,10 @@ def run_listener(
 
     if isinstance(event, CheckRunEvent):
         exec_listener(listener, stream.check_run_listeners, event, record_count)
-    elif isinstance(event, CheckSuiteEvent):
-        exec_listener(listener, stream.check_suite_listeners, event, record_count)
     elif isinstance(event, CommentEvent):
         exec_listener(listener, stream.comment_listeners, event, record_count)
     elif isinstance(event, PullRequestEvent):
         exec_listener(listener, stream.pull_request_listeners, event, record_count)
-    elif isinstance(event, PullRequestReviewEvent):
-        exec_listener(listener, stream.pull_request_review_listeners, event, record_count)
     else:
         assert_never(event)
 
