@@ -16,6 +16,7 @@ import {
 describe('TraceViewMetricsSection', () => {
   const organization = OrganizationFixture();
   const traceId = '1234567890abcdef1234567890abcdef';
+  let recentSearchesRequest: jest.Mock;
 
   function mockTraceMetricAttributes() {
     return MockApiClient.addMockResponse({
@@ -61,7 +62,7 @@ describe('TraceViewMetricsSection', () => {
         },
       },
     });
-    MockApiClient.addMockResponse({
+    recentSearchesRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
       method: 'GET',
       body: [],
@@ -91,6 +92,32 @@ describe('TraceViewMetricsSection', () => {
     expect(
       within(menu).queryByRole('option', {name: 'organization.id'})
     ).not.toBeInTheDocument();
+  });
+
+  it('scopes recent search requests to the trace', async () => {
+    mockTraceMetricAttributes();
+
+    render(
+      <TraceViewMetricsProviderWrapper traceSlug={traceId}>
+        <TraceViewMetricsSection />
+      </TraceViewMetricsProviderWrapper>,
+      {organization}
+    );
+
+    await userEvent.click(
+      await screen.findByPlaceholderText('Search application metrics for this trace')
+    );
+
+    await waitFor(() => {
+      expect(recentSearchesRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/recent-searches/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: `trace:[${traceId}]`,
+          }),
+        })
+      );
+    });
   });
 
   it('scopes attribute and value autocomplete requests to the trace', async () => {
