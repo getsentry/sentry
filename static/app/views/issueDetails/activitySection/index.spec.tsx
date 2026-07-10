@@ -419,6 +419,10 @@ describe('ActivitySection', () => {
   it('renders team assignment in activity line items when team id matches the actor id', async () => {
     const assigningUser = UserFixture({id: '1', name: 'Taylor'});
     const team = TeamFixture({id: assigningUser.id, slug: 'frontend'});
+    const teamRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: [team],
+    });
     TeamStore.loadInitialData([team]);
 
     const assignedGroup = GroupFixture({
@@ -451,6 +455,140 @@ describe('ActivitySection', () => {
     expect(timeline).toHaveTextContent('Issue assigned');
     expect(timeline).toHaveTextContent('#frontend');
     expect(timeline).not.toHaveTextContent('themselves');
+    expect(teamRequest).not.toHaveBeenCalled();
+  });
+
+  it('loads an assigned team missing from the team store', async () => {
+    const team = TeamFixture({
+      id: '123',
+      slug: 'backend',
+      avatar: {
+        avatarType: 'upload',
+        avatarUrl: 'https://example.com/team-avatar.jpg',
+        avatarUuid: '123',
+      },
+    });
+    const teamRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: [team],
+    });
+    TeamStore.loadInitialData([]);
+
+    const assignedGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.ASSIGNED,
+          id: 'team-assignment-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            assignee: team.id,
+            assigneeName: team.name,
+            assigneeType: 'team',
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={assignedGroup} project={assignedGroup.project}>
+        <ActivitySection group={assignedGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(await screen.findByRole('img', {name: 'backend'})).toHaveAttribute(
+      'src',
+      'https://example.com/team-avatar.jpg?s=120'
+    );
+    expect(teamRequest).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: {query: 'id:123'}})
+    );
+  });
+
+  it('renders the stored name for a deleted team assignment', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: [],
+    });
+    TeamStore.loadInitialData([]);
+
+    const assignedGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.ASSIGNED,
+          id: 'deleted-team-assignment',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            assignee: '123',
+            assigneeName: 'frontend',
+            assigneeType: 'team',
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={assignedGroup} project={assignedGroup.project}>
+        <ActivitySection group={assignedGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(await screen.findByText('#frontend (deleted)')).toBeInTheDocument();
+  });
+
+  it('preserves the assigned user avatar from activity data', async () => {
+    const assignedUser = UserFixture({
+      id: '123',
+      name: 'Assigned User',
+      avatar: {
+        avatarType: 'upload',
+        avatarUrl: 'https://example.com/avatar.jpg',
+        avatarUuid: '123',
+      },
+    });
+    const assignedGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.ASSIGNED,
+          id: 'user-assignment-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            assignee: assignedUser.id,
+            assigneeType: 'user',
+            user: assignedUser,
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={assignedGroup} project={assignedGroup.project}>
+        <ActivitySection group={assignedGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(await screen.findByRole('img', {name: 'Assigned User'})).toHaveAttribute(
+      'src',
+      'https://example.com/avatar.jpg?s=120'
+    );
   });
 
   it('renders auto-resolved activity age as an inactivity duration', async () => {

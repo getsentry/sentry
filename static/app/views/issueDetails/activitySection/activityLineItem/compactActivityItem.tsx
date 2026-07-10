@@ -502,7 +502,7 @@ export function getCompactGroupActivityItem({
           : null,
       };
     case GroupActivityType.ASSIGNED:
-      return getAssignedActivityItem({activity, author});
+      return getAssignedActivityItem({activity});
     case GroupActivityType.UNASSIGNED:
       return {
         title: t('Issue unassigned'),
