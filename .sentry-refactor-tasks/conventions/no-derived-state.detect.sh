@@ -63,4 +63,4 @@ export default [
 ];
 EOF
 
-pnpm exec node "$script_dir/eslint-json-runner.ts" "$repo_path" "$rule" "$config_path" static/app
+pnpm exec node "$script_dir/eslint-json-runner.ts" "$repo_path" "$rule" "$config_path" static

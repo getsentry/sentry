@@ -579,6 +579,7 @@ export function Control({
                     </InputGroup.LeadingItems>
                     <SearchInput
                       ref={searchRef}
+                      data-1p-ignore
                       placeholder={normalizedSearch?.placeholder ?? 'Search…'}
                       value={searchInputValue}
                       onFocus={onSearchFocus}

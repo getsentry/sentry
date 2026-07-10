@@ -119,6 +119,7 @@ class SentryAppsTest(APITestCase):
             "clientId": sentry_app.application.client_id,
             "clientSecret": sentry_app.application.client_secret,
             "events": [],
+            "webhookEvents": [],
             "featureData": [],
             "isAlertable": sentry_app.is_alertable,
             "isDisabled": sentry_app.is_disabled,
@@ -698,6 +699,23 @@ class PostSentryAppsTest(SentryAppsTest):
                     "Your organization does not have access to the 'error' resource subscription."
                 ]
             }
+
+    @with_feature("organizations:sentry-apps-granular-events")
+    def test_can_create_with_granular_events_with_flag(self) -> None:
+        response = self.get_success_response(
+            **self.get_data(events=("issue.resolved",)), status_code=201
+        )
+        sentry_app = SentryApp.objects.get(slug=response.data["slug"])
+        # Stored verbatim, not expanded to the whole issue resource.
+        assert sentry_app.events == ["issue.resolved"]
+
+    @with_feature("organizations:sentry-apps-granular-events")
+    def test_granular_event_requires_resource_scope(self) -> None:
+        data = self.get_data(events=("issue.resolved",), scopes=("project:read",))
+        response = self.get_error_response(**data, status_code=400)
+        assert response.data == {
+            "events": ["issue.resolved webhooks require the event:read permission."]
+        }
 
     def test_allows_empty_schema(self) -> None:
         self.get_success_response(**self.get_data(shema={}), status_code=201)

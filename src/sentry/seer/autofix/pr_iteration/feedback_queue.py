@@ -4,8 +4,8 @@ import logging
 
 from pydantic import BaseModel, ValidationError
 
-from sentry.seer.autofix.autofix_agent import Feedback
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.types import Feedback
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)

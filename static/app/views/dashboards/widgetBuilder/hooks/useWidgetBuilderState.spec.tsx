@@ -701,11 +701,12 @@ describe('useWidgetBuilderState', () => {
 
       // Counters can't be heat-mapped, so the metric is dropped and the slot
       // falls back to the metric-less default (the picker then auto-selects a
-      // distribution metric).
+      // distribution metric). The fallback aggregate is count(), not the
+      // default sum() — heat maps always count() the metric.
       expect(result.current.state.fields).toEqual([
         {
           kind: 'function',
-          function: ['sum', 'value', undefined, undefined],
+          function: ['count', 'value', undefined, undefined],
           alias: undefined,
         },
       ]);

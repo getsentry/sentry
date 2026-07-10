@@ -17,7 +17,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.pr_metrics.contracts import PrConversationAnalysis
 from sentry.pr_metrics.emit import (
-    _activity_derived_counters,
+    _activity_derived_metrics,
     active_attributions,
     build_pr_metrics_row,
     emit_pr_metrics_row,
@@ -518,7 +518,7 @@ class PrMetricsEmissionTest(TestCase):
         assert emitted is False
         assert mock_record.call_count == 0
 
-    # --- _activity_derived_counters (participants_count, reviews_count) ---
+    # --- _activity_derived_metrics ---
 
     def _activity(
         self,
@@ -535,13 +535,20 @@ class PrMetricsEmissionTest(TestCase):
             payload={"sender_login": sender_login, "sender_type": sender_type},
         )
 
-    def test_activity_derived_counters_zero_without_activity(self) -> None:
-        assert _activity_derived_counters(self.pull_request) == {
+    def test_activity_derived_metrics_zero_without_activity(self) -> None:
+        assert _activity_derived_metrics(self.pull_request) == {
             "participants_count": 0,
             "reviews_count": 0,
+            "reviews_bot_count": 0,
+            "reviews_human_count": 0,
+            "pushes_bot_count": 0,
+            "pushes_human_count": 0,
+            "opened_by_bot": None,
+            "closed_by_bot": None,
+            "opened_and_closed_by_same_actor": None,
         }
 
-    def test_activity_derived_counters_counts_reviews_and_distinct_participants(self) -> None:
+    def test_activity_derived_metrics_counts_reviews_and_distinct_participants(self) -> None:
         self._activity(
             webhook_id="a1", event_type=PullRequestActivityType.OPENED, sender_login="octocat"
         )
@@ -557,30 +564,142 @@ class PrMetricsEmissionTest(TestCase):
             event_type=PullRequestActivityType.REVIEW_SUBMITTED,
             sender_login="reviewer",
         )
-        assert _activity_derived_counters(self.pull_request) == {
-            "participants_count": 2,  # distinct octocat, reviewer
-            "reviews_count": 2,  # two REVIEW_SUBMITTED rows, not distinct reviewers
-        }
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["participants_count"] == 2  # distinct octocat, reviewer
+        assert result["reviews_count"] == 2  # two REVIEW_SUBMITTED rows, not distinct reviewers
 
-    def test_activity_derived_counters_excludes_bots_and_blank_logins(self) -> None:
+    def test_activity_derived_metrics_excludes_bots_and_blank_logins(self) -> None:
         self._activity(webhook_id="b1", sender_login="human")
         self._activity(webhook_id="b2", sender_login="dependabot", sender_type="Bot")
         self._activity(
             webhook_id="b3", event_type=PullRequestActivityType.SYNCHRONIZED, sender_login=""
         )
-        assert _activity_derived_counters(self.pull_request) == {
-            "participants_count": 1,  # "human"; bot + blank login excluded
-            "reviews_count": 0,
-        }
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["participants_count"] == 1  # "human"; bot + blank login excluded
+        assert result["reviews_count"] == 0
+
+    def test_activity_derived_metrics_splits_reviews_by_account_class(self) -> None:
+        self._activity(
+            webhook_id="r1",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            sender_login="human",
+        )
+        self._activity(
+            webhook_id="r2",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            sender_login="seer",
+            sender_type="Bot",
+        )
+        self._activity(
+            webhook_id="r3",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            sender_login="seer",
+            sender_type="Bot",
+        )
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["reviews_count"] == 3
+        assert result["reviews_bot_count"] == 2
+        assert result["reviews_human_count"] == 1  # sums back to reviews_count
+
+    def test_activity_derived_metrics_splits_pushes_by_account_class(self) -> None:
+        # A push is an opened or synchronize event; the pusher's account class,
+        # not the commit count, is what's split (a bot batch push counts as one).
+        self._activity(
+            webhook_id="p1",
+            event_type=PullRequestActivityType.OPENED,
+            sender_login="human",
+        )
+        self._activity(
+            webhook_id="p2",
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            sender_login="seer",
+            sender_type="Bot",
+        )
+        self._activity(
+            webhook_id="p3",
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            sender_login="human",
+        )
+        # A review is not a push and must not be counted here.
+        self._activity(
+            webhook_id="p4",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            sender_login="human",
+        )
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["pushes_bot_count"] == 1
+        assert result["pushes_human_count"] == 2
+
+    def test_activity_derived_metrics_opener_and_closer_account_class(self) -> None:
+        self._activity(
+            webhook_id="o1",
+            event_type=PullRequestActivityType.OPENED,
+            sender_login="seer",
+            sender_type="Bot",
+        )
+        self._activity(
+            webhook_id="o2",
+            event_type=PullRequestActivityType.CLOSED,
+            sender_login="human",
+        )
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["opened_by_bot"] is True
+        assert result["closed_by_bot"] is False
+        assert result["opened_and_closed_by_same_actor"] is False
+
+    def test_activity_derived_metrics_same_actor_opened_and_merged(self) -> None:
+        self._activity(
+            webhook_id="s1", event_type=PullRequestActivityType.OPENED, sender_login="octocat"
+        )
+        self._activity(
+            webhook_id="s2", event_type=PullRequestActivityType.MERGED, sender_login="octocat"
+        )
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["opened_by_bot"] is False
+        assert result["closed_by_bot"] is False
+        assert result["opened_and_closed_by_same_actor"] is True
+
+    def test_activity_derived_metrics_closer_is_latest_terminal_row(self) -> None:
+        # A PR can be closed unmerged, reopened, then merged, leaving two terminal
+        # rows. The closer must be the latest (the merge), not an earlier close.
+        self._activity(
+            webhook_id="t1", event_type=PullRequestActivityType.OPENED, sender_login="author"
+        )
+        self._activity(
+            webhook_id="t2", event_type=PullRequestActivityType.CLOSED, sender_login="early-closer"
+        )
+        self._activity(
+            webhook_id="t3",
+            event_type=PullRequestActivityType.MERGED,
+            sender_login="merger",
+            sender_type="Bot",
+        )
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["closed_by_bot"] is True  # the merger (Bot), not early-closer (human)
+        assert result["opened_and_closed_by_same_actor"] is False
+
+    def test_activity_derived_metrics_same_actor_null_when_closer_missing(self) -> None:
+        self._activity(
+            webhook_id="m1", event_type=PullRequestActivityType.OPENED, sender_login="octocat"
+        )
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["opened_by_bot"] is False
+        assert result["closed_by_bot"] is None
+        assert result["opened_and_closed_by_same_actor"] is None
 
     @patch("sentry.analytics.record")
     def test_emit_persists_and_carries_activity_derived_counts(self, mock_record: Any) -> None:
         self._track()
-        self._activity(webhook_id="c1", sender_login="octocat")
+        self._activity(
+            webhook_id="c1", event_type=PullRequestActivityType.OPENED, sender_login="octocat"
+        )
         self._activity(
             webhook_id="c2",
             event_type=PullRequestActivityType.REVIEW_SUBMITTED,
             sender_login="reviewer",
+        )
+        self._activity(
+            webhook_id="c3", event_type=PullRequestActivityType.MERGED, sender_login="octocat"
         )
         emit_pr_metrics_row(pull_request=self.pull_request)
 
@@ -588,10 +707,17 @@ class PrMetricsEmissionTest(TestCase):
         row = PullRequestMetrics.objects.get(pull_request=self.pull_request)
         assert row.participants_count == 2
         assert row.reviews_count == 1
+        assert row.reviews_human_count == 1
+        assert row.pushes_human_count == 1  # the opened event
+        assert row.opened_by_bot is False
+        assert row.closed_by_bot is False
+        assert row.opened_and_closed_by_same_actor is True
         # ...and carried on the emitted analytics row.
         emitted = mock_record.call_args[0][0]
         assert emitted.participants_count == 2
         assert emitted.reviews_count == 1
+        assert emitted.reviews_human_count == 1
+        assert emitted.opened_and_closed_by_same_actor is True
 
     # --- _commit_shas_from_activity ---
 
