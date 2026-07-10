@@ -17,7 +17,7 @@ from sentry.api.event_search import SearchFilter
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.models.groupderiveddata import GroupDerivedData
-from sentry.issues.progress import PROGRESS_RESET_ACTIVITY_TYPES
+from sentry.issues.progress import PROGRESS_RESET_ACTIVITY_TYPES, IssueProgressState
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
@@ -286,22 +286,32 @@ def issue_progress_filter(progress_values: list[str], projects: Sequence[Project
     if projects and all(
         features.has("projects:issue-action-log-write-to-db", project) for project in projects
     ):
-        return _issue_progress_filter_from_db(progress_values, projects)
+        return _issue_progress_filter_from_derived_data(progress_values, projects)
     return _issue_progress_filter_from_activity(progress_values, projects)
 
 
-def _issue_progress_filter_from_db(progress_values: list[str], projects: Sequence[Project]) -> Q:
+def _issue_progress_filter_from_derived_data(
+    progress_values: list[str], projects: Sequence[Project]
+) -> Q:
     """
     Reads progress from the materialized GroupDerivedData.progress column. The
     column stores the IssueProgressState value verbatim, so progress_values maps
     directly onto it.
     """
-    return Q(
+    project_ids = [p.id for p in projects]
+    q = Q(
         id__in=GroupDerivedData.objects.filter(
             progress__in=progress_values,
-            group__project_id__in=[p.id for p in projects],
+            group__project_id__in=project_ids,
         ).values_list("group_id", flat=True)
     )
+    if IssueProgressState.IDENTIFIED.value in progress_values:
+        explicit_progress_group_ids = GroupDerivedData.objects.filter(
+            progress__isnull=False,
+            group__project_id__in=project_ids,
+        ).values_list("group_id", flat=True)
+        q |= Q(project_id__in=project_ids) & ~Q(id__in=explicit_progress_group_ids)
+    return q
 
 
 def _issue_progress_filter_from_activity(

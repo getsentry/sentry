@@ -1197,16 +1197,16 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         assert set(results) == {self.group2}
 
     @with_feature("projects:issue-action-log-write-to-db")
-    def test_issue_progress_from_db_missing_row_not_matched(self) -> None:
-        # A group with no GroupDerivedData row matches nothing on the DB path,
-        # even for the base "identified" state that the activity path would infer.
+    def test_issue_progress_from_db_missing_row_is_identified(self) -> None:
+        # A group with no GroupDerivedData row is implicitly "identified" on the DB
+        # path, matching the sort resolver, so it's returned alongside groups with
+        # an explicit "identified" row.
         self.create_group_derived_data(group=self.group1, progress=IssueProgressState.IDENTIFIED)
 
         results = self.make_query(
             search_filter_query=f"issue.progress:{IssueProgressState.IDENTIFIED}"
         )
-        assert set(results) == {self.group1}
-        assert self.group2 not in set(results)
+        assert set(results) == {self.group1, self.group2}
 
     @with_feature("projects:issue-action-log-write-to-db")
     def test_issue_progress_from_db_negation(self) -> None:
