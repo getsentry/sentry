@@ -7,6 +7,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {TraceMetricEventsResult} from 'sentry/views/explore/metrics/types';
 import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils';
@@ -30,9 +31,19 @@ interface MetricHeatmapBoundsApiOptions {
  *
  * This reuses the existing `/events/` endpoint — it's the same min/max the heat
  * map endpoint computes internally via `query_y_bucket_ranges`, just issued
- * directly so we can share one domain across parallel chunk requests. No
- * `sampling` param is sent, matching the heat map endpoint's own bounds query
- * (which runs at the request's default sampling mode).
+ * directly so we can share one domain across parallel chunk requests.
+ *
+ * Runs at HIGHEST_ACCURACY (no downsampling), which is REQUIRED for chunking
+ * correctness — do not "optimize" it back to default sampling. EAP picks a
+ * downsampling tier per request based on the query's time range + estimated row
+ * count (snuba `outcomes_based.py`), and `min`/`max` are NOT extrapolated: on a
+ * downsampled tier they're the extremes of *scanned* rows, biased inward. A
+ * bounds query that downsampled would return a `yMin` that's too high; the heat
+ * map's bottom bucket is closed (`value >= yMin`), so any chunk — which may land
+ * on a *finer* tier and surface lower values — would have those rows dropped,
+ * undercounting the low end. Exact (unsampled) extremes guarantee the pinned
+ * domain encloses every row, regardless of what tier each chunk resolves to.
+ * See the backend-contract note in `useChunkedTimeRangeQuery`.
  */
 export function metricHeatmapBoundsApiOptions({
   organization,
@@ -56,6 +67,8 @@ export function metricHeatmapBoundsApiOptions({
       query: {
         dataset: DiscoverDatasets.TRACEMETRICS,
         field: [MIN_VALUE_FIELD, MAX_VALUE_FIELD],
+        // Exact extremes — see the docstring. Must not downsample.
+        sampling: SAMPLING_MODE.HIGH_ACCURACY,
         query: combinedQuery,
         project: selection.projects,
         environment: selection.environments,

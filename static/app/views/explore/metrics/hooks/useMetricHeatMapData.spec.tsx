@@ -7,6 +7,7 @@ import type {PageFilters} from 'sentry/types/core';
 import {computeTimeChunks} from 'sentry/utils/chunkedTimeRange/computeTimeChunks';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
@@ -115,7 +116,14 @@ describe('useMetricHeatMapData', () => {
       )
     );
 
-    expect(boundsMock).toHaveBeenCalled();
+    // Bounds and every chunk run at HIGHEST_ACCURACY so they share one
+    // (undownsampled) tier — see the backend-contract note in the hook.
+    expect(boundsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        query: expect.objectContaining({sampling: SAMPLING_MODE.HIGH_ACCURACY}),
+      })
+    );
 
     // Every chunk request carries the pinned domain from the bounds row.
     for (const chunkMock of chunkMocks) {
@@ -127,6 +135,7 @@ describe('useMetricHeatMapData', () => {
             yMax: 500,
             interval: '1h',
             yBuckets: 10,
+            sampling: SAMPLING_MODE.HIGH_ACCURACY,
           }),
         })
       );
@@ -176,6 +185,8 @@ describe('useMetricHeatMapData', () => {
     const requestQuery = heatmapMock.mock.calls[0]![1]!.query;
     expect(requestQuery.yMin).toBeUndefined();
     expect(requestQuery.yMax).toBeUndefined();
+    // Fast path keeps default sampling (no forced tier), matching pre-chunking.
+    expect(requestQuery.sampling).toBeUndefined();
     // The single request uses the selection range, not a chunk window.
     expect(requestQuery.statsPeriod).toBe('1h');
   });

@@ -177,6 +177,40 @@ const DEFAULT_RETRY = (failureCount: number, error: Error) =>
  *
  * `merge` should be referentially stable (wrap it in `useCallback`) — it's a
  * dependency of the merge memo.
+ *
+ * ---------------------------------------------------------------------------
+ * BACKEND CONTRACT (EAP / Snuba) — verified July 2025. Read before you futz.
+ * ---------------------------------------------------------------------------
+ * This whole approach only works because of how the EAP backend behaves. If you
+ * point this at a different dataset/endpoint, re-verify these:
+ *
+ * 1. TIME ALIGNMENT. Snuba anchors buckets to the request's `start`
+ *    (`start + k*granularity`), NOT the epoch. Chunk boundaries MUST therefore
+ *    be epoch-aligned multiples of the interval, or adjacent chunks land on
+ *    different bucket phases and duplicate/drop the seam. `computeTimeChunks`
+ *    guarantees this; keep using it. The interval must be a backend-accepted
+ *    granularity (`VALID_GRANULARITIES`).
+ *
+ * 2. CACHING. Snuba's result cache key is an MD5 of the formatted SQL, which
+ *    embeds the literal start/end. There is NO server-side quantization or jitter
+ *    of the time range (a `now` that moves by one second is a cache miss). So
+ *    identical concrete windows are individually cacheable — which is exactly why
+ *    `buildChunkQuery` can set `staleTime: Infinity` on immutable historical
+ *    chunks, and why the trailing (live) chunk should ceil its end to the
+ *    interval so its key stays stable within an interval window. Cross-reload
+ *    reuse comes from react-query here (the backend TTL is short/dedup-grade),
+ *    and stable keys serve both.
+ *
+ * 3. SAMPLING / DOWNSAMPLING. EAP picks a downsampling tier PER REQUEST from the
+ *    query's time range + estimated row count (snuba
+ *    `storage_routing/routing_strategies/outcomes_based.py`). Different-sized
+ *    chunks (and any full-range pre-query) can land on DIFFERENT tiers, at which
+ *    point extrapolated `count()`s are noisy/non-uniform across chunks and exact
+ *    aggregates like `min`/`max` are biased. If a consumer pins a domain/threshold
+ *    from one query and then fetches data in chunks, force a uniform tier
+ *    (`sampling: HIGHEST_ACCURACY`) on all of them, or accept the inconsistency.
+ *    See `metricHeatmapBoundsApiOptions` / `metricHeatmapApiOptions` for a worked
+ *    example (bounds + chunks both pinned to TIER_1).
  */
 export function useChunkedTimeRangeQuery<TResponse, TMerged>({
   chunks,

@@ -61,13 +61,22 @@ interface ComputeTimeChunksOptions {
  * Splits a time range into epoch-aligned, whole-bucket chunks for parallel,
  * streamed fetching.
  *
- * Epoch alignment is mandatory: interval-bucketed timeseries endpoints floor
- * each request's start and ceil its end to interval multiples measured from the
- * Unix epoch. If a chunk boundary doesn't land on that grid, the two adjacent
- * chunks round onto the *same* seam bucket and emit a duplicate row once
- * concatenated. Flooring the outer start / ceiling the outer end and stepping by
- * whole buckets guarantees every edge is on the grid, so the endpoint's rounding
- * is a no-op.
+ * Epoch alignment is mandatory. Verified against the EAP backend (July 2025):
+ * Snuba anchors each time bucket to the REQUEST's start, not the epoch —
+ * `bucket = start + floor((ts - start) / g) * g`
+ * (snuba `resolvers/R_eap_items/resolver_time_series.py`). On the Sentry side,
+ * `rpc_dataset_common` floors start / ceils end to the epoch granularity grid
+ * before the RPC, but only when `stable_timestamp_quantization` is on (it
+ * defaults on). Either way, if two adjacent chunks are handed boundaries that
+ * are NOT shared multiples of the interval from the epoch, their buckets fall on
+ * different phases and the seam bucket is duplicated or dropped.
+ *
+ * By epoch-aligning here (floor the outer start, ceil the outer end, step by
+ * whole buckets) every chunk's start is itself a multiple of the granularity, so
+ * `start + k*g` lands on the epoch grid regardless of that backend flag, and
+ * adjacent chunks share the exact same edge — no overlap, gap, or double-count.
+ * The interval MUST be a granularity the backend accepts (`VALID_GRANULARITIES`
+ * in sentry / `_VALID_GRANULARITY_SECS` in snuba) or the query is rejected.
  *
  * Chunks are returned newest-first and grow older-ward, so the smallest/newest
  * chunk resolves first.

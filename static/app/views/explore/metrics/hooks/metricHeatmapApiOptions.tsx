@@ -9,6 +9,7 @@ import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils';
 
@@ -25,6 +26,13 @@ interface MetricHeatmapApiOptions {
    */
   end?: number;
   interval?: string | null;
+  /**
+   * EAP sampling mode. Chunked (Phase B) requests pass HIGHEST_ACCURACY so every
+   * chunk runs on the same undownsampled tier (TIER_1); see the docstring below.
+   * The unchunked fast path leaves this undefined (default sampling), matching
+   * the pre-chunking behavior.
+   */
+  sampling?: SamplingMode;
   /**
    * Overrides the default `staleTime`. Chunked fetching sets immutable historical
    * chunks to `Infinity` and only the trailing (live) chunk to the interval.
@@ -45,6 +53,20 @@ interface MetricHeatmapApiOptions {
   yMin?: number;
 }
 
+/**
+ * Builds one `/events-heatmap/` request — either the whole selection (fast path)
+ * or a single pinned, windowed chunk (Phase B).
+ *
+ * Chunked callers pass `sampling: HIGHEST_ACCURACY`. EAP picks a downsampling
+ * tier per request from the query's time range + estimated row count, so
+ * differently-sized chunks could otherwise land on different tiers — making the
+ * extrapolated `count()` values noisy/non-uniform across the grid (visible
+ * brightness seams between chunks) and potentially inconsistent with the pinned
+ * bounds. Forcing TIER_1 keeps every chunk exact and uniform. The speedup comes
+ * from smaller parallel windows, not downsampling — so if a chunk is too slow,
+ * shrink the chunks (the `computeTimeChunks` policy), do NOT re-enable per-chunk
+ * downsampling. See the backend-contract note in `useChunkedTimeRangeQuery`.
+ */
 export function metricHeatmapApiOptions({
   organization,
   selection,
@@ -55,6 +77,7 @@ export function metricHeatmapApiOptions({
   yBuckets,
   yMin,
   yMax,
+  sampling,
   start: startOverride,
   end: endOverride,
   staleTime: staleTimeOverride,
@@ -95,6 +118,7 @@ export function metricHeatmapApiOptions({
         interval,
         yMin,
         yMax,
+        sampling,
         query: combinedQuery,
         project: selection.projects,
         environment: selection.environments,

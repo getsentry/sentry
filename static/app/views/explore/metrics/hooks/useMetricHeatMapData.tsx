@@ -12,6 +12,7 @@ import {
 import {defined} from 'sentry/utils/defined';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {mergeHeatMapChunks} from 'sentry/views/explore/metrics/hooks/mergeHeatMapChunks';
 import {metricHeatmapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatmapApiOptions';
 import {
@@ -121,6 +122,9 @@ export function useMetricHeatMapData({
       end: isChunked ? chunk.end : undefined,
       yMin: isChunked ? boundsQuery.data?.yMin : undefined,
       yMax: isChunked ? boundsQuery.data?.yMax : undefined,
+      // Pin every chunk to TIER_1 so they share one sampling tier; the fast path
+      // keeps default sampling. See metricHeatmapApiOptions for why.
+      sampling: isChunked ? SAMPLING_MODE.HIGH_ACCURACY : undefined,
       staleTime: isChunked ? (isTrailingLive ? intervalMs : Infinity) : undefined,
       enabled: chunkEnabled,
     });
