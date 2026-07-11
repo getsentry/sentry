@@ -164,11 +164,13 @@ export function useCreateNotificationAction({
 
     setActions(newActions);
 
-    if (firstAction.channel) {
+    // Discord stores the channel under `channel_id` rather than `channel`.
+    const restoredChannel = firstAction.channel ?? firstAction.channel_id;
+    if (restoredChannel) {
       // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setChannel({
-        label: firstAction.channel,
-        value: firstAction.channel,
+        label: restoredChannel,
+        value: restoredChannel,
       });
     }
   }, [defaultActions, providersToIntegrations]);
