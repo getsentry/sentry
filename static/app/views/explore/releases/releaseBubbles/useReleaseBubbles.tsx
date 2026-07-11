@@ -512,6 +512,9 @@ export function useReleaseBubbles({
         if (params.seriesId !== BUBBLE_SERIES_ID || !echartsInstance) {
           return;
         }
+        if (echartsInstance.isDisposed()) {
+          return;
+        }
 
         const data = params.data as unknown as Bucket;
 
@@ -545,6 +548,9 @@ export function useReleaseBubbles({
 
       const handleMouseOut = (params: Parameters<EChartMouseOutHandler>[0]) => {
         if (params.seriesId !== BUBBLE_SERIES_ID || !echartsInstance) {
+          return;
+        }
+        if (echartsInstance.isDisposed()) {
           return;
         }
 
