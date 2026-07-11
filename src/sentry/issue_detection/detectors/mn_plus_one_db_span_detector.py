@@ -255,7 +255,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
         return PerformanceProblem(
             fingerprint=self._fingerprint(db_span["hash"], common_parent_span),
             op="db",
-            desc=db_span["description"],
+            desc=db_span.get("description", ""),
             type=PerformanceNPlusOneGroupType,
             parent_span_ids=[common_parent_span["span_id"]],
             cause_span_ids=db_span_ids,
