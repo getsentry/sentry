@@ -7,6 +7,7 @@ import {
   initializeSdk,
   isEventWithFileUrl,
   isFilteredRequestErrorEvent,
+  isHandledThirdPartyError,
 } from './initializeSdk';
 
 const ERROR_MAP: Record<number, string | undefined> = {
@@ -204,6 +205,65 @@ describe('isEventWithFileUrl', () => {
     const event = {};
 
     expect(isEventWithFileUrl(event)).toBeFalsy();
+  });
+});
+
+describe('isHandledThirdPartyError', () => {
+  it('drops handled errors tagged as third-party', () => {
+    const event = {
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value: 'Converting circular structure to JSON',
+            mechanism: {handled: true, type: 'generic'},
+          },
+        ],
+      },
+      tags: {third_party_code: 'True'},
+    };
+
+    expect(isHandledThirdPartyError(event)).toBeTruthy();
+  });
+
+  it('keeps unhandled errors even if tagged third-party', () => {
+    const event = {
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value: 'Something exploded',
+            mechanism: {handled: false, type: 'onerror'},
+          },
+        ],
+      },
+      tags: {third_party_code: 'True'},
+    };
+
+    expect(isHandledThirdPartyError(event)).toBeFalsy();
+  });
+
+  it('keeps handled errors not tagged as third-party', () => {
+    const event = {
+      exception: {
+        values: [
+          {
+            type: 'TypeError',
+            value: 'Something exploded',
+            mechanism: {handled: true, type: 'generic'},
+          },
+        ],
+      },
+      tags: {},
+    };
+
+    expect(isHandledThirdPartyError(event)).toBeFalsy();
+  });
+
+  it('keeps events with no exception', () => {
+    const event = {tags: {third_party_code: 'True'}};
+
+    expect(isHandledThirdPartyError(event)).toBeFalsy();
   });
 });
 

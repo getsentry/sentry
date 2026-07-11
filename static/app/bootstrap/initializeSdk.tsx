@@ -180,7 +180,8 @@ export function initializeSdk(config: Config) {
       if (
         isFilteredRequestErrorEvent(event) ||
         isEventWithFileUrl(event) ||
-        isNullTupleUnhandledRejectionEvent(event)
+        isNullTupleUnhandledRejectionEvent(event) ||
+        isHandledThirdPartyError(event)
       ) {
         return null;
       }
@@ -269,6 +270,20 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
 
 export function isEventWithFileUrl(event: Event): boolean {
   return !!event.request?.url?.startsWith('file://');
+}
+
+/**
+ * Drop handled errors that originated entirely from third-party code (e.g. browser
+ * extensions). These are tagged by `thirdPartyErrorFilterIntegration` with
+ * `third_party_code: True` and are not actionable — they represent noise from
+ * injected scripts outside our control. Unhandled third-party errors are kept
+ * because they may still crash the page.
+ */
+export function isHandledThirdPartyError(event: Event): boolean {
+  const allHandled = event.exception?.values?.every(
+    exc => exc.mechanism?.handled !== false
+  );
+  return !!(allHandled && event.tags?.['third_party_code'] === 'True');
 }
 
 /**
