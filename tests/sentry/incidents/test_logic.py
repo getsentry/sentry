@@ -46,6 +46,7 @@ from sentry.incidents.logic import (
     get_actions_for_trigger,
     get_alert_resolution,
     get_available_action_integrations_for_org,
+    get_filtered_actions,
     get_metric_issue_aggregates,
     get_triggers_for_alert_rule,
     snapshot_alert_rule,
@@ -3707,3 +3708,39 @@ class TestGetAlertResolution(TestCase):
         time_window = -5
         result = get_alert_resolution(time_window, self.organization)
         assert result == timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION)
+
+
+class TestGetFilteredActions(TestCase):
+    def test_none_action_in_trigger_actions(self) -> None:
+        # Regression test: None entries in trigger actions must not raise AttributeError
+        alert_rule_data: dict = {
+            "triggers": [
+                {
+                    "actions": [
+                        None,
+                        {"type": "sentry_app"},
+                    ]
+                }
+            ]
+        }
+        from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+
+        result = get_filtered_actions(
+            alert_rule_data, AlertRuleTriggerAction.Type.SENTRY_APP
+        )
+        assert isinstance(result, list)
+
+    def test_empty_actions(self) -> None:
+        alert_rule_data: dict = {"triggers": [{"actions": []}]}
+        from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+
+        result = get_filtered_actions(
+            alert_rule_data, AlertRuleTriggerAction.Type.SENTRY_APP
+        )
+        assert result == []
+
+    def test_no_triggers(self) -> None:
+        from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+
+        result = get_filtered_actions({}, AlertRuleTriggerAction.Type.SENTRY_APP)
+        assert result == []
