@@ -512,6 +512,9 @@ export function useReleaseBubbles({
         if (params.seriesId !== BUBBLE_SERIES_ID || !echartsInstance) {
           return;
         }
+        if (echartsInstance.isDisposed()) {
+          return;
+        }
 
         const data = params.data as unknown as Bucket;
 
@@ -540,23 +543,34 @@ export function useReleaseBubbles({
             ],
           },
         };
-        echartsInstance.setOption({series: [customSeries]}, {lazyUpdate: true});
+        try {
+          echartsInstance.setOption({series: [customSeries]}, {lazyUpdate: true});
+        } catch {
+          // Chart may be disposed during a state transition
+        }
       };
 
       const handleMouseOut = (params: Parameters<EChartMouseOutHandler>[0]) => {
         if (params.seriesId !== BUBBLE_SERIES_ID || !echartsInstance) {
           return;
         }
+        if (echartsInstance.isDisposed()) {
+          return;
+        }
 
         // Clear the `markArea` that was drawn during mouse over
-        echartsInstance.setOption(
-          {
-            series: [{id: BUBBLE_AREA_SERIES_ID, markArea: {data: []}}],
-          },
-          {
-            lazyUpdate: true,
-          }
-        );
+        try {
+          echartsInstance.setOption(
+            {
+              series: [{id: BUBBLE_AREA_SERIES_ID, markArea: {data: []}}],
+            },
+            {
+              lazyUpdate: true,
+            }
+          );
+        } catch {
+          // Chart may be disposed during a state transition
+        }
       };
 
       // This fixes a bug where if you hover over a bubble and mouseout via xaxis
@@ -597,10 +611,17 @@ export function useReleaseBubbles({
         // Callback for when Releases legend status changes -- we want to
         // adjust the xAxis/grid accordingly when Releases are visible or
         // not
-        echartsInstance.setOption({
-          xAxis: selected ? releaseBubbleXAxis : defaultBubbleXAxis,
-          grid: selected ? releaseBubbleGrid : defaultBubbleGrid,
-        });
+        if (echartsInstance.isDisposed()) {
+          return;
+        }
+        try {
+          echartsInstance.setOption({
+            xAxis: selected ? releaseBubbleXAxis : defaultBubbleXAxis,
+            grid: selected ? releaseBubbleGrid : defaultBubbleGrid,
+          });
+        } catch {
+          // Chart may be disposed during a state transition
+        }
 
         trackLegend(params);
       };
