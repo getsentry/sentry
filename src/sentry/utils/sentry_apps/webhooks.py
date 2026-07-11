@@ -264,7 +264,11 @@ def send_and_save_webhook_request(
             }
         )
 
-        assert url is not None
+        if not url:
+            lifecycle.record_halt(
+                halt_reason=f"send_and_save_webhook_request.{SentryAppWebhookHaltReason.MISSING_URL}"
+            )
+            return Response()
         custom_headers_enabled = False
         try:
             owner_context = organization_service.get_organization_by_id(
