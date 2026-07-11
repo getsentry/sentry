@@ -32,6 +32,10 @@ export enum IssueSortOptions {
   USER = 'user',
   INBOX = 'inbox',
   RECOMMENDED = 'recommended',
+  // Escape hatches for comparing the two recommended scorers regardless of
+  // which one the org's flag serves behind RECOMMENDED. Only reachable via the
+  // sort query param.
+  RECOMMENDED_V1 = 'recommended_v1',
   RECOMMENDED_EXPERIMENTAL = 'recommended_v2',
   PROGRESS = 'progress',
 }
@@ -51,9 +55,9 @@ export function getSortLabel(key: string) {
     case IssueSortOptions.INBOX:
       return t('Date Added');
     case IssueSortOptions.RECOMMENDED:
-      return t('Recommended');
+    case IssueSortOptions.RECOMMENDED_V1:
     case IssueSortOptions.RECOMMENDED_EXPERIMENTAL:
-      return t('Recommended (Experimental)');
+      return t('Recommended');
     case IssueSortOptions.PROGRESS:
       return t('Progress');
     case IssueSortOptions.DATE:

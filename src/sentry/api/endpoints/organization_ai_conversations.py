@@ -30,7 +30,7 @@ from sentry.utils.ai_message_normalizer import (
     normalize_to_messages,
     stringify_message_content,
 )
-from sentry.utils.tracing import set_span_data, start_span
+from sentry.utils.tracing import set_span_data, start_span, trace
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
 
@@ -228,7 +228,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 max_per_page=100,
             )
 
-    @sentry_sdk.trace
+    @trace
     def _get_conversations(
         self,
         snuba_params,
@@ -253,7 +253,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         return self._get_conversations_data(snuba_params, conversation_ids)
 
-    @sentry_sdk.trace
+    @trace
     def _fetch_conversation_ids(
         self,
         snuba_params,
@@ -274,7 +274,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             sampling_mode=sampling_mode,
         )
 
-    @sentry_sdk.trace
+    @trace
     def _get_conversations_data(self, snuba_params, conversation_ids: list[str]) -> list[dict]:
         config = SearchResolverConfig(auto_fields=True)
         resolver = Spans.get_resolver(snuba_params, config)

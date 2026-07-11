@@ -14,6 +14,7 @@ interface ActivityLineRowProps {
 interface ActivityLineHeadlineProps {
   timestamp: React.ReactNode;
   title: React.ReactNode;
+  variant: ActivityLineVariant;
   actions?: React.ReactNode;
   details?: React.ReactNode;
 }
@@ -31,6 +32,7 @@ export function ActivityLineHeadline({
   details,
   timestamp,
   actions,
+  variant,
 }: ActivityLineHeadlineProps) {
   return (
     <Flex
@@ -42,9 +44,15 @@ export function ActivityLineHeadline({
       wrap="wrap"
       gap="xs"
     >
-      <Text as="span" bold density="comfortable" wordBreak="break-word">
+      <ActivityLineTitleText
+        as="span"
+        bold
+        data-compact={variant === 'compact' ? true : undefined}
+        density="comfortable"
+        wordBreak="break-word"
+      >
         {title}
-      </Text>
+      </ActivityLineTitleText>
       {details && <ActivityLineDetails>{details}</ActivityLineDetails>}
       <ActivityLineMeta>
         <Text as="span" variant="muted" density="comfortable">
@@ -94,13 +102,27 @@ const CompactActivityLineRow = styled('div')`
   column-gap: ${p => p.theme.space.sm};
 `;
 
+const ActivityLineTitleText = styled(Text)`
+  min-width: 0;
+  overflow-wrap: anywhere;
+
+  &[data-compact='true'] {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+`;
+
 const ActivityLineDetails = styled('span')`
-  display: contents;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
   line-height: 1.4;
   overflow-wrap: anywhere;
   word-break: break-word;
+  /* Trim the line box so the text lines up with the title and timestamp. */
+  text-box-edge: text text;
+  text-box-trim: trim-both;
 `;
 
 const ActivityLineMeta = styled('span')`

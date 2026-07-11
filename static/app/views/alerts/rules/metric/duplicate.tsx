@@ -24,7 +24,6 @@ import {RuleForm} from './ruleForm';
 
 interface MetricRuleDuplicateProps extends RouteComponentProps {
   project: Project;
-  userTeamIds: string[];
   eventView?: EventView;
   sessionId?: string;
   wizardTemplate?: WizardRuleTemplate;
@@ -36,7 +35,6 @@ interface MetricRuleDuplicateProps extends RouteComponentProps {
 export function MetricRuleDuplicate({
   project,
   sessionId,
-  userTeamIds,
   ...otherProps
 }: MetricRuleDuplicateProps) {
   const theme = useTheme();
@@ -105,7 +103,6 @@ export function MetricRuleDuplicate({
         }
         sessionId={sessionId}
         project={project}
-        userTeamIds={userTeamIds}
         isDuplicateRule
         {...otherProps}
       />
