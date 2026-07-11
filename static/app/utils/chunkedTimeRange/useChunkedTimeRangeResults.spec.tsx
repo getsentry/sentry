@@ -1,3 +1,4 @@
+import {useQueries} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -5,9 +6,10 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {computeTimeChunks} from 'sentry/utils/chunkedTimeRange/computeTimeChunks';
 import {
-  useChunkedTimeRangeQuery,
+  getChunkedTimeRangeQueries,
   type ChunkQueryContext,
-} from 'sentry/utils/chunkedTimeRange/useChunkedTimeRangeQuery';
+} from 'sentry/utils/chunkedTimeRange/getChunkedTimeRangeQueries';
+import {useChunkedTimeRangeResults} from 'sentry/utils/chunkedTimeRange/useChunkedTimeRangeResults';
 
 const organization = OrganizationFixture();
 
@@ -17,8 +19,14 @@ interface Row {
 }
 
 const HOUR = 60 * 60 * 1000;
-// 3 chunks: 15, 45, 100 hours (newest-first).
 const CHUNKS = computeTimeChunks({start: 0, end: 160 * HOUR, interval: '1h'});
+const RESOLVED = {
+  chunks: CHUNKS,
+  chunked: true,
+  isRelative: false,
+  fullRange: {start: 0, end: 160 * HOUR},
+  intervalMs: HOUR,
+};
 
 function buildChunkQuery({chunk}: ChunkQueryContext) {
   return apiOptions.as<Row[]>()('/organizations/$organizationIdOrSlug/events/', {
@@ -28,9 +36,17 @@ function buildChunkQuery({chunk}: ChunkQueryContext) {
   });
 }
 
-// Merge = flatten every chunk's rows, sorted by value.
+// Merge = flatten every chunk's rows, sorted by value. Module-scope so its
+// reference is stable across renders (the memo dependency contract).
 function merge(responses: Row[][]) {
   return responses.flat().sort((a, b) => a.value - b.value);
+}
+
+// A tiny consumer that wires the three pieces the way a real caller does.
+function useTestChunked() {
+  const queries = getChunkedTimeRangeQueries({...RESOLVED, buildChunkQuery});
+  const results = useQueries({queries});
+  return useChunkedTimeRangeResults({...RESOLVED, results, merge});
 }
 
 function mockChunk(chunk: {end: number; start: number}, value: number, statusCode = 200) {
@@ -43,28 +59,15 @@ function mockChunk(chunk: {end: number; start: number}, value: number, statusCod
   });
 }
 
-function renderChunked(overrides = {}) {
-  const resolved = {
-    chunks: CHUNKS,
-    chunked: CHUNKS.length > 1,
-    isRelative: false,
-    fullRange: {start: 0, end: 160 * HOUR},
-    intervalMs: HOUR,
-  };
-  return renderHookWithProviders(() =>
-    useChunkedTimeRangeQuery({...resolved, buildChunkQuery, merge, ...overrides})
-  );
-}
-
-describe('useChunkedTimeRangeQuery', () => {
+describe('useChunkedTimeRangeResults', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('fires one query per chunk and merges the responses', async () => {
+  it('merges the chunk responses once they resolve', async () => {
     const mocks = CHUNKS.map((chunk, i) => mockChunk(chunk, i + 1));
 
-    const {result} = renderChunked();
+    const {result} = renderHookWithProviders(useTestChunked);
 
     await waitFor(() => expect(result.current.data).toHaveLength(CHUNKS.length));
     for (const mock of mocks) {
@@ -80,7 +83,7 @@ describe('useChunkedTimeRangeQuery', () => {
       mockChunk(chunk, i + 1, i === CHUNKS.length - 1 ? 500 : 200)
     );
 
-    const {result} = renderChunked();
+    const {result} = renderHookWithProviders(useTestChunked);
 
     await waitFor(() => expect(result.current.isPartial).toBe(true));
     expect(result.current.data).toHaveLength(CHUNKS.length - 1);
@@ -90,7 +93,7 @@ describe('useChunkedTimeRangeQuery', () => {
   it('surfaces a fatal error only when every chunk fails', async () => {
     CHUNKS.forEach(chunk => mockChunk(chunk, 0, 500));
 
-    const {result} = renderChunked();
+    const {result} = renderHookWithProviders(useTestChunked);
 
     await waitFor(() => expect(result.current.error).toBeTruthy());
     expect(result.current.data).toBeUndefined();

@@ -1,14 +1,17 @@
 import {useCallback, useMemo} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useQueries, useQuery} from '@tanstack/react-query';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {
-  useChunkedTimeRangeQuery,
-  useTimeChunks,
-  type ChunkMergeContext,
+  getChunkedTimeRangeQueries,
   type ChunkQueryContext,
-} from 'sentry/utils/chunkedTimeRange/useChunkedTimeRangeQuery';
+} from 'sentry/utils/chunkedTimeRange/getChunkedTimeRangeQueries';
+import {
+  useChunkedTimeRangeResults,
+  type ChunkMergeContext,
+} from 'sentry/utils/chunkedTimeRange/useChunkedTimeRangeResults';
+import {useTimeChunks} from 'sentry/utils/chunkedTimeRange/useTimeChunks';
 import {defined} from 'sentry/utils/defined';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
@@ -58,13 +61,14 @@ export interface MetricHeatMapData {
 
 /**
  * Heat map data source for Explore and Dashboards, built on the generic
- * chunked-time-range machinery.
+ * chunked-time-range machinery in `sentry/utils/chunkedTimeRange`.
  *
- * Wide ranges are fetched in two phases. Phase A (here) learns the global
- * y-domain with one cheap `min`/`max` aggregate. Phase B (the generic hook)
- * fires the epoch-aligned, time-chunked heat map requests in parallel — each
- * pinned to that domain via `buildChunkQuery` — and streams them into one merged
- * grid via `mergeHeatMapChunks`. A failed chunk degrades to a partial render.
+ * Wide ranges are fetched in two phases. Phase A learns the global y-domain with
+ * one cheap `min`/`max` aggregate. Phase B builds one epoch-aligned, pinned
+ * request per chunk (`getChunkedTimeRangeQueries` + our `buildChunkQuery`), fires
+ * them with `useQueries`, and stitches the results into one dense grid
+ * (`useChunkedTimeRangeResults` + our `mergeHeatMapChunks`). A failed chunk
+ * degrades to a partial render.
  *
  * Narrow ranges (a single chunk) skip Phase A entirely and issue one unpinned
  * request over the selection, identical to the pre-chunking behavior.
@@ -79,10 +83,8 @@ export function useMetricHeatMapData({
   enabled,
 }: UseMetricHeatMapDataOptions): MetricHeatMapData {
   const validDims = defined(yBuckets) && yBuckets > 0;
-  const {chunks, chunked, isRelative, fullRange, intervalMs} = useTimeChunks({
-    selection,
-    interval: validDims ? interval : null,
-  });
+  const resolved = useTimeChunks({selection, interval: validDims ? interval : null});
+  const {chunked, fullRange, intervalMs} = resolved;
 
   // Phase A — global y-domain. Only fired when we actually chunk.
   const boundsApiOptions = metricHeatmapBoundsApiOptions({
@@ -146,20 +148,16 @@ export function useMetricHeatMapData({
     [metricUnit]
   );
 
+  // Build one apiOptions per chunk, fire them, then stitch the results. We own
+  // the `useQueries` call (per Sentry's abstract-over-apiOptions convention).
+  const queries = getChunkedTimeRangeQueries({...resolved, buildChunkQuery});
+  const results = useQueries({queries});
   const {
     data,
     isPartial,
     isFetchingMore,
     error: chunkError,
-  } = useChunkedTimeRangeQuery({
-    chunks,
-    chunked,
-    isRelative,
-    fullRange,
-    intervalMs,
-    buildChunkQuery,
-    merge,
-  });
+  } = useChunkedTimeRangeResults({...resolved, results, merge});
 
   // Phase A resolved but the range has no data: render an empty grid so the
   // "No data" state shows instead of a perpetual spinner.
