@@ -159,7 +159,14 @@ class GroupAction(BaseModel, abc.ABC):
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         if not getattr(cls.get_type, "__isabstractmethod__", False):
-            cls._registry[cls.get_type()] = cls
+            action_type = cls.get_type()
+            existing = cls._registry.get(action_type)
+            if existing is not None:
+                raise TypeError(
+                    f"Duplicate GroupAction registration for {action_type!r}: "
+                    f"{cls.__name__} conflicts with {existing.__name__}"
+                )
+            cls._registry[action_type] = cls
 
     @classmethod
     @abc.abstractmethod
