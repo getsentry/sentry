@@ -132,9 +132,7 @@ export function useCreateNotificationAction({
   );
   const [channel, setChannel] = useState<IntegrationChannel | undefined>(undefined);
   const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState(false);
-  // Ensures the init effect runs exactly once (first successful load). Later
-  // refetches updating providersToIntegrations must not override a selection
-  // the user already made.
+
   const hasInitializedSelection = useRef(false);
 
   useEffect(() => {
