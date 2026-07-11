@@ -4,9 +4,9 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {PageFilters} from 'sentry/types/core';
+import {computeTimeChunks} from 'sentry/utils/chunkedTimeRange/computeTimeChunks';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {computeHeatMapChunks} from 'sentry/views/explore/metrics/hooks/computeHeatMapChunks';
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
@@ -27,7 +27,7 @@ const NARROW_SELECTION = PageFiltersFixture({
   datetime: {start: null, end: null, period: '1h', utc: null},
 });
 
-const WIDE_CHUNKS = computeHeatMapChunks({
+const WIDE_CHUNKS = computeTimeChunks({
   start: Date.parse(ABSOLUTE_START),
   end: Date.parse(ABSOLUTE_END),
   interval: '1h',
