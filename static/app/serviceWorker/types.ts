@@ -32,7 +32,6 @@ export type RequestMessage = {
   };
   name: 'trigger.test-notification';
   type: 'request';
-  timeoutMs?: number;
 };
 
 export type ResponseMessage =

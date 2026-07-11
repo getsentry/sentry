@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -11,18 +11,31 @@ import {IconSubscribed} from 'sentry/icons/iconSubscribed';
 import {t} from 'sentry/locale';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
+import type {RequestMessage} from 'sentry/serviceWorker/types';
 
+const SUCCESS_VISIBLE_DURATION_MS = 25_000;
 export function NotificationPrompt() {
-  const [enabled, setEnabled] = useState(false);
+  const [isSuccessVisible, setIsSuccessVisible] = useState(false);
   const {isServiceWorkerSupported, controller} = useServiceWorker();
   const {permission, supportsNotifications, askNotificationPermission} =
     useNotificationPermission();
 
+  useEffect(() => {
+    if (isSuccessVisible && permission === 'granted') {
+      const timeout = setTimeout(
+        () => setIsSuccessVisible(false),
+        SUCCESS_VISIBLE_DURATION_MS
+      );
+      return () => clearTimeout(timeout);
+    }
+    return () => {};
+  }, [isSuccessVisible, permission]);
+
   if (!isServiceWorkerSupported || !supportsNotifications) {
     return null;
   }
-  // permission !== 'default'
-  if (enabled) {
+
+  if (isSuccessVisible && permission === 'granted') {
     return (
       <Alert
         variant="success"
@@ -35,7 +48,6 @@ export function NotificationPrompt() {
                   await controller.postMessage({
                     name: 'trigger.test-notification',
                     type: 'request',
-                    timeoutMs: 1_000,
                     data: {
                       title: 'Seer Test Notification',
                       options: {
@@ -45,7 +57,7 @@ export function NotificationPrompt() {
                         image: 'https://sentry.io/favicon.ico',
                       },
                     },
-                  });
+                  } satisfies RequestMessage);
                 } catch (error) {
                   addErrorMessage(error instanceof Error ? error.message : String(error));
                 }
@@ -76,7 +88,7 @@ export function NotificationPrompt() {
               size="md"
               onClick={() => {
                 askNotificationPermission().then(() => {
-                  setEnabled(true);
+                  setIsSuccessVisible(true);
                 });
               }}
               icon={<IconSubscribed />}
