@@ -5,7 +5,7 @@ import {
   useLocation,
   useNavigationType,
 } from 'react-router-dom';
-import {type Event, type Log} from '@sentry/core';
+import {type Event, type EventHint, type Log} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {NODE_ENV} from 'sentry/constants';
@@ -180,7 +180,8 @@ export function initializeSdk(config: Config) {
       if (
         isFilteredRequestErrorEvent(event) ||
         isEventWithFileUrl(event) ||
-        isNullTupleUnhandledRejectionEvent(event)
+        isNullTupleUnhandledRejectionEvent(event) ||
+        isBrowserExtensionError(event, hint)
       ) {
         return null;
       }
@@ -269,6 +270,35 @@ export function isFilteredRequestErrorEvent(event: Event): boolean {
 
 export function isEventWithFileUrl(event: Event): boolean {
   return !!event.request?.url?.startsWith('file://');
+}
+
+/**
+ * Unhandled rejections where the rejection value is a plain object (not an
+ * Error) whose stack trace points at a browser extension are third-party
+ * noise — e.g. MetaMask and other crypto-wallet content scripts that
+ * propagate unhandled rejections (error code 4001 "User Rejected Request")
+ * into the host page's global unhandledrejection handler. These are never
+ * actionable by Sentry engineers.
+ */
+function isBrowserExtensionError(event: Event, hint: EventHint): boolean {
+  const isUnhandledRejection = event.exception?.values?.some(
+    ex => ex.mechanism?.type === 'auto.browser.global_handlers.onunhandledrejection'
+  );
+  if (!isUnhandledRejection) {
+    return false;
+  }
+  const originalException = hint.originalException;
+  if (
+    originalException !== null &&
+    typeof originalException === 'object' &&
+    !(originalException instanceof Error) &&
+    'stack' in originalException &&
+    typeof (originalException as Record<string, unknown>)['stack'] === 'string'
+  ) {
+    const stack = (originalException as {stack: string}).stack;
+    return stack.includes('chrome-extension://') || stack.includes('moz-extension://');
+  }
+  return false;
 }
 
 /**
