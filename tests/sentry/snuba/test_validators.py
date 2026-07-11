@@ -76,6 +76,13 @@ class SnubaQueryValidatorTest(TestCase):
             ErrorDetail(string=f"Invalid query type {invalid_query_type}", code="invalid")
         ]
 
+    def test_invalid_dataset_sessions_returns_validation_error(self) -> None:
+        self.valid_data["dataset"] = Dataset.Sessions.value
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
+        assert not validator.is_valid()
+        non_field_errors = validator.errors.get("non_field_errors", [])
+        assert any("Invalid dataset for alerts" in str(e) for e in non_field_errors)
+
     def test_validated_create_source_limits(self) -> None:
         with self.settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=2):
             validator = SnubaQueryValidator(data=self.valid_data, context=self.context)

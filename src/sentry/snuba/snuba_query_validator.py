@@ -318,6 +318,11 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                     "You cannot use an MRI on alerts as the performance metrics dataset is being deprecated."
                 )
 
+        if dataset not in query_datasets_to_type:
+            raise serializers.ValidationError(
+                "Invalid dataset for alerts. Valid datasets are: %s"
+                % ", ".join(sorted(d.name.lower() for d in query_datasets_to_type))
+            )
         query_type = data.setdefault("query_type", query_datasets_to_type[dataset])
 
         valid_datasets = QUERY_TYPE_VALID_DATASETS[query_type]
