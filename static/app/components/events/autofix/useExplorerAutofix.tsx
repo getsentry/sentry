@@ -608,7 +608,7 @@ export function useExplorerAutofix(
         }
 
         if (
-          organization.features.includes('autofix-browser-notifications') ||
+          organization.features.includes('autofix-browser-notifications') &&
           serviceWorker.isServiceWorkerSupported
         ) {
           serviceWorker.controller
