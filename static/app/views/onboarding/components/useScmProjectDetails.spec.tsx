@@ -20,7 +20,7 @@ const pythonPlatform: OnboardingSelectedSDK = {
 };
 
 describe('getSubmitTooltipText', () => {
-  const none_missing = {
+  const none = {
     platform: false,
     projectName: false,
     team: false,
@@ -28,35 +28,33 @@ describe('getSubmitTooltipText', () => {
   };
 
   it('returns undefined when nothing is missing', () => {
-    expect(getSubmitTooltipText(none_missing)).toBeUndefined();
+    expect(getSubmitTooltipText(none)).toBeUndefined();
   });
 
   it('returns a summary when multiple fields are missing', () => {
-    expect(
-      getSubmitTooltipText({...none_missing, platform: true, projectName: true})
-    ).toBe('Please fill out all the required fields');
+    expect(getSubmitTooltipText({...none, platform: true, projectName: true})).toBe(
+      'Please fill out all the required fields'
+    );
   });
 
   it('names the platform when it is the only missing field', () => {
-    expect(getSubmitTooltipText({...none_missing, platform: true})).toBe(
+    expect(getSubmitTooltipText({...none, platform: true})).toBe(
       'Please select a platform'
     );
   });
 
   it('names the project name when it is the only missing field', () => {
-    expect(getSubmitTooltipText({...none_missing, projectName: true})).toBe(
+    expect(getSubmitTooltipText({...none, projectName: true})).toBe(
       'Please provide a project name'
     );
   });
 
   it('names the team when it is the only missing field', () => {
-    expect(getSubmitTooltipText({...none_missing, team: true})).toBe(
-      'Please select a team'
-    );
+    expect(getSubmitTooltipText({...none, team: true})).toBe('Please select a team');
   });
 
   it('names the notification channel when it is the only missing field', () => {
-    expect(getSubmitTooltipText({...none_missing, notificationChannel: true})).toBe(
+    expect(getSubmitTooltipText({...none, notificationChannel: true})).toBe(
       'Please provide an integration channel for alert notifications'
     );
   });
