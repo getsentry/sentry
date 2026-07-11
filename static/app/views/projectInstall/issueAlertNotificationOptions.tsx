@@ -1,4 +1,12 @@
-import {Fragment, useCallback, useEffect, useMemo, useState, type ReactNode} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -124,6 +132,10 @@ export function useCreateNotificationAction({
   );
   const [channel, setChannel] = useState<IntegrationChannel | undefined>(undefined);
   const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState(false);
+  // Ensures the init effect runs exactly once (first successful load). Later
+  // refetches updating providersToIntegrations must not override a selection
+  // the user already made.
+  const hasInitializedSelection = useRef(false);
 
   useEffect(() => {
     // Initializes form state based on the first default action and available integrations.
@@ -164,14 +176,17 @@ export function useCreateNotificationAction({
   }, [defaultActions, providersToIntegrations]);
 
   useEffect(() => {
-    if (messagingIntegrationsQuery.isSuccess) {
-      const providerKeys = Object.keys(providersToIntegrations);
-      const firstProvider = providerKeys[0];
-      const firstIntegration = providersToIntegrations[String(firstProvider)]?.[0];
-      setProvider(firstProvider);
-      setIntegration(firstIntegration);
-      setShouldRenderSetupButton(!firstProvider);
+    if (!messagingIntegrationsQuery.isSuccess || hasInitializedSelection.current) {
+      return;
     }
+    hasInitializedSelection.current = true;
+    const providerKeys = Object.keys(providersToIntegrations);
+    const firstProvider = providerKeys[0];
+    const firstIntegration = providersToIntegrations[String(firstProvider)]?.[0];
+    setProvider(firstProvider);
+    setIntegration(firstIntegration);
+    setChannel(undefined);
+    setShouldRenderSetupButton(!firstProvider);
   }, [messagingIntegrationsQuery.isSuccess, providersToIntegrations]);
 
   const createNotificationAction = useCallback(

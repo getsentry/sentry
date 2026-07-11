@@ -2,12 +2,21 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderHookWithProviders,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
+import {IssueAlertActionType} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {
   IssueAlertNotificationOptions,
   type IssueAlertNotificationProps,
+  MultipleCheckboxOptions,
+  useCreateNotificationAction,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
 describe('MessagingIntegrationAlertRule', () => {
@@ -92,5 +101,119 @@ describe('MessagingIntegrationAlertRule', () => {
     await screen.findByText(/notify via integration/i);
     await userEvent.click(screen.getByText(/notify via integration/i));
     expect(mockSetAction).toHaveBeenCalled();
+  });
+});
+
+describe('useCreateNotificationAction', () => {
+  const organization = OrganizationFixture();
+
+  const slackIntegration = OrganizationIntegrationsFixture({
+    id: '1',
+    name: 'my-workspace',
+    status: 'active',
+    provider: {
+      key: 'slack',
+      slug: 'slack',
+      name: 'Slack',
+      canAdd: true,
+      canDisable: false,
+      features: [],
+      aspects: {},
+    },
+  });
+
+  function addIntegrationsResponse(body: OrganizationIntegration[]) {
+    return MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body,
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+    });
+  }
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('defaults provider and integration from the first result on load', async () => {
+    addIntegrationsResponse([slackIntegration]);
+
+    const {result} = renderHookWithProviders(() => useCreateNotificationAction(), {
+      organization,
+    });
+
+    // Initially unset while the query is pending.
+    expect(result.current.notificationProps.provider).toBeUndefined();
+
+    // After the query resolves, defaults to the first provider/integration.
+    await act(async () => {});
+    expect(result.current.notificationProps.provider).toBe('slack');
+    expect(result.current.notificationProps.integration?.id).toBe(slackIntegration.id);
+    expect(result.current.notificationProps.channel).toBeUndefined();
+  });
+
+  it('does not clobber a user-selected channel when the integrations list refetches', async () => {
+    const secondIntegration = OrganizationIntegrationsFixture({
+      id: '2',
+      name: 'another-workspace',
+      status: 'active',
+      provider: slackIntegration.provider,
+    });
+
+    // Initial load returns one integration.
+    addIntegrationsResponse([slackIntegration]);
+
+    const {result, rerender} = renderHookWithProviders(
+      () => useCreateNotificationAction(),
+      {organization}
+    );
+
+    await act(async () => {});
+    expect(result.current.notificationProps.provider).toBe('slack');
+
+    // User picks a channel.
+    act(() => {
+      result.current.notificationProps.setChannel({label: '#alerts', value: '#alerts'});
+    });
+    expect(result.current.notificationProps.channel?.value).toBe('#alerts');
+
+    // A refetch comes in with an updated list. Simulate by providing a new mock response
+    // with two integrations and re-rendering so the deps change.
+    MockApiClient.clearMockResponses();
+    addIntegrationsResponse([slackIntegration, secondIntegration]);
+    await act(async () => {
+      rerender();
+    });
+
+    // The run-once guard holds: provider/integration/channel are not reset.
+    expect(result.current.notificationProps.provider).toBe('slack');
+    expect(result.current.notificationProps.integration?.id).toBe(slackIntegration.id);
+    expect(result.current.notificationProps.channel?.value).toBe('#alerts');
+  });
+
+  it('resolves provider, integration, and actions from defaultActions on mount', async () => {
+    addIntegrationsResponse([slackIntegration]);
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useCreateNotificationAction({
+          actions: [
+            {
+              id: IssueAlertActionType.SLACK,
+              workspace: slackIntegration.id,
+              channel: '#eng',
+            },
+          ],
+        }),
+      {organization}
+    );
+
+    await act(async () => {});
+
+    // Autofill effect from defaultActions sets provider, integration, and channel.
+    expect(result.current.notificationProps.provider).toBe('slack');
+    expect(result.current.notificationProps.actions).toContain(
+      MultipleCheckboxOptions.INTEGRATION
+    );
+    expect(result.current.notificationProps.channel?.value).toBe('#eng');
   });
 });
