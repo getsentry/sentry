@@ -76,6 +76,20 @@ class SnubaQueryValidatorTest(TestCase):
             ErrorDetail(string=f"Invalid query type {invalid_query_type}", code="invalid")
         ]
 
+    def test_sessions_dataset_deprecated(self) -> None:
+        data = {
+            **self.valid_data,
+            "dataset": Dataset.Sessions.value,
+        }
+        validator = SnubaQueryValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors.get("dataset") == [
+            ErrorDetail(
+                string="The sessions dataset is deprecated. Use the metrics dataset for crash rate alerts.",
+                code="invalid",
+            )
+        ]
+
     def test_validated_create_source_limits(self) -> None:
         with self.settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=2):
             validator = SnubaQueryValidator(data=self.valid_data, context=self.context)

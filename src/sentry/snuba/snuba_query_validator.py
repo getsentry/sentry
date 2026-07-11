@@ -167,6 +167,10 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
     def validate_dataset(self, value: str) -> Dataset:
         try:
             dataset_value = Dataset(value)
+            if dataset_value == Dataset.Sessions:
+                raise serializers.ValidationError(
+                    "The sessions dataset is deprecated. Use the metrics dataset for crash rate alerts."
+                )
             if dataset_value in [Dataset.PerformanceMetrics, Dataset.Transactions]:
                 return self._validate_performance_dataset(dataset_value)
 
