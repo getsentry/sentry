@@ -28,6 +28,7 @@ from sentry.incidents.logic import (
     WARNING_TRIGGER_LABEL,
     WINDOWED_STATS_DATA_POINTS,
     AlertRuleTriggerLabelAlreadyUsedError,
+    get_filtered_actions,
     AlertTarget,
     ChannelLookupTimeoutError,
     GetMetricIssueAggregatesParams,
@@ -3707,3 +3708,30 @@ class TestGetAlertResolution(TestCase):
         time_window = -5
         result = get_alert_resolution(time_window, self.organization)
         assert result == timedelta(minutes=DEFAULT_ALERT_RULE_RESOLUTION)
+
+
+class TestGetFilteredActions(TestCase):
+    def test_none_action_does_not_raise(self) -> None:
+        """None entries in the actions list must be silently skipped (SENTRY-5RDY)."""
+        from sentry.notifications.models.notificationaction import ActionService
+
+        alert_rule_data = {
+            "triggers": [
+                {"actions": [None]},
+            ]
+        }
+        # Should not raise AttributeError even though action is None
+        result = get_filtered_actions(alert_rule_data, ActionService.SENTRY_APP)
+        assert result == []
+
+    def test_valid_actions_are_filtered(self) -> None:
+        from sentry.notifications.models.notificationaction import ActionService
+
+        alert_rule_data = {
+            "triggers": [
+                {"actions": [{"type": "sentry_notification"}, None, {"type": "unknown_type"}]},
+            ]
+        }
+        # Neither type matches SENTRY_APP so the result is empty, but no crash on None
+        result = get_filtered_actions(alert_rule_data, ActionService.SENTRY_APP)
+        assert result == []

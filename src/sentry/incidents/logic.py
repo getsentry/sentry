@@ -1995,7 +1995,9 @@ def get_filtered_actions(
     alert_rule_data: Mapping[str, Any],
     action_type: ActionService,
 ) -> list[dict[str, Any]]:
-    def is_included(action: Mapping[str, Any]) -> bool:
+    def is_included(action: Mapping[str, Any] | None) -> bool:
+        if action is None:
+            return False
         type_slug = action.get("type")
         if type_slug is None or not isinstance(type_slug, str):
             return False

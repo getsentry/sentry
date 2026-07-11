@@ -382,6 +382,23 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         )
 
     @with_feature("organizations:seer-public-rpc")
+    def test_deliver_feature_result_unknown_feature_returns_200(self) -> None:
+        """deliver_feature_result is now in the org registry; unknown feature_id is a no-op."""
+        path = self._get_path("deliver_feature_result")
+        response = self.client.post(
+            path,
+            data={
+                "args": {
+                    "feature_id": "nonexistent_feature",
+                    "run_uuid": "some-uuid",
+                    "status": "completed",
+                }
+            },
+            format="json",
+        )
+        assert response.status_code == 200
+
+    @with_feature("organizations:seer-public-rpc")
     def test_has_repo_code_mappings(self) -> None:
         """Test that has_repo_code_mappings works through the public endpoint"""
         path = self._get_path("has_repo_code_mappings")

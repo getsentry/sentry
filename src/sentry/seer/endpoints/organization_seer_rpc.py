@@ -65,6 +65,7 @@ from sentry.seer.assisted_query.traces_tools import (
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.endpoints.registry import SeerRpcMethod, seer_rpc
 from sentry.seer.endpoints.seer_rpc import (
+    deliver_feature_result,
     get_attributes_and_values,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
@@ -158,6 +159,9 @@ public_org_seer_method_registry: dict[str, SeerRpcMethod] = {
     #
     # Agent eval tooling
     "export_explorer_indexes": seer_rpc(map_org_id_param(export_agent_indexes)),
+    #
+    # Feature result delivery (explorer push-back)
+    "deliver_feature_result": seer_rpc(deliver_feature_result),
 }
 
 
