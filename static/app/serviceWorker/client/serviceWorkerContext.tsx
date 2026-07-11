@@ -107,6 +107,11 @@ function useServiceWorkerUpdateCheck() {
       navigator.serviceWorker.ready
         .then(registration => registration.update())
         .catch(error => {
+          // AbortErrors are expected when the user navigates away during an
+          // update check — they are not actionable and produce no stack trace.
+          if (error.name === 'AbortError') {
+            return;
+          }
           Sentry.captureException(error);
         });
     };
