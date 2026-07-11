@@ -8,7 +8,7 @@ from sentry.testutils.cases import TestCase
 
 
 class GroupActionLogEntryActionPropertyTest(TestCase):
-    def test_action_property_deserializes_data(self):
+    def test_action_property_deserializes_data(self) -> None:
         entry = self.create_group_action_log_entry(
             type=GroupActionType.ASSIGN,
             actor_type=GroupActorType.USER,
@@ -23,7 +23,7 @@ class GroupActionLogEntryActionPropertyTest(TestCase):
         assert action.assignee == "user:42"
         assert action.assignee_type == "user"
 
-    def test_action_property_is_cached(self):
+    def test_action_property_is_cached(self) -> None:
         entry = self.create_group_action_log_entry(
             type=GroupActionType.ASSIGN,
             data={"assignee": "user:1", "assignee_type": "user"},
