@@ -8,6 +8,7 @@ import {
   renderHookWithProviders,
   screen,
   userEvent,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import {IssueAlertActionType} from 'sentry/types/alerts';
@@ -145,8 +146,7 @@ describe('useCreateNotificationAction', () => {
     expect(result.current.notificationProps.provider).toBeUndefined();
 
     // After the query resolves, defaults to the first provider/integration.
-    await act(async () => {});
-    expect(result.current.notificationProps.provider).toBe('slack');
+    await waitFor(() => expect(result.current.notificationProps.provider).toBe('slack'));
     expect(result.current.notificationProps.integration?.id).toBe(slackIntegration.id);
     expect(result.current.notificationProps.channel).toBeUndefined();
   });
@@ -167,8 +167,7 @@ describe('useCreateNotificationAction', () => {
       {organization}
     );
 
-    await act(async () => {});
-    expect(result.current.notificationProps.provider).toBe('slack');
+    await waitFor(() => expect(result.current.notificationProps.provider).toBe('slack'));
 
     // User picks a channel.
     act(() => {
@@ -180,7 +179,7 @@ describe('useCreateNotificationAction', () => {
     // with two integrations and re-rendering so the deps change.
     MockApiClient.clearMockResponses();
     addIntegrationsResponse([slackIntegration, secondIntegration]);
-    await act(async () => {
+    act(() => {
       rerender();
     });
 
@@ -193,17 +192,18 @@ describe('useCreateNotificationAction', () => {
   it('resolves provider, integration, and actions from defaultActions on mount', async () => {
     addIntegrationsResponse([slackIntegration]);
 
+    // Stable reference: the autofill effect depends on `defaultActions`, so an
+    // inline array (new ref each render) would loop render -> setState -> render.
+    const defaultActions = [
+      {
+        id: IssueAlertActionType.SLACK,
+        workspace: slackIntegration.id,
+        channel: '#eng',
+      },
+    ];
+
     const {result} = renderHookWithProviders(
-      () =>
-        useCreateNotificationAction({
-          actions: [
-            {
-              id: IssueAlertActionType.SLACK,
-              workspace: slackIntegration.id,
-              channel: '#eng',
-            },
-          ],
-        }),
+      () => useCreateNotificationAction({actions: defaultActions}),
       {organization}
     );
 
