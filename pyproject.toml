@@ -1493,7 +1493,6 @@ module = [
     "sentry.utils.http",
     "sentry.utils.in_app",
     "sentry.utils.integrationdocs",
-    "sentry.utils.json",
     "sentry.utils.jwt",
     "sentry.utils.loremipsum",
     "sentry.utils.managers",
