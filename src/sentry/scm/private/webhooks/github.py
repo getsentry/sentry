@@ -1,3 +1,5 @@
+import logging
+import typing
 from typing import Optional
 
 import msgspec
@@ -14,6 +16,15 @@ from sentry.scm.types import (
     EventType,
     PullRequestEvent,
     SubscriptionEvent,
+)
+
+logger = logging.getLogger(__name__)
+
+# Valid pull request action strings, derived from the PullRequestAction type alias.
+# Used to gracefully skip events with action values not yet in our type definition
+# (e.g. new GitHub features like "stacked") instead of crashing on decode.
+_KNOWN_PR_ACTIONS: frozenset[str] = frozenset(
+    typing.get_args(getattr(PullRequestAction, "__value__", PullRequestAction))
 )
 
 # Remaining types in use:
@@ -63,7 +74,7 @@ class GitHubIssue(msgspec.Struct, gc=False):
 
 
 class GitHubPullRequestEvent(msgspec.Struct, gc=False):
-    action: PullRequestAction
+    action: str  # str so unknown future GitHub action types don't fail validation
     number: int
     pull_request: "GitHubPullRequest"
 
@@ -136,13 +147,20 @@ def deserialize_github_comment_event(event: SubscriptionEvent) -> CommentEvent:
     )
 
 
-def deserialize_github_pull_request_event(event: SubscriptionEvent) -> PullRequestEvent:
+def deserialize_github_pull_request_event(event: SubscriptionEvent) -> PullRequestEvent | None:
     e = pull_request_decoder.decode(event["event"])
 
+    # GitHub adds new pull_request action types over time (e.g. "stacked").
+    # Skip events whose action we don't recognise rather than crashing.
+    if e.action not in _KNOWN_PR_ACTIONS:
+        logger.info("github.webhook.pull_request.unknown_action", extra={"action": e.action})
+        return None
+
+    action: PullRequestAction = e.action  # type: ignore[assignment]
     repo = e.pull_request.head.repo or e.pull_request.base.repo
 
     return PullRequestEvent(
-        action=e.action,
+        action=action,
         pull_request={
             "author": {"id": str(e.pull_request.user.id), "username": e.pull_request.user.login},
             "base": {"ref": e.pull_request.base.ref, "sha": e.pull_request.base.sha},
