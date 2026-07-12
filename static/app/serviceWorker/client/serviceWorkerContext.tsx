@@ -82,6 +82,12 @@ function useRegisterServiceWorker() {
       })
       .catch(error => {
         log('error');
+        // AbortError means the browser shut down the SW system (tab closed or
+        // navigated away during registration) — this is expected browser
+        // lifecycle behavior and not actionable.
+        if (error?.name === 'AbortError') {
+          return;
+        }
         Sentry.captureException(error);
       });
   }, []);
@@ -107,6 +113,9 @@ function useServiceWorkerUpdateCheck() {
       navigator.serviceWorker.ready
         .then(registration => registration.update())
         .catch(error => {
+          if (error?.name === 'AbortError') {
+            return;
+          }
           Sentry.captureException(error);
         });
     };
