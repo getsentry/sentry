@@ -247,7 +247,7 @@ describe('useScmProjectDetails', () => {
         });
       });
 
-      await act(async () => {
+      act(() => {
         result.current.submit();
       });
 
@@ -315,7 +315,7 @@ describe('useScmProjectDetails', () => {
       );
 
       // No change to the form; the project should be reused.
-      await act(async () => {
+      act(() => {
         result.current.submit();
       });
 
@@ -370,7 +370,7 @@ describe('useScmProjectDetails', () => {
         });
       });
 
-      await act(async () => {
+      act(() => {
         result.current.submit();
       });
 
