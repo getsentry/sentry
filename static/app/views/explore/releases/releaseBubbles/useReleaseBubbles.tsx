@@ -451,7 +451,7 @@ export function useReleaseBubbles({
       const highlightedBuckets = new Set();
 
       const handleMouseMove = (params: ElementEvent) => {
-        if (!echartsInstance) {
+        if (!echartsInstance || echartsInstance.isDisposed()) {
           return;
         }
 
@@ -509,7 +509,7 @@ export function useReleaseBubbles({
       };
 
       const handleMouseOver = (params: Parameters<EChartMouseOverHandler>[0]) => {
-        if (params.seriesId !== BUBBLE_SERIES_ID || !echartsInstance) {
+        if (params.seriesId !== BUBBLE_SERIES_ID || !echartsInstance || echartsInstance.isDisposed()) {
           return;
         }
 
@@ -544,7 +544,7 @@ export function useReleaseBubbles({
       };
 
       const handleMouseOut = (params: Parameters<EChartMouseOutHandler>[0]) => {
-        if (params.seriesId !== BUBBLE_SERIES_ID || !echartsInstance) {
+        if (params.seriesId !== BUBBLE_SERIES_ID || !echartsInstance || echartsInstance.isDisposed()) {
           return;
         }
 
@@ -563,7 +563,7 @@ export function useReleaseBubbles({
       // (i.e. bottom of chart), the bubble will remain highlighted. This makes it
       // look buggy and can be misleading especially for bubbles w/ 0 releases.
       const handleGlobalOut = () => {
-        if (!echartsInstance) {
+        if (!echartsInstance || echartsInstance.isDisposed()) {
           return;
         }
 
