@@ -19,11 +19,8 @@ export interface TimeRange {
 
 export interface ResolvedTimeChunks {
   /**
-   * True when the range was split into more than one chunk.
-   */
-  chunked: boolean;
-  /**
-   * The chunks, newest-first.
+   * The chunks, newest-first. An empty array means the range isn't ready to
+   * fetch; `length > 1` means it was split (vs. a single fast-path request).
    */
   chunks: TimeChunk[];
   /**
@@ -63,7 +60,6 @@ export function useTimeChunks({
   return useMemo(() => {
     const empty: ResolvedTimeChunks = {
       chunks: [],
-      chunked: false,
       isRelative: false,
       fullRange: {start: 0, end: 0},
       intervalMs: 0,
@@ -95,7 +91,6 @@ export function useTimeChunks({
     const chunks = computeTimeChunks({start, end, interval, policy});
     return {
       chunks,
-      chunked: chunks.length > 1,
       isRelative,
       intervalMs,
       fullRange: {

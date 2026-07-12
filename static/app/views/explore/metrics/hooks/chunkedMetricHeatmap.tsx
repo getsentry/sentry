@@ -49,18 +49,17 @@ export function chunkedMetricHeatmapApiOptions({
   bounds,
   enabled,
   chunks,
-  chunked,
   isRelative,
   fullRange,
   intervalMs,
 }: ChunkedMetricHeatmapOptions): Array<ChunkQueryOptions<HeatMapSeries>> {
+  const isChunked = chunks.length > 1;
   return getChunkedTimeRangeQueries({
     chunks,
-    chunked,
     isRelative,
     fullRange,
     intervalMs,
-    buildChunkQuery: ({chunk, chunked: isChunked, isTrailingLive}) =>
+    buildChunkQuery: ({chunk, isTrailingLive}) =>
       metricHeatmapApiOptions({
         organization,
         selection,
@@ -87,7 +86,6 @@ export function chunkedMetricHeatmapApiOptions({
  */
 export function metricHeatmapCombine({
   chunks,
-  chunked,
   isRelative,
   fullRange,
   intervalMs,
@@ -96,20 +94,20 @@ export function metricHeatmapCombine({
   const metricUnit = unit ?? undefined;
   return getChunkedTimeRangeCombine({
     chunks,
-    chunked,
     isRelative,
     fullRange,
     intervalMs,
     merge: (responses: HeatMapSeries[], context) => {
       // Fast path: the single unpinned response is already a dense, ordered grid.
       // Chunked: stitch the chunks into one dense, full-range grid.
-      const merged = context.chunked
-        ? mergeHeatMapChunks(responses, {
-            xStart: context.fullRange.start,
-            xEnd: context.fullRange.end,
-            intervalMs: context.intervalMs,
-          })
-        : responses[0]!;
+      const merged =
+        context.chunks.length > 1
+          ? mergeHeatMapChunks(responses, {
+              xStart: context.fullRange.start,
+              xEnd: context.fullRange.end,
+              intervalMs: context.intervalMs,
+            })
+          : responses[0]!;
       return mergeMetricUnit(merged, metricUnit);
     },
   });

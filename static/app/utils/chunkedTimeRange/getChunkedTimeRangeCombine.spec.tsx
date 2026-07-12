@@ -39,7 +39,6 @@ const RESOLVED = {
     {start: 0, end: 10},
     {start: 10, end: 20},
   ],
-  chunked: true,
   isRelative: false,
   fullRange: {start: 0, end: 20},
   intervalMs: 10,

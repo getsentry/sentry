@@ -12,7 +12,6 @@ const CHUNKS = computeTimeChunks({start: 0, end: 160 * HOUR, interval: '1h'});
 function resolved(overrides = {}) {
   return {
     chunks: CHUNKS,
-    chunked: true,
     isRelative: true,
     fullRange: {start: 0, end: 160 * HOUR},
     intervalMs: HOUR,

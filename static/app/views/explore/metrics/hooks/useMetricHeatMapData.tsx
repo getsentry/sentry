@@ -73,7 +73,8 @@ export function useMetricHeatMapData({
 }: UseMetricHeatMapDataOptions): MetricHeatMapData {
   const validDims = defined(yBuckets) && yBuckets > 0;
   const resolved = useTimeChunks({selection, interval: validDims ? interval : null});
-  const {chunked, fullRange, intervalMs} = resolved;
+  const {chunks, fullRange, intervalMs} = resolved;
+  const chunked = chunks.length > 1;
 
   // Phase A — global y-domain. Only fired when we actually chunk.
   const boundsApiOptions = metricHeatmapBoundsApiOptions({

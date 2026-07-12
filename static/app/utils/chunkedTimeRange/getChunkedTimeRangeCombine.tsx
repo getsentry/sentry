@@ -46,7 +46,6 @@ export interface ChunkedTimeRangeResult<TMerged> {
  */
 export function getChunkedTimeRangeCombine<TResponse, TMerged>({
   chunks,
-  chunked,
   isRelative,
   fullRange,
   intervalMs,
@@ -54,6 +53,7 @@ export function getChunkedTimeRangeCombine<TResponse, TMerged>({
 }: ResolvedTimeChunks & {
   merge: (responses: TResponse[], context: ChunkMergeContext) => TMerged;
 }): (results: Array<UseQueryResult<TResponse>>) => ChunkedTimeRangeResult<TMerged> {
+  const chunked = chunks.length > 1;
   return results => {
     const succeeded = results
       .filter(q => q.isSuccess && defined(q.data))
@@ -70,7 +70,7 @@ export function getChunkedTimeRangeCombine<TResponse, TMerged>({
     const data =
       succeeded.length === 0
         ? undefined
-        : merge(succeeded, {chunks, chunked, isRelative, fullRange, intervalMs});
+        : merge(succeeded, {chunks, isRelative, fullRange, intervalMs});
 
     return {
       data,

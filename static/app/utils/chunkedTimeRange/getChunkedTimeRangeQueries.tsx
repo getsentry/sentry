@@ -10,11 +10,6 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 
 export interface ChunkQueryContext {
   chunk: TimeChunk;
-  /**
-   * True when more than one chunk is being fetched. When false the caller
-   * typically issues a single request over the whole selection (fast path).
-   */
-  chunked: boolean;
   fullRange: TimeRange;
   index: number;
   /**
@@ -80,7 +75,6 @@ const DEFAULT_RETRY = (failureCount: number, error: Error) =>
  */
 export function getChunkedTimeRangeQueries<TResponse>({
   chunks,
-  chunked,
   isRelative,
   fullRange,
   buildChunkQuery,
@@ -89,11 +83,11 @@ export function getChunkedTimeRangeQueries<TResponse>({
   buildChunkQuery: (context: ChunkQueryContext) => ChunkQueryOptions<TResponse>;
   retry?: ChunkQueryOptions<TResponse>['retry'];
 }): Array<ChunkQueryOptions<TResponse>> {
+  const chunked = chunks.length > 1;
   return chunks.map((chunk, index) => ({
     ...buildChunkQuery({
       chunk,
       index,
-      chunked,
       isTrailingLive: chunked && isRelative && index === 0,
       fullRange,
     }),
