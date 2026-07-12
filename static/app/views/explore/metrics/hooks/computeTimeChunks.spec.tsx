@@ -1,4 +1,4 @@
-import {computeTimeChunks} from 'sentry/utils/chunkedTimeRange/computeTimeChunks';
+import {computeTimeChunks} from 'sentry/views/explore/metrics/hooks/computeTimeChunks';
 
 const HOUR = 60 * 60 * 1000;
 

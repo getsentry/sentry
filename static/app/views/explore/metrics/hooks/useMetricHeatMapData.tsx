@@ -1,16 +1,21 @@
 import {useMemo} from 'react';
 import {useQueries, useQuery} from '@tanstack/react-query';
+import moment from 'moment-timezone';
 
+import {getDiffInMinutes} from 'sentry/components/charts/utils';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {useTimeChunks} from 'sentry/utils/chunkedTimeRange/useTimeChunks';
 import {defined} from 'sentry/utils/defined';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {
   chunkedMetricHeatmapApiOptions,
   emptyHeatMapSeries,
   metricHeatmapCombine,
+  type MetricHeatmapChunks,
 } from 'sentry/views/explore/metrics/hooks/chunkedMetricHeatmap';
+import {computeTimeChunks} from 'sentry/views/explore/metrics/hooks/computeTimeChunks';
 import {
   metricHeatmapBoundsApiOptions,
   reduceHeatMapBounds,
@@ -72,7 +77,63 @@ export function useMetricHeatMapData({
   enabled,
 }: UseMetricHeatMapDataOptions): MetricHeatMapData {
   const validDims = defined(yBuckets) && yBuckets > 0;
-  const resolved = useTimeChunks({selection, interval: validDims ? interval : null});
+
+  // Resolve the range to concrete timestamps and split it into epoch-aligned
+  // chunks once per filter/interval change. Date.now() is captured once here (for
+  // relative ranges); epoch-snapping keeps historical boundaries stable across
+  // renders, so only the live edge moves.
+  const resolved = useMemo((): MetricHeatmapChunks => {
+    const empty: MetricHeatmapChunks = {
+      chunks: [],
+      isRelative: false,
+      fullRange: {start: 0, end: 0},
+      intervalMs: 0,
+    };
+    if (!validDims || !defined(interval)) {
+      return empty;
+    }
+    const intervalMs = intervalToMilliseconds(interval);
+    if (intervalMs <= 0) {
+      return empty;
+    }
+
+    const normalized = normalizeDateTimeParams(selection.datetime);
+    let start: number;
+    let end: number;
+    let isRelative: boolean;
+    if (defined(normalized.start) && defined(normalized.end)) {
+      // normalizeDateTimeParams emits UTC strings without a `Z`, so parse them
+      // as UTC (not local) to get the correct epoch ms.
+      start = moment.utc(normalized.start).valueOf();
+      end = moment.utc(normalized.end).valueOf();
+      isRelative = false;
+    } else {
+      end = Date.now();
+      start = end - getDiffInMinutes(selection.datetime) * 60 * 1000;
+      isRelative = true;
+    }
+
+    const chunks = computeTimeChunks({start, end, interval});
+    return {
+      chunks,
+      isRelative,
+      intervalMs,
+      fullRange: {
+        start: chunks.length ? Math.min(...chunks.map(c => c.start)) : 0,
+        end: chunks.length ? Math.max(...chunks.map(c => c.end)) : 0,
+      },
+    };
+    // Date.now() is intentionally captured once per filter/interval change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    validDims,
+    interval,
+    selection.datetime.start,
+    selection.datetime.end,
+    selection.datetime.period,
+    selection.datetime.utc,
+  ]);
+
   const {chunks, fullRange, intervalMs} = resolved;
   const chunked = chunks.length > 1;
 
@@ -111,10 +172,10 @@ export function useMetricHeatMapData({
     [resolved, traceMetric.unit]
   );
   const {
-    data,
+    series: chunkSeries,
+    error: chunkError,
     isPartial,
     isFetchingMore,
-    error: chunkError,
   } = useQueries({queries, combine});
 
   // Phase A resolved but the range has no data → empty grid so "No data" shows.
@@ -126,7 +187,7 @@ export function useMetricHeatMapData({
         yBuckets ?? 0,
         traceMetric.unit
       )
-    : data;
+    : chunkSeries;
   const error = boundsQuery.error ?? chunkError;
 
   return {

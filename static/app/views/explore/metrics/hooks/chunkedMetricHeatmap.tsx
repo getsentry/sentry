@@ -1,30 +1,69 @@
 import {skipToken} from '@tanstack/react-query';
+import type {UseQueryOptions, UseQueryResult} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getChunkedTimeRangeCombine} from 'sentry/utils/chunkedTimeRange/getChunkedTimeRangeCombine';
-import {
-  getChunkedTimeRangeQueries,
-  type ChunkQueryOptions,
-} from 'sentry/utils/chunkedTimeRange/getChunkedTimeRangeQueries';
-import type {ResolvedTimeChunks} from 'sentry/utils/chunkedTimeRange/useTimeChunks';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import {
   SAMPLING_MODE,
   type SamplingMode,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {TimeChunk} from 'sentry/views/explore/metrics/hooks/computeTimeChunks';
 import type {HeatMapBounds} from 'sentry/views/explore/metrics/hooks/metricHeatmapBoundsApiOptions';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils';
 
-interface ChunkedMetricHeatmapOptions extends ResolvedTimeChunks {
+/**
+ * The resolved, epoch-aligned chunks + range for one render, produced by
+ * `useMetricHeatMapData` and consumed by the helpers below. `chunks.length > 1`
+ * means the range was split (vs. a single fast-path request).
+ */
+export interface MetricHeatmapChunks {
+  chunks: TimeChunk[];
+  fullRange: {end: number; start: number};
+  intervalMs: number;
+  isRelative: boolean;
+}
+
+type HeatmapChunkQuery = UseQueryOptions<
+  ApiResponse<HeatMapSeries>,
+  Error,
+  HeatMapSeries
+>;
+
+export interface ChunkedHeatmapResult {
+  /**
+   * A fatal error — every chunk failed. Partial failures do not set this.
+   */
+  error: Error | null;
+  /**
+   * At least one chunk is still loading while others have resolved.
+   */
+  isFetchingMore: boolean;
+  /**
+   * A chunk failed but others succeeded.
+   */
+  isPartial: boolean;
+  /**
+   * The merged, unit-patched grid, present once one chunk resolves.
+   */
+  series: HeatMapSeries | undefined;
+}
+
+// Only retry rate limits; a 500 fails the chunk fast (→ partial render).
+const CHUNK_RETRY = (failureCount: number, error: Error) =>
+  error instanceof RequestError && error.status === 429 && failureCount < 3;
+
+interface ChunkedMetricHeatmapOptions extends MetricHeatmapChunks {
   /**
    * The pinned y-domain from Phase A. Undefined until it resolves; the queries
    * skip-token themselves off via `enabled` until then.
@@ -40,14 +79,31 @@ interface ChunkedMetricHeatmapOptions extends ResolvedTimeChunks {
 }
 
 /**
- * Builds the full array of chunked heat map requests wholesale — one pinned,
- * windowed `/events-heatmap/` query per chunk — ready to spread into
+ * Builds the full array of chunked heat map requests wholesale — one
+ * `/events-heatmap/` query per chunk — ready to spread into
  * `useQueries({queries, combine})`. Mirrors how `metricHeatmapBoundsApiOptions`
  * returns a single query; this returns the chunk array.
  *
- * Chunked requests pin the y-domain + window and run at HIGHEST_ACCURACY so every
- * chunk shares one tier; the single-chunk fast path is unpinned and keeps default
- * sampling (see `metricHeatmapApiOptions`).
+ * ---------------------------------------------------------------------------
+ * BACKEND CONTRACT (EAP / Snuba) — verified July 2025. Read before you futz.
+ * ---------------------------------------------------------------------------
+ * 1. TIME ALIGNMENT. Snuba anchors buckets to the request's `start`
+ *    (`start + k*granularity`), NOT the epoch, so chunk boundaries must be
+ *    epoch-aligned multiples of the interval or adjacent chunks duplicate/drop
+ *    the seam. `computeTimeChunks` guarantees this; the interval must be a
+ *    backend-accepted granularity (`VALID_GRANULARITIES`).
+ * 2. CACHING. Snuba's result cache key is an MD5 of the SQL (embeds literal
+ *    start/end); no server-side quantization or jitter. So stable epoch-aligned
+ *    windows are cacheable — hence `staleTime: Infinity` on historical chunks and
+ *    ceiling the trailing (live) chunk's end to the interval so its key is stable
+ *    within an interval window.
+ * 3. SAMPLING. EAP picks a downsampling tier per request from the time range +
+ *    estimated rows, so differently-sized chunks could land on different tiers —
+ *    noisy/non-uniform `count()`s and biased `min`/`max`. Every chunk (and the
+ *    Phase A bounds) runs at HIGHEST_ACCURACY (TIER_1) to stay exact and uniform;
+ *    the single-chunk fast path is unpinned and keeps default sampling. If a chunk
+ *    is too slow, shrink the chunks (the `computeTimeChunks` policy), do NOT
+ *    re-enable per-chunk downsampling.
  */
 export function chunkedMetricHeatmapApiOptions({
   organization,
@@ -60,17 +116,15 @@ export function chunkedMetricHeatmapApiOptions({
   enabled,
   chunks,
   isRelative,
-  fullRange,
   intervalMs,
-}: ChunkedMetricHeatmapOptions): Array<ChunkQueryOptions<HeatMapSeries>> {
+}: ChunkedMetricHeatmapOptions): HeatmapChunkQuery[] {
   const isChunked = chunks.length > 1;
-  return getChunkedTimeRangeQueries({
-    chunks,
-    isRelative,
-    fullRange,
-    intervalMs,
-    buildChunkQuery: ({chunk, isTrailingLive}) =>
-      metricHeatmapApiOptions({
+  return chunks.map((chunk, index) => {
+    // The newest chunk of a relative range is the live edge — refetch it rather
+    // than cache forever.
+    const isTrailingLive = isChunked && isRelative && index === 0;
+    return {
+      ...metricHeatmapApiOptions({
         organization,
         selection,
         traceMetric,
@@ -85,6 +139,8 @@ export function chunkedMetricHeatmapApiOptions({
         staleTime: isChunked ? (isTrailingLive ? intervalMs : Infinity) : undefined,
         enabled,
       }),
+      retry: CHUNK_RETRY,
+    };
   });
 }
 
@@ -101,46 +157,20 @@ interface MetricHeatmapApiOptions {
    */
   end?: number;
   interval?: string | null;
-  /**
-   * EAP sampling mode. Chunked (Phase B) requests pass HIGHEST_ACCURACY so every
-   * chunk runs on the same undownsampled tier (TIER_1); see the docstring below.
-   * The unchunked fast path leaves this undefined (default sampling), matching
-   * the pre-chunking behavior.
-   */
   sampling?: SamplingMode;
-  /**
-   * Overrides the default `staleTime`. Chunked fetching sets immutable historical
-   * chunks to `Infinity` and only the trailing (live) chunk to the interval.
-   */
   staleTime?: number;
   /**
    * Chunk start override (ms). See `end`.
    */
   start?: number;
   yBuckets?: number | null;
-  /**
-   * Pins the upper y-axis bound so parallel chunks share identical buckets.
-   */
   yMax?: number;
-  /**
-   * Pins the lower y-axis bound so parallel chunks share identical buckets.
-   */
   yMin?: number;
 }
 
 /**
  * Builds one `/events-heatmap/` request — either the whole selection (fast path)
  * or a single pinned, windowed chunk (Phase B).
- *
- * Chunked callers pass `sampling: HIGHEST_ACCURACY`. EAP picks a downsampling
- * tier per request from the query's time range + estimated row count, so
- * differently-sized chunks could otherwise land on different tiers — making the
- * extrapolated `count()` values noisy/non-uniform across the grid (visible
- * brightness seams between chunks) and potentially inconsistent with the pinned
- * bounds. Forcing TIER_1 keeps every chunk exact and uniform. The speedup comes
- * from smaller parallel windows, not downsampling — so if a chunk is too slow,
- * shrink the chunks (the `computeTimeChunks` policy), do NOT re-enable per-chunk
- * downsampling. See the backend-contract note in `getChunkedTimeRangeQueries`.
  */
 function metricHeatmapApiOptions({
   organization,
@@ -209,37 +239,57 @@ function metricHeatmapApiOptions({
 
 /**
  * Builds the `combine` function for `useQueries` that stitches the chunk
- * responses into one dense, unit-patched grid. Wrap this in `useMemo` (keyed on
- * the resolved chunks + unit) so the returned function stays referentially
- * stable — see `getChunkedTimeRangeCombine`.
+ * responses into one dense, unit-patched grid and derives the streaming/partial
+ * state.
+ *
+ * Wrap this in `useMemo` (keyed on the resolved chunks + unit) so the returned
+ * function stays referentially stable: query-core re-runs `combine` only when the
+ * results change or the `combine` reference changes (and `replaceEqualDeep`s the
+ * output), so an unstable combine would rebuild the (expensive) merge every render.
  */
 export function metricHeatmapCombine({
   chunks,
-  isRelative,
   fullRange,
   intervalMs,
   unit,
-}: ResolvedTimeChunks & {unit: TraceMetric['unit']}) {
+}: MetricHeatmapChunks & {unit: TraceMetric['unit']}) {
   const metricUnit = unit ?? undefined;
-  return getChunkedTimeRangeCombine({
-    chunks,
-    isRelative,
-    fullRange,
-    intervalMs,
-    merge: (responses: HeatMapSeries[], context) => {
+  const isChunked = chunks.length > 1;
+
+  return (results: Array<UseQueryResult<HeatMapSeries>>): ChunkedHeatmapResult => {
+    const succeeded = results
+      .filter(q => q.isSuccess && defined(q.data))
+      .map(q => q.data!);
+    const succeededCount = results.filter(q => q.isSuccess).length;
+    const erroredCount = results.filter(q => q.isError).length;
+    const loadingCount = results.filter(
+      q => q.isPending && q.fetchStatus === 'fetching'
+    ).length;
+
+    const allErrored = results.length > 0 && erroredCount === results.length;
+    const error = allErrored ? (results.find(q => q.error)?.error ?? null) : null;
+
+    let series: HeatMapSeries | undefined;
+    if (succeeded.length > 0) {
       // Fast path: the single unpinned response is already a dense, ordered grid.
       // Chunked: stitch the chunks into one dense, full-range grid.
-      const merged =
-        context.chunks.length > 1
-          ? mergeHeatMapChunks(responses, {
-              xStart: context.fullRange.start,
-              xEnd: context.fullRange.end,
-              intervalMs: context.intervalMs,
-            })
-          : responses[0]!;
-      return mergeMetricUnit(merged, metricUnit);
-    },
-  });
+      const merged = isChunked
+        ? mergeHeatMapChunks(succeeded, {
+            xStart: fullRange.start,
+            xEnd: fullRange.end,
+            intervalMs,
+          })
+        : succeeded[0]!;
+      series = mergeMetricUnit(merged, metricUnit);
+    }
+
+    return {
+      series,
+      error,
+      isPartial: isChunked && erroredCount > 0 && succeededCount > 0,
+      isFetchingMore: isChunked && succeededCount > 0 && loadingCount > 0,
+    };
+  };
 }
 
 type HeatMapValue = HeatMapSeries['values'][number];

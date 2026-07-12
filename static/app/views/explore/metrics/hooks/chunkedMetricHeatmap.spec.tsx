@@ -1,5 +1,10 @@
+import type {UseQueryResult} from '@tanstack/react-query';
+
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {mergeHeatMapChunks} from 'sentry/views/explore/metrics/hooks/chunkedMetricHeatmap';
+import {
+  mergeHeatMapChunks,
+  metricHeatmapCombine,
+} from 'sentry/views/explore/metrics/hooks/chunkedMetricHeatmap';
 
 const HOUR = 60 * 60 * 1000;
 
@@ -96,5 +101,87 @@ describe('mergeHeatMapChunks', () => {
     const merged = mergeHeatMapChunks([makeChunk([{x: 0, z: [1, 2]}])], grid);
     const keys = merged.values.map(v => `${v.xAxis}|${v.yAxis}`);
     expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
+describe('metricHeatmapCombine', () => {
+  // Two epoch-aligned chunks covering [0, 2h).
+  const RESOLVED = {
+    chunks: [
+      {start: 0, end: HOUR},
+      {start: HOUR, end: 2 * HOUR},
+    ],
+    isRelative: false,
+    fullRange: {start: 0, end: 2 * HOUR},
+    intervalMs: HOUR,
+  };
+  const combine = metricHeatmapCombine({...RESOLVED, unit: undefined});
+
+  // Minimal query-result fakes — the combine only reads these fields.
+  function success(series: HeatMapSeries): UseQueryResult<HeatMapSeries> {
+    return {
+      isSuccess: true,
+      isError: false,
+      isPending: false,
+      fetchStatus: 'idle',
+      data: series,
+      error: null,
+    } as unknown as UseQueryResult<HeatMapSeries>;
+  }
+  function loading(): UseQueryResult<HeatMapSeries> {
+    return {
+      isSuccess: false,
+      isError: false,
+      isPending: true,
+      fetchStatus: 'fetching',
+      data: undefined,
+      error: null,
+    } as unknown as UseQueryResult<HeatMapSeries>;
+  }
+  function failed(error: Error): UseQueryResult<HeatMapSeries> {
+    return {
+      isSuccess: false,
+      isError: true,
+      isPending: false,
+      fetchStatus: 'idle',
+      data: undefined,
+      error,
+    } as unknown as UseQueryResult<HeatMapSeries>;
+  }
+
+  const older = makeChunk([{x: 0, z: [1, 2]}]);
+  const newer = makeChunk([{x: HOUR, z: [3, 4]}]);
+
+  it('merges succeeded chunk responses into one dense, ordered grid', () => {
+    const out = combine([success(newer), success(older)]);
+    expect(out.series?.values).toHaveLength(4); // 2 columns x 2 y buckets
+    expect(out.series?.values.map(v => v.xAxis)).toEqual([0, 0, HOUR, HOUR]);
+    expect(out.isPartial).toBe(false);
+    expect(out.isFetchingMore).toBe(false);
+    expect(out.error).toBeNull();
+  });
+
+  it('has no series until a chunk resolves', () => {
+    expect(combine([loading(), loading()]).series).toBeUndefined();
+  });
+
+  it('flags fetchingMore while some chunks stream in', () => {
+    const out = combine([success(older), loading()]);
+    expect(out.series).toBeDefined();
+    expect(out.isFetchingMore).toBe(true);
+  });
+
+  it('flags partial and keeps survivors when a chunk errors', () => {
+    const out = combine([success(older), failed(new Error('boom'))]);
+    expect(out.series).toBeDefined();
+    expect(out.isPartial).toBe(true);
+    expect(out.error).toBeNull();
+  });
+
+  it('surfaces a fatal error only when every chunk fails', () => {
+    const err = new Error('boom');
+    const out = combine([failed(err), failed(new Error('other'))]);
+    expect(out.error).toBe(err);
+    expect(out.series).toBeUndefined();
   });
 });

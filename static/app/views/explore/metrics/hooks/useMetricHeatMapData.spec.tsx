@@ -4,10 +4,10 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {PageFilters} from 'sentry/types/core';
-import {computeTimeChunks} from 'sentry/utils/chunkedTimeRange/computeTimeChunks';
 import {getUtcDateString} from 'sentry/utils/dates';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {computeTimeChunks} from 'sentry/views/explore/metrics/hooks/computeTimeChunks';
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
