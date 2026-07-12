@@ -41,8 +41,8 @@ const DEFAULT_RETRY = (failureCount: number, error: Error) =>
  *
  * The caller supplies `buildChunkQuery`, which builds the request for one time
  * window (endpoint, params, pinning, per-chunk `staleTime`, enablement via
- * `skipToken`). Feed the result to `useQueries`, then hand its output to
- * `useChunkedTimeRangeResults` to merge.
+ * `skipToken`). Feed the result to `useQueries` with the `combine` function from
+ * `getChunkedTimeRangeCombine` to merge the responses.
  *
  * ---------------------------------------------------------------------------
  * BACKEND CONTRACT (EAP / Snuba) — verified July 2025. Read before you futz.

@@ -4,13 +4,13 @@ import {useQueries, useQuery} from '@tanstack/react-query';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {
+  getChunkedTimeRangeCombine,
+  type ChunkMergeContext,
+} from 'sentry/utils/chunkedTimeRange/getChunkedTimeRangeCombine';
+import {
   getChunkedTimeRangeQueries,
   type ChunkQueryContext,
 } from 'sentry/utils/chunkedTimeRange/getChunkedTimeRangeQueries';
-import {
-  useChunkedTimeRangeResults,
-  type ChunkMergeContext,
-} from 'sentry/utils/chunkedTimeRange/useChunkedTimeRangeResults';
 import {useTimeChunks} from 'sentry/utils/chunkedTimeRange/useTimeChunks';
 import {defined} from 'sentry/utils/defined';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -66,9 +66,9 @@ export interface MetricHeatMapData {
  * Wide ranges are fetched in two phases. Phase A learns the global y-domain with
  * one cheap `min`/`max` aggregate. Phase B builds one epoch-aligned, pinned
  * request per chunk (`getChunkedTimeRangeQueries` + our `buildChunkQuery`), fires
- * them with `useQueries`, and stitches the results into one dense grid
- * (`useChunkedTimeRangeResults` + our `mergeHeatMapChunks`). A failed chunk
- * degrades to a partial render.
+ * them with `useQueries`, and stitches the results into one dense grid via that
+ * call's `combine` (`getChunkedTimeRangeCombine` + our `mergeHeatMapChunks`). A
+ * failed chunk degrades to a partial render.
  *
  * Narrow ranges (a single chunk) skip Phase A entirely and issue one unpinned
  * request over the selection, identical to the pre-chunking behavior.
@@ -148,16 +148,20 @@ export function useMetricHeatMapData({
     [metricUnit]
   );
 
-  // Build one apiOptions per chunk, fire them, then stitch the results. We own
-  // the `useQueries` call (per Sentry's abstract-over-apiOptions convention).
+  // Build one apiOptions per chunk and let `useQueries` fire + combine them. We
+  // own the `useQueries` call (per Sentry's abstract-over-apiOptions convention)
+  // and lean on TanStack's `combine` (memoized on the stable fn ref) to stitch.
   const queries = getChunkedTimeRangeQueries({...resolved, buildChunkQuery});
-  const results = useQueries({queries});
+  const combine = useMemo(
+    () => getChunkedTimeRangeCombine({...resolved, merge}),
+    [resolved, merge]
+  );
   const {
     data,
     isPartial,
     isFetchingMore,
     error: chunkError,
-  } = useChunkedTimeRangeResults({...resolved, results, merge});
+  } = useQueries({queries, combine});
 
   // Phase A resolved but the range has no data: render an empty grid so the
   // "No data" state shows instead of a perpetual spinner.
