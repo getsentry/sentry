@@ -93,6 +93,43 @@ export type IssueAlertNotificationProps = {
   channel?: IntegrationChannel;
 };
 
+/**
+ * Builds the serializable IntegrationAction for the current messaging
+ * selection. Returns undefined if the provider is unrecognised or unset.
+ * Exported so callers can persist the action snapshot and use it as
+ * `defaultActions` on the next mount to restore the selection.
+ */
+export function buildIntegrationAction({
+  provider,
+  integration,
+  channel,
+}: Pick<IssueAlertNotificationProps, 'provider' | 'integration' | 'channel'>):
+  | IntegrationAction
+  | undefined {
+  switch (provider) {
+    case 'slack':
+      return {
+        id: IssueAlertActionType.SLACK,
+        workspace: integration?.id,
+        channel: channel?.value,
+      };
+    case 'discord':
+      return {
+        id: IssueAlertActionType.DISCORD,
+        server: integration?.id,
+        channel_id: channel?.value,
+      };
+    case 'msteams':
+      return {
+        id: IssueAlertActionType.MS_TEAMS,
+        team: integration?.id,
+        channel: channel?.value,
+      };
+    default:
+      return undefined;
+  }
+}
+
 export function useCreateNotificationAction({
   actions: defaultActions,
 }: Partial<Pick<RequestDataFragment, 'actions'>> = {}) {
@@ -135,51 +172,64 @@ export function useCreateNotificationAction({
 
   const hasInitializedSelection = useRef(false);
 
-  useEffect(() => {
-    // Initializes form state based on the first default action and available integrations.
-    // Sets provider, integration, selected actions, and channel if present.
-    const firstAction = defaultActions?.[0];
-    if (!firstAction) {
-      return;
-    }
-
-    const matchedProviderKey = Object.keys(providerDetails).find(
-      key =>
-        providerDetails[key as keyof typeof providerDetails].action === firstAction.id
-    );
-
-    const matchedIntegration = matchedProviderKey
-      ? providersToIntegrations[matchedProviderKey]?.[0]
-      : undefined;
-
-    setProvider(matchedProviderKey);
-    setIntegration(matchedIntegration);
-
-    setShouldRenderSetupButton(!matchedIntegration);
-
-    const newActions =
-      firstAction.id === IssueAlertActionType.NOTIFY_EMAIL
-        ? [MultipleCheckboxOptions.EMAIL]
-        : [MultipleCheckboxOptions.EMAIL, MultipleCheckboxOptions.INTEGRATION];
-
-    setActions(newActions);
-
-    // Discord stores the channel under `channel_id` rather than `channel`.
-    const restoredChannel = firstAction.channel ?? firstAction.channel_id;
-    if (restoredChannel) {
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
-      setChannel({
-        label: restoredChannel,
-        value: restoredChannel,
-      });
-    }
-  }, [defaultActions, providersToIntegrations]);
-
+  // Single run-once initialization effect, gated on the integrations query
+  // completing so that `providersToIntegrations` is populated before we try to
+  // match an integration. The `hasInitializedSelection` ref ensures this never
+  // runs again on subsequent refetches (preserving user edits) and eliminates
+  // the earlier two-effect clobber where the auto-select effect ran after the
+  // restore effect and wiped provider/channel back to defaults.
   useEffect(() => {
     if (!messagingIntegrationsQuery.isSuccess || hasInitializedSelection.current) {
       return;
     }
     hasInitializedSelection.current = true;
+
+    const firstAction = defaultActions?.[0];
+    if (firstAction) {
+      // Restore from a persisted/default action (e.g. back-nav). Provider key
+      // is derived from the action's id; integration is matched by integrationId
+      // if present, falling back to the first in the list.
+      const matchedProviderKey = Object.keys(providerDetails).find(
+        key =>
+          providerDetails[key as keyof typeof providerDetails].action === firstAction.id
+      );
+      const integrationId =
+        'workspace' in firstAction
+          ? firstAction.workspace
+          : 'server' in firstAction
+            ? firstAction.server
+            : 'team' in firstAction
+              ? firstAction.team
+              : undefined;
+      const integrationList = matchedProviderKey
+        ? (providersToIntegrations[matchedProviderKey] ?? [])
+        : [];
+      const matchedIntegration =
+        (integrationId ? integrationList.find(i => i.id === integrationId) : undefined) ??
+        integrationList[0];
+
+      setProvider(matchedProviderKey);
+      setIntegration(matchedIntegration);
+      setShouldRenderSetupButton(!matchedIntegration);
+
+      const newActions =
+        firstAction.id === IssueAlertActionType.NOTIFY_EMAIL
+          ? [MultipleCheckboxOptions.EMAIL]
+          : [MultipleCheckboxOptions.EMAIL, MultipleCheckboxOptions.INTEGRATION];
+      setActions(newActions);
+
+      // Discord stores the channel under `channel_id` rather than `channel`
+      // (VDY-125). Both fields are supported here so any provider restores.
+      const restoredChannel = firstAction.channel ?? firstAction.channel_id;
+      if (restoredChannel) {
+        // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
+        setChannel({label: restoredChannel, value: restoredChannel});
+      }
+      return;
+    }
+
+    // No persisted action: auto-select the first available provider/integration
+    // so the picker is pre-populated rather than blank.
     const providerKeys = Object.keys(providersToIntegrations);
     const firstProvider = providerKeys[0];
     const firstIntegration = providersToIntegrations[String(firstProvider)]?.[0];
@@ -187,7 +237,7 @@ export function useCreateNotificationAction({
     setIntegration(firstIntegration);
     setChannel(undefined);
     setShouldRenderSetupButton(!firstProvider);
-  }, [messagingIntegrationsQuery.isSuccess, providersToIntegrations]);
+  }, [messagingIntegrationsQuery.isSuccess, providersToIntegrations, defaultActions]);
 
   const createNotificationAction = useCallback(
     ({
@@ -205,33 +255,9 @@ export function useCreateNotificationAction({
         return;
       }
 
-      let integrationAction: IntegrationAction;
-      switch (provider) {
-        case 'slack':
-          integrationAction = {
-            id: IssueAlertActionType.SLACK,
-            workspace: integration?.id,
-            channel: channel?.value,
-          };
-
-          break;
-        case 'discord':
-          integrationAction = {
-            id: IssueAlertActionType.DISCORD,
-            server: integration?.id,
-            channel_id: channel?.value,
-          };
-
-          break;
-        case 'msteams':
-          integrationAction = {
-            id: IssueAlertActionType.MS_TEAMS,
-            team: integration?.id,
-            channel: channel?.value,
-          };
-          break;
-        default:
-          return;
+      const integrationAction = buildIntegrationAction({provider, integration, channel});
+      if (!integrationAction) {
+        return;
       }
 
       return createProjectRules.mutateAsync({

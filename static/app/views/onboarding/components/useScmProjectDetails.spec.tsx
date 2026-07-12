@@ -1,12 +1,16 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
+import {IssueAlertActionType} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {MultipleCheckboxOptions} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {useScmProjectDetails, getSubmitTooltipText} from './useScmProjectDetails';
 
@@ -157,5 +161,221 @@ describe('useScmProjectDetails', () => {
     expect(result.current.teamSlug).toBe(adminTeam.slug);
     expect(result.current.missingFields.team).toBe(false);
     expect(result.current.canSubmit).toBe(true);
+  });
+
+  describe('notification action persist/restore/reuse', () => {
+    const slackIntegration = OrganizationIntegrationsFixture({
+      id: '10',
+      name: 'eng-workspace',
+      status: 'active',
+      provider: {
+        key: 'slack',
+        slug: 'slack',
+        name: 'Slack',
+        canAdd: true,
+        canDisable: false,
+        features: [],
+        aspects: {},
+      },
+    });
+
+    beforeEach(() => {
+      // Override the empty integrations mock set in the outer beforeEach so
+      // that the notification hook can resolve the Slack integration.
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/`,
+        body: [slackIntegration],
+        match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+      });
+      // Background GETs triggered by ProjectsStore.onCreateSuccess / store updates.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/`,
+        body: organization,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [],
+      });
+      TeamStore.loadInitialData([adminTeam]);
+      ProjectsStore.loadInitialData([]);
+    });
+
+    it('includes notificationAction in the submittedForm passed to onComplete', async () => {
+      const createdProject = ProjectFixture({slug: 'my-project', platform: 'python'});
+      // useCreateProject POSTs to /teams/{org}/{team}/projects/ when a team is set.
+      MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: createdProject,
+      });
+      // createProjectAndRules also creates alert rules; mock so it doesn't 404.
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${createdProject.slug}/rules/`,
+        method: 'POST',
+        body: {},
+      });
+
+      const onComplete = jest.fn();
+      const {result} = renderDetails({
+        projectDetailsForm: {
+          projectName: 'my-project',
+          teamSlug: adminTeam.slug,
+          alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+        },
+        onComplete,
+      });
+
+      // Wait for the integrations query to settle so the hook's init effect runs.
+      await waitFor(() =>
+        expect(result.current.notificationProps.provider).toBe('slack')
+      );
+
+      // Simulate user selecting integration + channel.
+      act(() => {
+        result.current.notificationProps.setActions([
+          MultipleCheckboxOptions.EMAIL,
+          MultipleCheckboxOptions.INTEGRATION,
+        ]);
+        result.current.notificationProps.setChannel({
+          label: '#eng',
+          value: '#eng',
+        });
+      });
+
+      await act(async () => {
+        result.current.submit();
+      });
+
+      await waitFor(() => expect(onComplete).toHaveBeenCalled());
+
+      const {projectDetailsForm: submittedForm} = onComplete.mock.calls[0][0];
+      expect(submittedForm.notificationAction).toEqual({
+        id: IssueAlertActionType.SLACK,
+        workspace: slackIntegration.id,
+        channel: '#eng',
+      });
+    });
+
+    it('restores provider/integration/channel from a persisted notificationAction', async () => {
+      const persistedAction = {
+        id: IssueAlertActionType.SLACK as const,
+        workspace: slackIntegration.id,
+        channel: '#restored',
+      };
+
+      const {result} = renderDetails({
+        projectDetailsForm: {
+          projectName: 'my-project',
+          teamSlug: adminTeam.slug,
+          notificationAction: persistedAction,
+        },
+      });
+
+      await waitFor(() =>
+        expect(result.current.notificationProps.provider).toBe('slack')
+      );
+      expect(result.current.notificationProps.integration?.id).toBe(slackIntegration.id);
+      expect(result.current.notificationProps.channel?.value).toBe('#restored');
+      expect(result.current.notificationProps.actions).toContain(
+        MultipleCheckboxOptions.INTEGRATION
+      );
+    });
+
+    it('reuses the project when the user returns with the same notification action', async () => {
+      const existingProject = ProjectFixture({slug: 'my-project', platform: 'python'});
+      ProjectsStore.loadInitialData([existingProject]);
+
+      const persistedAction = {
+        id: IssueAlertActionType.SLACK as const,
+        workspace: slackIntegration.id,
+        channel: '#eng',
+      };
+
+      const onComplete = jest.fn();
+      const {result} = renderDetails({
+        projectDetailsForm: {
+          projectName: 'my-project',
+          teamSlug: adminTeam.slug,
+          // alertRuleConfig must match the in-use defaults so nothingChanged is true.
+          alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+          notificationAction: persistedAction,
+        },
+        createdProjectSlug: existingProject.slug,
+        selectedPlatform: pythonPlatform,
+        onComplete,
+      });
+
+      await waitFor(() =>
+        expect(result.current.notificationProps.provider).toBe('slack')
+      );
+
+      // No change to the form; the project should be reused.
+      await act(async () => {
+        result.current.submit();
+      });
+
+      await waitFor(() => expect(onComplete).toHaveBeenCalled());
+      expect(onComplete.mock.calls[0][0].project.slug).toBe(existingProject.slug);
+    });
+
+    it('creates a new project when the notification channel changes on return', async () => {
+      const existingProject = ProjectFixture({slug: 'my-project', platform: 'python'});
+      ProjectsStore.loadInitialData([existingProject]);
+
+      const persistedAction = {
+        id: IssueAlertActionType.SLACK as const,
+        workspace: slackIntegration.id,
+        channel: '#eng',
+      };
+
+      const createdProject = ProjectFixture({slug: 'my-project-v2', platform: 'python'});
+      const createMock = MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: createdProject,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${createdProject.slug}/rules/`,
+        method: 'POST',
+        body: {},
+      });
+
+      const onComplete = jest.fn();
+      const {result} = renderDetails({
+        projectDetailsForm: {
+          projectName: 'my-project',
+          teamSlug: adminTeam.slug,
+          alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+          notificationAction: persistedAction,
+        },
+        createdProjectSlug: existingProject.slug,
+        selectedPlatform: pythonPlatform,
+        onComplete,
+      });
+
+      await waitFor(() =>
+        expect(result.current.notificationProps.provider).toBe('slack')
+      );
+
+      // User changes the channel, so the action differs from the saved one.
+      act(() => {
+        result.current.notificationProps.setChannel({
+          label: '#different',
+          value: '#different',
+        });
+      });
+
+      await act(async () => {
+        result.current.submit();
+      });
+
+      await waitFor(() => expect(onComplete).toHaveBeenCalled());
+      expect(createMock).toHaveBeenCalled();
+    });
   });
 });

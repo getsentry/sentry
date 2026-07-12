@@ -192,8 +192,8 @@ describe('useCreateNotificationAction', () => {
   it('resolves provider, integration, and actions from defaultActions on mount', async () => {
     addIntegrationsResponse([slackIntegration]);
 
-    // Stable reference: the autofill effect depends on `defaultActions`, so an
-    // inline array (new ref each render) would loop render -> setState -> render.
+    // Stable reference: the init effect depends on `defaultActions`, so an
+    // inline array (new ref each render) would cause repeated re-runs.
     const defaultActions = [
       {
         id: IssueAlertActionType.SLACK,
@@ -207,14 +207,43 @@ describe('useCreateNotificationAction', () => {
       {organization}
     );
 
-    await act(async () => {});
-
-    // Autofill effect from defaultActions sets provider, integration, and channel.
-    expect(result.current.notificationProps.provider).toBe('slack');
+    // After the query resolves the restore branch runs: provider, actions, and
+    // channel are set from defaultActions.
+    await waitFor(() => expect(result.current.notificationProps.provider).toBe('slack'));
     expect(result.current.notificationProps.actions).toContain(
       MultipleCheckboxOptions.INTEGRATION
     );
     expect(result.current.notificationProps.channel?.value).toBe('#eng');
+  });
+
+  it('restore wins when the defaultAction integration is not first in the list', async () => {
+    const secondSlack = OrganizationIntegrationsFixture({
+      id: '2',
+      name: 'second-workspace',
+      status: 'active',
+      provider: slackIntegration.provider,
+    });
+    // second-workspace is last, but it's the one in the persisted action.
+    addIntegrationsResponse([slackIntegration, secondSlack]);
+
+    const defaultActions = [
+      {
+        id: IssueAlertActionType.SLACK,
+        workspace: secondSlack.id,
+        channel: '#team',
+      },
+    ];
+
+    const {result} = renderHookWithProviders(
+      () => useCreateNotificationAction({actions: defaultActions}),
+      {organization}
+    );
+
+    // Auto-select would have picked slackIntegration (id='1'). The restore
+    // branch should instead pick the integration matching workspace='2'.
+    await waitFor(() => expect(result.current.notificationProps.provider).toBe('slack'));
+    expect(result.current.notificationProps.integration?.id).toBe(secondSlack.id);
+    expect(result.current.notificationProps.channel?.value).toBe('#team');
   });
 
   it('restores the channel from channel_id for a Discord defaultAction', async () => {
@@ -248,10 +277,10 @@ describe('useCreateNotificationAction', () => {
       {organization}
     );
 
-    await act(async () => {});
-
     // Discord actions store the channel under `channel_id`, not `channel`.
-    expect(result.current.notificationProps.provider).toBe('discord');
+    await waitFor(() =>
+      expect(result.current.notificationProps.provider).toBe('discord')
+    );
     expect(result.current.notificationProps.channel?.value).toBe('2');
   });
 });

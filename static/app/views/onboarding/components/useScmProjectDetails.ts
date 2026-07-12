@@ -1,5 +1,6 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
@@ -18,6 +19,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import type {ScmAnalyticsFlow} from 'sentry/views/onboarding/components/scmAnalyticsFlow';
 import {
+  buildIntegrationAction,
   type IssueAlertNotificationProps,
   MultipleCheckboxOptions,
   useCreateNotificationAction,
@@ -184,10 +186,25 @@ export function useScmProjectDetails({
   const {teams, fetching: isLoadingTeams} = useTeams();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const createProjectAndRules = useCreateProjectAndRules();
+
+  // Capture the persisted notification action once at mount so back-nav
+  // restores the previous selection. A ref + memo keeps the array reference
+  // stable and prevents the init effect from re-running on re-renders.
+  const initialNotificationActionRef = useRef(projectDetailsForm?.notificationAction);
+  const restoredActions = useMemo(
+    () =>
+      initialNotificationActionRef.current
+        ? [initialNotificationActionRef.current]
+        : undefined,
+    []
+  );
+
   // Provides the messaging-integration notification picker (notificationProps,
   // rendered in ScmAlertFrequencySection) and the side-effect that creates the
   // chosen notification rule at project creation.
-  const {createNotificationAction, notificationProps} = useCreateNotificationAction();
+  const {createNotificationAction, notificationProps} = useCreateNotificationAction(
+    restoredActions ? {actions: restoredActions} : undefined
+  );
 
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const firstAdminTeam = accessTeams[0];
@@ -325,12 +342,16 @@ export function useScmProjectDetails({
     alertRuleConfig.interval === savedAlert?.interval &&
     alertRuleConfig.metric === savedAlert?.metric &&
     alertRuleConfig.threshold === savedAlert?.threshold &&
-    // A configured messaging-integration notification would create a rule the
-    // reused project lacks: the selection isn't persisted across nav, so the
-    // baseline is always "no integration". Treat it as a change so the reuse
-    // shortcut can't silently drop the notification rule. Persisting the
-    // selection (and comparing it precisely) is tracked as follow-up work.
-    !notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION);
+    // Precise comparison of the notification action: if the user hasn't changed
+    // the integration selection, the built action will equal the persisted one
+    // and we can safely reuse the project. A change (different channel, provider
+    // swap, etc.) creates a new project + rule so nothing is silently dropped.
+    isEqual(
+      notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION)
+        ? buildIntegrationAction(notificationProps)
+        : undefined,
+      savedForm?.notificationAction
+    );
 
   const submit = useCallback(async () => {
     if (!selectedPlatform || !canSubmit || isCompletingRef.current) {
@@ -341,10 +362,16 @@ export function useScmProjectDetails({
 
     trackAnalytics(CREATE_CLICKED_EVENT[analyticsFlow], {organization});
 
+    const notificationAction = notificationProps.actions.includes(
+      MultipleCheckboxOptions.INTEGRATION
+    )
+      ? buildIntegrationAction(notificationProps)
+      : undefined;
     const submittedForm = {
       projectName: projectNameResolved,
       teamSlug: teamSlugResolved,
       alertRuleConfig,
+      notificationAction,
     };
 
     try {
@@ -403,6 +430,7 @@ export function useScmProjectDetails({
     existingProject,
     isOrgMemberWithNoAccess,
     nothingChanged,
+    notificationProps,
     onComplete,
     organization,
     projectNameResolved,
