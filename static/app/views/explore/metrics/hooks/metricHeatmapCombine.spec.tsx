@@ -4,7 +4,7 @@ import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {
   mergeHeatMapChunks,
   metricHeatmapCombine,
-} from 'sentry/views/explore/metrics/hooks/chunkedMetricHeatmap';
+} from 'sentry/views/explore/metrics/hooks/metricHeatmapCombine';
 
 const HOUR = 60 * 60 * 1000;
 

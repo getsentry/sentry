@@ -11,13 +11,13 @@ import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {
   chunkedMetricHeatmapApiOptions,
   emptyHeatMapSeries,
-  metricHeatmapCombine,
   type MetricHeatmapPlan,
 } from 'sentry/views/explore/metrics/hooks/chunkedMetricHeatmap';
 import {
   metricHeatmapBoundsApiOptions,
   reduceHeatMapBounds,
 } from 'sentry/views/explore/metrics/hooks/metricHeatmapBoundsApiOptions';
+import {metricHeatmapCombine} from 'sentry/views/explore/metrics/hooks/metricHeatmapCombine';
 import {splitDateTime} from 'sentry/views/explore/metrics/hooks/splitDateTime';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
