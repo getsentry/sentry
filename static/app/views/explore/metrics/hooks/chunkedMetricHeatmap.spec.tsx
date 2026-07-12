@@ -1,5 +1,5 @@
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {mergeHeatMapChunks} from 'sentry/views/explore/metrics/hooks/mergeHeatMapChunks';
+import {mergeHeatMapChunks} from 'sentry/views/explore/metrics/hooks/chunkedMetricHeatmap';
 
 const HOUR = 60 * 60 * 1000;
 
