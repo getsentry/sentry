@@ -191,6 +191,41 @@ def test_handle_additional_fields() -> None:
     assert logs[0]["organization_id"] == org_id
 
 
+def test_handle_nested_user_fields() -> None:
+    """Statsig sends nested objects (customIDs, custom, statsigEnvironment) in the user
+    field. These should not cause a DeserializationError."""
+    org_id = 123
+    logs = StatsigProvider(org_id, "abcdefgh", request_timestamp="1739400185400").handle(
+        {
+            "data": [
+                {
+                    "user": {
+                        "userID": "abc123",
+                        "email": "user@example.com",
+                        "customIDs": {"companyID": "acme"},
+                        "custom": {"role": "admin"},
+                        "statsigEnvironment": {"tier": "production"},
+                    },
+                    "timestamp": 1739400185198,
+                    "eventName": "statsig::config_change",
+                    "metadata": {
+                        "type": "Gate",
+                        "name": "gate1",
+                        "action": "updated",
+                    },
+                    "value": "",
+                    "timeUUID": "not-a-uuid",
+                }
+            ]
+        }
+    )
+
+    assert len(logs) == 1
+    assert logs[0]["flag"] == "gate1"
+    assert logs[0]["created_by"] == "user@example.com"
+    assert logs[0]["created_by_type"] == 0
+
+
 def test_handle_created_by_id() -> None:
     logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle(
         {
