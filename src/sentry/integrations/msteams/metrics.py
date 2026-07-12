@@ -30,7 +30,7 @@ def translate_msteams_api_error(error: ApiError) -> None:
     if isinstance(error, ApiRateLimitedError):
         # TODO(ecosystem): We should batch this on a per-organization basis
         raise IntegrationConfigurationError(error.text) from error
-    elif error.json:
+    elif isinstance(error.json, dict):
         if error.json.get("error", {}).get("code") in MSTEAMS_HALT_ERROR_CODES:
             raise IntegrationConfigurationError(error.text) from error
         else:
