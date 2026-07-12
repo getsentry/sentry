@@ -1,23 +1,16 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 import {useQueries, useQuery} from '@tanstack/react-query';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {
-  getChunkedTimeRangeCombine,
-  type ChunkMergeContext,
-} from 'sentry/utils/chunkedTimeRange/getChunkedTimeRangeCombine';
-import {
-  getChunkedTimeRangeQueries,
-  type ChunkQueryContext,
-} from 'sentry/utils/chunkedTimeRange/getChunkedTimeRangeQueries';
 import {useTimeChunks} from 'sentry/utils/chunkedTimeRange/useTimeChunks';
 import {defined} from 'sentry/utils/defined';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {mergeHeatMapChunks} from 'sentry/views/explore/metrics/hooks/mergeHeatMapChunks';
-import {metricHeatmapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatmapApiOptions';
+import {
+  chunkedMetricHeatmapApiOptions,
+  emptyHeatMapSeries,
+  metricHeatmapCombine,
+} from 'sentry/views/explore/metrics/hooks/chunkedMetricHeatmap';
 import {
   metricHeatmapBoundsApiOptions,
   reduceHeatMapBounds,
@@ -60,18 +53,14 @@ export interface MetricHeatMapData {
 }
 
 /**
- * Heat map data source for Explore and Dashboards, built on the generic
- * chunked-time-range machinery in `sentry/utils/chunkedTimeRange`.
+ * Heat map data source for Explore and Dashboards.
  *
  * Wide ranges are fetched in two phases. Phase A learns the global y-domain with
- * one cheap `min`/`max` aggregate. Phase B builds one epoch-aligned, pinned
- * request per chunk (`getChunkedTimeRangeQueries` + our `buildChunkQuery`), fires
- * them with `useQueries`, and stitches the results into one dense grid via that
- * call's `combine` (`getChunkedTimeRangeCombine` + our `mergeHeatMapChunks`). A
- * failed chunk degrades to a partial render.
- *
- * Narrow ranges (a single chunk) skip Phase A entirely and issue one unpinned
- * request over the selection, identical to the pre-chunking behavior.
+ * one cheap `min`/`max` aggregate (`metricHeatmapBoundsApiOptions`). Phase B
+ * builds the pinned, chunked requests (`chunkedMetricHeatmapApiOptions`) and lets
+ * `useQueries` fire + `combine` them into one dense grid (`metricHeatmapCombine`).
+ * A failed chunk degrades to a partial render; narrow ranges skip Phase A and
+ * issue one unpinned request over the selection.
  */
 export function useMetricHeatMapData({
   organization,
@@ -104,57 +93,21 @@ export function useMetricHeatMapData({
   const boundsEmpty = boundsResolved && boundsQuery.data === null;
   const domainReady = boundsResolved && boundsQuery.data !== null;
 
-  const chunkEnabled = enabled && validDims && (chunked ? domainReady : true);
-
-  // Phase B request builder: pins the chunk to the domain and windows it. The
-  // fast (single-chunk) path uses the selection range and no pin.
-  const buildChunkQuery = ({
-    chunk,
-    chunked: isChunked,
-    isTrailingLive,
-  }: ChunkQueryContext) =>
-    metricHeatmapApiOptions({
-      organization,
-      selection,
-      traceMetric,
-      query,
-      interval,
-      yBuckets,
-      start: isChunked ? chunk.start : undefined,
-      end: isChunked ? chunk.end : undefined,
-      yMin: isChunked ? boundsQuery.data?.yMin : undefined,
-      yMax: isChunked ? boundsQuery.data?.yMax : undefined,
-      // Pin every chunk to TIER_1 so they share one sampling tier; the fast path
-      // keeps default sampling. See metricHeatmapApiOptions for why.
-      sampling: isChunked ? SAMPLING_MODE.HIGH_ACCURACY : undefined,
-      staleTime: isChunked ? (isTrailingLive ? intervalMs : Infinity) : undefined,
-      enabled: chunkEnabled,
-    });
-
-  const metricUnit = traceMetric.unit ?? undefined;
-  const merge = useCallback(
-    (responses: HeatMapSeries[], context: ChunkMergeContext) => {
-      // Fast path: the single unpinned response is already a dense, ordered grid.
-      // Chunked: stitch the chunks into one dense, full-range grid.
-      const merged = context.chunked
-        ? mergeHeatMapChunks(responses, {
-            xStart: context.fullRange.start,
-            xEnd: context.fullRange.end,
-            intervalMs: context.intervalMs,
-          })
-        : responses[0]!;
-      return mergeMetricUnit(merged, metricUnit);
-    },
-    [metricUnit]
-  );
-
-  // Build one apiOptions per chunk and let `useQueries` fire + combine them. We
-  // own the `useQueries` call (per Sentry's abstract-over-apiOptions convention)
-  // and lean on TanStack's `combine` (memoized on the stable fn ref) to stitch.
-  const queries = getChunkedTimeRangeQueries({...resolved, buildChunkQuery});
+  // Phase B — pinned chunk requests + combine, both produced wholesale.
+  const queries = chunkedMetricHeatmapApiOptions({
+    ...resolved,
+    organization,
+    selection,
+    traceMetric,
+    query,
+    interval,
+    yBuckets,
+    bounds: boundsQuery.data ?? undefined,
+    enabled: enabled && validDims && (chunked ? domainReady : true),
+  });
   const combine = useMemo(
-    () => getChunkedTimeRangeCombine({...resolved, merge}),
-    [resolved, merge]
+    () => metricHeatmapCombine({...resolved, unit: traceMetric.unit}),
+    [resolved, traceMetric.unit]
   );
   const {
     data,
@@ -163,18 +116,16 @@ export function useMetricHeatMapData({
     error: chunkError,
   } = useQueries({queries, combine});
 
-  // Phase A resolved but the range has no data: render an empty grid so the
-  // "No data" state shows instead of a perpetual spinner.
-  const emptySeries = useMemo(
-    () =>
-      mergeMetricUnit(
-        makeEmptyHeatMapSeries(fullRange.start, fullRange.end, intervalMs, yBuckets ?? 0),
-        metricUnit
-      ),
-    [fullRange.start, fullRange.end, intervalMs, yBuckets, metricUnit]
-  );
-
-  const series = boundsEmpty ? emptySeries : data;
+  // Phase A resolved but the range has no data → empty grid so "No data" shows.
+  const series = boundsEmpty
+    ? emptyHeatMapSeries(
+        fullRange.start,
+        fullRange.end,
+        intervalMs,
+        yBuckets ?? 0,
+        traceMetric.unit
+      )
+    : data;
   const error = boundsQuery.error ?? chunkError;
 
   return {
@@ -183,38 +134,5 @@ export function useMetricHeatMapData({
     isPartial,
     isFetchingMore,
     isPending: !series && !error,
-  };
-}
-
-/**
- * Builds an empty grid used when Phase A resolves but the range has no data.
- */
-function makeEmptyHeatMapSeries(
-  startMs: number,
-  endMs: number,
-  intervalMs: number,
-  yBuckets: number
-): HeatMapSeries {
-  return {
-    values: [],
-    meta: {
-      xAxis: {
-        name: 'time',
-        start: startMs,
-        end: endMs,
-        bucketCount: 0,
-        bucketSize: intervalMs / 1000,
-      },
-      yAxis: {
-        name: 'value',
-        start: 0,
-        end: 0,
-        bucketCount: yBuckets,
-        bucketSize: 0,
-        valueType: 'number',
-        valueUnit: null,
-      },
-      zAxis: {name: 'count()', start: 0, end: 0},
-    },
   };
 }
