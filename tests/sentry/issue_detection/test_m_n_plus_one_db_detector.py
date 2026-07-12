@@ -179,6 +179,17 @@ class MNPlusOneDBDetectorTest(TestCase):
         event = get_event("m-n-plus-one-db/m-n-plus-one-graphql-truncated")
         assert self.find_problems(event) == []
 
+    def test_handles_db_spans_missing_description(self) -> None:
+        # Some spans arrive without a description key (e.g. after data scrubbing);
+        # the detector should not raise a KeyError.
+        event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
+        for span in event["spans"]:
+            if span.get("op", "").startswith("db"):
+                span.pop("description", None)
+        problems = self.find_problems(event)
+        assert len(problems) == 1
+        assert problems[0].desc == ""
+
     def test_does_not_detect_n_plus_one(self) -> None:
         event = get_event("n-plus-one-db/n-plus-one-in-django-index-view")
         assert self.find_problems(event) == []

@@ -330,6 +330,24 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         assert len(detector.stored_problems) == 0
 
+    def test_does_not_trigger_detection_for_non_numeric_string_payload_size(self) -> None:
+        # Relay data scrubbing can replace numeric values with '[NaN]' strings
+        spans = [
+            create_span(
+                "http.client",
+                1000,
+                "GET /api/0/organizations/endpoint1",
+                "hash1",
+                data={
+                    "http.response_transfer_size": "[NaN]",
+                    "http.response_content_length": "[NaN]",
+                    "http.decoded_response_content_length": "[NaN]",
+                },
+            ),
+        ]
+        event = create_event(spans)
+        assert self.find_problems(event) == []
+
     def test_does_not_trigger_detection_for_filtered_paths_without_trailing_slash(self) -> None:
         project = self.create_project()
         ProjectOption.objects.set_value(
