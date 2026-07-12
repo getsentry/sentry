@@ -110,7 +110,6 @@ export function useMessagingIntegrationAlertRule({
     }
     const match = channelOptions.find(option => option.value === channel.value);
     if (match && match.label !== channel.label) {
-      // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
       setChannel({value: channel.value, label: match.label, new: false});
     }
   }, [channel, channelOptions, setChannel]);
