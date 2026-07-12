@@ -30,6 +30,7 @@ GitHubCheckConclusion = Literal[
 
 GITHUB_CHECK_SUITE_CONCLUSION_MAP = {**GITHUB_CONCLUSION_MAP, "startup_failure": "failure"}
 
+from sentry.scm.errors import SCMProviderEventNotSupported
 from sentry.scm.types import (
     CheckRunEvent,
     CheckSuiteEvent,
@@ -198,7 +199,12 @@ def deserialize_github_comment_event(event: SubscriptionEvent) -> CommentEvent:
 
 
 def deserialize_github_pull_request_event(event: SubscriptionEvent) -> PullRequestEvent:
-    e = pull_request_decoder.decode(event["event"])
+    try:
+        e = pull_request_decoder.decode(event["event"])
+    except msgspec.ValidationError as exc:
+        raise SCMProviderEventNotSupported(
+            f"Unsupported GitHub pull_request event: {exc}"
+        ) from exc
 
     repo = e.pull_request.head.repo or e.pull_request.base.repo
 
