@@ -2,7 +2,6 @@ import {useMemo} from 'react';
 import {useQueries, useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
-import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -13,13 +12,13 @@ import {
   chunkedMetricHeatmapApiOptions,
   emptyHeatMapSeries,
   metricHeatmapCombine,
-  type MetricHeatmapChunks,
+  type MetricHeatmapPlan,
 } from 'sentry/views/explore/metrics/hooks/chunkedMetricHeatmap';
-import {computeTimeChunks} from 'sentry/views/explore/metrics/hooks/computeTimeChunks';
 import {
   metricHeatmapBoundsApiOptions,
   reduceHeatMapBounds,
 } from 'sentry/views/explore/metrics/hooks/metricHeatmapBoundsApiOptions';
+import {splitDateTime} from 'sentry/views/explore/metrics/hooks/splitDateTime';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 interface UseMetricHeatMapDataOptions {
@@ -78,55 +77,36 @@ export function useMetricHeatMapData({
 }: UseMetricHeatMapDataOptions): MetricHeatMapData {
   const validDims = defined(yBuckets) && yBuckets > 0;
 
-  // Resolve the range to concrete timestamps and split it into epoch-aligned
-  // chunks once per filter/interval change. Date.now() is captured once here (for
-  // relative ranges); epoch-snapping keeps historical boundaries stable across
-  // renders, so only the live edge moves.
-  const resolved = useMemo((): MetricHeatmapChunks => {
-    const empty: MetricHeatmapChunks = {
-      chunks: [],
-      isRelative: false,
-      fullRange: {start: 0, end: 0},
-      intervalMs: 0,
-    };
-    if (!validDims || !defined(interval)) {
-      return empty;
+  // Split the range into epoch-aligned sub-windows once per filter/interval
+  // change. Date.now() (inside splitDateTime, for relative ranges) is captured
+  // once here; epoch-snapping keeps historical boundaries stable across renders,
+  // so only the live edge moves.
+  const plan = useMemo((): MetricHeatmapPlan => {
+    if (!defined(interval)) {
+      return EMPTY_PLAN;
     }
     const intervalMs = intervalToMilliseconds(interval);
     if (intervalMs <= 0) {
-      return empty;
+      return EMPTY_PLAN;
     }
 
-    const normalized = normalizeDateTimeParams(selection.datetime);
-    let start: number;
-    let end: number;
-    let isRelative: boolean;
-    if (defined(normalized.start) && defined(normalized.end)) {
-      // normalizeDateTimeParams emits UTC strings without a `Z`, so parse them
-      // as UTC (not local) to get the correct epoch ms.
-      start = moment.utc(normalized.start).valueOf();
-      end = moment.utc(normalized.end).valueOf();
-      isRelative = false;
-    } else {
-      end = Date.now();
-      start = end - getDiffInMinutes(selection.datetime) * 60 * 1000;
-      isRelative = true;
-    }
-
-    const chunks = computeTimeChunks({start, end, interval});
-    return {
-      chunks,
-      isRelative,
-      intervalMs,
-      fullRange: {
-        start: chunks.length ? Math.min(...chunks.map(c => c.start)) : 0,
-        end: chunks.length ? Math.max(...chunks.map(c => c.end)) : 0,
-      },
-    };
+    const windows = splitDateTime(selection.datetime, interval);
+    const isRelative = !defined(normalizeDateTimeParams(selection.datetime).start);
+    // Absolute windows carry Dates; parse via moment for the merge grid's range.
+    // A single (fast-path) window merges nothing, so its range is irrelevant.
+    const fullRange =
+      windows.length > 1
+        ? {
+            start: Math.min(
+              ...windows.map(w => moment.utc(w.start ?? undefined).valueOf())
+            ),
+            end: Math.max(...windows.map(w => moment.utc(w.end ?? undefined).valueOf())),
+          }
+        : {start: 0, end: 0};
+    return {windows, fullRange, intervalMs, isRelative};
     // Date.now() is intentionally captured once per filter/interval change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    validDims,
     interval,
     selection.datetime.start,
     selection.datetime.end,
@@ -134,8 +114,8 @@ export function useMetricHeatMapData({
     selection.datetime.utc,
   ]);
 
-  const {chunks, fullRange, intervalMs} = resolved;
-  const chunked = chunks.length > 1;
+  const {windows, fullRange, intervalMs, isRelative} = plan;
+  const chunked = windows.length > 1;
 
   // Phase A — global y-domain. Only fired when we actually chunk.
   const boundsApiOptions = metricHeatmapBoundsApiOptions({
@@ -144,7 +124,7 @@ export function useMetricHeatMapData({
     traceMetric,
     query,
     interval,
-    enabled: enabled && chunked,
+    enabled: enabled && validDims && chunked,
   });
   const boundsQuery = useQuery({
     ...boundsApiOptions,
@@ -157,7 +137,9 @@ export function useMetricHeatMapData({
 
   // Phase B — pinned chunk requests + combine, both produced wholesale.
   const queries = chunkedMetricHeatmapApiOptions({
-    ...resolved,
+    windows,
+    isRelative,
+    intervalMs,
     organization,
     selection,
     traceMetric,
@@ -168,8 +150,14 @@ export function useMetricHeatMapData({
     enabled: enabled && validDims && (chunked ? domainReady : true),
   });
   const combine = useMemo(
-    () => metricHeatmapCombine({...resolved, unit: traceMetric.unit}),
-    [resolved, traceMetric.unit]
+    () =>
+      metricHeatmapCombine({
+        isChunked: chunked,
+        fullRange,
+        intervalMs,
+        unit: traceMetric.unit,
+      }),
+    [chunked, fullRange, intervalMs, traceMetric.unit]
   );
   const {
     series: chunkSeries,
@@ -198,3 +186,10 @@ export function useMetricHeatMapData({
     isPending: !series && !error,
   };
 }
+
+const EMPTY_PLAN: MetricHeatmapPlan = {
+  windows: [],
+  fullRange: {start: 0, end: 0},
+  intervalMs: 0,
+  isRelative: false,
+};

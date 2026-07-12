@@ -1,13 +1,14 @@
+import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
-import {getUtcDateString} from 'sentry/utils/dates';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {computeTimeChunks} from 'sentry/views/explore/metrics/hooks/computeTimeChunks';
+import {splitDateTime} from 'sentry/views/explore/metrics/hooks/splitDateTime';
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
@@ -28,11 +29,17 @@ const NARROW_SELECTION = PageFiltersFixture({
   datetime: {start: null, end: null, period: '1h', utc: null},
 });
 
-const WIDE_CHUNKS = computeTimeChunks({
-  start: Date.parse(ABSOLUTE_START),
-  end: Date.parse(ABSOLUTE_END),
-  interval: '1h',
+// The split windows are absolute datetimes; each maps to one chunk request whose
+// query carries the normalized (UTC, `.SSS`, no `Z`) start/end.
+const WIDE_WINDOWS = splitDateTime(WIDE_SELECTION.datetime, '1h');
+const windowMs = (window: PageFilters['datetime']) => ({
+  start: moment.utc(window.start ?? undefined).valueOf(),
+  end: moment.utc(window.end ?? undefined).valueOf(),
 });
+const windowQuery = (window: PageFilters['datetime']) => {
+  const {start, end} = normalizeDateTimeParams(window);
+  return {start, end};
+};
 
 function chunkBody(chunk: {end: number; start: number}, zValue: number): HeatMapSeries {
   return {
@@ -93,17 +100,12 @@ describe('useMetricHeatMapData', () => {
   it('fetches bounds then pinned chunks and merges them (two-phase)', async () => {
     const boundsMock = mockBounds({data: [{'min(value)': 10, 'max(value)': 500}]});
 
-    const chunkMocks = WIDE_CHUNKS.map((chunk, index) =>
+    const chunkMocks = WIDE_WINDOWS.map((window, index) =>
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-heatmap/`,
         method: 'GET',
-        match: [
-          MockApiClient.matchQuery({
-            start: getUtcDateString(chunk.start),
-            end: getUtcDateString(chunk.end),
-          }),
-        ],
-        body: chunkBody(chunk, index + 1),
+        match: [MockApiClient.matchQuery(windowQuery(window))],
+        body: chunkBody(windowMs(window), index + 1),
       })
     );
 
@@ -112,7 +114,7 @@ describe('useMetricHeatMapData', () => {
     // Wait until every chunk's populated cell has landed.
     await waitFor(() =>
       expect(result.current.series?.values.filter(v => v.zAxis !== null)).toHaveLength(
-        WIDE_CHUNKS.length
+        WIDE_WINDOWS.length
       )
     );
 
@@ -141,8 +143,8 @@ describe('useMetricHeatMapData', () => {
       );
     }
 
-    const fullStart = Math.min(...WIDE_CHUNKS.map(c => c.start));
-    const fullEnd = Math.max(...WIDE_CHUNKS.map(c => c.end));
+    const fullStart = Math.min(...WIDE_WINDOWS.map(w => windowMs(w).start));
+    const fullEnd = Math.max(...WIDE_WINDOWS.map(w => windowMs(w).end));
 
     // The merged grid is dense over the full range (one y bucket in this fixture)
     // and its x domain spans every planned chunk, not just the loaded ones.
@@ -161,7 +163,7 @@ describe('useMetricHeatMapData', () => {
     expect(result.current.series?.meta.yAxis.start).toBe(10);
     expect(result.current.series?.meta.yAxis.end).toBe(500);
     expect(result.current.series?.meta.zAxis.start).toBe(1);
-    expect(result.current.series?.meta.zAxis.end).toBe(WIDE_CHUNKS.length);
+    expect(result.current.series?.meta.zAxis.end).toBe(WIDE_WINDOWS.length);
     expect(result.current.series?.meta.yAxis.valueUnit).toBe('millisecond');
     expect(result.current.isPending).toBe(false);
     expect(result.current.isPartial).toBe(false);
@@ -194,18 +196,13 @@ describe('useMetricHeatMapData', () => {
   it('renders remaining chunks and flags partial when one chunk fails', async () => {
     mockBounds({data: [{'min(value)': 10, 'max(value)': 500}]});
 
-    WIDE_CHUNKS.forEach((chunk, index) => {
-      const isLast = index === WIDE_CHUNKS.length - 1;
+    WIDE_WINDOWS.forEach((window, index) => {
+      const isLast = index === WIDE_WINDOWS.length - 1;
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-heatmap/`,
         method: 'GET',
-        match: [
-          MockApiClient.matchQuery({
-            start: getUtcDateString(chunk.start),
-            end: getUtcDateString(chunk.end),
-          }),
-        ],
-        body: isLast ? {detail: 'boom'} : chunkBody(chunk, index + 1),
+        match: [MockApiClient.matchQuery(windowQuery(window))],
+        body: isLast ? {detail: 'boom'} : chunkBody(windowMs(window), index + 1),
         statusCode: isLast ? 500 : 200,
       });
     });
@@ -216,7 +213,7 @@ describe('useMetricHeatMapData', () => {
 
     // The failed chunk's columns stay empty; the rest render their populated cells.
     expect(result.current.series?.values.filter(v => v.zAxis !== null)).toHaveLength(
-      WIDE_CHUNKS.length - 1
+      WIDE_WINDOWS.length - 1
     );
     expect(result.current.error).toBeNull();
   });

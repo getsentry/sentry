@@ -105,13 +105,9 @@ describe('mergeHeatMapChunks', () => {
 });
 
 describe('metricHeatmapCombine', () => {
-  // Two epoch-aligned chunks covering [0, 2h).
+  // A chunked plan covering [0, 2h).
   const RESOLVED = {
-    chunks: [
-      {start: 0, end: HOUR},
-      {start: HOUR, end: 2 * HOUR},
-    ],
-    isRelative: false,
+    isChunked: true,
     fullRange: {start: 0, end: 2 * HOUR},
     intervalMs: HOUR,
   };

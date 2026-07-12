@@ -6,7 +6,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
@@ -17,21 +16,32 @@ import {
   SAMPLING_MODE,
   type SamplingMode,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {TimeChunk} from 'sentry/views/explore/metrics/hooks/computeTimeChunks';
 import type {HeatMapBounds} from 'sentry/views/explore/metrics/hooks/metricHeatmapBoundsApiOptions';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils';
 
 /**
- * The resolved, epoch-aligned chunks + range for one render, produced by
- * `useMetricHeatMapData` and consumed by the helpers below. `chunks.length > 1`
- * means the range was split (vs. a single fast-path request).
+ * The resolved fetch plan for one render, produced by `useMetricHeatMapData` and
+ * consumed by the helpers below. `windows.length > 1` means the range was split
+ * into pinned chunks; a single window is the un-chunked fast path.
  */
-export interface MetricHeatmapChunks {
-  chunks: TimeChunk[];
+export interface MetricHeatmapPlan {
+  /**
+   * Full epoch-aligned x-range in ms. Only meaningful when chunked (windows are
+   * absolute); `{0, 0}` on the fast path, which merges nothing.
+   */
   fullRange: {end: number; start: number};
   intervalMs: number;
+  /**
+   * The original range was relative → the newest window is the live edge and
+   * refetches; historical windows cache forever.
+   */
   isRelative: boolean;
+  /**
+   * Sub-windows to fetch, as drop-in `selection.datetime` replacements. Chunked
+   * windows are absolute; the single fast-path window is the original datetime.
+   */
+  windows: Array<PageFilters['datetime']>;
 }
 
 type HeatmapChunkQuery = UseQueryOptions<
@@ -63,7 +73,10 @@ export interface ChunkedHeatmapResult {
 const CHUNK_RETRY = (failureCount: number, error: Error) =>
   error instanceof RequestError && error.status === 429 && failureCount < 3;
 
-interface ChunkedMetricHeatmapOptions extends MetricHeatmapChunks {
+interface ChunkedMetricHeatmapOptions extends Pick<
+  MetricHeatmapPlan,
+  'windows' | 'intervalMs' | 'isRelative'
+> {
   /**
    * The pinned y-domain from Phase A. Undefined until it resolves; the queries
    * skip-token themselves off via `enabled` until then.
@@ -90,7 +103,7 @@ interface ChunkedMetricHeatmapOptions extends MetricHeatmapChunks {
  * 1. TIME ALIGNMENT. Snuba anchors buckets to the request's `start`
  *    (`start + k*granularity`), NOT the epoch, so chunk boundaries must be
  *    epoch-aligned multiples of the interval or adjacent chunks duplicate/drop
- *    the seam. `computeTimeChunks` guarantees this; the interval must be a
+ *    the seam. `splitDateTime` guarantees this; the interval must be a
  *    backend-accepted granularity (`VALID_GRANULARITIES`).
  * 2. CACHING. Snuba's result cache key is an MD5 of the SQL (embeds literal
  *    start/end); no server-side quantization or jitter. So stable epoch-aligned
@@ -102,7 +115,7 @@ interface ChunkedMetricHeatmapOptions extends MetricHeatmapChunks {
  *    noisy/non-uniform `count()`s and biased `min`/`max`. Every chunk (and the
  *    Phase A bounds) runs at HIGHEST_ACCURACY (TIER_1) to stay exact and uniform;
  *    the single-chunk fast path is unpinned and keeps default sampling. If a chunk
- *    is too slow, shrink the chunks (the `computeTimeChunks` policy), do NOT
+ *    is too slow, shrink the chunks (the `splitDateTime` policy), do NOT
  *    re-enable per-chunk downsampling.
  */
 export function chunkedMetricHeatmapApiOptions({
@@ -114,25 +127,26 @@ export function chunkedMetricHeatmapApiOptions({
   yBuckets,
   bounds,
   enabled,
-  chunks,
+  windows,
   isRelative,
   intervalMs,
 }: ChunkedMetricHeatmapOptions): HeatmapChunkQuery[] {
-  const isChunked = chunks.length > 1;
-  return chunks.map((chunk, index) => {
-    // The newest chunk of a relative range is the live edge — refetch it rather
-    // than cache forever.
+  const isChunked = windows.length > 1;
+  return windows.map((datetime, index) => {
+    // The newest window of a relative range is the live edge — refetch it rather
+    // than cache forever (a split window is absolute, so it would otherwise be
+    // treated as immutable).
     const isTrailingLive = isChunked && isRelative && index === 0;
     return {
       ...metricHeatmapApiOptions({
         organization,
-        selection,
+        // Each window is a drop-in datetime; the builder resolves it like any
+        // other selection range, so chunk and fast-path share one code path.
+        selection: {...selection, datetime},
         traceMetric,
         query,
         interval,
         yBuckets,
-        start: isChunked ? chunk.start : undefined,
-        end: isChunked ? chunk.end : undefined,
         yMin: isChunked ? bounds?.yMin : undefined,
         yMax: isChunked ? bounds?.yMax : undefined,
         sampling: isChunked ? SAMPLING_MODE.HIGH_ACCURACY : undefined,
@@ -150,27 +164,20 @@ interface MetricHeatmapApiOptions {
   query: string;
   selection: PageFilters;
   traceMetric: TraceMetric;
-  /**
-   * Chunk end override (ms). When provided (with `start`), the request covers
-   * this concrete window instead of the page-filter range, and `statsPeriod` is
-   * omitted. Used for chunked (Phase B) fetching.
-   */
-  end?: number;
   interval?: string | null;
   sampling?: SamplingMode;
   staleTime?: number;
-  /**
-   * Chunk start override (ms). See `end`.
-   */
-  start?: number;
   yBuckets?: number | null;
   yMax?: number;
   yMin?: number;
 }
 
 /**
- * Builds one `/events-heatmap/` request — either the whole selection (fast path)
- * or a single pinned, windowed chunk (Phase B).
+ * Builds one `/events-heatmap/` request over `selection`. The caller supplies the
+ * range via `selection.datetime` — the whole selection (fast path) or a single
+ * pinned chunk window (Phase B); both resolve through the same
+ * `normalizeDateTimeParams` path, so an absolute window sends `start`/`end` and a
+ * relative range sends `statsPeriod`.
  */
 function metricHeatmapApiOptions({
   organization,
@@ -183,8 +190,6 @@ function metricHeatmapApiOptions({
   yMin,
   yMax,
   sampling,
-  start: startOverride,
-  end: endOverride,
   staleTime: staleTimeOverride,
 }: MetricHeatmapApiOptions) {
   const traceMetricFilter = createTraceMetricEventsFilter([traceMetric]);
@@ -194,14 +199,7 @@ function metricHeatmapApiOptions({
   const valid =
     defined(interval) && defined(yBuckets) && yBuckets > 0 && intervalInMilliseconds > 0;
 
-  // A concrete chunk window takes precedence over the page-filter range. When
-  // used, `statsPeriod` is dropped so the two don't fight.
-  const usesChunkWindow = defined(startOverride) && defined(endOverride);
-
-  const normalized = normalizeDateTimeParams(selection.datetime);
-  const start = usesChunkWindow ? getUtcDateString(startOverride) : normalized.start;
-  const end = usesChunkWindow ? getUtcDateString(endOverride) : normalized.end;
-  const statsPeriod = usesChunkWindow ? undefined : normalized.statsPeriod;
+  const {start, end, statsPeriod} = normalizeDateTimeParams(selection.datetime);
 
   const usesRelativeDateRange = !defined(start) && !defined(end) && defined(statsPeriod);
 
@@ -242,19 +240,21 @@ function metricHeatmapApiOptions({
  * responses into one dense, unit-patched grid and derives the streaming/partial
  * state.
  *
- * Wrap this in `useMemo` (keyed on the resolved chunks + unit) so the returned
- * function stays referentially stable: query-core re-runs `combine` only when the
- * results change or the `combine` reference changes (and `replaceEqualDeep`s the
- * output), so an unstable combine would rebuild the (expensive) merge every render.
+ * Wrap this in `useMemo` (keyed on the plan + unit) so the returned function
+ * stays referentially stable: query-core re-runs `combine` only when the results
+ * change or the `combine` reference changes (and `replaceEqualDeep`s the output),
+ * so an unstable combine would rebuild the (expensive) merge every render.
  */
 export function metricHeatmapCombine({
-  chunks,
+  isChunked,
   fullRange,
   intervalMs,
   unit,
-}: MetricHeatmapChunks & {unit: TraceMetric['unit']}) {
+}: Pick<MetricHeatmapPlan, 'fullRange' | 'intervalMs'> & {
+  isChunked: boolean;
+  unit: TraceMetric['unit'];
+}) {
   const metricUnit = unit ?? undefined;
-  const isChunked = chunks.length > 1;
 
   return (results: Array<UseQueryResult<HeatMapSeries>>): ChunkedHeatmapResult => {
     const succeeded = results
