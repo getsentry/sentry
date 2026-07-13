@@ -7,9 +7,7 @@ from typing import TYPE_CHECKING, Any, TypedDict, TypeGuard
 
 from django.db.models import Subquery
 
-from sentry.hybridcloud.models.externalactorreplica import ExternalActorReplica
 from sentry.integrations.types import ExternalProviderEnum
-from sentry.integrations.utils.providers import PERSONAL_NOTIFICATION_PROVIDERS_AS_INT
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.notifications.defaults import (
@@ -130,21 +128,6 @@ def recipient_is_team(recipient: Actor | Team | RpcUser | User) -> TypeGuard[Act
     if isinstance(recipient, Actor) and recipient.is_team:
         return True
     return isinstance(recipient, Team)
-
-
-def team_is_valid_recipient(team: Team | Actor) -> bool:
-    """
-    A team is a valid recipient if it has a linked integration (ie. linked Slack channel)
-    for any one of the providers allowed for personal notifications.
-    """
-
-    linked_integration = ExternalActorReplica.objects.filter(
-        team_id=team.id,
-        provider__in=PERSONAL_NOTIFICATION_PROVIDERS_AS_INT,
-    )
-    if linked_integration:
-        return True
-    return False
 
 
 def get_team_members(team: Team | Actor) -> list[Actor]:
