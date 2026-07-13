@@ -2,6 +2,11 @@ import enum
 
 CODING_PAYLOAD_TYPES = frozenset({"select_solution", "create_branch", "create_pr"})
 
+# ``Repository.provider`` values for the GitHub integrations Seer PR iteration
+# supports. Use with ``provider__in=`` when filtering repositories; for a Seer
+# PR-state lookup pass the specific repo's ``provider`` instead.
+SEER_GITHUB_PROVIDERS = ("integrations:github", "integrations:github_enterprise")
+
 # An issue group must have >= this number of occurrences in order to be
 # a target for 'workflow' autofix.
 AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD = 10

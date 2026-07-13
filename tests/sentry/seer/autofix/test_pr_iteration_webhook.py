@@ -12,6 +12,8 @@ from sentry.seer.autofix.pr_iteration.mention import (
     handle_pull_request_review_comment_for_autofix_iteration,
 )
 from sentry.seer.autofix.pr_iteration.types import (
+    Feedback,
+    GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
     GithubPrReviewCommentFeedbackSource,
 )
@@ -61,20 +63,21 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         with self.feature("organizations:autofix-pr-iteration"):
             self._call(self._event())
 
-        mock_delay.assert_called_once_with(
-            organization_id=self.organization.id,
-            repo_id=self.repo.id,
-            integration_id=self.integration.id,
-            pr_number=7,
-            feedback="fix it",
-            comment={
-                "id": 999,
-                "body": "@sentry fix it",
-                "user": {"login": "octocat"},
-                "html_url": "https://github.com/getsentry/sentry/pull/7#issuecomment-999",
-            },
-            source_type="github-pr-comment",
-        )
+        mock_delay.assert_called_once()
+        _, kwargs = mock_delay.call_args
+        assert kwargs["organization_id"] == self.organization.id
+        assert kwargs["repo_id"] == self.repo.id
+        assert kwargs["integration_id"] == self.integration.id
+        assert kwargs["pr_number"] == 7
+        assert "comment" not in kwargs
+
+        # `feedback` is now a serialized `Feedback` built from the comment, not
+        # the raw feedback string plus a separate `comment` kwarg.
+        feedback = Feedback.parse_raw(kwargs["feedback"])
+        assert isinstance(feedback.source, GithubPrCommentFeedbackSource)
+        assert feedback.source.comment["id"] == 999
+        assert feedback.text == "fix it"
+        assert feedback.ui_text == "fix it"
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_non_created_action(self, mock_delay: MagicMock) -> None:
@@ -152,8 +155,14 @@ class HandlePullRequestReviewCommentForAutofixIterationTest(TestCase):
         mock_delay.assert_called_once()
         kwargs = mock_delay.call_args.kwargs
         assert kwargs["pr_number"] == 7
-        assert kwargs["feedback"] == "fix it"
-        assert kwargs["source_type"] == "github-pr-review-comment"
+        assert "comment" not in kwargs
+        assert "source_type" not in kwargs
+        feedback = Feedback.parse_raw(kwargs["feedback"])
+        assert isinstance(feedback.source, GithubPrReviewCommentFeedbackSource)
+        assert feedback.source.file_path == "src/sentry/foo.py"
+        assert feedback.source.line == 42
+        assert feedback.source.start_line == 40
+        assert feedback.text == "fix it"
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_non_created_action(self, mock_delay: MagicMock) -> None:
@@ -206,21 +215,25 @@ class TriggerPrIterationFromCommentTest(TestCase):
         comment: dict | None = None,
         source_type: GithubPrCommentFeedbackType = "github-pr-comment",
     ) -> None:
+        comment = self.comment if comment is None else comment
+        source: GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource
+        if source_type == "github-pr-review-comment":
+            source = GithubPrReviewCommentFeedbackSource(comment=comment)
+        else:
+            source = GithubPrCommentFeedbackSource(comment=comment)
         trigger_pr_iteration_from_comment(
             organization_id=self.organization.id,
             repo_id=self.repo.id,
             integration_id=42,
             pr_number=7,
-            feedback="fix it",
-            comment=self.comment if comment is None else comment,
-            source_type=source_type,
+            feedback=Feedback(source=source).json(),
         )
 
     @patch(f"{TASK_PATH}._add_comment_eyes_reaction")
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_triggers_agent_when_authorized(
@@ -251,8 +264,8 @@ class TriggerPrIterationFromCommentTest(TestCase):
             kwargs={
                 "run_id": 67890,
                 "organization_id": self.organization.id,
-                "group_id": self.group.id,
-            }
+            },
+            countdown=None,
         )
         mock_reaction.assert_called_once_with(
             mock_make_scm.return_value,
@@ -264,7 +277,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=False)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_when_no_write_access(
@@ -287,7 +300,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
 
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_skips_when_no_agent_state(
@@ -311,7 +324,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
     def test_review_comment_hoists_file_and_line(

@@ -14,12 +14,18 @@ import logging
 from collections.abc import Mapping
 from typing import Any, NamedTuple
 
+from pydantic import ValidationError
+
 from sentry import features
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.seer.autofix.pr_iteration.types import GithubPrCommentFeedbackType
-from sentry.seer.webhooks import SentryIterateCommand, sentry_command
+from sentry.seer.autofix.pr_iteration.types import (
+    Feedback,
+    GithubPrCommentFeedbackSource,
+    GithubPrCommentFeedbackType,
+    GithubPrReviewCommentFeedbackSource,
+)
 from sentry.tasks.seer.pr_iteration import trigger_pr_iteration_from_comment
 
 logger = logging.getLogger(__name__)
@@ -63,13 +69,18 @@ def _dispatch_autofix_iteration_from_comment(
     log_extra: Mapping[str, Any],
     source_type: GithubPrCommentFeedbackType,
 ) -> None:
-    command = sentry_command(comment.get("body"))
-    if not isinstance(command, SentryIterateCommand):
+    try:
+        source: GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource
+        if source_type == "github-pr-review-comment":
+            source = GithubPrReviewCommentFeedbackSource(comment=comment)
+        else:
+            source = GithubPrCommentFeedbackSource(comment=comment)
+        feedback = Feedback(source=source)
+    except ValidationError:
         logger.debug("autofix.pr_iteration.comment_trigger.skipped_not_command", extra=log_extra)
         return None
 
     log_extra = {**log_extra, "pr_number": pr_number}
-
     # Past this point we have a genuine ``@sentry`` iterate command on a PR, so
     # log at info to make any silent drop debuggable.
     logger.info("autofix.pr_iteration.comment_trigger.received", extra=log_extra)
@@ -95,9 +106,7 @@ def _dispatch_autofix_iteration_from_comment(
         repo_id=repo.id,
         integration_id=integration.id,
         pr_number=pr_number,
-        feedback=command.feedback,
-        comment=comment,
-        source_type=source_type,
+        feedback=feedback.json(),
     )
     return None
 
