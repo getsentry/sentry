@@ -27,6 +27,7 @@ from sentry.models.repository import Repository
 from sentry.scm.private.rate_limit import DynamicRateLimiter
 from sentry.shared_integrations.exceptions import (
     ApiError,
+    ApiForbiddenError,
     ApiPaginationTruncated,
     ApiRateLimitedError,
 )
@@ -538,6 +539,78 @@ class GitHubApiClientTest(TestCase):
             tags={"outcome": "rate_limited"},
             sample_rate=1.0,
         )
+
+    @mock.patch("sentry.integrations.github.client.metrics")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_parallel_403_rate_limit_records_rate_limited_metric(
+        self, get_jwt, mock_metrics
+    ) -> None:
+        # Github also signals a tripped secondary rate limit with a 403 whose
+        # body names the limit, not only a 429, so that outcome is attributed to
+        # the parallel path too.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=3>; rel="last"'},
+        )
+        responses.add(method=responses.GET, url=f"{url}&page=2", json=[{"id": 2}])
+        responses.add(
+            method=responses.GET,
+            url=f"{url}&page=3",
+            status=403,
+            json={
+                "message": "You have exceeded a secondary rate limit. Please wait a few minutes."
+            },
+        )
+
+        with pytest.raises(ApiForbiddenError):
+            self.github_client._get_with_pagination(
+                f"/repos/{self.repo.name}/assignees", parallel=True
+            )
+
+        mock_metrics.incr.assert_any_call(
+            "integrations.github.parallel_pagination",
+            tags={"outcome": "rate_limited"},
+            sample_rate=1.0,
+        )
+
+    @mock.patch("sentry.integrations.github.client.metrics")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_parallel_403_permission_does_not_record_rate_limited(
+        self, get_jwt, mock_metrics
+    ) -> None:
+        # A plain permission 403 (no rate-limit message) is not a rate limit, so
+        # it re-raises without recording either outcome.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=3>; rel="last"'},
+        )
+        responses.add(method=responses.GET, url=f"{url}&page=2", json=[{"id": 2}])
+        responses.add(
+            method=responses.GET,
+            url=f"{url}&page=3",
+            status=403,
+            json={"message": "Resource not accessible by integration"},
+        )
+
+        with pytest.raises(ApiForbiddenError):
+            self.github_client._get_with_pagination(
+                f"/repos/{self.repo.name}/assignees", parallel=True
+            )
+
+        outcomes = [
+            call.kwargs.get("tags", {}).get("outcome")
+            for call in mock_metrics.incr.call_args_list
+            if call.args and call.args[0] == "integrations.github.parallel_pagination"
+        ]
+        assert outcomes == []
 
     @mock.patch(
         "sentry.integrations.github.integration.GitHubIntegration.check_file",

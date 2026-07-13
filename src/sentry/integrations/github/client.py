@@ -47,6 +47,7 @@ from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import (
     ApiConflictError,
     ApiError,
+    ApiForbiddenError,
     ApiPaginationTruncated,
     ApiRateLimitedError,
     UnknownHostError,
@@ -70,6 +71,23 @@ MINIMUM_REQUESTS = 200
 PAGINATION_MAX_WORKERS = 10
 
 JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
+
+
+def _is_rate_limit_forbidden(error: ApiForbiddenError) -> bool:
+    """
+    GitHub does not only use 429 for rate limits: it also returns 403 when an
+    installation trips its primary or secondary rate limits, naming the limit
+    in the response body (e.g. "You have exceeded a secondary rate limit" or
+    "API rate limit exceeded"). ApiForbiddenError does not retain the
+    Retry-After header GitHub sets on these responses, so detect the condition
+    from the body message instead. A plain permission 403 has no such message.
+    """
+    message = ""
+    if isinstance(error.json, dict):
+        raw_message = error.json.get("message")
+        if isinstance(raw_message, str):
+            message = raw_message
+    return "rate limit" in (message or error.text or "").lower()
 
 
 class CachedRepo(TypedDict):
@@ -862,12 +880,18 @@ class GitHubBaseClient(
                                 # (bounded by max_workers), not the whole page range.
                                 for resp in executor.map(fetch_page, remaining_pages):
                                     output.extend(page_items(resp))
-                        except ApiRateLimitedError:
-                            metrics.incr(
-                                "integrations.github.parallel_pagination",
-                                tags={"outcome": "rate_limited"},
-                                sample_rate=1.0,
-                            )
+                        except (ApiRateLimitedError, ApiForbiddenError) as e:
+                            # GitHub signals a tripped rate limit with either a
+                            # 429 or a 403 whose body names the limit (primary or
+                            # secondary), so attribute both to the rate_limited
+                            # outcome to keep the fan-out's rate-limit exposure
+                            # visible. A plain permission 403 re-raises untagged.
+                            if isinstance(e, ApiRateLimitedError) or _is_rate_limit_forbidden(e):
+                                metrics.incr(
+                                    "integrations.github.parallel_pagination",
+                                    tags={"outcome": "rate_limited"},
+                                    sample_rate=1.0,
+                                )
                             raise
                         metrics.incr(
                             "integrations.github.parallel_pagination",
