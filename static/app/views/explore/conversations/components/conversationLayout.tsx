@@ -82,9 +82,9 @@ function MeasuredSplitPanel({
 
 export function ConversationLeftPanel({children}: {children: React.ReactNode}) {
   return (
-    <Flex direction="column" flex={1} minWidth="0" minHeight="0" overflow="hidden">
+    <Stack flex={1} minWidth="0" minHeight="0" overflow="hidden">
       {children}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -195,8 +195,7 @@ function MeasuredContentSplit({
       fillMinSize={DETAIL_MIN_WIDTH}
       onResizeEnd={({endSize}) => setStoredSize(endSize)}
       sized={
-        <Flex
-          direction="column"
+        <Stack
           flex="1"
           minWidth="0"
           minHeight="0"
@@ -204,12 +203,11 @@ function MeasuredContentSplit({
           paddingBottom={{xs: 'md', md: '0'}}
         >
           {content}
-        </Flex>
+        </Stack>
       }
       fill={
         detail ? (
-          <Flex
-            direction="column"
+          <Stack
             flex="1"
             minWidth="0"
             minHeight="0"
@@ -217,7 +215,7 @@ function MeasuredContentSplit({
             paddingTop={{xs: 'md', md: '0'}}
           >
             {detail}
-          </Flex>
+          </Stack>
         ) : undefined
       }
     />
@@ -235,8 +233,7 @@ export function ConversationDetailPanel({
 }) {
   const organization = useOrganization();
   return (
-    <Flex
-      direction="column"
+    <Stack
       flex={1}
       minHeight="0"
       background="primary"
@@ -254,7 +251,7 @@ export function ConversationDetailPanel({
         hideNodeActions: true,
         initiallyCollapseAiIO,
       })}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -269,13 +266,13 @@ export function ConversationViewSkeleton() {
               <Placeholder height="14px" width="40px" />
             </Flex>
           </Container>
-          <Flex direction="column" flex="1" gap="md" padding="lg" background="secondary">
-            <Flex direction="column" gap="sm" padding="sm md">
+          <Stack flex="1" gap="md" padding="lg" background="secondary">
+            <Stack gap="sm" padding="sm md">
               <Placeholder height="12px" width="120px" />
               <Placeholder height="12px" width="80%" />
-            </Flex>
+            </Stack>
             <Container background="primary" radius="md" border="primary" padding="sm md">
-              <Flex direction="column" gap="sm">
+              <Stack gap="sm">
                 <Flex align="center" gap="sm">
                   <Placeholder height="12px" width="100px" />
                   <Placeholder height="12px" width="40px" />
@@ -286,48 +283,48 @@ export function ConversationViewSkeleton() {
                 <Placeholder height="12px" width="90%" />
                 <Placeholder height="12px" width="70%" />
                 <Placeholder height="12px" width="60%" />
-              </Flex>
+              </Stack>
             </Container>
-            <Flex direction="column" gap="sm" padding="sm md">
+            <Stack gap="sm" padding="sm md">
               <Placeholder height="12px" width="120px" />
               <Placeholder height="12px" width="60%" />
-            </Flex>
+            </Stack>
             <Container background="primary" radius="md" border="primary" padding="sm md">
-              <Flex direction="column" gap="sm">
+              <Stack gap="sm">
                 <Flex align="center" gap="sm">
                   <Placeholder height="12px" width="80px" />
                   <Placeholder height="12px" width="35px" />
                 </Flex>
                 <Placeholder height="12px" width="85%" />
                 <Placeholder height="12px" width="50%" />
-              </Flex>
+              </Stack>
             </Container>
-          </Flex>
+          </Stack>
         </ConversationLeftPanel>
       }
       right={
-        <Flex direction="column" gap="lg" padding="lg">
-          <Flex direction="column" gap="sm">
+        <Stack gap="lg" padding="lg">
+          <Stack gap="sm">
             <Placeholder height="14px" width="180px" />
             <Placeholder height="16px" width="60px" />
-          </Flex>
-          <Flex direction="column" gap="sm">
+          </Stack>
+          <Stack gap="sm">
             <Placeholder height="12px" width="80px" />
             <Placeholder height="12px" width="200px" />
-          </Flex>
-          <Flex direction="column" gap="sm">
+          </Stack>
+          <Stack gap="sm">
             <Placeholder height="12px" width="60px" />
             <Placeholder height="12px" width="160px" />
-          </Flex>
-          <Flex direction="column" gap="sm">
+          </Stack>
+          <Stack gap="sm">
             <Placeholder height="14px" width="80px" />
             <Placeholder height="80px" width="100%" />
-          </Flex>
-          <Flex direction="column" gap="sm">
+          </Stack>
+          <Stack gap="sm">
             <Placeholder height="14px" width="80px" />
             <Placeholder height="120px" width="100%" />
-          </Flex>
-        </Flex>
+          </Stack>
+        </Stack>
       }
     />
   );

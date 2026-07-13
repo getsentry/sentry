@@ -169,14 +169,13 @@ export function SizeCompareMainContent() {
 
   if (sizeComparisonQuery.isLoading || comparisonDataQuery.isLoading || isComparing) {
     return (
-      <Flex
-        direction="column"
+      <Stack
         align="center"
         justify="center"
         style={{minHeight: '60vh', padding: theme.space.md}}
       >
         <LoadingIndicator />
-      </Flex>
+      </Stack>
     );
   }
 
@@ -277,7 +276,7 @@ export function SizeCompareMainContent() {
   }
 
   return (
-    <Flex direction="column" gap="2xl">
+    <Stack gap="2xl">
       <SizeCompareSelectedBuilds
         headBuildDetails={sizeComparisonQuery.data.head_build_details}
         baseBuildDetails={sizeComparisonQuery.data.base_build_details}
@@ -314,7 +313,7 @@ export function SizeCompareMainContent() {
 
       {/* Items Changed Section */}
       <Container background="primary" radius="lg" padding="0" border="primary">
-        <Flex direction="column" gap="0">
+        <Stack gap="0">
           <Flex align="center" justify="between" padding="xl">
             <Flex align="center">
               <Button
@@ -387,7 +386,7 @@ export function SizeCompareMainContent() {
               />
             </Stack>
           )}
-        </Flex>
+        </Stack>
       </Container>
 
       {/* Treemap Diff Section */}
@@ -401,6 +400,6 @@ export function SizeCompareMainContent() {
             </Stack>
           </Stack>
         )}
-    </Flex>
+    </Stack>
   );
 }

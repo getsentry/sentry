@@ -4,7 +4,7 @@ import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Stack, Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {List} from 'sentry/components/list';
@@ -114,7 +114,7 @@ export function PlayStationSettings({organization, project}: Props) {
       {isLoading ? (
         <LoadingIndicator />
       ) : (
-        <Flex direction="column" gap="md" align="end">
+        <Stack gap="md" align="end">
           <Grid flow="column" align="center" gap="md">
             {hasCredentials && (
               <Button
@@ -167,7 +167,7 @@ export function PlayStationSettings({organization, project}: Props) {
               ))}
             </StyledPanelTable>
           )}
-        </Flex>
+        </Stack>
       )}
     </Fragment>
   );

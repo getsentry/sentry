@@ -1155,7 +1155,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "dynamic-sampling-schedule-per-org-calculations": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
-        "schedule": timedelta(minutes=1),
+        "schedule": timedelta(seconds=10),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
@@ -3207,12 +3207,8 @@ REGION_PINNED_URL_NAMES = {
     # New usage of these is region scoped.
     "sentry-js-sdk-loader",
     "sentry-release-hook",
-    "sentry-api-0-organizations",
     "sentry-api-0-projects",
     "sentry-api-0-accept-project-transfer",
-    "sentry-organization-avatar-url-deprecated",
-    "sentry-chartcuterie-config",
-    "sentry-robots-txt",
 }
 # Used in tests to skip forwarding relay paths to a region silo that does not exist.
 APIGATEWAY_PROXY_SKIP_RELAY = False

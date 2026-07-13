@@ -13,7 +13,7 @@ import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
+import {FieldValueType, getFieldDefinition, prettifyTagKey} from 'sentry/utils/fields';
 import {
   Table,
   TableBody,
@@ -195,5 +195,11 @@ export function addValidatedFieldTypesToMeta({
   meta: MetaType;
   validatedFieldTypes: Partial<Record<string, FieldValueType>>;
 }): MetaType {
-  return {...meta, fields: {...meta?.fields, ...validatedFieldTypes}};
+  const fields = {...meta?.fields};
+
+  for (const [field, validatedType] of Object.entries(validatedFieldTypes)) {
+    fields[field] = getFieldDefinition(field, 'span')?.valueType ?? validatedType;
+  }
+
+  return {...meta, fields};
 }

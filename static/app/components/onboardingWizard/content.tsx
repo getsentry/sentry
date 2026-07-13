@@ -136,7 +136,7 @@ interface SkipConfirmationProps {
 function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
   return (
     <Alert variant="info">
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         {t("Not sure what to do? We're here for you!")}
         <Flex justify="between" gap="xs" flex={1}>
           <LinkButton external href="https://sentry.io/support/" size="xs">
@@ -164,7 +164,7 @@ function SkipConfirmation({onConfirm, onDismiss}: SkipConfirmationProps) {
             </Button>
           </Grid>
         </Flex>
-      </Flex>
+      </Stack>
     </Alert>
   );
 }

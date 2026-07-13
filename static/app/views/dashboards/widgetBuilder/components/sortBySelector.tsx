@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -142,7 +142,7 @@ export function WidgetBuilderSortBySelector() {
           flexibleControlStateSize
           stacked
         >
-          <Flex direction="column" gap="sm">
+          <Stack gap="sm">
             {maxLimit > 0 && state.limit && (
               <Select
                 disabled={disableSortDirection && disableSort}
@@ -191,7 +191,7 @@ export function WidgetBuilderSortBySelector() {
               }}
               tags={tags}
             />
-          </Flex>
+          </Stack>
         </FieldGroup>
       </Tooltip>
     </Fragment>

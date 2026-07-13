@@ -31,6 +31,7 @@ from sentry.pr_metrics.contracts import (
     PrConversationAnalysis,
 )
 from sentry.pr_metrics.utils import is_activity_tracking_enabled, iso_or_none, resolved_group_ids
+from sentry.seer.models.run import SeerRun
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -93,6 +94,45 @@ def select_verdict(
     return PullRequestVerdict.CLOSED_UNMERGED
 
 
+# Diagnosis label Sentry can derive on its own (unlike the judge's free-string
+# vocabulary): the deterministic closed-unmerged path's "why", read straight off
+# the PR's own check-suite activity rather than a judge's opinion.
+CI_FAILING_AT_CLOSE = "ci_failing_at_close"
+
+# Conclusions that unambiguously mean the check errored out, as opposed to
+# cancelled/skipped/stale (never ran to completion, not a failure verdict),
+# neutral (a soft pass), or action_required (blocked on approval, not broken).
+_FAILING_CHECK_CONCLUSIONS = frozenset({"failure", "timed_out", "startup_failure"})
+
+
+def ci_failing_at_close(pull_request: PullRequest) -> bool:
+    """Whether any CI provider's check suite was failing when the PR closed.
+
+    Reads ``CHECK_SUITE_COMPLETED`` activity rows — the aggregate "was CI green
+    or red" signal per provider app (``app_slug``), per ``CheckSuiteCompletedPayload``
+    — keeping only the latest completion per app: a check suite can be rerun with
+    no new push (no ``SYNCHRONIZED`` row), so an earlier failure superseded by a
+    passing rerun shouldn't count.
+
+    Only meaningful for ``select_verdict``'s deterministic ``CLOSED_UNMERGED``
+    outcome: that path is reached only when there were no commits after open, so
+    every recorded check row necessarily belongs to the PR's one and only head
+    commit — there's no other commit's CI status to accidentally mix in.
+    """
+    rows = (
+        PullRequestActivity.objects.filter(
+            pull_request=pull_request, event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED
+        )
+        .order_by("date_added", "id")
+        .values_list("payload__app_slug", "payload__conclusion")
+    )
+    # dict() keeps the last entry per key, i.e. each app's latest conclusion.
+    latest_conclusion_by_app: dict[str, str] = dict(rows)
+    return any(
+        conclusion in _FAILING_CHECK_CONCLUSIONS for conclusion in latest_conclusion_by_app.values()
+    )
+
+
 def is_pr_tracked(pull_request: PullRequest) -> bool:
     """Whether the PR has ≥1 valid attribution — the emission tracking gate.
 
@@ -121,6 +161,41 @@ def active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
         {"signal_type": a.signal_type, "source": a.source, "signal_details": a.signal_details}
         for a in ordered
     ]
+
+
+def resolve_autofix_referrers(
+    pull_request: PullRequest, attributions: list[dict[str, Any]]
+) -> list[str]:
+    """The distinct ``SeerRun.referrer`` values behind this PR's attributions.
+
+    Order is not meaningful — attributions aren't recorded in any guaranteed
+    order — so this returns a plain deduplicated set.
+
+    Both the ``SENTRY_APP`` and ``SEER_DELEGATED_*`` signal paths stamp a Seer
+    ``run_id`` onto their ``signal_details`` (see ``SentryAppSignalDetails`` /
+    ``DelegatedAgentSignalDetails``). Resolves each distinct run id to its
+    mirrored ``SeerRun`` row rather than duplicating the referrer onto
+    ``signal_details`` at write time, so this reads correctly even for PRs
+    attributed before this field existed. Run ids with no matching (or
+    referrer-less) ``SeerRun`` row are skipped — not every run id resolves,
+    e.g. Cursor's delegated-agent path doesn't record one today.
+    """
+    run_ids = {
+        details["run_id"]
+        for attribution in attributions
+        if (details := attribution.get("signal_details")) and details.get("run_id") is not None
+    }
+    if not run_ids:
+        return []
+
+    referrers = (
+        SeerRun.objects.filter(
+            organization_id=pull_request.organization_id, seer_run_state_id__in=run_ids
+        )
+        .values_list("referrer", flat=True)
+        .distinct()
+    )
+    return list(filter(None, referrers))
 
 
 def _merge_commit_id(pull_request: PullRequest) -> int | None:
@@ -183,10 +258,12 @@ def build_pr_metrics_row(
     emitted row read the same query. A missing metrics row (a PR Sentry never saw
     active) coalesces every counter to its default.
 
-    The judge enrichment is set on the judge path only: ``conversation_analysis``
-    is the conversation judge's result (semantic outputs become columns, its
-    ``metadata`` is JSON-encoded), and ``diagnosis_labels`` is the cross-judge
-    close-reason "why".
+    ``conversation_analysis`` is set on the judge path only: the conversation
+    judge's result (semantic outputs become columns, its ``metadata`` is
+    JSON-encoded). ``diagnosis_labels`` is the cross-judge close-reason "why" —
+    mostly judge-sourced, but ``select_verdict``'s deterministic
+    ``CLOSED_UNMERGED`` path can also populate it (see ``ci_failing_at_close``),
+    so its presence doesn't by itself mean the row was judged.
     """
     head_commit_sha = pull_request.head_commit_sha
     closed_at = pull_request.closed_at
@@ -232,6 +309,7 @@ def build_pr_metrics_row(
         closed_by_bot=metrics.closed_by_bot,
         opened_and_closed_by_same_actor=metrics.opened_and_closed_by_same_actor,
         attributions=json.dumps(attributions),
+        autofix_referrers=resolve_autofix_referrers(pull_request, attributions),
         verdict=metrics.verdict,
         diagnosis_labels=list(diagnosis_labels) if diagnosis_labels is not None else None,
         **_conversation_analysis_fields(conversation_analysis),
@@ -342,8 +420,10 @@ def emit_pr_metrics_row(
     attributed to. Returns whether a row was emitted, for callers/tests.
 
     Takes only the canonical ``PullRequest`` — no webhook payload — so Seer's
-    judge can call it directly via RPC callback. ``conversation_analysis`` and
-    ``diagnosis_labels`` are set only on that judge path.
+    judge can call it directly via RPC callback. ``conversation_analysis`` is set
+    only on that judge path; ``diagnosis_labels`` is mostly judge-sourced but the
+    deterministic ``CLOSED_UNMERGED`` path can also pass one in (see
+    ``ci_failing_at_close``).
     """
     # Fetch the attribution snapshot once: it both gates emission (≥1 valid row)
     # and rides along on the emitted row, so the two can't diverge.

@@ -7,7 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -333,10 +333,10 @@ function TourProvider({
           {...tourProviderProps}
         >
           <Flex gap="xl" align="center">
-            <Flex gap="xl" justify="between" direction="column" align="start">
+            <Stack gap="xl" justify="between" align="start">
               <StartTourButton />
               {children}
-            </Flex>
+            </Stack>
             <Image src={compassImage} />
             <p style={{maxWidth: '300px'}}>
               Lorem ipsum dolor, sit amet consectetur adipisicing elit. Qui nam doloremque

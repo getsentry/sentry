@@ -76,6 +76,14 @@ def _reconcile_entry(status: IssueStatus) -> FakeEntry:
     )
 
 
+def _pr_closed(has_other: bool | None = None, *, pr_id: int = 101, hour: int = 0) -> FakeEntry:
+    """Build a PULL_REQUEST_CLOSED entry. ``has_other`` omitted -> no key."""
+    data: dict[str, object] = {"pull_request": pr_id}
+    if has_other is not None:
+        data["has_other_open_prs"] = has_other
+    return FakeEntry(type=GroupActionType.PULL_REQUEST_CLOSED, date_added=_ts(hour=hour), data=data)
+
+
 # ---------------------------------------------------------------------------
 # track_views
 # ---------------------------------------------------------------------------
@@ -218,35 +226,6 @@ def test_archive_closes() -> None:
     )
 
 
-def test_resolved_in_pull_request_closes() -> None:
-    assert (
-        _run_for_feature(
-            STATUS,
-            [
-                FakeEntry(
-                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
-                ),
-            ],
-        )
-        == IssueStatus.CLOSED
-    )
-
-
-def test_resolved_in_pr_when_already_closed_is_noop() -> None:
-    assert (
-        _run_for_feature(
-            STATUS,
-            [
-                FakeEntry(type=GroupActionType.RESOLVE),
-                FakeEntry(
-                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
-                ),
-            ],
-        )
-        == IssueStatus.CLOSED
-    )
-
-
 class TestReconcileStatus:
     def test_literal_matches_issue_status(self) -> None:
         literal_values = set(get_args(get_type_hints(ReconcileStatusAction)["status"]))
@@ -260,7 +239,6 @@ class TestReconcileStatus:
         assert action.status == "closed"
         assert action.reason == "group model disagrees"
         assert IssueStatus(action.status) == IssueStatus.CLOSED
-        # reason survives serialization round-trip through dict
         restored = ReconcileStatusAction(**action.dict())
         assert restored.reason == "group model disagrees"
 
@@ -397,37 +375,14 @@ def test_root_cause_identified_advances_to_diagnosed() -> None:
     )
 
 
-def test_autofix_coding_complete_advances_to_fix_proposed() -> None:
+def test_resolved_in_pull_request_advances_to_fix_proposed() -> None:
     assert (
         _run_for_feature(
             PROGRESS,
             [
-                FakeEntry(type=GroupActionType.AUTOFIX_CODING_COMPLETE),
-            ],
-        )
-        == IssueProgressState.FIX_PROPOSED
-    )
-
-
-def test_autofix_pr_advances_to_fix_proposed() -> None:
-    assert (
-        _run_for_feature(
-            PROGRESS,
-            [
-                FakeEntry(type=GroupActionType.AUTOFIX_PR_CREATED, data={}),
-            ],
-        )
-        == IssueProgressState.FIX_PROPOSED
-    )
-
-
-def test_progress_never_goes_backward() -> None:
-    assert (
-        _run_for_feature(
-            PROGRESS,
-            [
-                FakeEntry(type=GroupActionType.AUTOFIX_PR_CREATED, data={}),
-                FakeEntry(type=GroupActionType.VIEW),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
             ],
         )
         == IssueProgressState.FIX_PROPOSED
@@ -441,6 +396,39 @@ def test_progress_none_when_closed() -> None:
     assert state[PROGRESS] == IssueProgressState.ASSIGNED
     state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
     assert state[PROGRESS] is None
+
+
+def test_resolved_in_pr_advances_to_fix_proposed() -> None:
+    # An open PR referencing the issue proposes a fix, like any other PR proposal.
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
+            ],
+        )
+        == IssueProgressState.FIX_PROPOSED
+    )
+
+
+def test_resolved_in_pr_is_demotable_when_pr_closes() -> None:
+    # When the referencing PR closes with none left open, the proposal is
+    # withdrawn and progress falls back to the prior floor.
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
+                _pr_closed(has_other=False),
+            ],
+        )
+        == IssueProgressState.DIAGNOSED
+    )
 
 
 def test_progress_resets_on_reopen() -> None:
@@ -484,12 +472,59 @@ def test_progress_advances_after_reopen_to_diagnosed() -> None:
     )
 
 
+def test_reopen_preserves_root_cause_identified() -> None:
+    # A manual reopen (UNRESOLVE) keeps the diagnosis; only a regression resets it.
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
+                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=GroupActionType.UNRESOLVE),
+            ],
+        )
+        == IssueProgressState.DIAGNOSED
+    )
+
+
+def test_reopen_after_unassign_resets_to_identified() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.ASSIGN),
+                FakeEntry(type=GroupActionType.UNASSIGN),
+                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=GroupActionType.UNRESOLVE),
+            ],
+        )
+        == IssueProgressState.IDENTIFIED
+    )
+
+
+def test_regression_preserves_assigned_floor() -> None:
+    # SET_REGRESSED reopens the same way UNRESOLVE does.
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.ASSIGN),
+                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=GroupActionType.SET_REGRESSED),
+            ],
+        )
+        == IssueProgressState.ASSIGNED
+    )
+
+
 def test_assign_does_not_regress_fix_proposed() -> None:
     assert (
         _run_for_feature(
             PROGRESS,
             [
-                FakeEntry(type=GroupActionType.AUTOFIX_CODING_COMPLETE),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
                 FakeEntry(type=GroupActionType.ASSIGN),
             ],
         )
@@ -497,36 +532,73 @@ def test_assign_does_not_regress_fix_proposed() -> None:
     )
 
 
-def test_set_priority_advances_to_assigned() -> None:
+@pytest.mark.parametrize(
+    "action",
+    [
+        GroupActionType.SET_PRIORITY,
+        GroupActionType.MARK_REVIEWED,
+        GroupActionType.TRIGGER_AUTOFIX,
+    ],
+)
+def test_triage_actions_do_not_advance_progress(action: GroupActionType) -> None:
     assert (
         _run_for_feature(
             PROGRESS,
             [
-                FakeEntry(type=GroupActionType.SET_PRIORITY),
+                FakeEntry(type=action),
             ],
         )
-        == IssueProgressState.ASSIGNED
+        == IssueProgressState.IDENTIFIED
     )
 
 
-def test_mark_reviewed_advances_to_assigned() -> None:
+def test_unassign_demotes_to_identified() -> None:
     assert (
         _run_for_feature(
             PROGRESS,
             [
-                FakeEntry(type=GroupActionType.MARK_REVIEWED),
+                FakeEntry(type=GroupActionType.ASSIGN),
+                FakeEntry(type=GroupActionType.UNASSIGN),
             ],
         )
-        == IssueProgressState.ASSIGNED
+        == IssueProgressState.IDENTIFIED
     )
 
 
-def test_trigger_autofix_advances_to_assigned() -> None:
+def test_unassign_does_not_demote_diagnosed() -> None:
     assert (
         _run_for_feature(
             PROGRESS,
             [
-                FakeEntry(type=GroupActionType.TRIGGER_AUTOFIX),
+                FakeEntry(type=GroupActionType.ASSIGN),
+                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
+                FakeEntry(type=GroupActionType.UNASSIGN),
+            ],
+        )
+        == IssueProgressState.DIAGNOSED
+    )
+
+
+def test_unassign_without_prior_assign_is_noop() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.UNASSIGN),
+            ],
+        )
+        == IssueProgressState.IDENTIFIED
+    )
+
+
+def test_reassign_after_unassign_returns_to_assigned() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.ASSIGN),
+                FakeEntry(type=GroupActionType.UNASSIGN),
+                FakeEntry(type=GroupActionType.ASSIGN),
             ],
         )
         == IssueProgressState.ASSIGNED
@@ -544,30 +616,260 @@ def test_progress_full_lifecycle() -> None:
     state = p.step(state, FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED))
     assert state[PROGRESS] == IssueProgressState.DIAGNOSED
 
-    state = p.step(state, FakeEntry(type=GroupActionType.AUTOFIX_CODING_COMPLETE))
-    assert state[PROGRESS] == IssueProgressState.FIX_PROPOSED
-
-    # PR created doesn't advance past FIX_PROPOSED (same rank)
-    state = p.step(
-        state,
-        FakeEntry(type=GroupActionType.AUTOFIX_PR_CREATED, data={}),
-    )
-    assert state[PROGRESS] == IssueProgressState.FIX_PROPOSED
-
-    # Resolve closes the issue
     state = p.step(
         state,
         FakeEntry(type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)),
     )
+    assert state[PROGRESS] == IssueProgressState.FIX_PROPOSED
+
+    # Resolve closes the issue
+    state = p.step(state, FakeEntry(type=GroupActionType.RESOLVE))
     assert state[PROGRESS] is None
 
-    # Reopen
+    # Reopen: PR is still open, root cause and assignment preserved
     state = p.step(state, FakeEntry(type=GroupActionType.UNRESOLVE))
+    assert state[PROGRESS] == IssueProgressState.FIX_PROPOSED
+
+
+# ---------------------------------------------------------------------------
+# PR-close demotion of fix_proposed
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "prior,expected",
+    [
+        ([], IssueProgressState.IDENTIFIED),
+        ([GroupActionType.ASSIGN], IssueProgressState.ASSIGNED),
+        ([GroupActionType.ROOT_CAUSE_IDENTIFIED], IssueProgressState.DIAGNOSED),
+    ],
+)
+def test_pr_close_demotes_to_prior_floor(prior: list[int], expected: IssueProgressState) -> None:
+    entries = [FakeEntry(type=t) for t in prior]
+    entries.append(
+        FakeEntry(type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101))
+    )
+    entries.append(_pr_closed(has_other=False))
+    assert _run_for_feature(PROGRESS, entries) == expected
+
+
+def test_pr_close_with_remaining_keeps_fix_proposed() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
+                _pr_closed(has_other=True),
+            ],
+        )
+        == IssueProgressState.FIX_PROPOSED
+    )
+
+
+def test_pr_close_last_remaining_then_zero_demotes() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
+                _pr_closed(has_other=True),
+                _pr_closed(has_other=False),
+            ],
+        )
+        == IssueProgressState.DIAGNOSED
+    )
+
+
+def test_pr_close_missing_field_is_noop() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
+                _pr_closed(has_other=None),
+            ],
+        )
+        == IssueProgressState.FIX_PROPOSED
+    )
+
+
+def test_resolved_in_pr_advances_and_is_demotable() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
+            ],
+        )
+        == IssueProgressState.FIX_PROPOSED
+    )
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
+                _pr_closed(has_other=False),
+            ],
+        )
+        == IssueProgressState.IDENTIFIED
+    )
+
+
+def test_pr_close_without_prior_proposal_is_noop() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
+                _pr_closed(has_other=False),
+            ],
+        )
+        == IssueProgressState.DIAGNOSED
+    )
+
+
+def test_two_linked_prs_demote_only_after_both_close() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(102)
+                ),
+                _pr_closed(has_other=True, pr_id=101),
+            ],
+        )
+        == IssueProgressState.FIX_PROPOSED
+    )
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(102)
+                ),
+                _pr_closed(has_other=True, pr_id=101),
+                _pr_closed(has_other=False, pr_id=102),
+            ],
+        )
+        == IssueProgressState.IDENTIFIED
+    )
+
+
+def test_unassign_during_open_pr_keeps_fix_proposed_but_lowers_floor() -> None:
+    p = _pipeline(targets=(PROGRESS,))
+    state = p.initial_state()
+    state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
+    state = p.step(
+        state,
+        FakeEntry(type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)),
+    )
+    state = p.step(state, FakeEntry(type=GroupActionType.UNASSIGN))
+    # The open fix PR still wins the max while the floor silently drops.
+    assert state[PROGRESS] == IssueProgressState.FIX_PROPOSED
+    state = p.step(state, _pr_closed(has_other=False))
     assert state[PROGRESS] == IssueProgressState.IDENTIFIED
 
-    # New investigation
-    state = p.step(state, FakeEntry(type=GroupActionType.ASSIGN))
-    assert state[PROGRESS] == IssueProgressState.ASSIGNED
+
+def test_pr_close_when_closed_is_noop() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
+                FakeEntry(type=GroupActionType.RESOLVE),
+                _pr_closed(has_other=False),
+            ],
+        )
+        is None
+    )
+
+
+def test_reopen_preserves_fix_pr_flag() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
+                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=GroupActionType.UNRESOLVE),
+            ],
+        )
+        == IssueProgressState.FIX_PROPOSED
+    )
+
+
+def test_repropose_after_demotion_returns_to_fix_proposed() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
+                ),
+                _pr_closed(has_other=False),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(102)
+                ),
+            ],
+        )
+        == IssueProgressState.FIX_PROPOSED
+    )
+
+
+def test_last_progressed_at_updated_on_demotion() -> None:
+    p = _pipeline(targets=(PROGRESS,))
+    state = p.initial_state()
+    state = p.step(
+        state,
+        FakeEntry(
+            type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+            data=_resolved_pr_data(101),
+            date_added=_ts(hour=1),
+        ),
+    )
+    assert state[LAST_PROGRESSED_AT] == _ts(hour=1)
+    state = p.step(state, _pr_closed(has_other=False, hour=2))
+    assert state[PROGRESS] == IssueProgressState.IDENTIFIED
+    assert state[LAST_PROGRESSED_AT] == _ts(hour=2)
+
+
+def test_last_progressed_at_untouched_on_pr_close_noop() -> None:
+    p = _pipeline(targets=(PROGRESS,))
+    state = p.initial_state()
+    state = p.step(
+        state,
+        FakeEntry(
+            type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+            data=_resolved_pr_data(101),
+            date_added=_ts(hour=1),
+        ),
+    )
+    # A close that leaves another PR open does not change progress.
+    state = p.step(state, _pr_closed(has_other=True, hour=2))
+    assert state[PROGRESS] == IssueProgressState.FIX_PROPOSED
+    assert state[LAST_PROGRESSED_AT] == _ts(hour=1)
 
 
 # ---------------------------------------------------------------------------
