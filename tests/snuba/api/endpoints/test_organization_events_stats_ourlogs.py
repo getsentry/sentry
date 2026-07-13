@@ -347,6 +347,29 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
         )
         assert response.status_code == 200, response.content
 
+    def test_duplicate_y_axis_does_not_error(self) -> None:
+        """Sending the same yAxis value twice must not cause a 'Duplicate expression label' RPC error."""
+        self.store_eap_items(
+            [
+                self.create_ourlog(
+                    {"body": "hello"},
+                    timestamp=self.start + timedelta(minutes=1),
+                )
+            ]
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": ["count(message)", "count(message)"],
+                "project": self.project.id,
+                "dataset": "logs",
+            },
+        )
+        assert response.status_code == 200, response.content
+
     def test_count_with_latest_release_filter(self) -> None:
         self.create_release(version="0.8")
         self.create_release(version="0.9")
