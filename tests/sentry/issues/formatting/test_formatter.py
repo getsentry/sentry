@@ -53,10 +53,11 @@ def test_failing_section_does_not_sink_output() -> None:
 def test_primitives() -> None:
     md = MarkdownFormatter()
     assert md.field("Handled", "No") == "**Handled:** No"
-    assert md.code_block("SELECT 1", "sql") == "```sql\nSELECT 1\n```"
+    assert md.code_block("SELECT 1") == "```\nSELECT 1\n```"
 
     xml = XmlFormatter()
     assert xml.field("Handled", "No") == "<handled>No</handled>"
+    assert xml.code_block("SELECT 1") == "<code>SELECT 1</code>"
 
 
 def test_slug() -> None:
