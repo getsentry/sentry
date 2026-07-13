@@ -76,14 +76,12 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
     const items: BreadcrumbItem[] = [
       {
         type: 'link',
-        props: {
-          label: t('Session Replay'),
-          to: {
-            pathname: makeReplaysPathname({path: '/', organization}),
-            query: {
-              ...eventView.generateQueryStringObject(),
-              project: replayRecord?.project_id,
-            },
+        label: t('Session Replay'),
+        to: {
+          pathname: makeReplaysPathname({path: '/', organization}),
+          query: {
+            ...eventView.generateQueryStringObject(),
+            project: replayRecord?.project_id,
           },
         },
       },
@@ -92,79 +90,77 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
     if (replayRecord) {
       items.push({
         type: 'page-title',
-        props: {
-          label: getShortEventId(replayRecord.id),
-          leadingGraphic: project ? (
-            <ProjectBadge disableLink project={project} avatarSize={16} hideName />
-          ) : (
-            <Placeholder width="16px" height="16px" />
-          ),
-          pagination: {
-            previous: {
-              ariaLabel: t('Previous replay based on search query'),
-              tooltip: previousReplay
-                ? t('Previous replay based on search query')
-                : undefined,
-              to: previousReplay
-                ? {
-                    pathname: makeReplaysPathname({
-                      path: `/${previousReplay.id}/`,
-                      organization,
-                    }),
-                    query: initialLocation.current.query,
-                  }
-                : undefined,
-              onClick: () =>
-                trackAnalytics('replay.details-playlist-clicked', {
-                  direction: 'previous',
-                  organization,
-                }),
-            },
-            next: {
-              ariaLabel: t('Next replay based on search query'),
-              tooltip: nextReplay ? t('Next replay based on search query') : undefined,
-              to: nextReplay
-                ? {
-                    pathname: makeReplaysPathname({
-                      path: `/${nextReplay.id}/`,
-                      organization,
-                    }),
-                    query: initialLocation.current.query,
-                  }
-                : undefined,
-              onClick: () =>
-                trackAnalytics('replay.details-playlist-clicked', {
-                  direction: 'next',
-                  organization,
-                }),
-            },
+        label: getShortEventId(replayRecord.id),
+        leadingGraphic: project ? (
+          <ProjectBadge disableLink project={project} avatarSize={16} hideName />
+        ) : (
+          <Placeholder width="16px" height="16px" />
+        ),
+        pagination: {
+          previous: {
+            ariaLabel: t('Previous replay based on search query'),
+            tooltip: previousReplay
+              ? t('Previous replay based on search query')
+              : undefined,
+            to: previousReplay
+              ? {
+                  pathname: makeReplaysPathname({
+                    path: `/${previousReplay.id}/`,
+                    organization,
+                  }),
+                  query: initialLocation.current.query,
+                }
+              : undefined,
+            onClick: () =>
+              trackAnalytics('replay.details-playlist-clicked', {
+                direction: 'previous',
+                organization,
+              }),
           },
-          trailingActions: [
-            <BreadcrumbList.CopyAction
-              key="copy"
-              text={replayUrlWithTimestamp}
-              label={t('Copy link to replay at current timestamp')}
-              tooltip={t('Copy link to replay at current timestamp')}
-            />,
-            shouldShowRefreshButton ? (
-              <Button
-                key="refresh"
-                tooltipProps={{
-                  title: t('Replay is outdated. Refresh for latest activity.'),
-                }}
-                data-test-id="refresh-button"
-                size="zero"
-                variant="link"
-                onClick={doRefresh}
-                icon={<IconRefresh size="xs" variant="accent" />}
-              >
-                <Text size="md" variant="accent">
-                  {t('Update')}
-                </Text>
-              </Button>
-            ) : null,
-          ],
+          next: {
+            ariaLabel: t('Next replay based on search query'),
+            tooltip: nextReplay ? t('Next replay based on search query') : undefined,
+            to: nextReplay
+              ? {
+                  pathname: makeReplaysPathname({
+                    path: `/${nextReplay.id}/`,
+                    organization,
+                  }),
+                  query: initialLocation.current.query,
+                }
+              : undefined,
+            onClick: () =>
+              trackAnalytics('replay.details-playlist-clicked', {
+                direction: 'next',
+                organization,
+              }),
+          },
         },
+        trailingActions: [
+          <BreadcrumbList.CopyAction
+            key="copy"
+            text={replayUrlWithTimestamp}
+            label={t('Copy link to replay at current timestamp')}
+            tooltip={t('Copy link to replay at current timestamp')}
+          />,
+          shouldShowRefreshButton ? (
+            <Button
+              key="refresh"
+              tooltipProps={{
+                title: t('Replay is outdated. Refresh for latest activity.'),
+              }}
+              data-test-id="refresh-button"
+              size="zero"
+              variant="link"
+              onClick={doRefresh}
+              icon={<IconRefresh size="xs" variant="accent" />}
+            >
+              <Text size="md" variant="accent">
+                {t('Update')}
+              </Text>
+            </Button>
+          ) : null,
+        ],
       });
     }
 

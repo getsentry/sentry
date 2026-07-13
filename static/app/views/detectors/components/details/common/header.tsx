@@ -48,19 +48,15 @@ function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
       items={[
         {
           type: 'link',
-          props: {
-            label: t('Monitors'),
-            to: makeMonitorBasePathname(organization.slug),
-          },
+          label: t('Monitors'),
+          to: makeMonitorBasePathname(organization.slug),
         },
         {
           type: 'link',
-          props: {
-            label: getDetectorTypeLabel(detector.type),
-            to: makeMonitorTypePathname(organization.slug, detector.type),
-          },
+          label: getDetectorTypeLabel(detector.type),
+          to: makeMonitorTypePathname(organization.slug, detector.type),
         },
-        {type: 'page-title', props: {label: detector.name}},
+        {type: 'page-title', label: detector.name},
       ]}
     />
   );

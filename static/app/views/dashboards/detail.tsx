@@ -1200,32 +1200,26 @@ class DashboardDetail extends Component<Props, State> {
                         items={[
                           {
                             type: 'link',
-                            props: {
-                              label: t('Dashboards'),
-                              to: `/organizations/${organization.slug}/dashboards/`,
-                            },
+                            label: t('Dashboards'),
+                            to: `/organizations/${organization.slug}/dashboards/`,
                           },
                           {
                             type: 'editable-title',
-                            props: {
-                              title: (
-                                <BreadcrumbList.EditableTitle
-                                  value={(modifiedDashboard ?? dashboard).title}
-                                  onChange={newTitle =>
-                                    this.setModifiedDashboard({
-                                      ...(modifiedDashboard ?? dashboard),
-                                      title: newTitle,
-                                    })
-                                  }
-                                  isDisabled={!this.isEditingDashboard}
-                                  errorMessage={t(
-                                    'Please set a title for this dashboard'
-                                  )}
-                                  autoSelect
-                                  aria-label={t('Edit Dashboard Name')}
-                                />
-                              ),
-                            },
+                            title: (
+                              <BreadcrumbList.EditableTitle
+                                value={(modifiedDashboard ?? dashboard).title}
+                                onChange={newTitle =>
+                                  this.setModifiedDashboard({
+                                    ...(modifiedDashboard ?? dashboard),
+                                    title: newTitle,
+                                  })
+                                }
+                                isDisabled={!this.isEditingDashboard}
+                                errorMessage={t('Please set a title for this dashboard')}
+                                autoSelect
+                                aria-label={t('Edit Dashboard Name')}
+                              />
+                            ),
                           },
                         ]}
                       />

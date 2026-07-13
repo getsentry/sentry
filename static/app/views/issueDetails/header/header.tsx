@@ -84,10 +84,8 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
   const crumbs: BreadcrumbItem[] = [
     {
       type: 'link',
-      props: {
-        label: t('Issues'),
-        to: {pathname: `/organizations/${organization.slug}/issues/`, query},
-      },
+      label: t('Issues'),
+      to: {pathname: `/organizations/${organization.slug}/issues/`, query},
     },
     ...(issueItem ? [issueItem] : []),
   ];

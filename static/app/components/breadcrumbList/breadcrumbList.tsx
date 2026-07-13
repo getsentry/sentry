@@ -18,10 +18,10 @@ import {BreadcrumbDividerCombo} from './breadcrumbDividerCombo';
 
 /** @public Public API of the redesigned breadcrumbs; consumers migrate onto it in a downstream PR. */
 export type BreadcrumbItem =
-  | {props: BreadcrumbItemLinkProps; type: 'link'}
-  | {props: BreadcrumbItemPageTitleProps; type: 'page-title'}
-  | {props: BreadcrumbItemPageTitleEditableProps; type: 'editable-title'}
-  | {props: BreadcrumbItemSelectProjectsProps; type: 'select-projects'};
+  | ({type: 'link'} & BreadcrumbItemLinkProps)
+  | ({type: 'page-title'} & BreadcrumbItemPageTitleProps)
+  | ({type: 'editable-title'} & BreadcrumbItemPageTitleEditableProps)
+  | ({type: 'select-projects'} & BreadcrumbItemSelectProjectsProps);
 
 /** @public Public API of the redesigned breadcrumbs; consumers migrate onto it in a downstream PR. */
 export interface BreadcrumbListProps extends React.HTMLAttributes<HTMLElement> {
@@ -29,15 +29,24 @@ export interface BreadcrumbListProps extends React.HTMLAttributes<HTMLElement> {
 }
 
 function renderItem(item: BreadcrumbItem) {
+  // Strip the `type` discriminant so it never leaks onto the sub-component.
   switch (item.type) {
-    case 'link':
-      return <BreadcrumbItemLink {...item.props} />;
-    case 'page-title':
-      return <BreadcrumbItemPageTitle {...item.props} />;
-    case 'editable-title':
-      return <BreadcrumbItemPageTitleEditable {...item.props} />;
-    case 'select-projects':
-      return <BreadcrumbItemSelectProjects {...item.props} />;
+    case 'link': {
+      const {type: _type, ...props} = item;
+      return <BreadcrumbItemLink {...props} />;
+    }
+    case 'page-title': {
+      const {type: _type, ...props} = item;
+      return <BreadcrumbItemPageTitle {...props} />;
+    }
+    case 'editable-title': {
+      const {type: _type, ...props} = item;
+      return <BreadcrumbItemPageTitleEditable {...props} />;
+    }
+    case 'select-projects': {
+      const {type: _type, ...props} = item;
+      return <BreadcrumbItemSelectProjects {...props} />;
+    }
     default:
       return null;
   }
@@ -72,8 +81,8 @@ function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
     (item): item is Extract<BreadcrumbItem, {type: 'link'}> => item.type === 'link'
   );
   const menuItems = collapsibleLinkItems.map(item => ({
-    label: item.props.label,
-    to: item.props.to,
+    label: item.label,
+    to: item.to,
   }));
 
   // Responsive display values using container queries (bare breakpoint keys):

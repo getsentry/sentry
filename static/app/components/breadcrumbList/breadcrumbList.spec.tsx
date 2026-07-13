@@ -67,8 +67,8 @@ describe('BreadcrumbList container-query collapse', () => {
     render(
       <BreadcrumbList
         items={[
-          {type: 'link', props: {label: 'Settings', to: '/settings/'}},
-          {type: 'page-title', props: {label: 'General'}},
+          {type: 'link', label: 'Settings', to: '/settings/'},
+          {type: 'page-title', label: 'General'},
         ]}
       />
     );
@@ -99,8 +99,8 @@ describe('BreadcrumbList container-query collapse', () => {
     render(
       <BreadcrumbList
         items={[
-          {type: 'link', props: {label: 'Settings', to: '/settings/'}},
-          {type: 'page-title', props: {label: 'General'}},
+          {type: 'link', label: 'Settings', to: '/settings/'},
+          {type: 'page-title', label: 'General'},
         ]}
       />
     );
@@ -125,19 +125,17 @@ describe('BreadcrumbList container-query collapse', () => {
     render(
       <BreadcrumbList
         items={[
-          {type: 'link', props: {label: 'Settings', to: '/settings/'}},
+          {type: 'link', label: 'Settings', to: '/settings/'},
           {
             type: 'select-projects',
-            props: {
-              value: 'javascript',
-              options: [
-                {value: 'javascript', label: 'javascript'},
-                {value: 'python', label: 'python'},
-              ],
-              onChange: () => {},
-            },
+            value: 'javascript',
+            options: [
+              {value: 'javascript', label: 'javascript'},
+              {value: 'python', label: 'python'},
+            ],
+            onChange: () => {},
           },
-          {type: 'page-title', props: {label: 'Client Keys'}},
+          {type: 'page-title', label: 'Client Keys'},
         ]}
       />
     );
@@ -153,19 +151,17 @@ describe('BreadcrumbList container-query collapse', () => {
     render(
       <BreadcrumbList
         items={[
-          {type: 'link', props: {label: 'Settings', to: '/settings/'}},
+          {type: 'link', label: 'Settings', to: '/settings/'},
           {
             type: 'select-projects',
-            props: {
-              value: 'javascript',
-              options: [
-                {value: 'javascript', label: 'javascript'},
-                {value: 'python', label: 'python'},
-              ],
-              onChange: () => {},
-            },
+            value: 'javascript',
+            options: [
+              {value: 'javascript', label: 'javascript'},
+              {value: 'python', label: 'python'},
+            ],
+            onChange: () => {},
           },
-          {type: 'page-title', props: {label: 'Client Keys'}},
+          {type: 'page-title', label: 'Client Keys'},
         ]}
       />
     );
@@ -188,8 +184,8 @@ describe('BreadcrumbList container-query collapse', () => {
     render(
       <BreadcrumbList
         items={[
-          {type: 'link', props: {label: 'Settings', to: '/settings/'}},
-          {type: 'page-title', props: {label: 'General'}},
+          {type: 'link', label: 'Settings', to: '/settings/'},
+          {type: 'page-title', label: 'General'},
         ]}
       />
     );
@@ -222,13 +218,11 @@ describe('BreadcrumbList rich page-title items', () => {
         items={[
           {
             type: 'page-title',
-            props: {
-              label: 'Issue',
-              pagination: {
-                previous: {ariaLabel: 'Previous issue', to: '/issues/1/'},
-                // No `to` — this is the last item in the list, so it disables.
-                next: {ariaLabel: 'Next issue'},
-              },
+            label: 'Issue',
+            pagination: {
+              previous: {ariaLabel: 'Previous issue', to: '/issues/1/'},
+              // No `to` — this is the last item in the list, so it disables.
+              next: {ariaLabel: 'Next issue'},
             },
           },
         ]}
@@ -250,15 +244,13 @@ describe('BreadcrumbList rich page-title items', () => {
     render(
       <BreadcrumbList
         items={[
-          {type: 'link', props: {label: 'Issues', to: '/issues/'}},
+          {type: 'link', label: 'Issues', to: '/issues/'},
           {
             type: 'page-title',
-            props: {
-              label: 'JAVASCRIPT-2X9',
-              trailingActions: (
-                <BreadcrumbList.CopyAction text="JAVASCRIPT-2X9" label="Copy Short-ID" />
-              ),
-            },
+            label: 'JAVASCRIPT-2X9',
+            trailingActions: (
+              <BreadcrumbList.CopyAction text="JAVASCRIPT-2X9" label="Copy Short-ID" />
+            ),
           },
         ]}
       />
@@ -274,23 +266,21 @@ describe('BreadcrumbList rich page-title items', () => {
         items={[
           {
             type: 'page-title',
-            props: {
-              label: 'JAVASCRIPT-2X9',
-              trailingActions: [
-                <BreadcrumbList.CopyAction
-                  key="copy"
-                  text="JAVASCRIPT-2X9"
-                  label="Copy Short-ID"
-                />,
-                isPublic && (
-                  <BreadcrumbList.MenuAction
-                    key="menu"
-                    triggerLabel="More actions"
-                    items={[]}
-                  />
-                ),
-              ],
-            },
+            label: 'JAVASCRIPT-2X9',
+            trailingActions: [
+              <BreadcrumbList.CopyAction
+                key="copy"
+                text="JAVASCRIPT-2X9"
+                label="Copy Short-ID"
+              />,
+              isPublic && (
+                <BreadcrumbList.MenuAction
+                  key="menu"
+                  triggerLabel="More actions"
+                  items={[]}
+                />
+              ),
+            ],
           },
         ]}
       />
@@ -304,18 +294,16 @@ describe('BreadcrumbList rich page-title items', () => {
     render(
       <BreadcrumbList
         items={[
-          {type: 'link', props: {label: 'Dashboards', to: '/dashboards/'}},
+          {type: 'link', label: 'Dashboards', to: '/dashboards/'},
           {
             type: 'editable-title',
-            props: {
-              title: (
-                <BreadcrumbList.EditableTitle
-                  value="My Dashboard"
-                  onChange={() => {}}
-                  aria-label="Edit dashboard name"
-                />
-              ),
-            },
+            title: (
+              <BreadcrumbList.EditableTitle
+                value="My Dashboard"
+                onChange={() => {}}
+                aria-label="Edit dashboard name"
+              />
+            ),
           },
         ]}
       />

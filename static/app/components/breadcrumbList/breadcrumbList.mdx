@@ -25,31 +25,25 @@ export const documentation =
 import {BreadcrumbList} from 'sentry/components/breadcrumbList';
 ```
 
-Pass a typed `items` array. Each entry is a discriminated union with a `type` key and a `props` object matching that type's interface.
+Pass a typed `items` array. Each entry is a discriminated union: a `type` key plus that type's own props, flattened onto the same object.
 
 <Storybook.Demo>
   <BreadcrumbList
     items={[
-      {type: 'link', props: {label: 'Organization', to: '/organizations/sentry/'}},
-      {type: 'link', props: {label: 'Projects', to: '/organizations/sentry/projects/'}},
-      {
-        type: 'link',
-        props: {label: 'javascript', to: '/settings/sentry/projects/javascript/'},
-      },
-      {type: 'page-title', props: {label: 'General Settings'}},
+      {type: 'link', label: 'Organization', to: '/organizations/sentry/'},
+      {type: 'link', label: 'Projects', to: '/organizations/sentry/projects/'},
+      {type: 'link', label: 'javascript', to: '/settings/sentry/projects/javascript/'},
+      {type: 'page-title', label: 'General Settings'},
     ]}
   />
 </Storybook.Demo>
 ```tsx
 <BreadcrumbList
   items={[
-    {type: 'link', props: {label: 'Organization', to: '/organizations/sentry/'}},
-    {type: 'link', props: {label: 'Projects', to: '/organizations/sentry/projects/'}},
-    {
-      type: 'link',
-      props: {label: 'javascript', to: '/settings/sentry/projects/javascript/'},
-    },
-    {type: 'page-title', props: {label: 'General Settings'}},
+    {type: 'link', label: 'Organization', to: '/organizations/sentry/'},
+    {type: 'link', label: 'Projects', to: '/organizations/sentry/projects/'},
+    {type: 'link', label: 'javascript', to: '/settings/sentry/projects/javascript/'},
+    {type: 'page-title', label: 'General Settings'},
   ]}
 />
 ```
@@ -65,18 +59,16 @@ A clickable, muted-weight crumb that navigates to a parent page. Use for every i
     items={[
       {
         type: 'link',
-        props: {
-          label: 'A very long project name that will be truncated',
-          to: '/organizations/sentry/projects/',
-        },
+        label: 'A very long project name that will be truncated',
+        to: '/organizations/sentry/projects/',
       },
-      {type: 'page-title', props: {label: 'Current Page'}},
+      {type: 'page-title', label: 'Current Page'},
     ]}
   />
 </Storybook.Demo>
 ```tsx
-{type: 'link', props: {label: 'Projects', to: '/organizations/sentry/projects/'}}
-{type: 'link', props: {label: 'Issues', to: '/issues/', preservePageFilters: true}}
+{type: 'link', label: 'Projects', to: '/organizations/sentry/projects/'}
+{type: 'link', label: 'Issues', to: '/issues/', preservePageFilters: true}
 ```
 
 ### `'page-title'` — current page
@@ -86,16 +78,13 @@ The final crumb — bold, non-interactive, and always visible. Represents the pa
 <Storybook.Demo>
   <BreadcrumbList
     items={[
-      {type: 'link', props: {label: 'Issues', to: '/organizations/sentry/issues/'}},
-      {
-        type: 'page-title',
-        props: {label: 'TypeError: Cannot read properties of undefined'},
-      },
+      {type: 'link', label: 'Issues', to: '/organizations/sentry/issues/'},
+      {type: 'page-title', label: 'TypeError: Cannot read properties of undefined'},
     ]}
   />
 </Storybook.Demo>
 ```tsx
-{type: 'page-title', props: {label: 'TypeError: Cannot read properties of undefined'}}
+{type: 'page-title', label: 'TypeError: Cannot read properties of undefined'}
 ```
 
 ### `'select-projects'` — project picker
@@ -105,31 +94,27 @@ A `CompactSelect` trigger used in settings pages where the user can switch betwe
 <Storybook.Demo>
   <BreadcrumbList
     items={[
-      {type: 'link', props: {label: 'Settings', to: '/settings/'}},
+      {type: 'link', label: 'Settings', to: '/settings/'},
       {
         type: 'select-projects',
-        props: {
-          value: 'javascript',
-          options: [
-            {value: 'javascript', label: 'javascript'},
-            {value: 'python', label: 'python'},
-            {value: 'ruby', label: 'ruby'},
-          ],
-          onChange: () => {},
-        },
+        value: 'javascript',
+        options: [
+          {value: 'javascript', label: 'javascript'},
+          {value: 'python', label: 'python'},
+          {value: 'ruby', label: 'ruby'},
+        ],
+        onChange: () => {},
       },
-      {type: 'page-title', props: {label: 'Client Keys (DSN)'}},
+      {type: 'page-title', label: 'Client Keys (DSN)'},
     ]}
   />
 </Storybook.Demo>
 ```tsx
 {
   type: 'select-projects',
-  props: {
-    value: 'javascript',
-    options: [{value: 'javascript', label: 'javascript'}, {value: 'python', label: 'python'}],
-    onChange: option => navigate(`/settings/${org.slug}/projects/${option.value}/`),
-  },
+  value: 'javascript',
+  options: [{value: 'javascript', label: 'javascript'}, {value: 'python', label: 'python'}],
+  onChange: option => navigate(`/settings/${org.slug}/projects/${option.value}/`),
 }
 ```
 
@@ -146,22 +131,18 @@ All item types accept an optional `leadingGraphic` prop typed as `React.ReactNod
     items={[
       {
         type: 'link',
-        props: {
-          label: 'My Projects',
-          to: '/settings/sentry/projects/',
-          leadingGraphic: (
-            <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
-          ),
-        },
+        label: 'My Projects',
+        to: '/settings/sentry/projects/',
+        leadingGraphic: (
+          <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
+        ),
       },
       {
         type: 'page-title',
-        props: {
-          label: 'Client Keys (DSN)',
-          leadingGraphic: (
-            <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
-          ),
-        },
+        label: 'Client Keys (DSN)',
+        leadingGraphic: (
+          <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
+        ),
       },
     ]}
   />
@@ -177,18 +158,16 @@ The `'editable-title'` item renders the current page as a click-to-edit field in
 <Storybook.Demo>
   <BreadcrumbList
     items={[
-      {type: 'link', props: {label: 'Dashboards', to: '/organizations/sentry/dashboards/'}},
+      {type: 'link', label: 'Dashboards', to: '/organizations/sentry/dashboards/'},
       {
         type: 'editable-title',
-        props: {
-          title: (
-            <BreadcrumbList.EditableTitle
-              value="Frontend Overview"
-              onChange={() => {}}
-              aria-label="Edit dashboard name"
-            />
-          ),
-        },
+        title: (
+          <BreadcrumbList.EditableTitle
+            value="Frontend Overview"
+            onChange={() => {}}
+            aria-label="Edit dashboard name"
+          />
+        ),
       },
     ]}
   />
@@ -196,15 +175,13 @@ The `'editable-title'` item renders the current page as a click-to-edit field in
 ```tsx
 {
   type: 'editable-title',
-  props: {
-    title: (
-      <BreadcrumbList.EditableTitle
-        value={dashboard.title}
-        onChange={handleRename}
-        aria-label="Edit dashboard name"
-      />
-    ),
-  },
+  title: (
+    <BreadcrumbList.EditableTitle
+      value={dashboard.title}
+      onChange={handleRename}
+      aria-label="Edit dashboard name"
+    />
+  ),
 }
 ```
 
@@ -215,15 +192,13 @@ The `'page-title'` item accepts an optional `pagination` prop for pages where th
 <Storybook.Demo>
   <BreadcrumbList
     items={[
-      {type: 'link', props: {label: 'Issues', to: '/organizations/sentry/issues/'}},
+      {type: 'link', label: 'Issues', to: '/organizations/sentry/issues/'},
       {
         type: 'page-title',
-        props: {
-          label: 'TypeError: Cannot read properties of undefined',
-          pagination: {
-            previous: {ariaLabel: 'Previous issue', to: '/issues/122/'},
-            next: {ariaLabel: 'Next issue', to: '/issues/124/', disabled: true},
-          },
+        label: 'TypeError: Cannot read properties of undefined',
+        pagination: {
+          previous: {ariaLabel: 'Previous issue', to: '/issues/122/'},
+          next: {ariaLabel: 'Next issue', to: '/issues/124/', disabled: true},
         },
       },
     ]}
@@ -245,26 +220,24 @@ Trailing actions are always visible — a persistent, keyboard-accessible afford
 <Storybook.Demo>
   <BreadcrumbList
     items={[
-      {type: 'link', props: {label: 'Issues', to: '/organizations/sentry/issues/'}},
+      {type: 'link', label: 'Issues', to: '/organizations/sentry/issues/'},
       {
         type: 'page-title',
-        props: {
-          label: 'JAVASCRIPT-2X9',
-          leadingGraphic: <ProjectsSavedBadge projectPlatforms={['javascript']} />,
-          trailingActions: [
-            <BreadcrumbList.CopyAction
-              key="copy"
-              text="JAVASCRIPT-2X9"
-              label="Copy Short-ID"
-            />,
-            <BreadcrumbList.MenuAction
-              key="menu"
-              triggerLabel="More actions"
-              triggerIcon={<IconEllipsis />}
-              items={[{key: 'share', label: 'Share', leadingItems: <IconGlobe />}]}
-            />,
-          ],
-        },
+        label: 'JAVASCRIPT-2X9',
+        leadingGraphic: <ProjectsSavedBadge projectPlatforms={['javascript']} />,
+        trailingActions: [
+          <BreadcrumbList.CopyAction
+            key="copy"
+            text="JAVASCRIPT-2X9"
+            label="Copy Short-ID"
+          />,
+          <BreadcrumbList.MenuAction
+            key="menu"
+            triggerLabel="More actions"
+            triggerIcon={<IconEllipsis />}
+            items={[{key: 'share', label: 'Share', leadingItems: <IconGlobe />}]}
+          />,
+        ],
       },
     ]}
   />
@@ -299,19 +272,14 @@ Drag the sizing handle below to see the transition:
 <Storybook.SizingWindow display="block">
   <BreadcrumbList
     items={[
-      {type: 'link', props: {label: 'Settings', to: '/settings/'}},
+      {type: 'link', label: 'Settings', to: '/settings/'},
+      {type: 'link', label: 'javascript', to: '/settings/sentry/projects/javascript/'},
       {
         type: 'link',
-        props: {label: 'javascript', to: '/settings/sentry/projects/javascript/'},
+        label: 'Client Keys (DSN)',
+        to: '/settings/sentry/projects/javascript/keys/',
       },
-      {
-        type: 'link',
-        props: {
-          label: 'Client Keys (DSN)',
-          to: '/settings/sentry/projects/javascript/keys/',
-        },
-      },
-      {type: 'page-title', props: {label: 'web-frontend-dsn'}},
+      {type: 'page-title', label: 'web-frontend-dsn'},
     ]}
   />
 </Storybook.SizingWindow>
