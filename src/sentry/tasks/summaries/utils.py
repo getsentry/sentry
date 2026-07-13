@@ -16,8 +16,12 @@ from snuba_sdk.query import Join, Limit, Query
 from snuba_sdk.relationships import Relationship
 
 from sentry.constants import DataCategory
-from sentry.issues.grouptype import InvalidGroupTypeError
-from sentry.models.group import Group, GroupStatus
+from sentry.issues.grouptype import (
+    PERFORMANCE_ISSUE_CATEGORIES,
+    GroupCategory,
+    InvalidGroupTypeError,
+)
+from sentry.models.group import DEFAULT_TYPE_ID, Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
@@ -670,7 +674,7 @@ PAST_ISSUES_LINK_BOOST = 2
 
 
 def project_past_resolved_issues(
-    ctx: OrganizationReportContext, project: Project
+    ctx: OrganizationReportContext, project: Project, referrer: str
 ) -> list[tuple[Group, int, bool]]:
     if not project.first_event:
         return []
@@ -694,7 +698,7 @@ def project_past_resolved_issues(
         # Filter out groups with unregistered type IDs (deprecated/removed issue types)
         valid_candidates = []
         for g in candidates:
-            if g.type is None:
+            if g.type is None or g.type == DEFAULT_TYPE_ID:
                 valid_candidates.append(g)
                 continue
             try:
@@ -703,8 +707,119 @@ def project_past_resolved_issues(
                 continue
             valid_candidates.append(g)
 
+        group_id_to_group = {g.id: g for g in valid_candidates}
+
+        # Legacy groups may have a None .type which crashes issue_category; treat as error group
+        error_group_ids = [
+            g.id
+            for g in valid_candidates
+            if g.type is None or g.issue_category == GroupCategory.ERROR
+        ]
+        perf_group_ids = [
+            g.id
+            for g in valid_candidates
+            if g.type is not None
+            and (
+                g.issue_category == GroupCategory.PERFORMANCE
+                or g.issue_category in PERFORMANCE_ISSUE_CATEGORIES
+            )
+        ]
+
+        event_counts: dict[int, int] = {}
+
+        if error_group_ids:
+            error_counts = _past_resolved_error_counts(ctx, project, error_group_ids, referrer)
+            event_counts.update(error_counts)
+
+        if perf_group_ids:
+            perf_counts = _past_resolved_perf_counts(ctx, project, perf_group_ids, referrer)
+            event_counts.update(perf_counts)
+
         # has_link is initially False; updated by fetch_past_resolved_issue_links at org level
-        return [(g, g.times_seen, False) for g in valid_candidates]
+        scored = []
+        for group_id, count in event_counts.items():
+            group = group_id_to_group.get(group_id)
+            if group is None:
+                continue
+            scored.append((group, count, False))
+
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return scored
+
+
+def _past_resolved_error_counts(
+    ctx: OrganizationReportContext,
+    project: Project,
+    group_ids: list[int],
+    referrer: str,
+) -> dict[int, int]:
+    events_entity = Entity("events", alias="events")
+    group_attributes_entity = Entity("group_attributes", alias="group_attributes")
+    query = Query(
+        match=Join([Relationship(events_entity, "attributes", group_attributes_entity)]),
+        select=[Column("group_id", entity=events_entity), Function("count", [])],
+        where=[
+            Condition(Column("timestamp", entity=events_entity), Op.GTE, ctx.start),
+            Condition(
+                Column("timestamp", entity=events_entity),
+                Op.LT,
+                ctx.end,
+            ),
+            Condition(Column("project_id", entity=events_entity), Op.EQ, project.id),
+            Condition(Column("project_id", entity=group_attributes_entity), Op.EQ, project.id),
+            Condition(
+                Column("group_id", entity=events_entity),
+                Op.IN,
+                group_ids,
+            ),
+            Condition(
+                Column("group_status", entity=group_attributes_entity),
+                Op.EQ,
+                GroupStatus.RESOLVED,
+            ),
+        ],
+        groupby=[Column("group_id", entity=events_entity)],
+        orderby=[OrderBy(Function("count", []), Direction.DESC)],
+        limit=Limit(len(group_ids)),
+    )
+
+    request = Request(
+        dataset=Dataset.Events.value,
+        app_id="reports",
+        query=query,
+        tenant_ids={"organization_id": ctx.organization.id},
+    )
+    rows = raw_snql_query(request, referrer=referrer)["data"]
+    return {row["events.group_id"]: row["count()"] for row in rows}
+
+
+def _past_resolved_perf_counts(
+    ctx: OrganizationReportContext,
+    project: Project,
+    group_ids: list[int],
+    referrer: str,
+) -> dict[int, int]:
+    query = Query(
+        match=Entity("search_issues"),
+        select=[Column("group_id"), Function("count", [])],
+        where=[
+            Condition(Column("group_id"), Op.IN, group_ids),
+            Condition(Column("timestamp"), Op.GTE, ctx.start),
+            Condition(Column("timestamp"), Op.LT, ctx.end),
+            Condition(Column("project_id"), Op.EQ, project.id),
+        ],
+        groupby=[Column("group_id")],
+        orderby=[OrderBy(Function("count", []), Direction.DESC)],
+        limit=Limit(len(group_ids)),
+    )
+    request = Request(
+        dataset=Dataset.IssuePlatform.value,
+        app_id="reports",
+        query=query,
+        tenant_ids={"organization_id": ctx.organization.id},
+    )
+    rows = raw_snql_query(request, referrer=referrer)["data"]
+    return {row["group_id"]: row["count()"] for row in rows}
 
 
 def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
