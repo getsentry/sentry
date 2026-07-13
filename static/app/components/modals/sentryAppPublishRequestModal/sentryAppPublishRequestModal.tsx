@@ -103,8 +103,9 @@ export function SentryAppPublishRequestModal({
       onPublishSubmission();
     },
     onError: error => {
-      const detail =
+      const rawDetail =
         error instanceof RequestError ? error.responseJSON?.detail : undefined;
+      const detail = typeof rawDetail === 'string' ? rawDetail : rawDetail?.message;
       addErrorMessage(
         detail
           ? tct('Request to publish [app] fails. [detail]', {app: app.slug, detail})
