@@ -1,4 +1,4 @@
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, type Responsive} from '@sentry/scraps/layout';
 
 import {BreadcrumbCopyAction} from './actions/breadcrumbCopyAction';
 import {BreadcrumbMenuAction} from './actions/breadcrumbMenuAction';
@@ -112,14 +112,14 @@ function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
             // Wide: show every parent item. Narrow: hide them all — 'link' parents
             // reappear in the overflow menu below; other types (e.g. 'select-projects')
             // simply collapse out of view.
-            <BreadcrumbDividerCombo key={index} display={showWide}>
+            <BreadcrumbDividerCombo key={index} display={visibleWhenWide}>
               {renderItem(item)}
             </BreadcrumbDividerCombo>
           ))}
 
           {/* Overflow menu — only visible in narrow layout when there are link items to collapse */}
           {menuItems.length > 0 && (
-            <BreadcrumbDividerCombo display={showNarrow}>
+            <BreadcrumbDividerCombo display={visibleWhenNarrow}>
               <BreadcrumbItemMenuBreadcrumbs items={menuItems} />
             </BreadcrumbDividerCombo>
           )}
