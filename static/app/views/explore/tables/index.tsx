@@ -16,10 +16,7 @@ import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansT
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
-import type {
-  AggregateField,
-  WritableAggregateField,
-} from 'sentry/views/explore/queryParams/aggregateField';
+import {serializeAggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsCrossEvents,
@@ -266,11 +263,4 @@ export function ExploreTables(props: ExploreTablesProps) {
       {tab === Tab.ATTRIBUTE_BREAKDOWNS && <AttributeBreakdownsContent />}
     </Fragment>
   );
-}
-
-function serializeAggregateField(aggregateField: AggregateField): WritableAggregateField {
-  if (isGroupBy(aggregateField)) {
-    return aggregateField;
-  }
-  return aggregateField.serialize();
 }

@@ -77,10 +77,7 @@ import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePers
 import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
 import {useValidateLogsTab} from 'sentry/views/explore/logs/useValidateLogsTab';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
-import type {
-  AggregateField,
-  WritableAggregateField,
-} from 'sentry/views/explore/queryParams/aggregateField';
+import {serializeAggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
   useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
@@ -657,13 +654,6 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
 }
 
 export const LogsTabContent = registerLLMContext('logs-explorer', LogsTabContentInner);
-
-function serializeAggregateField(aggregateField: AggregateField): WritableAggregateField {
-  if (isGroupBy(aggregateField)) {
-    return aggregateField;
-  }
-  return aggregateField.serialize();
-}
 
 const ViewportConstrainedBody = styled(ExploreBodyContent)`
   flex-direction: row;
