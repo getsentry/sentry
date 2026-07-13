@@ -125,6 +125,8 @@ for i = 0, 100 do -- Theoretic maximum depth of redirects is 100
 end
 
 local function insert_metric(t, key, value)
+    -- This is only reliable for dense tables. If the table is sparse this behavior is undefined
+    -- (varies by Lua version).
     t[#t + 1] = key
     t[#t + 1] = value
 end
@@ -140,8 +142,8 @@ if sample_metrics then
     insert_metric(metrics_table, "redirect_depth", redirect_depth)
 end
 
--- Precompute prefixes once per invocation. These key builders are used in the
--- span loops below, where concatenation is cheaper than repeated string.format.
+-- Precompute prefixes once per invocation. These key builders are used in the span loops below,
+-- where concatenation is cheaper than repeated string.format.
 local span_prefix = "span-buf:s:{" .. project_and_trace .. "}:"
 local ic_prefix = "span-buf:ic:" .. span_prefix
 local ibc_prefix = "span-buf:ibc:" .. span_prefix
