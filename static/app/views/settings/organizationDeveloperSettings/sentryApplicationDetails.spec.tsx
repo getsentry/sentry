@@ -12,7 +12,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
 import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
+
+jest.mock('sentry/utils/analytics');
 
 describe('Sentry Application Details', () => {
   let sentryApp: ReturnType<typeof SentryAppFixture>;
@@ -216,6 +219,190 @@ describe('Sentry Application Details', () => {
       expect(
         screen.queryByRole('link', {name: 'Start from a blank integration instead'})
       ).not.toBeInTheDocument();
+    });
+
+    describe('with a creation template', () => {
+      const templateRouterConfig: RouterConfig = {
+        location: {
+          pathname: '/sentry-apps/new-internal/',
+          query: {template: 'claude-routine', referrer: 'test_referrer'},
+        },
+        route: '/sentry-apps/new-internal/',
+      };
+      const organization = OrganizationFixture({
+        features: [
+          'sentry-apps-creation-templates',
+          'sentry-apps-custom-webhook-headers',
+        ],
+      });
+
+      it('prefills the form from the template', () => {
+        render(<SentryApplicationDetails />, {
+          initialRouterConfig: templateRouterConfig,
+          organization,
+        });
+
+        expect(screen.getByText('Trigger a Claude routine')).toBeInTheDocument();
+        expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('Claude Routine');
+        expect(screen.getByRole('textbox', {name: 'Routine Token'})).toHaveValue('');
+
+        expect(screen.getByRole('checkbox', {name: 'issue'})).toBeEnabled();
+        expect(screen.getByRole('checkbox', {name: 'issue'})).toBeChecked();
+
+        expect(trackAnalytics).toHaveBeenCalledWith(
+          'integrations.sentry_app_template_applied',
+          expect.objectContaining({
+            template: 'claude-routine',
+            referrer: 'test_referrer',
+          })
+        );
+      });
+
+      it('offers the starter prompt', async () => {
+        Object.assign(navigator, {
+          clipboard: {writeText: jest.fn().mockResolvedValue('')},
+        });
+
+        render(<SentryApplicationDetails />, {
+          initialRouterConfig: templateRouterConfig,
+          organization,
+        });
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Copy a starter prompt'})
+        );
+
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+          expect.stringContaining('Triage the Sentry issue')
+        );
+      });
+
+      it('hides the fields the template declares hidden', () => {
+        render(<SentryApplicationDetails />, {
+          initialRouterConfig: templateRouterConfig,
+          organization,
+        });
+
+        expect(
+          screen.queryByRole('checkbox', {name: 'Alert Action'})
+        ).not.toBeInTheDocument();
+        expect(screen.queryByRole('textbox', {name: 'Schema'})).not.toBeInTheDocument();
+        expect(screen.queryByRole('textbox', {name: 'Overview'})).not.toBeInTheDocument();
+        expect(
+          screen.queryByRole('textbox', {name: 'Authorized JavaScript Origins'})
+        ).not.toBeInTheDocument();
+        // The raw headers textarea is replaced by the token input.
+        expect(
+          screen.queryByRole('textbox', {name: 'Webhook Headers'})
+        ).not.toBeInTheDocument();
+      });
+
+      it('saves the composed integration', async () => {
+        createAppRequest = MockApiClient.addMockResponse({
+          url: '/sentry-apps/',
+          method: 'POST',
+          body: [],
+        });
+
+        render(<SentryApplicationDetails />, {
+          initialRouterConfig: templateRouterConfig,
+          // Mirror production, where granular events is GA.
+          organization: OrganizationFixture({
+            features: [
+              'sentry-apps-creation-templates',
+              'sentry-apps-custom-webhook-headers',
+              'sentry-apps-granular-events',
+            ],
+          }),
+        });
+
+        await userEvent.type(
+          screen.getByRole('textbox', {name: 'Anthropic Routine URL'}),
+          'https://api.anthropic.com/v1/claude_code/routines/trig_123/fire'
+        );
+        await userEvent.type(
+          screen.getByRole('textbox', {name: 'Routine Token'}),
+          'sk-ant-oat01-test'
+        );
+        await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+        expect(createAppRequest).toHaveBeenCalledWith(
+          '/sentry-apps/',
+          expect.objectContaining({
+            method: 'POST',
+            data: expect.objectContaining({
+              name: 'Claude Routine',
+              webhookUrl:
+                'https://api.anthropic.com/v1/claude_code/routines/trig_123/fire',
+              webhookHeaders: [
+                'Authorization: Bearer sk-ant-oat01-test',
+                'anthropic-version: 2023-06-01',
+                'anthropic-beta: experimental-cc-routine-2026-04-01',
+              ],
+              events: ['issue.created'],
+              scopes: ['event:read'],
+              isAlertable: false,
+              overview: 'Fires a Claude routine when new issues are created.',
+            }),
+          })
+        );
+      });
+
+      it('requires the routine URL', async () => {
+        createAppRequest = MockApiClient.addMockResponse({
+          url: '/sentry-apps/',
+          method: 'POST',
+          body: [],
+        });
+
+        render(<SentryApplicationDetails />, {
+          initialRouterConfig: templateRouterConfig,
+          organization,
+        });
+
+        await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+        expect(await screen.findByText('This field is required')).toBeInTheDocument();
+        expect(createAppRequest).not.toHaveBeenCalled();
+      });
+
+      it('ignores templates without the templates feature', () => {
+        render(<SentryApplicationDetails />, {
+          initialRouterConfig: templateRouterConfig,
+          organization: OrganizationFixture({
+            features: ['sentry-apps-custom-webhook-headers'],
+          }),
+        });
+
+        expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('');
+        expect(screen.queryByText('Trigger a Claude routine')).not.toBeInTheDocument();
+      });
+
+      it('ignores the template when the org lacks its required features', () => {
+        render(<SentryApplicationDetails />, {
+          initialRouterConfig: templateRouterConfig,
+          organization: OrganizationFixture({
+            features: ['sentry-apps-creation-templates'],
+          }),
+        });
+
+        expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('');
+        expect(screen.queryByText('Trigger a Claude routine')).not.toBeInTheDocument();
+      });
+
+      it('returns to a blank form from the template header', async () => {
+        render(<SentryApplicationDetails />, {
+          initialRouterConfig: templateRouterConfig,
+          organization,
+        });
+
+        await userEvent.click(
+          screen.getByRole('link', {name: 'Start from a blank integration instead'})
+        );
+
+        expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('');
+        expect(screen.queryByText('Trigger a Claude routine')).not.toBeInTheDocument();
+      });
     });
   });
 
