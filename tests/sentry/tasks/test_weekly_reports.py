@@ -2173,7 +2173,12 @@ class WeeklyReportsTest(
         }
         assert _pct_change(100, 0) is None
         assert _pct_change(0, 0) is None
-        assert _pct_change(100, 100) is None
+        assert _pct_change(100, 100) == {
+            "arrow": "",
+            "pct": "—0%",
+            "bg_color": "#F0F0F2",
+            "text_color": "#80708F",
+        }
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_past_resolved_issues_basic(self) -> None:

@@ -524,7 +524,7 @@ def _pct_change(current: int, previous: int) -> dict[str, str] | None:
     change = (current - previous) / previous
     pct = round(change * 100)
     if pct == 0:
-        return None
+        return {"arrow": "", "pct": "—0%", "bg_color": "#F0F0F2", "text_color": "#80708F"}
     if change > 0:
         return {"arrow": "↑", "pct": f"{abs(pct)}%", "bg_color": "#F9F0D2", "text_color": "#A45200"}
     return {"arrow": "↓", "pct": f"{abs(pct)}%", "bg_color": "#E3F7E3", "text_color": "#008900"}
