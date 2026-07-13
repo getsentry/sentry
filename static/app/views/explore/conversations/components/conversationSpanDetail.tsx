@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import {css, useTheme} from '@emotion/react';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -39,7 +39,11 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {AttributesContent} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
+import {tryParseJsonRecursive} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/utils';
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+
+const AI_SPAN_DETAILS_JSON_LINE_BUDGET = 55;
+const AI_SPAN_DETAILS_JSON_MAX_DEPTH = 6;
 
 export type DetailTab = 'input' | 'output' | 'attributes';
 
@@ -290,9 +294,7 @@ function InputTab({
           <MessageContent content={message.content} clip={message.role === 'system'} />
         </Fragment>
       ))}
-      {toolArgs ? (
-        <TraceDrawerComponents.MultilineJSON value={toolArgs} maxDefaultDepth={1} />
-      ) : null}
+      {toolArgs ? <BudgetedMultilineJSON value={toolArgs} /> : null}
       {embeddingsInput ? (
         <TraceDrawerComponents.MultilineText clip={false}>
           {embeddingsInput.toString()}
@@ -323,7 +325,7 @@ function OutputTab({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <AIContentRenderer text={responseText} clip={false} />
+          <BudgetedAIContentRenderer text={responseText} clip={false} />
         </Fragment>
       ) : null}
       {responseObject ? (
@@ -331,7 +333,7 @@ function OutputTab({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response Object')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <AIContentRenderer text={responseObject} clip={false} />
+          <BudgetedAIContentRenderer text={responseObject} clip={false} />
         </Fragment>
       ) : null}
       {toolCalls ? (
@@ -339,26 +341,97 @@ function OutputTab({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Tool Calls')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <TraceDrawerComponents.MultilineJSON value={toolCalls} maxDefaultDepth={2} />
+          <BudgetedMultilineJSON value={toolCalls} />
         </Fragment>
       ) : null}
-      {toolOutput ? (
-        <TraceDrawerComponents.MultilineJSON value={toolOutput} maxDefaultDepth={1} />
-      ) : null}
+      {toolOutput ? <BudgetedMultilineJSON value={toolOutput} /> : null}
     </Fragment>
   );
 }
 
 function MessageContent({content, clip = false}: {content: unknown; clip?: boolean}) {
   return typeof content === 'string' ? (
-    <AIContentRenderer text={content} clip={clip} />
+    <BudgetedAIContentRenderer text={content} clip={clip} />
   ) : (
-    <TraceDrawerComponents.MultilineJSON
-      value={content}
-      maxDefaultDepth={2}
+    <BudgetedMultilineJSON value={content} clip={clip} />
+  );
+}
+
+function BudgetedAIContentRenderer({text, clip}: {text: string; clip?: boolean}) {
+  return (
+    <AIContentRenderer
+      text={text}
+      getInitialJsonExpandedPaths={getBudgetedJsonExpandedPaths}
       clip={clip}
     />
   );
+}
+
+function BudgetedMultilineJSON({value, clip = false}: {value: unknown; clip?: boolean}) {
+  const json = useMemo(() => tryParseJsonRecursive(value), [value]);
+  const initialExpandedPaths = useMemo(() => getBudgetedJsonExpandedPaths(json), [json]);
+
+  return (
+    <TraceDrawerComponents.MultilineJSON
+      value={json}
+      initialExpandedPaths={initialExpandedPaths}
+      clip={clip}
+    />
+  );
+}
+
+function getBudgetedJsonExpandedPaths(value: unknown): string[] {
+  const expandedPaths = new Set<string>(['$']);
+  const rootChildren = getJsonChildren(value);
+  let remainingLines = AI_SPAN_DETAILS_JSON_LINE_BUDGET - getExpandedJsonLineCount(value);
+
+  for (const [key, child] of rootChildren) {
+    if (remainingLines <= 0) {
+      break;
+    }
+    visitJsonNode(`$.${key}`, child, 1);
+  }
+
+  return Array.from(expandedPaths);
+
+  function visitJsonNode(path: string, valueAtPath: unknown, depth: number) {
+    if (depth >= AI_SPAN_DETAILS_JSON_MAX_DEPTH) {
+      return;
+    }
+
+    const children = getJsonChildren(valueAtPath);
+    const expandedLineCount = getExpandedJsonLineCount(valueAtPath);
+    if (children.length === 0 || expandedLineCount > remainingLines) {
+      return;
+    }
+
+    expandedPaths.add(path);
+    remainingLines -= expandedLineCount;
+
+    for (const [key, child] of children) {
+      if (remainingLines <= 0) {
+        break;
+      }
+      visitJsonNode(`${path}.${key}`, child, depth + 1);
+    }
+  }
+}
+
+function getExpandedJsonLineCount(value: unknown): number {
+  const children = getJsonChildren(value);
+  return children.length === 0 ? 1 : children.length + 2;
+}
+
+function getJsonChildren(value: unknown): Array<[string, unknown]> {
+  if (Array.isArray(value)) {
+    return value.map((child, index) => [index.toString(), child]);
+  }
+
+  if (value === null || typeof value !== 'object') {
+    return [];
+  }
+
+  return Object.entries(value);
 }
 
 function AttributesTab({

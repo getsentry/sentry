@@ -1261,6 +1261,7 @@ function MultilineJSON({
   maxDefaultDepth = 2,
   autoCollapseLimit,
   clip = false,
+  initialExpandedPaths,
 }: {
   value: any;
   autoCollapseLimit?: number;
@@ -1269,6 +1270,7 @@ function MultilineJSON({
    * scrolls on its own, so content flows instead of being clipped and hidden.
    */
   clip?: boolean;
+  initialExpandedPaths?: string[];
   maxDefaultDepth?: number;
 }) {
   const [showRaw, setShowRaw] = useState(false);
@@ -1279,9 +1281,13 @@ function MultilineJSON({
 
   // Ensure root ('$') is always expanded, while children follow maxDefaultDepth rules
   const computedExpandedPaths = useMemo(() => {
+    if (initialExpandedPaths) {
+      return initialExpandedPaths;
+    }
+
     const childPaths = getDefaultExpanded(maxDefaultDepth, json, autoCollapseLimit);
     return Array.from(new Set(['$', ...childPaths]));
-  }, [maxDefaultDepth, json, autoCollapseLimit]);
+  }, [maxDefaultDepth, json, autoCollapseLimit, initialExpandedPaths]);
 
   const content = (
     <MultilineTextWrapperMonospace {...hoverProps}>
@@ -1311,6 +1317,7 @@ function MultilineJSON({
         </pre>
       ) : (
         <StructuredData
+          key={computedExpandedPaths.join('\0')}
           config={{
             isString: v => typeof v === 'string',
             isBoolean: v => typeof v === 'boolean',

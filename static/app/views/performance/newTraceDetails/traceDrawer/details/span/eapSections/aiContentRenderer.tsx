@@ -24,6 +24,7 @@ interface AIContentRendererProps {
    */
   clip?: boolean;
   collapsibleXmlTags?: boolean;
+  getInitialJsonExpandedPaths?: (value: unknown) => string[];
   inline?: boolean;
   maxJsonDepth?: number;
 }
@@ -113,6 +114,7 @@ export function AIContentRenderer({
   autoCollapseLimit,
   collapsibleXmlTags = true,
   clip,
+  getInitialJsonExpandedPaths,
 }: AIContentRendererProps) {
   const detection = useMemo(() => detectAIContentType(text), [text]);
 
@@ -129,6 +131,7 @@ export function AIContentRenderer({
           value={detection.parsedData}
           maxDefaultDepth={maxJsonDepth}
           autoCollapseLimit={autoCollapseLimit}
+          initialExpandedPaths={getInitialJsonExpandedPaths?.(detection.parsedData)}
           clip={clipJson}
         />
       );
@@ -140,6 +143,7 @@ export function AIContentRenderer({
             value={detection.parsedData}
             maxDefaultDepth={maxJsonDepth}
             autoCollapseLimit={autoCollapseLimit}
+            initialExpandedPaths={getInitialJsonExpandedPaths?.(detection.parsedData)}
             clip={clipJson}
           />
           <Text size="xs" variant="muted">
