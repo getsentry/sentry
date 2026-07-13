@@ -60,8 +60,8 @@ from sentry.seer.autofix.github_perms import (
     get_out_of_date_github_permissions,
 )
 from sentry.seer.autofix.pr_iteration.feedback_queue import (
-    enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
+    try_enqueue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.types import Feedback
 from sentry.seer.autofix.types import (
@@ -362,27 +362,27 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     filter={"user_ids": [request.user.id]},
                 )
                 feedback = Feedback(
-                    text=user_context,
                     source={
                         "type": "user-ui",
                         "user_id": request.user.id,
                         "user": serialized_users[0] if serialized_users else None,
+                        "user_feedback": user_context,
                     },
                 )
 
-                enqueue_autofix_feedback(
+                try_enqueue_autofix_feedback(
                     run_id=resolved_run_id,
                     organization_id=group.organization.id,
                     group_id=group.id,
                     feedback=feedback,
                     referrer=referrer,
+                    run_state=run_state,
                 )
 
                 consume_queued_autofix_feedback.apply_async(
                     kwargs={
                         "run_id": resolved_run_id,
                         "organization_id": group.organization.id,
-                        "group_id": group.id,
                     }
                 )
 
