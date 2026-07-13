@@ -5,10 +5,10 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {progressivelySplitDateTimeRange} from 'sentry/components/pageFilters/progressivelySplitDateTimeRange';
 import type {PageFilters} from 'sentry/types/core';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {splitDateTime} from 'sentry/views/explore/metrics/hooks/splitDateTime';
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
@@ -31,7 +31,7 @@ const NARROW_SELECTION = PageFiltersFixture({
 
 // The split windows are absolute datetimes; each maps to one chunk request whose
 // query carries the normalized (UTC, `.SSS`, no `Z`) start/end.
-const WIDE_WINDOWS = splitDateTime(WIDE_SELECTION.datetime, '1h');
+const WIDE_WINDOWS = progressivelySplitDateTimeRange(WIDE_SELECTION.datetime, '1h');
 const windowMs = (window: PageFilters['datetime']) => ({
   start: moment.utc(window.start ?? undefined).valueOf(),
   end: moment.utc(window.end ?? undefined).valueOf(),
@@ -71,9 +71,7 @@ function mockBounds(body: {data: Array<Record<string, number>>}) {
   return MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,
     method: 'GET',
-    match: [
-      MockApiClient.matchQuery({referrer: 'api.explore.tracemetrics-heatmap-bounds'}),
-    ],
+    match: [MockApiClient.matchQuery({referrer: 'api.explore.tracemetrics-bounds'})],
     body: {...body, meta: {}},
   });
 }
@@ -222,9 +220,7 @@ describe('useMetricHeatMapData', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      match: [
-        MockApiClient.matchQuery({referrer: 'api.explore.tracemetrics-heatmap-bounds'}),
-      ],
+      match: [MockApiClient.matchQuery({referrer: 'api.explore.tracemetrics-bounds'})],
       body: {detail: 'nope'},
       statusCode: 500,
     });

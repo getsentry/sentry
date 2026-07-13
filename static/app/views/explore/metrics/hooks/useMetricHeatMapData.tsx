@@ -3,22 +3,23 @@ import {useQueries, useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {progressivelySplitDateTimeRange} from 'sentry/components/pageFilters/progressivelySplitDateTimeRange';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
+import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import {
   chunkedMetricHeatmapApiOptions,
   emptyHeatMapSeries,
   type MetricHeatmapPlan,
 } from 'sentry/views/explore/metrics/hooks/chunkedMetricHeatmap';
 import {
-  metricHeatmapBoundsApiOptions,
-  reduceHeatMapBounds,
-} from 'sentry/views/explore/metrics/hooks/metricHeatmapBoundsApiOptions';
+  metricBoundsApiOptions,
+  reduceMetricBounds,
+} from 'sentry/views/explore/metrics/hooks/metricBoundsApiOptions';
 import {metricHeatmapCombine} from 'sentry/views/explore/metrics/hooks/metricHeatmapCombine';
-import {splitDateTime} from 'sentry/views/explore/metrics/hooks/splitDateTime';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 interface UseMetricHeatMapDataOptions {
@@ -60,11 +61,12 @@ export interface MetricHeatMapData {
  * Heat map data source for Explore and Dashboards.
  *
  * Wide ranges are fetched in two phases. Phase A learns the global y-domain with
- * one cheap `min`/`max` aggregate (`metricHeatmapBoundsApiOptions`). Phase B
- * builds the pinned, chunked requests (`chunkedMetricHeatmapApiOptions`) and lets
- * `useQueries` fire + `combine` them into one dense grid (`metricHeatmapCombine`).
- * A failed chunk degrades to a partial render; narrow ranges skip Phase A and
- * issue one unpinned request over the selection.
+ * one cheap `min`/`max` aggregate (`metricBoundsApiOptions`). Phase B builds the
+ * pinned, chunked requests (`chunkedMetricHeatmapApiOptions`) and lets `useQueries`
+ * fire + `combine` them into one dense grid (`metricHeatmapCombine`). The metric
+ * unit is patched onto the merged grid here, once. A failed chunk degrades to a
+ * partial render; narrow ranges skip Phase A and issue one unpinned request over
+ * the selection.
  */
 export function useMetricHeatMapData({
   organization,
@@ -78,9 +80,9 @@ export function useMetricHeatMapData({
   const validDims = defined(yBuckets) && yBuckets > 0;
 
   // Split the range into epoch-aligned sub-windows once per filter/interval
-  // change. Date.now() (inside splitDateTime, for relative ranges) is captured
-  // once here; epoch-snapping keeps historical boundaries stable across renders,
-  // so only the live edge moves.
+  // change. Date.now() (inside progressivelySplitDateTimeRange, for relative
+  // ranges) is captured once here; epoch-snapping keeps historical boundaries
+  // stable across renders, so only the live edge moves.
   const plan = useMemo((): MetricHeatmapPlan => {
     if (!defined(interval)) {
       return EMPTY_PLAN;
@@ -90,7 +92,7 @@ export function useMetricHeatMapData({
       return EMPTY_PLAN;
     }
 
-    const windows = splitDateTime(selection.datetime, interval);
+    const windows = progressivelySplitDateTimeRange(selection.datetime, interval);
     const isRelative = !defined(normalizeDateTimeParams(selection.datetime).start);
     // Absolute windows carry Dates; parse via moment for the merge grid's range.
     // A single (fast-path) window merges nothing, so its range is irrelevant.
@@ -118,7 +120,7 @@ export function useMetricHeatMapData({
   const chunked = windows.length > 1;
 
   // Phase A — global y-domain. Only fired when we actually chunk.
-  const boundsApiOptions = metricHeatmapBoundsApiOptions({
+  const boundsApiOptions = metricBoundsApiOptions({
     organization,
     selection,
     traceMetric,
@@ -128,7 +130,7 @@ export function useMetricHeatMapData({
   });
   const boundsQuery = useQuery({
     ...boundsApiOptions,
-    select: data => reduceHeatMapBounds(boundsApiOptions.select!(data)),
+    select: data => reduceMetricBounds(boundsApiOptions.select!(data)),
   });
 
   const boundsResolved = chunked && boundsQuery.isSuccess;
@@ -150,14 +152,8 @@ export function useMetricHeatMapData({
     enabled: enabled && validDims && (chunked ? domainReady : true),
   });
   const combine = useMemo(
-    () =>
-      metricHeatmapCombine({
-        isChunked: chunked,
-        fullRange,
-        intervalMs,
-        unit: traceMetric.unit,
-      }),
-    [chunked, fullRange, intervalMs, traceMetric.unit]
+    () => metricHeatmapCombine({isChunked: chunked, fullRange, intervalMs}),
+    [chunked, fullRange, intervalMs]
   );
   const {
     series: chunkSeries,
@@ -167,15 +163,12 @@ export function useMetricHeatMapData({
   } = useQueries({queries, combine});
 
   // Phase A resolved but the range has no data → empty grid so "No data" shows.
-  const series = boundsEmpty
-    ? emptyHeatMapSeries(
-        fullRange.start,
-        fullRange.end,
-        intervalMs,
-        yBuckets ?? 0,
-        traceMetric.unit
-      )
+  const merged = boundsEmpty
+    ? emptyHeatMapSeries(fullRange.start, fullRange.end, intervalMs, yBuckets ?? 0)
     : chunkSeries;
+  // Patch the metric unit onto the y-axis once, here — neither the combiner nor
+  // the empty-grid builder needs to know about units.
+  const series = merged ? mergeMetricUnit(merged, traceMetric.unit ?? undefined) : merged;
   const error = boundsQuery.error ?? chunkError;
 
   return {

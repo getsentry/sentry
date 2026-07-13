@@ -15,7 +15,7 @@ import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils'
 const MIN_VALUE_FIELD = 'min(value)';
 const MAX_VALUE_FIELD = 'max(value)';
 
-interface MetricHeatmapBoundsApiOptions {
+interface MetricBoundsApiOptions {
   enabled: boolean;
   organization: Organization;
   query: string;
@@ -25,34 +25,25 @@ interface MetricHeatmapBoundsApiOptions {
 }
 
 /**
- * Phase A of chunked heat map fetching: one cheap aggregate that learns the
- * global y-axis domain (`min(value)`/`max(value)`) over the full range, so every
- * time-chunk can pin identical, aligned buckets.
+ * One cheap aggregate that learns a metric's value range (`min(value)` /
+ * `max(value)`) over the current selection — the exact extremes across every row.
  *
- * This reuses the existing `/events/` endpoint — it's the same min/max the heat
- * map endpoint computes internally via `query_y_bucket_ranges`, just issued
- * directly so we can share one domain across parallel chunk requests.
- *
- * Runs at HIGHEST_ACCURACY (no downsampling), which is REQUIRED for chunking
- * correctness — do not "optimize" it back to default sampling. EAP picks a
- * downsampling tier per request based on the query's time range + estimated row
- * count (snuba `outcomes_based.py`), and `min`/`max` are NOT extrapolated: on a
- * downsampled tier they're the extremes of *scanned* rows, biased inward. A
- * bounds query that downsampled would return a `yMin` that's too high; the heat
- * map's bottom bucket is closed (`value >= yMin`), so any chunk — which may land
- * on a *finer* tier and surface lower values — would have those rows dropped,
- * undercounting the low end. Exact (unsampled) extremes guarantee the pinned
- * domain encloses every row, regardless of what tier each chunk resolves to.
- * See the backend-contract note in `useChunkedTimeRangeQuery`.
+ * Runs at HIGHEST_ACCURACY (no downsampling) so the bounds are exact. EAP picks a
+ * downsampling tier per request from the query's time range + estimated row count
+ * (snuba `outcomes_based.py`), and `min`/`max` are NOT extrapolated: on a
+ * downsampled tier they're the extremes of *scanned* rows, biased inward. Callers
+ * that pin a domain to these bounds (e.g. the chunked heat map, so parallel
+ * chunks share aligned buckets) rely on them enclosing every row, so do not
+ * "optimize" this back to default sampling.
  */
-export function metricHeatmapBoundsApiOptions({
+export function metricBoundsApiOptions({
   organization,
   selection,
   traceMetric,
   query,
   enabled,
   interval,
-}: MetricHeatmapBoundsApiOptions) {
+}: MetricBoundsApiOptions) {
   const traceMetricFilter = createTraceMetricEventsFilter([traceMetric]);
   const combinedQuery = query ? `${traceMetricFilter} (${query})` : traceMetricFilter;
 
@@ -75,7 +66,7 @@ export function metricHeatmapBoundsApiOptions({
         start,
         end,
         statsPeriod,
-        referrer: 'api.explore.tracemetrics-heatmap-bounds',
+        referrer: 'api.explore.tracemetrics-bounds',
       },
       staleTime:
         usesRelativeDateRange && intervalInMilliseconds !== 0
@@ -85,27 +76,24 @@ export function metricHeatmapBoundsApiOptions({
   );
 }
 
-export interface HeatMapBounds {
-  yMax: number;
-  yMin: number;
+export interface MetricBounds {
+  max: number;
+  min: number;
 }
 
 /**
- * Reduces the single-row bounds response to a `{yMin, yMax}` domain, or `null`
- * when the range has no data (so the caller can render an empty grid rather than
- * pinning a bogus domain).
+ * Reduces the single-row bounds response to a `{min, max}` range, or `null` when
+ * the range has no data (so the caller can skip pinning a bogus domain).
  */
-export function reduceHeatMapBounds(
-  result: TraceMetricEventsResult
-): HeatMapBounds | null {
+export function reduceMetricBounds(result: TraceMetricEventsResult): MetricBounds | null {
   const row = result.data?.[0];
   if (!row) {
     return null;
   }
-  const yMin = Number(row[MIN_VALUE_FIELD]);
-  const yMax = Number(row[MAX_VALUE_FIELD]);
-  if (!Number.isFinite(yMin) || !Number.isFinite(yMax)) {
+  const min = Number(row[MIN_VALUE_FIELD]);
+  const max = Number(row[MAX_VALUE_FIELD]);
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
     return null;
   }
-  return {yMin, yMax};
+  return {min, max};
 }

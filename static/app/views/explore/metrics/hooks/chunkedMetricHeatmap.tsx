@@ -5,10 +5,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {MetricBounds} from 'sentry/views/explore/metrics/hooks/metricBoundsApiOptions';
 import {metricHeatmapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatmapApiOptions';
-import type {HeatMapBounds} from 'sentry/views/explore/metrics/hooks/metricHeatmapBoundsApiOptions';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 /**
@@ -50,10 +49,10 @@ interface ChunkedMetricHeatmapOptions extends Pick<
   'windows' | 'intervalMs' | 'isRelative'
 > {
   /**
-   * The pinned y-domain from Phase A. Undefined until it resolves; the queries
-   * skip-token themselves off via `enabled` until then.
+   * The metric value range from Phase A, pinned onto the y-axis. Undefined until
+   * it resolves; the queries skip-token themselves off via `enabled` until then.
    */
-  bounds: HeatMapBounds | undefined;
+  bounds: MetricBounds | undefined;
   enabled: boolean;
   organization: Organization;
   query: string;
@@ -66,8 +65,8 @@ interface ChunkedMetricHeatmapOptions extends Pick<
 /**
  * Builds the full array of chunked heat map requests wholesale — one
  * `/events-heatmap/` query per chunk — ready to spread into
- * `useQueries({queries, combine})`. Mirrors how `metricHeatmapBoundsApiOptions`
- * returns a single query; this returns the chunk array.
+ * `useQueries({queries, combine})`. Mirrors how `metricBoundsApiOptions` returns
+ * a single query; this returns the chunk array.
  *
  * ---------------------------------------------------------------------------
  * BACKEND CONTRACT (EAP / Snuba) — verified July 2025. Read before you futz.
@@ -75,7 +74,7 @@ interface ChunkedMetricHeatmapOptions extends Pick<
  * 1. TIME ALIGNMENT. Snuba anchors buckets to the request's `start`
  *    (`start + k*granularity`), NOT the epoch, so chunk boundaries must be
  *    epoch-aligned multiples of the interval or adjacent chunks duplicate/drop
- *    the seam. `splitDateTime` guarantees this; the interval must be a
+ *    the seam. `progressivelySplitDateTimeRange` guarantees this; the interval must be a
  *    backend-accepted granularity (`VALID_GRANULARITIES`).
  * 2. CACHING. Snuba's result cache key is an MD5 of the SQL (embeds literal
  *    start/end); no server-side quantization or jitter. So stable epoch-aligned
@@ -87,7 +86,7 @@ interface ChunkedMetricHeatmapOptions extends Pick<
  *    noisy/non-uniform `count()`s and biased `min`/`max`. Every chunk (and the
  *    Phase A bounds) runs at HIGHEST_ACCURACY (TIER_1) to stay exact and uniform;
  *    the single-chunk fast path is unpinned and keeps default sampling. If a chunk
- *    is too slow, shrink the chunks (the `splitDateTime` policy), do NOT
+ *    is too slow, shrink the chunks (the `progressivelySplitDateTimeRange` policy), do NOT
  *    re-enable per-chunk downsampling.
  */
 export function chunkedMetricHeatmapApiOptions({
@@ -119,8 +118,8 @@ export function chunkedMetricHeatmapApiOptions({
         query,
         interval,
         yBuckets,
-        yMin: isChunked ? bounds?.yMin : undefined,
-        yMax: isChunked ? bounds?.yMax : undefined,
+        yMin: isChunked ? bounds?.min : undefined,
+        yMax: isChunked ? bounds?.max : undefined,
         sampling: isChunked ? SAMPLING_MODE.HIGH_ACCURACY : undefined,
         staleTime: isChunked ? (isTrailingLive ? intervalMs : Infinity) : undefined,
         enabled,
@@ -131,39 +130,36 @@ export function chunkedMetricHeatmapApiOptions({
 }
 
 /**
- * An empty, unit-patched grid for when Phase A resolves but the range has no
- * data, so the "No data" state renders instead of a perpetual spinner.
+ * An empty grid for when Phase A resolves but the range has no data, so the "No
+ * data" state renders instead of a perpetual spinner. The metric unit is patched
+ * on by the caller.
  */
 export function emptyHeatMapSeries(
   startMs: number,
   endMs: number,
   intervalMs: number,
-  yBuckets: number,
-  unit: TraceMetric['unit']
+  yBuckets: number
 ): HeatMapSeries {
-  return mergeMetricUnit(
-    {
-      values: [],
-      meta: {
-        xAxis: {
-          name: 'time',
-          start: startMs,
-          end: endMs,
-          bucketCount: 0,
-          bucketSize: intervalMs / 1000,
-        },
-        yAxis: {
-          name: 'value',
-          start: 0,
-          end: 0,
-          bucketCount: yBuckets,
-          bucketSize: 0,
-          valueType: 'number',
-          valueUnit: null,
-        },
-        zAxis: {name: 'count()', start: 0, end: 0},
+  return {
+    values: [],
+    meta: {
+      xAxis: {
+        name: 'time',
+        start: startMs,
+        end: endMs,
+        bucketCount: 0,
+        bucketSize: intervalMs / 1000,
       },
+      yAxis: {
+        name: 'value',
+        start: 0,
+        end: 0,
+        bucketCount: yBuckets,
+        bucketSize: 0,
+        valueType: 'number',
+        valueUnit: null,
+      },
+      zAxis: {name: 'count()', start: 0, end: 0},
     },
-    unit ?? undefined
-  );
+  };
 }

@@ -111,7 +111,7 @@ describe('metricHeatmapCombine', () => {
     fullRange: {start: 0, end: 2 * HOUR},
     intervalMs: HOUR,
   };
-  const combine = metricHeatmapCombine({...RESOLVED, unit: undefined});
+  const combine = metricHeatmapCombine(RESOLVED);
 
   // Minimal query-result fakes — the combine only reads these fields.
   function success(series: HeatMapSeries): UseQueryResult<HeatMapSeries> {
