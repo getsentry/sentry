@@ -11,7 +11,7 @@ import jsonschema
 import orjson
 from django.db import IntegrityError, router
 from django.db.models import Case, Exists, F, IntegerField, Q, QuerySet, Value, When
-from django.http import Http404, HttpResponse, StreamingHttpResponse
+from django.http import Http404, HttpResponse, HttpResponseRedirect, StreamingHttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from objectstore_client import RequestError
 from rest_framework import status
@@ -26,7 +26,7 @@ from sentry.apidocs.response_types import DetailResponse
 if TYPE_CHECKING:
     from django_stubs_ext import WithAnnotations
 
-from sentry import ratelimits
+from sentry import features, ratelimits
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -274,6 +274,11 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         if debug_file is None:
             raise Http404
+
+        if debug_file.storage_path is not None and features.has(
+            "organizations:objectstore-debugfiles-direct-read", project.organization
+        ):
+            return HttpResponseRedirect(debug_file.get_objectstore_presigned_url(self.request))
 
         try:
             fp = debug_file.get_file()

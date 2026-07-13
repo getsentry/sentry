@@ -1359,7 +1359,7 @@ wheels = [
 
 [[package]]
 name = "objectstore-client"
-version = "0.1.13"
+version = "0.1.14"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "filetype" },
@@ -1369,7 +1369,7 @@ dependencies = [
     { name = "zstandard" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/objectstore_client-0.1.13-py3-none-any.whl", hash = "sha256:919f410786c5114fff505aee1a4c9502901c5ca57814875fc4261e067b52ca1a" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/objectstore_client-0.1.14-py3-none-any.whl", hash = "sha256:26b18b31f516cf5cb6a109000ec436ae059e678efbab9b3d1d7fa59999d2f14e" },
 ]
 
 [[package]]
@@ -2376,7 +2376,7 @@ requires-dist = [
     { name = "mmh3", specifier = ">=4.0.0" },
     { name = "msgpack", specifier = ">=1.2.1" },
     { name = "msgspec", specifier = ">=0.19.0" },
-    { name = "objectstore-client", specifier = ">=0.1.13" },
+    { name = "objectstore-client", specifier = ">=0.1.14" },
     { name = "openai", specifier = ">=1.3.5" },
     { name = "orjson", specifier = ">=3.10.10" },
     { name = "packaging", specifier = ">=24.1" },

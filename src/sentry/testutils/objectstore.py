@@ -24,7 +24,12 @@ def _wrap_test(func: Callable[..., Any], enabled: bool) -> Callable[..., Any]:
     def wrapper(self: Any, *args: Any, **kwargs: Any) -> None:
         from sentry.testutils.helpers.features import Feature
 
-        with Feature({"organizations:objectstore-debugfiles-write": enabled}):
+        with Feature(
+            {
+                "organizations:objectstore-debugfiles-write": enabled,
+                "organizations:objectstore-debugfiles-direct-read": enabled,
+            }
+        ):
             func(self, *args, **kwargs)
 
     wrapper._snapshot_name = func.__name__  # type: ignore[attr-defined]

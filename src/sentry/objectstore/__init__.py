@@ -1,9 +1,11 @@
 import subprocess
 from datetime import timedelta
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse, urlsplit, urlunparse
 
 import urllib3
 from django.conf import settings
+from django.http import HttpRequest
+from django.urls import reverse
 from objectstore_client import (
     Client,
     MetricsBackend,
@@ -145,15 +147,16 @@ def get_preprod_session(org: int, project: int) -> Session:
 _IS_SYMBOLICATOR_CONTAINER: bool | None = None
 
 
-def get_symbolicator_url(session: Session, key: str) -> str:
+def maybe_rewrite_url_for_symbolicator(url: str) -> str:
     """
-    Gets the URL that Symbolicator shall use to access the object at the given key in Objectstore.
+    Rewrites a full Objectstore URL so that Symbolicator can reach it.
 
-    In prod, this is simply the `object_url` returned by `objectstore_client`, as both Sentry and Symbolicator
-    will talk to Objectstore using the same hostname.
+    In prod, the URL is returned unchanged, as both Sentry and Symbolicator talk to Objectstore
+    using the same hostname.
 
-    While in development or testing, we might need to replace the hostname, depending on how Symbolicator is running.
-    This function runs a `docker ps` to automatically return the correct URL in the following 2 cases:
+    While in development or testing, we might need to replace the hostname, depending on how
+    Symbolicator is running. This function runs a `docker ps` to automatically return the correct
+    URL in the following 2 cases:
         - Symbolicator running in Docker (possibly via `devservices`) -- this mirrors `sentry`'s CI.
           If this is detected, we replace Objectstore's hostname with the one reachable in the Docker network.
 
@@ -164,7 +167,6 @@ def get_symbolicator_url(session: Session, key: str) -> str:
     """
     global _IS_SYMBOLICATOR_CONTAINER  # Cached to avoid running `docker ps` multiple times
 
-    url = session.object_url(key)
     if not (settings.IS_DEV or in_test_environment()):
         return url
 
@@ -186,3 +188,45 @@ def get_symbolicator_url(session: Session, key: str) -> str:
         replacement += f":{parsed.port}"
     updated = parsed._replace(netloc=replacement)
     return urlunparse(updated)
+
+
+def get_symbolicator_url(session: Session, key: str) -> str:
+    """
+    Gets the URL that Symbolicator shall use to access the object at the given key in Objectstore.
+
+    The URL is only rewritten in dev/test mode. See `maybe_rewrite_url_for_symbolicator` for details.
+    """
+    return maybe_rewrite_url_for_symbolicator(session.object_url(key))
+
+
+def get_download_redirect_url(request: HttpRequest, session: Session, org: int, key: str) -> str:
+    """
+    Returns the URL that `request` should be redirected to in order to download the object at `key`
+    directly from Objectstore, bypassing Sentry.
+
+    Internal callers (e.g. Symbolicator) are redirected straight to Objectstore's internal URL, while
+    external callers are redirected to the cell proxy, which forwards the request to Objectstore.
+    """
+    from sentry.api.utils import generate_locality_url
+    from sentry.auth import system
+
+    presigned_url = session.presigned_object_url("GET", key, duration=timedelta(minutes=5))
+
+    if system.is_internal_ip(request):
+        # Redirect to a URL pointing to the internal Objectstore ip/hostname.
+        # In dev/test, we potentially need to rewrite this URL to point to the hostname in the docker network
+        # instead, so we need to additionally wrap this with `maybe_rewrite_url_for_symbolicator`.
+        # TODO(lcian): Find a more robust way to do this. Here we assume that the caller is Symbolicator,
+        # which is currently the case in practice, but in theory it could be any other service.
+        return maybe_rewrite_url_for_symbolicator(presigned_url)
+
+    parts = urlsplit(presigned_url)
+    proxy_path = reverse(
+        "sentry-api-0-organization-objectstore",
+        kwargs={
+            "organization_id_or_slug": org,
+            "path": parts.path.lstrip("/"),
+        },
+    )
+    base = generate_locality_url().rstrip("/")
+    return f"{base}{proxy_path}?{parts.query}"
