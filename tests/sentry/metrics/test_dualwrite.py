@@ -70,3 +70,34 @@ def test_dualwrite_experimental_backend_rollout_disabled(dogstatsd_gauge, sentry
     backend.gauge("metric", 42, tags={"test": "tag"}, unit="none")
     dogstatsd_gauge.assert_called_once()
     sentry_sdk_gauge.assert_not_called()
+
+
+@mock.patch("datadog.dogstatsd.base.DogStatsd.set")
+@thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
+def test_dualwrite_set(dogstatsd_set):
+    backend = DualWriteMetricsBackend(
+        primary_backend="sentry.metrics.dogstatsd.DogStatsdMetricsBackend",
+        secondary_backend="sentry.metrics.precise_dogstatsd.PreciseDogStatsdMetricsBackend",
+        secondary_prefixes=["secondary"],
+    )
+
+    backend.set("foo", 4242, tags={"some": "stuff"})
+    dogstatsd_set.assert_called_once()
+
+    dogstatsd_set.reset_mock()
+
+    backend.set("secondary.foo", 4242, tags={"some": "stuff"})
+    dogstatsd_set.assert_called_once()
+
+
+@mock.patch("datadog.dogstatsd.base.DogStatsd.set")
+@thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
+def test_dualwrite_set_experimental_backend(dogstatsd_set):
+    backend = DualWriteMetricsBackend(
+        primary_backend="sentry.metrics.dogstatsd.DogStatsdMetricsBackend",
+        experimental_backend="sentry.metrics.sentry_sdk.SentrySDKMetricsBackend",
+        experimental_args={"deny_list": [], "experimental_sample_rate": 1.0},
+    )
+
+    backend.set("allowed", 4242, tags={"test": "tag"})
+    dogstatsd_set.assert_called_once()
