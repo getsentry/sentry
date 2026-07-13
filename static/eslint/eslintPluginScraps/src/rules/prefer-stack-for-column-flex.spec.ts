@@ -28,10 +28,17 @@ ruleTester.run('prefer-stack-for-column-flex', preferStackForColumnFlex, {
       `,
     },
     {
-      name: 'Flex with a non-literal direction is not matched',
+      name: 'Flex with a responsive direction is not matched',
       code: `
         import {Flex} from '@sentry/scraps/layout';
         const x = <Flex direction={{xs: 'column', md: 'row'}}>child</Flex>;
+      `,
+    },
+    {
+      name: 'Flex with a dynamic direction is not matched',
+      code: `
+        import {Flex} from '@sentry/scraps/layout';
+        const x = <Flex direction={vertical ? 'column' : 'row'}>child</Flex>;
       `,
     },
     {
