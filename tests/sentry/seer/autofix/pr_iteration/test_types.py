@@ -10,7 +10,7 @@ from sentry.seer.autofix.pr_iteration.feedback import (
     parse_feedback,
     serialize_feedback,
 )
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import AwareDatetime, ConsumeTask
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubIssueComment,
     GithubPrCommentFeedbackSource,
@@ -259,7 +259,7 @@ class ConsumeTaskTest(TestCase):
         assert task.countdown() == 30
 
     def test_later_with_timezone_aware_datetime(self) -> None:
-        future = AwareDatetime(timezone.now() + timedelta(seconds=45))
+        future = timezone.now() + timedelta(seconds=45)
         task = ConsumeTask.Later(when=future)
         countdown = task.countdown()
         # Countdown should be around 45 seconds (allow small timing variance)
@@ -267,22 +267,16 @@ class ConsumeTaskTest(TestCase):
         assert 44 <= countdown <= 46
 
     def test_later_with_past_datetime_returns_zero(self) -> None:
-        past = AwareDatetime(timezone.now() - timedelta(seconds=10))
+        past = timezone.now() - timedelta(seconds=10)
         task = ConsumeTask.Later(when=past)
         assert task.countdown() == 0
 
-    def test_later_rejects_naive_datetime(self) -> None:
-        naive_dt = datetime.now()
-        with pytest.raises(
-            ValueError,
-            match="ConsumeTask.Later requires a timezone-aware datetime",
-        ):
-            ConsumeTask.Later(when=naive_dt)  # type: ignore[arg-type]
-
-    def test_later_rejects_naive_utcnow(self) -> None:
-        naive_dt = datetime.utcnow()
-        with pytest.raises(
-            ValueError,
-            match="ConsumeTask.Later requires a timezone-aware datetime",
-        ):
-            ConsumeTask.Later(when=naive_dt)  # type: ignore[arg-type]
+    def test_later_coerces_naive_datetime(self) -> None:
+        # Naive datetimes are made aware via ensure_aware so countdown doesn't
+        # raise TypeError against timezone.now().
+        future = datetime.now() + timedelta(seconds=45)
+        assert timezone.is_naive(future)
+        task = ConsumeTask.Later(when=future)
+        countdown = task.countdown()
+        assert countdown is not None
+        assert 44 <= countdown <= 46
