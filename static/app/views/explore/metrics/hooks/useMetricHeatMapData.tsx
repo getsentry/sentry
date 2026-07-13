@@ -8,7 +8,6 @@ import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMillisecon
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {emptyHeatMapSeries} from 'sentry/views/explore/metrics/hooks/emptyHeatMapSeries';
 import {metricBoundsApiOptions} from 'sentry/views/explore/metrics/hooks/metricBoundsApiOptions';
 import {metricHeatmapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatmapApiOptions';
 import {combinePartitionedHeatmapWindows} from 'sentry/views/explore/metrics/hooks/metricHeatmapCombine';
@@ -39,8 +38,11 @@ const HEATMAP_CHUNK_SAMPLING_MODE = SAMPLING_MODE.HIGH_ACCURACY;
  * one cheap `min`/`max` aggregate (`metricBoundsApiOptions`). Phase B fires one
  * pinned `/events-heatmap/` request per partition window and `combine`s them into
  * one dense grid (`metricHeatmapCombine`). The metric unit is patched onto the
- * merged grid here, once. A failed chunk degrades to a partial render; narrow
- * ranges skip Phase A and issue one unpinned request over the selection.
+ * merged grid here, once. A failed chunk degrades to a partial render.
+ *
+ * Narrow ranges skip Phase A and issue one unpinned request over the selection.
+ * A wide range whose Phase A finds no data falls back to that same single request,
+ * so a real (empty) response drives "No data" — no synthesized grid.
  */
 export function useMetricHeatMapData({
   organization,
@@ -58,7 +60,7 @@ export function useMetricHeatMapData({
   // change, so it's stable across renders (`partitionHeatmapWindows` reads
   // Date.now() for relative ranges — pinning it here avoids re-partitioning, and
   // relative windows stay relative so the backend still re-resolves now per fetch).
-  const {windows, timeDomain} = useMemo(
+  const {windows, timeDomain, selectionWindow} = useMemo(
     // Progressive: the recent region loads first in the smallest window.
     () => partitionHeatmapWindows(selection.datetime, interval, 'progressive'),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,16 +88,17 @@ export function useMetricHeatMapData({
 
   const boundsResolved = chunked && boundsQuery.isSuccess;
   const boundsEmpty = boundsResolved && boundsQuery.data === null;
-  const domainReady = boundsResolved && boundsQuery.data !== null;
-
-  // Phase B — one pinned request per window. Build the queries only once we're
-  // ready to run them (fast path: right away; chunked: after the domain resolves);
-  // an empty array means "nothing to fetch yet" (disabled, or no interval).
-  const shouldFetch =
-    enabled && validDims && windows.length > 0 && (chunked ? domainReady : true);
   const bounds = boundsQuery.data ?? undefined;
+
+  // Phase B — build the queries only once we're ready to fire (fast path: right
+  // away; chunked: after bounds resolve). A wide range whose bounds came back
+  // empty falls back to one unpinned query over the whole selection — like the
+  // fast path — so a real empty response renders "No data" without a fake grid.
+  const shouldFetch =
+    enabled && validDims && windows.length > 0 && (chunked ? boundsResolved : true);
+  const activeWindows = boundsEmpty ? [selectionWindow] : windows;
   const queries = shouldFetch
-    ? windows.map(timeParams =>
+    ? activeWindows.map(timeParams =>
         metricHeatmapApiOptions({
           organization,
           selection,
@@ -104,8 +107,9 @@ export function useMetricHeatMapData({
           query,
           interval,
           yBuckets,
-          // With bounds we're chunking: pin the domain + tier so every chunk shares
-          // aligned buckets on one exact tier. Fast path (no bounds) stays unpinned.
+          // Pin the domain + tier only when we have real bounds (chunking) so every
+          // chunk shares aligned buckets on one exact tier. The fast path and the
+          // empty fallback have no bounds and stay unpinned.
           yMin: bounds?.min,
           yMax: bounds?.max,
           sampling: defined(bounds) ? HEATMAP_CHUNK_SAMPLING_MODE : undefined,
@@ -123,13 +127,11 @@ export function useMetricHeatMapData({
     isFetchingMore,
   } = useQueries({queries, combine});
 
-  // Phase A resolved but the range has no data → empty grid so "No data" shows.
-  const merged = boundsEmpty
-    ? emptyHeatMapSeries(timeDomain.start, timeDomain.end, intervalMs, yBuckets ?? 0)
+  // Patch the metric unit onto the y-axis once, here — the combiner doesn't need
+  // to know about units.
+  const series = chunkSeries
+    ? mergeMetricUnit(chunkSeries, traceMetric.unit ?? undefined)
     : chunkSeries;
-  // Patch the metric unit onto the y-axis once, here — neither the combiner nor
-  // the empty-grid builder needs to know about units.
-  const series = merged ? mergeMetricUnit(merged, traceMetric.unit ?? undefined) : merged;
   const error = boundsQuery.error ?? chunkError;
 
   return {

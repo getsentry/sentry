@@ -187,6 +187,50 @@ describe('useMetricHeatMapData', () => {
     expect(requestQuery.statsPeriod).toBe('1h');
   });
 
+  it('falls back to one unpinned request when a wide range has no data', async () => {
+    // Phase A finds no rows → no min/max row to key off.
+    const boundsMock = mockBounds({data: []});
+    const heatmapMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-heatmap/`,
+      method: 'GET',
+      body: {
+        values: [],
+        meta: {
+          xAxis: {name: 'time', start: 0, end: 0, bucketCount: 0, bucketSize: 3600},
+          yAxis: {
+            name: 'value',
+            start: 0,
+            end: 0,
+            bucketCount: 10,
+            bucketSize: 0,
+            valueType: 'number',
+            valueUnit: null,
+          },
+          zAxis: {name: 'count()', start: 0, end: 0},
+        },
+      },
+    });
+
+    const {result} = renderHeatMapData(WIDE_SELECTION);
+
+    // Bounds run first (it's a wide, chunk-eligible range), then the fallback.
+    await waitFor(() => expect(result.current.series).toBeDefined());
+
+    expect(boundsMock).toHaveBeenCalled();
+    // A single unpinned request over the whole selection — not the chunk windows.
+    expect(heatmapMock).toHaveBeenCalledTimes(1);
+    const requestQuery = heatmapMock.mock.calls[0]![1]!.query;
+    expect(requestQuery.yMin).toBeUndefined();
+    expect(requestQuery.yMax).toBeUndefined();
+    expect(requestQuery.sampling).toBeUndefined();
+    expect(requestQuery.start).toBeDefined();
+    expect(requestQuery.end).toBeDefined();
+    expect(requestQuery.statsPeriod).toBeUndefined();
+    // The real empty response is renderable (drives "No data"), not a spinner.
+    expect(result.current.series?.values).toHaveLength(0);
+    expect(result.current.isPending).toBe(false);
+  });
+
   it('renders remaining chunks and flags partial when one chunk fails', async () => {
     mockBounds({data: [{'min(value)': 10, 'max(value)': 500}]});
 

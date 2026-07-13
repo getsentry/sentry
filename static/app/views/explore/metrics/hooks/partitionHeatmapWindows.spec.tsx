@@ -29,16 +29,28 @@ describe('partitionHeatmapWindows', () => {
   it('returns an empty plan (nothing to fetch) for an unparseable interval', () => {
     expect(
       partitionHeatmapWindows(absolute(0, 100 * HOUR), 'garbage', 'progressive')
-    ).toEqual({windows: [], timeDomain: {start: 0, end: 0}});
+    ).toMatchObject({windows: [], timeDomain: {start: 0, end: 0}});
   });
 
   it('returns an empty plan when there is no interval', () => {
-    expect(partitionHeatmapWindows(absolute(0, 100 * HOUR), null, 'progressive')).toEqual(
-      {
-        windows: [],
-        timeDomain: {start: 0, end: 0},
-      }
+    expect(
+      partitionHeatmapWindows(absolute(0, 100 * HOUR), null, 'progressive')
+    ).toMatchObject({windows: [], timeDomain: {start: 0, end: 0}});
+  });
+
+  it('exposes the whole selection as a fallback window even when chunked', () => {
+    // The fast-path / empty-bounds fallback fires this single window over the
+    // entire range, distinct from the partitioned chunk windows.
+    const {selectionWindow, windows} = partitionHeatmapWindows(
+      absolute(0, 720 * HOUR),
+      '1h',
+      'progressive'
     );
+    expect(windows.length).toBeGreaterThan(1);
+    expect(selectionWindow).toEqual({
+      start: '1970-01-01T00:00:00.000',
+      end: '1970-01-31T00:00:00.000',
+    });
   });
 
   it('returns a single selection window for ranges below the minimum', () => {

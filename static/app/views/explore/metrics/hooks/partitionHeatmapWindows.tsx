@@ -27,6 +27,13 @@ export interface TimeDomain {
 
 export interface MetricHeatmapPlan {
   /**
+   * The whole selection as one un-chunked window. It's already `windows[0]` for a
+   * narrow range; the caller also uses it as the fallback when a wide range's
+   * bounds resolve empty, firing one unpinned request so a real (empty) response
+   * drives "No data" instead of a synthesized grid.
+   */
+  selectionWindow: HeatmapWindow;
+  /**
    * Full epoch-aligned time domain in ms, used to size the merged grid. Returned
    * (rather than re-derived by the caller) because a relative range's windows are
    * `statsPeriod` offsets with no absolute anchor — only the partitioner, which
@@ -72,12 +79,18 @@ export function partitionHeatmapWindows(
   const intervalMs = defined(interval) ? intervalToMilliseconds(interval) : 0;
   const normalized = normalizeDateTimeParams(datetime);
   const domain = resolveAbsoluteDomain(normalized, datetime);
+  const wholeSelection = selectionWindow(normalized);
 
   if (intervalMs <= 0) {
-    return EMPTY_PLAN;
+    // Nothing to fetch — no usable interval.
+    return {windows: [], timeDomain: {start: 0, end: 0}, selectionWindow: wholeSelection};
   }
   if (!domain || domain.end - domain.start < MINIMUM_PARTITION_RANGE) {
-    return {windows: [selectionWindow(normalized)], timeDomain: {start: 0, end: 0}};
+    return {
+      windows: [wholeSelection],
+      timeDomain: {start: 0, end: 0},
+      selectionWindow: wholeSelection,
+    };
   }
 
   const alignedStart = Math.floor(domain.start / intervalMs) * intervalMs;
@@ -90,7 +103,11 @@ export function partitionHeatmapWindows(
     ? absoluteWindows(alignedStart, bucketWidths, intervalMs)
     : relativeWindows(bucketWidths, intervalMs);
 
-  return {windows, timeDomain: {start: alignedStart, end: alignedEnd}};
+  return {
+    windows,
+    timeDomain: {start: alignedStart, end: alignedEnd},
+    selectionWindow: wholeSelection,
+  };
 }
 
 /** The whole selection as a single window — the un-chunked fast path. */
@@ -215,6 +232,3 @@ const MINIMUM_PARTITION_RANGE = 1000 * 60 * 60 * 24; // 1 day
 // mergeHeatMapChunks) lands complete in at least one chunk. Two absorbs the
 // millisecond `now` skew between the parallel requests.
 const RELATIVE_OVERLAP_BUCKETS = 2;
-
-// Nothing to fetch — no usable interval.
-const EMPTY_PLAN: MetricHeatmapPlan = {windows: [], timeDomain: {start: 0, end: 0}};
