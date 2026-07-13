@@ -258,6 +258,36 @@ def test_handle_created_by_name() -> None:
     assert logs[0]["created_by_type"] == 2
 
 
+def test_handle_nested_user_fields_and_non_uuid_timeuuid() -> None:
+    """Statsig sends nested objects in user.custom and user.statsigEnvironment, a blank
+    value, and a non-UUID timeUUID. These are valid payloads that must not raise."""
+    logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle(
+        {
+            "data": [
+                {
+                    "user": {
+                        "userID": "user-1",
+                        "custom": {"role": "admin"},
+                        "statsigEnvironment": {"tier": "production"},
+                        "customIDs": {"companyID": "42"},
+                    },
+                    "timestamp": 1739400185198,
+                    "eventName": "statsig::config_change",
+                    "metadata": {
+                        "type": "Gate",
+                        "name": "gate1",
+                        "action": "updated",
+                    },
+                    "value": "",
+                    "timeUUID": "not-a-uuid",
+                }
+            ]
+        }
+    )
+    assert len(logs) == 1
+    assert logs[0]["flag"] == "gate1"
+
+
 def test_handle_unsupported_events() -> None:
     logs = StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle(
         {
