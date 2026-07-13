@@ -1,11 +1,10 @@
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.workflow_engine.activity.base import (
-    ActivityAlertAction,
+    ActivityAlertActionData,
+    create_activity_alert_example,
 )
 from sentry.notifications.platform.templates.workflow_engine.activity.seer.base import (
     build_template,
-    get_example_issue_description,
-    get_example_template,
     get_issue_description,
     get_subject,
 )
@@ -22,47 +21,23 @@ from sentry.types.activity import ActivityType
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SEER_RCA_COMPLETED)
-class SeerRcaCompletedActivityTemplate(NotificationTemplate[ActivityAlertAction]):
+class SeerRcaCompletedActivityTemplate(NotificationTemplate[ActivityAlertActionData]):
     category = NotificationCategory.ALERTS
-    example_data = ActivityAlertAction(
-        source=NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
-        notification_uuid="1234567890",
-        workflow_id=1,
-        activity_type=ActivityType.SEER_RCA_COMPLETED.value,
-        activity_id=1,
-        detector_id=1,
+    example_data = create_activity_alert_example(
+        ActivityType.SEER_RCA_COMPLETED,
+        activity_data={
+            "summary": "The error is caused by a null pointer dereference in the user authentication flow."
+        },
     )
 
-    def render_example(self) -> NotificationRenderedTemplate:
-        return get_example_template(
-            subject="Seer RCA Completed for EXAMPLE-1",
-            body=[
-                *get_example_issue_description(),
-                BlockQuoteSection(
-                    blocks=[
-                        ItalicTextBlock(
-                            text="The error is caused by a null pointer dereference in the user authentication flow."
-                        )
-                    ]
-                ),
-            ],
-        )
-
-    def render(self, data: ActivityAlertAction) -> NotificationRenderedTemplate:
-        from sentry.notifications.notification_action.activity_registry.base import (
-            extract_notification_models_by_activity,
-        )
-
-        activity, group, project, organization = extract_notification_models_by_activity(
-            activity_id=data.activity_id
-        )
+    def render(self, data: ActivityAlertActionData) -> NotificationRenderedTemplate:
         fallback = "View the details in Sentry."
-        body: list[NotificationSection] = [*get_issue_description(group)]
-        if activity.data:
-            summary_block = ItalicTextBlock(text=activity.data.get("summary", fallback))
+        body: list[NotificationSection] = [*get_issue_description(data)]
+        if data.activity_data:
+            summary_block = ItalicTextBlock(text=data.activity_data.get("summary", fallback))
             body.append(BlockQuoteSection(blocks=[summary_block]))
         return build_template(
             data=data,
-            subject=get_subject("Root Cause Analysis Completed", group),
+            subject=get_subject("Root Cause Analysis Completed", data),
             body=body,
         )

@@ -1,6 +1,9 @@
 import logging
+from urllib.parse import urlencode
 
+from sentry.integrations.messaging.message_builder import build_attachment_title
 from sentry.models.activity import Activity
+from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -8,10 +11,14 @@ from sentry.notifications.notification_action.registry import activity_handler_r
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.templates.workflow_engine import (
     ACTIVITY_TYPE_TO_SOURCE,
-    ActivityAlertAction,
+    ActivityAlertActionData,
+    SetResolvedInCommitActionData,
+    SetResolvedInReleaseActionData,
 )
 from sentry.notifications.platform.types import NotificationTarget
 from sentry.types.activity import ActivityType
+from sentry.users.services.user.service import user_service
+from sentry.utils.http import absolute_uri
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -35,45 +42,6 @@ def get_supported_action_types() -> frozenset[Action.Type]:
     )
 
 
-def build_activity_data(invocation: ActionInvocation, activity: Activity) -> ActivityAlertAction:
-    detector = invocation.detector
-
-    source = ACTIVITY_TYPE_TO_SOURCE.get(activity.type)
-    if source is None:
-        raise ValueError(f"No notification source for activity type: {activity.type}")
-
-    return ActivityAlertAction(
-        source=source,
-        workflow_id=invocation.workflow_id,
-        activity_type=activity.type,
-        activity_id=activity.id,
-        notification_uuid=invocation.notification_uuid,
-        detector_id=detector.id,
-    )
-
-
-def send_activity_notification(
-    invocation: ActionInvocation,
-    activity: Activity,
-    target: NotificationTarget,
-) -> None:
-    data = build_activity_data(invocation, activity)
-    NotificationService[ActivityAlertAction](data=data).notify_sync(targets=[target])
-
-
-def require_config(action: Action, key: str) -> str:
-    value = action.config.get(key)
-    if not value:
-        raise ValueError(f"No {key} for action {action.id}")
-    return value
-
-
-def require_integration_id(action: Action) -> int:
-    if action.integration_id is None:
-        raise ValueError(f"No integration_id for action {action.id}")
-    return action.integration_id
-
-
 def extract_notification_models_by_activity(
     activity_id: int,
 ) -> tuple[Activity, Group, Project, Organization]:
@@ -95,3 +63,82 @@ def extract_notification_models_by_activity(
         raise ValueError(f"Organization not found: {project.organization_id}")
 
     return activity, group, project, organization
+
+
+def build_activity_action_data(
+    invocation: ActionInvocation, activity: Activity
+) -> ActivityAlertActionData:
+    source = ACTIVITY_TYPE_TO_SOURCE.get(activity.type)
+    if source is None:
+        raise ValueError(f"No notification source for activity type: {activity.type}")
+
+    activity, group, project, organization = extract_notification_models_by_activity(activity.id)
+
+    action_data = dict(
+        source=source,
+        activity_type=activity.type,
+        notification_uuid=invocation.notification_uuid,
+        issue_short_id=group.qualified_short_id,
+        issue_url=absolute_uri(group.get_absolute_url()),
+        issue_title=build_attachment_title(group) or "",
+        issue_culprit=group.culprit,
+        alert_url=organization.absolute_url(
+            f"organizations/{organization.slug}/monitors/alerts/{invocation.workflow_id}/"
+        ),
+        activity_data=activity.data,
+        activity_user_name=None,
+    )
+
+    if activity.user_id:
+        user = user_service.get_user(user_id=activity.user_id)
+        if user:
+            action_data["activity_user_name"] = user.get_display_name()
+
+    match activity.type:
+        case ActivityType.SET_RESOLVED_IN_COMMIT.value:
+            commit_short_id = None
+            commit_message = None
+            if activity.data and "commit" in activity.data:
+                try:
+                    commit = Commit.objects.get(id=activity.data["commit"])
+                    commit_short_id = commit.short_id
+                    commit_message = commit.message
+                except Commit.DoesNotExist:
+                    pass
+            return SetResolvedInCommitActionData(
+                **action_data, commit_short_id=commit_short_id, commit_message=commit_message
+            )
+        case ActivityType.SET_RESOLVED_IN_RELEASE.value:
+            release_url = None
+            # If version is missing, None or "" -> it was resolved in an upcoming release
+            if activity.data and activity.data.get("version"):
+                raw_version = activity.data["version"]
+                release_url = organization.absolute_url(
+                    f"organizations/{organization.slug}/releases/{raw_version}/",
+                    query=urlencode({"project": project.id}),
+                )
+            return SetResolvedInReleaseActionData(**action_data, release_url=release_url)
+        case _:
+            return ActivityAlertActionData(**action_data)
+
+
+def send_activity_notification(
+    invocation: ActionInvocation,
+    activity: Activity,
+    target: NotificationTarget,
+) -> None:
+    data = build_activity_action_data(invocation, activity)
+    NotificationService[ActivityAlertActionData](data=data).notify_sync(targets=[target])
+
+
+def require_config(action: Action, key: str) -> str:
+    value = action.config.get(key)
+    if not value:
+        raise ValueError(f"No {key} for action {action.id}")
+    return value
+
+
+def require_integration_id(action: Action) -> int:
+    if action.integration_id is None:
+        raise ValueError(f"No integration_id for action {action.id}")
+    return action.integration_id

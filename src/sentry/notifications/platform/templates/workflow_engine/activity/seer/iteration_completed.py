@@ -1,11 +1,10 @@
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.workflow_engine.activity.base import (
-    ActivityAlertAction,
+    ActivityAlertActionData,
+    create_activity_alert_example,
 )
 from sentry.notifications.platform.templates.workflow_engine.activity.seer.base import (
     build_template,
-    get_example_issue_description,
-    get_example_template,
     get_issue_description,
     get_subject,
 )
@@ -24,55 +23,37 @@ from sentry.types.activity import ActivityType
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SEER_ITERATION_COMPLETED)
-class SeerIterationCompletedActivityTemplate(NotificationTemplate[ActivityAlertAction]):
+class SeerIterationCompletedActivityTemplate(NotificationTemplate[ActivityAlertActionData]):
     category = NotificationCategory.ALERTS
-    example_data = ActivityAlertAction(
-        source=NotificationSource.ACTIVITY_SEER_ITERATION_COMPLETED,
-        notification_uuid="1234567890",
-        workflow_id=1,
-        activity_type=ActivityType.SEER_ITERATION_COMPLETED.value,
-        activity_id=1,
-        detector_id=1,
+    example_data = create_activity_alert_example(
+        ActivityType.SEER_ITERATION_COMPLETED,
+        activity_data={
+            "iteration_index": 2,
+            "pull_requests": [
+                {
+                    "repo_name": "owner/repo",
+                    "pull_request": {
+                        "pr_url": "https://github.com/owner/repo/pull/42",
+                        "pr_number": 42,
+                    },
+                }
+            ],
+        },
     )
 
-    def render_example(self) -> NotificationRenderedTemplate:
-        return get_example_template(
-            subject="Seer PR Iteration Completed for EXAMPLE-1",
-            body=[
-                *get_example_issue_description(),
-                ParagraphSection(
-                    blocks=[
-                        PlainTextBlock(text="Iteration #2: "),
-                        LinkTextBlock(
-                            text="owner/repo (#42)",
-                            url="https://github.com/owner/repo/pull/42",
-                        ),
-                    ]
-                ),
-            ],
-        )
+    def render(self, data: ActivityAlertActionData) -> NotificationRenderedTemplate:
+        body: list[NotificationSection] = [*get_issue_description(data)]
 
-    def render(self, data: ActivityAlertAction) -> NotificationRenderedTemplate:
-        from sentry.notifications.notification_action.activity_registry.base import (
-            extract_notification_models_by_activity,
-        )
-
-        activity, group, project, organization = extract_notification_models_by_activity(
-            activity_id=data.activity_id
-        )
-
-        body: list[NotificationSection] = [*get_issue_description(group)]
-
-        if activity.data:
+        if data.activity_data:
             detail_blocks: list[NotificationTextBlock] = []
 
-            iteration_index = activity.data.get("iteration_index")
+            iteration_index = data.activity_data.get("iteration_index")
             if iteration_index is not None:
                 prefix = f"Iteration #{iteration_index}"
             else:
                 prefix = "Iteration"
 
-            for pull_request in activity.data.get("pull_requests", []):
+            for pull_request in data.activity_data.get("pull_requests", []):
                 repo_name = pull_request.get("repo_name", "")
                 pr_url = pull_request.get("pull_request", {}).get("pr_url")
                 pr_number = pull_request.get("pull_request", {}).get("pr_number")
@@ -90,6 +71,6 @@ class SeerIterationCompletedActivityTemplate(NotificationTemplate[ActivityAlertA
 
         return build_template(
             data=data,
-            subject=get_subject("PR Iteration Completed", group),
+            subject=get_subject("PR Iteration Completed", data),
             body=body,
         )

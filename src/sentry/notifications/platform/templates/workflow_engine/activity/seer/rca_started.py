@@ -1,10 +1,10 @@
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.workflow_engine.activity.base import (
-    ActivityAlertAction,
+    ActivityAlertActionData,
+    create_activity_alert_example,
 )
 from sentry.notifications.platform.templates.workflow_engine.activity.seer.base import (
     build_template,
-    get_example_template,
     get_issue_description,
     get_subject,
 )
@@ -18,30 +18,13 @@ from sentry.types.activity import ActivityType
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SEER_RCA_STARTED)
-class SeerRcaStartedActivityTemplate(NotificationTemplate[ActivityAlertAction]):
+class SeerRcaStartedActivityTemplate(NotificationTemplate[ActivityAlertActionData]):
     category = NotificationCategory.ALERTS
-    example_data = ActivityAlertAction(
-        source=NotificationSource.ACTIVITY_SEER_RCA_STARTED,
-        notification_uuid="1234567890",
-        workflow_id=1,
-        activity_type=ActivityType.SEER_RCA_STARTED.value,
-        activity_id=1,
-        detector_id=1,
-    )
+    example_data = create_activity_alert_example(ActivityType.SEER_RCA_STARTED)
 
-    def render_example(self) -> NotificationRenderedTemplate:
-        return get_example_template("Seer RCA Started for EXAMPLE-1")
-
-    def render(self, data: ActivityAlertAction) -> NotificationRenderedTemplate:
-        from sentry.notifications.notification_action.activity_registry.base import (
-            extract_notification_models_by_activity,
-        )
-
-        activity, group, project, organization = extract_notification_models_by_activity(
-            activity_id=data.activity_id
-        )
+    def render(self, data: ActivityAlertActionData) -> NotificationRenderedTemplate:
         return build_template(
             data=data,
-            subject=get_subject("Root Cause Analysis Started", group),
-            body=get_issue_description(group),
+            subject=get_subject("Root Cause Analysis Started", data),
+            body=get_issue_description(data),
         )

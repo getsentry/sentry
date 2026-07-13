@@ -1,14 +1,12 @@
-from sentry.models.commit import Commit
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.workflow_engine.activity.base import (
-    ActivityAlertAction,
+    SetResolvedInCommitActionData,
     build_alert_footer,
-    build_example_issue_link,
     build_issue_link,
+    create_activity_alert_example,
 )
 from sentry.notifications.platform.templates.workflow_engine.activity.set_resolved.base import (
     get_resolution_subject,
-    render_resolution_example,
 )
 from sentry.notifications.platform.types import (
     BlockQuoteSection,
@@ -25,65 +23,45 @@ from sentry.notifications.platform.types import (
 from sentry.types.activity import ActivityType
 
 
-@template_registry.register(NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT)
-class SetResolvedInCommitActivityTemplate(NotificationTemplate[ActivityAlertAction]):
-    category = NotificationCategory.ALERTS
-    example_data = ActivityAlertAction(
-        source=NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT,
-        notification_uuid="1234567890",
-        workflow_id=1,
-        activity_type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
-        activity_id=1,
-        detector_id=1,
+def create_set_resolved_in_commit_example() -> SetResolvedInCommitActionData:
+    action_data = create_activity_alert_example(ActivityType.SET_RESOLVED_IN_COMMIT)
+    return SetResolvedInCommitActionData(
+        **action_data.dict(),
+        commit_short_id="abc1234",
+        commit_message="Fix null pointer dereference in auth flow",
     )
 
-    def render_example(self) -> NotificationRenderedTemplate:
-        return render_resolution_example(
-            body=[
-                ParagraphSection(
-                    blocks=[
-                        build_example_issue_link(),
-                        PlainTextBlock(text="was resolved in commit"),
-                        CodeTextBlock(text="abc1234"),
-                    ]
-                ),
-            ]
-        )
 
-    def render(self, data: ActivityAlertAction) -> NotificationRenderedTemplate:
-        from sentry.notifications.notification_action.activity_registry.base import (
-            extract_notification_models_by_activity,
-        )
+@template_registry.register(NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT)
+class SetResolvedInCommitActivityTemplate(NotificationTemplate[SetResolvedInCommitActionData]):
+    category = NotificationCategory.ALERTS
+    example_data = create_set_resolved_in_commit_example()
 
-        activity, group, project, organization = extract_notification_models_by_activity(
-            activity_id=data.activity_id
-        )
+    def render(self, data: SetResolvedInCommitActionData) -> NotificationRenderedTemplate:
         extra_body_sections: list[NotificationSection] = []
         resolution_blocks: list[NotificationTextBlock] = [
             PlainTextBlock(text="was resolved in a commit.")
         ]
-        if activity.data and "commit" in activity.data:
-            try:
-                commit = Commit.objects.get(id=activity.data["commit"])
-            except Commit.DoesNotExist:
-                pass
-            else:
-                resolution_blocks = [
-                    PlainTextBlock(text="was resolved in commit"),
-                    CodeTextBlock(text=commit.short_id),
-                ]
-                if commit.message:
-                    extra_body_sections.append(
-                        BlockQuoteSection(blocks=[PlainTextBlock(text=commit.message)])
-                    )
+        if data.commit_short_id:
+            resolution_blocks = [
+                PlainTextBlock(text="was resolved in commit"),
+                CodeTextBlock(text=data.commit_short_id),
+            ]
+            if data.commit_message:
+                extra_body_sections.append(
+                    BlockQuoteSection(blocks=[PlainTextBlock(text=data.commit_message)])
+                )
 
         return NotificationRenderedTemplate(
-            subject=get_resolution_subject(activity, group),
+            subject=get_resolution_subject(data),
             body=[
                 ParagraphSection(
-                    blocks=[build_issue_link(group), *resolution_blocks],
+                    blocks=[
+                        build_issue_link(data.issue_short_id, data.issue_url),
+                        *resolution_blocks,
+                    ],
                 ),
                 *extra_body_sections,
             ],
-            footer=build_alert_footer(organization=organization, workflow_id=data.workflow_id),
+            footer=build_alert_footer(alert_url=data.alert_url),
         )
