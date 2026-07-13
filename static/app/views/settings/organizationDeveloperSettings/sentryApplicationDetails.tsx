@@ -1,4 +1,4 @@
-import {Fragment, useState, type MouseEvent} from 'react';
+import {Fragment, useEffect, useState, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
@@ -6,9 +6,10 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -46,9 +47,11 @@ import type {
 } from 'sentry/types/integrations';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -64,6 +67,10 @@ import {
   granularWebhookEvents,
   WEBHOOK_GRANULAR_EVENT_CHOICES,
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import {
+  getSentryAppTemplates,
+  type SentryAppTemplate,
+} from 'sentry/views/settings/organizationDeveloperSettings/creationTemplates';
 import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 import {
   AllowedOriginsField,
@@ -396,6 +403,9 @@ function useSaveSentryApp({
   return {handleSaveError, saveSentryAppMutation, scopeErrors};
 }
 
+// Each template renders its own creation form, keyed by registry slug.
+const TEMPLATE_FORMS: Record<string, React.ComponentType> = {};
+
 export default function SentryApplicationDetails() {
   const location = useLocation();
   const {appSlug} = useParams<{appSlug: string}>();
@@ -404,6 +414,25 @@ export default function SentryApplicationDetails() {
 
   const isInternalRoute = location.pathname.endsWith('new-internal/');
   const isPublicRoute = location.pathname.endsWith('new-public/');
+
+  const templateSlug = isInternalRoute
+    ? decodeScalar(location.query.template)
+    : undefined;
+  const template = getSentryAppTemplates(organization).find(
+    entry => entry.slug === templateSlug
+  );
+  const TemplateForm = template && TEMPLATE_FORMS[template.slug];
+  const referrer = decodeScalar(location.query.referrer);
+
+  useEffect(() => {
+    if (template && TemplateForm) {
+      trackAnalytics('integrations.sentry_app_template_applied', {
+        organization,
+        referrer,
+        template: template.slug,
+      });
+    }
+  }, [template, TemplateForm, organization, referrer]);
 
   const sentryAppQueryOptions = sentryAppApiOptions({appSlug: appSlug ?? null});
 
@@ -443,6 +472,11 @@ export default function SentryApplicationDetails() {
         <LoadingIndicator />
       ) : isError ? (
         <LoadingError onRetry={refetch} />
+      ) : template && TemplateForm ? (
+        <Fragment>
+          <TemplateHeader template={template} />
+          <TemplateForm key={template.slug} />
+        </Fragment>
       ) : isInternalRoute ? (
         <InternalSentryAppCreationForm />
       ) : isPublicRoute ? (
@@ -453,6 +487,30 @@ export default function SentryApplicationDetails() {
         <LoadingError onRetry={refetch} />
       )}
     </div>
+  );
+}
+
+function TemplateHeader({template}: {template: SentryAppTemplate}) {
+  const location = useLocation();
+  const organization = useOrganization();
+
+  return (
+    <Alert.Container>
+      <Alert variant="info">
+        <Stack gap="xs" align="start">
+          <Text bold>{template.heading}</Text>
+          <Text>{template.description}</Text>
+          <Link
+            to={{
+              pathname: `/settings/${organization.slug}/developer-settings/new-internal/`,
+              query: {...location.query, template: undefined},
+            }}
+          >
+            {t('Start from a blank integration instead')}
+          </Link>
+        </Stack>
+      </Alert>
+    </Alert.Container>
   );
 }
 
