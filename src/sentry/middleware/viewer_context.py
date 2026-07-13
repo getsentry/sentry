@@ -7,6 +7,7 @@ from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
+from sentry.seer.agent_token import get_agent_claims
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
@@ -89,9 +90,13 @@ def _viewer_context_from_request(request: HttpRequest) -> ViewerContext:
     if auth is not None and hasattr(auth, "organization_id"):
         organization_id = auth.organization_id
 
+    # AuthenticationMiddleware marks the request when an agent capability token
+    # authenticated it; that token's kind is otherwise indistinguishable from api_token.
+    actor_type = ActorType.AGENT if get_agent_claims(request) is not None else ActorType.USER
+
     return ViewerContext(
         user_id=user_id,
         organization_id=organization_id,
-        actor_type=ActorType.USER,
+        actor_type=actor_type,
         token=auth,
     )

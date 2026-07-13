@@ -12,6 +12,7 @@ from typing import Any
 
 from django.conf import settings
 from django.db import router, transaction
+from django.http.request import HttpRequest
 from django.utils import timezone
 from rest_framework.request import Request
 
@@ -122,11 +123,11 @@ def build_authenticated_token(claims: dict[str, Any]) -> AuthenticatedToken:
     )
 
 
-def mark_agent_request(request: Request, claims: dict[str, Any]) -> None:
+def mark_agent_request(request: HttpRequest | Request, claims: dict[str, Any]) -> None:
     setattr(request, _REQUEST_CLAIMS_ATTR, claims)
 
 
-def get_agent_claims(request: Request) -> dict[str, Any] | None:
+def get_agent_claims(request: HttpRequest | Request) -> dict[str, Any] | None:
     return getattr(request, _REQUEST_CLAIMS_ATTR, None)
 
 

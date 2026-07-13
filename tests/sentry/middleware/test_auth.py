@@ -1,17 +1,19 @@
 from functools import cached_property
 from unittest.mock import MagicMock, patch
 
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from rest_framework.request import Request
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
+from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.types.token import SENTRY_AGENT_TOKEN_PREFIX
 from sentry.users.models.userip import UserIP
 from sentry.users.services.user.service import user_service
 from sentry.utils.auth import login
@@ -106,6 +108,58 @@ class AuthenticationMiddlewareTestCase(TestCase):
         # Should swallow errors and pass on
         assert request.user.is_anonymous
         assert request.auth is None
+
+    def _agent_token(self, user) -> str:
+        token, _ = agent_token.encode_agent_token(
+            user_id=user.id,
+            organization_id=self.organization.id,
+            scopes=["org:read"],
+            session_id="s1",
+        )
+        return token
+
+    def test_process_request_valid_agent_token(self) -> None:
+        with override_settings(SEER_API_SHARED_SECRET="test-secret"):
+            request = Request(self.make_request(method="GET", path="/api/0/organizations/"))
+            request.META["HTTP_AUTHORIZATION"] = f"Bearer {self._agent_token(self.user)}"
+            self.middleware.process_request(request)
+        self.assert_user_equals(request)
+        assert request.auth is not None
+        assert request.auth.organization_id == self.organization.id
+        assert agent_token.get_agent_claims(request) is not None
+
+    def test_process_request_invalid_agent_token(self) -> None:
+        request = Request(self.make_request(method="GET", path="/api/0/organizations/"))
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {SENTRY_AGENT_TOKEN_PREFIX}garbage"
+        with override_settings(SEER_API_SHARED_SECRET="test-secret"):
+            self.middleware.process_request(request)
+        # Swallowed like any other bad credential; DRF delivers the real 401 later.
+        assert request.user.is_anonymous
+        assert request.auth is None
+
+    def test_process_request_agent_token_ignored_outside_api(self) -> None:
+        # An API-only credential: on web views (no scope enforcement) it must not
+        # authenticate at all.
+        with override_settings(SEER_API_SHARED_SECRET="test-secret"):
+            request = Request(self.make_request(method="GET", path="/organizations/"))
+            request.META["HTTP_AUTHORIZATION"] = f"Bearer {self._agent_token(self.user)}"
+            self.middleware.process_request(request)
+        assert request.user.is_anonymous
+        assert request.auth is None
+        assert agent_token.get_agent_claims(request) is None
+
+    def test_process_request_agent_token_wins_over_session(self) -> None:
+        # An Authorization header takes precedence over a session cookie, so the
+        # bearer's identity (not the logged-in user's) lands on the request.
+        other = self.create_user()
+        request = Request(self.make_request(method="GET", path="/api/0/organizations/"))
+        with assume_test_silo_mode(SiloMode.MONOLITH):
+            assert login(request, self.user)
+        with override_settings(SEER_API_SHARED_SECRET="test-secret"):
+            request.META["HTTP_AUTHORIZATION"] = f"Bearer {self._agent_token(other)}"
+            self.middleware.process_request(request)
+        assert request.user.id == other.id
+        assert agent_token.get_agent_claims(request) is not None
 
     def test_process_request_valid_apikey(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):

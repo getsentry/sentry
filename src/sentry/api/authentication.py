@@ -620,6 +620,14 @@ class AgentTokenAuthentication(StandardAuthentication):
             return False
         return force_str(auth[1]).startswith(SENTRY_AGENT_TOKEN_PREFIX)
 
+    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
+        # API-only credential: the token's de-escalated scopes are enforced by the DRF
+        # permission layer, so it must never act as a session on web views that gate
+        # solely on is_authenticated.
+        if not request.path.startswith("/api/"):
+            return None
+        return super().authenticate(request)
+
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         from sentry.seer import agent_token
 

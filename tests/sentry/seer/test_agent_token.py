@@ -41,7 +41,7 @@ class AgentTokenAuthAndGateTest(TestCase):
             session_id=session_id,
             **kwargs,
         )
-        request = getattr(RequestFactory(), method.lower())("/")
+        request = getattr(RequestFactory(), method.lower())("/api/0/organizations/")
         request.session = SessionBase()
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         drf_request = drf_request_from_request(request)
@@ -72,7 +72,7 @@ class AgentTokenAuthAndGateTest(TestCase):
         assert agent_token.get_agent_claims(request) is not None
 
     def _auth(self, bearer: str):
-        request = RequestFactory().get("/")
+        request = RequestFactory().get("/api/0/organizations/")
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {bearer}"
         return AgentTokenAuthentication().authenticate(drf_request_from_request(request))
 
