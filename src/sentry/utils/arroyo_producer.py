@@ -78,7 +78,7 @@ class SingletonProducer:
 
 def get_arroyo_producer(
     name: str,
-    topic: Topic,
+    topic: Topic | str,
     additional_config: dict | None = None,
     exclude_config_keys: list[str] | None = None,
     **kafka_producer_kwargs,

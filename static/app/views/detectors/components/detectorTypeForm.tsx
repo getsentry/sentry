@@ -2,7 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsStringEnum, useQueryState} from 'nuqs';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
@@ -138,7 +138,7 @@ function MonitorTypeField() {
           return (
             <OptionLabel key={id} aria-checked={checked} disabled={disabled}>
               <OptionBody>
-                <Flex direction="column" gap="sm">
+                <Stack gap="sm">
                   <Radio
                     name="detectorType"
                     checked={checked}
@@ -154,7 +154,7 @@ function MonitorTypeField() {
                       {description}
                     </Text>
                   )}
-                </Flex>
+                </Stack>
                 {visualization && <Visualization>{visualization}</Visualization>}
               </OptionBody>
               {infoBanner && (checked || disabled) && (

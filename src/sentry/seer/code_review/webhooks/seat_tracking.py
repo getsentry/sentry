@@ -27,6 +27,12 @@ that are already opted in to GitLab code review. The downstream
 ``should_increment_contributor_seat`` check additionally requires
 ``organizations:seat-based-seer-enabled``.
 
+Both processors skip seeding when the webhook actor (``event.user``) is not the
+MR author (``object_attributes.author_id``): the row is keyed by the author but
+its ``alias`` defaults to the actor's username, so on a mismatch (e.g. an MR
+opened via the API on behalf of another author) we'd store the wrong alias. We
+log ``actor_author_mismatch`` and skip instead.
+
 ``MergeEventWebhook.WEBHOOK_EVENT_PROCESSORS`` registers these
 **before** ``handle_merge_request_event`` so the contributor row exists when
 the code-review handler's preflight billing check runs. Without that
@@ -66,6 +72,30 @@ logger = logging.getLogger(__name__)
 # tracking and code-review dispatch don't share a namespace.
 SEAT_SEEN_KEY_PREFIX = "webhook:gitlab:seat_tracking:"
 SEAT_SEEN_TTL_SECONDS = 20
+
+
+def _actor_author_mismatch_extra(
+    *,
+    organization: RpcOrganization,
+    repo: Repository,
+    integration: RpcIntegration,
+    merge_request_iid: object,
+    merge_request_action: object,
+    author_id: object,
+    actor_id: object,
+    contributor_tracking_stage: str,
+) -> dict[str, object]:
+    return {
+        "seer.webhooks.organization_id": organization.id,
+        "seer.webhooks.provider_name": "gitlab",
+        "seer.webhooks.repository_id": repo.id,
+        "seer.webhooks.integration_id": integration.id,
+        "seer.webhooks.merge_request_iid": merge_request_iid,
+        "seer.webhooks.merge_request_action": merge_request_action,
+        "seer.webhooks.author_id": author_id,
+        "seer.webhooks.actor_id": actor_id,
+        "seer.webhooks.contributor_tracking_stage": contributor_tracking_stage,
+    }
 
 
 def _is_duplicate_delivery(seen_key: str) -> bool:
@@ -117,7 +147,9 @@ def track_gitlab_contributor_seat_processor(
 
     try:
         user_id = object_attributes["author_id"]
-        user_username = event["user"]["username"]
+        event_user = event["user"]
+        event_actor_id = event_user["id"]
+        user_username = event_user["username"]
         iid = object_attributes["iid"]
     except KeyError as e:
         debug_log(
@@ -130,6 +162,29 @@ def track_gitlab_contributor_seat_processor(
         return
 
     base_extra["author_id"] = user_id
+
+    # Skip when the webhook actor isn't the MR author: alias comes from the actor
+    # but the row is keyed by the author, so seeding would store the wrong alias.
+    # Runs before the dedup mark so a skipped mismatch doesn't block a later,
+    # matching delivery from seeding the author.
+    if user_id != event_actor_id:
+        debug_log(
+            logger,
+            organization,
+            "actor_author_mismatch",
+            _actor_author_mismatch_extra(
+                organization=organization,
+                repo=repo,
+                integration=integration,
+                merge_request_iid=iid,
+                merge_request_action=object_attributes.get("action"),
+                author_id=user_id,
+                actor_id=event_actor_id,
+                contributor_tracking_stage="seat",
+            ),
+            level=logging.WARNING,
+        )
+        return
 
     # Resolve the Organization before marking the delivery as seen so a missing
     # org does not poison the dedup window and block GitLab redeliveries from
@@ -183,9 +238,32 @@ def track_gitlab_contributor_action_processor(
     object_attributes = event.get("object_attributes") or {}
     try:
         user_id = object_attributes["author_id"]
-        user_username = event["user"]["username"]
+        event_user = event["user"]
+        event_actor_id = event_user["id"]
+        user_username = event_user["username"]
         iid = object_attributes["iid"]
     except KeyError:
+        return
+
+    # Skip when the webhook actor isn't the MR author, to avoid seeding the wrong
+    # alias against the author's row (see track_gitlab_contributor_seat_processor).
+    if user_id != event_actor_id:
+        debug_log(
+            logger,
+            organization,
+            "actor_author_mismatch",
+            _actor_author_mismatch_extra(
+                organization=organization,
+                repo=repo,
+                integration=integration,
+                merge_request_iid=iid,
+                merge_request_action=object_attributes.get("action"),
+                author_id=user_id,
+                actor_id=event_actor_id,
+                contributor_tracking_stage="action",
+            ),
+            level=logging.WARNING,
+        )
         return
 
     try:

@@ -90,6 +90,7 @@ class DocIntegrationBaseEndpoint(DocIntegrationsBaseEndpoint):
         self.check_object_permissions(request, doc_integration)
 
         sentry_sdk.get_isolation_scope().set_tag("doc_integration", doc_integration.slug)
+        sentry_sdk.get_isolation_scope().set_attribute("doc_integration", doc_integration.slug)
 
         kwargs["doc_integration"] = doc_integration
         return (args, kwargs)

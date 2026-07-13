@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
@@ -19,6 +19,7 @@ import {
 import {IconBranch} from 'sentry/icons/iconBranch';
 import {t} from 'sentry/locale';
 import {
+  getBuildNumber,
   isSizeInfoCompleted,
   type BuildDetailsApiResponse,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -98,13 +99,13 @@ function BuildItemDetails({
   const dateAdded = build.app_info?.date_added;
   const sizeInfo = build.size_info;
   const version = build.app_info?.version;
-  const buildNumber = build.app_info?.build_number;
+  const buildNumber = getBuildNumber(build.app_info);
 
   const hasGitInfo = Boolean(prNumber || branchName || commitHash);
   const versionInfo = formatVersionInfo(version, buildNumber);
 
   return (
-    <Flex direction="column" gap="sm" flex={1}>
+    <Stack gap="sm" flex={1}>
       {(hasGitInfo || versionInfo) && (
         <Flex align="center" gap="md">
           {(prNumber || branchName) && <IconBranch size="xs" variant="muted" />}
@@ -159,7 +160,7 @@ function BuildItemDetails({
           </Flex>
         )}
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 

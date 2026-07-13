@@ -47,7 +47,8 @@ const ONE_HOUR_MS = 60 * 60 * 1000;
 export function getConversationDetailUrl(
   orgSlug: string,
   conversation: Conversation,
-  projects: number[]
+  projects: number[],
+  referrer = 'conversations-table'
 ): string {
   const basePath = `/organizations/${orgSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversation.conversationId)}/`;
   const params = new URLSearchParams();
@@ -63,6 +64,7 @@ export function getConversationDetailUrl(
   for (const project of projects) {
     params.append('project', String(project));
   }
+  params.set('referrer', referrer);
   const qs = params.toString();
   return normalizeUrl(qs ? `${basePath}?${qs}` : basePath);
 }
@@ -97,10 +99,10 @@ function ConversationsTableInner() {
     columns: defaultColumnOrder,
   });
 
-  const {data, isLoading, error, pageLinks, setCursor} = useConversations();
+  const {data, isFetching, error, pageLinks, setCursor} = useConversations();
 
   const showMissingMessagesAlert =
-    !isLoading &&
+    !isFetching &&
     !error &&
     data.length > 0 &&
     data.every(conversation => !conversation.firstInput && !conversation.lastOutput);
@@ -150,7 +152,7 @@ function ConversationsTableInner() {
       {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
       <Container>
         <GridEditable
-          isLoading={isLoading}
+          isLoading={isFetching}
           error={error}
           data={data}
           columnOrder={columnOrder}
@@ -352,7 +354,7 @@ const BodyCell = memo(function BodyCell({
     case 'timestamp':
       return (
         <Text as="div" align="right">
-          <TimeSince unitStyle="extraShort" date={new Date(dataRow.endTimestamp)} />
+          <TimeSince unitStyle="extraShort" date={dataRow.endTimestamp} />
         </Text>
       );
     default:

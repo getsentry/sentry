@@ -3,6 +3,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 import {
   buildConversationTurns,
   extractMessagesFromNodes,
+  getInputMessageStats,
   getNodeTimestamp,
   mergeEmptyTurns,
   messagesToMarkdown,
@@ -236,6 +237,52 @@ describe('conversationMessages utilities', () => {
         },
       });
       expect(parseUserContent(node as any)).toBe('Wrapped question');
+    });
+  });
+
+  describe('getInputMessageStats', () => {
+    it.each([
+      {
+        name: 'counts total and user messages in a cumulative history',
+        input: JSON.stringify([
+          {role: 'user', content: 'First'},
+          {role: 'assistant', content: 'Reply'},
+          {role: 'user', content: 'Second'},
+        ]),
+        expected: {totalMessageCount: 3, userMessageCount: 2},
+      },
+      {
+        name: 'reports a single-message input as non-cumulative',
+        input: JSON.stringify([{role: 'user', content: 'Only message'}]),
+        expected: {totalMessageCount: 1, userMessageCount: 1},
+      },
+      {
+        name: 'excludes system messages from counts',
+        input: JSON.stringify([
+          {role: 'system', content: 'You are a helpful assistant'},
+          {role: 'user', content: 'Hello'},
+        ]),
+        expected: {totalMessageCount: 1, userMessageCount: 1},
+      },
+      {
+        name: 'returns zeroes when input is scrubbed',
+        input: '[Filtered]',
+        expected: {totalMessageCount: 0, userMessageCount: 0},
+      },
+    ])('$name', ({input, expected}) => {
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: input},
+      });
+      expect(getInputMessageStats(node as any)).toEqual(expected);
+    });
+
+    it('returns zeroes when input is missing', () => {
+      const node = createMockNode({id: 'node-1'});
+      expect(getInputMessageStats(node as any)).toEqual({
+        totalMessageCount: 0,
+        userMessageCount: 0,
+      });
     });
   });
 
@@ -617,34 +664,56 @@ describe('conversationMessages utilities', () => {
       });
     });
 
-    it('deduplicates user messages by exact content', () => {
-      const turns = [
+    // Same user text in two turns: collapse only for a cumulative tool loop.
+    it.each([
+      {
+        name: 'collapses identical content in a cumulative history',
+        turn1: {assistantContent: 'A1'},
+        turn2: {assistantContent: 'A2'},
+        users: 1,
+      },
+      {
+        name: 'keeps a repeat when the cumulative user-message count grows',
+        turn1: {assistantContent: 'A1', userMessageCount: 1},
+        turn2: {assistantContent: 'A2', userMessageCount: 2},
+        users: 2,
+      },
+      {
+        name: 'keeps a repeat from non-cumulative single-message inputs',
+        turn1: {assistantContent: 'A', hasInputHistory: false},
+        turn2: {assistantContent: 'A', hasInputHistory: false},
+        users: 2,
+      },
+      {
+        name: 'collapses a repeat carried across a tool loop (stable count)',
+        turn1: {
+          toolCalls: [{name: 'weather', nodeId: 'tool-1', hasError: false}],
+          userMessageCount: 1,
+        },
+        turn2: {assistantContent: 'A', userMessageCount: 1},
+        users: 1,
+      },
+    ])('deduplicates user messages: $name', ({turn1, turn2, users}) => {
+      const messages = turnsToMessages([
         makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'Hello',
-          assistantContent: 'Response 1',
+          ...turn1,
         }),
         makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 2000, end_timestamp: 2100},
           } as any,
-          userContent: 'Hello', // Exact same content
-          assistantContent: 'Response 2',
+          userContent: 'Hello',
+          ...turn2,
         }),
-      ];
+      ]);
 
-      const messages = turnsToMessages(turns);
-
-      // Should have 1 user message and 2 assistant messages
-      const userMessages = messages.filter(m => m.role === 'user');
-      const assistantMessages = messages.filter(m => m.role === 'assistant');
-
-      expect(userMessages).toHaveLength(1);
-      expect(assistantMessages).toHaveLength(2);
+      expect(messages.filter(m => m.role === 'user')).toHaveLength(users);
     });
 
     it('does not deduplicate user messages with different whitespace or case', () => {
@@ -1034,34 +1103,82 @@ describe('conversationMessages utilities', () => {
       ]);
     });
 
-    it('deduplicates messages', () => {
-      const sameMessage = JSON.stringify([{role: 'user', content: 'Duplicate'}]);
-
+    // Same question in two spans: collapse only for a cumulative tool loop.
+    const Q = 'How is the weather in Vienna?';
+    it.each([
+      {
+        name: 'collapses a last message replayed across a cumulative tool loop',
+        input2: [
+          {role: 'user', content: Q},
+          {role: 'assistant', content: 'R1'},
+        ],
+        users: 1,
+      },
+      {
+        name: 'keeps repeats from non-cumulative single-message inputs',
+        input2: [{role: 'user', content: Q}],
+        users: 2,
+      },
+      {
+        name: 'keeps a repeat when the cumulative history gains a user message',
+        input2: [
+          {role: 'user', content: Q},
+          {role: 'assistant', content: 'R1'},
+          {role: 'user', content: Q},
+        ],
+        users: 2,
+      },
+    ])('user-message dedup end to end: $name', ({input2, users}) => {
       const node1 = createMockNode({
         id: 'span-1',
         startTimestamp: 1000,
         attributes: {
-          [SpanFields.GEN_AI_REQUEST_MESSAGES]: sameMessage,
-          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response 1',
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+            {role: 'user', content: Q},
+          ]),
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'R1',
         },
       });
-
       const node2 = createMockNode({
         id: 'span-2',
         startTimestamp: 2000,
         attributes: {
-          [SpanFields.GEN_AI_REQUEST_MESSAGES]: sameMessage,
-          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response 2',
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify(input2),
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'R2',
         },
       });
 
       const messages = extractMessagesFromNodes([node1, node2] as any);
 
-      const userMessages = messages.filter(m => m.role === 'user');
-      const assistantMessages = messages.filter(m => m.role === 'assistant');
+      expect(messages.filter(m => m.role === 'user')).toHaveLength(users);
+    });
 
-      expect(userMessages).toHaveLength(1);
-      expect(assistantMessages).toHaveLength(2);
+    it('keeps repeated user messages from non-cumulative inputs with a system prompt', () => {
+      const sysInput = (userText: string) =>
+        JSON.stringify([
+          {role: 'system', content: 'You are helpful'},
+          {role: 'user', content: userText},
+        ]);
+
+      const node1 = createMockNode({
+        id: 'span-1',
+        startTimestamp: 1000,
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: sysInput(Q),
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'R1',
+        },
+      });
+      const node2 = createMockNode({
+        id: 'span-2',
+        startTimestamp: 2000,
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: sysInput(Q),
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'R2',
+        },
+      });
+
+      const messages = extractMessagesFromNodes([node1, node2] as any);
+      expect(messages.filter(m => m.role === 'user')).toHaveLength(2);
     });
 
     it('returns empty array for empty input', () => {

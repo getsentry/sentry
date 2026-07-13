@@ -1,5 +1,5 @@
 import {Alert} from '@sentry/scraps/alert';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -129,7 +129,7 @@ function MetricIssueChartContent({
 
   return (
     <MetricChartSection>
-      <Flex direction="column" paddingTop="md">
+      <Stack paddingTop="md">
         {isRangeLimited ? (
           <Alert variant="warning">
             {t(
@@ -138,7 +138,7 @@ function MetricIssueChartContent({
           </Alert>
         ) : null}
         <AreaChart {...chartProps} />
-      </Flex>
+      </Stack>
     </MetricChartSection>
   );
 }

@@ -2,18 +2,14 @@ import {useCallback, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 import {parseAsBoolean, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
-import {Container, Flex} from '@sentry/scraps/layout';
-
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
-import {
-  ConversationLeftPanel,
-  ConversationViewSkeleton,
-} from 'sentry/views/explore/conversations/components/conversationLayout';
+import {ConversationContentLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
   CONVERSATION_SPAN_DETAIL_TABS,
   ConversationSpanDetail,
 } from 'sentry/views/explore/conversations/components/conversationSpanDetail';
+import {MessagesPanelNew} from 'sentry/views/explore/conversations/components/messagesPanelNew';
 import {
   useConversation,
   type UseConversationsOptions,
@@ -35,27 +31,22 @@ interface ConversationViewContentNewProps {
   activeTab: ConversationViewTab;
   conversation: UseConversationsOptions;
   focusedTool?: string | null;
+  onDeselectSpan?: () => void;
   onSelectSpan?: (spanId: string) => void;
   selectedSpanId?: string | null;
 }
 
-// WIP: redesigned conversation view. The transcript tab is a placeholder while
-// its content treatment is being designed.
 export function ConversationViewContentNew({
   conversation,
   activeTab,
   selectedSpanId,
   onSelectSpan,
+  onDeselectSpan,
   focusedTool,
 }: ConversationViewContentNewProps) {
+  const isTimeline = activeTab === 'timeline';
+
   const {nodes, nodeTraceMap, isLoading, error} = useConversation(conversation);
-  const {selectedNode, handleSelectNode} = useConversationSelection({
-    nodes,
-    selectedSpanId,
-    onSelectSpan,
-    focusedTool,
-    isLoading,
-  });
 
   const [detailState, setDetailState] = useQueryStates(
     {
@@ -64,6 +55,17 @@ export function ConversationViewContentNew({
     },
     {history: 'replace'}
   );
+
+  const {selectedNode, handleSelectNode} = useConversationSelection({
+    nodes,
+    selectedSpanId,
+    onSelectSpan,
+    focusedTool,
+    isLoading,
+    // Neither view auto-selects a span on load. The span detail only opens on
+    // user action or when a span is deep-linked in the URL.
+    autoSelectDefaultNode: false,
+  });
   const handleSelectAndOpenDetail = useCallback(
     (node: AITraceSpanNode) => {
       setDetailState({detailOpen: true});
@@ -80,83 +82,60 @@ export function ConversationViewContentNew({
     }
   }, [isLoading, error, nodes.length]);
 
-  if (isLoading) {
-    return <ConversationViewSkeleton />;
-  }
+  const isTranscript = !isTimeline;
 
   if (error) {
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
   }
 
-  if (nodes.length === 0) {
+  if (!isLoading && nodes.length === 0) {
     return <EmptyMessage>{t('No AI spans found in this conversation')}</EmptyMessage>;
   }
 
   return (
     <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-      <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
-        <ConversationLeftPanel>
-          {activeTab === 'transcript' ? (
-            <Flex flex="1" minHeight="0" overflowY="hidden" background="secondary">
-              <EmptyMessage>{t('Transcript view is coming soon')}</EmptyMessage>
-            </Flex>
+      <ConversationContentLayout
+        leftPadding={isTranscript ? '0' : 'md'}
+        left={
+          isTranscript ? (
+            <MessagesPanelNew
+              isLoading={isLoading}
+              nodes={nodes}
+              selectedNodeId={selectedNode?.id ?? null}
+              onSelectNode={handleSelectAndOpenDetail}
+              nodeTraceMap={nodeTraceMap}
+            />
           ) : (
-            <Container
-              containerType="inline-size"
-              flex="1"
-              minHeight="0"
-              width="100%"
-              background="secondary"
-            >
-              <Flex
-                direction={{xs: 'column', md: 'row'}}
-                height="100%"
-                width="100%"
-                gap="md"
-                padding="md"
-                minHeight="0"
-                overflowY="auto"
-                overflowX="hidden"
-              >
-                <Container
-                  flex="1"
-                  minWidth="0"
-                  minHeight={{xs: '320px', md: '0'}}
-                  padding="md"
-                  background="primary"
-                  border="primary"
-                  radius="md"
-                  overflowX="hidden"
-                  overflowY="auto"
-                >
-                  <AiSpanTimeline
-                    nodes={nodes}
-                    selectedNodeKey={selectedNode?.id ?? ''}
-                    onSelectNode={handleSelectAndOpenDetail}
-                    nodeTraceMap={nodeTraceMap}
-                    compressGaps
-                  />
-                </Container>
-                {detailState.detailOpen && selectedNode ? (
-                  <Flex
-                    width={{xs: '100%', md: '430px'}}
-                    flex={{xs: '1', md: '0 0 auto'}}
-                    minHeight={{xs: '320px', md: '0'}}
-                  >
-                    <ConversationSpanDetail
-                      node={selectedNode}
-                      traceId={nodeTraceMap?.get(selectedNode.id) ?? ''}
-                      activeTab={detailState.detailTab}
-                      onTabChange={detailTab => setDetailState({detailTab})}
-                      onClose={() => setDetailState({detailOpen: false, detailTab: null})}
-                    />
-                  </Flex>
-                ) : null}
-              </Flex>
-            </Container>
-          )}
-        </ConversationLeftPanel>
-      </Flex>
+            <AiSpanTimeline
+              isLoading={isLoading}
+              nodes={nodes}
+              selectedNodeKey={selectedNode?.id ?? ''}
+              onSelectNode={handleSelectAndOpenDetail}
+              nodeTraceMap={nodeTraceMap}
+              compressGaps
+            />
+          )
+        }
+        right={
+          // Only show the detail pane (and its loading skeleton) when a span is
+          // deep-linked in the URL, or once the user has selected one.
+          detailState.detailOpen &&
+          (isLoading ? Boolean(selectedSpanId) : Boolean(selectedNode)) ? (
+            <ConversationSpanDetail
+              isLoading={isLoading}
+              scrollResetKey={activeTab}
+              node={selectedNode ?? undefined}
+              traceId={selectedNode ? (nodeTraceMap?.get(selectedNode.id) ?? '') : ''}
+              activeTab={detailState.detailTab}
+              onTabChange={detailTab => setDetailState({detailTab})}
+              onClose={() => {
+                setDetailState({detailOpen: false, detailTab: null});
+                onDeselectSpan?.();
+              }}
+            />
+          ) : null
+        }
+      />
     </TraceStateProvider>
   );
 }

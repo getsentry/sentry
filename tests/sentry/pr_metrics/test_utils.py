@@ -97,17 +97,40 @@ class IsActivityTrackingEnabledTest(TestCase):
         with self.feature("organizations:pr-metrics-activity"):
             assert not is_activity_tracking_enabled(self.organization, pr=pr)
 
-    def test_closed_pr_returns_false_without_db_queries(self) -> None:
+    def test_superseded_pr_returns_false_without_db_queries(self) -> None:
         pr = self._make_pr()
-        pr.state = PullRequestLifecycleState.CLOSED
+        pr.state = PullRequestLifecycleState.SUPERSEDED
         pr.save()
         with self.feature("organizations:pr-metrics-activity"):
             assert not is_activity_tracking_enabled(self.organization, pr=pr)
 
-    def test_merged_pr_returns_false_without_db_queries(self) -> None:
+    def test_closed_pr_within_buffer_collects_activity_to_capture_closer(self) -> None:
+        # CLOSED/MERGED are intentionally not short-circuited: the close webhook
+        # stamps the terminal state before tracking runs, so the row recording the
+        # closer must still be written. Within the buffer, no attribution is needed.
+        pr = self._make_pr()
+        pr.state = PullRequestLifecycleState.CLOSED
+        pr.save()
+        with self.feature("organizations:pr-metrics-activity"):
+            assert is_activity_tracking_enabled(self.organization, pr=pr)
+
+    def test_merged_pr_within_buffer_collects_activity_to_capture_closer(self) -> None:
         pr = self._make_pr()
         pr.state = PullRequestLifecycleState.MERGED
         pr.save()
+        with self.feature("organizations:pr-metrics-activity"):
+            assert is_activity_tracking_enabled(self.organization, pr=pr)
+
+    def test_terminal_pr_blocked_once_verdict_claimed(self) -> None:
+        # The verdict gate still stops activity on an already-settled terminal PR
+        # (a redelivered or reopened-then-reclosed close), so it isn't unbounded.
+        pr = self._make_pr()
+        pr.state = PullRequestLifecycleState.MERGED
+        pr.save()
+        PullRequestMetrics.objects.create(
+            pull_request=pr,
+            verdict=PullRequestVerdict.MERGED_UNCHANGED,
+        )
         with self.feature("organizations:pr-metrics-activity"):
             assert not is_activity_tracking_enabled(self.organization, pr=pr)
 

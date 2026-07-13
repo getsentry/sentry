@@ -1,17 +1,22 @@
+from datetime import datetime, timezone
+
 import pytest
 from django.db import router, transaction
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.issues.action_log.base import ActionSource, publish_action
+from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
+    ActionSource,
     GroupAction,
     GroupActionActor,
     GroupActionType,
     GroupActorType,
+    PullRequestClosedAction,
     ResolveAction,
     ResolvedInPullRequestAction,
+    RootCauseIdentifiedAction,
     UnresolveAction,
     ViewAction,
 )
@@ -26,7 +31,10 @@ from sentry.issues.derived.features import (
 )
 from sentry.issues.derived.framework import (
     AggregatorResult,
+    DateTimeCodec,
+    EnumCodec,
     Feature,
+    OptionalCodec,
     Pipeline,
     State,
     StateUpdate,
@@ -46,6 +54,7 @@ from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
+from sentry.utils import json
 
 SOURCE = ActionSource.API
 
@@ -259,7 +268,7 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         assert derived.view_count == 2  # rebuilt from scratch
 
-    def test_resolved_in_pull_request_closes(self) -> None:
+    def test_resolved_in_pull_request_proposes_fix(self) -> None:
         group = self.create_group()
         user = self.user
 
@@ -269,7 +278,75 @@ class ProcessGroupLogTest(TestCase):
             actor=GroupActionActor.user(user.id),
         )
         derived = process_group_log(group.id)
-        assert derived.data["status"] == "closed"
+        # An open PR referencing the issue proposes a fix; the issue stays open.
+        assert derived.data["status"] == "open"
+        assert derived.progress == IssueProgressState.FIX_PROPOSED.value
+
+    def test_pull_request_close_demotes_progress(self) -> None:
+        group = self.create_group()
+        actor = GroupActionActor.user(self.user.id)
+
+        _publish(group=group, action=RootCauseIdentifiedAction(), actor=actor)
+        _publish(
+            group=group,
+            action=ResolvedInPullRequestAction(pull_request=101),
+            actor=actor,
+        )
+        derived = process_group_log(group.id)
+        assert derived.progress == IssueProgressState.FIX_PROPOSED.value
+
+        _publish(
+            group=group,
+            action=PullRequestClosedAction(pull_request=101, has_other_open_prs=False),
+            actor=actor,
+        )
+        derived = process_group_log(group.id)
+        assert derived.progress == IssueProgressState.DIAGNOSED.value
+
+    def test_pull_request_close_with_remaining_keeps_progress(self) -> None:
+        group = self.create_group()
+        actor = GroupActionActor.user(self.user.id)
+
+        _publish(
+            group=group,
+            action=ResolvedInPullRequestAction(pull_request=101),
+            actor=actor,
+        )
+        _publish(
+            group=group,
+            action=PullRequestClosedAction(pull_request=101, has_other_open_prs=True),
+            actor=actor,
+        )
+        derived = process_group_log(group.id)
+        assert derived.progress == IssueProgressState.FIX_PROPOSED.value
+
+    def test_pull_request_close_invalidate_and_replay_matches(self) -> None:
+        group = self.create_group()
+        actor = GroupActionActor.user(self.user.id)
+
+        _publish(group=group, action=RootCauseIdentifiedAction(), actor=actor)
+        _publish(
+            group=group,
+            action=ResolvedInPullRequestAction(pull_request=101),
+            actor=actor,
+        )
+        _publish(
+            group=group,
+            action=PullRequestClosedAction(pull_request=101, has_other_open_prs=False),
+            actor=actor,
+        )
+        first = process_group_log(group.id)
+        first_data = first.data.copy()
+        first_progress = first.progress
+        first_last_progressed_at = first.last_progressed_at
+
+        invalidate_group_derived_data(group.id)
+        second = process_group_log(group.id)
+
+        assert second.data == first_data
+        assert second.progress == first_progress
+        assert second.last_progressed_at == first_last_progressed_at
+        assert second.progress == IssueProgressState.DIAGNOSED.value
 
 
 # --- Pure Python tests (no DB) ---
@@ -333,6 +410,98 @@ def test_store_apply_to_instance() -> None:
     assert derived.view_count == 5
 
 
+def test_all_feature_defaults_round_trip_through_json() -> None:
+    state = PIPELINE.initial_state()
+    blob = {f.name: f.to_json(state[f]) for f in PIPELINE.features}
+    serialized = json.loads(json.dumps(blob))
+    for f in PIPELINE.features:
+        assert f.from_json(serialized[f.name]) == state[f], f"round-trip failed for {f.name}"
+
+
+# --- Codec tests ---
+
+
+class TestDateTimeCodec:
+    def test_json_round_trip(self) -> None:
+        codec = DateTimeCodec()
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        assert codec.from_json(codec.to_json(dt)) == dt
+
+    def test_to_json_produces_iso_string(self) -> None:
+        codec = DateTimeCodec()
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        dumped = codec.to_json(dt)
+        assert isinstance(dumped, str)
+        assert dumped == dt.isoformat()
+
+    def test_column_round_trip_is_identity(self) -> None:
+        codec = DateTimeCodec()
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        assert codec.from_column(codec.to_column(dt)) == dt
+        assert codec.to_column(dt) is dt
+
+    def test_optional_none(self) -> None:
+        codec = OptionalCodec(DateTimeCodec())
+        assert codec.to_json(None) is None
+        assert codec.from_json(None) is None
+
+    def test_optional_json_round_trip(self) -> None:
+        codec = OptionalCodec(DateTimeCodec())
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        assert codec.from_json(codec.to_json(dt)) == dt
+
+
+class TestEnumCodecCoverage:
+    @pytest.mark.parametrize("raw", ["open", "closed"])
+    def test_issue_status_json_round_trip(self, raw: str) -> None:
+        codec = EnumCodec(IssueStatus)
+        loaded = codec.from_json(raw)
+        assert codec.to_json(loaded) == raw
+
+    @pytest.mark.parametrize("raw", ["open", "closed"])
+    def test_issue_status_column_round_trip(self, raw: str) -> None:
+        codec = EnumCodec(IssueStatus)
+        loaded = codec.from_column(raw)
+        assert isinstance(loaded, IssueStatus)
+        assert codec.to_column(loaded) == raw
+
+    @pytest.mark.parametrize(
+        "raw", ["identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"]
+    )
+    def test_issue_progress_state_json_round_trip(self, raw: str) -> None:
+        codec = EnumCodec(IssueProgressState)
+        loaded = codec.from_json(raw)
+        assert codec.to_json(loaded) == raw
+
+    @pytest.mark.parametrize(
+        "raw", ["identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"]
+    )
+    def test_issue_progress_state_column_produces_enum(self, raw: str) -> None:
+        codec = EnumCodec(IssueProgressState)
+        loaded = codec.from_column(raw)
+        assert isinstance(loaded, IssueProgressState)
+
+    @pytest.mark.parametrize(
+        "raw",
+        [None, "identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"],
+    )
+    def test_optional_progress_json_round_trip(self, raw: str | None) -> None:
+        codec = OptionalCodec(EnumCodec(IssueProgressState))
+        loaded = codec.from_json(raw)
+        assert codec.to_json(loaded) == raw
+
+    @pytest.mark.parametrize(
+        "raw",
+        [None, "identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"],
+    )
+    def test_optional_progress_column_round_trip(self, raw: str | None) -> None:
+        codec = OptionalCodec(EnumCodec(IssueProgressState))
+        loaded = codec.from_column(raw)
+        if raw is not None:
+            assert isinstance(loaded, IssueProgressState)
+        assert codec.to_column(loaded) == raw
+
+
 # --- Store tests (need DB) ---
 
 
@@ -363,6 +532,7 @@ class GroupDerivedDataStoreTest(TestCase):
         state = GroupDerivedDataStore.load(PIPELINE, derived)
         assert state[VIEW_COUNT] == 3
         assert state[PROGRESS] == IssueProgressState.DIAGNOSED
+        assert isinstance(state[PROGRESS], IssueProgressState)
         assert state[STATUS] == IssueStatus.CLOSED
 
     def test_load_null_progress(self) -> None:

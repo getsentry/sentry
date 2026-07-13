@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Prose, Text} from '@sentry/scraps/text';
@@ -387,10 +387,10 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
     content = (
       <ArtifactDetails gap="lg">
-        <Flex direction="column" gap="md">
+        <Stack gap="md">
           <Text bold>{t("Seer proposed a fix but couldn't apply it automatically")}</Text>
           <Markdown raw={explanation} />
-        </Flex>
+        </Stack>
         {resetSection}
       </ArtifactDetails>
     );
@@ -466,7 +466,7 @@ function FeedbackStatusIcon({status}: {status: FeedbackStatus}) {
     case 'in_progress':
       return (
         <Tooltip title={t('This feedback is being processed')}>
-          <LoadingIndicator size={14} />
+          <LoadingIndicator size={14} style={{margin: 0}} />
         </Tooltip>
       );
     case 'queued':
@@ -491,7 +491,7 @@ function FeedbackItem({item}: {item: IterationFeedback}) {
     <Flex gap="md" align="start" justify="between">
       <Flex gap="md" align="start" flex="1" minWidth={0}>
         <Flex align="center" gap="md" height="1lh">
-          <Flex align="center" justify="center" flex="0 0 28px">
+          <Flex align="center" justify="center" width="28px">
             <FeedbackStatusIcon status={item.status} />
           </Flex>
           <FeedbackAttribution item={item} />

@@ -21,14 +21,13 @@ from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Any
 
-import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
-from sentry import features
+from sentry import features, options
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.issues.constants import cache_key_for_issue_view
@@ -50,11 +49,13 @@ from sentry.pr_metrics.activity_types import (
     AutoMergeEnabledPayload,
     CheckRunCompletedPayload,
     CheckSuiteCompletedPayload,
+    ClosedPayload,
     CommentCreatedPayload,
     ConvertedToDraftPayload,
     DequeuedPayload,
     EnqueuedPayload,
     LabeledPayload,
+    MergedPayload,
     OpenedPayload,
     ReadyForReviewPayload,
     ReviewDismissedPayload,
@@ -72,11 +73,13 @@ from sentry.pr_metrics.attribution import (
     record_attribution_signal,
 )
 from sentry.pr_metrics.emit import (
+    CI_FAILING_AT_CLOSE,
+    ci_failing_at_close,
     emit_pr_metrics_row,
     is_pr_tracked,
     select_verdict,
 )
-from sentry.pr_metrics.tasks import forward_pr_to_seer_task
+from sentry.pr_metrics.tasks import emit_pr_metrics_cooldown_task, forward_pr_to_seer_task
 from sentry.pr_metrics.utils import (
     DELEGATED_AGENT_AUTHOR_LOGINS,
     DELEGATED_AGENT_BRANCH_PREFIXES,
@@ -97,6 +100,7 @@ logger = logging.getLogger("sentry.webhooks")
 _ACTIVITY_ACTIONS = frozenset(
     {
         "opened",
+        "closed",
         "synchronize",
         "labeled",
         "unlabeled",
@@ -114,7 +118,8 @@ _ACTIVITY_ACTIONS = frozenset(
 )
 
 # Maps webhook action strings to PullRequestActivityType values.
-# "closed" is absent because it forks on pull_request.merged — handled in _write_activity.
+# "closed" is absent because it forks on pull_request.merged (CLOSED vs MERGED) —
+# resolved in _write_activity.
 _ACTION_TO_ACTIVITY_TYPE: dict[str, PullRequestActivityType] = {
     "opened": PullRequestActivityType.OPENED,
     "synchronize": PullRequestActivityType.SYNCHRONIZED,
@@ -162,15 +167,16 @@ def handle_attribution(
     if pr is None:
         return
 
-    if action == "opened":
+    # SENTRY_APP author attribution is recorded on open and re-checked on close.
+    # This is for the unlikely event that we missed the open webhook or for cases
+    # where the PR open and closes super fast and the webhooks might be out of order
+    if action in ("opened", "closed"):
         pr_url = (pull_request or {}).get("html_url") or None
         _write_author_attribution(pr, github_user, pr_url=pr_url, group_ids=resolved_group_ids(pr))
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
     if action == "opened" and pull_request is not None:
-        provider_hint = _is_delegated_agent_candidate(pull_request)
-        if provider_hint and org_has_coding_agent_for_provider(organization, provider_hint):
-            _detect_delegated_agent(pr, pull_request, repo, provider_hint=provider_hint)
+        _attribute_delegated_agent(pr, pull_request, repo, organization, github_user)
 
 
 def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
@@ -300,6 +306,23 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
     metrics.incr("pr_metrics.judge.enqueued")
 
 
+def _claim_cooldown(pr: PullRequest) -> bool:
+    """Claim a terminal event's emission cooldown, guarding against redelivery.
+
+    Ensures the metrics row exists (``select_verdict`` runs later in the task and
+    tolerates a missing row, but the compare-and-set needs a row to update), then
+    atomically transitions ``verdict`` NULL -> ``WAITING_EVENT_COOLDOWN``. Only the
+    first close/merge delivery wins, so exactly one cooldown task is scheduled;
+    redeliveries — and a reopen-then-reclose while the window is still open — find
+    the row already claimed and no-op. Returns True if this call won the claim.
+    """
+    PullRequestMetrics.objects.get_or_create(pull_request=pr)
+    claimed = PullRequestMetrics.objects.filter(pull_request=pr, verdict__isnull=True).update(
+        verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN
+    )
+    return bool(claimed)
+
+
 def handle_emission(
     *,
     github_event: GithubWebhookType,
@@ -309,19 +332,19 @@ def handle_emission(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Emit a metrics row on a terminal (close/merge) PR webhook for a tracked PR.
+    """Schedule deferred emission on a terminal (close/merge) PR webhook.
 
-    GitHub's single ``closed`` action covers both merges and plain closes; emit
-    derives which from the stored row, so this handler only filters for ``closed``
-    and delegates. All non-terminal actions are ignored.
+    GitHub's single ``closed`` action covers both merges and plain closes. Rather
+    than emitting inline, this claims a cooldown on the metrics row and schedules
+    ``emit_pr_metrics_cooldown_task`` ``pr_metrics.emit_cooldown_seconds`` out, so
+    late attribution and activity can settle before the verdict is chosen and the
+    row emitted (see ``run_deferred_emission``). All non-terminal actions are
+    ignored.
 
-    Untracked PRs (no valid attribution) are dropped first, before any verdict is
+    Untracked PRs (no valid attribution) are dropped first, before the cooldown is
     claimed: claiming would burn the redelivery guard, so a PR that gained
-    attribution only later (e.g. a Seer backfill) could never emit. ``select_verdict``
-    then decides the outcome: a deterministic verdict is claimed (the redelivery
-    guard) and emitted; a PR that needs a judge is forwarded to Seer instead (gated
-    on ``pr-metrics-judge``, guarded by the same claim against redelivery), and Seer
-    calls back to settle and emit it.
+    attribution only later could never emit. The cooldown claim is the redelivery
+    guard — only the first delivery schedules a task; redeliveries no-op.
     """
     if event.get("action") != "closed":
         return
@@ -343,20 +366,97 @@ def handle_emission(
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "untracked"})
         return
 
-    verdict = select_verdict(pr, organization)
-    if verdict is None:
-        _forward_to_judge(pr, organization)
+    if not _claim_cooldown(pr):
+        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "already_claimed"})
         return
 
-    if not _claim_terminal_event(pr, verdict):
+    log_extra = {
+        "organization_id": organization.id,
+        "repository_id": pr.repository_id,
+        "pull_request_id": pr.id,
+    }
+    try:
+        emit_pr_metrics_cooldown_task.apply_async(
+            kwargs={
+                "pull_request_id": pr.id,
+                "organization_id": organization.id,
+                "repository_id": pr.repository_id,
+            },
+            countdown=options.get("pr_metrics.emit_cooldown_seconds"),
+        )
+    except Exception:
+        # The claim committed but the enqueue didn't, so no task will settle this PR.
+        # Release the cooldown sentinel (only if it's still ours) so a redelivery can
+        # reschedule rather than the PR sticking in WAITING_EVENT_COOLDOWN.
+        PullRequestMetrics.objects.filter(
+            pull_request=pr, verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN
+        ).update(verdict=None)
+        metrics.incr("pr_metrics.cooldown.enqueue_failed")
+        logger.exception("pr_metrics.cooldown.enqueue_failed", extra=log_extra)
+        return
+
+    metrics.incr("pr_metrics.cooldown.scheduled")
+
+
+def run_deferred_emission(pull_request: PullRequest, organization: Organization) -> None:
+    """Settle and emit a PR's terminal metrics row after the cooldown window.
+
+    Runs from ``emit_pr_metrics_cooldown_task`` ``pr_metrics.emit_cooldown_seconds``
+    after the close/merge webhook claimed ``WAITING_EVENT_COOLDOWN``. By now late
+    attribution and activity have settled, so verdict selection and emission read
+    final state.
+
+    Reopen handling: if the PR is no longer terminal (reopened during the window),
+    release the sentinel and stop — a later re-close reschedules. Otherwise release
+    the cooldown claim back to NULL and run the standard verdict -> emit/forward
+    path, whose own NULL-based guards settle the row exactly once (a late redelivery
+    that races the brief NULL window still emits once: whichever of the two claims
+    the verdict wins, the other no-ops).
+    """
+    log_extra = {
+        "organization_id": organization.id,
+        "repository_id": pull_request.repository_id,
+        "pull_request_id": pull_request.id,
+    }
+
+    # Release our cooldown claim so the deterministic/judge guards below — which
+    # compare-and-set against a NULL verdict — can settle the row.
+    PullRequestMetrics.objects.filter(
+        pull_request=pull_request, verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN
+    ).update(verdict=None)
+
+    if pull_request.closed_at is None or pull_request.head_commit_sha is None:
+        # Reopened (or no longer terminal) while waiting. Release the sentinel so a
+        # later re-close can re-claim and reschedule.
+        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "reopened"})
+        logger.info("pr_metrics.cooldown.reopened", extra=log_extra)
+        return
+
+    verdict = select_verdict(pull_request, organization)
+    if verdict is None:
+        _forward_to_judge(pull_request, organization)
+        return
+
+    if not _claim_terminal_event(pull_request, verdict):
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
         return
+
+    # Sentry can derive this one diagnosis label itself, without a judge: a plain
+    # close (no merge, no engagement) whose check suites were red at close. Scoped
+    # to CLOSED_UNMERGED specifically — the judge-needed and merged paths don't
+    # carry this deterministic signal.
+    diagnosis_labels = (
+        [CI_FAILING_AT_CLOSE]
+        if verdict == PullRequestVerdict.CLOSED_UNMERGED and ci_failing_at_close(pull_request)
+        else None
+    )
 
     # Claim before emit so build_pr_metrics_row reads the verdict back onto the row.
     # analytics.record is best-effort, async-batched telemetry; if it raises the
     # claim still stands and the row is forgone — an acceptable loss for telemetry,
     # not worth a rollback that would reopen the redelivery race.
-    emit_pr_metrics_row(pull_request=pr)
+    emit_pr_metrics_row(pull_request=pull_request, diagnosis_labels=diagnosis_labels)
+    metrics.incr("pr_metrics.cooldown.emitted")
 
 
 def handle_metrics(
@@ -685,13 +785,9 @@ def handle_check_suite(
         return
 
     check_suite = event.get("check_suite") or {}
-    sender = event.get("sender") or {}
     app = check_suite.get("app") or {}
     payload = asdict(
         CheckSuiteCompletedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            head_sha=check_suite.get("head_sha"),
             conclusion=check_suite.get("conclusion") or "",
             app_slug=app.get("slug", ""),
             check_runs_count=check_suite.get("latest_check_runs_count") or 0,
@@ -731,13 +827,9 @@ def handle_check_run(
         return
 
     check_run = event.get("check_run") or {}
-    sender = event.get("sender") or {}
     app = check_run.get("app") or {}
     payload = asdict(
         CheckRunCompletedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            head_sha=check_run.get("head_sha"),
             check_name=check_run.get("name", ""),
             conclusion=check_run.get("conclusion") or "",
             app_slug=app.get("slug", ""),
@@ -990,6 +1082,55 @@ def _write_author_attribution(
     )
 
 
+def _record_delegated_candidate(provider: str, outcome: str) -> None:
+    """Count where an opened PR lands in the delegated-agent attribution funnel.
+
+    ``provider`` is the provider hint (or ``"unknown"`` when none could be
+    derived); ``outcome`` is the terminal stage. Every stage that previously
+    returned silently records here, so drop-offs before the Seer match request
+    are visible instead of invisible.
+    """
+    metrics.incr(
+        "pr_metrics.delegated_agent.candidate",
+        tags={"provider": provider, "outcome": outcome},
+    )
+
+
+def _attribute_delegated_agent(
+    pr: PullRequest,
+    webhook_pull_request: Mapping[str, Any],
+    repository: Repository,
+    organization: Organization,
+    github_user: Mapping[str, Any],
+) -> None:
+    """Route an opened PR toward the Seer delegated-agent match, recording where
+    it drops off.
+
+    The funnel is scoped to PRs plausibly opened by an agent — either a provider
+    hint (branch prefix / bot login) or authorship by the Sentry/Seer app — so
+    the counter isn't swamped by ordinary human PRs that legitimately carry no
+    hint.
+    """
+    provider_hint = _is_delegated_agent_candidate(webhook_pull_request)
+
+    if not provider_hint:
+        # Claude opens PRs as the Sentry app with no distinct bot login, so the
+        # ``claude/`` branch prefix is its only signal; a non-``claude/`` branch
+        # leaves no hint and the PR never reaches the match. Surface that only
+        # for app-authored PRs — the cohort that should have matched — since
+        # human PRs with no hint are expected and would dominate the metric.
+        user_id = github_user.get("id")
+        if user_id is not None and _detect_app_signal(user_id) is not None:
+            _record_delegated_candidate("unknown", "no_provider_hint")
+        return
+
+    if not org_has_coding_agent_for_provider(organization, provider_hint):
+        _record_delegated_candidate(provider_hint, "no_org_integration")
+        return
+
+    _detect_delegated_agent(pr, webhook_pull_request, repository, provider_hint=provider_hint)
+
+
 def _detect_delegated_agent(
     pr: PullRequest,
     webhook_pull_request: Mapping[str, Any],
@@ -1004,6 +1145,7 @@ def _detect_delegated_agent(
     """
     group_ids = resolved_group_ids(pr)
     if not group_ids:
+        _record_delegated_candidate(provider_hint, "no_group_ids")
         return
 
     repo_name_sections = repository.name.split("/")
@@ -1012,6 +1154,7 @@ def _detect_delegated_agent(
             "pr_metrics.delegated_agent.invalid_repo_name",
             extra={"pull_request_id": pr.id, "repo_name": repository.name},
         )
+        _record_delegated_candidate(provider_hint, "bad_repo")
         return
 
     if not repository.provider or not repository.external_id:
@@ -1023,6 +1166,7 @@ def _detect_delegated_agent(
                 "has_external_id": bool(repository.external_id),
             },
         )
+        _record_delegated_candidate(provider_hint, "bad_repo")
         return
 
     pr_url = webhook_pull_request.get("html_url") or ""
@@ -1060,11 +1204,7 @@ def _send_seer_delegated_agent_match(
         response = make_match_coding_agent_pr_request(request_body, timeout=5)
     except Exception:
         logger.warning("pr_metrics.delegated_agent.seer_match.error", extra=log_extra)
-        sentry_sdk.metrics.count(
-            "pr_metrics.delegated_agent.seer_match.error",
-            1,
-            attributes={"reason": "exception"},
-        )
+        _record_delegated_candidate(provider_hint, "seer_error_exception")
         return
 
     if response.status >= 400:
@@ -1072,18 +1212,10 @@ def _send_seer_delegated_agent_match(
             "pr_metrics.delegated_agent.seer_match.error",
             extra={**log_extra, "status_code": response.status},
         )
-        sentry_sdk.metrics.count(
-            "pr_metrics.delegated_agent.seer_match.error",
-            1,
-            attributes={"reason": "bad_status"},
-        )
+        _record_delegated_candidate(provider_hint, "seer_error_bad_status")
         return
 
-    sentry_sdk.metrics.count(
-        "pr_metrics.delegated_agent.seer_match.sent",
-        1,
-        attributes={"provider": provider_hint},
-    )
+    _record_delegated_candidate(provider_hint, "sent")
 
 
 def _write_mcp_attribution(pr: PullRequest) -> None:
@@ -1138,10 +1270,19 @@ def _write_activity(
         # Without a delivery ID idempotency cannot be guaranteed — skip.
         return
 
-    mapped = _ACTION_TO_ACTIVITY_TYPE.get(action)
-    if mapped is None:
-        return
-    event_type = mapped
+    if action == "closed":
+        # GitHub's single "closed" action forks on whether the PR merged; both
+        # record the actor (the closer/merger) so emission can derive who closed.
+        event_type = (
+            PullRequestActivityType.MERGED
+            if pull_request.get("merged")
+            else PullRequestActivityType.CLOSED
+        )
+    else:
+        mapped = _ACTION_TO_ACTIVITY_TYPE.get(action)
+        if mapped is None:
+            return
+        event_type = mapped
 
     payload = _build_activity_payload(action, pull_request, event)
     _write_activity_row(pr, webhook_id, event_type, payload)
@@ -1156,18 +1297,18 @@ def _build_activity_payload(
     base = pull_request.get("base") or {}
     sender = event.get("sender") or pull_request.get("user") or {}
 
-    base_kw: dict[str, Any] = dict(
+    sender_kw: dict[str, Any] = dict(
         sender_login=sender.get("login", ""),
         sender_type=sender.get("type", ""),
-        head_sha=head.get("sha"),
-        base_sha=base.get("sha"),
     )
 
     match action:
         case "opened":
             return asdict(
                 OpenedPayload(
-                    **base_kw,
+                    **sender_kw,
+                    head_sha=head.get("sha"),
+                    base_sha=base.get("sha"),
                     additions=pull_request.get("additions", 0),
                     deletions=pull_request.get("deletions", 0),
                     changed_files=pull_request.get("changed_files", 0),
@@ -1177,51 +1318,53 @@ def _build_activity_payload(
         case "synchronize":
             return asdict(
                 SynchronizePayload(
-                    **base_kw,
+                    **sender_kw,
                     before_sha=event.get("before"),
                     after_sha=event.get("after"),
                 )
             )
+        case "closed":
+            if pull_request.get("merged"):
+                return asdict(MergedPayload(**sender_kw))
+            return asdict(ClosedPayload(**sender_kw))
         case "labeled":
             label = event.get("label") or {}
-            return asdict(LabeledPayload(**base_kw, label_name=(label.get("name") or "")))
+            return asdict(LabeledPayload(**sender_kw, label_name=(label.get("name") or "")))
         case "unlabeled":
             label = event.get("label") or {}
-            return asdict(UnlabeledPayload(**base_kw, label_name=(label.get("name") or "")))
+            return asdict(UnlabeledPayload(**sender_kw, label_name=(label.get("name") or "")))
         case "review_requested":
             return asdict(
                 ReviewRequestedPayload(
-                    **base_kw, is_team_review=event.get("requested_team") is not None
+                    **sender_kw, is_team_review=event.get("requested_team") is not None
                 )
             )
         case "review_request_removed":
             return asdict(
                 ReviewRequestRemovedPayload(
-                    **base_kw, is_team_review=event.get("requested_team") is not None
+                    **sender_kw, is_team_review=event.get("requested_team") is not None
                 )
             )
         case "assigned":
             assignee = event.get("assignee") or {}
-            return asdict(AssignedPayload(**base_kw, assignee_login=assignee.get("login", "")))
+            return asdict(AssignedPayload(**sender_kw, assignee_login=assignee.get("login", "")))
         case "unassigned":
             assignee = event.get("assignee") or {}
-            return asdict(UnassignedPayload(**base_kw, assignee_login=assignee.get("login", "")))
+            return asdict(UnassignedPayload(**sender_kw, assignee_login=assignee.get("login", "")))
         case "converted_to_draft":
-            return asdict(ConvertedToDraftPayload(**base_kw))
+            return asdict(ConvertedToDraftPayload(**sender_kw))
         case "ready_for_review":
-            return asdict(ReadyForReviewPayload(**base_kw))
+            return asdict(ReadyForReviewPayload(**sender_kw))
         case "auto_merge_enabled":
             auto_merge = pull_request.get("auto_merge") or {}
             return asdict(
-                AutoMergeEnabledPayload(
-                    **base_kw, merge_method=auto_merge.get("merge_method") or ""
-                )
+                AutoMergeEnabledPayload(merge_method=auto_merge.get("merge_method") or "")
             )
         case "auto_merge_disabled":
-            return asdict(AutoMergeDisabledPayload(**base_kw))
+            return asdict(AutoMergeDisabledPayload())
         case "enqueued":
-            return asdict(EnqueuedPayload(**base_kw))
+            return asdict(EnqueuedPayload())
         case "dequeued":
-            return asdict(DequeuedPayload(**base_kw, reason=event.get("reason") or ""))
+            return asdict(DequeuedPayload(reason=event.get("reason") or ""))
         case _:
             raise ValueError(f"No payload builder for action {action!r}")
