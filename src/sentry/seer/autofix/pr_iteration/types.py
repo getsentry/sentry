@@ -130,6 +130,17 @@ class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
         values["start_line"] = comment.get("start_line")
         return values
 
+    def anchor(self) -> str | None:
+        """``file_path:line`` (or ``file_path:start-end``) the inline comment is
+        attached to, or ``None`` when it isn't line-anchored."""
+        if not self.file_path:
+            return None
+        if self.start_line and self.line and self.start_line != self.line:
+            return f"{self.file_path}:{self.start_line}-{self.line}"
+        if self.line:
+            return f"{self.file_path}:{self.line}"
+        return self.file_path
+
 
 FeedbackSource = Annotated[
     UserUIFeedbackSource | GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource,
@@ -164,6 +175,21 @@ class Feedback(BaseModel):
             source.ui_text or source.text or values.get("ui_text") or values.get("text") or ""
         )
         return values
+
+
+def format_feedback_for_prompt(feedback: Feedback) -> str:
+    """Render a feedback item for the Seer prompt.
+
+    Inline GitHub review comments are prefixed with their diff anchor so Seer
+    knows which file/line the comment targets; every other source passes
+    through verbatim.
+    """
+    source = feedback.source
+    if isinstance(source, GithubPrReviewCommentFeedbackSource):
+        anchor = source.anchor()
+        if anchor:
+            return f"Inline comment on {anchor}:\n{feedback.text}"
+    return feedback.text
 
 
 def parse_feedback(raw: str) -> list[Feedback]:

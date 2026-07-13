@@ -38,6 +38,7 @@ from sentry.seer.autofix.pr_iteration.types import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
     GithubPrReviewCommentFeedbackSource,
+    format_feedback_for_prompt,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.shared_integrations.exceptions import ApiError
@@ -178,7 +179,9 @@ def consume_queued_autofix_feedback(
                 step=AutofixStep.PR_ITERATION,
                 referrer=_get_feedback_referrer(queued_items),
                 run_id=run_id,
-                user_context="\n\n".join(item.text for item in feedback_items),
+                user_context="\n\n".join(
+                    format_feedback_for_prompt(item) for item in feedback_items
+                ),
                 feedback=feedback_items,
             )
         except (
