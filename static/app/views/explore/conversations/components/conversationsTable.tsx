@@ -99,10 +99,10 @@ function ConversationsTableInner() {
     columns: defaultColumnOrder,
   });
 
-  const {data, isLoading, error, pageLinks, setCursor} = useConversations();
+  const {data, isFetching, error, pageLinks, setCursor} = useConversations();
 
   const showMissingMessagesAlert =
-    !isLoading &&
+    !isFetching &&
     !error &&
     data.length > 0 &&
     data.every(conversation => !conversation.firstInput && !conversation.lastOutput);
@@ -152,7 +152,7 @@ function ConversationsTableInner() {
       {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
       <Container>
         <GridEditable
-          isLoading={isLoading}
+          isLoading={isFetching}
           error={error}
           data={data}
           columnOrder={columnOrder}
@@ -213,10 +213,7 @@ export function CellContent({text, ref, ...props}: CellContentProps) {
   const cleanedText = cleanMarkdownForCell(text);
   return (
     <SingleLineMarkdown ref={ref} {...props}>
-      {/* inline: no block <p>/<pre> children, so white-space:nowrap clamps to
-          one line without relying on `* {display:inline}` (Safari drops it on
-          MarkedText's async innerHTML swap, growing rows on back-nav). */}
-      <MarkedText inline text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
+      <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
     </SingleLineMarkdown>
   );
 }
@@ -357,7 +354,7 @@ const BodyCell = memo(function BodyCell({
     case 'timestamp':
       return (
         <Text as="div" align="right">
-          <TimeSince unitStyle="extraShort" date={new Date(dataRow.endTimestamp)} />
+          <TimeSince unitStyle="extraShort" date={dataRow.endTimestamp} />
         </Text>
       );
     default:

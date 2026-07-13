@@ -1,12 +1,12 @@
 import {Fragment, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
-  AI_MESSAGE_MAX_WIDTH,
   AssistantMessageBlock,
   MessageBlock,
   UserMessageBlock,
@@ -18,7 +18,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MessageToolCallsNew} from 'sentry/views/explore/conversations/components/messageToolCallsNew';
-import {TurnMeta} from 'sentry/views/explore/conversations/components/turnMeta';
+import {
+  TURN_META_WIDTH,
+  TurnMeta,
+} from 'sentry/views/explore/conversations/components/turnMeta';
 import {
   type ConversationMessage,
   extractMessagesFromNodes,
@@ -181,6 +184,7 @@ function AssistantTurn({
       {message.reasoning && (
         <MessageBlock>
           <ReasoningSection reasoning={message.reasoning} />
+          <Container width={TURN_META_WIDTH} flexShrink={0} />
         </MessageBlock>
       )}
       {message.content === '' ? (
@@ -234,7 +238,6 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
 
   return (
     <CollapsibleContent
-      maxWidth={AI_MESSAGE_MAX_WIDTH}
       title={
         <Text size="sm" variant="muted" monospace>
           {t('Thinking...')}
@@ -267,6 +270,11 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
  * the skeleton reads as a conversation rather than a generic list.
  */
 export function MessagesPanelSkeleton() {
+  const theme = useTheme();
+  const invertedPlaceholderStyle = {
+    backgroundColor: theme.tokens.background.primary,
+  };
+
   return (
     <PanelContainer>
       <Stack gap="0" width="100%">
@@ -274,20 +282,20 @@ export function MessagesPanelSkeleton() {
           <Placeholder height="14px" width="180px" />
         </UserMessageBlock>
         <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
-          <Flex direction="column" gap="sm">
-            <Placeholder height="12px" width="320px" />
-            <Placeholder height="12px" width="260px" />
-            <Placeholder height="12px" width="180px" />
-          </Flex>
+          <Stack gap="md">
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="320px" />
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="260px" />
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="180px" />
+          </Stack>
         </AssistantMessageBlock>
         <UserMessageBlock>
           <Placeholder height="14px" width="120px" />
         </UserMessageBlock>
         <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
-          <Flex direction="column" gap="sm">
-            <Placeholder height="12px" width="280px" />
-            <Placeholder height="12px" width="200px" />
-          </Flex>
+          <Stack gap="md">
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="280px" />
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="200px" />
+          </Stack>
         </AssistantMessageBlock>
       </Stack>
     </PanelContainer>
@@ -296,15 +304,9 @@ export function MessagesPanelSkeleton() {
 
 function PanelContainer({children}: {children: React.ReactNode}) {
   return (
-    <Flex
-      direction="column"
-      padding="xl 0"
-      background="primary"
-      minHeight="100%"
-      width="100%"
-    >
+    <Stack padding="xl 0" background="primary" minHeight="100%" width="100%">
       {children}
-    </Flex>
+    </Stack>
   );
 }
 
