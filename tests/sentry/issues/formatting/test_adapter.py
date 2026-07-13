@@ -103,6 +103,55 @@ def test_maps_camelcase_frame_and_handled_flag() -> None:
     assert frame.in_app is True  # inApp -> in_app
 
 
+def test_falls_back_to_raw_stacktrace() -> None:
+    # processed stacktrace has no frames, but rawStacktrace does -> use raw
+    data = {
+        "title": "t",
+        "entries": [
+            {
+                "type": "exception",
+                "data": {
+                    "values": [
+                        {
+                            "type": "E",
+                            "stacktrace": {"frames": []},
+                            "rawStacktrace": {"frames": [{"function": "raw_fn", "lineNo": 9}]},
+                        }
+                    ]
+                },
+            }
+        ],
+    }
+    m = event_response_to_model(data)
+    st = m.exceptions[0].stacktrace
+    assert st is not None
+    assert st.frames[0].function == "raw_fn"
+
+
+def test_processed_stacktrace_preferred_over_raw() -> None:
+    data = {
+        "title": "t",
+        "entries": [
+            {
+                "type": "exception",
+                "data": {
+                    "values": [
+                        {
+                            "type": "E",
+                            "stacktrace": {"frames": [{"function": "processed_fn"}]},
+                            "rawStacktrace": {"frames": [{"function": "raw_fn"}]},
+                        }
+                    ]
+                },
+            }
+        ],
+    }
+    m = event_response_to_model(data)
+    st = m.exceptions[0].stacktrace
+    assert st is not None
+    assert st.frames[0].function == "processed_fn"
+
+
 def test_maps_breadcrumbs_request_spans_user_tags() -> None:
     m = event_response_to_model(_serialized_event())
     assert m.breadcrumbs[0].message == "started"
