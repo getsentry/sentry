@@ -338,12 +338,6 @@ _PULL_REQUEST_ACTION_TYPES: dict[ActivityType, type[GroupAction]] = {
     ActivityType.PULL_REQUEST_UNLINKED: PullRequestUnlinkedAction,
 }
 
-_NON_OPEN_ACTIVITY_TYPES: dict[str, ActivityType] = {
-    PullRequestLifecycleState.CLOSED: ActivityType.PULL_REQUEST_CLOSED,
-    PullRequestLifecycleState.MERGED: ActivityType.PULL_REQUEST_MERGED,
-    PullRequestLifecycleState.SUPERSEDED: ActivityType.PULL_REQUEST_CLOSED,
-}
-
 
 def _create_pull_request_activities(
     group_ids: Sequence[int], *, pull_request_id: int, activity_type: ActivityType
