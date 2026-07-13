@@ -8,11 +8,10 @@ import {
   type DataExportPayload,
 } from 'sentry/components/exports/useDataExport';
 import {t} from 'sentry/locale';
-import type {OurLogFieldKey} from 'sentry/views/explore/logs/types';
 
 export interface LogsQueryInfo {
   dataset: 'logs';
-  field: OurLogFieldKey[];
+  field: string[];
   project: number[];
   query: string;
   sort: string[];

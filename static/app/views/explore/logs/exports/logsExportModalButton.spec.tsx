@@ -9,9 +9,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import type {LogsQueryInfo} from 'sentry/components/exports/dataExport';
 import {LogsExportModalButton} from 'sentry/views/explore/logs/exports/logsExportModalButton';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const mockTrackAnalytics = jest.fn();
@@ -31,25 +30,30 @@ describe('LogsExportModalButton', () => {
     }),
   ];
 
+  const queryInfo: LogsQueryInfo = {
+    dataset: 'logs',
+    field: ['message'],
+    project: [1],
+    query: '',
+    sort: ['-timestamp'],
+  };
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
-    // The export modal estimates row counts from a timeseries query.
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-timeseries/`,
-      method: 'GET',
-      body: {timeSeries: []},
-    });
   });
 
   async function renderAndOpen() {
     render(
-      <LogsQueryParamsProvider
-        analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-        source="location"
-      >
-        <LogsExportModalButton error={null} isLoading={false} tableData={tableData} />
-      </LogsQueryParamsProvider>,
+      <LogsExportModalButton
+        error={null}
+        estimatedRowCount={100}
+        isLoading={false}
+        queryInfo={queryInfo}
+        supportsAllColumns
+        tableData={tableData}
+        title="Logs Export"
+      />,
       {organization}
     );
     renderGlobalModal();
