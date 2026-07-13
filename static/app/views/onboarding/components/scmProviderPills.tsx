@@ -9,11 +9,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
-/**
- * Provider keys shown as top-level pill buttons, in display order.
- * Everything else is grouped into the "More" dropdown.
- */
-const PRIMARY_PROVIDER_KEYS: readonly string[] = ['github', 'gitlab', 'bitbucket'];
+import {partitionScmProviders} from './scmProviderOrder';
 
 interface ScmProviderPillsProps {
   onInstall: (data: Integration) => void;
@@ -23,10 +19,7 @@ interface ScmProviderPillsProps {
 export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) {
   const organization = useOrganization();
   const {startFlow} = useAddIntegration();
-  const primaryProviders = PRIMARY_PROVIDER_KEYS.map(key =>
-    providers.find(p => p.key === key)
-  ).filter((p): p is IntegrationProvider => p !== undefined);
-  const moreProviders = providers.filter(p => !PRIMARY_PROVIDER_KEYS.includes(p.key));
+  const {primaryProviders, moreProviders} = partitionScmProviders(providers);
   const gridItemCount = primaryProviders.length + (moreProviders.length > 0 ? 1 : 0);
 
   const columnsXs = `repeat(${Math.min(gridItemCount, 2)}, 1fr)`;
