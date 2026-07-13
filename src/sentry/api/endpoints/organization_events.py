@@ -562,6 +562,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     )
                 elif scoped_dataset == OurLogs:
                     return SearchResolverConfig(
+                        auto_fields=True,
                         use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,

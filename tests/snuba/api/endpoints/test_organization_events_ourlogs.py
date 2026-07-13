@@ -1108,3 +1108,28 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
 
         mock_table_rpc.assert_called_once()
         assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]
+
+    @pytest.mark.querybuilder
+    def test_no_fields_returns_auto_fields(self) -> None:
+        """Regression test: a request with no field params should not 500 via SnubaRPCError.
+
+        Previously, OurLogs was missing auto_fields=True in its SearchResolverConfig, causing
+        resolve_columns([]) to return an empty list. Snuba RPC then rejected the request with
+        "At least one column must be specified in the request".
+        """
+        log = self.create_ourlog(
+            {"body": "hello"},
+            timestamp=self.ten_mins_ago,
+        )
+        self.store_eap_items([log])
+        response = self.do_request(
+            {
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) >= 1
+        assert "id" in data[0]
