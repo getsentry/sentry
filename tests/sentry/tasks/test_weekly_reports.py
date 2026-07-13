@@ -623,13 +623,6 @@ class WeeklyReportsTest(
         self.store_event_outcomes(
             self.organization.id, self.project.id, self.three_days_ago, num_times=2
         )
-        self.store_event_outcomes(
-            self.organization.id,
-            self.project.id,
-            self.three_days_ago,
-            num_times=10,
-            category=DataCategory.TRANSACTION,
-        )
 
         group1 = event1.group
         group2 = event2.group
@@ -679,7 +672,7 @@ class WeeklyReportsTest(
             assert len(context["key_errors"]) == 0
             assert len(context["key_performance_issues"]) == 2
             assert context["trends"]["total_error_count"] == 2
-            assert context["trends"]["total_transaction_count"] == 10
+
             assert "Weekly Report for" in message_params["subject"]
 
             assert isinstance(context["notification_uuid"], str)
@@ -727,13 +720,6 @@ class WeeklyReportsTest(
         self.store_event_outcomes(
             self.organization.id, self.project.id, self.three_days_ago, num_times=2
         )
-        self.store_event_outcomes(
-            self.organization.id,
-            self.project.id,
-            self.three_days_ago,
-            num_times=10,
-            category=DataCategory.TRANSACTION,
-        )
 
         self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group1")
         self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group2")
@@ -762,7 +748,7 @@ class WeeklyReportsTest(
             assert len(context["key_errors"]) == 2
             assert len(context["key_performance_issues"]) == 2
             assert context["trends"]["total_error_count"] == 2
-            assert context["trends"]["total_transaction_count"] == 10
+
             assert "Weekly Report for" in message_params["subject"]
 
             assert isinstance(context["notification_uuid"], str)
@@ -808,13 +794,6 @@ class WeeklyReportsTest(
         )
         self.store_event_outcomes(
             self.organization.id, self.project.id, self.three_days_ago, num_times=2
-        )
-        self.store_event_outcomes(
-            self.organization.id,
-            self.project.id,
-            self.three_days_ago,
-            num_times=10,
-            category=DataCategory.TRANSACTION,
         )
 
         prepare_organization_report(
@@ -869,13 +848,6 @@ class WeeklyReportsTest(
         self.store_event_outcomes(
             self.organization.id, self.project.id, self.three_days_ago, num_times=2
         )
-        self.store_event_outcomes(
-            self.organization.id,
-            self.project.id,
-            self.three_days_ago,
-            num_times=10,
-            category=DataCategory.TRANSACTION,
-        )
 
         group1 = event1.group
         group2 = event2.group
@@ -929,7 +901,7 @@ class WeeklyReportsTest(
             }
             assert len(context["key_errors"]) == 0
             assert context["trends"]["total_error_count"] == 2
-            assert context["trends"]["total_transaction_count"] == 10
+
             assert "Weekly Report for" in message_params["subject"]
 
             assert isinstance(context["notification_uuid"], str)
@@ -1014,10 +986,6 @@ class WeeklyReportsTest(
         for outcome, category, num in [
             (Outcome.ACCEPTED, DataCategory.ERROR, 1),
             (Outcome.RATE_LIMITED, DataCategory.ERROR, 2),
-            (Outcome.ACCEPTED, DataCategory.TRANSACTION, 3),
-            (Outcome.RATE_LIMITED, DataCategory.TRANSACTION, 4),
-            # Filtered should be ignored in these emails
-            (Outcome.FILTERED, DataCategory.TRANSACTION, 5),
         ]:
             self.store_event_outcomes(
                 self.organization.id,
@@ -1057,7 +1025,6 @@ class WeeklyReportsTest(
             "url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&project={self.project.id}",
             "color": "#7553FF",
             "accepted_error_count": 1,
-            "accepted_transaction_count": 3,
             "new_substatus_count": 0,
             "escalating_substatus_count": 0,
             "regression_substatus_count": 0,
@@ -1066,7 +1033,6 @@ class WeeklyReportsTest(
         assert ctx["trends"]["series"][-2][1][0] == {
             "color": "#7553FF",
             "error_count": 1,
-            "transaction_count": 3,
             "issue_count": 0,
         }
 
@@ -1302,13 +1268,6 @@ class WeeklyReportsTest(
         self.store_event_outcomes(
             self.organization.id, self.project.id, self.three_days_ago, num_times=10
         )
-        self.store_event_outcomes(
-            self.organization.id,
-            self.project.id,
-            self.three_days_ago,
-            num_times=20,
-            category=DataCategory.TRANSACTION,
-        )
 
         event1 = self.store_event(
             data={
@@ -1339,10 +1298,10 @@ class WeeklyReportsTest(
             first_seen=prev_week,
         )
 
-        # Cache only has "e"/"t", missing "i" — ORM fallback should fill issues
+        # Cache only has "e", missing "i" — ORM fallback should fill issues
         cache_project_metrics(
             self.organization.id,
-            {self.project.id: {"e": 5, "t": 40}},
+            {self.project.id: {"e": 5}},
         )
 
         prepare_organization_report(
@@ -1351,18 +1310,12 @@ class WeeklyReportsTest(
 
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
-            # e/t come from cache: current 10 vs prev 5, current 20 vs prev 40
+            # e comes from cache: current 10 vs prev 5
             assert context["trends"]["error_pct_change"] == {
                 "arrow": "↑",
                 "pct": "100%",
                 "bg_color": "#F9F0D2",
                 "text_color": "#A45200",
-            }
-            assert context["trends"]["transaction_pct_change"] == {
-                "arrow": "↓",
-                "pct": "50%",
-                "bg_color": "#E3F7E3",
-                "text_color": "#008900",
             }
             # i comes from ORM fallback: current 1 vs prev 2
             assert context["trends"]["issue_pct_change"] == {
@@ -2111,23 +2064,9 @@ class WeeklyReportsTest(
         self.store_event_outcomes(
             self.organization.id, self.project.id, self.three_days_ago, num_times=10
         )
-        self.store_event_outcomes(
-            self.organization.id,
-            self.project.id,
-            self.three_days_ago,
-            num_times=20,
-            category=DataCategory.TRANSACTION,
-        )
 
         prev_week = self.three_days_ago - timedelta(days=7)
         self.store_event_outcomes(self.organization.id, self.project.id, prev_week, num_times=5)
-        self.store_event_outcomes(
-            self.organization.id,
-            self.project.id,
-            prev_week,
-            num_times=40,
-            category=DataCategory.TRANSACTION,
-        )
 
         prepare_organization_report(
             self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
@@ -2140,12 +2079,6 @@ class WeeklyReportsTest(
                 "pct": "100%",
                 "bg_color": "#F9F0D2",
                 "text_color": "#A45200",
-            }
-            assert context["trends"]["transaction_pct_change"] == {
-                "arrow": "↓",
-                "pct": "50%",
-                "bg_color": "#E3F7E3",
-                "text_color": "#008900",
             }
             assert context["show_week_over_week_metric"] is True
 
@@ -2166,7 +2099,6 @@ class WeeklyReportsTest(
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
             assert context["trends"]["error_pct_change"] is None
-            assert context["trends"]["transaction_pct_change"] is None
             assert context["show_week_over_week_metric"] is True
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -2188,7 +2120,6 @@ class WeeklyReportsTest(
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
             assert context["trends"]["error_pct_change"] is None
-            assert context["trends"]["transaction_pct_change"] is None
             assert context["show_week_over_week_metric"] is False
 
     @with_feature("organizations:weekly-report-week-over-week-metric")
@@ -2202,17 +2133,10 @@ class WeeklyReportsTest(
         self.store_event_outcomes(
             self.organization.id, self.project.id, self.three_days_ago, num_times=10
         )
-        self.store_event_outcomes(
-            self.organization.id,
-            self.project.id,
-            self.three_days_ago,
-            num_times=20,
-            category=DataCategory.TRANSACTION,
-        )
 
         cache_project_metrics(
             self.organization.id,
-            {self.project.id: {"e": 5, "t": 40}},
+            {self.project.id: {"e": 5}},
         )
 
         prepare_organization_report(
@@ -2226,12 +2150,6 @@ class WeeklyReportsTest(
                 "pct": "100%",
                 "bg_color": "#F9F0D2",
                 "text_color": "#A45200",
-            }
-            assert context["trends"]["transaction_pct_change"] == {
-                "arrow": "↓",
-                "pct": "50%",
-                "bg_color": "#E3F7E3",
-                "text_color": "#008900",
             }
 
     def test_pct_change_helper(self) -> None:

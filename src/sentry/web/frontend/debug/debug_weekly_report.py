@@ -107,24 +107,14 @@ class DebugWeeklyReportView(MailPreviewView):
                 start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum)
                 for i in range(0, 7)
             }
-            project_context.transaction_count_by_day = {
-                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum)
-                for i in range(0, 7)
-            }
             project_context.issue_count_by_day = {
                 start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum // 10)
                 for i in range(0, 7)
             }
 
             project_context.accepted_error_count = sum(project_context.error_count_by_day.values())
-            project_context.accepted_transaction_count = sum(
-                project_context.transaction_count_by_day.values()
-            )
             project_context.prev_week_accepted_error_count = int(
                 project_context.accepted_error_count * random.uniform(0.5, 1.5)
-            )
-            project_context.prev_week_accepted_transaction_count = int(
-                project_context.accepted_transaction_count * random.uniform(0.5, 1.5)
             )
             substatuses = [
                 (GroupStatus.UNRESOLVED, GroupSubStatus.NEW),
