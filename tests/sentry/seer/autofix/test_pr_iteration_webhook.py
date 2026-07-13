@@ -11,8 +11,8 @@ from sentry.seer.autofix.pr_iteration.mention import (
     handle_issue_comment_for_autofix_iteration,
     handle_pull_request_review_comment_for_autofix_iteration,
 )
-from sentry.seer.autofix.pr_iteration.types import (
-    Feedback,
+from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
     GithubPrReviewCommentFeedbackSource,

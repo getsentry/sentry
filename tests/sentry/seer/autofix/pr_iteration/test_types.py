@@ -2,13 +2,15 @@ import pytest
 from pydantic import ValidationError
 
 from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
-from sentry.seer.autofix.pr_iteration.types import (
+from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
-    GithubPrCommentFeedbackSource,
-    UserUIFeedbackSource,
     parse_feedback,
     serialize_feedback,
 )
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubPrCommentFeedbackSource,
+)
+from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 

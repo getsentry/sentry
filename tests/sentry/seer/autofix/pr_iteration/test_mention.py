@@ -1,7 +1,10 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
-from sentry.seer.autofix.pr_iteration.types import Feedback, GithubPrCommentFeedbackSource
+from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubPrCommentFeedbackSource,
+)
 from sentry.testutils.cases import TestCase
 
 MENTION_PATH = "sentry.seer.autofix.pr_iteration.mention"

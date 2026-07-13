@@ -28,16 +28,16 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.feedback_queue import (
-    QueuedAutofixFeedback,
-    pop_queued_autofix_feedback,
-    try_enqueue_autofix_feedback,
-)
-from sentry.seer.autofix.pr_iteration.types import (
-    Feedback,
+from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
     GithubPrReviewCommentFeedbackSource,
+)
+from sentry.seer.autofix.pr_iteration.queue import (
+    QueuedAutofixFeedback,
+    pop_queued_autofix_feedback,
+    try_enqueue_autofix_feedback,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.shared_integrations.exceptions import ApiError
