@@ -1,4 +1,7 @@
+from datetime import datetime, timedelta
+
 import pytest
+from django.utils import timezone
 from pydantic import ValidationError
 
 from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
@@ -7,6 +10,7 @@ from sentry.seer.autofix.pr_iteration.feedback import (
     parse_feedback,
     serialize_feedback,
 )
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubIssueComment,
     GithubPrCommentFeedbackSource,
@@ -244,3 +248,41 @@ class GithubPrReviewCommentTextTest(TestCase):
         feedback = _review_feedback(file_path=None, line=None)
         assert feedback.text == "fix it"
         assert feedback.ui_text == "fix it"
+
+
+class ConsumeTaskTest(TestCase):
+    def test_now_returns_no_countdown(self) -> None:
+        assert ConsumeTask.Now.countdown() is None
+
+    def test_later_with_timedelta(self) -> None:
+        task = ConsumeTask.Later(when=timedelta(seconds=30))
+        assert task.countdown() == 30
+
+    def test_later_with_timezone_aware_datetime(self) -> None:
+        future = timezone.now() + timedelta(seconds=45)
+        task = ConsumeTask.Later(when=future)
+        countdown = task.countdown()
+        # Countdown should be around 45 seconds (allow small timing variance)
+        assert countdown is not None
+        assert 44 <= countdown <= 46
+
+    def test_later_with_past_datetime_returns_zero(self) -> None:
+        past = timezone.now() - timedelta(seconds=10)
+        task = ConsumeTask.Later(when=past)
+        assert task.countdown() == 0
+
+    def test_later_rejects_naive_datetime(self) -> None:
+        naive_dt = datetime.now()
+        with pytest.raises(
+            ValueError,
+            match="ConsumeTask.Later requires a timezone-aware datetime",
+        ):
+            ConsumeTask.Later(when=naive_dt)
+
+    def test_later_rejects_naive_utcnow(self) -> None:
+        naive_dt = datetime.utcnow()
+        with pytest.raises(
+            ValueError,
+            match="ConsumeTask.Later requires a timezone-aware datetime",
+        ):
+            ConsumeTask.Later(when=naive_dt)

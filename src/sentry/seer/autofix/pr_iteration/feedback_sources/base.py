@@ -29,6 +29,14 @@ class _ConsumeNow(ConsumeTask):
 class _ConsumeLater(ConsumeTask):
     when: timedelta | datetime
 
+    def __post_init__(self) -> None:
+        if isinstance(self.when, datetime) and timezone.is_naive(self.when):
+            raise ValueError(
+                "ConsumeTask.Later requires a timezone-aware datetime. "
+                "Use timezone.now() or timezone.make_aware() instead of "
+                "datetime.now() or datetime.utcnow()."
+            )
+
     def countdown(self) -> int | None:
         if isinstance(self.when, timedelta):
             seconds = self.when.total_seconds()
