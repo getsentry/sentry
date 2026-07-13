@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Mapping
+from dataclasses import asdict
 from typing import Any
 
 import sentry_sdk
@@ -124,12 +125,7 @@ def record_consumer_health(unhealthy_services: Mapping[str, UnhealthyReasons]) -
                 if isinstance(unhealthy_reasons, Exception):
                     extra = {"exception": unhealthy_reasons}
                 else:
-                    for memory in unhealthy_reasons:
-                        extra[memory.name] = {
-                            "used": memory.used,
-                            "available": memory.available,
-                            "percentage": memory.percentage,
-                        }
+                    extra = {"memory": [asdict(memory) for memory in unhealthy_reasons]}
 
                 metrics.incr("backpressure.monitor.service.unhealthy", tags={"service": name})
                 metrics.event(

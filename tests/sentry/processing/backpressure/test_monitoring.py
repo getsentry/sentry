@@ -1,4 +1,6 @@
+import logging
 from collections.abc import MutableMapping
+from unittest.mock import patch
 
 import pytest
 from django.test.utils import override_settings
@@ -8,6 +10,7 @@ from sentry.processing.backpressure.health import (
     is_consumer_healthy,
     record_consumer_health,
 )
+from sentry.processing.backpressure.memory import ServiceMemory
 from sentry.processing.backpressure.monitor import (
     Redis,
     assert_all_services_defined,
@@ -91,3 +94,40 @@ def test_record_consumer_health() -> None:
                 "post-process-locks": [],
             }
         )
+
+
+@override_options({"backpressure.status_ttl": 60})
+def test_record_consumer_health_logs_memory_details(caplog: pytest.LogCaptureFixture) -> None:
+    memory = ServiceMemory("127.0.0.1:6379", 75, 100)
+    memory.host = "127.0.0.1"
+    memory.port = 6379
+
+    with (
+        patch("sentry.processing.backpressure.health.service_monitoring_cluster"),
+        caplog.at_level(logging.ERROR, logger="sentry.processing.backpressure.health"),
+    ):
+        record_consumer_health(
+            {
+                "attachments-store": [memory],
+                "processing-store": [],
+                "processing-store-transactions": [],
+                "processing-locks": [],
+                "post-process-locks": [],
+            }
+        )
+
+    service_record = next(
+        record
+        for record in caplog.records
+        if record.getMessage() == "Service `attachments-store` marked as unhealthy"
+    )
+    assert service_record.__dict__["memory"] == [
+        {
+            "name": "127.0.0.1:6379",
+            "used": 75,
+            "available": 100,
+            "percentage": 0.75,
+            "host": "127.0.0.1",
+            "port": 6379,
+        }
+    ]
