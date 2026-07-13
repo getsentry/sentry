@@ -28,17 +28,17 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.feedback_queue import (
-    QueuedAutofixFeedback,
-    pop_queued_autofix_feedback,
-    try_enqueue_autofix_feedback,
-)
-from sentry.seer.autofix.pr_iteration.types import (
-    Feedback,
+from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
     GithubPrReviewCommentFeedbackSource,
-    format_feedback_for_prompt,
+)
+from sentry.seer.autofix.pr_iteration.queue import (
+    QueuedAutofixFeedback,
+    pop_queued_autofix_feedback,
+    try_enqueue_autofix_feedback,
 )
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.shared_integrations.exceptions import ApiError
@@ -66,17 +66,21 @@ def trigger_consume_pr_iteration_feedback(
     bypass: bool = False,
     delay: int | None = None,
 ) -> None:
-    should_trigger = feedback.source.should_trigger(run_state)
+    if bypass:
+        task: ConsumeTask | None = ConsumeTask.Now
+    else:
+        task = feedback.source.should_trigger(run_state)
 
-    if not bypass and not should_trigger:
+    if task is None:
         return
 
+    countdown = delay if delay is not None else task.countdown()
     consume_queued_autofix_feedback.apply_async(
         kwargs={
             "run_id": run_id,
             "organization_id": organization_id,
         },
-        countdown=delay,
+        countdown=countdown,
     )
 
 
@@ -157,7 +161,7 @@ def consume_queued_autofix_feedback(
             if isinstance(
                 source, (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource)
             ):
-                comment_id = source.comment.get("id")
+                comment_id = source.comment.id
                 if comment_id is not None:
                     key = (type(source), comment_id)
                     if key in seen_comment_keys:
@@ -179,9 +183,7 @@ def consume_queued_autofix_feedback(
                 step=AutofixStep.PR_ITERATION,
                 referrer=_get_feedback_referrer(queued_items),
                 run_id=run_id,
-                user_context="\n\n".join(
-                    format_feedback_for_prompt(item) for item in feedback_items
-                ),
+                user_context="\n\n".join(item.text for item in feedback_items),
                 feedback=feedback_items,
             )
         except (
@@ -275,8 +277,7 @@ def trigger_pr_iteration_from_comment(
         return None
 
     comment = source.comment
-    comment_user = comment.get("user", {})
-    github_username = comment_user.get("login")
+    github_username = comment.user.login if comment.user else None
     if not github_username:
         logger.info(
             "autofix.pr_iteration.comment_trigger.no_github_username",
@@ -373,7 +374,7 @@ def trigger_pr_iteration_from_comment(
 
     metrics.incr("autofix.pr_iteration.comment_trigger.success")
 
-    comment_id = comment.get("id")
+    comment_id = comment.id
     if comment_id is None:
         return None
 

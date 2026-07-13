@@ -1,7 +1,10 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubPrCommentFeedbackSource,
+)
 from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
-from sentry.seer.autofix.pr_iteration.types import Feedback, GithubPrCommentFeedbackSource
 from sentry.testutils.cases import TestCase
 
 MENTION_PATH = "sentry.seer.autofix.pr_iteration.mention"
@@ -57,8 +60,9 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         assert isinstance(source, GithubPrCommentFeedbackSource)
         assert feedback.text == "fix it"
         assert source.comment_feedback == "fix it"
-        assert source.comment["id"] == 999
-        assert source.comment["user"]["login"] == "octocat"
+        assert source.comment.id == 999
+        assert source.comment.user is not None
+        assert source.comment.user.login == "octocat"
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_non_created_action(self, mock_delay: MagicMock) -> None:

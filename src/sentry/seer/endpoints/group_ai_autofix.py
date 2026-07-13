@@ -59,11 +59,11 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.github_perms import (
     get_out_of_date_github_permissions,
 )
-from sentry.seer.autofix.pr_iteration.feedback_queue import (
+from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
-from sentry.seer.autofix.pr_iteration.types import Feedback
 from sentry.seer.autofix.types import (
     AutofixHandoffResponse,
     AutofixPostResponse,
