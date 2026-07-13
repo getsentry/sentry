@@ -70,8 +70,13 @@ interface GithubPrCommentFeedback extends ParsedBaseFeedback {
   githubUsername?: string;
 }
 
+interface OtherFeedback extends ParsedBaseFeedback {
+  source: string;
+  sourceType: 'other';
+}
+
 // What `parseFeedback` can produce from the stored JSON alone.
-type ParsedFeedback = UserUiFeedback | GithubPrCommentFeedback;
+type ParsedFeedback = UserUiFeedback | GithubPrCommentFeedback | OtherFeedback;
 
 // A parsed feedback enriched with the iteration context the caller supplies.
 type IterationFeedback = ParsedFeedback & {
@@ -97,7 +102,11 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
       };
     }
     default:
-      return null;
+      return {
+        ...base,
+        sourceType: 'other',
+        source: (parsed.source as {type?: string} | undefined)?.type ?? 'unknown',
+      };
   }
 }
 
@@ -436,6 +445,15 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   );
 }
 
+function feedbackLinkUrl(item: IterationFeedback): string | undefined {
+  switch (item.sourceType) {
+    case 'github-pr-comment':
+      return item.commentUrl;
+    default:
+      return undefined;
+  }
+}
+
 function FeedbackAttribution({item}: {item: IterationFeedback}) {
   switch (item.sourceType) {
     case 'github-pr-comment':
@@ -487,6 +505,7 @@ const FeedbackProse = styled(Prose)<{muted?: boolean}>`
 
 function FeedbackItem({item}: {item: IterationFeedback}) {
   const isQueued = item.status === 'queued';
+  const linkUrl = feedbackLinkUrl(item);
   return (
     <Flex gap="md" align="start" justify="between">
       <Flex gap="md" align="start" flex="1" minWidth={0}>
@@ -497,11 +516,15 @@ function FeedbackItem({item}: {item: IterationFeedback}) {
           <FeedbackAttribution item={item} />
         </Flex>
         <Flex align="center" minWidth={0} minHeight="1lh">
-          {item.sourceType === 'github-pr-comment' ? (
-            <ExternalLink href={item.commentUrl}>{item.text}</ExternalLink>
+          {linkUrl ? (
+            <ExternalLink href={linkUrl}>{item.text}</ExternalLink>
           ) : (
             <FeedbackProse muted={isQueued}>
-              <p>{item.text}</p>
+              <p>
+                {item.sourceType === 'other'
+                  ? `(${item.source}): ${item.text}`
+                  : item.text}
+              </p>
             </FeedbackProse>
           )}
         </Flex>
