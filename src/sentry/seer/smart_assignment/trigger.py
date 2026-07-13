@@ -2,9 +2,10 @@
 
 `maybe_trigger_smart_assignment` is the single gated entrypoint: it checks the
 feature flag, dedups to one prediction per issue (so a run is only dispatched the
-first time), and records the observed ground truth whether or not a new run was
-dispatched. It takes a `SmartAssignmentTrigger` (not an `ActivityType`) so callers
-that aren't driven by an activity can trigger too.
+first time), enforces per-org and global daily dispatch caps, and records the
+observed ground truth whether or not a new run was dispatched. It takes a
+`SmartAssignmentTrigger` (not an `ActivityType`) so callers that aren't driven by
+an activity can trigger too.
 """
 
 from __future__ import annotations
@@ -14,10 +15,12 @@ import logging
 from django.db import IntegrityError
 from django.utils import timezone
 
-from sentry import features
+from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.organization import Organization
+from sentry.ratelimits import backend as ratelimiter
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerRun
@@ -39,6 +42,9 @@ FEATURE_ID = "smart_assignment"
 # ourselves.
 AUTO_ASSIGN_SOURCE = "seer_smart_assignment"
 
+# Rolling window (seconds) for the per-org and global dispatch caps below.
+_RATE_LIMIT_WINDOW = 86400
+
 
 def maybe_trigger_smart_assignment(
     group: Group,
@@ -47,8 +53,10 @@ def maybe_trigger_smart_assignment(
 ) -> None:
     """Gate + dispatch a prediction for `group`, and record ground truth.
 
-    Dispatches a Seer run the first time (deduped to one row per group); records the
-    observed ground truth for `ASSIGNMENT` / `RESOLUTION` triggers either way.
+    Dispatches a Seer run the first time (deduped to one row per group, and subject
+    to per-org / global daily caps); records the observed ground truth for
+    `ASSIGNMENT` / `RESOLUTION` triggers either way. Note the caps only gate new
+    dispatches -- ground truth is still recorded for already-predicted issues.
     `activity` is only needed to capture the resolving user for a `RESOLUTION`.
     No-op unless the org is flagged. Automatic resolutions (no acting user, e.g.
     resolved by age) are skipped entirely -- we only treat a resolution as signal
@@ -68,9 +76,37 @@ def maybe_trigger_smart_assignment(
         return
 
     if not SeerSmartAssignmentResult.objects.filter(group_id=group.id).exists():
-        _dispatch(group, trigger)
+        if not _dispatch_rate_limited(organization):
+            _dispatch(group, trigger)
 
     record_ground_truth(group, trigger, activity)
+
+
+def _dispatch_rate_limited(organization: Organization) -> bool:
+    """True if we've hit the per-org or global daily dispatch cap.
+
+    A safety ceiling on Seer spend, layered on top of the flag and per-issue
+    dedup. Both caps are rolling 24h windows backed by the Redis ratelimiter. We
+    check the per-org bucket first so a single noisy org rejects without eating
+    into the global budget.
+    """
+    if ratelimiter.is_limited(
+        f"smart_assignment:dispatch:org:{organization.id}",
+        limit=options.get("seer.smart_assignment.max_dispatches_per_org_per_day"),
+        window=_RATE_LIMIT_WINDOW,
+    ):
+        metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "org_rate_limited"})
+        return True
+
+    if ratelimiter.is_limited(
+        "smart_assignment:dispatch:global",
+        limit=options.get("seer.smart_assignment.max_dispatches_per_day"),
+        window=_RATE_LIMIT_WINDOW,
+    ):
+        metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "global_rate_limited"})
+        return True
+
+    return False
 
 
 def _dispatch(group: Group, trigger: SmartAssignmentTrigger) -> None:

@@ -120,6 +120,61 @@ class MaybeTriggerSmartAssignmentTest(TestCase):
         assert row.ground_truth_source == SmartAssignmentTrigger.RESOLUTION
 
     @patch(CLIENT_PATH)
+    def test_org_rate_limit_skips_dispatch(self, mock_client_cls: MagicMock) -> None:
+        self._wire_client(mock_client_cls)
+        with (
+            self.feature("organizations:seer-smart-assignment-run"),
+            self.options({"seer.smart_assignment.max_dispatches_per_org_per_day": 0}),
+        ):
+            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.PR_CREATED)
+
+        assert not SeerSmartAssignmentResult.objects.filter(group=self.group).exists()
+        mock_client_cls.return_value.start_feature_run.assert_not_called()
+
+    @patch(CLIENT_PATH)
+    def test_global_rate_limit_skips_dispatch(self, mock_client_cls: MagicMock) -> None:
+        self._wire_client(mock_client_cls)
+        # Org cap is generous; the global cap is what trips here.
+        with (
+            self.feature("organizations:seer-smart-assignment-run"),
+            self.options({"seer.smart_assignment.max_dispatches_per_day": 0}),
+        ):
+            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.PR_CREATED)
+
+        assert not SeerSmartAssignmentResult.objects.filter(group=self.group).exists()
+        mock_client_cls.return_value.start_feature_run.assert_not_called()
+
+    @patch(CLIENT_PATH)
+    def test_rate_limit_still_records_ground_truth(self, mock_client_cls: MagicMock) -> None:
+        # An issue predicted earlier still gets ground truth even once caps are
+        # exhausted -- the caps only gate new dispatches.
+        SeerSmartAssignmentResult.objects.create(
+            organization=self.organization,
+            group=self.group,
+            trigger=SmartAssignmentTrigger.PR_CREATED,
+            status=SmartAssignmentStatus.PENDING,
+        )
+        assignee = self.create_user()
+        GroupAssignee.objects.create(
+            group=self.group, project=self.group.project, user_id=assignee.id
+        )
+        with (
+            self.feature("organizations:seer-smart-assignment-run"),
+            self.options(
+                {
+                    "seer.smart_assignment.max_dispatches_per_org_per_day": 0,
+                    "seer.smart_assignment.max_dispatches_per_day": 0,
+                }
+            ),
+        ):
+            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.ASSIGNMENT)
+
+        row = SeerSmartAssignmentResult.objects.get(group=self.group)
+        assert row.actual_assignee_user_id == assignee.id
+        assert row.ground_truth_source == SmartAssignmentTrigger.ASSIGNMENT
+        mock_client_cls.return_value.start_feature_run.assert_not_called()
+
+    @patch(CLIENT_PATH)
     def test_automatic_resolution_is_skipped(self, mock_client_cls: MagicMock) -> None:
         self._wire_client(mock_client_cls)
         with self.feature("organizations:seer-smart-assignment-run"):
