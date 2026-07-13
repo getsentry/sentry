@@ -99,8 +99,12 @@ class OrganizationGroupIndexProgressEndpoint(OrganizationEndpoint):
 
         found_group_ids = [g.id for g in groups]
 
-        if features.has(
-            "organizations:issue-stream-derived-progress", organization, actor=request.user
+        # This is a multi-project endpoint that supports filtering;
+        # only enable if all selected projects have the feature
+        unique_projects = {g.project for g in groups}
+        if all(
+            features.has("projects:issue-stream-derived-progress", project, actor=request.user)
+            for project in unique_projects
         ):
             progress_by_group = _get_derived_progress(found_group_ids)
         else:
