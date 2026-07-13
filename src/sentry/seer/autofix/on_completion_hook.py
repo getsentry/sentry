@@ -16,6 +16,7 @@ from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.repository import Repository
 from sentry.scm.factory import new as make_scm
 from sentry.seer.agent.client_models import Artifact
 from sentry.seer.agent.client_utils import fetch_run_status
@@ -277,8 +278,20 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
             scm = scm_by_repo.get(repo_name)
             if scm is None:
+                # Resolve the repo by its DB id so we don't assume a provider:
+                # a fixed ("github", ...) tuple can't resolve GitHub Enterprise
+                # repos (provider "integrations:github_enterprise").
+                repo = Repository.objects.filter(
+                    organization_id=organization.id, name=repo_name
+                ).first()
+                if repo is None:
+                    logger.warning(
+                        "autofix.on_completion_hook.completion_reaction.repo_not_found",
+                        extra={"run_id": run_id, "organization_id": organization.id},
+                    )
+                    continue
                 try:
-                    scm = make_scm(organization.id, ("github", repo_name), referrer="seer")
+                    scm = make_scm(organization.id, repo.id, referrer="seer")
                 except Exception:
                     logger.warning(
                         "autofix.on_completion_hook.completion_reaction.scm_init_failed",

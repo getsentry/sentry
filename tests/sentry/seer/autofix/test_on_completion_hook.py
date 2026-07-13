@@ -220,6 +220,10 @@ class TestMaybeReactToCompletedIteration(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.organization = self.create_organization()
+        self.repo_project = self.create_project(organization=self.organization)
+        self.repo = self.create_repo(
+            project=self.repo_project, name="owner/repo", provider="integrations:github"
+        )
 
     def _feedback_raw(self, repo_name: str | None = "owner/repo") -> str:
         return serialize_feedback(
@@ -272,9 +276,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
             self._run(self._state())
 
         # Both comments live on the same repo, so the SCM client is built once.
-        mock_make_scm.assert_called_once_with(
-            self.organization.id, ("github", "owner/repo"), referrer="seer"
-        )
+        mock_make_scm.assert_called_once_with(self.organization.id, self.repo.id, referrer="seer")
         assert mock_swap.call_count == 2
         calls = {call.kwargs["comment_id"]: call for call in mock_swap.call_args_list}
         assert set(calls) == {111, 222}
@@ -336,9 +338,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
         with self.feature("organizations:autofix-pr-iteration"):
             self._run(self._state(blocks=[_iteration_block_with_feedback(1, raw)]))
 
-        mock_make_scm.assert_called_once_with(
-            self.organization.id, ("github", "owner/repo"), referrer="seer"
-        )
+        mock_make_scm.assert_called_once_with(self.organization.id, self.repo.id, referrer="seer")
         assert mock_swap.call_count == 1
         assert mock_swap.call_args.kwargs["comment_id"] == 222
 
@@ -355,6 +355,40 @@ class TestMaybeReactToCompletedIteration(TestCase):
         )
         state = self._state(
             blocks=[_iteration_block_with_feedback(1, raw)], repos=("owner/a", "owner/b")
+        )
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._run(state)
+
+        mock_make_scm.assert_not_called()
+        mock_swap.assert_not_called()
+
+    def test_resolves_github_enterprise_repo_by_db_id(
+        self, mock_swap, mock_make_scm, mock_sensitive
+    ) -> None:
+        # A fixed ("github", ...) tuple can't resolve a GHE repo (provider
+        # "integrations:github_enterprise"); resolving by DB id must still work.
+        ghe_repo = self.create_repo(
+            project=self.repo_project,
+            name="owner/ghe-repo",
+            provider="integrations:github_enterprise",
+        )
+        state = self._state(
+            blocks=[_iteration_block_with_feedback(1, self._feedback_raw("owner/ghe-repo"))],
+            repos=("owner/ghe-repo",),
+        )
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._run(state)
+
+        mock_make_scm.assert_called_once_with(self.organization.id, ghe_repo.id, referrer="seer")
+        assert mock_swap.call_count == 2
+
+    def test_skips_comment_when_repo_missing(
+        self, mock_swap, mock_make_scm, mock_sensitive
+    ) -> None:
+        # The repo has no matching DB record -> can't build an SCM client -> skip.
+        state = self._state(
+            blocks=[_iteration_block_with_feedback(1, self._feedback_raw("owner/gone"))],
+            repos=("owner/gone",),
         )
         with self.feature("organizations:autofix-pr-iteration"):
             self._run(state)
