@@ -251,14 +251,22 @@ def _forward_to_judge(
         signal_type__in=JUDGE_ELIGIBLE_SIGNAL_TYPES,
     ).exists():
         if deferral is not VerdictDeferral.NEEDS_JUDGE:
-            metrics.incr("pr_metrics.emit.skipped", tags={"reason": "no_eligible_attribution"})
+            # Only reachable with an INDETERMINATE deferral (the other member,
+            # NEEDS_JUDGE, is handled by the fallback-verdict branch below) — no
+            # eligible attribution to forward to a real judge, and no reliable
+            # local data to settle a fallback verdict from either. Tag both
+            # facts: attribution alone doesn't explain why this stays unemitted.
+            metrics.incr(
+                "pr_metrics.emit.skipped",
+                tags={"reason": "no_eligible_attribution_indeterminate"},
+            )
             logger.info(
                 "pr_metrics.emit.needs_judge",
                 extra={
                     "organization_id": organization.id,
                     "repository_id": pr.repository_id,
                     "pull_request_id": pr.id,
-                    "reason": "not_agent_attribution",
+                    "reason": "not_agent_attribution_indeterminate",
                 },
             )
             return
