@@ -24,7 +24,9 @@ import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
 import {getAssignedActivityItem} from './compactActivityItem/assignment';
 import {getResolvedInCommitDetails} from './compactActivityItem/commitDetails';
+import {getIntegrationLink} from './compactActivityItem/integrationLink';
 import {getProviderName} from './compactActivityItem/provider';
+import {getResolvedInReleaseDetails} from './compactActivityItem/releaseDetails';
 import type {CompactGroupActivityItem} from './compactActivityItem/types';
 
 export type {CompactGroupActivityItem} from './compactActivityItem/types';
@@ -67,34 +69,6 @@ function formatAutoResolveAge(age: number | string | undefined) {
   return precision === 'day'
     ? tn('%s day', '%s days', count)
     : tn('%s hour', '%s hours', count);
-}
-
-function getIntegrationLink({
-  data,
-  organization,
-}: {
-  data: Record<PropertyKey, unknown>;
-  organization: Organization;
-}) {
-  const integrationId = data.integration_id;
-  const providerKey = data.provider_key;
-  const provider = data.provider;
-
-  if (
-    (typeof integrationId !== 'string' && typeof integrationId !== 'number') ||
-    typeof providerKey !== 'string' ||
-    typeof provider !== 'string'
-  ) {
-    return null;
-  }
-
-  return (
-    <Link
-      to={`/settings/${organization.slug}/integrations/${providerKey}/${integrationId}/`}
-    >
-      {provider}
-    </Link>
-  );
 }
 
 function getIgnoredDetails(
@@ -252,60 +226,9 @@ export function getCompactGroupActivityItem({
       };
     }
     case GroupActivityType.SET_RESOLVED_IN_RELEASE: {
-      const integrationLink = getIntegrationLink({data: activity.data, organization});
-      const integrationDetails = integrationLink
-        ? tct(' via [integration]', {integration: integrationLink})
-        : null;
-
-      if ('current_release_version' in activity.data) {
-        const currentVersion = activity.data.current_release_version;
-        return {
-          title: t('Resolved'),
-          details: (
-            <Fragment>
-              {tct('starting with a release after [version]', {
-                version: (
-                  <ActivityRelease
-                    organization={organization}
-                    project={project}
-                    version={currentVersion}
-                  />
-                ),
-              })}
-              {integrationDetails}
-            </Fragment>
-          ),
-        };
-      }
-
-      if (activity.data.version) {
-        return {
-          title: t('Resolved'),
-          details: (
-            <Fragment>
-              {tct('in [version]', {
-                version: (
-                  <ActivityRelease
-                    organization={organization}
-                    project={project}
-                    version={activity.data.version}
-                  />
-                ),
-              })}
-              {integrationDetails}
-            </Fragment>
-          ),
-        };
-      }
-
       return {
         title: t('Resolved'),
-        details: (
-          <Fragment>
-            {t('in the upcoming release')}
-            {integrationDetails}
-          </Fragment>
-        ),
+        details: getResolvedInReleaseDetails(activity, organization, project),
       };
     }
     case GroupActivityType.SET_RESOLVED_IN_COMMIT:
@@ -313,19 +236,30 @@ export function getCompactGroupActivityItem({
         title: t('Resolved'),
         details: getResolvedInCommitDetails(activity, organization, project),
       };
-    case GroupActivityType.REFERENCED_IN_COMMIT:
+    case GroupActivityType.REFERENCED_IN_COMMIT: {
+      const commit = activity.data.commit;
+      if (!commit) {
+        return {title: t('Referenced in commit')};
+      }
+
       return {
-        title: t('Referenced by commit'),
-        details: activity.data.commit
-          ? tct('[commit] on [provider]', {
-              commit: <CommitChip commit={activity.data.commit} />,
+        title: t('Referenced in commit'),
+        details: (
+          <Fragment>
+            {tct('[commit] on [provider]', {
+              commit: <CommitChip commit={commit} />,
               provider: getProviderName(
-                activity.data.commit.repository?.provider?.name ??
-                  activity.data.commit.repository?.provider?.id
+                commit.repository?.provider?.name ?? commit.repository?.provider?.id
               ),
-            })
-          : undefined,
+            })}
+            {commit.pullRequest &&
+              tct(' via [pullRequest]', {
+                pullRequest: <PullRequestChip pullRequest={commit.pullRequest} />,
+              })}
+          </Fragment>
+        ),
       };
+    }
     case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
       const pullRequest = activity.data.pullRequest;
       return {

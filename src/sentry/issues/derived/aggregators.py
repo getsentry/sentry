@@ -1,4 +1,16 @@
-from sentry.issues.action_log.types import GroupActionType, ReconcileStatusAction
+from sentry.issues.action_log.types import (
+    ArchiveAction,
+    AssignAction,
+    PullRequestClosedAction,
+    ReconcileStatusAction,
+    ResolveAction,
+    ResolvedInPullRequestAction,
+    RootCauseIdentifiedAction,
+    SetRegressedAction,
+    UnassignAction,
+    UnresolveAction,
+    ViewAction,
+)
 from sentry.issues.derived.features import (
     HAS_OPEN_FIX_PR,
     HAS_ROOT_CAUSE,
@@ -20,46 +32,33 @@ from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.progress_state import IssueProgressState
 
 
-@aggregator((VIEW_COUNT,), scope=(GroupActionType.VIEW,))
+@aggregator((VIEW_COUNT,), scope=(ViewAction,))
 def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     return emit(VIEW_COUNT.value(state[VIEW_COUNT] + 1))
-
-
-_RESOLVES: frozenset[GroupActionType] = frozenset(
-    {
-        GroupActionType.RESOLVE,
-        GroupActionType.ARCHIVE,
-    }
-)
-
-_REOPENS: frozenset[GroupActionType] = frozenset(
-    {
-        GroupActionType.UNRESOLVE,
-        GroupActionType.SET_REGRESSED,
-    }
-)
 
 
 @aggregator(
     (STATUS,),
     scope=(
-        *_RESOLVES,
-        *_REOPENS,
-        GroupActionType.RECONCILE_STATUS,
+        ResolveAction,
+        ArchiveAction,
+        UnresolveAction,
+        SetRegressedAction,
+        ReconcileStatusAction,
     ),
 )
 def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     current = state[STATUS]
 
-    if entry.type == GroupActionType.RECONCILE_STATUS:
-        action = ReconcileStatusAction(**entry.data)
-        new_status = IssueStatus(action.status)
-        if new_status != current:
-            return emit(STATUS.value(new_status))
-    elif entry.type in _RESOLVES and current == IssueStatus.OPEN:
-        return emit(STATUS.value(IssueStatus.CLOSED))
-    elif entry.type in _REOPENS and current == IssueStatus.CLOSED:
-        return emit(STATUS.value(IssueStatus.OPEN))
+    match entry.action:
+        case ReconcileStatusAction(status=raw_status):
+            new_status = IssueStatus(raw_status)
+            if new_status != current:
+                return emit(STATUS.value(new_status))
+        case ResolveAction() | ArchiveAction() if current == IssueStatus.OPEN:
+            return emit(STATUS.value(IssueStatus.CLOSED))
+        case UnresolveAction() | SetRegressedAction() if current == IssueStatus.CLOSED:
+            return emit(STATUS.value(IssueStatus.OPEN))
 
     return None
 
@@ -88,13 +87,13 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
 @aggregator(
     (IS_ASSIGNED,),
     scope=(
-        GroupActionType.ASSIGN,
-        GroupActionType.UNASSIGN,
+        AssignAction,
+        UnassignAction,
     ),
 )
 def track_assignment(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     """Track whether the issue currently has an assignee."""
-    is_assigned = entry.type == GroupActionType.ASSIGN
+    is_assigned = isinstance(entry.action, AssignAction)
     if is_assigned != state[IS_ASSIGNED]:
         return emit(IS_ASSIGNED.value(is_assigned))
     return None
@@ -103,8 +102,8 @@ def track_assignment(state: StateView, entry: GroupActionLogEntry) -> Aggregator
 @aggregator(
     (HAS_ROOT_CAUSE,),
     scope=(
-        GroupActionType.ROOT_CAUSE_IDENTIFIED,
-        GroupActionType.SET_REGRESSED,
+        RootCauseIdentifiedAction,
+        SetRegressedAction,
     ),
 )
 def track_root_cause(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
@@ -114,7 +113,7 @@ def track_root_cause(state: StateView, entry: GroupActionLogEntry) -> Aggregator
     a regressed issue is a fresh occurrence that needs re-diagnosing. A manual
     reopen (UNRESOLVE) preserves the diagnosis.
     """
-    has_root_cause = entry.type == GroupActionType.ROOT_CAUSE_IDENTIFIED
+    has_root_cause = isinstance(entry.action, RootCauseIdentifiedAction)
     if has_root_cause != state[HAS_ROOT_CAUSE]:
         return emit(HAS_ROOT_CAUSE.value(has_root_cause))
     return None
@@ -124,8 +123,8 @@ def track_root_cause(state: StateView, entry: GroupActionLogEntry) -> Aggregator
     (HAS_OPEN_FIX_PR,),
     deps=(STATUS,),
     scope=(
-        GroupActionType.RESOLVED_IN_PULL_REQUEST,
-        GroupActionType.PULL_REQUEST_CLOSED,
+        ResolvedInPullRequestAction,
+        PullRequestClosedAction,
     ),
 )
 def track_open_fix_prs(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
@@ -135,17 +134,12 @@ def track_open_fix_prs(state: StateView, entry: GroupActionLogEntry) -> Aggregat
     """
     current_has_open_fix_pr = state[HAS_OPEN_FIX_PR]
 
-    if entry.type == GroupActionType.RESOLVED_IN_PULL_REQUEST and not current_has_open_fix_pr:
-        return emit(HAS_OPEN_FIX_PR.value(True))
-
-    if (
-        entry.type == GroupActionType.PULL_REQUEST_CLOSED
-        and current_has_open_fix_pr
-        and entry.data.get("has_other_open_prs") is False
-    ):
-        return emit(HAS_OPEN_FIX_PR.value(False))
-
     # TODO(malwilley): Merging or unlinking a PR should also clear the flag.
+    match entry.action:
+        case ResolvedInPullRequestAction() if not current_has_open_fix_pr:
+            return emit(HAS_OPEN_FIX_PR.value(True))
+        case PullRequestClosedAction(has_other_open_prs=False) if current_has_open_fix_pr:
+            return emit(HAS_OPEN_FIX_PR.value(False))
 
     return None
 
