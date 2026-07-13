@@ -45,6 +45,17 @@ class DatadogMetricsBackendTest(TestCase):
             host=get_hostname(hostname_from_config=True),
         )
 
+    @patch("datadog.threadstats.base.ThreadStats.set")
+    def test_set(self, mock_set: MagicMock) -> None:
+        self.backend.set("foo", 4242, instance="bar")
+        mock_set.assert_called_once_with(
+            "sentrytest.foo",
+            4242,
+            sample_rate=1,
+            tags=["instance:bar"],
+            host=get_hostname(hostname_from_config=True),
+        )
+
     @patch("datadog.threadstats.base.ThreadStats.event")
     def test_event(self, mock_event: MagicMock) -> None:
         self.backend.event("foo", "bar", instance="baz")

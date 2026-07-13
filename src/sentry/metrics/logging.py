@@ -55,6 +55,17 @@ class LoggingBackend(MetricsBackend):
     ) -> None:
         logger.debug("%r: %+g", key, value, extra={"instance": instance, "tags": tags or {}})
 
+    def set(
+        self,
+        key: str,
+        value: str | int,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        sample_rate: float = 1,
+        stacklevel: int = 0,
+    ) -> None:
+        logger.debug("%r: %r", key, value, extra={"instance": instance, "tags": tags or {}})
+
     def event(
         self,
         title: str,
