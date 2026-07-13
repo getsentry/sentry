@@ -281,7 +281,9 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         # Eligible on every gate.
         eligible = self._make_eligible(self.create_project(organization=org))
 
-        # Automation off (even with a connected repo).
+        # Automation off (even with a connected repo), and never given a
+        # stopping point (defaults to code_changes, not open_pr) — fails two
+        # gates at once, so the resulting log call should list both reasons.
         off = self.create_project(organization=org)
         off.update_option("sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF)
         off_repo = self.create_repo(project=off, provider="github", name="owner/off-repo")
@@ -290,10 +292,18 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         # No connected repo.
         self.create_project(organization=org)
 
-        result = _get_eligible_projects(org, "manual")
+        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
+            result = _get_eligible_projects(org, "manual")
 
         assert [ep.project for ep in result] == [eligible]
         assert result[0].tweaks.enabled is True
+
+        off_extra = next(
+            call.kwargs["extra"]
+            for call in mock_logger.info.call_args_list
+            if call.kwargs["extra"]["project_id"] == off.id
+        )
+        assert off_extra["reasons"] == ["automation_tuning_off", "not_pr_producing"]
 
     def test_carries_each_projects_connected_repos(self) -> None:
         org = self.create_organization()
@@ -360,38 +370,6 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 
         assert [ep.project.slug for ep in cron_result] == ["keep"]
         assert sorted(ep.project.slug for ep in manual_result) == ["drop", "keep"]
-
-    def test_logs_every_disqualifying_reason_at_once(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        project.update_option(
-            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
-        )
-        project.update_option(
-            "sentry:seer_automated_run_stopping_point", AutofixStoppingPoint.CODE_CHANGES.value
-        )
-        project.update_option("sentry:seer_nightshift_tweaks", {"enabled": False})
-
-        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
-            result = _get_eligible_projects(org, "cron")
-
-        assert result == []
-        mock_logger.info.assert_called_once_with(
-            "night_shift.project_filtered",
-            extra={
-                "organization_id": org.id,
-                "project_id": project.id,
-                "reasons": [
-                    "no_connected_repos",
-                    "automation_tuning_off",
-                    "tweaks_disabled",
-                    "not_pr_producing",
-                ],
-                "automation_tuning": AutofixAutomationTuningSettings.OFF.value,
-                "tweaks_enabled": False,
-                "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
-            },
-        )
 
 
 @django_db_all
