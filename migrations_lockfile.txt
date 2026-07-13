@@ -13,7 +13,7 @@ feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-hybridcloud: 0031_remove_externalactorreplica_pending
+hybridcloud: 0032_delete_externalactorreplica
 
 insights: 0001_squashed_0002_backfill_team_starred
 
