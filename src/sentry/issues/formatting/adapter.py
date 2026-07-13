@@ -12,12 +12,15 @@ from sentry.issues.formatting.models import (
     EventObject,
     EvidenceSpan,
     ExceptionDetails,
-    Frame,
     RequestDetails,
     Stacktrace,
     ThreadDetails,
     UserDetails,
 )
+
+# Models whose fields all match the serialized keys (single-word, or aliased for camelCase)
+# are parsed directly with ``.parse_obj``. The helpers below only exist where the serialized
+# shape needs real work: nested extraction, fallbacks, or structural reshaping.
 
 
 def _entries_by_type(data: Mapping[str, Any]) -> dict[str, Any]:
@@ -29,38 +32,19 @@ def _entries_by_type(data: Mapping[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _frame(f: Mapping[str, Any]) -> Frame:
-    return Frame(
-        function=f.get("function"),
-        filename=f.get("filename"),
-        abs_path=f.get("absPath"),
-        module=f.get("module"),
-        package=f.get("package"),
-        line_no=f.get("lineNo"),
-        col_no=f.get("colNo"),
-        context=f.get("context") or [],
-        vars=f.get("vars"),
-        in_app=bool(f.get("inApp")),
-    )
-
-
-def _stacktrace(st: Any) -> Stacktrace | None:
-    if not isinstance(st, Mapping):
-        return None
-    frames = [_frame(f) for f in st.get("frames", []) or [] if isinstance(f, Mapping)]
-    return Stacktrace(frames=frames)
-
-
 def _best_stacktrace(v: Mapping[str, Any]) -> Stacktrace | None:
     # prefer the processed stacktrace; fall back to rawStacktrace when it has the frames
     for key in ("stacktrace", "rawStacktrace"):
-        st = _stacktrace(v.get(key))
-        if st and st.frames:
-            return st
+        st = v.get(key)
+        if isinstance(st, Mapping):
+            parsed = Stacktrace.parse_obj(st)
+            if parsed.frames:
+                return parsed
     return None
 
 
 def _exception(v: Mapping[str, Any]) -> ExceptionDetails:
+    # is_handled is nested under mechanism, and the stacktrace needs the raw/processed fallback
     mechanism = v.get("mechanism") or {}
     handled = mechanism.get("handled") if isinstance(mechanism, Mapping) else None
     return ExceptionDetails(
@@ -72,56 +56,17 @@ def _exception(v: Mapping[str, Any]) -> ExceptionDetails:
 
 
 def _thread(v: Mapping[str, Any]) -> ThreadDetails:
-    return ThreadDetails(
-        id=v.get("id"),
-        name=v.get("name"),
-        crashed=v.get("crashed"),
-        current=v.get("current"),
-        state=v.get("state"),
-        stacktrace=_best_stacktrace(v),
-    )
-
-
-def _breadcrumb(v: Mapping[str, Any]) -> Breadcrumb:
-    return Breadcrumb(
-        type=v.get("type"),
-        category=v.get("category"),
-        level=v.get("level"),
-        message=v.get("message"),
-        data=v.get("data"),
-        timestamp=v.get("timestamp"),
-    )
-
-
-def _request(d: Any) -> RequestDetails | None:
-    if not isinstance(d, Mapping):
-        return None
-    return RequestDetails(method=d.get("method"), url=d.get("url"), data=d.get("data"))
+    # threads carry a stacktrace that needs the same raw/processed fallback
+    thread = ThreadDetails.parse_obj(v)
+    thread.stacktrace = _best_stacktrace(v)
+    return thread
 
 
 def _spans(d: Any) -> list[EvidenceSpan]:
+    # the spans entry's data is a bare list, not the usual {"values": [...]}
     if not isinstance(d, Sequence) or isinstance(d, str | bytes):
         return []
-    return [
-        EvidenceSpan(
-            op=s.get("op"),
-            description=s.get("description"),
-            exclusive_time_ms=s.get("exclusiveTime"),
-        )
-        for s in d
-        if isinstance(s, Mapping)
-    ]
-
-
-def _user(d: Any) -> UserDetails | None:
-    if not isinstance(d, Mapping):
-        return None
-    return UserDetails(
-        id=d.get("id"),
-        email=d.get("email"),
-        username=d.get("username"),
-        ip_address=d.get("ipAddress"),
-    )
+    return [EvidenceSpan.parse_obj(s) for s in d if isinstance(s, Mapping)]
 
 
 def _values(entry_data: Any) -> list[Mapping[str, Any]]:
@@ -159,6 +104,9 @@ def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
         else None
     ) or data.get("message")
 
+    request = entries.get("request")
+    user = data.get("user")
+
     return EventObject(
         event_id=data.get("eventID") or data.get("id"),
         title=data.get("title") or "",
@@ -169,10 +117,10 @@ def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
         timestamp=data.get("dateCreated") or data.get("dateReceived"),
         exceptions=[_exception(v) for v in _values(entries.get("exception"))],
         threads=[_thread(v) for v in _values(entries.get("threads"))],
-        breadcrumbs=[_breadcrumb(v) for v in _values(entries.get("breadcrumbs"))],
-        request=_request(entries.get("request")),
+        breadcrumbs=[Breadcrumb.parse_obj(v) for v in _values(entries.get("breadcrumbs"))],
+        request=RequestDetails.parse_obj(request) if isinstance(request, Mapping) else None,
         tags=tags,
         contexts=data.get("contexts") or {},
-        user=_user(data.get("user")),
+        user=UserDetails.parse_obj(user) if isinstance(user, Mapping) else None,
         spans=_spans(entries.get("spans")),
     )

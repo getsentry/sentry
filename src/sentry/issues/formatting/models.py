@@ -8,20 +8,25 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class Frame(BaseModel):
+    # accept the serialized camelCase keys (absPath, lineNo, ...) via aliases,
+    # while still allowing snake_case construction in-code
+    class Config:
+        allow_population_by_field_name = True
+
     function: str | None = None
     filename: str | None = None
-    abs_path: str | None = None
+    abs_path: str | None = Field(None, alias="absPath")
     module: str | None = None
     package: str | None = None
-    line_no: int | None = None
-    col_no: int | None = None
+    line_no: int | None = Field(None, alias="lineNo")
+    col_no: int | None = Field(None, alias="colNo")
     context: list[tuple[int, str | None]] = []  # [(line_no, source_line), ...]
     vars: dict[str, Any] | None = None
-    in_app: bool = False
+    in_app: bool = Field(False, alias="inApp")
 
 
 class Stacktrace(BaseModel):
@@ -61,16 +66,22 @@ class RequestDetails(BaseModel):
 
 
 class EvidenceSpan(BaseModel):
+    class Config:
+        allow_population_by_field_name = True
+
     op: str | None = None
     description: str | None = None
-    exclusive_time_ms: float | None = None
+    exclusive_time_ms: float | None = Field(None, alias="exclusiveTime")
 
 
 class UserDetails(BaseModel):
+    class Config:
+        allow_population_by_field_name = True
+
     id: str | None = None
     email: str | None = None
     username: str | None = None
-    ip_address: str | None = None
+    ip_address: str | None = Field(None, alias="ipAddress")
 
 
 class EventObject(BaseModel):
