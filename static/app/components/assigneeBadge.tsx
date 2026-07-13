@@ -226,7 +226,7 @@ function UnassignedIcon({
 
 function UnassignedTooltip() {
   return (
-    <Fragment>
+    <Stack gap="xs">
       <Text as="div" align="left">
         {t('Unassigned')}
       </Text>
@@ -237,7 +237,7 @@ function UnassignedTooltip() {
           ),
         })}
       </Text>
-    </Fragment>
+    </Stack>
   );
 }
 
