@@ -200,6 +200,23 @@ describe('Sentry Application Details', () => {
         screen.queryByRole('textbox', {name: 'Redirect URL'})
       ).not.toBeInTheDocument();
     });
+
+    it('ignores an unknown creation template', () => {
+      render(<SentryApplicationDetails />, {
+        initialRouterConfig: {
+          location: {
+            pathname: '/sentry-apps/new-internal/',
+            query: {template: 'does-not-exist'},
+          },
+          route: '/sentry-apps/new-internal/',
+        },
+      });
+
+      expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('');
+      expect(
+        screen.queryByRole('link', {name: 'Start from a blank integration instead'})
+      ).not.toBeInTheDocument();
+    });
   });
 
   describe('Renders public app', () => {

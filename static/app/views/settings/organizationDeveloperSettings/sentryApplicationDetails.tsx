@@ -1,4 +1,4 @@
-import {Fragment, useState, type MouseEvent} from 'react';
+import {Fragment, useEffect, useMemo, useState, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
@@ -6,9 +6,10 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -47,11 +48,14 @@ import type {
 } from 'sentry/types/integrations';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -65,6 +69,10 @@ import {
   granularWebhookEvents,
   WEBHOOK_GRANULAR_EVENT_CHOICES,
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import {
+  getSentryAppTemplate,
+  type SentryAppTemplate,
+} from 'sentry/views/settings/organizationDeveloperSettings/creationTemplates';
 import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 const AVATAR_STYLES = {
@@ -86,62 +94,72 @@ const AVATAR_STYLES = {
   },
 };
 
-const sentryAppFormSchema = z
-  .object({
-    name: z.string(),
-    author: z.string(),
-    webhookUrl: z.string(),
-    webhookHeaders: z.string(),
-    redirectUrl: z.string(),
-    verifyInstall: z.boolean(),
-    isAlertable: z.boolean(),
-    schema: z.string(),
-    overview: z.string(),
-    allowedOrigins: z.string(),
-    organization: z.string(),
-    isInternal: z.boolean(),
-    scopes: z.array(z.enum(ALLOWED_SCOPES)),
-    events: z.array(
-      z.union([z.enum(EVENT_CHOICES), z.enum(WEBHOOK_GRANULAR_EVENT_CHOICES)])
-    ),
-  })
-  .superRefine((data, ctx) => {
-    if (!data.name.trim()) {
-      ctx.addIssue({
-        code: 'custom',
-        message: t('This field is required'),
-        path: ['name'],
-      });
-    }
-
-    if (!data.isInternal && !data.author.trim()) {
-      ctx.addIssue({
-        code: 'custom',
-        message: t('This field is required'),
-        path: ['author'],
-      });
-    }
-
-    if (!data.isInternal && !data.webhookUrl.trim()) {
-      ctx.addIssue({
-        code: 'custom',
-        message: t('This field is required'),
-        path: ['webhookUrl'],
-      });
-    }
-
-    if (data.schema.trim()) {
-      try {
-        JSON.parse(data.schema);
-      } catch {
+const makeSentryAppFormSchema = (webhookUrlRequired: boolean) =>
+  z
+    .object({
+      name: z.string(),
+      author: z.string(),
+      webhookUrl: z.string(),
+      webhookHeaders: z.string(),
+      redirectUrl: z.string(),
+      verifyInstall: z.boolean(),
+      isAlertable: z.boolean(),
+      schema: z.string(),
+      overview: z.string(),
+      allowedOrigins: z.string(),
+      organization: z.string(),
+      isInternal: z.boolean(),
+      scopes: z.array(z.enum(ALLOWED_SCOPES)),
+      events: z.array(
+        z.union([z.enum(EVENT_CHOICES), z.enum(WEBHOOK_GRANULAR_EVENT_CHOICES)])
+      ),
+    })
+    .superRefine((data, ctx) => {
+      if (!data.name.trim()) {
         ctx.addIssue({
           code: 'custom',
-          message: t('Invalid JSON'),
-          path: ['schema'],
+          message: t('This field is required'),
+          path: ['name'],
         });
       }
-    }
-  });
+
+      if (!data.isInternal && !data.author.trim()) {
+        ctx.addIssue({
+          code: 'custom',
+          message: t('This field is required'),
+          path: ['author'],
+        });
+      }
+
+      if (!data.webhookUrl.trim()) {
+        if (!data.isInternal || webhookUrlRequired) {
+          ctx.addIssue({
+            code: 'custom',
+            message: t('This field is required'),
+            path: ['webhookUrl'],
+          });
+        } else if (data.events.length > 0) {
+          // Mirrors the backend's events-require-a-webhook-URL rule.
+          ctx.addIssue({
+            code: 'custom',
+            message: t('This field is required when webhook events are enabled'),
+            path: ['webhookUrl'],
+          });
+        }
+      }
+
+      if (data.schema.trim()) {
+        try {
+          JSON.parse(data.schema);
+        } catch {
+          ctx.addIssue({
+            code: 'custom',
+            message: t('Invalid JSON'),
+            path: ['schema'],
+          });
+        }
+      }
+    });
 
 function getResourceFromScope(scope: string): PermissionResource | undefined {
   for (const permObj of SENTRY_APP_PERMISSIONS) {
@@ -266,6 +284,22 @@ export default function SentryApplicationDetails() {
 
   const isInternal = app ? app.status === 'internal' : isInternalRoute;
 
+  const template =
+    !appSlug && isInternalRoute
+      ? getSentryAppTemplate(decodeScalar(location.query.template), organization)
+      : undefined;
+  const referrer = decodeScalar(location.query.referrer);
+
+  useEffect(() => {
+    if (template) {
+      trackAnalytics('integrations.sentry_app_template_applied', {
+        organization,
+        referrer,
+        template: template.slug,
+      });
+    }
+  }, [template, organization, referrer]);
+
   return (
     <div>
       <BreadcrumbTitle title={appSlug ? (app?.name ?? '') : t('New')} />
@@ -275,14 +309,42 @@ export default function SentryApplicationDetails() {
       ) : isError ? (
         <LoadingError onRetry={refetch} />
       ) : (
-        <SentryApplicationForm
-          app={app}
-          appSlug={appSlug}
-          tokens={tokens}
-          isInternal={isInternal}
-        />
+        <Fragment>
+          {template && <TemplateHeader template={template} />}
+          <SentryApplicationForm
+            key={template?.slug ?? 'blank'}
+            app={app}
+            appSlug={appSlug}
+            tokens={tokens}
+            isInternal={isInternal}
+            template={template}
+          />
+        </Fragment>
       )}
     </div>
+  );
+}
+
+function TemplateHeader({template}: {template: SentryAppTemplate}) {
+  const location = useLocation();
+
+  return (
+    <Alert.Container>
+      <Alert variant="info">
+        <Stack gap="xs" align="start">
+          <Text bold>{template.heading}</Text>
+          <Text>{template.description}</Text>
+          <Link
+            to={{
+              pathname: location.pathname,
+              query: {...location.query, template: undefined},
+            }}
+          >
+            {t('Start from a blank integration instead')}
+          </Link>
+        </Stack>
+      </Alert>
+    </Alert.Container>
   );
 }
 
@@ -291,11 +353,13 @@ function SentryApplicationForm({
   appSlug,
   tokens,
   isInternal,
+  template,
 }: {
   app: SentryApp | undefined;
   appSlug: string | undefined;
   isInternal: boolean;
   tokens: InternalAppApiToken[];
+  template?: SentryAppTemplate;
 }) {
   const {openModal} = useModal();
   const navigate = useNavigate();
@@ -350,7 +414,7 @@ function SentryApplicationForm({
   });
 
   // Events may come from the API as "issue.created" when we just want "issue" here.
-  const normalize = (events: WebhookEvent[]) => {
+  const normalize = (events: WebhookSubscription[]) => {
     if (events.length === 0) {
       return events;
     }
@@ -360,12 +424,19 @@ function SentryApplicationForm({
 
   const granular = organization.features.includes('sentry-apps-granular-events');
 
+  const prefill = app ? undefined : template?.prefill;
+  const hiddenFields = new Set(template?.hiddenFields);
+
   // Older API responses only send the consolidated resource list
-  const initialEvents: WebhookSubscription[] = app
+  const initialEvents = app
     ? granular
       ? granularWebhookEvents(app.webhookEvents ?? app.events)
       : normalize(app.events)
-    : [];
+    : granular
+      ? granularWebhookEvents(prefill?.events ?? [])
+      : normalize(prefill?.events ?? []);
+
+  const initialScopes = app ? [...app.scopes] : [...(prefill?.scopes ?? [])];
 
   const hasTokenAccess = () => {
     return organization.access.includes('org:write');
@@ -522,22 +593,49 @@ function SentryApplicationForm({
     );
   };
 
+  // Header prefills are dropped when the org can't see the webhook headers
+  // field, so nothing invisible gets submitted.
+  const prefillHeaders = organization.features.includes(
+    'sentry-apps-custom-webhook-headers'
+  )
+    ? prefill?.webhookHeaders
+    : undefined;
+
+  // The form remounts when the template changes (keyed by slug), so the
+  // schema is stable for the life of the form instance.
+  const formSchema = useMemo(
+    () => makeSentryAppFormSchema(template?.webhookUrlField?.required ?? false),
+    [template]
+  );
+
+  const tokenField = app ? undefined : template?.tokenField;
+  const starterPrompt = app ? undefined : template?.starterPrompt;
+  const [tokenValue, setTokenValue] = useState('');
+  const composeTokenHeaders = (value: string) =>
+    convertMultilineFieldValue(
+      value && tokenField
+        ? [tokenField.buildHeader(value), ...(prefillHeaders ?? [])]
+        : (prefillHeaders ?? [])
+    );
+
   const defaultValues = {
-    name: app?.name ?? '',
+    name: app?.name ?? prefill?.name ?? '',
     author: app?.author ?? '',
-    webhookUrl: app?.webhookUrl ?? '',
+    webhookUrl: app?.webhookUrl ?? prefill?.webhookUrl ?? '',
     redirectUrl: app?.redirectUrl ?? '',
     verifyInstall: isInternal ? false : (app?.verifyInstall ?? true),
-    isAlertable: app?.isAlertable ?? false,
-    schema: getSchemaFieldValue(app?.schema),
-    overview: app?.overview ?? '',
+    isAlertable: app?.isAlertable ?? prefill?.isAlertable ?? false,
+    schema: getSchemaFieldValue(app?.schema ?? prefill?.schema),
+    overview: app?.overview ?? prefill?.overview ?? '',
     allowedOrigins: convertMultilineFieldValue(app?.allowedOrigins ?? []),
     // Masked values (Header-Name: ***) round-trip safely: the backend preserves
     // the stored value for any entry resubmitted with the mask sentinel.
-    webhookHeaders: convertMultilineFieldValue(app?.webhookHeaders ?? []),
+    webhookHeaders: convertMultilineFieldValue(
+      app?.webhookHeaders ?? prefillHeaders ?? []
+    ),
     organization: organization.slug,
     isInternal,
-    scopes: app ? [...app.scopes] : [],
+    scopes: initialScopes,
     events: initialEvents,
   };
 
@@ -555,7 +653,7 @@ function SentryApplicationForm({
     ...defaultFormOptions,
     defaultValues,
     validators: {
-      onDynamic: sentryAppFormSchema,
+      onDynamic: formSchema,
     },
     onSubmit: ({value, formApi}) => {
       setScopeErrors({permissions: {}});
@@ -691,44 +789,88 @@ function SentryApplicationForm({
         >
           {field => (
             <field.Layout.Row
-              label={t('Webhook URL')}
-              hintText={tct(
-                'All webhook requests for your integration will be sent to this URL. Visit the [webhookDocs:documentation] to see the different types and payloads.',
-                {
-                  webhookDocs: (
-                    <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/webhooks/" />
-                  ),
-                }
-              )}
-              required={!isInternal}
+              label={template?.webhookUrlField?.label ?? t('Webhook URL')}
+              hintText={
+                <Fragment>
+                  {template?.webhookUrlField?.hint ??
+                    tct(
+                      'All webhook requests for your integration will be sent to this URL. Visit the [webhookDocs:documentation] to see the different types and payloads.',
+                      {
+                        webhookDocs: (
+                          <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/webhooks/" />
+                        ),
+                      }
+                    )}
+                  {starterPrompt && (
+                    <Fragment>
+                      {' '}
+                      {tct("Don't have one yet? [copy] to create it.", {
+                        copy: (
+                          <InlineTextButton
+                            type="button"
+                            onClick={() =>
+                              copyToClipboard(starterPrompt, {
+                                successMessage: t('Starter prompt copied'),
+                              })
+                            }
+                          >
+                            {t('Copy a starter prompt')}
+                          </InlineTextButton>
+                        ),
+                      })}
+                    </Fragment>
+                  )}
+                </Fragment>
+              }
+              required={!isInternal || (template?.webhookUrlField?.required ?? false)}
             >
               <field.Input
                 value={field.state.value}
                 onChange={field.handleChange}
-                placeholder={t('e.g. https://example.com/sentry/webhook/')}
+                placeholder={
+                  template?.webhookUrlField?.placeholder ??
+                  t('e.g. https://example.com/sentry/webhook/')
+                }
               />
             </field.Layout.Row>
           )}
         </form.AppField>
 
-        {organization.features.includes('sentry-apps-custom-webhook-headers') && (
+        {tokenField ? (
           <form.AppField name="webhookHeaders">
             {field => (
-              <field.Layout.Row
-                label={t('Webhook Headers')}
-                hintText={t(
-                  'Custom headers to include with every webhook request. Only certain headers are allowed, such as Authorization or X-* custom headers. Enter one header per line in the format: Header-Name: value. Saved header values are masked.'
-                )}
-              >
-                <field.TextArea
-                  autosize
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder={'Authorization: Bearer <token>\nX-Custom-Header: value'}
+              <field.Layout.Row label={tokenField.label} hintText={tokenField.hint}>
+                <field.Input
+                  value={tokenValue}
+                  onChange={value => {
+                    setTokenValue(value);
+                    field.handleChange(composeTokenHeaders(value));
+                  }}
+                  placeholder={tokenField.placeholder}
                 />
               </field.Layout.Row>
             )}
           </form.AppField>
+        ) : (
+          organization.features.includes('sentry-apps-custom-webhook-headers') && (
+            <form.AppField name="webhookHeaders">
+              {field => (
+                <field.Layout.Row
+                  label={t('Webhook Headers')}
+                  hintText={t(
+                    'Custom headers to include with every webhook request. Only certain headers are allowed, such as Authorization or X-* custom headers. Enter one header per line in the format: Header-Name: value. Saved header values are masked.'
+                  )}
+                >
+                  <field.TextArea
+                    autosize
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder={'Authorization: Bearer <token>\nX-Custom-Header: value'}
+                  />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
+          )
         )}
 
         {!isInternal && (
@@ -763,108 +905,113 @@ function SentryApplicationForm({
           </form.AppField>
         )}
 
-        <form.AppField name="isAlertable">
-          {field => (
-            <field.Layout.Row
-              label={t('Alert Action')}
-              hintText={tct(
-                'If enabled, this integration will be available as an action in alerts in Sentry. The notification destination is the Webhook URL specified above. More on actions [learnMore:here].',
-                {
-                  learnMore: (
-                    <ExternalLink href="https://docs.sentry.io/product/alerts-notifications/notifications/" />
-                  ),
-                }
-              )}
-            >
-              <form.Subscribe selector={state => isInternal && !state.values.webhookUrl}>
-                {webhookDisabled => (
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                    disabled={
-                      webhookDisabled
-                        ? t('Cannot enable alert action without a webhook url')
-                        : false
-                    }
-                  />
+        {!hiddenFields.has('isAlertable') && (
+          <form.AppField name="isAlertable">
+            {field => (
+              <field.Layout.Row
+                label={t('Alert Action')}
+                hintText={tct(
+                  'If enabled, this integration will be available as an action in alerts in Sentry. The notification destination is the Webhook URL specified above. More on actions [learnMore:here].',
+                  {
+                    learnMore: (
+                      <ExternalLink href="https://docs.sentry.io/product/alerts-notifications/notifications/" />
+                    ),
+                  }
                 )}
-              </form.Subscribe>
-            </field.Layout.Row>
-          )}
-        </form.AppField>
+              >
+                <form.Subscribe
+                  selector={state => isInternal && !state.values.webhookUrl}
+                >
+                  {webhookDisabled => (
+                    <field.Switch
+                      checked={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={
+                        webhookDisabled
+                          ? t('Cannot enable alert action without a webhook url')
+                          : false
+                      }
+                    />
+                  )}
+                </form.Subscribe>
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+        )}
 
-        <form.AppField name="schema">
-          {field => (
-            <field.Layout.Row
-              label={t('Schema')}
-              hintText={tct(
-                'Schema for your UI components. Click [schemaDocs:here] for documentation.',
-                {
-                  schemaDocs: (
-                    <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/ui-components/" />
-                  ),
-                }
-              )}
-            >
-              <field.TextArea
-                autosize
-                value={field.state.value}
-                onChange={field.handleChange}
-              />
-            </field.Layout.Row>
-          )}
-        </form.AppField>
+        {!hiddenFields.has('schema') && (
+          <form.AppField name="schema">
+            {field => (
+              <field.Layout.Row
+                label={t('Schema')}
+                hintText={tct(
+                  'Schema for your UI components. Click [schemaDocs:here] for documentation.',
+                  {
+                    schemaDocs: (
+                      <ExternalLink href="https://docs.sentry.io/product/integrations/integration-platform/ui-components/" />
+                    ),
+                  }
+                )}
+              >
+                <field.TextArea
+                  autosize
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+        )}
 
-        <form.AppField name="overview">
-          {field => (
-            <field.Layout.Row
-              label={t('Overview')}
-              hintText={t('Description of your Integration and its functionality.')}
-            >
-              <field.TextArea
-                autosize
-                value={field.state.value}
-                onChange={field.handleChange}
-              />
-            </field.Layout.Row>
-          )}
-        </form.AppField>
+        {!hiddenFields.has('overview') && (
+          <form.AppField name="overview">
+            {field => (
+              <field.Layout.Row
+                label={t('Overview')}
+                hintText={t('Description of your Integration and its functionality.')}
+              >
+                <field.TextArea
+                  autosize
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+        )}
 
-        <form.AppField name="allowedOrigins">
-          {field => (
-            <field.Layout.Row
-              label={t('Authorized JavaScript Origins')}
-              hintText={t('Separate multiple entries with a newline.')}
-            >
-              <field.TextArea
-                autosize
-                value={field.state.value}
-                onChange={field.handleChange}
-                placeholder={t('e.g. example.com')}
-              />
-            </field.Layout.Row>
-          )}
-        </form.AppField>
+        {!hiddenFields.has('allowedOrigins') && (
+          <form.AppField name="allowedOrigins">
+            {field => (
+              <field.Layout.Row
+                label={t('Authorized JavaScript Origins')}
+                hintText={t('Separate multiple entries with a newline.')}
+              >
+                <field.TextArea
+                  autosize
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={t('e.g. example.com')}
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+        )}
       </form.FieldGroup>
 
       {getAvatarChooser(true)}
       {getAvatarChooser(false)}
 
-      <form.Subscribe selector={state => isInternal && !state.values.webhookUrl}>
-        {webhookDisabled => (
-          <PermissionsObserver
-            webhookDisabled={webhookDisabled}
-            appPublished={app ? app.status === 'published' : false}
-            scopes={app ? [...app.scopes] : []}
-            events={initialEvents}
-            newApp={!app}
-            permissionErrors={scopeErrors.permissions}
-            continuousIntegrationError={scopeErrors.continuousIntegration}
-            onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
-            onEventsChange={events => form.setFieldValue('events', events)}
-          />
-        )}
-      </form.Subscribe>
+      <PermissionsObserver
+        appPublished={app ? app.status === 'published' : false}
+        scopes={initialScopes}
+        events={initialEvents}
+        newApp={!app}
+        permissionErrors={scopeErrors.permissions}
+        continuousIntegrationError={scopeErrors.continuousIntegration}
+        onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
+        onEventsChange={events => form.setFieldValue('events', events)}
+      />
 
       {app?.status === 'internal' && (
         <PanelTable
@@ -955,6 +1102,19 @@ function SentryApplicationForm({
     </form.AppForm>
   );
 }
+
+const InlineTextButton = styled('button')`
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: ${p => p.theme.tokens.content.accent};
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
 
 const HiddenSecret = styled('span')`
   width: 100px;
