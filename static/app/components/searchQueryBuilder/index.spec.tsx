@@ -3513,6 +3513,35 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
       });
 
+      it('commits pending input when a different chip is clicked to edit', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,chrome]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Type a value but don't commit it, then click another chip to edit it.
+        // The uncommitted text must be saved rather than silently dropped.
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.type(input, 'safari');
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Edit value: firefox'})
+        );
+
+        // The clicked chip is now lifted for editing; committing it back unchanged
+        // leaves the previously typed value in place
+        expect(input).toHaveValue('firefox');
+        await userEvent.keyboard('{enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[firefox,chrome,safari]'})
+        ).toBeInTheDocument();
+      });
+
       it('keeps a pasted value adjacent when it duplicates a quoted existing chip', async () => {
         render(
           <SearchQueryBuilder

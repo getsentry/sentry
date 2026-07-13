@@ -1288,6 +1288,11 @@ export function SearchQueryBuilderValueCombobox({
     if (!target) {
       return;
     }
+
+    if (inputValue.trim()) {
+      addTypedValue(inputValue);
+    }
+
     setInputValue(target.value);
     setEditingChip({index, value: target.value});
     inputRef.current?.focus();
