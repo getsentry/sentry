@@ -141,7 +141,9 @@ def track_open_fix_prs(state: StateView, entry: GroupActionLogEntry) -> Aggregat
     current_has_open_fix_pr = state[HAS_OPEN_FIX_PR]
 
     match entry.action:
-        case ResolvedInPullRequestAction() | PullRequestReopenedAction() if not current_has_open_fix_pr:
+        case ResolvedInPullRequestAction() | PullRequestReopenedAction() if (
+            not current_has_open_fix_pr
+        ):
             return emit(HAS_OPEN_FIX_PR.value(True))
         case (
             PullRequestClosedAction(has_other_open_prs=False)
