@@ -16,6 +16,7 @@ describe('Redeem promo code', () => {
   it('renders redeem promo code page', () => {
     const subscription = SubscriptionFixture({
       plan: 'am1_f',
+      accountBalance: -500000,
       organization,
     });
     SubscriptionStore.set(organization.slug, subscription);
@@ -29,6 +30,7 @@ describe('Redeem promo code', () => {
       },
     });
     expect(screen.getByText('Redeem Promotional Code')).toBeInTheDocument();
+    expect(screen.queryByText('Your account credit: $5000')).not.toBeInTheDocument();
   });
 
   it('does not render redeem promo code page for YY partnership orgs', async () => {
