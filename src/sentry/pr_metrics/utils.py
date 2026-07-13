@@ -16,12 +16,14 @@ from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
+    PullRequestActivityLog,
     PullRequestActivityType,
     PullRequestAttribution,
     PullRequestLifecycleState,
     PullRequestMetrics,
     PullRequestVerdict,
 )
+from sentry.pr_metrics.activity_doc import ActivityDoc, commit_shas_from_doc, new_document
 from sentry.seer.models import SeerAgentRun, SeerRunPullRequest
 
 _PR_ACTIVITY_ATTRIBUTION_BUFFER = timedelta(hours=30)
@@ -193,6 +195,20 @@ def _commit_shas_from_activity(pull_request: PullRequest) -> set[str]:
     return shas
 
 
+def load_activity_document(pull_request: PullRequest) -> ActivityDoc | None:
+    """The PR's reduced activity document, or None when it's on the legacy store.
+
+    The presence of the 1:1 ``PullRequestActivityLog`` row is the per-PR routing
+    signal every reader uses: a row → read the document; no row → read the legacy
+    ``PullRequestActivity`` rows. Mirrors the write-time routing, so a PR is read
+    from whichever store it was written to.
+    """
+    row = PullRequestActivityLog.objects.filter(pull_request=pull_request).first()
+    if row is None:
+        return None
+    return row.data if row.data.get("version") else new_document()
+
+
 def resolved_group_ids(pull_request: PullRequest) -> list[int]:
     """Group IDs this PR resolves, from the resolving GroupLink rows.
 
@@ -208,7 +224,11 @@ def resolved_group_ids(pull_request: PullRequest) -> list[int]:
         linked_id=pull_request.id,
     )
 
-    shas = _commit_shas_from_activity(pull_request)
+    doc = load_activity_document(pull_request)
+    if doc is not None:
+        shas = commit_shas_from_doc(doc, pull_request.head_commit_sha)
+    else:
+        shas = _commit_shas_from_activity(pull_request)
     if shas:
         commit_ids = Commit.objects.filter(
             repository_id=pull_request.repository_id,

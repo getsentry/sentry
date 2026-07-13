@@ -31,6 +31,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
+from sentry.pr_metrics.activity_doc import timeline_events_from_doc
 from sentry.pr_metrics.attribution import record_attribution_signal
 from sentry.pr_metrics.contracts import (
     CloseAction,
@@ -39,7 +40,7 @@ from sentry.pr_metrics.contracts import (
     PrConversationAnalysis,
 )
 from sentry.pr_metrics.emit import active_attributions, emit_pr_metrics_row
-from sentry.pr_metrics.utils import iso_or_none, resolved_group_ids
+from sentry.pr_metrics.utils import iso_or_none, load_activity_document, resolved_group_ids
 from sentry.seer.code_review.models import SeerCodeReviewRepoDefinition
 from sentry.seer.code_review.utils import build_repo_definition
 from sentry.seer.sentry_data_models import (
@@ -89,7 +90,22 @@ def _pr_activity_timeline(pull_request: PullRequest) -> list[PrActivityEvent]:
     All lifecycle rows are forwarded; check rows are capped to the most recent
     ``_MAX_FORWARDED_CHECK_ROWS`` (see comment above) so CI noise on busy PRs
     can't balloon the Seer request.
+
+    Document-path PRs project the same wire shape: lifecycle entries pass through,
+    and each checks group becomes one synthesized ``check_suite_completed`` (the
+    collapse Seer's timeline does anyway), so the Seer contract is unchanged.
     """
+    doc = load_activity_document(pull_request)
+    if doc is not None:
+        return [
+            PrActivityEvent(
+                event_type=event["event_type"],
+                timestamp=event["timestamp"],
+                payload=event["payload"],
+            )
+            for event in timeline_events_from_doc(doc)
+        ]
+
     rows = list(
         PullRequestActivity.objects.filter(pull_request=pull_request).order_by("date_added")
     )
