@@ -132,14 +132,15 @@ def get_or_create_contributor(
         return contributor
 
     try:
-        return OrganizationContributors.objects.create(
-            organization_id=organization.id,
-            integration_id=integration.id,
-            external_identifier=external_identifier,
-            provider=integration.provider,
-            hostname=instance_hostname(integration),
-            alias=alias,
-        )
+        with transaction.atomic(router.db_for_write(OrganizationContributors)):
+            return OrganizationContributors.objects.create(
+                organization_id=organization.id,
+                integration_id=integration.id,
+                external_identifier=external_identifier,
+                provider=integration.provider,
+                hostname=instance_hostname(integration),
+                alias=alias,
+            )
     except IntegrityError:
         contributor = get_canonical_contributor(
             organization_id=organization.id,
