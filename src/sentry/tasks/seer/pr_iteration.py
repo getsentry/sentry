@@ -29,6 +29,7 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
@@ -65,17 +66,21 @@ def trigger_consume_pr_iteration_feedback(
     bypass: bool = False,
     delay: int | None = None,
 ) -> None:
-    should_trigger = feedback.source.should_trigger(run_state)
+    if bypass:
+        task: ConsumeTask | None = ConsumeTask.Now
+    else:
+        task = feedback.source.should_trigger(run_state)
 
-    if not bypass and not should_trigger:
+    if task is None:
         return
 
+    countdown = delay if delay is not None else task.countdown()
     consume_queued_autofix_feedback.apply_async(
         kwargs={
             "run_id": run_id,
             "organization_id": organization_id,
         },
-        countdown=delay,
+        countdown=countdown,
     )
 
 

@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Any, Literal
 from unittest.mock import MagicMock, patch
 
@@ -7,6 +8,7 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
@@ -471,9 +473,9 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         )
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    def test_skips_when_should_trigger_false(self, mock_apply: MagicMock) -> None:
+    def test_skips_when_no_consume_task(self, mock_apply: MagicMock) -> None:
         feedback = self._feedback()
-        with patch.object(type(feedback.source), "should_trigger", return_value=False):
+        with patch.object(type(feedback.source), "should_trigger", return_value=None):
             trigger_consume_pr_iteration_feedback(
                 run_id=67890,
                 organization_id=self.organization.id,
@@ -484,9 +486,29 @@ class TriggerConsumePrIterationFeedbackTest(TestCase):
         mock_apply.assert_not_called()
 
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
+    def test_queues_later_task_with_countdown(self, mock_apply: MagicMock) -> None:
+        feedback = self._feedback()
+        with patch.object(
+            type(feedback.source),
+            "should_trigger",
+            return_value=ConsumeTask.Later(timedelta(hours=1)),
+        ):
+            trigger_consume_pr_iteration_feedback(
+                run_id=67890,
+                organization_id=self.organization.id,
+                feedback=feedback,
+                run_state=self._state(),
+            )
+
+        mock_apply.assert_called_once_with(
+            kwargs={"run_id": 67890, "organization_id": self.organization.id},
+            countdown=3600,
+        )
+
+    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     def test_bypass_ignores_should_trigger(self, mock_apply: MagicMock) -> None:
         feedback = self._feedback()
-        with patch.object(type(feedback.source), "should_trigger", return_value=False):
+        with patch.object(type(feedback.source), "should_trigger", return_value=None):
             trigger_consume_pr_iteration_feedback(
                 run_id=67890,
                 organization_id=self.organization.id,
