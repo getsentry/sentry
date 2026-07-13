@@ -369,7 +369,9 @@ class AddCommentEyesReactionTest(TestCase):
     @patch(f"{TASK_PATH}.scm_actions")
     def test_pr_comment_uses_pull_request_comment_reaction(self, mock_actions: MagicMock) -> None:
         scm = MagicMock(spec=CreatePullRequestCommentReactionProtocol)
-        _add_comment_reaction(scm, source_type="github-pr-comment", pr_number=7, comment_id=999)
+        _add_comment_reaction(
+            scm, source_type="github-pr-comment", pr_number=7, comment_id=999, reaction="eyes"
+        )
 
         mock_actions.create_pull_request_comment_reaction.assert_called_once_with(
             scm, "7", "999", "eyes"
@@ -380,7 +382,7 @@ class AddCommentEyesReactionTest(TestCase):
     def test_review_comment_uses_review_comment_reaction(self, mock_actions: MagicMock) -> None:
         scm = MagicMock(spec=CreateReviewCommentReactionProtocol)
         _add_comment_reaction(
-            scm, source_type="github-pr-review-comment", pr_number=7, comment_id=999
+            scm, source_type="github-pr-review-comment", pr_number=7, comment_id=999, reaction="eyes"
         )
 
         mock_actions.create_review_comment_reaction.assert_called_once_with(scm, "7", "999", "eyes")
@@ -390,7 +392,11 @@ class AddCommentEyesReactionTest(TestCase):
     def test_noop_when_provider_unsupported(self, mock_actions: MagicMock) -> None:
         # A provider that doesn't implement the reaction protocol is skipped.
         _add_comment_reaction(
-            MagicMock(spec=object), source_type="github-pr-comment", pr_number=7, comment_id=999
+            MagicMock(spec=object),
+            source_type="github-pr-comment",
+            pr_number=7,
+            comment_id=999,
+            reaction="eyes",
         )
 
         mock_actions.create_pull_request_comment_reaction.assert_not_called()
@@ -406,4 +412,5 @@ class AddCommentEyesReactionTest(TestCase):
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
+            reaction="eyes",
         )
