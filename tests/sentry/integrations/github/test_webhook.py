@@ -1679,7 +1679,11 @@ class PullRequestEventWebhookTest(APITestCase):
                 organization=self.organization,
                 external_id="12345",
                 provider="github",
-                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+                metadata={
+                    "access_token": "1234",
+                    "expires_at": future_expires.isoformat(),
+                    "domain_name": "github.com/example",
+                },
             )
             integration.add_organization(self.project.organization.id, self.user)
 
@@ -1726,7 +1730,11 @@ class PullRequestEventWebhookTest(APITestCase):
                 organization=self.organization,
                 external_id="12345",
                 provider="github",
-                metadata={"access_token": "1234", "expires_at": future_expires.isoformat()},
+                metadata={
+                    "access_token": "1234",
+                    "expires_at": future_expires.isoformat(),
+                    "domain_name": "github.com/example",
+                },
             )
             integration.add_organization(self.project.organization.id, self.user)
 
