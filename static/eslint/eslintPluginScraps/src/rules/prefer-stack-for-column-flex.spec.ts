@@ -48,6 +48,13 @@ ruleTester.run('prefer-stack-for-column-flex', preferStackForColumnFlex, {
         const x = <Flex direction="column">child</Flex>;
       `,
     },
+    {
+      name: 'namespace member that is not a layout import',
+      code: `
+        import * as Other from 'other-package';
+        const x = <Other.Flex direction="column">child</Other.Flex>;
+      `,
+    },
   ],
   invalid: [
     invalid(
@@ -63,6 +70,13 @@ const x = <Stack gap="md">child</Stack>;`
 const x = <Flex direction="column">child</Flex>;`,
       `import {Flex, Stack} from '@sentry/scraps/layout';
 const x = <Stack>child</Stack>;`
+    ),
+    invalid(
+      'namespace import (any alias) renames the member and adds no import',
+      `import * as Something from '@sentry/scraps/layout';
+const x = <Something.Flex direction="column">child</Something.Flex>;`,
+      `import * as Something from '@sentry/scraps/layout';
+const x = <Something.Stack>child</Something.Stack>;`
     ),
   ],
 });

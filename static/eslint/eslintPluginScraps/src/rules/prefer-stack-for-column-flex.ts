@@ -13,15 +13,26 @@ type MessageIds = 'preferStack';
 type Context = TSESLint.RuleContext<MessageIds, readonly unknown[]>;
 type ImportTracker = ReturnType<typeof createImportTracker>;
 
-function getElementName(nameNode: TSESTree.JSXTagNameExpression): string {
-  switch (nameNode.type) {
-    case AST_NODE_TYPES.JSXIdentifier:
-      return nameNode.name;
-    case AST_NODE_TYPES.JSXMemberExpression:
-      return `${getElementName(nameNode.object)}.${nameNode.property.name}`;
-    case AST_NODE_TYPES.JSXNamespacedName:
-      return `${nameNode.namespace.name}:${nameNode.name.name}`;
+/**
+ * Whether a JSX tag resolves to layout's `Flex`, either as a named import
+ * (`<Flex>`) or via a namespace import (`import * as Layout` -> `<Layout.Flex>`).
+ */
+function isLayoutFlexElement(
+  nameNode: TSESTree.JSXTagNameExpression,
+  importTracker: ImportTracker
+): boolean {
+  if (nameNode.type === AST_NODE_TYPES.JSXIdentifier) {
+    return importTracker.findLocalNames(LAYOUT_SOURCE, 'Flex').includes(nameNode.name);
   }
+  if (
+    nameNode.type === AST_NODE_TYPES.JSXMemberExpression &&
+    nameNode.object.type === AST_NODE_TYPES.JSXIdentifier &&
+    nameNode.property.name === 'Flex'
+  ) {
+    const info = importTracker.resolve(nameNode.object.name);
+    return info?.source === LAYOUT_SOURCE && info.imported === '*';
+  }
+  return false;
 }
 
 /**
@@ -117,12 +128,29 @@ function buildStackFix(
   context: Context,
   importTracker: ImportTracker
 ): TSESLint.RuleFix[] {
-  const stackName = getStackLocalName(importTracker);
-  const fixes: TSESLint.RuleFix[] = [
-    fixer.replaceText(node.openingElement.name, stackName),
-  ];
-  if (node.closingElement) {
-    fixes.push(fixer.replaceText(node.closingElement.name, stackName));
+  const openingName = node.openingElement.name;
+  const closingName = node.closingElement?.name;
+  const fixes: TSESLint.RuleFix[] = [];
+
+  if (openingName.type === AST_NODE_TYPES.JSXMemberExpression) {
+    // Namespace form (`<Layout.Flex>`): rename only the `.Flex` member to
+    // `.Stack`, keeping the namespace prefix. No import fix is needed since the
+    // namespace already exposes Stack.
+    fixes.push(fixer.replaceText(openingName.property, 'Stack'));
+    if (closingName?.type === AST_NODE_TYPES.JSXMemberExpression) {
+      fixes.push(fixer.replaceText(closingName.property, 'Stack'));
+    }
+  } else {
+    // Named form (`<Flex>`): rename the element and ensure Stack is imported.
+    const stackName = getStackLocalName(importTracker);
+    fixes.push(fixer.replaceText(openingName, stackName));
+    if (closingName) {
+      fixes.push(fixer.replaceText(closingName, stackName));
+    }
+    const importFix = getStackImportFix(fixer, context, importTracker);
+    if (importFix !== null) {
+      fixes.push(importFix);
+    }
   }
 
   // Remove the now-redundant direction attribute along with the whitespace
@@ -132,10 +160,6 @@ function buildStackFix(
   const start = tokenBefore ? tokenBefore.range[1] : directionAttr.range[0];
   fixes.push(fixer.removeRange([start, directionAttr.range[1]]));
 
-  const importFix = getStackImportFix(fixer, context, importTracker);
-  if (importFix !== null) {
-    fixes.push(importFix);
-  }
   return fixes;
 }
 
@@ -161,9 +185,7 @@ export const preferStackForColumnFlex = ESLintUtils.RuleCreator.withoutDocs({
       ...importTracker.visitors,
 
       JSXElement(node) {
-        const flexNames = importTracker.findLocalNames(LAYOUT_SOURCE, 'Flex');
-        const name = getElementName(node.openingElement.name);
-        if (!flexNames.includes(name)) {
+        if (!isLayoutFlexElement(node.openingElement.name, importTracker)) {
           return;
         }
         const directionAttr = getColumnDirectionAttribute(node.openingElement);
