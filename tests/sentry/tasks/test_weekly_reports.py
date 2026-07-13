@@ -554,8 +554,10 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         )
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
-    def test_message_builder_filter_to_error_level(self, message_builder: mock.MagicMock) -> None:
-        """Test that we filter non-error level issues out of key errors"""
+    def test_message_builder_includes_all_error_category_issues(
+        self, message_builder: mock.MagicMock
+    ) -> None:
+        """Test that key errors include all error-category issues regardless of event level"""
         user = self.create_user()
         self.create_member(teams=[self.team], user=user, organization=self.organization)
         self.store_event(

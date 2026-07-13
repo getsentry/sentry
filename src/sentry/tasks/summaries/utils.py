@@ -136,8 +136,8 @@ def org_top_issues(
     """
     Fetch top issues (error + performance) for all org projects using the search backend.
     Returns:
-      - errors_by_project: {project_id: [(group_id, count), ...]} (top 3 per project)
-      - perf_by_project: {project_id: [(Group, count), ...]} (top 3 per project)
+      - errors_by_project: {project_id: [(group_id, count), ...]} (top 5 per project)
+      - perf_by_project: {project_id: [(Group, count), ...]} (top 5 per project)
     """
     op = "weekly_reports.org_top_issues"
     with start_span(op=op, name=op):
