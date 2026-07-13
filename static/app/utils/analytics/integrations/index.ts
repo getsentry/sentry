@@ -17,6 +17,7 @@ export type IntegrationView = {
     | 'integration_configuration_detail'
     | 'issue_details'
     | 'feedback_details'
+    | 'issue_alert_rule'
     | 'onboarding'
     | 'onboarding_scm'
     | 'project_creation'
@@ -85,6 +86,7 @@ type ProjectOwnershipModalParams = {
 
 // Event key to payload mappings
 export type IntegrationEventParameters = {
+  'integrations.alert_rule_action_picker_custom_integration_clicked': IntegrationView;
   'integrations.cloudformation_link_clicked': SingleIntegrationEventParams;
   'integrations.config_saved': SingleIntegrationEventParams;
   'integrations.details_viewed': SingleIntegrationEventParams;
@@ -146,6 +148,8 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
     'Integrations: External Issue Custom Integration CTA Clicked',
   'integrations.link_issue_menu_custom_integration_clicked':
     'Integrations: Link Issue Menu Custom Integration Clicked',
+  'integrations.alert_rule_action_picker_custom_integration_clicked':
+    'Integrations: Alert Rule Action Picker Custom Integration Clicked',
   'integrations.serverless_functions_viewed': 'Integrations: Serverless Functions Viewed',
   'integrations.installation_input_value_changed':
     'Integrations: Installation Input Value Changed',

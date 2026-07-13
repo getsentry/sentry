@@ -26,7 +26,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
-import {metric} from 'sentry/utils/analytics';
+import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -424,6 +424,30 @@ describe('IssueRuleEditor', () => {
       expect(
         screen.getByText('Post to a Threads channel with these')
       ).toBeInTheDocument();
+    });
+
+    it('links to creating a custom integration from the action menu', async () => {
+      const windowOpen = jest.spyOn(window, 'open').mockImplementation(() => null);
+      createWrapper();
+      await waitFor(() =>
+        expect(screen.getByTestId('alert-name')).toHaveValue('My alert rule')
+      );
+
+      await selectEvent.openMenu(await screen.findByText('Add action...'));
+      expect(
+        screen.getByText('Missing an integration? Click here to refresh')
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByText('Send to your own service…'));
+
+      expect(windowOpen).toHaveBeenCalledWith(
+        '/settings/org-slug/developer-settings/new-internal/?referrer=issue_alert_action_picker',
+        '_blank'
+      );
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'integrations.alert_rule_action_picker_custom_integration_clicked',
+        expect.objectContaining({view: 'issue_alert_rule'})
+      );
+      windowOpen.mockRestore();
     });
 
     it('opts out of the alert being disabled', async () => {

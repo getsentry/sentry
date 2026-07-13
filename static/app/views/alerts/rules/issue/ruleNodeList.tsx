@@ -45,14 +45,18 @@ type Props = {
    */
   placeholder: string;
   project: Project;
-  additionalAction?: {
-    label: ReactNode;
+  /**
+   * Extra select options appended to a group, handled by their own onClick
+   * instead of being added to the rule
+   */
+  additionalActions?: Array<{
+    group: keyof typeof groupLabels;
     onClick: () => void;
     option: {
       label: ReactNode;
       value: IssueAlertRuleActionTemplate;
     };
-  };
+  }>;
   incompatibleBanner?: number | null;
   incompatibleRules?: number[] | null;
   selectType?: 'grouped';
@@ -123,11 +127,15 @@ const groupSelectOptions = (actions: IssueAlertRuleActionTemplate[]) => {
     }
   );
 
-  return Object.entries(grouped)
+  return (
+    Object.entries(grouped) as Array<
+      [keyof typeof groupLabels, IssueAlertRuleActionTemplate[]]
+    >
+  )
     .filter(([_, values]) => values.length)
     .map(([key, values]) => {
       return {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
+        key,
         label: groupLabels[key],
         options: createSelectOptions(values),
       };
@@ -238,7 +246,7 @@ export class RuleNodeList extends Component<Props> {
       onResetRow,
       onDeleteRow,
       onPropertyChange,
-      additionalAction,
+      additionalActions,
       nodes,
       placeholder,
       items,
@@ -255,15 +263,13 @@ export class RuleNodeList extends Component<Props> {
 
     let options: any[];
     if (selectType === 'grouped') {
-      options = groupSelectOptions(enabledNodes);
-      if (additionalAction) {
-        const optionToModify = options.find(
-          option => option.label === additionalAction.label
-        );
-        if (optionToModify) {
-          optionToModify.options.push(additionalAction.option);
-        }
+      const groupedOptions = groupSelectOptions(enabledNodes);
+      for (const action of additionalActions ?? []) {
+        groupedOptions
+          .find(group => group.key === action.group)
+          ?.options.push(action.option);
       }
+      options = groupedOptions;
     } else {
       options = createSelectOptions(enabledNodes);
     }
@@ -296,7 +302,10 @@ export class RuleNodeList extends Component<Props> {
           placeholder={placeholder}
           value={null}
           onChange={(obj: any) => {
-            if (additionalAction && obj === additionalAction.option) {
+            const additionalAction = additionalActions?.find(
+              action => action.option === obj
+            );
+            if (additionalAction) {
               additionalAction.onClick();
             } else {
               onAddRow(obj.value);

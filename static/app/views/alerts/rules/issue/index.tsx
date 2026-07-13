@@ -63,6 +63,7 @@ import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {withOrganization} from 'sentry/utils/withOrganization';
@@ -1434,20 +1435,45 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
                               </Alert>
                             )
                           }
-                          additionalAction={{
-                            label: 'Notify integration\u{2026}',
-                            option: {
-                              label: 'Missing an integration? Click here to refresh',
-                              value: {
-                                enabled: true,
-                                id: 'refresh_configs',
-                                label: 'Refresh Integration List',
+                          additionalActions={[
+                            {
+                              group: 'notifyIntegration',
+                              option: {
+                                label: t('Send to your own service\u{2026}'),
+                                value: {
+                                  enabled: true,
+                                  id: 'create_custom_integration',
+                                  label: 'Send to your own service',
+                                },
+                              },
+                              onClick: () => {
+                                trackAnalytics(
+                                  'integrations.alert_rule_action_picker_custom_integration_clicked',
+                                  {organization, view: 'issue_alert_rule'}
+                                );
+                                window.open(
+                                  normalizeUrl(
+                                    `/settings/${organization.slug}/developer-settings/new-internal/?referrer=issue_alert_action_picker`
+                                  ),
+                                  '_blank'
+                                );
                               },
                             },
-                            onClick: () => {
-                              this.refetchConfigs();
+                            {
+                              group: 'notifyIntegration',
+                              option: {
+                                label: 'Missing an integration? Click here to refresh',
+                                value: {
+                                  enabled: true,
+                                  id: 'refresh_configs',
+                                  label: 'Refresh Integration List',
+                                },
+                              },
+                              onClick: () => {
+                                this.refetchConfigs();
+                              },
                             },
-                          }}
+                          ]}
                         />
                         <TestButtonWrapper>
                           <Button
