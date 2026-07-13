@@ -19,6 +19,10 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask, 
 logger = logging.getLogger(__name__)
 
 _SEER_GITHUB_PROVIDER = "integrations:github"
+# Hard cap on consecutive PR iterations driven solely by automated check-suite
+# feedback. Once the last N iterations were all check-suite-only, stop triggering
+# further check-suite iterations (they'd loop forever without human input).
+CHECK_SUITE_ITERATION_HARD_CAP = 3
 
 
 class GithubCheckSuiteApp(BaseModel):
@@ -127,6 +131,31 @@ def resolve_check_suite_repository(event: GithubCheckSuiteEvent) -> Repository |
     return repo
 
 
+def _check_suite_iteration_cap_reached(run_state: SeerRunState) -> bool:
+    """Whether the last N PR iterations used only automated check-suite feedback."""
+    from sentry.seer.autofix.autofix_agent import get_iterations
+    from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
+
+    cap = CHECK_SUITE_ITERATION_HARD_CAP
+    if cap <= 0:
+        return False
+
+    last_iterations = get_iterations(run_state)[-cap:]
+    if len(last_iterations) < cap:
+        return False
+
+    for iteration in last_iterations:
+        feedbacks = [
+            feedback
+            for block in iteration.blocks
+            for feedback in parse_feedback((block.message.metadata or {}).get("feedback", ""))
+        ]
+        if any(not isinstance(feedback.source, CheckSuiteFeedbackSource) for feedback in feedbacks):
+            return False
+
+    return True
+
+
 class CheckSuiteFeedbackSource(FeedbackSourceBase):
     type: Literal["check-suite"] = "check-suite"
     event: GithubCheckSuiteEvent
@@ -224,7 +253,14 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         return matched
 
     def should_trigger(self, run_state: SeerRunState) -> ConsumeTask | None:
-        # Always queue a consume task for this run: immediately once every check
+        if _check_suite_iteration_cap_reached(run_state):
+            logger.info(
+                "autofix.pr_iteration.check_suite.should_trigger.hard_cap_reached",
+                extra={"run_id": run_state.run_id},
+            )
+            return None
+
+        # Otherwise queue a consume task for this run: immediately once every check
         # run has completed, or after a delay while some are still pending (they
         # can get stuck, so we trigger anyway rather than wait forever).
         head_sha = self.event.check_suite.head_sha

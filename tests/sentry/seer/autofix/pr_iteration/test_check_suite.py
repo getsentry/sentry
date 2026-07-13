@@ -3,10 +3,15 @@ from unittest.mock import MagicMock, patch
 import orjson
 
 from sentry.scm.types import CheckSuiteEvent
-from sentry.seer.agent.client_models import RepoPRState, SeerRunState
+from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.feedback import Feedback
-from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
+from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
+from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
+    CHECK_SUITE_ITERATION_HARD_CAP,
+    CheckSuiteFeedbackSource,
+)
+from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
     pr_iteration_from_check_suite_listener,
 )
@@ -154,3 +159,94 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert isinstance(kwargs["feedback"], Feedback)
         assert isinstance(kwargs["feedback"].source, CheckSuiteFeedbackSource)
         mock_trigger_consume.assert_called_once()
+
+
+def _check_suite_source() -> CheckSuiteFeedbackSource:
+    return CheckSuiteFeedbackSource(
+        event={
+            "check_suite": {
+                "id": 1,
+                "head_sha": "abc",
+                "check_runs_url": "https://github.com/owner/repo/check-runs",
+                "app": {"name": "CI"},
+            },
+            "repository": {"html_url": "https://github.com/owner/repo"},
+        }
+    )
+
+
+def _check_suite_feedback() -> Feedback:
+    return Feedback(source=_check_suite_source())
+
+
+def _iteration_block(index: int, *feedbacks: Feedback) -> MemoryBlock:
+    return MemoryBlock(
+        id=f"iter-{index}",
+        message=Message(
+            role="assistant",
+            metadata={
+                "step": "pr_iteration",
+                "iteration_index": str(index),
+                "feedback": serialize_feedback(feedbacks),
+            },
+        ),
+        timestamp="2024-01-01T00:00:00Z",
+    )
+
+
+def _run_state(*, blocks: list[MemoryBlock]) -> SeerRunState:
+    return SeerRunState(
+        run_id=1,
+        blocks=blocks,
+        status="completed",
+        updated_at="2024-01-01T00:00:00Z",
+    )
+
+
+class CheckSuiteHardCapTest(TestCase):
+    def _source(self) -> CheckSuiteFeedbackSource:
+        return _check_suite_source()
+
+    def test_none_when_cap_reached(self) -> None:
+        cap = CHECK_SUITE_ITERATION_HARD_CAP
+        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap)]
+
+        assert self._source().should_trigger(_run_state(blocks=blocks)) is None
+
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository", return_value=None)
+    def test_not_capped_when_fewer_than_cap_iterations(self, _mock: MagicMock) -> None:
+        cap = CHECK_SUITE_ITERATION_HARD_CAP
+        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap - 1)]
+
+        assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
+
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository", return_value=None)
+    def test_not_capped_when_one_iteration_has_non_check_suite_feedback(
+        self, _mock: MagicMock
+    ) -> None:
+        cap = CHECK_SUITE_ITERATION_HARD_CAP
+        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap - 1)]
+        blocks.append(
+            _iteration_block(
+                cap,
+                _check_suite_feedback(),
+                Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it")),
+            )
+        )
+
+        assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
+
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository", return_value=None)
+    def test_only_last_n_iterations_considered(self, _mock: MagicMock) -> None:
+        cap = CHECK_SUITE_ITERATION_HARD_CAP
+        blocks = [_iteration_block(0, Feedback(source=UserUIFeedbackSource(user_id=1)))]
+        blocks += [_iteration_block(i, _check_suite_feedback()) for i in range(1, cap + 1)]
+
+        assert self._source().should_trigger(_run_state(blocks=blocks)) is None
+
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.CHECK_SUITE_ITERATION_HARD_CAP", 0)
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository", return_value=None)
+    def test_cap_disabled_when_zero(self, _mock: MagicMock) -> None:
+        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(10)]
+
+        assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
