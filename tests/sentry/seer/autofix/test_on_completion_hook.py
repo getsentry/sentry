@@ -19,11 +19,10 @@ from sentry.seer.autofix.autofix_agent import AutofixStep
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
-from sentry.seer.autofix.pr_iteration.types import (
-    Feedback,
+from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
-    serialize_feedback,
 )
 from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.seer.models.seer_api_models import SeerAutomationHandoffConfiguration

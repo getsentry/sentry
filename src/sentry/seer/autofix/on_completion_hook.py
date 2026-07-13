@@ -45,11 +45,11 @@ from sentry.seer.autofix.introspection import (
     introspect_root_cause,
     introspect_solution,
 )
-from sentry.seer.autofix.pr_iteration.types import (
+from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
     GithubPrReviewCommentFeedbackSource,
-    parse_feedback,
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -268,7 +268,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         delete_eyes = not is_github_rate_limit_sensitive(organization.slug)
         scm_by_repo: dict[str, SourceCodeManager] = {}
         for source in sources:
-            comment_id = source.comment.get("id")
+            comment_id = source.comment.id
             if comment_id is None:
                 continue
 
