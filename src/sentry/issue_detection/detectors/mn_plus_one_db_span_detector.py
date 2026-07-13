@@ -292,6 +292,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
         for span in self.spans:
             if (
                 span["op"].startswith("db")
+                and "description" in span
                 and get_span_evidence_value(span, include_op=False) != "prisma:engine:connection"
             ):
                 return span
