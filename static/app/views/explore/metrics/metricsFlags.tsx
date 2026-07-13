@@ -43,13 +43,6 @@ export const canUseMetricsEquationsInAlerts = (organization: Organization) => {
   );
 };
 
-export const canUseMetricsEquationsInDashboards = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-equations-in-dashboards')
-  );
-};
-
 export const canUseMetricsPiiScrubbingUI = (organization: Organization) => {
   return (
     canUseMetricsUI(organization) &&
