@@ -167,7 +167,7 @@ function CronEmptyState() {
           {platformGuides
             .filter(({platform}) => !['cli', 'http'].includes(platform))
             .map(({platform, label}) => (
-              <Flex key={platform} direction="column" gap="xs" align="center">
+              <Stack key={platform} gap="xs" align="center">
                 <PlatformLinkButton
                   variant="secondary"
                   to={makeCreateUrl(platform)}
@@ -176,7 +176,7 @@ function CronEmptyState() {
                   <PlatformIcon platform={platform} format="lg" size="100%" />
                 </PlatformLinkButton>
                 <Text variant="muted">{label}</Text>
-              </Flex>
+              </Stack>
             ))}
         </Flex>
         <Flex gap="md">

@@ -1,4 +1,4 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {PAYG_BUSINESS_DEFAULT, PAYG_TEAM_DEFAULT} from 'getsentry/constants';
@@ -77,11 +77,11 @@ export function PlanSelectCard({
         </Flex>
       }
       optionDescription={
-        <Flex direction="column" gap="sm" width="100%">
+        <Stack gap="sm" width="100%">
           <Text size="md" variant="muted" textWrap="balance">
             {description}
           </Text>
-        </Flex>
+        </Stack>
       }
     />
   );

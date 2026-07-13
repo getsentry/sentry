@@ -10,6 +10,7 @@ from sentry.integrations.services.integration import RpcIntegration, integration
 from sentry.integrations.utils.github_permissions import get_missing_github_app_permissions
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.seer.autofix.constants import SEER_GITHUB_PROVIDERS
 from sentry.utils import json
 
 if TYPE_CHECKING:
@@ -43,8 +44,6 @@ def get_github_missing_permissions(integration_id: int) -> MissingGithubPermissi
         missing_scopes=[permission["expected"]["scope"] for permission in (missing or [])],
     )
 
-
-_SEER_GITHUB_PROVIDER = "integrations:github"
 
 # Key set in a tool result's ToolLink.params when the tool call errored (mirrors
 # seer's ERROR_KEY in seer.automation.explorer.models).
@@ -166,7 +165,7 @@ def get_out_of_date_github_permissions(
     # Org-scoped so a run can only surface permissions for repos in its own org.
     repo_integration_ids = Repository.objects.filter(
         organization_id=organization.id,
-        provider=_SEER_GITHUB_PROVIDER,
+        provider__in=SEER_GITHUB_PROVIDERS,
         name__in=repo_names,
         status=ObjectStatus.ACTIVE,
     ).values_list("name", "integration_id")

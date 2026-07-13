@@ -68,12 +68,12 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
         <Alert variant="info">
           {t('This alert will only trigger on issues created by this monitor.')}
         </Alert>
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           <Stack gap="md">
             <AutomationBuilder />
           </Stack>
           <ActionThrottleSelectField />
-        </Flex>
+        </Stack>
         <EmbeddedTextField
           required
           name="name"
