@@ -633,6 +633,12 @@ interface GroupActivityBase {
   user?: null | User;
 }
 
+export interface GroupActivityIntegrationData {
+  integration_id?: number | string;
+  provider?: string;
+  provider_key?: string;
+}
+
 interface GroupActivityNote extends GroupActivityBase {
   data: {
     text: string;
@@ -641,7 +647,7 @@ interface GroupActivityNote extends GroupActivityBase {
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {
-  data: Record<string, string>;
+  data: GroupActivityIntegrationData & Record<string, string>;
   type: GroupActivityType.SET_RESOLVED;
 }
 
@@ -664,12 +670,12 @@ interface GroupActivitySetResolvedIntegration extends GroupActivityBase {
 }
 
 interface GroupActivitySetUnresolved extends GroupActivityBase {
-  data: Record<string, string>;
+  data: GroupActivityIntegrationData & Record<string, string>;
   type: GroupActivityType.SET_UNRESOLVED;
 }
 
 interface GroupActivitySetUnresolvedForecast extends GroupActivityBase {
-  data: {
+  data: GroupActivityIntegrationData & {
     forecast: number;
   };
   type: GroupActivityType.SET_UNRESOLVED;
@@ -742,26 +748,25 @@ interface GroupActivityRegression extends GroupActivityBase {
   type: GroupActivityType.SET_REGRESSION;
 }
 
-interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBase {
-  data: {
-    // Set for semver releases
-    current_release_version: string;
-    inNextRelease?: boolean;
-    integration_id?: number;
-    provider?: string;
-    provider_key?: string;
-  };
-  type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
+interface GroupActivityResolvedInReleaseData extends GroupActivityIntegrationData {
+  /** The commit that caused the release to resolve the issue. */
+  commit?: Commit | null;
+  inNextRelease?: boolean;
+}
+
+interface GroupActivityResolvedAfterCurrentReleaseData extends GroupActivityResolvedInReleaseData {
+  /** The current release; later releases resolve the issue. */
+  current_release_version: string;
+}
+
+interface GroupActivityResolvedInSpecificReleaseData extends GroupActivityResolvedInReleaseData {
+  version?: string;
 }
 
 interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
-  data: {
-    inNextRelease?: boolean;
-    integration_id?: number;
-    provider?: string;
-    provider_key?: string;
-    version?: string;
-  };
+  data:
+    | GroupActivityResolvedAfterCurrentReleaseData
+    | GroupActivityResolvedInSpecificReleaseData;
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
 }
 
@@ -1006,7 +1011,6 @@ export type GroupActivity =
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
   | GroupActivitySetByResolvedInRelease
-  | GroupActivitySetByResolvedInNextSemverRelease
   | GroupActivitySetByResolvedInCommit
   | GroupActivityReferencedInCommit
   | GroupActivitySetByResolvedInPullRequest
