@@ -3449,6 +3449,100 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
       });
 
+      it('re-anchors a mid-row partial when an earlier value is toggled off', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,chrome,safari]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Edit the middle chip, then commit a value with a trailing comma so the
+        // input becomes a bare insertion point sitting mid-row (behind edge)
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Edit value: chrome'})
+        );
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(input);
+        await userEvent.type(input, 'edge,');
+        expect(
+          await screen.findByRole('button', {name: 'Edit value: edge'})
+        ).toBeInTheDocument();
+
+        // Toggling an earlier value off shifts indices under the bare insertion
+        // point, which must follow rather than commit the partial to the end
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle firefox'})
+        );
+        await userEvent.type(input, 'x');
+        await userEvent.keyboard('{enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[edge,x,safari]'})
+        ).toBeInTheDocument();
+      });
+
+      it('keeps a pasted value adjacent when it duplicates an existing chip', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,chrome,safari]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Edit the middle chip, then paste values where one duplicates an existing
+        // chip (firefox). The duplicate collapses on save, so it must not count
+        // toward where the trailing partial lands
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Edit value: chrome'})
+        );
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(input);
+        await userEvent.paste('firefox,edge,x');
+        await userEvent.keyboard('{enter}');
+
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[firefox,edge,x,safari]'})
+        ).toBeInTheDocument();
+      });
+
+      it('keeps a pasted value adjacent when it duplicates a quoted existing chip', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery='browser.name:["foo bar",chrome,safari]'
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Edit the middle chip, then paste a value that duplicates the existing
+        // quoted chip. Matching the stored (unescaped) form must recognize it as a
+        // duplicate so it doesn't count toward where the trailing partial lands
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Edit value: chrome'})
+        );
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(input);
+        await userEvent.paste('"foo bar",edge,x');
+        await userEvent.keyboard('{enter}');
+
+        expect(
+          await screen.findByRole('row', {
+            name: 'browser.name:["foo bar",edge,x,safari]',
+          })
+        ).toBeInTheDocument();
+      });
+
       it('preserves duplicate values when editing one of them', async () => {
         render(
           <SearchQueryBuilder

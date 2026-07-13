@@ -721,10 +721,13 @@ export function SearchQueryBuilderValueCombobox({
   // Tracks where the input sits within the chip row. `value` is the lifted chip's
   // text (so it can be restored on Escape and reinserted where it was rather than
   // at the end), or null for a bare insertion point — a mid-row position the input
-  // keeps after a comma split so the remaining text isn't shoved to the end.
+  // keeps after a comma split so the remaining text isn't shoved to the end. A bare
+  // point instead carries `after`, the value it sits behind, so it can re-anchor
+  // when the token shifts underneath it.
   const [editingChip, setEditingChip] = useState<{
     index: number;
     value: string | null;
+    after?: string;
   } | null>(null);
 
   const [showDatePicker, setShowDatePicker] = useState(() => {
@@ -761,40 +764,61 @@ export function SearchQueryBuilderValueCombobox({
     [selectedValues, editingChip]
   );
 
-  // Keep a lifted chip edit anchored to its value as the token changes underneath
-  // it (dropdown checkbox toggles, undo, etc. shift indices without going through
-  // removeValue). Re-point the index when the value moved so a commit updates the
-  // right chip; cancel the edit if the value is gone so stale input isn't re-added
-  // on blur.
+  // Keep an in-progress edit anchored to the token as it changes underneath the
+  // input (dropdown checkbox toggles, undo, etc. shift indices without going
+  // through removeValue). A lifted chip tracks its own value; a bare insertion
+  // point tracks the value it sits behind.
   useEffect(() => {
-    // Only lifted chip edits (value is a string) track a token position.
     if (editingChip === null) {
       return;
     }
-    const liftedValue = editingChip.value;
-    if (liftedValue === null) {
-      return;
-    }
-    if (selectedValues[editingChip.index]?.value === liftedValue) {
-      return;
-    }
-    // The value can appear more than once, so re-anchor to the occurrence
-    // nearest the previous index — an external change shifts the edited chip by a
-    // small offset rather than moving it to the first match.
     const oldIndex = editingChip.index;
-    let newIndex = -1;
-    selectedValues.forEach((v, i) => {
-      if (v.value !== liftedValue) {
+    // A value can appear more than once, so re-anchor to the occurrence nearest
+    // the previous index — an external change shifts the edited position by a
+    // small offset rather than moving it to the first match.
+    const nearestOccurrence = (needle: string, target: number) => {
+      let nearest = -1;
+      selectedValues.forEach((v, i) => {
+        if (v.value !== needle) {
+          return;
+        }
+        if (nearest === -1 || Math.abs(i - target) < Math.abs(nearest - target)) {
+          nearest = i;
+        }
+      });
+      return nearest;
+    };
+
+    const liftedValue = editingChip.value;
+    if (liftedValue !== null) {
+      // Re-point the lifted chip to its value's current slot so a commit updates
+      // the right chip; cancel the edit if the value is gone so stale input isn't
+      // re-added on blur.
+      if (selectedValues[oldIndex]?.value === liftedValue) {
         return;
       }
-      if (newIndex === -1 || Math.abs(i - oldIndex) < Math.abs(newIndex - oldIndex)) {
-        newIndex = i;
+      const newIndex = nearestOccurrence(liftedValue, oldIndex);
+      if (newIndex === -1) {
+        setEditingChip(null);
+        setInputValue('');
+      } else {
+        setEditingChip(prev => (prev ? {...prev, index: newIndex} : prev));
       }
-    });
-    if (newIndex === -1) {
-      setEditingChip(null);
-      setInputValue('');
-    } else {
+      return;
+    }
+
+    // A bare insertion point has no value of its own, so keep it just past the
+    // value it sits behind. Without this, toggling an earlier value off (or an
+    // undo) leaves the raw index stale and the trailing partial commits at the
+    // end of the row instead of staying adjacent.
+    const {after} = editingChip;
+    if (after === undefined) {
+      return;
+    }
+    const anchorIndex = nearestOccurrence(after, oldIndex - 1);
+    const newIndex =
+      anchorIndex === -1 ? Math.min(oldIndex, selectedValues.length) : anchorIndex + 1;
+    if (newIndex !== oldIndex) {
       setEditingChip(prev => (prev ? {...prev, index: newIndex} : prev));
     }
   }, [editingChip, selectedValues]);
@@ -1129,24 +1153,37 @@ export function SearchQueryBuilderValueCombobox({
       return;
     }
     const partial = segments.pop() ?? '';
-    // Drop empty segments and values repeated within the paste (which collapse to
-    // a single chip on save) so the tracked insertion index matches the chips
-    // actually added and the trailing partial stays adjacent rather than jumping
-    // to the end of the row.
-    const seen = new Set<string>();
-    const completed = segments.filter(segment => {
-      const trimmed = segment.trim();
-      if (!trimmed || seen.has(trimmed)) {
-        return false;
+    // Canonicalize each completed segment the way committed values are stored
+    // (parsed + unescaped), so a duplicate of an existing chip — even one that is
+    // quoted or contains special characters — is recognized and dropped rather
+    // than counted. Empty segments (consecutive commas) parse to nothing and drop
+    // out here too. All of these collapse away on save via uniq, so counting them
+    // would push the tracked insertion index (and the trailing partial) past
+    // where the chips actually land.
+    const seen = new Set(committedValues.map(v => v.value));
+    const completed: string[] = [];
+    let lastCanonical: string | undefined;
+    for (const segment of segments) {
+      const canonical = getSelectedValuesFromText(`${segment},`)[0]?.value;
+      if (canonical === undefined || seen.has(canonical)) {
+        continue;
       }
-      seen.add(trimmed);
-      return true;
-    });
+      seen.add(canonical);
+      completed.push(segment);
+      lastCanonical = canonical;
+    }
     const editIndex = editingChip?.index;
     if (completed.length) {
       addTypedValue(completed.join(','));
       if (editIndex !== undefined) {
-        setEditingChip({index: editIndex + completed.length, value: null});
+        // The partial now sits just after the last value committed above; anchor
+        // the bare insertion point to that value (canonical, to match the token)
+        // so it survives later index shifts.
+        setEditingChip({
+          index: editIndex + completed.length,
+          value: null,
+          after: lastCanonical,
+        });
       }
     }
     pendingCaretRef.current = {pos: 0, value: partial};
@@ -1221,12 +1258,15 @@ export function SearchQueryBuilderValueCombobox({
           next
         ),
       });
-      // Removing a chip before the one being edited shifts its position down, so
-      // keep editingChip.index aligned with the rebuilt token. Otherwise
-      // committedValues hides the wrong chip and the commit reinserts at a stale
-      // index, dropping remaining values.
+      // Removing a chip before the lifted one shifts its position down, so keep
+      // editingChip.index aligned with the rebuilt token. Otherwise committedValues
+      // hides the wrong chip and the commit reinserts at a stale index, dropping
+      // remaining values. A bare insertion point re-anchors via its `after` value
+      // in the effect above, so leave it untouched here to avoid a double shift.
       setEditingChip(prev =>
-        prev && index < prev.index ? {...prev, index: prev.index - 1} : prev
+        prev && prev.value !== null && index < prev.index
+          ? {...prev, index: prev.index - 1}
+          : prev
       );
       inputRef.current?.focus();
     },
