@@ -45,7 +45,7 @@ class Formatter(ABC):
     def field(self, key: str, value: str) -> str: ...
 
     @abstractmethod
-    def code_block(self, text: str, lang: str | None = None) -> str: ...
+    def code_block(self, text: str) -> str: ...
 
 
 class MarkdownFormatter(Formatter):
@@ -55,8 +55,8 @@ class MarkdownFormatter(Formatter):
     def field(self, key: str, value: str) -> str:
         return f"**{key}:** {value}"
 
-    def code_block(self, text: str, lang: str | None = None) -> str:
-        return f"```{lang or ''}\n{text}\n```"
+    def code_block(self, text: str) -> str:
+        return f"```\n{text}\n```"
 
 
 class XmlFormatter(Formatter):
@@ -68,5 +68,5 @@ class XmlFormatter(Formatter):
         tag = slug(key)
         return f"<{tag}>{value}</{tag}>"
 
-    def code_block(self, text: str, lang: str | None = None) -> str:
-        return f'<code lang="{lang or ""}">{text}</code>'
+    def code_block(self, text: str) -> str:
+        return f"<code>{text}</code>"
