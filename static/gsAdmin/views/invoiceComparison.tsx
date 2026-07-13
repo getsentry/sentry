@@ -8,7 +8,7 @@ import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -389,7 +389,7 @@ export function InvoiceComparison() {
         <PanelHeader>Query</PanelHeader>
         <PanelBody withPadding>
           <Flex gap="md" align="end" wrap="wrap">
-            <Flex direction="column" gap="xs">
+            <Stack gap="xs">
               <FieldLabel>Region</FieldLabel>
               <CompactSelect
                 trigger={triggerProps => (
@@ -401,8 +401,8 @@ export function InvoiceComparison() {
                   setCell(cells.find(c => c.locality_url === opt.value) ?? null);
                 }}
               />
-            </Flex>
-            <Flex direction="column" gap="xs">
+            </Stack>
+            <Stack gap="xs">
               <FieldLabel htmlFor="start">Generated since (local)</FieldLabel>
               <Input
                 id="start"
@@ -410,8 +410,8 @@ export function InvoiceComparison() {
                 value={startInput}
                 onChange={e => setStartInput(e.target.value)}
               />
-            </Flex>
-            <Flex direction="column" gap="xs">
+            </Stack>
+            <Stack gap="xs">
               <FieldLabel htmlFor="end">Generated until (local)</FieldLabel>
               <Input
                 id="end"
@@ -419,8 +419,8 @@ export function InvoiceComparison() {
                 value={endInput}
                 onChange={e => setEndInput(e.target.value)}
               />
-            </Flex>
-            <Flex direction="column" gap="xs">
+            </Stack>
+            <Stack gap="xs">
               <FieldLabel>Results per page</FieldLabel>
               <CompactSelect
                 trigger={triggerProps => (
@@ -433,7 +433,7 @@ export function InvoiceComparison() {
                 }))}
                 onChange={opt => setPageSize(Number(opt.value))}
               />
-            </Flex>
+            </Stack>
             <Button variant="primary" onClick={onSubmit} disabled={!cell}>
               Run comparison
             </Button>
@@ -469,23 +469,23 @@ export function InvoiceComparison() {
                   }
                 `}
               >
-                <Flex direction="column">
+                <Stack>
                   <Text size="sm" variant="muted">
                     Legacy invoices
                   </Text>
                   <Text size="lg" bold>
                     {formatCountOrNA(data.summary.legacy_count)}
                   </Text>
-                </Flex>
-                <Flex direction="column">
+                </Stack>
+                <Stack>
                   <Text size="sm" variant="muted">
                     Platform invoices
                   </Text>
                   <Text size="lg" bold>
                     {formatCountOrNA(data.summary.platform_count)}
                   </Text>
-                </Flex>
-                <Flex direction="column">
+                </Stack>
+                <Stack>
                   <Text size="sm" variant="muted">
                     {'>1% diff'}
                   </Text>
@@ -496,7 +496,7 @@ export function InvoiceComparison() {
                       {formatCountOrNA(data.summary.row_count)})
                     </TruncatedNote>
                   </Text>
-                </Flex>
+                </Stack>
               </Grid>
             </PanelBody>
           </Panel>

@@ -50,20 +50,19 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
   const theme = useTheme();
 
   return (
-    <Flex
+    <Stack
       as="nav"
       aria-label={t('Primary Navigation')}
       width={`${PRIMARY_SIDEBAR_WIDTH}px`}
       padding="0"
       borderRight="primary"
       background="primary"
-      direction="column"
       align="center"
       style={{zIndex: theme.zIndex.sidebarPanel}}
       {...props}
     >
       {children}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -74,9 +73,8 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
 
   return (
     <SizeProvider size="sm">
-      <Flex
+      <Stack
         as="header"
-        direction="column"
         align="center"
         justify="center"
         borderBottom="primary"
@@ -94,7 +92,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         {...props}
       >
         {props.children}
-      </Flex>
+      </Stack>
     </SizeProvider>
   );
 }
@@ -426,17 +424,16 @@ function PrimaryNavigationFooterItems(props: PrimaryNavigationFooterItemsProps) 
 
 const DesktopPageFrameNavigationLink = styled((props: LinkProps) => {
   return (
-    <Flex
+    <Stack
       position="relative"
       width="100%"
       align="center"
-      direction="column"
       justify="center"
       gap="xs"
       padding="xs xs md xs"
     >
       {p => <Link {...mergeProps(p, props)} />}
-    </Flex>
+    </Stack>
   );
 })`
   outline: none;

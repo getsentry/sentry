@@ -5,7 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {AvatarList} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DateTime} from 'sentry/components/dateTime';
@@ -102,7 +102,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
       .slice(0, 3);
 
     return (
-      <Flex direction="column" gap="xl">
+      <Stack gap="xl">
         <Flex gap="xl" justify="between">
           <div>
             <h6>{t('New Issues')}</h6>
@@ -114,7 +114,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
           </div>
         </Flex>
         {parsedVersion?.package && (
-          <Flex direction="column" gap="xl" justify="between">
+          <Stack gap="xl" justify="between">
             {parsedVersion.package && (
               <div>
                 <h6>{t('Package')}</h6>
@@ -139,11 +139,11 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
                 </Flex>
               </div>
             ) : null}
-          </Flex>
+          </Stack>
         )}
         {release.lastCommit && <LastCommit commit={release.lastCommit} />}
         {deploys.length > 0 && (
-          <Flex direction="column" gap="xs">
+          <Stack gap="xs">
             <h6>{t('Deploys')}</h6>
             {recentDeploysByEnvironment.map(deploy => {
               return (
@@ -153,9 +153,9 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
                 </Flex>
               );
             })}
-          </Flex>
+          </Stack>
         )}
-      </Flex>
+      </Stack>
     );
   }
 

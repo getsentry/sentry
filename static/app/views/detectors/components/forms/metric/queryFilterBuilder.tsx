@@ -1,7 +1,7 @@
 import {useContext, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FormContext} from 'sentry/components/forms/formContext';
@@ -50,7 +50,7 @@ export function DetectorQueryFilterBuilder() {
       disabled={dataset === DetectorDataset.TRANSACTIONS}
     >
       {({ref: _ref, ...fieldProps}) => (
-        <Flex direction="column" gap="xs" flex={1}>
+        <Stack gap="xs" flex={1}>
           <div>
             <Tooltip
               title={t(
@@ -73,7 +73,7 @@ export function DetectorQueryFilterBuilder() {
               {...fieldProps}
             />
           </QueryFieldRowWrapper>
-        </Flex>
+        </Stack>
       )}
     </NoPaddingFormField>
   );

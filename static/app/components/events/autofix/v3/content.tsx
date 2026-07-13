@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {
   getOrderedAutofixSections,
@@ -46,9 +46,9 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
     (autofix.isPolling && !autofix.runState?.blocks?.length)
   ) {
     return (
-      <Flex direction="column" gap="xl">
+      <Stack gap="xl">
         <Placeholder height="15rem" />
-      </Flex>
+      </Stack>
     );
   }
 
@@ -57,7 +57,7 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
   }
 
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
       {(autofix.runState?.status === 'completed' ||
         isLastStepPrIteration(autofix.runState)) && (
@@ -80,7 +80,7 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
           {message}
         </Alert>
       ))}
-    </Flex>
+    </Stack>
   );
 }
 

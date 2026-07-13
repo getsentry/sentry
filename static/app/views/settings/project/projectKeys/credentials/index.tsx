@@ -3,7 +3,7 @@ import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
@@ -382,14 +382,14 @@ export function ProjectKeyCredentials({
                   {field.state.value}
                 </TextCopyInput>
                 {showDeprecatedDsn && (
-                  <Flex direction="column" gap="sm" paddingTop="2xs">
+                  <Stack gap="sm" paddingTop="2xs">
                     <Text size="sm" variant="muted">
                       {t(
                         'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
                       )}
                     </Text>
                     <TextCopyInput>{data.dsn.secret}</TextCopyInput>
-                  </Flex>
+                  </Stack>
                 )}
               </field.Layout.Stack>
             )}

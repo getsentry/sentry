@@ -8,7 +8,7 @@ import {
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -316,7 +316,7 @@ export function NumericFilterSelector({
       }
       menuBody={
         <MenuBodyWrap>
-          <Flex gap="xs" direction="column">
+          <Stack gap="xs">
             <DropdownMenu
               usePortal
               trigger={triggerProps => (
@@ -327,7 +327,7 @@ export function NumericFilterSelector({
               items={operatorItems}
             />
             {filter.renderInputField()}
-          </Flex>
+          </Stack>
         </MenuBodyWrap>
       }
       trigger={triggerProps => (

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -23,9 +23,9 @@ export default function OrganizationMcpCli() {
         )}
       />
 
-      <Flex direction="column" gap="xl">
+      <Stack gap="xl">
         <Container padding="xl" border="primary" radius="md">
-          <Flex direction="column" gap="lg">
+          <Stack gap="lg">
             <Heading as="h3">{t('MCP Server')}</Heading>
             <Text variant="muted" size="lg">
               {t(
@@ -51,11 +51,11 @@ export default function OrganizationMcpCli() {
                 {t('MCP Documentation')}
               </LinkButton>
             </div>
-          </Flex>
+          </Stack>
         </Container>
 
         <Container padding="xl" border="primary" radius="md">
-          <Flex direction="column" gap="lg">
+          <Stack gap="lg">
             <Heading as="h3">{t('Sentry CLI')}</Heading>
             <Text variant="muted" size="lg">
               {t(
@@ -69,9 +69,9 @@ export default function OrganizationMcpCli() {
                 {t('CLI Documentation')}
               </LinkButton>
             </div>
-          </Flex>
+          </Stack>
         </Container>
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }

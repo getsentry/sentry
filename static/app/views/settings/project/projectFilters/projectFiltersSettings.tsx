@@ -19,7 +19,7 @@ import {
   FormSearch,
   useScrapsForm,
 } from '@sentry/scraps/form';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
 
@@ -231,7 +231,7 @@ function LegacyBrowserFilterRow({
   };
 
   return (
-    <Flex direction="column" flexGrow={1} width="100%">
+    <Stack flexGrow={1} width="100%">
       <Flex align="center" gap="xs" justify="between">
         <Flex align="center" gap="xs">
           {label}
@@ -279,7 +279,7 @@ function LegacyBrowserFilterRow({
             );
           })}
       </FilterGrid>
-    </Flex>
+    </Stack>
   );
 }
 

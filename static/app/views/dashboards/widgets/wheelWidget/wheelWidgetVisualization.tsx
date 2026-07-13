@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
@@ -30,7 +30,7 @@ export function WheelWidgetVisualization({tableResults}: WheelWidgetVisualizatio
   }
 
   return (
-    <Flex justify="center" align="center" direction="column" height="100%">
+    <Stack justify="center" align="center" height="100%">
       <PerformanceScoreRingWithTooltips
         autoSize
         projectScore={projectScore}
@@ -38,6 +38,6 @@ export function WheelWidgetVisualization({tableResults}: WheelWidgetVisualizatio
         ringBackgroundColors={ringBackgroundColors}
         ringSegmentColors={ringSegmentColors}
       />
-    </Flex>
+    </Stack>
   );
 }

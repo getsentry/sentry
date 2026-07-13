@@ -4,7 +4,7 @@ import {useInfiniteQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Hovercard} from 'sentry/components/hovercard';
@@ -56,13 +56,13 @@ export function ReplaySlugChooser({children}: Props) {
         {({css}) => (
           <Hovercard
             body={
-              <Flex direction="column" gap="md">
+              <Stack gap="md">
                 <Flex height="500px">
-                  <Flex direction="column" gap="md" flex="1">
+                  <Stack gap="md" flex="1">
                     <ReplayList onSelect={setReplaySlug} queryResult={queryResult} />
-                  </Flex>
+                  </Stack>
                 </Flex>
-              </Flex>
+              </Stack>
             }
             containerClassName={css`
               width: max-content;

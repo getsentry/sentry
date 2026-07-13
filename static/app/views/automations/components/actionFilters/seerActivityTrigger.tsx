@@ -1,4 +1,4 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
@@ -53,7 +53,7 @@ export function SeerActivityTriggerNode() {
     : SEER_ACTIVITY_STAGE_CHOICES;
 
   return (
-    <Flex direction="column" gap="sm">
+    <Stack gap="sm">
       <Text>{t('Seer runs on an issue and reaches the stage...')}</Text>
       <AutomationBuilderSelect
         multiple
@@ -67,7 +67,7 @@ export function SeerActivityTriggerNode() {
           removeError(condition.id);
         }}
       />
-    </Flex>
+    </Stack>
   );
 }
 

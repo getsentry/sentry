@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 
 import {CodeBlock} from '@sentry/scraps/code';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {openInsightInfoModal} from 'sentry/actionCreators/modal';
@@ -29,15 +29,15 @@ cwebp -lossless input.jpg -o output.webp`;
 
 function getOptimizeImagesContent(platform?: Platform): ReactNode {
   return platform === 'android' ? (
-    <Flex direction="column" gap="2xl">
+    <Stack gap="2xl">
       <Text>
         {t(
           'We find all large images in your app and determine if their size could be reduced or updated to more optimized image formats. We find all PNG or JPEG files in your resources or assets directory and compare them to lossless WebP versions. If there is a size reduction, we will recommend using WebP.'
         )}
       </Text>
 
-      <Flex direction="column" gap="xl">
-        <Flex direction="column" gap="sm">
+      <Stack gap="xl">
+        <Stack gap="sm">
           <Heading as="h3" size="md">
             {t('Option 1: Use Android Studio')}
           </Heading>
@@ -46,9 +46,9 @@ function getOptimizeImagesContent(platform?: Platform): ReactNode {
               'Right-click an image in Android Studio, select "Convert to WebP", and choose lossless conversion.'
             )}
           </Text>
-        </Flex>
+        </Stack>
 
-        <Flex direction="column" gap="sm">
+        <Stack gap="sm">
           <Heading as="h3" size="md">
             {t('Option 2: Use cwebp (Command-line)')}
           </Heading>
@@ -57,25 +57,25 @@ function getOptimizeImagesContent(platform?: Platform): ReactNode {
               {ANDROID_CWEBP_SCRIPT}
             </CodeBlock>
           </CodeBlockWrapper>
-        </Flex>
+        </Stack>
 
         <Text variant="muted" size="sm">
           {t(
             'Note: Based on minSdkVersion >= 18, lossless WebP is recommended. For versions < 18, assets with alpha channels are skipped.'
           )}
         </Text>
-      </Flex>
-    </Flex>
+      </Stack>
+    </Stack>
   ) : (
-    <Flex direction="column" gap="2xl">
+    <Stack gap="2xl">
       <Text>
         {t(
           'We find all large images in your app and determine if their size could be reduced or updated to more optimized image formats. We will show an optimized image insight for any image whose size can be reduced by more than 4KB through lossy compression or converted to HEIC format (for apps targeting iOS 12 or later).'
         )}
       </Text>
 
-      <Flex direction="column" gap="xl">
-        <Flex direction="column" gap="sm">
+      <Stack gap="xl">
+        <Stack gap="sm">
           <Heading as="h3" size="md">
             {t('Option 1: Use Imagemin (Command-line)')}
           </Heading>
@@ -84,9 +84,9 @@ function getOptimizeImagesContent(platform?: Platform): ReactNode {
               {IOS_IMAGEMIN_SCRIPT}
             </CodeBlock>
           </CodeBlockWrapper>
-        </Flex>
+        </Stack>
 
-        <Flex direction="column" gap="sm">
+        <Stack gap="sm">
           <Heading as="h3" size="md">
             {t('Option 2: Use ImageOptim (GUI)')}
           </Heading>
@@ -95,9 +95,9 @@ function getOptimizeImagesContent(platform?: Platform): ReactNode {
               'Download ImageOptim for Mac, drag and drop your images to compress them with lossy compression.'
             )}
           </Text>
-        </Flex>
+        </Stack>
 
-        <Flex direction="column" gap="sm">
+        <Stack gap="sm">
           <Heading as="h3" size="md">
             {t('Option 3: Convert to HEIC')}
           </Heading>
@@ -106,9 +106,9 @@ function getOptimizeImagesContent(platform?: Platform): ReactNode {
               'Open the image in Preview, choose File → Export, then select HEIC from the format dropdown.'
             )}
           </Text>
-        </Flex>
-      </Flex>
-    </Flex>
+        </Stack>
+      </Stack>
+    </Stack>
   );
 }
 

@@ -1,5 +1,5 @@
 import {ActorAvatar} from '@sentry/scraps/avatar';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {ShortId} from 'sentry/components/group/inboxBadges/shortId';
@@ -37,7 +37,7 @@ export function DetectorIssuePreview({
       </SimpleTable.Header>
       <SimpleTable.Row>
         <SimpleTable.RowCell>
-          <Flex direction="column" gap="xs">
+          <Stack gap="xs">
             <Text bold size="lg">
               {issueTitle}
             </Text>
@@ -48,7 +48,7 @@ export function DetectorIssuePreview({
                 <ShortId shortId={shortId} />
               </Text>
             </Flex>
-          </Flex>
+          </Stack>
         </SimpleTable.RowCell>
         <SimpleTable.RowCell justify="end">2min ago</SimpleTable.RowCell>
         <SimpleTable.RowCell justify="end">4h</SimpleTable.RowCell>

@@ -8,7 +8,7 @@ import type {
   VisualMapComponentOption,
 } from 'echarts/types/dist/shared';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Text} from '@sentry/scraps/text';
 
@@ -274,7 +274,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
             }
 
             return (
-              <Flex direction="column" gap="sm" key={param.seriesIndex}>
+              <Stack gap="sm" key={param.seriesIndex}>
                 <Flex justify="between" gap="xl">
                   <Text variant="primary" size="sm">
                     {yAxisLabel}
@@ -296,7 +296,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                 </Flex>
 
                 {tooltipActions}
-              </Flex>
+              </Stack>
             );
           })}
         </Container>
@@ -314,7 +314,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   };
 
   return (
-    <Flex direction="column" height="100%">
+    <Stack height="100%">
       <BaseChart
         autoHeightResize
         // will be grouped by date as we only support time as the x-axis right now.
@@ -357,7 +357,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
         period={period}
         utc={utc ?? undefined}
       />
-    </Flex>
+    </Stack>
   );
 }
 

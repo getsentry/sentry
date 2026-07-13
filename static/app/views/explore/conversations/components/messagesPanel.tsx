@@ -70,26 +70,14 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
 
   if (messages.length === 0) {
     return (
-      <Flex
-        direction="column"
-        padding="lg md md md"
-        background="secondary"
-        minHeight="100%"
-        width="100%"
-      >
+      <Stack padding="lg md md md" background="secondary" minHeight="100%" width="100%">
         <EmptyMessage>{t('No messages found')}</EmptyMessage>
-      </Flex>
+      </Stack>
     );
   }
 
   return (
-    <Flex
-      direction="column"
-      padding="lg md md md"
-      background="secondary"
-      minHeight="100%"
-      width="100%"
-    >
+    <Stack padding="lg md md md" background="secondary" minHeight="100%" width="100%">
       <Stack gap="md" width="100%">
         {messages.map((message, index) => {
           const isSelected = message.id === effectiveSelectedMessageId;
@@ -160,7 +148,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
           );
         })}
       </Stack>
-    </Flex>
+    </Stack>
   );
 }
 

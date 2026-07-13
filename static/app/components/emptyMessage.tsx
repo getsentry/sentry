@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 import {mergeProps} from '@react-aria/utils';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
@@ -17,7 +17,7 @@ export function EmptyMessage({title, icon, children, action, size, ...props}: Pr
   const theme = useTheme();
 
   return (
-    <Flex gap="xl" direction="column" padding="3xl">
+    <Stack gap="xl" padding="3xl">
       {stackProps => (
         <Text
           align="center"
@@ -43,6 +43,6 @@ export function EmptyMessage({title, icon, children, action, size, ...props}: Pr
           {action && <Container paddingTop="xl">{action}</Container>}
         </Text>
       )}
-    </Flex>
+    </Stack>
   );
 }

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ModalBody, ModalFooter, useModal} from '@sentry/scraps/modal';
 
 export function BasicDemo() {
@@ -95,7 +95,7 @@ export function HookDemo() {
 
 export function SubComponentsDemo() {
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <ModalBody>
         This is a standalone ModalBody — useful for previewing styles outside a modal.
       </ModalBody>
@@ -103,6 +103,6 @@ export function SubComponentsDemo() {
         <Button variant="secondary">Cancel</Button>
         <Button variant="primary">Confirm</Button>
       </ModalFooter>
-    </Flex>
+    </Stack>
   );
 }

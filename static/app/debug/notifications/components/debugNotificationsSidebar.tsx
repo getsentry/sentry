@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {useRegistry} from 'sentry/debug/notifications/hooks/useRegistry';
@@ -12,7 +12,7 @@ export function DebugNotificationsSidebar() {
   const {routeSource, baseRoute} = useRouteSource();
   const {data: registry = {}} = useRegistry();
   return (
-    <Flex direction="column" gap="xl" padding="xl 0">
+    <Stack gap="xl" padding="xl 0">
       {Object.entries(registry).map(([category, registrations], i) => (
         <Fragment key={category}>
           {i !== 0 && <CategoryDivider />}
@@ -42,7 +42,7 @@ export function DebugNotificationsSidebar() {
           </Container>
         </Fragment>
       ))}
-    </Flex>
+    </Stack>
   );
 }
 

@@ -2,7 +2,7 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t, tn} from 'sentry/locale';
@@ -143,7 +143,7 @@ export function RelatedExceptionsTree({
   }
 
   return (
-    <Flex direction="column" gap="xs" data-test-id="related-exceptions-tree">
+    <Stack gap="xs" data-test-id="related-exceptions-tree">
       <Text variant="muted" size="sm" bold>
         {t('Related Exceptions')}
       </Text>
@@ -172,7 +172,7 @@ export function RelatedExceptionsTree({
           />
         ))}
       </TreePre>
-    </Flex>
+    </Stack>
   );
 }
 

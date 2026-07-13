@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -107,11 +107,11 @@ export function NextBillCard({
             {t('Could not compute next bill. Please try again later.')}
           </Alert>
         ) : (
-          <Flex direction="column" gap="lg" width="100%">
+          <Stack gap="lg" width="100%">
             <Text size="2xl" variant="accent" bold>
               {displayPriceWithCents({cents: nextBill?.billedAmount ?? 0})}
             </Text>
-            <Flex direction="column" gap="xs">
+            <Stack gap="xs">
               {reservedTotal > 0 && (
                 <Flex justify="between" align="center">
                   <Text variant="muted" size="sm">
@@ -164,8 +164,8 @@ export function NextBillCard({
                   </Text>
                 </Flex>
               )}
-            </Flex>
-          </Flex>
+            </Stack>
+          </Stack>
         ),
       ]}
     />

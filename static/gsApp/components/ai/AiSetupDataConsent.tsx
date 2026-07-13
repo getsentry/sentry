@@ -165,7 +165,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                     {t('Try Seer for Free')}
                   </StartTrialButton>
                 ) : hasSeerButNeedsPayg ? (
-                  <Flex gap="xl" direction="column">
+                  <Stack gap="xl">
                     <ErrorText>
                       {tct(
                         "You've run out of [budgetTerm] budget. Please add more to keep using Seer.",
@@ -217,7 +217,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                         aria-label={t('Refresh')}
                       />
                     </Flex>
-                  </Flex>
+                  </Stack>
                 ) : (
                   <Button
                     variant="primary"

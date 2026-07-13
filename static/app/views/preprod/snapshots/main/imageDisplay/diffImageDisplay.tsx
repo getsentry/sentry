@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Image} from '@sentry/scraps/image';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Slider} from '@sentry/scraps/slider';
 import {Text} from '@sentry/scraps/text';
 
@@ -57,7 +57,7 @@ export function DiffImageDisplay({
   const maskSize = computeMaskSize(pair.base_image, pair.head_image);
 
   return (
-    <Flex direction="column" gap="lg" padding="0 xl xl" flex="1" minHeight="0">
+    <Stack gap="lg" padding="0 xl xl" flex="1" minHeight="0">
       <HiddenWhenInactive active={diffMode === 'split'}>
         <SplitView
           baseImageUrl={baseImageUrl}
@@ -87,7 +87,7 @@ export function DiffImageDisplay({
           headLabel={headLabel}
         />
       </HiddenWhenInactive>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -120,7 +120,7 @@ function SplitView({
   return (
     <ZoomableArea>
       <Grid columns="repeat(2, minmax(0, 1fr))" gap="0" height="100%" minHeight="0">
-        <Flex direction="column" minWidth="0" minHeight="0">
+        <Stack minWidth="0" minHeight="0">
           <Container padding="sm xl">
             <Text size="xs" variant="muted" ellipsis monospace>
               {t('Base')}
@@ -144,9 +144,9 @@ function SplitView({
               )}
             </Flex>
           </ZoomContainer>
-        </Flex>
+        </Stack>
 
-        <Flex direction="column" minWidth="0" minHeight="0" borderLeft="secondary">
+        <Stack minWidth="0" minHeight="0" borderLeft="secondary">
           <Container padding="sm xl">
             <Text size="xs" variant="muted" ellipsis monospace>
               {headLabel}
@@ -180,7 +180,7 @@ function SplitView({
               )}
             </Flex>
           </ZoomContainer>
-        </Flex>
+        </Stack>
       </Grid>
       <ZoomControls
         onZoomIn={zoom2.zoomIn}
@@ -259,14 +259,7 @@ function OnionView({
     headImageUrl,
   ]);
   return (
-    <Flex
-      direction="column"
-      gap="md"
-      flex="1"
-      minHeight="0"
-      align="center"
-      justify="center"
-    >
+    <Stack gap="md" flex="1" minHeight="0" align="center" justify="center">
       {displayBaseUrl && displayHeadUrl && (
         <Flex
           justify="center"
@@ -310,7 +303,7 @@ function OnionView({
           {t('Head')}
         </Text>
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 

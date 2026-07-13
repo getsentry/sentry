@@ -3,7 +3,7 @@ import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock, InlineCode} from '@sentry/scraps/code';
 import {Image} from '@sentry/scraps/image';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Panel} from 'sentry/components/panels/panel';
@@ -24,7 +24,7 @@ export function NodeRuntimeMetricsOnboarding() {
     <Panel>
       <Flex justify="center">
         <Flex padding="xl" align="center" wrap="wrap-reverse" gap="3xl" maxWidth="1000px">
-          <Flex direction="column" gap="xl" flex="5" align="start">
+          <Stack gap="xl" flex="5" align="start">
             <Heading as="h3" size="xl">
               {t('Monitor Node.js Runtime Metrics')}
             </Heading>
@@ -52,7 +52,7 @@ export function NodeRuntimeMetricsOnboarding() {
             <LinkButton variant="primary" external href={DOCS_URL}>
               {t('Read the Docs')}
             </LinkButton>
-          </Flex>
+          </Stack>
 
           <Flex flex="3" justify="center">
             <Image src={emptyStateImg} alt="" width="100%" />

@@ -280,7 +280,7 @@ export function ChoiceMapperTable({
           <Flex flex="0 0 200px">{labelMap[itemKey]}</Flex>
           {mappedKeys.map((fieldKey, i) => (
             <Flex align="center" flex="1 0 0" gap="md" key={fieldKey}>
-              <Flex flex="1" direction="column">
+              <Stack flex="1">
                 <Select
                   {...getSelector(itemKey, fieldKey)}
                   options={transformMappedChoices(getSelector(itemKey, fieldKey))}
@@ -290,7 +290,7 @@ export function ChoiceMapperTable({
                   }
                   value={value[itemKey]?.[fieldKey]}
                 />
-              </Flex>
+              </Stack>
               {i === mappedKeys.length - 1 && (
                 <Button
                   icon={<IconDelete />}

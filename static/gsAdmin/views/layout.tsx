@@ -5,7 +5,7 @@ import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {GlobalModal} from '@sentry/scraps/modal';
 
@@ -179,7 +179,7 @@ export function Layout() {
                 </ThemeToggle>
               </SidebarActions>
             </Sidebar>
-            <Flex direction="column" minWidth={0} inert={sidebarOpen || undefined}>
+            <Stack minWidth={0} inert={sidebarOpen || undefined}>
               {/* Mobile only: sticky top bar with hamburger and logo */}
               <MobileTopBar>
                 <Button
@@ -202,7 +202,7 @@ export function Layout() {
               >
                 <Outlet />
               </Container>
-            </Flex>
+            </Stack>
           </AppContainer>
         </GlobalAlertProvider>
       </ScrapsProviders>

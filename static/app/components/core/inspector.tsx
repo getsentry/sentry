@@ -326,7 +326,7 @@ export function SentryComponentInspector() {
             maxWidth: '460px',
           }}
         >
-          <Flex direction="column" gap="xs" padding="md">
+          <Stack gap="xs" padding="md">
             <ProfilingContextMenuHeading style={{padding: '0'}}>
               {t('Hovered Components')}
             </ProfilingContextMenuHeading>
@@ -367,7 +367,7 @@ export function SentryComponentInspector() {
                 )}
               </Stack>
             )}
-          </Flex>
+          </Stack>
         </Overlay>
       ) : state.enabled === 'context-menu' && contextMenu.open ? (
         <Fragment>
@@ -384,7 +384,7 @@ export function SentryComponentInspector() {
             }}
           >
             <ProfilingContextMenuGroup>
-              <Flex direction="column" gap="xs" padding="md xs">
+              <Stack gap="xs" padding="md xs">
                 <Flex padding="0 xs">
                   <ProfilingContextMenuHeading style={{padding: '0'}}>
                     {t('Component Trace')}
@@ -418,7 +418,7 @@ export function SentryComponentInspector() {
                         />
                       );
                     })}
-              </Flex>
+              </Stack>
             </ProfilingContextMenuGroup>
           </ProfilingContextMenu>
           <div

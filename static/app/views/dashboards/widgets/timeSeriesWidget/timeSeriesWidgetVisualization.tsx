@@ -10,7 +10,7 @@ import type {
 import sum from 'lodash/sum';
 import unescape from 'lodash/unescape';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
@@ -631,7 +631,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   return (
-    <Flex direction="column" height="100%">
+    <Stack height="100%">
       {ActionMenu}
       {showLegend && (
         <ChartLegend
@@ -696,7 +696,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           onClick={handleClick}
         />
       </Container>
-    </Flex>
+    </Stack>
   );
 }
 

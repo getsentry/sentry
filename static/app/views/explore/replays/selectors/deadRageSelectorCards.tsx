@@ -73,7 +73,7 @@ function AccordionWidget({
       {isLoading ? (
         <SelectorCardPlaceholder />
       ) : isError || (!isLoading && filteredData.length === 0) ? (
-        <Flex flex="1 1 auto" direction="column" justify="center">
+        <Stack flex="1 1 auto" justify="center">
           <StyledEmptyStateWarning withIcon={false}>
             <EmptyHeader>
               <IconSearch size="sm" />
@@ -86,9 +86,9 @@ function AccordionWidget({
               )}
             </EmptySubtitle>
           </StyledEmptyStateWarning>
-        </Flex>
+        </Stack>
       ) : (
-        <Flex flex="1 1 auto" direction="column" justify="start">
+        <Stack flex="1 1 auto" justify="start">
           <Accordion
             collapsible
             collapsedChevronDirection="right"
@@ -120,7 +120,7 @@ function AccordionWidget({
               };
             })}
           />
-        </Flex>
+        </Stack>
       )}
     </WidgetFrame>
   );
@@ -282,7 +282,7 @@ const EmptySubtitle = styled('div')`
 `;
 
 const LoadingContainer = styled((props: FlexProps) => (
-  <Flex gap="2xs" flex="1 1 auto" direction="column" justify="start" {...props} />
+  <Stack gap="2xs" flex="1 1 auto" justify="start" {...props} />
 ))`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xs} 4px ${p => p.theme.space.xs};
 `;

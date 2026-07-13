@@ -2,7 +2,7 @@ import {useEffect, useRef} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {MetricsDrawer} from 'sentry/components/events/metrics/metricsDrawer';
@@ -146,7 +146,7 @@ function MetricsSectionContent({
 
   return (
     <FoldSection sectionKey={SectionKey.METRICS} title={t('Application Metrics')}>
-      <Flex direction="column" gap="xl">
+      <Stack gap="xl">
         <MetricsSamplesTable
           source="issueDetails"
           overrideTableData={abbreviatedTableData}
@@ -164,7 +164,7 @@ function MetricsSectionContent({
             </Button>
           </div>
         ) : null}
-      </Flex>
+      </Stack>
     </FoldSection>
   );
 }

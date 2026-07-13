@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {
   getOrderedAutofixSections,
@@ -40,10 +40,10 @@ export function IssuePreviewAutofix({group, project}: IssuePreviewAutofixProps) 
 
   if (aiConfig.isAutofixSetupLoading) {
     return (
-      <Flex direction="column" gap="xl">
+      <Stack gap="xl">
         <Placeholder height="10rem" />
         <Placeholder height="15rem" />
-      </Flex>
+      </Stack>
     );
   }
 
@@ -58,7 +58,7 @@ export function IssuePreviewAutofix({group, project}: IssuePreviewAutofixProps) 
   }
 
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <Flex justify="end" gap="xs">
         <Button
           size="xs"
@@ -80,6 +80,6 @@ export function IssuePreviewAutofix({group, project}: IssuePreviewAutofixProps) 
         />
       </Flex>
       <SeerDrawerContent group={group} autofix={autofix} aiConfig={aiConfig} />
-    </Flex>
+    </Stack>
   );
 }

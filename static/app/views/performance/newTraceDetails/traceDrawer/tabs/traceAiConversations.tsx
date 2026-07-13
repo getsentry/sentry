@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -121,7 +121,7 @@ export function TraceAiConversations({
 
   return (
     <Container flex="1" minHeight="0" border="primary" radius="md" overflow="hidden">
-      <Flex direction="column" height="100%">
+      <Stack height="100%">
         {activeConversationId && (
           <TraceConversationHeader
             conversationId={activeConversationId}
@@ -178,7 +178,7 @@ export function TraceAiConversations({
             )}
           </FullHeightTabPanels>
         </StyledTabs>
-      </Flex>
+      </Stack>
     </Container>
   );
 }

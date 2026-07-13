@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Stack, Grid} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -17,7 +17,7 @@ interface InstallModalProps {
 
 function InstallModal({artifactId, closeModal, projectSlug}: InstallModalProps) {
   return (
-    <Flex direction="column">
+    <Stack>
       <Grid display="grid" columns="1fr auto 1fr" align="center">
         <Container />
         <Heading as="h2" style={{textAlign: 'center'}}>
@@ -40,7 +40,7 @@ function InstallModal({artifactId, closeModal, projectSlug}: InstallModalProps) 
           projectSlug={projectSlug}
         />
       </Container>
-    </Flex>
+    </Stack>
   );
 }
 

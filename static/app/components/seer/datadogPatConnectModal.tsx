@@ -5,7 +5,7 @@ import {useMutation} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -91,8 +91,8 @@ export function DatadogPatConnectModal({
         </h4>
       </Header>
       <Body>
-        <Flex direction="column" gap="md">
-          <Flex direction="column" gap="xs">
+        <Stack gap="md">
+          <Stack gap="xs">
             <Text as="label" htmlFor="datadog-pat-token">
               {t('Access Token')}
             </Text>
@@ -104,9 +104,9 @@ export function DatadogPatConnectModal({
               placeholder={t('Enter your Datadog personal access token')}
               aria-label={t('Access Token')}
             />
-          </Flex>
+          </Stack>
           {!isReauth && (
-            <Flex direction="column" gap="xs">
+            <Stack gap="xs">
               <Text as="label">{t('Datadog Site')}</Text>
               <StyledCompactSelect
                 value={site}
@@ -119,10 +119,10 @@ export function DatadogPatConnectModal({
                   />
                 )}
               />
-            </Flex>
+            </Stack>
           )}
           {formError ? <ErrorText role="alert">{formError}</ErrorText> : null}
-        </Flex>
+        </Stack>
       </Body>
       <Footer>
         <Flex gap="sm" align="center" justify="end">

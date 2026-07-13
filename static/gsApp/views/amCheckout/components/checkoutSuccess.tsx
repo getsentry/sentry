@@ -9,7 +9,7 @@ import Barcode from 'sentry-images/checkout/barcode.png';
 import SentryLogo from 'sentry-images/checkout/sentry-receipt-logo.png';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -115,9 +115,8 @@ function ScheduledChanges({
 }: ScheduledChangesProps) {
   const shortInterval = plan ? utils.getShortInterval(plan.billingInterval) : undefined;
   return (
-    <Flex
+    <Stack
       data-test-id="scheduled-changes"
-      direction="column"
       gap="xl"
       padding="xl 0"
       maxWidth="445px"
@@ -132,7 +131,7 @@ function ScheduledChanges({
         </Heading>
       </Container>
       {(planItem || reservedVolume.length > 0) && (
-        <Flex direction="column" gap="xs" padding="0 xl">
+        <Stack gap="xs" padding="0 xl">
           {planItem && (
             <ScheduledChangeItem
               firstItem={
@@ -189,7 +188,7 @@ function ScheduledChanges({
               />
             );
           })}
-        </Flex>
+        </Stack>
       )}
       {products.map(item => {
         const addOn = utils.reservedInvoiceItemTypeToAddOn(item.type);
@@ -260,7 +259,7 @@ function ScheduledChanges({
           </Text>
         </div>
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -328,7 +327,7 @@ function Receipt({
           }}
         >
           <ReceiptPaper background="primary" border="primary">
-            <Flex direction="column" gap="xl" padding="xl" align="center">
+            <Stack gap="xl" padding="xl" align="center">
               <img src={SentryLogo} alt={t('Sentry logo')} />
               <Grid columns="1fr 2fr 1fr" align="center" gap="sm">
                 <DateSeparator />
@@ -489,7 +488,7 @@ function Receipt({
                 </ReceiptSection>
               )}
               <img src={Barcode} alt={t('Barcode')} />
-            </Flex>
+            </Stack>
             <ZigZagEdge />
           </ReceiptPaper>
         </motion.div>
@@ -594,19 +593,11 @@ export function CheckoutSuccess({
       gap="3xl"
       direction={{'screen:sm': 'column', 'screen:md': 'row'}}
     >
-      <Flex
-        direction="column"
-        align={{'screen:sm': 'center', 'screen:md': 'start'}}
-        maxWidth="500px"
-      >
+      <Stack align={{'screen:sm': 'center', 'screen:md': 'start'}} maxWidth="500px">
         <Title size="2xl" as="h1" align="left">
           {contentTitle}
         </Title>
-        <Flex
-          gap="2xl"
-          direction="column"
-          align={{'screen:sm': 'center', 'screen:md': 'start'}}
-        >
+        <Stack gap="2xl" align={{'screen:sm': 'center', 'screen:md': 'start'}}>
           <Description variant="muted" size="lg" align="left">
             {contentDescription}
           </Description>
@@ -626,8 +617,8 @@ export function CheckoutSuccess({
             </LinkButton>
             <FeedbackButton feedbackOptions={checkoutSuccessFeedbackOptions} size="md" />
           </Flex>
-        </Flex>
-      </Flex>
+        </Stack>
+      </Stack>
       {isImmediateCharge ? (
         <Receipt
           {...commonChangesProps}

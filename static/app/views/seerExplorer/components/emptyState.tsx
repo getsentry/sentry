@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSeer} from 'sentry/icons';
@@ -58,7 +58,7 @@ export function EmptyState({
           <IconSeer size="xl" animation="waiting" />
           <Text>{t('Ask Seer anything about your application.')}</Text>
           {onSuggestionClick && (
-            <Flex direction="column" align="center" gap="md" paddingTop="2xl">
+            <Stack align="center" gap="md" paddingTop="2xl">
               {SUGGESTED_QUESTIONS.map(question => (
                 <SuggestionButton
                   key={question}
@@ -68,7 +68,7 @@ export function EmptyState({
                   {question}
                 </SuggestionButton>
               ))}
-            </Flex>
+            </Stack>
           )}
           {displaySlackAgentReminder && (
             <Text>

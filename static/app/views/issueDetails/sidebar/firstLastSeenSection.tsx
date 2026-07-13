@@ -69,7 +69,7 @@ export function FirstLastSeenSection({event, group}: {group: Group; event?: Even
         : undefined;
 
   return (
-    <Flex direction="column" gap="sm">
+    <Stack gap="sm">
       <Stack>
         <Flex gap="xs" align="baseline">
           <Text bold>{t('Last seen')}</Text>
@@ -110,7 +110,7 @@ export function FirstLastSeenSection({event, group}: {group: Group; event?: Even
           />
         )}
       </Stack>
-    </Flex>
+    </Stack>
   );
 }
 

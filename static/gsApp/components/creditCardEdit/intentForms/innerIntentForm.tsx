@@ -4,7 +4,7 @@ import type {StripePaymentElementChangeEvent} from '@stripe/stripe-js';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -55,7 +55,7 @@ export function InnerIntentForm({
   }, [stripe, elements, handleStripeLoadError]);
 
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       {stripeIsBlocked && (
         <Alert variant="warning">
           {t(
@@ -88,7 +88,7 @@ export function InnerIntentForm({
           marginLeft: 0,
         }}
       >
-        <Flex direction="column" gap="xl">
+        <Stack gap="xl">
           {stripeIsLoading && <LoadingIndicator />}
           <PaymentElement
             onReady={() => setStripeIsLoading(false)}
@@ -101,7 +101,7 @@ export function InnerIntentForm({
               wallets: {applePay: 'never', googlePay: 'never'},
             }}
           />
-          <Flex direction="column" gap="sm">
+          <Stack gap="sm">
             <small>
               {tct('Payments are processed securely through [stripe:Stripe].', {
                 stripe: <ExternalLink href="https://stripe.com/" />,
@@ -122,9 +122,9 @@ export function InnerIntentForm({
                 )}
               </Text>
             )}
-          </Flex>
-        </Flex>
+          </Stack>
+        </Stack>
       </Form>
-    </Flex>
+    </Stack>
   );
 }

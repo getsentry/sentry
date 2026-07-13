@@ -4,7 +4,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -17,7 +17,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 
 export const CONSOLE_PLATFORM_INSTRUCTIONS = {
   [ConsolePlatform.PLAYSTATION]: (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <p>
         {t(
           'You can get started using Sentry on PlayStation without any changes to your game, on DevKits as well as Retail devices.'
@@ -35,10 +35,10 @@ export const CONSOLE_PLATFORM_INSTRUCTIONS = {
         )}
       </p>
       <p>{t("We'll receive your request and get back to you with the next steps.")}</p>
-    </Flex>
+    </Stack>
   ),
   [ConsolePlatform.NINTENDO_SWITCH]: (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <p>
         {t(
           'You can get started using Sentry on Nintendo Switch without any changes to your game, on DevKits as well as Retail devices.'
@@ -64,10 +64,10 @@ export const CONSOLE_PLATFORM_INSTRUCTIONS = {
       <Alert variant="info" showIcon>
         {t('Sentry supports both the original Switch and Switch 2.')}
       </Alert>
-    </Flex>
+    </Stack>
   ),
   [ConsolePlatform.XBOX]: (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <p>
         {t(
           'Sentry supports Xbox One and Series X|S, across both DevKits and Retail devices through an SDK.'
@@ -84,7 +84,7 @@ export const CONSOLE_PLATFORM_INSTRUCTIONS = {
         )}
       </p>
       <p>{t("We'll receive your request and get back to you with the next steps.")}</p>
-    </Flex>
+    </Stack>
   ),
 };
 

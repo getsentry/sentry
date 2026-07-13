@@ -7,7 +7,7 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ProgressBar} from 'sentry/components/progressBar';
@@ -139,7 +139,7 @@ export function PaygCard({
       sections={
         isEditing
           ? [
-              <Flex key="payg-form" direction="column" gap="xl" width="100%">
+              <Stack key="payg-form" gap="xl" width="100%">
                 {error && (
                   <Alert variant="danger" key="error">
                     {error}
@@ -193,7 +193,7 @@ export function PaygCard({
                     })}
                   </Button>
                 </Flex>
-              </Flex>,
+              </Stack>,
             ]
           : [
               <Flex justify="between" align="start" key="title" width="100%" gap="sm">

@@ -74,7 +74,7 @@ export function ScmProjectDetails({
   });
 
   return (
-    <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
+    <Stack align="center" gap="2xl" flexGrow={1}>
       <ScmStepHeader
         heading={t('Project details')}
         subtitle={t(
@@ -114,6 +114,6 @@ export function ScmProjectDetails({
           </Button>
         </Flex>
       </GenericFooter>
-    </Flex>
+    </Stack>
   );
 }
