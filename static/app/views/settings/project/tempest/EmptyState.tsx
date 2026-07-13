@@ -4,7 +4,7 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
@@ -82,7 +82,7 @@ export function EmptyState({
                   'Retrieve the Back Office Server Credentials (Client ID and Secret) for the title of interest. To avoid problems with rate limiting it is preferred to have a separate set of credentials that are only used by Sentry.'
                 )}
               </DescriptionWrapper>
-              <Flex direction="column" align="end" gap="xl">
+              <Stack align="end" gap="xl">
                 <StyledPanelTable
                   headers={[
                     t('Client ID'),
@@ -106,7 +106,7 @@ export function EmptyState({
                     />
                   ))}
                 </StyledPanelTable>
-              </Flex>
+              </Stack>
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
 

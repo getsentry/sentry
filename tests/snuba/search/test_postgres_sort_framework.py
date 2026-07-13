@@ -287,7 +287,7 @@ class TestExecutePostgresSort(PostgresSortTestBase):
     def test_signal_resolver_influences_score(self):
         boosted = self.groups[0].id
         strategy = _ts_strategy(
-            signal_resolvers={"boost": lambda actor, org, gids: {boosted: 1}},
+            signal_resolvers={"boost": lambda actor, org, projects, gids: {boosted: 1}},
             score_fn=lambda data: data.get("boost", 0) * 10**15 + data["ts"].timestamp(),
         )
         with _patch_pg_strategies({"test_sort": strategy}):

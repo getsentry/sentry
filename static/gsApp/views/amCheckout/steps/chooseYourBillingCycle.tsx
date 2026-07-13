@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Stack, Grid} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 
@@ -33,7 +33,7 @@ export function ChooseYourBillingCycle({
 
   let previousPlanPrice = 0;
   return (
-    <Flex direction="column" gap="xl" id={`step${stepNumber}`}>
+    <Stack gap="xl" id={`step${stepNumber}`}>
       <StepHeader title={t('Pay monthly or yearly, your choice')} />
       <Grid
         columns={{
@@ -74,6 +74,6 @@ export function ChooseYourBillingCycle({
           );
         })}
       </Grid>
-    </Flex>
+    </Stack>
   );
 }

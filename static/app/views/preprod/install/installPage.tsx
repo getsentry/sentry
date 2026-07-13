@@ -50,7 +50,7 @@ export default function InstallPage() {
         <Layout.Body>
           <UrlParamBatchProvider>
             <Layout.Main width="full-constrained">
-              <Flex direction="column" gap="xl">
+              <Stack gap="xl">
                 <Container border="primary" radius="lg" overflow="hidden">
                   <Container background="secondary" borderBottom="primary" padding="xl">
                     <Flex justify="center" align="center" width="100%">
@@ -59,12 +59,12 @@ export default function InstallPage() {
                   </Container>
                   <Container padding="2xl">
                     {buildDetailsQuery.isPending ? (
-                      <Flex direction="column" align="center" gap="lg">
+                      <Stack align="center" gap="lg">
                         <LoadingIndicator />
                         <Text>{t('Loading build details...')}</Text>
-                      </Flex>
+                      </Stack>
                     ) : buildDetailsQuery.isError || !buildDetailsQuery.data ? (
-                      <Flex direction="column" align="center" gap="lg">
+                      <Stack align="center" gap="lg">
                         <Text>
                           {t(
                             'Error: %s',
@@ -75,7 +75,7 @@ export default function InstallPage() {
                         <Button onClick={() => buildDetailsQuery.refetch()}>
                           {t('Retry')}
                         </Button>
-                      </Flex>
+                      </Stack>
                     ) : (
                       <InstallDetailsContent
                         artifactId={artifactId}
@@ -97,7 +97,7 @@ export default function InstallPage() {
                 {buildDetailsQuery.data && (
                   <BuildVcsInfo buildDetailsData={buildDetailsQuery.data} />
                 )}
-              </Flex>
+              </Stack>
             </Layout.Main>
           </UrlParamBatchProvider>
         </Layout.Body>
