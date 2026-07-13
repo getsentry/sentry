@@ -17,9 +17,12 @@ import {
   DataConditionGroupLogicType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {ActionNodeList} from 'sentry/views/automations/components/actionNodeList';
 import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
 import {AutomationBuilderTestProvider} from 'sentry/views/automations/components/testUtils';
+
+jest.mock('sentry/utils/analytics');
 
 const slackActionHandler = ActionHandlerFixture();
 const actionHandlers: ActionHandler[] = [
@@ -123,6 +126,34 @@ describe('ActionNodeList', () => {
     expect(
       screen.queryByRole('menuitemradio', {name: 'Legacy integrations'})
     ).not.toBeInTheDocument();
+  });
+
+  it('links to creating a custom integration', async () => {
+    render(
+      <AutomationBuilderTestProvider>
+        <ActionNodeList {...defaultProps} />
+      </AutomationBuilderTestProvider>,
+      {organization}
+    );
+    await userEvent.click(screen.getByRole('textbox', {name: 'Add action'}));
+
+    expect(
+      screen.getByRole('button', {name: 'Add another integration'})
+    ).toBeInTheDocument();
+
+    const createLink = screen.getByRole('button', {
+      name: 'Create a custom integration',
+    });
+    expect(createLink).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/developer-settings/new-internal/?referrer=automation_action_picker`
+    );
+
+    await userEvent.click(createLink);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'integrations.alert_rule_action_picker_custom_integration_clicked',
+      expect.objectContaining({view: 'automation_builder'})
+    );
   });
 
   it('adds actions', async () => {

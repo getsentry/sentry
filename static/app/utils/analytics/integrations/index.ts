@@ -18,6 +18,7 @@ export type IntegrationView = {
     | 'issue_details'
     | 'feedback_details'
     | 'issue_alert_rule'
+    | 'automation_builder'
     | 'onboarding'
     | 'onboarding_scm'
     | 'project_creation'

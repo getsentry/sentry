@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
@@ -15,6 +15,7 @@ import {
   type Action,
   type ActionHandler,
 } from 'sentry/types/workflowEngine/actions';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ActionNodeContext,
@@ -193,7 +194,7 @@ export function ActionNodeList({
             <selectComponents.Menu {...props}>
               <Fragment>
                 {children}
-                <Container padding="md" borderTop="muted">
+                <Flex padding="md" borderTop="muted" gap="md">
                   <LinkButton
                     size="xs"
                     variant="secondary"
@@ -203,7 +204,22 @@ export function ActionNodeList({
                   >
                     {t('Add another integration')}
                   </LinkButton>
-                </Container>
+                  <LinkButton
+                    size="xs"
+                    variant="secondary"
+                    icon={<IconAdd />}
+                    href={`/settings/${organization.slug}/developer-settings/new-internal/?referrer=automation_action_picker`}
+                    external
+                    onClick={() =>
+                      trackAnalytics(
+                        'integrations.alert_rule_action_picker_custom_integration_clicked',
+                        {organization, view: 'automation_builder'}
+                      )
+                    }
+                  >
+                    {t('Create a custom integration')}
+                  </LinkButton>
+                </Flex>
               </Fragment>
             </selectComponents.Menu>
           ),
