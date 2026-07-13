@@ -982,7 +982,7 @@ describe('ActivitySection', () => {
         data: {current_release_version: 'frontend@1.0.0'},
         user,
       } satisfies GroupActivity,
-      expectedCopy: ['Resolved', /in the next release after/, '1.0.0'],
+      expectedCopy: ['Resolved', /starting with a release after/, '1.0.0'],
     },
     {
       name: 'SemVer regression',

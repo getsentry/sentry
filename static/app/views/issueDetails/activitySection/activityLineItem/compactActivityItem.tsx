@@ -263,7 +263,7 @@ export function getCompactGroupActivityItem({
           title: t('Resolved'),
           details: (
             <Fragment>
-              {tct('in the next release after [version]', {
+              {tct('starting with a release after [version]', {
                 version: (
                   <ActivityRelease
                     organization={organization}
