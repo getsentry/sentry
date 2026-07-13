@@ -6,13 +6,15 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
 import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useSentryAppComponentsStore} from 'sentry/utils/useSentryAppComponentsStore';
 
 import {ExternalIssueList} from '.';
 
+jest.mock('sentry/utils/analytics');
 jest.mock('sentry/utils/useSentryAppComponentsStore');
 const mockUseSentryAppComponentsStore = jest.mocked(useSentryAppComponentsStore);
 
@@ -31,8 +33,6 @@ describe('ExternalIssueList', () => {
     MockApiClient.clearMockResponses();
   });
 
-  const setupCTA = 'Track this issue in Jira, GitHub, etc.';
-
   it('renders setup CTA', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
@@ -42,10 +42,28 @@ describe('ExternalIssueList', () => {
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
     });
-    render(<ExternalIssueList group={group} event={event} />, {
-      organization,
+    render(
+      <ExternalIssueList analyticsView="issue_details" group={group} event={event} />,
+      {organization}
+    );
+    expect(await screen.findByRole('link', {name: 'Jira, GitHub, etc.'})).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/integrations/?category=issue%20tracking`
+    );
+
+    const customIntegrationLink = screen.getByRole('link', {
+      name: 'custom integration',
     });
-    expect(await screen.findByText(setupCTA)).toBeInTheDocument();
+    expect(customIntegrationLink).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/developer-settings/new-internal/?referrer=external_issue_empty_state`
+    );
+
+    await userEvent.click(customIntegrationLink);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'integrations.external_issue_custom_integration_cta_clicked',
+      expect.objectContaining({view: 'issue_details'})
+    );
   });
 
   it('renders sentry app issues', async () => {
@@ -64,11 +82,14 @@ describe('ExternalIssueList', () => {
       }),
     ]);
     mockUseSentryAppComponentsStore.mockReturnValue([component]);
-    render(<ExternalIssueList group={group} event={event} />, {
-      organization,
-    });
+    render(
+      <ExternalIssueList analyticsView="issue_details" group={group} event={event} />,
+      {organization}
+    );
     expect(await screen.findByRole('button', {name: 'Foo'})).toBeInTheDocument();
-    expect(screen.queryByText(setupCTA)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Jira, GitHub, etc.'})
+    ).not.toBeInTheDocument();
   });
 
   it('renders integrations with issues first', async () => {
@@ -97,9 +118,10 @@ describe('ExternalIssueList', () => {
     });
     const component = SentryAppComponentFixture();
     mockUseSentryAppComponentsStore.mockReturnValue([component]);
-    render(<ExternalIssueList group={group} event={event} />, {
-      organization,
-    });
+    render(
+      <ExternalIssueList analyticsView="issue_details" group={group} event={event} />,
+      {organization}
+    );
     expect(
       await screen.findByRole('link', {name: 'Test-Sentry/github-test#13'})
     ).toBeInTheDocument();

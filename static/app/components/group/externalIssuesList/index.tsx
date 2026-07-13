@@ -1,27 +1,33 @@
 import {Fragment} from 'react';
 
-import {AlertLink} from '@sentry/scraps/alert';
+import {Alert} from '@sentry/scraps/alert';
+import {Link} from '@sentry/scraps/link';
 
 import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
 import {useGroupExternalIssues} from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
 import {InlineIssueTrackerActions} from 'sentry/components/group/externalIssuesList/issueTrackerActions';
 import {LinkedIssueRows} from 'sentry/components/group/externalIssuesList/linkedIssueRows';
 import {Placeholder} from 'sentry/components/placeholder';
-import {t} from 'sentry/locale';
+import {tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+type ExternalIssueAnalyticsView = 'issue_details' | 'feedback_details';
+
 interface ExternalIssueListProps {
+  analyticsView: ExternalIssueAnalyticsView;
   event: Event;
   group: Group;
 }
 
 interface ExternalIssueListContentProps extends GroupIntegrationIssueResult {
+  analyticsView: ExternalIssueAnalyticsView;
   showInlineIssueTrackerActions?: boolean;
 }
 
-export function ExternalIssueList({group, event}: ExternalIssueListProps) {
+export function ExternalIssueList({group, event, analyticsView}: ExternalIssueListProps) {
   const externalIssueData = useGroupExternalIssues({
     group,
     event,
@@ -29,6 +35,7 @@ export function ExternalIssueList({group, event}: ExternalIssueListProps) {
 
   return (
     <ExternalIssueListContent
+      analyticsView={analyticsView}
       integrations={externalIssueData.integrations}
       isLoading={externalIssueData.isLoading}
       linkedIssues={externalIssueData.linkedIssues}
@@ -38,6 +45,7 @@ export function ExternalIssueList({group, event}: ExternalIssueListProps) {
 }
 
 export function ExternalIssueListContent({
+  analyticsView,
   integrations,
   isLoading,
   linkedIssues,
@@ -52,12 +60,29 @@ export function ExternalIssueListContent({
   const hasLinkedIssuesOrIntegrations = integrations.length || linkedIssues.length;
   if (!hasLinkedIssuesOrIntegrations) {
     return (
-      <AlertLink
-        variant="muted"
-        to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
-      >
-        {t('Track this issue in Jira, GitHub, etc.')}
-      </AlertLink>
+      <Alert variant="muted">
+        {tct(
+          'Track this issue in [integrationsLink:Jira, GitHub, etc.], or in your own tracker with a [customIntegrationLink:custom integration].',
+          {
+            integrationsLink: (
+              <Link
+                to={`/settings/${organization.slug}/integrations/?category=issue%20tracking`}
+              />
+            ),
+            customIntegrationLink: (
+              <Link
+                to={`/settings/${organization.slug}/developer-settings/new-internal/?referrer=external_issue_empty_state`}
+                onClick={() =>
+                  trackIntegrationAnalytics(
+                    'integrations.external_issue_custom_integration_cta_clicked',
+                    {view: analyticsView, organization}
+                  )
+                }
+              />
+            ),
+          }
+        )}
+      </Alert>
     );
   }
 

@@ -15,6 +15,8 @@ export type IntegrationView = {
     | 'stacktrace_link'
     | 'stacktrace_issue_details'
     | 'integration_configuration_detail'
+    | 'issue_details'
+    | 'feedback_details'
     | 'onboarding'
     | 'onboarding_scm'
     | 'project_creation'
@@ -91,6 +93,7 @@ export type IntegrationEventParameters = {
   'integrations.directory_item_searched': IntegrationSearchEventParams;
   'integrations.disabled': SingleIntegrationEventParams;
   'integrations.enabled': SingleIntegrationEventParams;
+  'integrations.external_issue_custom_integration_cta_clicked': IntegrationView;
   'integrations.index_viewed': MultipleIntegrationsEventParams;
   'integrations.install_modal_auto_opened': SingleIntegrationEventParams;
   'integrations.install_modal_opened': SingleIntegrationEventParams;
@@ -138,6 +141,8 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.directory_category_selected': 'Integrations: Directory Category Selected',
   'integrations.directory_internal_integration_banner_clicked':
     'Integrations: Directory Internal Integration Banner Clicked',
+  'integrations.external_issue_custom_integration_cta_clicked':
+    'Integrations: External Issue Custom Integration CTA Clicked',
   'integrations.serverless_functions_viewed': 'Integrations: Serverless Functions Viewed',
   'integrations.installation_input_value_changed':
     'Integrations: Installation Input Value Changed',

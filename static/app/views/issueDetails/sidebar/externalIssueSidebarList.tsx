@@ -53,6 +53,7 @@ export function ExternalIssueSidebarList({event, group}: Props) {
     >
       <Stack gap="md">
         <ExternalIssueListContent
+          analyticsView="issue_details"
           integrations={externalIssueData.integrations}
           isLoading={externalIssueData.isLoading}
           linkedIssues={externalIssueData.linkedIssues}

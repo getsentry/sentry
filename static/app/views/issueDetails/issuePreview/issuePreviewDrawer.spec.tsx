@@ -285,7 +285,7 @@ describe('IssuePreviewDrawer', () => {
 
     expect(await screen.findByText('External Links')).toBeInTheDocument();
     expect(
-      await screen.findByText('Track this issue in Jira, GitHub, etc.')
+      await screen.findByRole('link', {name: 'Jira, GitHub, etc.'})
     ).toBeInTheDocument();
   });
 

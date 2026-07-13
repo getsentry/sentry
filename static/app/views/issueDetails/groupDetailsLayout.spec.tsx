@@ -119,13 +119,13 @@ describe('GroupDetailsLayout', () => {
 
     expect(await screen.findByTestId('children')).toBeInTheDocument();
     expect(
-      await screen.findByText('Track this issue in Jira, GitHub, etc.')
+      await screen.findByRole('link', {name: 'Jira, GitHub, etc.'})
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close sidebar'}));
     expect(await screen.findByTestId('children')).toBeInTheDocument();
     expect(
-      screen.queryByText('Track this issue in Jira, GitHub, etc.')
+      screen.queryByRole('link', {name: 'Jira, GitHub, etc.'})
     ).not.toBeInTheDocument();
   });
 });

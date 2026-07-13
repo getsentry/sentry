@@ -65,6 +65,7 @@ export function FeedbackItemHeader({eventData, feedbackItem, onBackToList}: Prop
           <Flex wrap="wrap" justify="between" align="center" gap="md">
             <Flex direction="row" gap="md">
               <ExternalIssueList
+                analyticsView="feedback_details"
                 group={feedbackItem as unknown as Group}
                 event={eventData}
               />
