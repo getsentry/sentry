@@ -9,6 +9,10 @@ import {createImportTracker} from '../ast/tracker/imports';
 
 const LAYOUT_SOURCE = '@sentry/scraps/layout';
 
+type MessageIds = 'preferStack';
+type Context = TSESLint.RuleContext<MessageIds, readonly unknown[]>;
+type ImportTracker = ReturnType<typeof createImportTracker>;
+
 function getElementName(nameNode: TSESTree.JSXTagNameExpression): string {
   switch (nameNode.type) {
     case AST_NODE_TYPES.JSXIdentifier:
@@ -53,6 +57,94 @@ function getColumnDirectionAttribute(
   return null;
 }
 
+function getStackLocalName(importTracker: ImportTracker): string {
+  return importTracker.findLocalNames(LAYOUT_SOURCE, 'Stack')[0] ?? 'Stack';
+}
+
+/** Adds `Stack` to the existing layout import, or a fresh import if none exists. */
+function getStackImportFix(
+  fixer: TSESLint.RuleFixer,
+  context: Context,
+  importTracker: ImportTracker
+): TSESLint.RuleFix | null {
+  if (importTracker.findLocalNames(LAYOUT_SOURCE, 'Stack').length > 0) {
+    return null;
+  }
+
+  const layoutImport = context.sourceCode.ast.body.find(
+    (node): node is TSESTree.ImportDeclaration =>
+      node.type === AST_NODE_TYPES.ImportDeclaration &&
+      node.source.value === LAYOUT_SOURCE
+  );
+
+  // The element resolves to Flex from the layout module, so an import from
+  // that source always exists; fall back to a fresh import defensively.
+  if (!layoutImport) {
+    return fixer.insertTextBeforeRange(
+      [0, 0],
+      `import {Stack} from '${LAYOUT_SOURCE}';\n`
+    );
+  }
+
+  const specifiers = layoutImport.specifiers.filter(
+    (spec): spec is TSESTree.ImportSpecifier =>
+      spec.type === AST_NODE_TYPES.ImportSpecifier
+  );
+  const lastSpecifier = specifiers.at(-1);
+  if (!lastSpecifier) {
+    return null;
+  }
+
+  // Insert Stack in alphabetical position among the named imports.
+  const after = specifiers.find(
+    spec =>
+      (spec.imported.type === AST_NODE_TYPES.Identifier
+        ? spec.imported.name
+        : spec.imported.value
+      ).localeCompare('Stack') > 0
+  );
+  if (after) {
+    return fixer.insertTextBefore(after, 'Stack, ');
+  }
+  return fixer.insertTextAfter(lastSpecifier, ', Stack');
+}
+
+/** Renames Flex -> Stack, drops the redundant `direction` prop, and ensures the import. */
+function buildStackFix(
+  fixer: TSESLint.RuleFixer,
+  node: TSESTree.JSXElement,
+  directionAttr: TSESTree.JSXAttribute,
+  context: Context,
+  importTracker: ImportTracker
+): TSESLint.RuleFix[] {
+  const stackName = getStackLocalName(importTracker);
+  const fixes: TSESLint.RuleFix[] = [
+    fixer.replaceText(node.openingElement.name, stackName),
+  ];
+  if (node.closingElement) {
+    fixes.push(fixer.replaceText(node.closingElement.name, stackName));
+  }
+
+  // Remove the now-redundant direction attribute along with its leading
+  // whitespace. If it sits alone on its own line, drop the whole line
+  // (including the preceding newline).
+  const src = context.sourceCode.getText();
+  let start = directionAttr.range[0];
+  while (start > 0 && (src[start - 1] === ' ' || src[start - 1] === '\t')) {
+    start--;
+  }
+  if (src[start - 1] === '\n') {
+    start--;
+  }
+  fixes.push(fixer.removeRange([start, directionAttr.range[1]]));
+
+  const importFix = getStackImportFix(fixer, context, importTracker);
+  if (importFix !== null) {
+    fixes.push(importFix);
+  }
+  return fixes;
+}
+
 export const preferStackForColumnFlex = ESLintUtils.RuleCreator.withoutDocs({
   meta: {
     type: 'suggestion',
@@ -70,69 +162,12 @@ export const preferStackForColumnFlex = ESLintUtils.RuleCreator.withoutDocs({
 
   create(context) {
     const importTracker = createImportTracker();
-    let resolved = false;
-    let flexNames: string[] = [];
-
-    function resolveNames() {
-      if (resolved) {
-        return;
-      }
-      resolved = true;
-      flexNames = importTracker.findLocalNames(LAYOUT_SOURCE, 'Flex');
-    }
-
-    function getStackLocalName() {
-      return importTracker.findLocalNames(LAYOUT_SOURCE, 'Stack')[0] ?? 'Stack';
-    }
-
-    function getStackImportFix(fixer: TSESLint.RuleFixer): TSESLint.RuleFix | null {
-      if (importTracker.findLocalNames(LAYOUT_SOURCE, 'Stack').length > 0) {
-        return null;
-      }
-
-      const layoutImport = context.sourceCode.ast.body.find(
-        (node): node is TSESTree.ImportDeclaration =>
-          node.type === AST_NODE_TYPES.ImportDeclaration &&
-          node.source.value === LAYOUT_SOURCE
-      );
-
-      // The element resolves to Flex from the layout module, so an import from
-      // that source always exists; fall back to a fresh import defensively.
-      if (!layoutImport) {
-        return fixer.insertTextBeforeRange(
-          [0, 0],
-          `import {Stack} from '${LAYOUT_SOURCE}';\n`
-        );
-      }
-
-      const specifiers = layoutImport.specifiers.filter(
-        (spec): spec is TSESTree.ImportSpecifier =>
-          spec.type === AST_NODE_TYPES.ImportSpecifier
-      );
-      const lastSpecifier = specifiers.at(-1);
-      if (!lastSpecifier) {
-        return null;
-      }
-
-      // Insert Stack in alphabetical position among the named imports.
-      const after = specifiers.find(
-        spec =>
-          (spec.imported.type === AST_NODE_TYPES.Identifier
-            ? spec.imported.name
-            : spec.imported.value
-          ).localeCompare('Stack') > 0
-      );
-      if (after) {
-        return fixer.insertTextBefore(after, 'Stack, ');
-      }
-      return fixer.insertTextAfter(lastSpecifier, ', Stack');
-    }
 
     return {
       ...importTracker.visitors,
 
       JSXElement(node) {
-        resolveNames();
+        const flexNames = importTracker.findLocalNames(LAYOUT_SOURCE, 'Flex');
         const name = getElementName(node.openingElement.name);
         if (!flexNames.includes(name)) {
           return;
@@ -145,34 +180,7 @@ export const preferStackForColumnFlex = ESLintUtils.RuleCreator.withoutDocs({
         context.report({
           node: directionAttr,
           messageId: 'preferStack',
-          fix(fixer) {
-            const stackName = getStackLocalName();
-            const fixes: TSESLint.RuleFix[] = [
-              fixer.replaceText(node.openingElement.name, stackName),
-            ];
-            if (node.closingElement) {
-              fixes.push(fixer.replaceText(node.closingElement.name, stackName));
-            }
-
-            // Remove the now-redundant direction attribute along with its
-            // leading whitespace. If it sits alone on its own line, drop
-            // the whole line (including the preceding newline).
-            const src = context.sourceCode.getText();
-            let start = directionAttr.range[0];
-            while (start > 0 && (src[start - 1] === ' ' || src[start - 1] === '\t')) {
-              start--;
-            }
-            if (src[start - 1] === '\n') {
-              start--;
-            }
-            fixes.push(fixer.removeRange([start, directionAttr.range[1]]));
-
-            const importFix = getStackImportFix(fixer);
-            if (importFix !== null) {
-              fixes.push(importFix);
-            }
-            return fixes;
-          },
+          fix: fixer => buildStackFix(fixer, node, directionAttr, context, importTracker),
         });
       },
     };
