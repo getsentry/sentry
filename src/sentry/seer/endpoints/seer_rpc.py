@@ -1078,13 +1078,18 @@ def refresh_monitoring_provider_token(
 
     try:
         provider.refresh_identity(identity)
-    except IdentityNotValid:
+    except IdentityNotValid as exc:
+        upstream_error = ""
+        cause = exc.__cause__
+        if cause is not None and hasattr(cause, "response") and cause.response is not None:
+            upstream_error = cause.response.text[:512]
         logger.exception(
             "monitoring_provider.refresh.identity_not_valid",
             extra={
                 "identity_id": identity_id,
                 "provider": idp.type,
                 "has_refresh_token": "refresh_token" in identity.data,
+                "upstream_error": upstream_error,
             },
         )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
