@@ -1,7 +1,11 @@
 import type {UseQueryResult} from '@tanstack/react-query';
 
 import {defined} from 'sentry/utils/defined';
-import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {
+  HeatMapItem,
+  HeatMapSeries,
+} from 'sentry/views/dashboards/widgets/common/types';
+import type {TimeDomain} from 'sentry/views/explore/metrics/hooks/partitionHeatmapWindows';
 
 export interface ChunkedHeatmapResult {
   /**
@@ -25,70 +29,56 @@ export interface ChunkedHeatmapResult {
 
 /**
  * Builds the `combine` function for `useQueries` that stitches the chunk
- * responses into one dense grid and derives the streaming/partial state.
+ * responses into one dense grid and derives the streaming/partial state. Named to
+ * mirror `partitionHeatmapWindows` — it's the other half.
  *
  * Wrap this in `useMemo` (keyed on the plan) so the returned function stays
  * referentially stable: query-core re-runs `combine` only when the results change
  * or the `combine` reference changes (and `replaceEqualDeep`s the output), so an
  * unstable combine would rebuild the (expensive) merge every render.
  */
-export function metricHeatmapCombine({
-  fullRange,
+export function combinePartitionedHeatmapWindows({
+  timeDomain,
   intervalMs,
 }: {
-  fullRange: {end: number; start: number};
   intervalMs: number;
+  timeDomain: TimeDomain;
 }) {
   return (results: Array<UseQueryResult<HeatMapSeries>>): ChunkedHeatmapResult => {
-    // One query per window, so >1 result means we chunked.
-    const isChunked = results.length > 1;
     const succeeded = results
       .filter(q => q.isSuccess && defined(q.data))
       .map(q => q.data!);
-    const succeededCount = results.filter(q => q.isSuccess).length;
-    const erroredCount = results.filter(q => q.isError).length;
-    const loadingCount = results.filter(
-      q => q.isPending && q.fetchStatus === 'fetching'
-    ).length;
-
-    const allErrored = results.length > 0 && erroredCount === results.length;
-    const error = allErrored ? (results.find(q => q.error)?.error ?? null) : null;
+    const anySuccess = succeeded.length > 0;
+    const anyError = results.some(q => q.isError);
+    const anyLoading = results.some(q => q.isPending && q.fetchStatus === 'fetching');
+    const allErrored = results.length > 0 && results.every(q => q.isError);
 
     let series: HeatMapSeries | undefined;
-    if (succeeded.length > 0) {
-      // Fast path: the single unpinned response is already a dense, ordered grid.
-      // Chunked: stitch the chunks into one dense, full-range grid.
-      series = isChunked
-        ? mergeHeatMapChunks(succeeded, {range: fullRange, intervalMs})
-        : succeeded[0]!;
+    if (anySuccess) {
+      // A single window is the fast path — its response is already a dense grid
+      // over the whole selection, so use it as-is. Only combine knows this is the
+      // fast path (one window total) vs. one chunk of many still streaming, which
+      // must be placed in its slice — so the decision lives here, not in the merge.
+      series =
+        results.length === 1
+          ? succeeded[0]
+          : mergeHeatMapChunks(succeeded, timeDomain, intervalMs);
     }
 
     return {
       series,
-      error,
-      isPartial: isChunked && erroredCount > 0 && succeededCount > 0,
-      isFetchingMore: isChunked && succeededCount > 0 && loadingCount > 0,
+      error: allErrored ? (results.find(q => q.error)?.error ?? null) : null,
+      // Some chunks failed but others rendered — a settled grid with a gap.
+      isPartial: anySuccess && anyError && !anyLoading,
+      // The grid is painting progressively — some rendered, more still loading.
+      isFetchingMore: anySuccess && anyLoading,
     };
   };
 }
 
-type HeatMapValue = HeatMapSeries['values'][number];
-
-interface HeatMapGrid {
-  /**
-   * X bucket width in ms (the shared interval).
-   */
-  intervalMs: number;
-  /**
-   * The planned x range in ms, interval-aligned (bounds are epoch multiples of
-   * `intervalMs`). It sets the grid WIDTH; the grid slides to end at the newest
-   * loaded bucket so a relative range's live edge shows past this (frozen) end.
-   */
-  range: {end: number; start: number};
-}
-
 /**
- * Merges several pinned heat map chunk responses into one dense `HeatMapSeries`.
+ * Merges several pinned heat map chunk responses into one dense `HeatMapSeries`
+ * spanning `timeDomain`.
  *
  * Every cell is indexed by `[x, y]`, taking the MAX `z` where chunks overlap.
  * Absolute chunks don't overlap (aligned seams split cleanly between buckets), so
@@ -108,27 +98,24 @@ interface HeatMapGrid {
  *   [B-4h, B-3h)    complete           partial (ends)
  *
  * "Take older" undercounts `[B-4h, B-3h)`; "take newer" undercounts `[B-6h, B-5h)`.
- * Max grabs the complete (larger) copy at both ends without tracking which is
- * which. (The exact aggregate-agnostic alternative is picking the chunk whose
- * window fully contains each bucket — more bookkeeping for the same result.)
- *
- * The grid is dense over its full width, with empty (`zAxis: null`) cells for
- * columns no chunk has loaded yet, so a partial load occupies its true slice
- * instead of stretching to fill the chart.
+ * Max grabs the complete (larger) copy at both ends without tracking which is which.
  *
  * Callers must pass only *succeeded* chunks (at least one).
  */
 export function mergeHeatMapChunks(
   chunks: HeatMapSeries[],
-  grid: HeatMapGrid
+  timeDomain: TimeDomain,
+  intervalMs: number
 ): HeatMapSeries {
   if (chunks.length === 0) {
+    // Unreachable: the combiner only merges when ≥1 chunk succeeded. A clear
+    // throw beats the obscure crash the meta reads below would otherwise cause.
     throw new Error('mergeHeatMapChunks requires at least one chunk');
   }
 
-  const {range, intervalMs} = grid;
-
-  // Index loaded cells by [x,y], keeping the max z across overlapping chunks.
+  // Index loaded cells by "x|y", keeping the max z across overlapping chunks. The
+  // coords are numbers and `|` never appears in one, so distinct cells never
+  // collide (no risk from the number→string coercion).
   const loaded = new Map<string, number>();
   const yValueSet = new Set<number>();
   let maxLoadedX = -Infinity;
@@ -139,6 +126,8 @@ export function mergeHeatMapChunks(
       if (zAxis === null) {
         continue;
       }
+      // First copy of this cell wins outright; a second (overlap) copy keeps the
+      // larger count — the complete bucket over its partial twin.
       const key = `${xAxis}|${yAxis}`;
       const prev = loaded.get(key);
       loaded.set(key, prev === undefined ? zAxis : Math.max(prev, zAxis));
@@ -146,14 +135,22 @@ export function mergeHeatMapChunks(
   }
   const yValues = Array.from(yValueSet).sort((a, b) => a - b);
 
-  // Fixed-width window ending at the newest loaded bucket: a relative range's live
-  // edge advances past the frozen planned end, while an absolute range's planned
-  // end always wins (its data never exceeds it). Start slides to keep the width.
-  const width = range.end - range.start;
-  const gridEnd = Math.max(range.end, maxLoadedX + intervalMs);
+  // The grid is a fixed-width window (the domain's width) that ends at the newest
+  // loaded bucket. For an absolute range the planned end always wins (its data
+  // never exceeds it), so the grid == the domain. For a relative range the newest
+  // loaded bucket advances past the (frozen) planned end as time passes, so the
+  // window slides forward — the live edge shows — and the start slides with it to
+  // keep the width.
+  const width = timeDomain.end - timeDomain.start;
+  const gridEnd = Math.max(timeDomain.end, maxLoadedX + intervalMs);
   const gridStart = gridEnd - width;
 
-  const values: HeatMapValue[] = [];
+  // Emit a dense grid, column-major (x outer, y inner) ascending — the shape the
+  // heat map renders. Each cell is the loaded z or a `null` placeholder for a
+  // bucket no chunk has covered yet (so a partial load occupies its true slice
+  // instead of stretching to fill). Track the z-range over the populated cells so
+  // the color scale reflects everything rendered so far.
+  const values: HeatMapItem[] = [];
   let zStart: number | null = null;
   let zEnd: number | null = null;
   for (let x = gridStart; x < gridEnd; x += intervalMs) {
@@ -185,41 +182,6 @@ export function mergeHeatMapChunks(
         start: zStart ?? 0,
         end: zEnd ?? 0,
       },
-    },
-  };
-}
-
-/**
- * An empty grid for when Phase A resolves but the range has no data, so the "No
- * data" state renders instead of a perpetual spinner. The metric unit is patched
- * on by the caller.
- */
-export function emptyHeatMapSeries(
-  startMs: number,
-  endMs: number,
-  intervalMs: number,
-  yBuckets: number
-): HeatMapSeries {
-  return {
-    values: [],
-    meta: {
-      xAxis: {
-        name: 'time',
-        start: startMs,
-        end: endMs,
-        bucketCount: 0,
-        bucketSize: intervalMs / 1000,
-      },
-      yAxis: {
-        name: 'value',
-        start: 0,
-        end: 0,
-        bucketCount: yBuckets,
-        bucketSize: 0,
-        valueType: 'number',
-        valueUnit: null,
-      },
-      zAxis: {name: 'count()', start: 0, end: 0},
     },
   };
 }

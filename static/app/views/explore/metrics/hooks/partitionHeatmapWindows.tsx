@@ -19,15 +19,21 @@ export type HeatmapWindow =
   | {statsPeriodEnd: string; statsPeriodStart: string}
   | {statsPeriod: string};
 
+/** An epoch-ms time span (the heat map's x-axis extent). */
+export interface TimeDomain {
+  end: number;
+  start: number;
+}
+
 export interface MetricHeatmapPlan {
   /**
-   * Full epoch-aligned time range in ms, used to size the merged grid. Returned
+   * Full epoch-aligned time domain in ms, used to size the merged grid. Returned
    * (rather than re-derived by the caller) because a relative range's windows are
    * `statsPeriod` offsets with no absolute anchor — only the partitioner, which
    * resolved `now`, knows the concrete ms extent. `{0, 0}` when there's nothing to
    * partition (fast path / empty), which merges nothing.
    */
-  fullRange: {end: number; start: number};
+  timeDomain: TimeDomain;
   windows: HeatmapWindow[];
 }
 
@@ -71,7 +77,7 @@ export function partitionHeatmapWindows(
     return EMPTY_PLAN;
   }
   if (!domain || domain.end - domain.start < MINIMUM_PARTITION_RANGE) {
-    return {windows: [selectionWindow(normalized)], fullRange: {start: 0, end: 0}};
+    return {windows: [selectionWindow(normalized)], timeDomain: {start: 0, end: 0}};
   }
 
   const alignedStart = Math.floor(domain.start / intervalMs) * intervalMs;
@@ -84,7 +90,7 @@ export function partitionHeatmapWindows(
     ? absoluteWindows(alignedStart, bucketWidths, intervalMs)
     : relativeWindows(bucketWidths, intervalMs);
 
-  return {windows, fullRange: {start: alignedStart, end: alignedEnd}};
+  return {windows, timeDomain: {start: alignedStart, end: alignedEnd}};
 }
 
 /** The whole selection as a single window — the un-chunked fast path. */
@@ -211,4 +217,4 @@ const MINIMUM_PARTITION_RANGE = 1000 * 60 * 60 * 24; // 1 day
 const RELATIVE_OVERLAP_BUCKETS = 2;
 
 // Nothing to fetch — no usable interval.
-const EMPTY_PLAN: MetricHeatmapPlan = {windows: [], fullRange: {start: 0, end: 0}};
+const EMPTY_PLAN: MetricHeatmapPlan = {windows: [], timeDomain: {start: 0, end: 0}};

@@ -29,14 +29,14 @@ describe('partitionHeatmapWindows', () => {
   it('returns an empty plan (nothing to fetch) for an unparseable interval', () => {
     expect(
       partitionHeatmapWindows(absolute(0, 100 * HOUR), 'garbage', 'progressive')
-    ).toEqual({windows: [], fullRange: {start: 0, end: 0}});
+    ).toEqual({windows: [], timeDomain: {start: 0, end: 0}});
   });
 
   it('returns an empty plan when there is no interval', () => {
     expect(partitionHeatmapWindows(absolute(0, 100 * HOUR), null, 'progressive')).toEqual(
       {
         windows: [],
-        fullRange: {start: 0, end: 0},
+        timeDomain: {start: 0, end: 0},
       }
     );
   });
@@ -61,13 +61,13 @@ describe('partitionHeatmapWindows', () => {
   describe('absolute ranges', () => {
     it('partitions into aligned, non-overlapping, progressive windows', () => {
       // 720 buckets (30d @ 1h), progressive → widths [6, 18, 54, 161, 481].
-      const {windows, fullRange} = partitionHeatmapWindows(
+      const {windows, timeDomain} = partitionHeatmapWindows(
         absolute(0, 720 * HOUR),
         '1h',
         'progressive'
       );
 
-      expect(fullRange).toEqual({start: 0, end: 720 * HOUR});
+      expect(timeDomain).toEqual({start: 0, end: 720 * HOUR});
       const absoluteWindows = windows as Array<{end: string; start: string}>;
       // Oldest→newest (largest first); the newest window is the smallest.
       expect(absoluteWindows.map(spanHours)).toEqual([481, 161, 54, 18, 6]);

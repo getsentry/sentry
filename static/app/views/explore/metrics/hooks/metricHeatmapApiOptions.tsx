@@ -23,12 +23,6 @@ interface MetricHeatmapApiOptions {
    */
   timeParams: HeatmapWindow;
   traceMetric: TraceMetric;
-  /**
-   * Defaults to true. Callers decide enablement by whether they build the query
-   * at all (e.g. an empty array from a disabled fan-out); this only skip-tokens
-   * an individual request when a caller explicitly disables it.
-   */
-  enabled?: boolean;
   interval?: string | null;
   sampling?: SamplingMode;
   yBuckets?: number | null;
@@ -48,7 +42,6 @@ export function metricHeatmapApiOptions({
   timeParams,
   traceMetric,
   query,
-  enabled = true,
   interval,
   yBuckets,
   yMin,
@@ -70,7 +63,7 @@ export function metricHeatmapApiOptions({
   return apiOptions.as<HeatMapSeries>()(
     '/organizations/$organizationIdOrSlug/events-heatmap/',
     {
-      path: !enabled || !valid ? skipToken : {organizationIdOrSlug: organization.slug},
+      path: valid ? {organizationIdOrSlug: organization.slug} : skipToken,
       query: {
         dataset: DiscoverDatasets.TRACEMETRICS,
         xAxis: 'time',

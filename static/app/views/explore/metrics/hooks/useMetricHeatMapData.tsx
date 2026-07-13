@@ -8,12 +8,10 @@ import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMillisecon
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {emptyHeatMapSeries} from 'sentry/views/explore/metrics/hooks/emptyHeatMapSeries';
 import {metricBoundsApiOptions} from 'sentry/views/explore/metrics/hooks/metricBoundsApiOptions';
 import {metricHeatmapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatmapApiOptions';
-import {
-  emptyHeatMapSeries,
-  metricHeatmapCombine,
-} from 'sentry/views/explore/metrics/hooks/metricHeatmapCombine';
+import {combinePartitionedHeatmapWindows} from 'sentry/views/explore/metrics/hooks/metricHeatmapCombine';
 import {partitionHeatmapWindows} from 'sentry/views/explore/metrics/hooks/partitionHeatmapWindows';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
@@ -60,7 +58,7 @@ export function useMetricHeatMapData({
   // change, so it's stable across renders (`partitionHeatmapWindows` reads
   // Date.now() for relative ranges — pinning it here avoids re-partitioning, and
   // relative windows stay relative so the backend still re-resolves now per fetch).
-  const {windows, fullRange} = useMemo(
+  const {windows, timeDomain} = useMemo(
     // Progressive: the recent region loads first in the smallest window.
     () => partitionHeatmapWindows(selection.datetime, interval, 'progressive'),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -75,17 +73,16 @@ export function useMetricHeatMapData({
   const chunked = windows.length > 1;
 
   // Phase A — global y-domain, only fetched when we actually chunk.
-  const boundsQuery = useQuery(
-    metricBoundsApiOptions({
+  const boundsQuery = useQuery({
+    ...metricBoundsApiOptions({
       organization,
       selection,
       traceMetric,
       query,
-      interval,
       sampling: HEATMAP_CHUNK_SAMPLING_MODE,
-      enabled: enabled && validDims && chunked,
-    })
-  );
+    }),
+    enabled: enabled && validDims && chunked,
+  });
 
   const boundsResolved = chunked && boundsQuery.isSuccess;
   const boundsEmpty = boundsResolved && boundsQuery.data === null;
@@ -116,8 +113,8 @@ export function useMetricHeatMapData({
       )
     : [];
   const combine = useMemo(
-    () => metricHeatmapCombine({fullRange, intervalMs}),
-    [fullRange, intervalMs]
+    () => combinePartitionedHeatmapWindows({timeDomain, intervalMs}),
+    [timeDomain, intervalMs]
   );
   const {
     series: chunkSeries,
@@ -128,7 +125,7 @@ export function useMetricHeatMapData({
 
   // Phase A resolved but the range has no data → empty grid so "No data" shows.
   const merged = boundsEmpty
-    ? emptyHeatMapSeries(fullRange.start, fullRange.end, intervalMs, yBuckets ?? 0)
+    ? emptyHeatMapSeries(timeDomain.start, timeDomain.end, intervalMs, yBuckets ?? 0)
     : chunkSeries;
   // Patch the metric unit onto the y-axis once, here — neither the combiner nor
   // the empty-grid builder needs to know about units.

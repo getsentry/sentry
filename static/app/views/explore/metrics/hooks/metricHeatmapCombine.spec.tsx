@@ -2,8 +2,8 @@ import type {UseQueryResult} from '@tanstack/react-query';
 
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {
+  combinePartitionedHeatmapWindows,
   mergeHeatMapChunks,
-  metricHeatmapCombine,
 } from 'sentry/views/explore/metrics/hooks/metricHeatmapCombine';
 
 const HOUR = 60 * 60 * 1000;
@@ -34,10 +34,10 @@ function makeChunk(columns: Array<{x: number; z: [number, number]}>): HeatMapSer
 }
 
 describe('mergeHeatMapChunks', () => {
-  const grid = {range: {start: 0, end: 3 * HOUR}, intervalMs: HOUR};
+  const timeDomain = {start: 0, end: 3 * HOUR};
 
   it('throws when given no chunks', () => {
-    expect(() => mergeHeatMapChunks([], grid)).toThrow();
+    expect(() => mergeHeatMapChunks([], timeDomain, HOUR)).toThrow();
   });
 
   it('builds a dense, full-range grid ordered x-major then y-minor', () => {
@@ -47,7 +47,7 @@ describe('mergeHeatMapChunks', () => {
       {x: HOUR, z: [3, 4]},
     ]);
 
-    const merged = mergeHeatMapChunks([chunk], grid);
+    const merged = mergeHeatMapChunks([chunk], timeDomain, HOUR);
 
     // 3 columns x 2 y buckets, no matter that only 2 columns loaded.
     expect(merged.values).toHaveLength(6);
@@ -73,7 +73,7 @@ describe('mergeHeatMapChunks', () => {
     const newer = makeChunk([{x: 2 * HOUR, z: [5, 6]}]);
     const older = makeChunk([{x: 0, z: [1, 2]}]);
 
-    const merged = mergeHeatMapChunks([newer, older], grid);
+    const merged = mergeHeatMapChunks([newer, older], timeDomain, HOUR);
 
     const xs = merged.values.map(v => v.xAxis);
     expect(xs).toEqual([...xs].sort((a, b) => a - b));
@@ -87,7 +87,8 @@ describe('mergeHeatMapChunks', () => {
   it('takes the y-domain from a chunk and recomputes the z-range over loaded cells', () => {
     const merged = mergeHeatMapChunks(
       [makeChunk([{x: 0, z: [4, 9]}]), makeChunk([{x: HOUR, z: [2, 7]}])],
-      grid
+      timeDomain,
+      HOUR
     );
 
     expect(merged.meta.yAxis.start).toBe(0);
@@ -98,7 +99,7 @@ describe('mergeHeatMapChunks', () => {
   });
 
   it('has no duplicate [x,y] cells', () => {
-    const merged = mergeHeatMapChunks([makeChunk([{x: 0, z: [1, 2]}])], grid);
+    const merged = mergeHeatMapChunks([makeChunk([{x: 0, z: [1, 2]}])], timeDomain, HOUR);
     const keys = merged.values.map(v => `${v.xAxis}|${v.yAxis}`);
     expect(new Set(keys).size).toBe(keys.length);
   });
@@ -115,7 +116,7 @@ describe('mergeHeatMapChunks', () => {
       {x: 2 * HOUR, z: [3, 3]},
     ]);
 
-    const merged = mergeHeatMapChunks([partial, complete], grid);
+    const merged = mergeHeatMapChunks([partial, complete], timeDomain, HOUR);
 
     expect(merged.values.find(v => v.xAxis === HOUR && v.yAxis === 0)?.zAxis).toBe(7);
     expect(merged.values.find(v => v.xAxis === 2 * HOUR && v.yAxis === 0)?.zAxis).toBe(3);
@@ -124,10 +125,11 @@ describe('mergeHeatMapChunks', () => {
   it('slides the grid to end at the newest loaded bucket (live edge)', () => {
     // Planned range is [0, 2h), but a chunk loaded a bucket at 2h — the grid
     // extends to include it and slides its start to keep the width.
-    const merged = mergeHeatMapChunks([makeChunk([{x: 2 * HOUR, z: [5, 5]}])], {
-      range: {start: 0, end: 2 * HOUR},
-      intervalMs: HOUR,
-    });
+    const merged = mergeHeatMapChunks(
+      [makeChunk([{x: 2 * HOUR, z: [5, 5]}])],
+      {start: 0, end: 2 * HOUR},
+      HOUR
+    );
 
     expect(merged.meta.xAxis.start).toBe(HOUR);
     expect(merged.meta.xAxis.end).toBe(3 * HOUR);
@@ -137,13 +139,13 @@ describe('mergeHeatMapChunks', () => {
   });
 });
 
-describe('metricHeatmapCombine', () => {
+describe('combinePartitionedHeatmapWindows', () => {
   // A plan covering [0, 2h); chunking is inferred from the number of results.
   const RESOLVED = {
-    fullRange: {start: 0, end: 2 * HOUR},
+    timeDomain: {start: 0, end: 2 * HOUR},
     intervalMs: HOUR,
   };
-  const combine = metricHeatmapCombine(RESOLVED);
+  const combine = combinePartitionedHeatmapWindows(RESOLVED);
 
   // Minimal query-result fakes — the combine only reads these fields.
   function success(series: HeatMapSeries): UseQueryResult<HeatMapSeries> {
