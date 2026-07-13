@@ -4,11 +4,10 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {partitionDateTimeRange} from 'sentry/components/pageFilters/partitionDateTimeRange';
 import type {PageFilters} from 'sentry/types/core';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {partitionHeatmapWindows} from 'sentry/views/explore/metrics/hooks/partitionHeatmapWindows';
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
@@ -29,17 +28,14 @@ const NARROW_SELECTION = PageFiltersFixture({
   datetime: {start: null, end: null, period: '1h', utc: null},
 });
 
-// The split windows are absolute datetimes; each maps to one chunk request whose
-// query carries the normalized (UTC, `.SSS`, no `Z`) start/end.
-const WIDE_WINDOWS = partitionDateTimeRange(WIDE_SELECTION.datetime, '1h', 'progressive');
-const windowMs = (window: PageFilters['datetime']) => ({
-  start: moment.utc(window.start ?? undefined).valueOf(),
-  end: moment.utc(window.end ?? undefined).valueOf(),
+// An absolute selection partitions into absolute {start, end} windows — each is
+// the exact query params for one chunk request.
+const WIDE_WINDOWS = partitionHeatmapWindows(WIDE_SELECTION.datetime, '1h', 'progressive')
+  .windows as Array<{end: string; start: string}>;
+const windowMs = (window: {end: string; start: string}) => ({
+  start: moment.utc(window.start).valueOf(),
+  end: moment.utc(window.end).valueOf(),
 });
-const windowQuery = (window: PageFilters['datetime']) => {
-  const {start, end} = normalizeDateTimeParams(window);
-  return {start, end};
-};
 
 function chunkBody(chunk: {end: number; start: number}, zValue: number): HeatMapSeries {
   return {
@@ -102,7 +98,7 @@ describe('useMetricHeatMapData', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-heatmap/`,
         method: 'GET',
-        match: [MockApiClient.matchQuery(windowQuery(window))],
+        match: [MockApiClient.matchQuery(window)],
         body: chunkBody(windowMs(window), index + 1),
       })
     );
@@ -199,7 +195,7 @@ describe('useMetricHeatMapData', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-heatmap/`,
         method: 'GET',
-        match: [MockApiClient.matchQuery(windowQuery(window))],
+        match: [MockApiClient.matchQuery(window)],
         body: isLast ? {detail: 'boom'} : chunkBody(windowMs(window), index + 1),
         statusCode: isLast ? 500 : 200,
       });

@@ -1,6 +1,5 @@
 import {skipToken} from '@tanstack/react-query';
 
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -9,6 +8,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {HeatmapWindow} from 'sentry/views/explore/metrics/hooks/partitionHeatmapWindows';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils';
 
@@ -16,6 +16,12 @@ interface MetricHeatmapApiOptions {
   organization: Organization;
   query: string;
   selection: PageFilters;
+  /**
+   * The window's exact time params (`{start,end}` / `{statsPeriod*}`), spread
+   * straight into the request. An absolute (`start`/`end`) window is immutable and
+   * caches forever; a relative one refetches each interval as it slides.
+   */
+  timeParams: HeatmapWindow;
   traceMetric: TraceMetric;
   /**
    * Defaults to true. Callers decide enablement by whether they build the query
@@ -25,22 +31,21 @@ interface MetricHeatmapApiOptions {
   enabled?: boolean;
   interval?: string | null;
   sampling?: SamplingMode;
-  staleTime?: number;
   yBuckets?: number | null;
   yMax?: number;
   yMin?: number;
 }
 
 /**
- * Builds one `/events-heatmap/` request over `selection`. The caller supplies the
- * range via `selection.datetime` — the whole selection (fast path) or a single
- * pinned chunk window (Phase B); both resolve through the same
- * `normalizeDateTimeParams` path, so an absolute window sends `start`/`end` and a
- * relative range sends `statsPeriod`.
+ * Builds one `/events-heatmap/` request for a single window. The caller supplies
+ * the range as `timeParams` — the whole selection (fast path) or one partition
+ * chunk — so this doesn't care whether it's absolute or relative beyond picking a
+ * `staleTime`.
  */
 export function metricHeatmapApiOptions({
   organization,
   selection,
+  timeParams,
   traceMetric,
   query,
   enabled = true,
@@ -49,7 +54,6 @@ export function metricHeatmapApiOptions({
   yMin,
   yMax,
   sampling,
-  staleTime: staleTimeOverride,
 }: MetricHeatmapApiOptions) {
   const traceMetricFilter = createTraceMetricEventsFilter([traceMetric]);
   const combinedQuery = query ? `${traceMetricFilter} (${query})` : traceMetricFilter;
@@ -58,14 +62,10 @@ export function metricHeatmapApiOptions({
   const valid =
     defined(interval) && defined(yBuckets) && yBuckets > 0 && intervalInMilliseconds > 0;
 
-  const {start, end, statsPeriod} = normalizeDateTimeParams(selection.datetime);
-
-  const usesRelativeDateRange = !defined(start) && !defined(end) && defined(statsPeriod);
-
-  const defaultStaleTime =
-    usesRelativeDateRange && intervalInMilliseconds !== 0
-      ? intervalInMilliseconds
-      : Infinity;
+  // Absolute windows are immutable → cache forever. Relative windows slide with
+  // `now`, so refetch once per interval to pull the newest bucket.
+  const isAbsolute = 'start' in timeParams;
+  const staleTime = isAbsolute ? Infinity : intervalInMilliseconds;
 
   return apiOptions.as<HeatMapSeries>()(
     '/organizations/$organizationIdOrSlug/events-heatmap/',
@@ -84,12 +84,10 @@ export function metricHeatmapApiOptions({
         query: combinedQuery,
         project: selection.projects,
         environment: selection.environments,
-        start,
-        end,
-        statsPeriod,
+        ...timeParams,
         referrer: 'api.explore.tracemetrics-heatmap',
       },
-      staleTime: staleTimeOverride ?? defaultStaleTime,
+      staleTime,
     }
   );
 }

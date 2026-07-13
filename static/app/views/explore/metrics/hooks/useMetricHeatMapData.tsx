@@ -1,23 +1,22 @@
 import {useMemo} from 'react';
 import {useQueries, useQuery} from '@tanstack/react-query';
-import moment from 'moment-timezone';
 
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {partitionDateTimeRange} from 'sentry/components/pageFilters/partitionDateTimeRange';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
-import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import {
   chunkedMetricHeatmapApiOptions,
   emptyHeatMapSeries,
   HEATMAP_CHUNK_SAMPLING_MODE,
-  type MetricHeatmapPlan,
 } from 'sentry/views/explore/metrics/hooks/chunkedMetricHeatmap';
 import {metricBoundsApiOptions} from 'sentry/views/explore/metrics/hooks/metricBoundsApiOptions';
 import {metricHeatmapCombine} from 'sentry/views/explore/metrics/hooks/metricHeatmapCombine';
+import {
+  type MetricHeatmapPlan,
+  partitionHeatmapWindows,
+} from 'sentry/views/explore/metrics/hooks/partitionHeatmapWindows';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 interface UseMetricHeatMapDataOptions {
@@ -77,34 +76,16 @@ export function useMetricHeatMapData({
 }: UseMetricHeatMapDataOptions): MetricHeatMapData {
   const validDims = defined(yBuckets) && yBuckets > 0;
 
-  // Split the range into epoch-aligned sub-windows once per filter/interval
-  // change. Date.now() (inside partitionDateTimeRange, for relative ranges) is
-  // captured once here; epoch-snapping keeps historical boundaries stable across
-  // renders, so only the live edge moves.
+  // Partition the range into per-window request params once per filter/interval
+  // change. Date.now() (inside partitionHeatmapWindows, for relative ranges) is
+  // captured once here — the resulting relative windows stay relative, so the
+  // backend re-resolves now on each fetch and the data refreshes.
   const plan = useMemo((): MetricHeatmapPlan => {
     if (!defined(interval)) {
       return EMPTY_PLAN;
     }
-    const intervalMs = intervalToMilliseconds(interval);
-    if (intervalMs <= 0) {
-      return EMPTY_PLAN;
-    }
-
     // Progressive: the recent region loads first in the smallest window.
-    const windows = partitionDateTimeRange(selection.datetime, interval, 'progressive');
-    const isRelative = !defined(normalizeDateTimeParams(selection.datetime).start);
-    // Absolute windows carry Dates; parse via moment for the merge grid's range.
-    // A single (fast-path) window merges nothing, so its range is irrelevant.
-    const fullRange =
-      windows.length > 1
-        ? {
-            start: Math.min(
-              ...windows.map(w => moment.utc(w.start ?? undefined).valueOf())
-            ),
-            end: Math.max(...windows.map(w => moment.utc(w.end ?? undefined).valueOf())),
-          }
-        : {start: 0, end: 0};
-    return {windows, fullRange, intervalMs, isRelative};
+    return partitionHeatmapWindows(selection.datetime, interval, 'progressive');
     // Date.now() is intentionally captured once per filter/interval change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -115,7 +96,7 @@ export function useMetricHeatMapData({
     selection.datetime.utc,
   ]);
 
-  const {windows, fullRange, intervalMs, isRelative} = plan;
+  const {windows, fullRange, intervalMs} = plan;
   const chunked = windows.length > 1;
 
   // Phase A — global y-domain. Only fired when we actually chunk. The bounds use
@@ -144,8 +125,6 @@ export function useMetricHeatMapData({
   const queries = shouldFetchChunks
     ? chunkedMetricHeatmapApiOptions({
         windows,
-        isRelative,
-        intervalMs,
         organization,
         selection,
         traceMetric,
@@ -188,5 +167,4 @@ const EMPTY_PLAN: MetricHeatmapPlan = {
   windows: [],
   fullRange: {start: 0, end: 0},
   intervalMs: 0,
-  isRelative: false,
 };

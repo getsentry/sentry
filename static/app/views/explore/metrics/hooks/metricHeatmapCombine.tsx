@@ -2,7 +2,7 @@ import type {UseQueryResult} from '@tanstack/react-query';
 
 import {defined} from 'sentry/utils/defined';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
-import type {MetricHeatmapPlan} from 'sentry/views/explore/metrics/hooks/chunkedMetricHeatmap';
+import type {MetricHeatmapPlan} from 'sentry/views/explore/metrics/hooks/partitionHeatmapWindows';
 
 export interface ChunkedHeatmapResult {
   /**
@@ -78,24 +78,26 @@ interface HeatMapGrid {
    */
   intervalMs: number;
   /**
-   * The full x range in ms. Must be interval-aligned (its bounds are epoch
-   * multiples of `intervalMs`) so the synthesized empty columns land on the same
-   * grid as the loaded chunks' cells.
+   * The planned x range in ms, interval-aligned (bounds are epoch multiples of
+   * `intervalMs`). It sets the grid WIDTH; the grid slides to end at the newest
+   * loaded bucket so a relative range's live edge shows past this (frozen) end.
    */
   range: {end: number; start: number};
 }
 
 /**
- * Merges the responses of several pinned, epoch-aligned heat map chunks into one
- * dense `HeatMapSeries` covering the whole `grid` range.
+ * Merges several pinned heat map chunk responses into one dense `HeatMapSeries`.
  *
- * Each chunk response is already a well-formed grid — dense over its own window
- * and ordered x-major / y-minor ascending (the same shape a single request
- * returns). The chunks tile the range contiguously without overlap, so we just
- * lay them side by side in x order and concatenate their `values`. The only
- * synthesized cells are empty (`zAxis: null`) columns for windows that haven't
- * loaded yet — without them a partially-loaded set of columns would stretch to
- * fill the whole chart instead of occupying its true horizontal slice.
+ * Every cell is indexed by `[x, y]`, taking the MAX `z` where chunks overlap.
+ * Absolute chunks don't overlap (aligned seams split cleanly between buckets), so
+ * max is a no-op. Relative chunks DO overlap: the backend's row filter bisects an
+ * unaligned seam bucket, so each side holds a partial copy — but the overlap
+ * guarantees the complete copy exists in one chunk, and since `z` is `count()` the
+ * complete count is the larger one, so max picks it. See `partitionHeatmapWindows`.
+ *
+ * The grid is dense over its full width, with empty (`zAxis: null`) cells for
+ * columns no chunk has loaded yet, so a partial load occupies its true slice
+ * instead of stretching to fill the chart.
  *
  * Callers must pass only *succeeded* chunks (at least one).
  */
@@ -109,55 +111,57 @@ export function mergeHeatMapChunks(
 
   const {range, intervalMs} = grid;
 
-  // Lay chunks out left-to-right; each is dense within its own window.
-  const ordered = chunks.toSorted((a, b) => columnStart(a) - columnStart(b));
-  const first = ordered[0]!;
+  // Index loaded cells by [x,y], keeping the max z across overlapping chunks.
+  const loaded = new Map<string, number>();
+  const yValueSet = new Set<number>();
+  let maxLoadedX = -Infinity;
+  for (const chunk of chunks) {
+    for (const {xAxis, yAxis, zAxis} of chunk.values) {
+      yValueSet.add(yAxis);
+      maxLoadedX = Math.max(maxLoadedX, xAxis);
+      if (zAxis === null) {
+        continue;
+      }
+      const key = `${xAxis}|${yAxis}`;
+      const prev = loaded.get(key);
+      loaded.set(key, prev === undefined ? zAxis : Math.max(prev, zAxis));
+    }
+  }
+  const yValues = Array.from(yValueSet).sort((a, b) => a - b);
 
-  // The pinned y bucket lower-bounds are identical across chunks, so any chunk's
-  // y values are the full set — reused to synthesize empty columns for gaps.
-  const yValues = Array.from(new Set(first.values.map(value => value.yAxis))).sort(
-    (a, b) => a - b
-  );
-  const emptyColumn = (x: number): HeatMapValue[] =>
-    yValues.map(y => ({xAxis: x, yAxis: y, zAxis: null}));
+  // Fixed-width window ending at the newest loaded bucket: a relative range's live
+  // edge advances past the frozen planned end, while an absolute range's planned
+  // end always wins (its data never exceeds it). Start slides to keep the width.
+  const width = range.end - range.start;
+  const gridEnd = Math.max(range.end, maxLoadedX + intervalMs);
+  const gridStart = gridEnd - width;
 
   const values: HeatMapValue[] = [];
-  let x = range.start;
-  for (const chunk of ordered) {
-    // Pad the gap before this chunk with empty columns.
-    for (; x < columnStart(chunk); x += intervalMs) {
-      values.push(...emptyColumn(x));
-    }
-    values.push(...chunk.values);
-    x = columnEnd(chunk) + intervalMs;
-  }
-  // Pad any trailing gap after the last loaded chunk.
-  for (; x < range.end; x += intervalMs) {
-    values.push(...emptyColumn(x));
-  }
-
-  // Recompute the z range across the merged cells so the color scale reflects
-  // everything rendered so far.
   let zStart: number | null = null;
   let zEnd: number | null = null;
-  for (const value of values) {
-    if (value.zAxis !== null) {
-      zStart = zStart === null ? value.zAxis : Math.min(zStart, value.zAxis);
-      zEnd = zEnd === null ? value.zAxis : Math.max(zEnd, value.zAxis);
+  for (let x = gridStart; x < gridEnd; x += intervalMs) {
+    for (const y of yValues) {
+      const zAxis = loaded.get(`${x}|${y}`) ?? null;
+      values.push({xAxis: x, yAxis: y, zAxis});
+      if (zAxis !== null) {
+        zStart = zStart === null ? zAxis : Math.min(zStart, zAxis);
+        zEnd = zEnd === null ? zAxis : Math.max(zEnd, zAxis);
+      }
     }
   }
 
+  // All chunks share the pinned y-domain + axis names, so take meta from any.
+  const first = chunks[0]!;
   return {
     values,
     meta: {
       xAxis: {
         ...first.meta.xAxis,
-        start: range.start,
-        end: range.end,
-        bucketCount: Math.round((range.end - range.start) / intervalMs),
+        start: gridStart,
+        end: gridEnd,
+        bucketCount: Math.round((gridEnd - gridStart) / intervalMs),
         bucketSize: intervalMs / 1000,
       },
-      // The y-axis is identical across pinned chunks; take it wholesale.
       yAxis: first.meta.yAxis,
       zAxis: {
         ...first.meta.zAxis,
@@ -167,10 +171,3 @@ export function mergeHeatMapChunks(
     },
   };
 }
-
-// A chunk's x-range from its own (dense, ascending) cells — robust to whatever
-// its meta reports.
-const columnStart = (chunk: HeatMapSeries) =>
-  Math.min(...chunk.values.map(value => value.xAxis));
-const columnEnd = (chunk: HeatMapSeries) =>
-  Math.max(...chunk.values.map(value => value.xAxis));

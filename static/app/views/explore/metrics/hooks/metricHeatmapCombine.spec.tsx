@@ -102,6 +102,39 @@ describe('mergeHeatMapChunks', () => {
     const keys = merged.values.map(v => `${v.xAxis}|${v.yAxis}`);
     expect(new Set(keys).size).toBe(keys.length);
   });
+
+  it('reconciles an overlapping seam column by taking the complete (max) copy', () => {
+    // Two relative chunks that overlap at HOUR: one holds the partial (pre-seam)
+    // count, the other the complete bucket. Max picks the complete one.
+    const partial = makeChunk([
+      {x: 0, z: [1, 1]},
+      {x: HOUR, z: [2, 2]}, // partial half of the seam bucket
+    ]);
+    const complete = makeChunk([
+      {x: HOUR, z: [7, 7]}, // complete seam bucket
+      {x: 2 * HOUR, z: [3, 3]},
+    ]);
+
+    const merged = mergeHeatMapChunks([partial, complete], grid);
+
+    expect(merged.values.find(v => v.xAxis === HOUR && v.yAxis === 0)?.zAxis).toBe(7);
+    expect(merged.values.find(v => v.xAxis === 2 * HOUR && v.yAxis === 0)?.zAxis).toBe(3);
+  });
+
+  it('slides the grid to end at the newest loaded bucket (live edge)', () => {
+    // Planned range is [0, 2h), but a chunk loaded a bucket at 2h — the grid
+    // extends to include it and slides its start to keep the width.
+    const merged = mergeHeatMapChunks([makeChunk([{x: 2 * HOUR, z: [5, 5]}])], {
+      range: {start: 0, end: 2 * HOUR},
+      intervalMs: HOUR,
+    });
+
+    expect(merged.meta.xAxis.start).toBe(HOUR);
+    expect(merged.meta.xAxis.end).toBe(3 * HOUR);
+    expect(merged.values.find(v => v.xAxis === 2 * HOUR && v.yAxis === 0)?.zAxis).toBe(5);
+    // The oldest planned column (0) slid off the fixed-width window.
+    expect(merged.values.some(v => v.xAxis === 0)).toBe(false);
+  });
 });
 
 describe('metricHeatmapCombine', () => {
