@@ -4,9 +4,9 @@ from sentry.notifications.platform.templates.workflow_engine.activity import (
 from sentry.notifications.platform.templates.workflow_engine.activity.base import (
     EXAMPLE_ALERT_URL,
     EXAMPLE_ISSUE_URL,
-    ActivityAlertActionData,
     build_alert_footer,
     build_issue_link,
+    create_activity_alert_example,
 )
 from sentry.notifications.platform.templates.workflow_engine.activity.seer.base import (
     get_issue_description,
@@ -19,27 +19,10 @@ from sentry.notifications.platform.templates.workflow_engine.activity.set_resolv
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationRenderedAction,
-    NotificationSource,
     NotificationTextBlockType,
 )
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
-
-
-def _make_data(**kwargs) -> ActivityAlertActionData:
-    defaults = dict(
-        source=NotificationSource.ACTIVITY_SEER_RCA_STARTED,
-        notification_uuid="test",
-        activity_type=ActivityType.SEER_RCA_STARTED.value,
-        issue_short_id="PROJ-1",
-        issue_url=EXAMPLE_ISSUE_URL,
-        issue_title="ExampleError: something went wrong",
-        issue_culprit="example.module.function",
-        alert_url=EXAMPLE_ALERT_URL,
-        activity_user_name="Jane Doe",
-    )
-    defaults.update(kwargs)
-    return ActivityAlertActionData(**defaults)
 
 
 class ActivityAlertBaseTest(TestCase):
@@ -88,38 +71,42 @@ class ActivityAlertBaseTest(TestCase):
 
 class ActivitySeerAlertBaseTest(TestCase):
     def test_get_subject_with_qualified_short_id(self) -> None:
-        data = _make_data(issue_short_id="PROJ-1")
+        data = create_activity_alert_example(ActivityType.SEER_RCA_STARTED)
         subject = get_subject("Root Cause Analysis Started", data)
         assert len(subject) == 2
         assert subject[0].text == "Root Cause Analysis Started for"
         assert subject[1].type == NotificationTextBlockType.CODE
-        assert subject[1].text == "PROJ-1"
+        assert subject[1].text == "EXAMPLE-1"
 
     def test_get_subject_without_qualified_short_id(self) -> None:
-        data = _make_data(issue_short_id=None)
+        data = create_activity_alert_example(ActivityType.SEER_RCA_STARTED).copy(
+            update={"issue_short_id": None}
+        )
         subject = get_subject("Root Cause Analysis Started", data)
         assert len(subject) == 1
         assert "a Sentry Issue" in subject[0].text
 
     def test_get_issue_description(self) -> None:
-        data = _make_data(issue_title="ExampleError", issue_culprit="app.tasks.process")
+        data = create_activity_alert_example(ActivityType.SEER_RCA_STARTED)
         sections = get_issue_description(data)
         assert len(sections) == 1
         blocks = sections[0].blocks
         assert blocks[0].type == NotificationTextBlockType.LINK
         assert any(
-            b.type == NotificationTextBlockType.CODE and b.text == "app.tasks.process"
+            b.type == NotificationTextBlockType.CODE and b.text == "example.module.function"
             for b in blocks
         )
 
     def test_get_issue_description_no_culprit(self) -> None:
-        data = _make_data(issue_culprit=None)
+        data = create_activity_alert_example(ActivityType.SEER_RCA_STARTED).copy(
+            update={"issue_culprit": None}
+        )
         sections = get_issue_description(data)
         blocks = sections[0].blocks
         assert not any(b.type == NotificationTextBlockType.CODE for b in blocks)
 
     def test_get_view_autofix_button(self) -> None:
-        data = _make_data()
+        data = create_activity_alert_example(ActivityType.SEER_RCA_STARTED)
         action = get_view_autofix_button(data)
         assert isinstance(action, NotificationRenderedAction)
         assert action.label == "View Autofix"
@@ -128,32 +115,22 @@ class ActivitySeerAlertBaseTest(TestCase):
 
 class ActivitySetResolvedAlertBaseTest(TestCase):
     def test_get_resolution_subject_with_short_id(self) -> None:
-        data = _make_data(
-            source=NotificationSource.ACTIVITY_SET_RESOLVED,
-            activity_type=ActivityType.SET_RESOLVED.value,
-        )
+        data = create_activity_alert_example(ActivityType.SET_RESOLVED)
         subject = get_resolution_subject(data)
         assert subject[0].type == NotificationTextBlockType.CODE
-        assert subject[0].text == "PROJ-1"
+        assert subject[0].text == "EXAMPLE-1"
         assert "was resolved" in subject[1].text
 
     def test_get_resolution_subject_without_short_id(self) -> None:
-        data = _make_data(
-            source=NotificationSource.ACTIVITY_SET_RESOLVED,
-            activity_type=ActivityType.SET_RESOLVED.value,
-            issue_short_id=None,
-            activity_user_name=None,
+        data = create_activity_alert_example(ActivityType.SET_RESOLVED).copy(
+            update={"issue_short_id": None, "activity_user_name": None}
         )
         subject = get_resolution_subject(data)
         assert len(subject) == 1
         assert "A Sentry Issue was resolved" in subject[0].text
 
     def test_get_resolution_subject_with_user(self) -> None:
-        data = _make_data(
-            source=NotificationSource.ACTIVITY_SET_RESOLVED,
-            activity_type=ActivityType.SET_RESOLVED.value,
-            activity_user_name="Jane Doe",
-        )
+        data = create_activity_alert_example(ActivityType.SET_RESOLVED)
         subject = get_resolution_subject(data)
         assert any(
             "by Jane Doe" in b.text

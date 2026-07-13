@@ -25,7 +25,10 @@ from sentry.types.activity import ActivityType
 
 
 def create_set_resolved_in_release_example() -> SetResolvedInReleaseActionData:
-    action_data = create_activity_alert_example(ActivityType.SET_RESOLVED_IN_RELEASE)
+    action_data = create_activity_alert_example(
+        ActivityType.SET_RESOLVED_IN_RELEASE,
+        activity_data={"version": "v1.0.0"},
+    )
     return SetResolvedInReleaseActionData(
         **action_data.dict(),
         release_url="https://sentry.io/organizations/acme/releases/v1.0.0/",
