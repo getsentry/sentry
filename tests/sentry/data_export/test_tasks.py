@@ -2,7 +2,6 @@ from typing import Any, Iterable, cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
-import pytest
 from django.db import IntegrityError
 from django.http import StreamingHttpResponse
 from django.urls import reverse
@@ -1205,12 +1204,6 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         assert {row[output_key] for row in rows} == {matching_value}
         assert emailer.called
 
-    @pytest.mark.skip(
-        reason=(
-            "Snuba's EndpointExportTraceItems does not yet apply request filters on "
-            "first-class columns like trace_id. Skipping until it is supported"
-        )
-    )
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_explore_logs_jsonl_full_export_respects_trace_filter(self, emailer: MagicMock) -> None:
         """
