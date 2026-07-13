@@ -49,14 +49,14 @@ export function BreadcrumbItemLink({
       : to;
 
   return (
-    <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px" flexShrink={1}>
+    <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px">
       {leadingGraphic && <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>}
       {/* style={{minWidth: 0}} unblocks the Tooltip's wrapper <span> (a flex item
           whose default min-width:auto would otherwise refuse to shrink). */}
       <Tooltip title={label} disabled={!labelTooltip} style={{minWidth: 0}}>
         {/* The visible-width floor lives on the outer Flex above (min-width: 32px).
             Here the label just fills that floored space and ellipsizes within it. */}
-        <Container minWidth={0} width="auto">
+        <Container minWidth={0}>
           {styleProps => (
             <Link
               to={toWithQuery}

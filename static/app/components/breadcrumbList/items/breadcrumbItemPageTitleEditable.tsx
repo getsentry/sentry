@@ -30,7 +30,6 @@ export function BreadcrumbEditableTitle(props: BreadcrumbEditableTitleProps) {
 }
 
 export interface BreadcrumbItemPageTitleEditableProps {
-  /** A `<BreadcrumbList.EditableTitle />` element. */
   title: React.ReactElement<BreadcrumbEditableTitleProps>;
   /**
    * Decorative 16×16 leading graphic — a `ProjectsSavedBadge`, avatar, or icon.
@@ -47,11 +46,11 @@ export function BreadcrumbItemPageTitleEditable({
     // Mirrors BreadcrumbItemPageTitle's layout so the editable variant lines up
     // with the static one. No trailing-action slot: EditableText owns its own
     // edit affordance.
-    <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px" flexShrink={1}>
+    <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px">
       {leadingGraphic && <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>}
       {/* Bold wrapper matches BreadcrumbItemPageTitle's weight; EditableText's
           compact label/input inherit font-weight from this context. */}
-      <Container minWidth={0} width="auto" data-test-id="breadcrumb-item">
+      <Container minWidth={0}  data-test-id="breadcrumb-item">
         <Text as="div" bold>
           {title}
         </Text>

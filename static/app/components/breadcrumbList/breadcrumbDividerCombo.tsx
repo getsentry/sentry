@@ -26,7 +26,7 @@ export function BreadcrumbDividerCombo({children, display}: BreadcrumbDividerCom
     // min-width:auto (no min-width:0) so they can't collapse past the crumb's own
     // floor — set on the item's outer Flex — down to 0 when the row is very tight.
     <Container as="li" display={display ?? 'flex'} flexShrink={999}>
-      <Flex align="center" gap="xs" flexShrink={1}>
+      <Flex align="center" gap="xs">
         {children}
         <Flex as="span" align="center" justify="center" flexShrink={0} aria-hidden>
           <IconSlashForward size="md" variant="muted" aria-hidden />

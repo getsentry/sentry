@@ -107,7 +107,7 @@ export function BreadcrumbItemPageTitle({
   const actions = renderTrailingActions(trailingActions);
 
   return (
-    <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px" flexShrink={1}>
+    <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px">
       {pagination && (
         <Flex as="span" align="center">
           <Tooltip
@@ -141,7 +141,7 @@ export function BreadcrumbItemPageTitle({
       {/* style={{minWidth: 0}} unblocks the Tooltip's wrapper <span> so the label
           can shrink. The visible-width floor lives on the outer Flex above. */}
       <Tooltip title={tooltipTitle} disabled={tooltipDisabled} style={{minWidth: 0}}>
-        <Container minWidth={0} width="auto">
+        <Container minWidth={0} >
           {styleProps => (
             // Rendered as inline text (a <span>), not a heading: the surrounding
             // context (e.g. the TopBar title <h1>) owns the page heading, so the
