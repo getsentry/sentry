@@ -212,7 +212,9 @@ export function VisuallyCompleteWithData({
     isDataCompleteSet.current = true;
     replacePerformanceMark(preTimeoutEndMarkName);
 
+    let didRun = false;
     const timeoutId = window.setTimeout(() => {
+      didRun = true;
       try {
         replacePerformanceMark(endMarkName);
         const startMark = performance.getEntriesByName(startMarkName).at(-1);
@@ -231,7 +233,9 @@ export function VisuallyCompleteWithData({
 
     return () => {
       window.clearTimeout(timeoutId);
-      isDataCompleteSet.current = false;
+      if (!didRun) {
+        isDataCompleteSet.current = false;
+      }
     };
   }, [
     disabled,
