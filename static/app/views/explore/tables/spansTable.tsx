@@ -198,7 +198,8 @@ export function addValidatedFieldTypesToMeta({
   const fields = {...meta?.fields};
 
   for (const [field, validatedType] of Object.entries(validatedFieldTypes)) {
-    fields[field] = getFieldDefinition(field, 'span')?.valueType ?? validatedType;
+    fields[field] =
+      getFieldDefinition(field, 'span')?.valueType ?? fields[field] ?? validatedType;
   }
 
   return {...meta, fields};
