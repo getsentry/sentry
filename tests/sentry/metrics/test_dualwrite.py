@@ -73,8 +73,12 @@ def test_dualwrite_experimental_backend_rollout_disabled(dogstatsd_gauge, sentry
 
 
 @mock.patch("datadog.dogstatsd.base.DogStatsd.set")
+@mock.patch("datadog.dogstatsd.base.statsd.set")
 @thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
-def test_dualwrite_set(dogstatsd_set):
+def test_dualwrite_set(primary_set, secondary_set):
+    # Primary DogStatsdMetricsBackend uses the module-level statsd client;
+    # PreciseDogStatsdMetricsBackend uses its own DogStatsd instance. Patch them
+    # separately so routing to primary vs secondary is actually observable.
     backend = DualWriteMetricsBackend(
         primary_backend="sentry.metrics.dogstatsd.DogStatsdMetricsBackend",
         secondary_backend="sentry.metrics.precise_dogstatsd.PreciseDogStatsdMetricsBackend",
@@ -82,17 +86,23 @@ def test_dualwrite_set(dogstatsd_set):
     )
 
     backend.set("foo", 4242, tags={"some": "stuff"})
-    dogstatsd_set.assert_called_once()
+    primary_set.assert_called_once()
+    secondary_set.assert_not_called()
 
-    dogstatsd_set.reset_mock()
+    primary_set.reset_mock()
+    secondary_set.reset_mock()
 
     backend.set("secondary.foo", 4242, tags={"some": "stuff"})
-    dogstatsd_set.assert_called_once()
+    primary_set.assert_not_called()
+    secondary_set.assert_called_once()
 
 
-@mock.patch("datadog.dogstatsd.base.DogStatsd.set")
+@mock.patch("sentry.metrics.sentry_sdk.SentrySDKMetricsBackend.set")
+@mock.patch("datadog.dogstatsd.base.statsd.set")
 @thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
-def test_dualwrite_set_experimental_backend(dogstatsd_set):
+def test_dualwrite_set_experimental_backend(primary_set, experimental_set):
+    # The experimental backend's set is patched directly (SentrySDK's set is a
+    # no-op otherwise) so forwarding to the experimental backend is observable.
     backend = DualWriteMetricsBackend(
         primary_backend="sentry.metrics.dogstatsd.DogStatsdMetricsBackend",
         experimental_backend="sentry.metrics.sentry_sdk.SentrySDKMetricsBackend",
@@ -100,4 +110,5 @@ def test_dualwrite_set_experimental_backend(dogstatsd_set):
     )
 
     backend.set("allowed", 4242, tags={"test": "tag"})
-    dogstatsd_set.assert_called_once()
+    primary_set.assert_called_once()
+    experimental_set.assert_called_once()
