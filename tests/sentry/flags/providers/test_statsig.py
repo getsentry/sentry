@@ -356,6 +356,39 @@ def test_handle_empty_message() -> None:
     assert errors["data"][0].code == "required"
 
 
+def test_handle_nested_user_fields() -> None:
+    """Statsig server SDKs send user.customIDs, user.custom, and user.statsigEnvironment
+    as nested objects rather than strings. The serializer must not reject these payloads."""
+    org_id = 123
+    logs = StatsigProvider(org_id, "abcdefgh", request_timestamp="1739400185400").handle(
+        {
+            "data": [
+                {
+                    "user": {
+                        "userID": "user_abc",
+                        "email": "alice@example.com",
+                        "customIDs": {"organizationId": "org_xyz"},
+                        "custom": {"organizationId": "org_xyz", "organization_id": "org_xyz"},
+                        "statsigEnvironment": {"tier": "production"},
+                    },
+                    "timestamp": 1739400185198,
+                    "eventName": "statsig::config_change",
+                    "metadata": {
+                        "type": "Gate",
+                        "name": "my-gate",
+                        "action": "updated",
+                    },
+                }
+            ]
+        }
+    )
+
+    assert len(logs) == 1
+    assert logs[0]["flag"] == "my-gate"
+    assert logs[0]["created_by"] == "alice@example.com"
+    assert logs[0]["created_by_type"] == 0
+
+
 def test_handle_empty_event() -> None:
     with pytest.raises(DeserializationError) as exc_info:
         StatsigProvider(123, "abcdefgh", request_timestamp="1739400185400").handle({"data": [{}]})

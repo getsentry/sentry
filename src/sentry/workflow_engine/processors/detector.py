@@ -152,7 +152,7 @@ def _get_detector_for_group(group: Group) -> Detector:
         if detector is not None:
             return detector
     except DetectorGroup.DoesNotExist:
-        logger.exception(
+        logger.warning(
             "DetectorGroup not found for group",
             extra={"group_id": group.id},
         )
