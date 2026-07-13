@@ -20,6 +20,18 @@ export interface SentryAppTemplate {
     webhookHeaders?: string[];
   };
   slug: string;
+  /** Copyable starter prompt for the service backing the integration. */
+  starterPrompt?: string;
+  /**
+   * Renders as a required secret input; buildHeader(token) is prepended to
+   * the integration's webhook headers.
+   */
+  tokenField?: {
+    buildHeader: (value: string) => string;
+    label: string;
+    hint?: string;
+    placeholder?: string;
+  };
   webhookUrlField?: {
     hint?: string;
     label?: string;

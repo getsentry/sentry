@@ -54,6 +54,7 @@ import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryCli
 import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -108,6 +109,7 @@ const sentryAppBaseSchema = z.object({
   name: z.string(),
   author: z.string(),
   webhookUrl: z.string(),
+  token: z.string(),
   webhookHeaders: z.string(),
   redirectUrl: z.string(),
   verifyInstall: z.boolean(),
@@ -288,6 +290,7 @@ function emptySentryAppValues(
     name: '',
     author: '',
     webhookUrl: '',
+    token: '',
     webhookHeaders: '',
     redirectUrl: '',
     verifyInstall: !isInternal,
@@ -485,6 +488,7 @@ export default function SentryApplicationDetails() {
 
 function TemplateHeader({template}: {template: SentryAppTemplate}) {
   const location = useLocation();
+  const {starterPrompt} = template;
 
   return (
     <Alert.Container>
@@ -492,6 +496,18 @@ function TemplateHeader({template}: {template: SentryAppTemplate}) {
         <Stack gap="xs" align="start">
           <Text bold>{template.heading}</Text>
           <Text>{template.description}</Text>
+          {starterPrompt && (
+            <Button
+              size="xs"
+              onClick={() =>
+                copyToClipboard(starterPrompt, {
+                  successMessage: t('Starter prompt copied'),
+                })
+              }
+            >
+              {t('Copy a starter prompt')}
+            </Button>
+          )}
           <Link
             to={{
               pathname: location.pathname,
@@ -518,12 +534,17 @@ function TemplateSentryAppForm({template}: {template: SentryAppTemplate}) {
     template.prefill.events ?? []
   );
 
+  const {tokenField} = template;
+
   const templateSchema = sentryAppBaseSchema.superRefine((data, ctx) => {
     requireField(ctx, data.name, 'name');
     if (template.webhookUrlField?.required) {
       requireField(ctx, data.webhookUrl, 'webhookUrl');
     } else {
       requireWebhookUrlForEvents(ctx, data);
+    }
+    if (tokenField) {
+      requireField(ctx, data.token, 'token');
     }
   });
 
@@ -539,10 +560,18 @@ function TemplateSentryAppForm({template}: {template: SentryAppTemplate}) {
     validators: {
       onDynamic: templateSchema,
     },
-    onSubmit: ({value, formApi}) =>
-      saveSentryAppMutation
-        .mutateAsync(buildSentryAppPayload(value))
-        .catch(error => handleSaveError(error, formApi)),
+    onSubmit: ({value, formApi}) => {
+      const payload = buildSentryAppPayload(value);
+      if (tokenField) {
+        payload.webhookHeaders = [
+          tokenField.buildHeader(value.token.trim()),
+          ...(payload.webhookHeaders ?? []),
+        ];
+      }
+      return saveSentryAppMutation
+        .mutateAsync(payload)
+        .catch(error => handleSaveError(error, formApi));
+    },
   });
 
   return (
@@ -555,6 +584,24 @@ function TemplateSentryAppForm({template}: {template: SentryAppTemplate}) {
           fields={{webhookUrl: 'webhookUrl'}}
           {...template.webhookUrlField}
         />
+
+        {tokenField && (
+          <form.AppField name="token">
+            {field => (
+              <field.Layout.Row
+                label={tokenField.label}
+                hintText={tokenField.hint}
+                required
+              >
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={tokenField.placeholder}
+                />
+              </field.Layout.Row>
+            )}
+          </form.AppField>
+        )}
       </form.FieldGroup>
 
       <PermissionsObserver
@@ -881,6 +928,7 @@ function SentryAppEditForm({
     name: app.name,
     author: app.author,
     webhookUrl: app.webhookUrl ?? '',
+    token: '',
     redirectUrl: app.redirectUrl ?? '',
     verifyInstall: isInternal ? false : app.verifyInstall,
     isAlertable: app.isAlertable,
