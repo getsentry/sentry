@@ -233,6 +233,7 @@ export function VisuallyCompleteWithData({
 
     return () => {
       window.clearTimeout(timeoutId);
+      // Only reopen the visit if this cleanup canceled its pending measurement.
       if (!didRun) {
         isDataCompleteSet.current = false;
       }
