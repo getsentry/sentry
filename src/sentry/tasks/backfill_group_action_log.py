@@ -1,6 +1,8 @@
 import logging
 from datetime import datetime
 
+from taskbroker_client.state import current_task
+
 from sentry import options
 from sentry.issues.action_log.backfill import (
     BACKFILL_ACTIVITY_SOURCE,
@@ -13,10 +15,13 @@ from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import json, metrics
 from sentry.utils.action_log.activity_translator import activity_to_action
 
 logger = logging.getLogger(__name__)
+
+_TASK_KEY = "backfill_group_action_log_for_project"
 
 
 @instrumented_task(
@@ -112,6 +117,16 @@ def backfill_group_action_log_for_project(
     last_activity_id: int = 0,
     **kwargs: object,
 ) -> None:
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(_TASK_KEY, activation_id):
+        logger.info(
+            "backfill_group_action_log.duplicate_redelivery.skipped",
+            extra={"project_id": project_id, "activation_id": activation_id},
+        )
+        metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _TASK_KEY})
+        return
+
     if options.get("issues.backfill_group_action_log.killswitch"):
         logger.info("backfill_group_action_log.killswitch_enabled")
         return
@@ -122,7 +137,7 @@ def backfill_group_action_log_for_project(
         return
 
     try:
-        _backfill_project(project, last_activity_id)
+        _backfill_project(project, last_activity_id, activation_id)
     except Exception:
         logger.exception(
             "backfill_group_action_log.task_failed",
@@ -137,6 +152,7 @@ def backfill_group_action_log_for_project(
 def _backfill_project(
     project: Project,
     last_activity_id: int,
+    activation_id: str | None = None,
 ) -> None:
     batch_size: int = options.get("issues.backfill_group_action_log.batch_size")
     inter_batch_delay_s: int = options.get("issues.backfill_group_action_log.inter_batch_delay_s")
@@ -176,6 +192,7 @@ def _backfill_project(
 
     params: list[int | str | datetime] = []
     skipped_count = 0
+    error_count = 0
     num_entries = 0
 
     for activity in activities:
@@ -186,7 +203,7 @@ def _backfill_project(
                 "backfill_group_action_log.translation_error",
                 extra={"activity_id": activity.id, "activity_type": activity.type},
             )
-            skipped_count += 1
+            error_count += 1
             continue
         if action is None:
             skipped_count += 1
@@ -224,6 +241,11 @@ def _backfill_project(
         amount=skipped_count,
         tags={"reason": "no_action"},
     )
+    metrics.incr(
+        "issues.backfill_group_action_log.activities_skipped",
+        amount=error_count,
+        tags={"reason": "translation_error"},
+    )
 
     logger.info(
         "backfill_group_action_log.batch_complete",
@@ -231,6 +253,7 @@ def _backfill_project(
             "project_id": project.id,
             "converted_count": converted_count,
             "skipped_count": skipped_count,
+            "error_count": error_count,
             "last_activity_id_in_batch": activities[-1].id,
         },
     )
@@ -244,3 +267,5 @@ def _backfill_project(
             countdown=inter_batch_delay_s,
             headers={"sentry-propagate-traces": False},
         )
+        if activation_id:
+            mark_spawned(_TASK_KEY, activation_id)
