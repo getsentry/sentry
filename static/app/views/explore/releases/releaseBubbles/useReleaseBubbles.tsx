@@ -548,15 +548,26 @@ export function useReleaseBubbles({
           return;
         }
 
-        // Clear the `markArea` that was drawn during mouse over
-        echartsInstance.setOption(
-          {
-            series: [{id: BUBBLE_AREA_SERIES_ID, markArea: {data: []}}],
-          },
-          {
-            lazyUpdate: true,
-          }
-        );
+        if (echartsInstance.isDisposed()) {
+          return;
+        }
+
+        // Clear the `markArea` that was drawn during mouse over.
+        // Wrapped in try/catch because ECharts can crash internally when iterating
+        // series models during a chart state transition (e.g. a concurrent lazyUpdate).
+        try {
+          echartsInstance.setOption(
+            {
+              series: [{id: BUBBLE_AREA_SERIES_ID, markArea: {data: []}}],
+            },
+            {
+              lazyUpdate: true,
+            }
+          );
+        } catch (_e) {
+          // Swallow errors from chart state transitions; the markArea will be
+          // cleared on the next mouse interaction.
+        }
       };
 
       // This fixes a bug where if you hover over a bubble and mouseout via xaxis
