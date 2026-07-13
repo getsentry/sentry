@@ -20,7 +20,7 @@ class Frame(BaseModel):
     line_no: int | None = None
     col_no: int | None = None
     context: list[tuple[int, str | None]] = []  # [(line_no, source_line), ...]
-    vars: dict[str, Any] | None = None  # local variables at the frame
+    vars: dict[str, Any] | None = None
     in_app: bool = False
 
 
@@ -29,8 +29,8 @@ class Stacktrace(BaseModel):
 
 
 class ExceptionDetails(BaseModel):
-    type: str | None = None  # exception class name
-    value: str | None = None  # exception message
+    type: str | None = None
+    value: str | None = None
     stacktrace: Stacktrace | None = None
     is_handled: bool | None = None
 
@@ -84,14 +84,13 @@ class EventObject(BaseModel):
     timestamp: datetime | None = None
 
     exceptions: list[ExceptionDetails] = []
-    threads: list[ThreadDetails] = []  # same shape as exceptions, for thread dumps
+    threads: list[ThreadDetails] = []
     breadcrumbs: list[Breadcrumb] = []
     request: RequestDetails | None = None
     tags: list[tuple[str, str | None]] = []
     contexts: dict[str, dict[str, Any]] = {}
     user: UserDetails | None = None
-    spans: list[EvidenceSpan] = []  # perf evidence
-    occurrence_evidence: str | None = None  # perf/occurrence summary
+    spans: list[EvidenceSpan] = []
 
     # issue-level fields (optional; filled when formatting from an issue)
     short_id: str | None = None
