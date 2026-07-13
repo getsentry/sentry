@@ -14,7 +14,7 @@ type DateTimeFilter = PageFilters['datetime'];
  * relative window ending in the past, or a relative window running to now. Spread
  * straight into the request query.
  */
-export type HeatmapWindow =
+export type HeatMapWindow =
   | {end: string; start: string}
   | {statsPeriodEnd: string; statsPeriodStart: string}
   | {statsPeriod: string};
@@ -25,23 +25,24 @@ export interface TimeDomain {
   start: number;
 }
 
-export interface MetricHeatmapPlan {
+export interface MetricHeatMapPlan {
   /**
    * The whole selection as one un-chunked window. It's already `windows[0]` for a
    * narrow range; the caller also uses it as the fallback when a wide range's
    * bounds resolve empty, firing one unpinned request so a real (empty) response
    * drives "No data" instead of a synthesized grid.
    */
-  selectionWindow: HeatmapWindow;
+  fullWindow: HeatMapWindow;
   /**
-   * Full epoch-aligned time domain in ms, used to size the merged grid. Returned
-   * (rather than re-derived by the caller) because a relative range's windows are
-   * `statsPeriod` offsets with no absolute anchor — only the partitioner, which
-   * resolved `now`, knows the concrete ms extent. `{0, 0}` when there's nothing to
-   * partition (fast path / empty), which merges nothing.
+   * Full epoch-aligned time domain in ms, used to size the merged grid. Kept
+   * alongside `fullWindow` (neither derives from the other): a relative range's
+   * windows are `statsPeriod` offsets with no absolute anchor, so only the
+   * partitioner — which resolved `now` — knows the concrete ms extent, while
+   * `fullWindow` is the un-aligned request params. `{0, 0}` when there's nothing
+   * to partition (fast path / empty), which merges nothing.
    */
   timeDomain: TimeDomain;
-  windows: HeatmapWindow[];
+  windows: HeatMapWindow[];
 }
 
 /**
@@ -71,49 +72,41 @@ type PartitionStrategy = 'equal' | 'progressive';
  * selection's own params — byte-for-byte today's request. No usable interval
  * returns nothing to fetch.
  */
-export function partitionHeatmapWindows(
+export function partitionDateTimeIntoHeatMapWindows(
   datetime: DateTimeFilter,
   interval: string | null | undefined,
   strategy: PartitionStrategy
-): MetricHeatmapPlan {
+): MetricHeatMapPlan {
   const intervalMs = defined(interval) ? intervalToMilliseconds(interval) : 0;
   const normalized = normalizeDateTimeParams(datetime);
-  const domain = resolveAbsoluteDomain(normalized, datetime);
-  const wholeSelection = selectionWindow(normalized);
+  const timeDomain = resolveAbsoluteDomain(normalized, datetime);
+  const fullWindow = dateTimeAsHeatMapWindow(normalized);
 
   if (intervalMs <= 0) {
     // Nothing to fetch — no usable interval.
-    return {windows: [], timeDomain: {start: 0, end: 0}, selectionWindow: wholeSelection};
+    return {windows: [], timeDomain: {start: 0, end: 0}, fullWindow};
   }
-  if (!domain || domain.end - domain.start < MINIMUM_PARTITION_RANGE) {
-    return {
-      windows: [wholeSelection],
-      timeDomain: {start: 0, end: 0},
-      selectionWindow: wholeSelection,
-    };
+  if (!timeDomain || timeDomain.end - timeDomain.start < MINIMUM_PARTITION_RANGE) {
+    return {windows: [fullWindow], timeDomain: {start: 0, end: 0}, fullWindow};
   }
 
-  const alignedStart = Math.floor(domain.start / intervalMs) * intervalMs;
-  const alignedEnd = Math.ceil(domain.end / intervalMs) * intervalMs;
+  const alignedStart = Math.floor(timeDomain.start / intervalMs) * intervalMs;
+  const alignedEnd = Math.ceil(timeDomain.end / intervalMs) * intervalMs;
   const totalBuckets = Math.round((alignedEnd - alignedStart) / intervalMs);
-  const bucketWidths = distributeBuckets(totalBuckets, strategy);
+  const bucketDistribution = distributeBucketCount(totalBuckets, strategy);
 
   const isAbsolute = defined(normalized.start) && defined(normalized.end);
   const windows = isAbsolute
-    ? absoluteWindows(alignedStart, bucketWidths, intervalMs)
-    : relativeWindows(bucketWidths, intervalMs);
+    ? absoluteWindows(alignedStart, bucketDistribution, intervalMs)
+    : relativeWindows(bucketDistribution, intervalMs);
 
-  return {
-    windows,
-    timeDomain: {start: alignedStart, end: alignedEnd},
-    selectionWindow: wholeSelection,
-  };
+  return {windows, timeDomain: {start: alignedStart, end: alignedEnd}, fullWindow};
 }
 
 /** The whole selection as a single window — the un-chunked fast path. */
-function selectionWindow(
+function dateTimeAsHeatMapWindow(
   normalized: ReturnType<typeof normalizeDateTimeParams>
-): HeatmapWindow {
+): HeatMapWindow {
   if (defined(normalized.start) && defined(normalized.end)) {
     return {start: normalized.start, end: normalized.end};
   }
@@ -122,31 +115,34 @@ function selectionWindow(
 
 /**
  * Splits `totalBuckets` across (up to) `CHUNK_COUNT` windows, newest/smallest
- * first, with the oldest window taking the remainder. e.g. 720 buckets →
- * progressive (weights 1:3:9:27:81): `[6, 18, 54, 161, 481]`; equal: `[144, 144,
- * 144, 144, 144]`.
+ * first, with the oldest window taking the remainder. Returns the per-window
+ * bucket counts. e.g. 720 buckets → progressive (weights 1:3:9): `[55, 166,
+ * 499]`; equal: `[240, 240, 240]`.
  */
-function distributeBuckets(totalBuckets: number, strategy: PartitionStrategy): number[] {
+function distributeBucketCount(
+  totalBuckets: number,
+  strategy: PartitionStrategy
+): number[] {
   const weights = Array.from({length: CHUNK_COUNT}, (_, i) =>
     strategy === 'progressive' ? GROWTH_FACTOR ** i : 1
   );
   const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
 
-  const bucketWidths: number[] = [];
+  const bucketDistribution: number[] = [];
   let remaining = totalBuckets;
   for (let i = 0; i < CHUNK_COUNT - 1 && remaining > 0; i++) {
     // This window's weighted share of the total, floored at 1 bucket and capped
-    // at what's left. e.g. progressive 720: 6 (=round(720/121)), 18, 54, 161, then
-    // the oldest window takes the remaining 481.
+    // at what's left. e.g. progressive 720: 55 (=round(720/13)), 166, then the
+    // oldest window takes the remaining 499.
     const target = Math.round((totalBuckets * weights[i]!) / weightSum);
-    const width = Math.min(Math.max(target, 1), remaining);
-    bucketWidths.push(width);
-    remaining -= width;
+    const count = Math.min(Math.max(target, 1), remaining);
+    bucketDistribution.push(count);
+    remaining -= count;
   }
   if (remaining > 0) {
-    bucketWidths.push(remaining);
+    bucketDistribution.push(remaining);
   }
-  return bucketWidths;
+  return bucketDistribution;
 }
 
 /**
@@ -156,15 +152,15 @@ function distributeBuckets(totalBuckets: number, strategy: PartitionStrategy): n
  */
 function absoluteWindows(
   alignedStart: number,
-  bucketWidths: number[],
+  bucketDistribution: number[],
   intervalMs: number
-): HeatmapWindow[] {
-  // bucketWidths are newest-first (smallest first); reverse so the largest
+): HeatMapWindow[] {
+  // bucketDistribution is newest-first (smallest first); reverse so the largest
   // (oldest) window sits at the start.
-  const windows: HeatmapWindow[] = [];
+  const windows: HeatMapWindow[] = [];
   let cursor = alignedStart;
-  for (const width of bucketWidths.toReversed()) {
-    const end = cursor + width * intervalMs;
+  for (const count of bucketDistribution.toReversed()) {
+    const end = cursor + count * intervalMs;
     windows.push({start: getUtcDateString(cursor), end: getUtcDateString(end)});
     cursor = end;
   }
@@ -177,12 +173,15 @@ function absoluteWindows(
  * its neighbor; when that would cross now it just runs to now (`statsPeriod`).
  * Order within the array doesn't matter (see `absoluteWindows`).
  */
-function relativeWindows(bucketWidths: number[], intervalMs: number): HeatmapWindow[] {
+function relativeWindows(
+  bucketDistribution: number[],
+  intervalMs: number
+): HeatMapWindow[] {
   const overlapMs = RELATIVE_OVERLAP_BUCKETS * intervalMs;
-  const windows: HeatmapWindow[] = [];
+  const windows: HeatMapWindow[] = [];
   let newerOffsetMs = 0;
-  for (const width of bucketWidths) {
-    const olderOffsetMs = newerOffsetMs + width * intervalMs;
+  for (const count of bucketDistribution) {
+    const olderOffsetMs = newerOffsetMs + count * intervalMs;
     const endOffsetMs = newerOffsetMs - overlapMs;
     windows.push(
       endOffsetMs > 0
@@ -221,7 +220,7 @@ function resolveAbsoluteDomain(
 }
 
 // Number of windows a partitioned range is split into.
-const CHUNK_COUNT = 5;
+const CHUNK_COUNT = 3;
 // For the `progressive` strategy: each older window is this many times larger
 // than the one after it.
 const GROWTH_FACTOR = 3;

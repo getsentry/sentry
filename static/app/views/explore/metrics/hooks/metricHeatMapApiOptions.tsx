@@ -8,11 +8,11 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {HeatmapWindow} from 'sentry/views/explore/metrics/hooks/partitionHeatmapWindows';
+import type {HeatMapWindow} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils';
 
-interface MetricHeatmapApiOptions {
+interface MetricHeatMapApiOptions {
   organization: Organization;
   query: string;
   selection: PageFilters;
@@ -21,7 +21,7 @@ interface MetricHeatmapApiOptions {
    * straight into the request. An absolute (`start`/`end`) window is immutable and
    * caches forever; a relative one refetches each interval as it slides.
    */
-  timeParams: HeatmapWindow;
+  timeWindow: HeatMapWindow;
   traceMetric: TraceMetric;
   interval?: string | null;
   sampling?: SamplingMode;
@@ -32,14 +32,14 @@ interface MetricHeatmapApiOptions {
 
 /**
  * Builds one `/events-heatmap/` request for a single window. The caller supplies
- * the range as `timeParams` — the whole selection (fast path) or one partition
+ * the range as `timeWindow` — the whole selection (fast path) or one partition
  * chunk — so this doesn't care whether it's absolute or relative beyond picking a
  * `staleTime`.
  */
-export function metricHeatmapApiOptions({
+export function metricHeatMapApiOptions({
   organization,
   selection,
-  timeParams,
+  timeWindow,
   traceMetric,
   query,
   interval,
@@ -47,7 +47,7 @@ export function metricHeatmapApiOptions({
   yMin,
   yMax,
   sampling,
-}: MetricHeatmapApiOptions) {
+}: MetricHeatMapApiOptions) {
   const traceMetricFilter = createTraceMetricEventsFilter([traceMetric]);
   const combinedQuery = query ? `${traceMetricFilter} (${query})` : traceMetricFilter;
 
@@ -57,7 +57,7 @@ export function metricHeatmapApiOptions({
 
   // Absolute windows are immutable → cache forever. Relative windows slide with
   // `now`, so refetch once per interval to pull the newest bucket.
-  const isAbsolute = 'start' in timeParams;
+  const isAbsolute = 'start' in timeWindow;
   const staleTime = isAbsolute ? Infinity : intervalInMilliseconds;
 
   return apiOptions.as<HeatMapSeries>()(
@@ -77,7 +77,7 @@ export function metricHeatmapApiOptions({
         query: combinedQuery,
         project: selection.projects,
         environment: selection.environments,
-        ...timeParams,
+        ...timeWindow,
         referrer: 'api.explore.tracemetrics-heatmap',
       },
       staleTime,

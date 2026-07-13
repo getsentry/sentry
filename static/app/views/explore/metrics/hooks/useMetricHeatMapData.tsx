@@ -9,9 +9,9 @@ import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {metricBoundsApiOptions} from 'sentry/views/explore/metrics/hooks/metricBoundsApiOptions';
-import {metricHeatmapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatmapApiOptions';
-import {combinePartitionedHeatmapWindows} from 'sentry/views/explore/metrics/hooks/metricHeatmapCombine';
-import {partitionHeatmapWindows} from 'sentry/views/explore/metrics/hooks/partitionHeatmapWindows';
+import {metricHeatMapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatMapApiOptions';
+import {makePartitionedHeatMapWindowCombiner} from 'sentry/views/explore/metrics/hooks/metricHeatMapCombine';
+import {partitionDateTimeIntoHeatMapWindows} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 interface UseMetricHeatMapDataOptions {
@@ -37,7 +37,7 @@ const HEATMAP_CHUNK_SAMPLING_MODE = SAMPLING_MODE.HIGH_ACCURACY;
  * Wide ranges are fetched in two phases. Phase A learns the global y-domain with
  * one cheap `min`/`max` aggregate (`metricBoundsApiOptions`). Phase B fires one
  * pinned `/events-heatmap/` request per partition window and `combine`s them into
- * one dense grid (`metricHeatmapCombine`). The metric unit is patched onto the
+ * one dense grid (`metricHeatMapCombine`). The metric unit is patched onto the
  * merged grid here, once. A failed chunk degrades to a partial render.
  *
  * Narrow ranges skip Phase A and issue one unpinned request over the selection.
@@ -57,12 +57,13 @@ export function useMetricHeatMapData({
   const intervalMs = defined(interval) ? intervalToMilliseconds(interval) : 0;
 
   // Partition the range into per-window request params once per filter/interval
-  // change, so it's stable across renders (`partitionHeatmapWindows` reads
+  // change, so it's stable across renders (`partitionDateTimeIntoHeatMapWindows` reads
   // Date.now() for relative ranges — pinning it here avoids re-partitioning, and
   // relative windows stay relative so the backend still re-resolves now per fetch).
-  const {windows, timeDomain, selectionWindow} = useMemo(
+  const {windows, timeDomain, fullWindow} = useMemo(
     // Progressive: the recent region loads first in the smallest window.
-    () => partitionHeatmapWindows(selection.datetime, interval, 'progressive'),
+    () =>
+      partitionDateTimeIntoHeatMapWindows(selection.datetime, interval, 'progressive'),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       interval,
@@ -96,13 +97,13 @@ export function useMetricHeatMapData({
   // fast path — so a real empty response renders "No data" without a fake grid.
   const shouldFetch =
     enabled && validDims && windows.length > 0 && (chunked ? boundsResolved : true);
-  const activeWindows = boundsEmpty ? [selectionWindow] : windows;
+  const activeWindows = boundsEmpty ? [fullWindow] : windows;
   const queries = shouldFetch
-    ? activeWindows.map(timeParams =>
-        metricHeatmapApiOptions({
+    ? activeWindows.map(timeWindow =>
+        metricHeatMapApiOptions({
           organization,
           selection,
-          timeParams,
+          timeWindow,
           traceMetric,
           query,
           interval,
@@ -117,7 +118,7 @@ export function useMetricHeatMapData({
       )
     : [];
   const combine = useMemo(
-    () => combinePartitionedHeatmapWindows({timeDomain, intervalMs}),
+    () => makePartitionedHeatMapWindowCombiner({timeDomain, intervalMs}),
     [timeDomain, intervalMs]
   );
   const {

@@ -5,9 +5,9 @@ import type {
   HeatMapItem,
   HeatMapSeries,
 } from 'sentry/views/dashboards/widgets/common/types';
-import type {TimeDomain} from 'sentry/views/explore/metrics/hooks/partitionHeatmapWindows';
+import type {TimeDomain} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
 
-export interface ChunkedHeatmapResult {
+export interface ChunkedHeatMapResult {
   /**
    * A fatal error — every chunk failed. Partial failures do not set this.
    */
@@ -30,21 +30,21 @@ export interface ChunkedHeatmapResult {
 /**
  * Builds the `combine` function for `useQueries` that stitches the chunk
  * responses into one dense grid and derives the streaming/partial state. Named to
- * mirror `partitionHeatmapWindows` — it's the other half.
+ * mirror `partitionDateTimeIntoHeatMapWindows` — it's the other half.
  *
  * Wrap this in `useMemo` (keyed on the plan) so the returned function stays
  * referentially stable: query-core re-runs `combine` only when the results change
  * or the `combine` reference changes (and `replaceEqualDeep`s the output), so an
  * unstable combine would rebuild the (expensive) merge every render.
  */
-export function combinePartitionedHeatmapWindows({
+export function makePartitionedHeatMapWindowCombiner({
   timeDomain,
   intervalMs,
 }: {
   intervalMs: number;
   timeDomain: TimeDomain;
 }) {
-  return (results: Array<UseQueryResult<HeatMapSeries>>): ChunkedHeatmapResult => {
+  return (results: Array<UseQueryResult<HeatMapSeries>>): ChunkedHeatMapResult => {
     const succeeded = results
       .filter(q => q.isSuccess && defined(q.data))
       .map(q => q.data!);
@@ -85,7 +85,7 @@ export function combinePartitionedHeatmapWindows({
  * max is a no-op. Relative chunks DO overlap: the backend's row filter bisects an
  * unaligned seam bucket, so each side holds a partial copy — but the overlap
  * guarantees the complete copy exists in one chunk, and since `z` is `count()` the
- * complete count is the larger one, so max picks it. See `partitionHeatmapWindows`.
+ * complete count is the larger one, so max picks it. See `partitionDateTimeIntoHeatMapWindows`.
  *
  * Why max and not "just take the older chunk"? Each chunk has a partial bucket at
  * its OWN unaligned edge, and across an overlap those edges sit at opposite ends —

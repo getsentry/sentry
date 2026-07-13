@@ -7,7 +7,7 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import type {PageFilters} from 'sentry/types/core';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {partitionHeatmapWindows} from 'sentry/views/explore/metrics/hooks/partitionHeatmapWindows';
+import {partitionDateTimeIntoHeatMapWindows} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
@@ -30,8 +30,11 @@ const NARROW_SELECTION = PageFiltersFixture({
 
 // An absolute selection partitions into absolute {start, end} windows — each is
 // the exact query params for one chunk request.
-const WIDE_WINDOWS = partitionHeatmapWindows(WIDE_SELECTION.datetime, '1h', 'progressive')
-  .windows as Array<{end: string; start: string}>;
+const WIDE_WINDOWS = partitionDateTimeIntoHeatMapWindows(
+  WIDE_SELECTION.datetime,
+  '1h',
+  'progressive'
+).windows as Array<{end: string; start: string}>;
 const windowMs = (window: {end: string; start: string}) => ({
   start: moment.utc(window.start).valueOf(),
   end: moment.utc(window.end).valueOf(),

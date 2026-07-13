@@ -1,43 +1,15 @@
 import type {UseQueryResult} from '@tanstack/react-query';
+import {HeatMapSeriesFixture} from 'sentry-fixture/heatMapSeries';
 
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {
-  combinePartitionedHeatmapWindows,
+  makePartitionedHeatMapWindowCombiner,
   mergeHeatMapChunks,
-} from 'sentry/views/explore/metrics/hooks/metricHeatmapCombine';
-
-const HOUR = 60 * 60 * 1000;
-
-// Two pinned y buckets shared by every chunk.
-const Y_VALUES = [0, 50];
-
-function makeChunk(columns: Array<{x: number; z: [number, number]}>): HeatMapSeries {
-  const values = columns.flatMap(({x, z}) =>
-    Y_VALUES.map((y, i) => ({xAxis: x, yAxis: y, zAxis: z[i]!}))
-  );
-  return {
-    values,
-    meta: {
-      xAxis: {name: 'time', start: 0, end: 0, bucketCount: 0, bucketSize: 3600},
-      yAxis: {
-        name: 'value',
-        start: 0,
-        end: 100,
-        bucketCount: 2,
-        bucketSize: 50,
-        valueType: 'number',
-        valueUnit: null,
-      },
-      zAxis: {name: 'count()', start: 0, end: 0},
-    },
-  };
-}
+} from 'sentry/views/explore/metrics/hooks/metricHeatMapCombine';
 
 describe('mergeHeatMapChunks', () => {
-  const timeDomain = {start: 0, end: 3 * HOUR};
-
   it('throws when given no chunks', () => {
-    expect(() => mergeHeatMapChunks([], timeDomain, HOUR)).toThrow();
+    expect(() => mergeHeatMapChunks([], {start: 0, end: 3 * HOUR}, HOUR)).toThrow();
   });
 
   it('builds a dense, full-range grid ordered x-major then y-minor', () => {
@@ -47,7 +19,7 @@ describe('mergeHeatMapChunks', () => {
       {x: HOUR, z: [3, 4]},
     ]);
 
-    const merged = mergeHeatMapChunks([chunk], timeDomain, HOUR);
+    const merged = mergeHeatMapChunks([chunk], {start: 0, end: 3 * HOUR}, HOUR);
 
     // 3 columns x 2 y buckets, no matter that only 2 columns loaded.
     expect(merged.values).toHaveLength(6);
@@ -70,10 +42,10 @@ describe('mergeHeatMapChunks', () => {
   });
 
   it('orders columns ascending even when chunks are passed newest-first', () => {
-    const newer = makeChunk([{x: 2 * HOUR, z: [5, 6]}]);
-    const older = makeChunk([{x: 0, z: [1, 2]}]);
+    const newest = makeChunk([{x: 2 * HOUR, z: [5, 6]}]);
+    const oldest = makeChunk([{x: 0, z: [1, 2]}]);
 
-    const merged = mergeHeatMapChunks([newer, older], timeDomain, HOUR);
+    const merged = mergeHeatMapChunks([newest, oldest], {start: 0, end: 3 * HOUR}, HOUR);
 
     const xs = merged.values.map(v => v.xAxis);
     expect(xs).toEqual([...xs].sort((a, b) => a - b));
@@ -87,7 +59,7 @@ describe('mergeHeatMapChunks', () => {
   it('takes the y-domain from a chunk and recomputes the z-range over loaded cells', () => {
     const merged = mergeHeatMapChunks(
       [makeChunk([{x: 0, z: [4, 9]}]), makeChunk([{x: HOUR, z: [2, 7]}])],
-      timeDomain,
+      {start: 0, end: 3 * HOUR},
       HOUR
     );
 
@@ -99,7 +71,11 @@ describe('mergeHeatMapChunks', () => {
   });
 
   it('has no duplicate [x,y] cells', () => {
-    const merged = mergeHeatMapChunks([makeChunk([{x: 0, z: [1, 2]}])], timeDomain, HOUR);
+    const merged = mergeHeatMapChunks(
+      [makeChunk([{x: 0, z: [1, 2]}])],
+      {start: 0, end: 3 * HOUR},
+      HOUR
+    );
     const keys = merged.values.map(v => `${v.xAxis}|${v.yAxis}`);
     expect(new Set(keys).size).toBe(keys.length);
   });
@@ -116,7 +92,11 @@ describe('mergeHeatMapChunks', () => {
       {x: 2 * HOUR, z: [3, 3]},
     ]);
 
-    const merged = mergeHeatMapChunks([partial, complete], timeDomain, HOUR);
+    const merged = mergeHeatMapChunks(
+      [partial, complete],
+      {start: 0, end: 3 * HOUR},
+      HOUR
+    );
 
     expect(merged.values.find(v => v.xAxis === HOUR && v.yAxis === 0)?.zAxis).toBe(7);
     expect(merged.values.find(v => v.xAxis === 2 * HOUR && v.yAxis === 0)?.zAxis).toBe(3);
@@ -139,49 +119,7 @@ describe('mergeHeatMapChunks', () => {
   });
 });
 
-describe('combinePartitionedHeatmapWindows', () => {
-  // A plan covering [0, 2h); chunking is inferred from the number of results.
-  const RESOLVED = {
-    timeDomain: {start: 0, end: 2 * HOUR},
-    intervalMs: HOUR,
-  };
-  const combine = combinePartitionedHeatmapWindows(RESOLVED);
-
-  // Minimal query-result fakes — the combine only reads these fields.
-  function success(series: HeatMapSeries): UseQueryResult<HeatMapSeries> {
-    return {
-      isSuccess: true,
-      isError: false,
-      isPending: false,
-      fetchStatus: 'idle',
-      data: series,
-      error: null,
-    } as unknown as UseQueryResult<HeatMapSeries>;
-  }
-  function loading(): UseQueryResult<HeatMapSeries> {
-    return {
-      isSuccess: false,
-      isError: false,
-      isPending: true,
-      fetchStatus: 'fetching',
-      data: undefined,
-      error: null,
-    } as unknown as UseQueryResult<HeatMapSeries>;
-  }
-  function failed(error: Error): UseQueryResult<HeatMapSeries> {
-    return {
-      isSuccess: false,
-      isError: true,
-      isPending: false,
-      fetchStatus: 'idle',
-      data: undefined,
-      error,
-    } as unknown as UseQueryResult<HeatMapSeries>;
-  }
-
-  const older = makeChunk([{x: 0, z: [1, 2]}]);
-  const newer = makeChunk([{x: HOUR, z: [3, 4]}]);
-
+describe('makePartitionedHeatMapWindowCombiner', () => {
   it('merges succeeded chunk responses into one dense, ordered grid', () => {
     const out = combine([success(newer), success(older)]);
     expect(out.series?.values).toHaveLength(4); // 2 columns x 2 y buckets
@@ -215,3 +153,56 @@ describe('combinePartitionedHeatmapWindows', () => {
     expect(out.series).toBeUndefined();
   });
 });
+
+const HOUR = 60 * 60 * 1000;
+
+// Two pinned y buckets shared by every chunk.
+const Y_VALUES = [0, 50];
+
+function makeChunk(columns: Array<{x: number; z: [number, number]}>): HeatMapSeries {
+  const values = columns.flatMap(({x, z}) =>
+    Y_VALUES.map((y, i) => ({xAxis: x, yAxis: y, zAxis: z[i]!}))
+  );
+  return HeatMapSeriesFixture({values});
+}
+
+// A combiner over a plan covering [0, 2h); chunking is inferred from the number
+// of results.
+const combine = makePartitionedHeatMapWindowCombiner({
+  timeDomain: {start: 0, end: 2 * HOUR},
+  intervalMs: HOUR,
+});
+const older = makeChunk([{x: 0, z: [1, 2]}]);
+const newer = makeChunk([{x: HOUR, z: [3, 4]}]);
+
+// Minimal query-result fakes — the combine only reads these fields.
+function success(series: HeatMapSeries): UseQueryResult<HeatMapSeries> {
+  return {
+    isSuccess: true,
+    isError: false,
+    isPending: false,
+    fetchStatus: 'idle',
+    data: series,
+    error: null,
+  } as unknown as UseQueryResult<HeatMapSeries>;
+}
+function loading(): UseQueryResult<HeatMapSeries> {
+  return {
+    isSuccess: false,
+    isError: false,
+    isPending: true,
+    fetchStatus: 'fetching',
+    data: undefined,
+    error: null,
+  } as unknown as UseQueryResult<HeatMapSeries>;
+}
+function failed(error: Error): UseQueryResult<HeatMapSeries> {
+  return {
+    isSuccess: false,
+    isError: true,
+    isPending: false,
+    fetchStatus: 'idle',
+    data: undefined,
+    error,
+  } as unknown as UseQueryResult<HeatMapSeries>;
+}

@@ -433,7 +433,7 @@ export function useTraceMetricsTableQuery(
  * widget's rendered dimensions and passed in from the chart container, since
  * the query layer has no access to the rendered size.
  */
-export function useTraceMetricsHeatmapQuery(
+export function useTraceMetricsHeatMapQuery(
   params: HeatmapWidgetQueryParams
 ): HookWidgetQueryResult {
   const {
