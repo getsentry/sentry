@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 import sentry_sdk
 from scm import actions as scm_actions
@@ -84,7 +85,11 @@ def trigger_consume_pr_iteration_feedback(
     processing_deadline_duration=60,
     retry=Retry(on=(UnableToAcquireLock,), times=3, delay=5),
 )
-def consume_queued_autofix_feedback(run_id: int, organization_id: int) -> None:
+def consume_queued_autofix_feedback(
+    run_id: int, organization_id: int, *args: Any, **kwargs: Any
+) -> None:
+    # Accept unused *args/**kwargs so in-flight activations queued with retired
+    # kwargs (e.g. group_id) still deserialize after the signature change.
     lock = locks.get(
         f"autofix:feedback:lock:{run_id}",
         duration=60,
