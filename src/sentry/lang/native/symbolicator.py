@@ -37,6 +37,15 @@ BACKOFF_MAX = 5
 logger = logging.getLogger(__name__)
 
 
+class SymbolicatorPlatform(Enum):
+    """The platforms for which we want to
+    invoke Symbolicator. This is a **legacy** type used by old taskbroker tasks."""
+
+    jvm = "jvm"
+    js = "js"
+    native = "native"
+
+
 class SymbolicatorFunction(Enum):
     """The functions for which we want to
     invoke Symbolicator."""

@@ -6,8 +6,17 @@ from typing import Any
 from django.conf import settings
 
 from sentry.killswitches import killswitch_matches_context
-from sentry.lang.native.processing import get_native_symbolication_functions
-from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorFunction, SymbolicatorTaskKind
+from sentry.lang.native.processing import (
+    find_stacktraces_in_data,
+    get_native_symbolication_function,
+    get_native_symbolication_functions,
+)
+from sentry.lang.native.symbolicator import (
+    Symbolicator,
+    SymbolicatorFunction,
+    SymbolicatorPlatform,
+    SymbolicatorTaskKind,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services.eventstore import processing
@@ -23,6 +32,26 @@ from sentry.utils.tracing import set_span_data, start_span
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.symbolication")
+
+
+def get_symbolication_function_for_platform(
+    platform: SymbolicatorPlatform,
+    data: Mapping[str, Any],
+    stacktraces: list[StacktraceInfo],
+) -> SymbolicatorFunction:
+    """Returns the symbolication function for the given platform
+    and event data. This is a **legacy** function used for old tasks."""
+
+    if platform == SymbolicatorPlatform.js:
+        return SymbolicatorFunction.js
+    elif platform == SymbolicatorPlatform.jvm:
+        return SymbolicatorFunction.jvm
+    else:
+        symbolication_function = get_native_symbolication_function(data, stacktraces)
+        # get_native_symbolication_function already returned something in
+        # get_symbolication_platforms
+        assert symbolication_function is not None
+        return symbolication_function
 
 
 def get_symbolication_functions(
@@ -57,6 +86,7 @@ def _do_symbolicate_event(
     event_id: str | None,
     data: Event | None = None,
     has_attachments: bool = False,
+    symbolicate_platforms: list[SymbolicatorFunction] | None = None,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
 ) -> None:
     if data is None:
@@ -100,6 +130,19 @@ def _do_symbolicate_event(
             from_symbolicate=True,
             has_attachments=has_attachments,
         )
+
+    if symbolicate_platforms is not None:
+        # Legacy behavior for old tasks.
+        try:
+            stacktraces = find_stacktraces_in_data(data)
+            symbolication_function = get_symbolication_function_for_platform(
+                task_kind.platform, data, stacktraces
+            )
+        except AssertionError:
+            symbolication_function = None
+    else:
+        # New behavior
+        symbolication_function = task_kind.function
 
     symbolication_function_name = getattr(task_kind.function.function(), "__name__", "none")
 
@@ -155,7 +198,7 @@ def _do_symbolicate_event(
         ) as span,
     ):
         try:
-            symbolicated_data = task_kind.function(symbolicator, data)
+            symbolicated_data = symbolication_function(symbolicator, data)
             set_span_data(span, "symbolicated_data", bool(symbolicated_data))
 
             if symbolicated_data:
@@ -258,6 +301,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         event_id: str | None = None,
         data: Event | None = None,
         has_attachments: bool = False,
+        symbolicate_platforms: list[str] | None = None,  # legacy
         symbolicate_functions: list[str] | None = None,
         **kwargs: Any,
     ) -> None:
@@ -269,6 +313,12 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         :param string event_id: the event identifier
         """
 
+        # [legacy] Turn symbolicate_platforms back into proper enum values
+        symbolicate_platform_values = (
+            None
+            if symbolicate_platforms is None
+            else [SymbolicatorPlatform(p) for p in symbolicate_platforms]
+        )
         # Turn symbolicate_functions back into proper enum values
         symbolicate_function_values = (
             None
@@ -282,6 +332,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
             event_id=event_id,
             data=data,
             has_attachments=has_attachments,
+            symbolicate_platforms=symbolicate_platform_values,
             symbolicate_functions=symbolicate_function_values,
         )
 
