@@ -8,9 +8,11 @@ import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {
   FOR_REVIEW_QUERIES,
   getSortLabel,
+  getStoredIssueSort,
   IssueSortOptions,
 } from 'sentry/views/issueList/utils';
 
@@ -56,9 +58,13 @@ export function IssueListSortOptions({
   showIcon = true,
 }: Props) {
   const organization = useOrganization();
+  const {viewId} = useParams<{viewId?: string}>();
   const hasRecommendedSortDefault = organization.features.includes(
     'issue-stream-recommended-sort-default'
   );
+  // The trigger badge announces the Recommended default. A stored sort means
+  // the user has already made an explicit choice, so stop announcing.
+  const hasChosenSort = getStoredIssueSort(organization.slug) !== null;
   const hasProgressSort =
     organization.features.includes('issue-stream-progress-sort') ||
     sort === IssueSortOptions.PROGRESS;
@@ -108,7 +114,10 @@ export function IssueListSortOptions({
           size={triggerSize}
           icon={showIcon && <IconSort />}
         >
-          {hasRecommendedSortDefault && sortKey === IssueSortOptions.RECOMMENDED ? (
+          {hasRecommendedSortDefault &&
+          !hasChosenSort &&
+          !viewId &&
+          sortKey === IssueSortOptions.RECOMMENDED ? (
             <Flex as="span" gap="sm" align="center">
               {triggerProps.children}
               <FeatureBadge

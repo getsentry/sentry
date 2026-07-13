@@ -7,15 +7,15 @@ from scm.types import (
 
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.mention import (
-    handle_issue_comment_for_autofix_iteration,
-    handle_pull_request_review_comment_for_autofix_iteration,
-)
-from sentry.seer.autofix.pr_iteration.types import (
-    Feedback,
+from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
     GithubPrReviewCommentFeedbackSource,
+)
+from sentry.seer.autofix.pr_iteration.mention import (
+    handle_issue_comment_for_autofix_iteration,
+    handle_pull_request_review_comment_for_autofix_iteration,
 )
 from sentry.tasks.seer.pr_iteration import (
     _add_comment_eyes_reaction,
@@ -75,7 +75,7 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         # the raw feedback string plus a separate `comment` kwarg.
         feedback = Feedback.parse_raw(kwargs["feedback"])
         assert isinstance(feedback.source, GithubPrCommentFeedbackSource)
-        assert feedback.source.comment["id"] == 999
+        assert feedback.source.comment.id == 999
         assert feedback.text == "fix it"
         assert feedback.ui_text == "fix it"
 
@@ -162,7 +162,8 @@ class HandlePullRequestReviewCommentForAutofixIterationTest(TestCase):
         assert feedback.source.file_path == "src/sentry/foo.py"
         assert feedback.source.line == 42
         assert feedback.source.start_line == 40
-        assert feedback.text == "fix it"
+        assert feedback.text == "Inline comment on src/sentry/foo.py:40-42:\nfix it"
+        assert feedback.ui_text == "fix it"
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_non_created_action(self, mock_delay: MagicMock) -> None:

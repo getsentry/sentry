@@ -5,7 +5,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.group import Group
 from sentry.models.organization import OrganizationStatus
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunResult,
@@ -281,7 +281,9 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         # Eligible on every gate.
         eligible = self._make_eligible(self.create_project(organization=org))
 
-        # Automation off (even with a connected repo).
+        # Automation off (even with a connected repo), and never given a
+        # stopping point (defaults to code_changes, not open_pr) — fails two
+        # gates at once, so the resulting log call should list both reasons.
         off = self.create_project(organization=org)
         off.update_option("sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF)
         off_repo = self.create_repo(project=off, provider="github", name="owner/off-repo")
@@ -290,10 +292,18 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         # No connected repo.
         self.create_project(organization=org)
 
-        result = _get_eligible_projects(org, "manual")
+        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
+            result = _get_eligible_projects(org, "manual")
 
         assert [ep.project for ep in result] == [eligible]
         assert result[0].tweaks.enabled is True
+
+        off_extra = next(
+            call.kwargs["extra"]
+            for call in mock_logger.info.call_args_list
+            if call.kwargs["extra"]["project_id"] == off.id
+        )
+        assert off_extra["reasons"] == ["automation_tuning_off", "not_pr_producing"]
 
     def test_carries_each_projects_connected_repos(self) -> None:
         org = self.create_organization()
@@ -360,6 +370,27 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 
         assert [ep.project.slug for ep in cron_result] == ["keep"]
         assert sorted(ep.project.slug for ep in manual_result) == ["drop", "keep"]
+
+    def test_skips_project_missing_from_preferences_lookup(self) -> None:
+        """project_map and preferences come from separate queries, so a
+        project absent from the preferences result (e.g. deleted in the gap
+        between the two queries) must be skipped, not raise a KeyError."""
+        org = self.create_organization()
+        present = self._make_eligible(self.create_project(organization=org))
+        missing = self._make_eligible(self.create_project(organization=org))
+
+        real_preferences = bulk_read_preferences_from_sentry_db(org.id, [present.id, missing.id])
+        stale_preferences = {
+            pid: pref for pid, pref in real_preferences.items() if pid != missing.id
+        }
+
+        with patch(
+            "sentry.tasks.seer.night_shift.cron.bulk_read_preferences_from_sentry_db",
+            return_value=stale_preferences,
+        ):
+            result = _get_eligible_projects(org, "manual")
+
+        assert [ep.project for ep in result] == [present]
 
 
 @django_db_all

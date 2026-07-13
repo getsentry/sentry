@@ -1,42 +1,51 @@
 import {type LogsQueryInfo} from 'sentry/components/exports/dataExport';
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/exploreExportModalButton';
 import {trackExploreTableExported} from 'sentry/views/explore/components/exports/trackExploreTableExported';
 import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
 import {downloadLogs} from 'sentry/views/explore/logs/exports/downloadLogs';
-import {useLogsExportEstimatedRowCount} from 'sentry/views/explore/logs/exports/useLogsExportEstimatedRowCount';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import {
-  useQueryParamsFields,
-  useQueryParamsSearch,
-  useQueryParamsSortBys,
-} from 'sentry/views/explore/queryParams/context';
+import type {
+  OurLogsAggregateResponseItem,
+  OurLogsResponseItem,
+} from 'sentry/views/explore/logs/types';
+import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 type LogsExportModalButtonProps = {
+  estimatedRowCount: number;
   isLoading: boolean;
-  tableData: OurLogsResponseItem[];
+  queryInfo: LogsQueryInfo;
+  supportsAllColumns: boolean;
+  tableData: Array<OurLogsResponseItem | OurLogsAggregateResponseItem>;
+  title: string;
   error?: Error | null;
 };
 
-function useLogsQueryInfo(): LogsQueryInfo {
+export function formatExportSort(sort: {field: string; kind: 'asc' | 'desc'}) {
+  return `${sort.kind === 'desc' ? '-' : ''}${sort.field}`;
+}
+
+export function useLogsQueryInfo({
+  field,
+  sort,
+}: {
+  field: string[];
+  sort: string[];
+}): LogsQueryInfo {
   const {selection} = usePageFilters();
   const logsSearch = useQueryParamsSearch();
-  const fields = useQueryParamsFields();
-  const sortBys = useQueryParamsSortBys();
   const {start, end, period: statsPeriod} = selection.datetime;
   const {environments, projects} = selection;
 
   return {
     dataset: 'logs',
-    field: [...fields],
+    field,
     query: logsSearch.formatString(),
     project: projects,
-    sort: sortBys.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`),
+    sort,
     start: start ? new Date(start).toISOString() : undefined,
     end: end ? new Date(end).toISOString() : undefined,
     statsPeriod: statsPeriod || undefined,
@@ -46,21 +55,23 @@ function useLogsQueryInfo(): LogsQueryInfo {
 
 export function LogsExportModalButton({
   error,
+  estimatedRowCount,
   isLoading,
+  queryInfo,
+  supportsAllColumns,
   tableData,
+  title,
 }: LogsExportModalButtonProps) {
   const organization = useOrganization();
-  const queryInfo = useLogsQueryInfo();
-  const estimatedRowCount = useLogsExportEstimatedRowCount(tableData.length);
 
   const filenameBase = 'logs';
 
   const config: ExploreExportConfig = {
-    title: t('Logs Export'),
+    title,
     filenameBase,
     queryInfo: {...queryInfo, dataset: TraceItemDataset.LOGS},
     asyncQueryType: ExportQueryType.EXPLORE,
-    supportsAllColumns: true,
+    supportsAllColumns,
     availableFormats: ['csv', 'jsonl'],
     estimatedRowCount,
     localRowCount: tableData.length,
