@@ -369,9 +369,7 @@ class AddCommentEyesReactionTest(TestCase):
     @patch(f"{TASK_PATH}.scm_actions")
     def test_pr_comment_uses_pull_request_comment_reaction(self, mock_actions: MagicMock) -> None:
         scm = MagicMock(spec=CreatePullRequestCommentReactionProtocol)
-        _add_comment_reaction(
-            scm, source_type="github-pr-comment", pr_number=7, comment_id=999
-        )
+        _add_comment_reaction(scm, source_type="github-pr-comment", pr_number=7, comment_id=999)
 
         mock_actions.create_pull_request_comment_reaction.assert_called_once_with(
             scm, "7", "999", "eyes"
