@@ -156,7 +156,7 @@ def consume_queued_autofix_feedback(
             if isinstance(
                 source, (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource)
             ):
-                comment_id = source.comment.get("id")
+                comment_id = source.comment.id
                 if comment_id is not None:
                     key = (type(source), comment_id)
                     if key in seen_comment_keys:
@@ -272,8 +272,7 @@ def trigger_pr_iteration_from_comment(
         return None
 
     comment = source.comment
-    comment_user = comment.get("user", {})
-    github_username = comment_user.get("login")
+    github_username = comment.user.login if comment.user else None
     if not github_username:
         logger.info(
             "autofix.pr_iteration.comment_trigger.no_github_username",
@@ -370,7 +369,7 @@ def trigger_pr_iteration_from_comment(
 
     metrics.incr("autofix.pr_iteration.comment_trigger.success")
 
-    comment_id = comment.get("id")
+    comment_id = comment.id
     if comment_id is None:
         return None
 

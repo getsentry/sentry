@@ -8,6 +8,7 @@ from sentry.seer.autofix.pr_iteration.feedback import (
     serialize_feedback,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubIssueComment,
     GithubPrCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
@@ -51,7 +52,7 @@ class ParseSerializeFeedbackTest(TestCase):
         assert isinstance(parsed[0].source, UserUIFeedbackSource)
         assert isinstance(parsed[1].source, GithubPrCommentFeedbackSource)
         assert parsed[0].source.user_id == 7
-        assert parsed[1].source.comment["id"] == 99
+        assert parsed[1].source.comment.id == 99
 
     def test_parses_single_object(self) -> None:
         feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="solo"))
@@ -157,6 +158,7 @@ class GithubPrCommentTextTest(TestCase):
     def test_derives_feedback_from_comment(self) -> None:
         # The validator turns the comment into feedback once; text reads it back.
         source = GithubPrCommentFeedbackSource(comment={"id": 1, "body": "@sentry parsed"})
+        assert isinstance(source.comment, GithubIssueComment)
         assert source.comment_feedback == "parsed"
         assert source.text == "parsed"
 
