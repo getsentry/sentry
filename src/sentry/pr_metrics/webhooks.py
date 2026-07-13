@@ -73,6 +73,8 @@ from sentry.pr_metrics.attribution import (
     record_attribution_signal,
 )
 from sentry.pr_metrics.emit import (
+    CI_FAILING_AT_CLOSE,
+    ci_failing_at_close,
     emit_pr_metrics_row,
     is_pr_tracked,
     select_verdict,
@@ -439,11 +441,21 @@ def run_deferred_emission(pull_request: PullRequest, organization: Organization)
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
         return
 
+    # Sentry can derive this one diagnosis label itself, without a judge: a plain
+    # close (no merge, no engagement) whose check suites were red at close. Scoped
+    # to CLOSED_UNMERGED specifically — the judge-needed and merged paths don't
+    # carry this deterministic signal.
+    diagnosis_labels = (
+        [CI_FAILING_AT_CLOSE]
+        if verdict == PullRequestVerdict.CLOSED_UNMERGED and ci_failing_at_close(pull_request)
+        else None
+    )
+
     # Claim before emit so build_pr_metrics_row reads the verdict back onto the row.
     # analytics.record is best-effort, async-batched telemetry; if it raises the
     # claim still stands and the row is forgone — an acceptable loss for telemetry,
     # not worth a rollback that would reopen the redelivery race.
-    emit_pr_metrics_row(pull_request=pull_request)
+    emit_pr_metrics_row(pull_request=pull_request, diagnosis_labels=diagnosis_labels)
     metrics.incr("pr_metrics.cooldown.emitted")
 
 
