@@ -162,7 +162,8 @@ class HandlePullRequestReviewCommentForAutofixIterationTest(TestCase):
         assert feedback.source.file_path == "src/sentry/foo.py"
         assert feedback.source.line == 42
         assert feedback.source.start_line == 40
-        assert feedback.text == "fix it"
+        assert feedback.text == "Inline comment on src/sentry/foo.py:40-42:\nfix it"
+        assert feedback.ui_text == "fix it"
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_non_created_action(self, mock_delay: MagicMock) -> None:
