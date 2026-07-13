@@ -79,6 +79,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-ai-generate", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI-powered dashboard editing via Seer
     manager.add("organizations:dashboards-ai-generate-edit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enables starred dashboards functionality
+    manager.add("organizations:dashboards-starred", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy
     manager.add("organizations:data-secrecy", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Data Secrecy v2 (with Break the Glass feature)
@@ -176,6 +178,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:onboarding-scm-project-creation-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Write newly created debug files to Objectstore.
     manager.add("organizations:objectstore-debugfiles-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
+    # Redirect debug file download requests to read directly from Objectstore, instead of proxying file contents through Sentry.
+    manager.add("organizations:objectstore-debugfiles-direct-read", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Enable large ownership rule file size limit
     manager.add("organizations:ownership-size-limit-large", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable xlarge ownership rule file size limit
@@ -233,8 +237,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:events-sql-grammar-api", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable detecting SDK crashes during event processing
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable Seer PR code review for GitHub Enterprise Server organizations
-    manager.add("organizations:seer-code-review-github-enterprise", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Seer Agent panel for AI-powered data exploration
     manager.add("organizations:seer-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Agent Index job
@@ -325,6 +327,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-stream-recommended-sort-experimental", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the "progress" sort option (by issue fix-cycle progress) in the issue stream
     manager.add("organizations:issue-stream-progress-sort", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Use GroupDerivedData as the source for issue progress instead of activity-based heuristics
+    manager.add("organizations:issue-stream-derived-progress", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     # Lets organizations manage grouping configs
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)

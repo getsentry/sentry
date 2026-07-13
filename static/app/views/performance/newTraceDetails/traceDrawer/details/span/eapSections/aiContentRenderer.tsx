@@ -1,7 +1,7 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
@@ -60,15 +60,14 @@ function XmlTagBlock({
   }
 
   return (
-    <Flex
-      direction="column"
+    <Stack
       padding="0 0 0 md"
       margin="sm 0"
       style={{borderLeft: `2px solid ${theme.tokens.border.primary}`}}
     >
       <Container margin="0 0 xs 0">{label}</Container>
       {body}
-    </Flex>
+    </Stack>
   );
 }
 

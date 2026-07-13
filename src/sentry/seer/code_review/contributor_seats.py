@@ -16,6 +16,7 @@ from django.db.models import F
 
 from sentry import features, quotas
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.utils.hostname import instance_hostname
 from sentry.models.organization import Organization
@@ -93,7 +94,7 @@ def should_increment_contributor_seat(
 def get_canonical_contributor(
     *,
     organization_id: int,
-    integration: RpcIntegration,
+    integration: Integration | RpcIntegration,
     external_identifier: str,
 ) -> OrganizationContributors | None:
     """
@@ -112,10 +113,10 @@ def get_canonical_contributor(
     )
 
 
-def _get_or_create_contributor(
+def get_or_create_contributor(
     *,
     organization: Organization,
-    integration: RpcIntegration,
+    integration: Integration | RpcIntegration,
     external_identifier: str,
     alias: str | None,
 ) -> OrganizationContributors:
@@ -154,13 +155,13 @@ def track_contributor_seat(
     *,
     organization: Organization,
     repo: Repository,
-    integration: RpcIntegration,
+    integration: Integration | RpcIntegration,
     user_id: str | int,
     user_username: str,
     logs_extra: Mapping[str, Any] | None = None,
 ) -> None:
     """Informational logging for the legacy seat-charging path."""
-    contributor = _get_or_create_contributor(
+    contributor = get_or_create_contributor(
         organization=organization,
         integration=integration,
         external_identifier=str(user_id),
@@ -193,7 +194,7 @@ def record_contributor_action(
     *,
     organization: Organization,
     repo: Repository,
-    integration: RpcIntegration,
+    integration: Integration | RpcIntegration,
     user_id: str | int,
     user_username: str | None,
     pr_number: str | int,
@@ -202,7 +203,7 @@ def record_contributor_action(
     tags: Mapping[str, Any] | None = None,
 ) -> None:
     """Seed a contributor and record the contributor's PR-opened action."""
-    contributor = _get_or_create_contributor(
+    contributor = get_or_create_contributor(
         organization=organization,
         integration=integration,
         external_identifier=str(user_id),

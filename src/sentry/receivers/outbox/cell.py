@@ -12,7 +12,7 @@ import json  # noqa: S003 - urllib3 raises stdlib JSONDecodeError, not simplejso
 import logging
 from typing import Any, assert_never, cast
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.dispatch import receiver
 
 from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_rpc_service
@@ -346,24 +346,31 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
     """Write a GroupActionLogEntry from the outbox payload, then trigger
     derived data processing."""
     try:
+        using = router.db_for_write(GroupActionLogEntry)
+
         group_id = payload["group_id"]
         force_async_derived = payload["force_async_derived"]
 
-        GroupActionLogEntry.objects.create(
-            group_id=group_id,
-            project_id=payload["project_id"],
-            type=payload["type"],
-            actor_type=payload["actor_type"],
-            actor_id=payload["actor_id"],
-            source=payload["source"],
-            data=payload["data"],
-        )
+        try:
+            with transaction.atomic(using=using):
+                GroupActionLogEntry.objects.create(
+                    group_id=group_id,
+                    project_id=payload["project_id"],
+                    type=payload["type"],
+                    actor_type=payload["actor_type"],
+                    actor_id=payload["actor_id"],
+                    source=payload["source"],
+                    data=payload["data"],
+                    idempotency_key=payload.get("idempotency_key"),
+                )
+        except IntegrityError:
+            # Idempotency conflict; we treat this as a no-op.
+            pass
 
         # This receiver runs inside the outbox drain transaction
         # (process_shard → transaction.atomic), so the GALE is not yet committed.
         # Defer to on_commit so the GALE is visible to readers on other connections.
         strategy = ProcessingStrategy.ASYNC if force_async_derived else ProcessingStrategy.INLINE
-        using = router.db_for_write(GroupActionLogEntry)
         transaction.on_commit(
             lambda: trigger_group_log_processing(group_id, strategy=strategy), using=using
         )
