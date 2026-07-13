@@ -106,7 +106,7 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
                     )}
                     required
                   >
-                    <Flex align="start" gap="md">
+                    <Flex align="start" gap="md" width="100%">
                       <Flex flex="1" minWidth={0}>
                         <field.Input
                           value={field.state.value}
