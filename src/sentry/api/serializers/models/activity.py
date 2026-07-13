@@ -48,6 +48,9 @@ COMMIT_ACTIVITY_TYPES = {
 PULL_REQUEST_ACTIVITY_TYPES = {
     ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
     ActivityType.PULL_REQUEST_CLOSED.value,
+    ActivityType.PULL_REQUEST_REOPENED.value,
+    ActivityType.PULL_REQUEST_MERGED.value,
+    ActivityType.PULL_REQUEST_UNLINKED.value,
 }
 
 
