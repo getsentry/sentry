@@ -10,7 +10,7 @@ from sentry.seer.autofix.pr_iteration.feedback import (
     parse_feedback,
     serialize_feedback,
 )
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import AwareDatetime, ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubIssueComment,
     GithubPrCommentFeedbackSource,
@@ -259,7 +259,7 @@ class ConsumeTaskTest(TestCase):
         assert task.countdown() == 30
 
     def test_later_with_timezone_aware_datetime(self) -> None:
-        future = timezone.now() + timedelta(seconds=45)
+        future = AwareDatetime(timezone.now() + timedelta(seconds=45))
         task = ConsumeTask.Later(when=future)
         countdown = task.countdown()
         # Countdown should be around 45 seconds (allow small timing variance)
@@ -267,7 +267,7 @@ class ConsumeTaskTest(TestCase):
         assert 44 <= countdown <= 46
 
     def test_later_with_past_datetime_returns_zero(self) -> None:
-        past = timezone.now() - timedelta(seconds=10)
+        past = AwareDatetime(timezone.now() - timedelta(seconds=10))
         task = ConsumeTask.Later(when=past)
         assert task.countdown() == 0
 
@@ -277,7 +277,7 @@ class ConsumeTaskTest(TestCase):
             ValueError,
             match="ConsumeTask.Later requires a timezone-aware datetime",
         ):
-            ConsumeTask.Later(when=naive_dt)
+            ConsumeTask.Later(when=naive_dt)  # type: ignore[arg-type]
 
     def test_later_rejects_naive_utcnow(self) -> None:
         naive_dt = datetime.utcnow()
@@ -285,4 +285,4 @@ class ConsumeTaskTest(TestCase):
             ValueError,
             match="ConsumeTask.Later requires a timezone-aware datetime",
         ):
-            ConsumeTask.Later(when=naive_dt)
+            ConsumeTask.Later(when=naive_dt)  # type: ignore[arg-type]

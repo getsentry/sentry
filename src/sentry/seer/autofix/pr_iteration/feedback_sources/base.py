@@ -3,12 +3,17 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import cached_property
-from typing import ClassVar
+from typing import ClassVar, NewType
 
 from django.utils import timezone
 from pydantic import BaseModel
 
 from sentry.seer.agent.client_models import SeerRunState
+
+# Type alias for timezone-aware datetimes. This provides static type checking to
+# distinguish aware from naive datetimes. Use timezone.now() or timezone.make_aware()
+# to create instances.
+AwareDatetime = NewType("AwareDatetime", datetime)
 
 
 class ConsumeTask:
@@ -27,9 +32,10 @@ class _ConsumeNow(ConsumeTask):
 
 @dataclass(frozen=True)
 class _ConsumeLater(ConsumeTask):
-    when: timedelta | datetime
+    when: timedelta | AwareDatetime
 
     def __post_init__(self) -> None:
+        # Runtime validation as a safety net, though mypy should catch this statically.
         if isinstance(self.when, datetime) and timezone.is_naive(self.when):
             raise ValueError(
                 "ConsumeTask.Later requires a timezone-aware datetime. "
