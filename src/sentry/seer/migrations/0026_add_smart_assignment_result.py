@@ -102,7 +102,11 @@ class Migration(CheckedMigration):
                     models.Index(fields=["status"], name="seer_smarta_status_dab16c_idx"),
                 ],
                 "constraints": [
-                    models.UniqueConstraint(fields=("group",), name="seer_smartassign_unique_group")
+                    models.UniqueConstraint(
+                        condition=models.Q(("status", "pending")),
+                        fields=("group",),
+                        name="seer_smartassign_unique_active_group",
+                    )
                 ],
             },
         ),

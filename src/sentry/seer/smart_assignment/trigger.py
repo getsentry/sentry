@@ -68,6 +68,11 @@ def maybe_trigger_smart_assignment(
         metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "automatic_resolution"})
         return
 
+    # Policy gate: today we predict at most once per issue, ever. This lives in app
+    # code (not the DB constraint, which only prevents concurrent in-flight runs) so
+    # re-runs are cheap to enable later -- e.g. swap this for a `status=PENDING`
+    # check to allow a fresh run once the previous one finished, or gate on a
+    # cooldown/new-signal check against the latest row. No migration required.
     if not SeerSmartAssignmentResult.objects.filter(group_id=group.id).exists():
         if not _dispatch_rate_limited(organization):
             _dispatch(group, trigger)
@@ -137,7 +142,8 @@ def _dispatch(group: Group, trigger: SmartAssignmentTrigger) -> None:
             on_run_created=_create_row,
         )
     except IntegrityError:
-        # A concurrent trigger already created the row (unique on group); the run
+        # A concurrent trigger already created an in-flight row for this group (the
+        # partial unique index allows only one PENDING row per group); its run
         # dispatch is rolled back with it. Treat as a dedup no-op.
         metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "already_predicted_race"})
         return

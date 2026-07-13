@@ -12,7 +12,7 @@ import logging
 from typing import Any
 
 from sentry.models.organization import Organization
-from sentry.models.organizationmember import OrganizationMember
+from sentry.organizations.services.organization import organization_service
 from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.models.smart_assignment import SeerSmartAssignmentResult, SmartAssignmentStatus
 from sentry.seer.smart_assignment.scoring import score_prediction
@@ -29,12 +29,11 @@ def _resolve_identifier_to_user_id(
 
     The agent predicts a person as a string -- preferably the `@username` of a
     linked Sentry user, falling back to a raw commit email (see the
-    `RankedCandidate.identifier` contract on the Seer side). Returns None when the
-    identifier is empty, doesn't match any user, or the matched user isn't a member
-    of the org. Email-shaped identifiers resolve by verified email; everything else
-    resolves by username (falling back to email). Matches are always confirmed
-    against org membership so a username collision can't attribute a prediction to
-    someone outside the org.
+    `RankedCandidate.identifier` contract on the Seer side). Email-shaped
+    identifiers resolve by verified email (the RPC already scopes to the org);
+    everything else resolves by unique username, which we confirm is an org member
+    so a match can't attribute a prediction to someone outside the org. Returns
+    None when nothing resolves.
     """
     if not identifier:
         return None
@@ -47,22 +46,16 @@ def _resolve_identifier_to_user_id(
         users = user_service.get_many_by_email(
             emails=[cleaned], organization_id=organization.id, is_verified=True
         )
-    else:
-        users = user_service.get_by_username(username=cleaned)
+        return users[0].id if users else None
 
-    candidate_ids = [user.id for user in users]
-    if not candidate_ids:
+    users = user_service.get_by_username(username=cleaned)
+    if not users:
         return None
-
-    member_ids = set(
-        OrganizationMember.objects.filter(
-            organization_id=organization.id, user_id__in=candidate_ids
-        ).values_list("user_id", flat=True)
+    user_id = users[0].id
+    member = organization_service.check_membership_by_id(
+        organization_id=organization.id, user_id=user_id
     )
-    for user_id in candidate_ids:
-        if user_id in member_ids:
-            return user_id
-    return None
+    return user_id if member is not None else None
 
 
 def deliver_smart_assignment_result(
