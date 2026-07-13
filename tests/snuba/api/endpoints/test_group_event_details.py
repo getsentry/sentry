@@ -1,6 +1,9 @@
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
+
+FORMATTER_ON = {"issues.standardized-markdown-for-llm": True}
 
 
 class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
@@ -129,4 +132,47 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
         assert event.group is not None
         url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/{event.event_id}/"
         response = self.client.get(url, format="json", data={"query": "release.version:foobar"})
+        assert response.status_code == 400
+
+    def _latest_url(self, query: str = "") -> str:
+        base = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/events/latest/"
+        )
+        return base + query
+
+    def test_format_markdown_adds_formatted_field(self) -> None:
+        with override_options(FORMATTER_ON):
+            response = self.client.get(self._latest_url("?llmFormat=markdown"))
+
+        assert response.status_code == 200
+        assert response.data["id"] == str(self.event2.event_id)  # normal response intact
+        assert response.data["formatted"]["format"] == "markdown"
+        assert "## Title" in response.data["formatted"]["content"]
+
+    def test_format_xml(self) -> None:
+        with override_options(FORMATTER_ON):
+            response = self.client.get(self._latest_url("?llmFormat=xml"))
+
+        assert response.status_code == 200
+        assert response.data["formatted"]["format"] == "xml"
+        assert "<title>" in response.data["formatted"]["content"]
+
+    def test_no_format_param_has_no_formatted_field(self) -> None:
+        with override_options(FORMATTER_ON):
+            response = self.client.get(self._latest_url())
+
+        assert response.status_code == 200
+        assert "formatted" not in response.data
+
+    def test_format_ignored_when_option_off(self) -> None:
+        # option defaults off -> ?format is inert, response unchanged
+        response = self.client.get(self._latest_url("?llmFormat=markdown"))
+
+        assert response.status_code == 200
+        assert "formatted" not in response.data
+
+    def test_invalid_format_returns_400(self) -> None:
+        with override_options(FORMATTER_ON):
+            response = self.client.get(self._latest_url("?llmFormat=banana"))
+
         assert response.status_code == 400

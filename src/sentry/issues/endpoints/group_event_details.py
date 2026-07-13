@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -39,6 +39,7 @@ from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.endpoints.project_event_details import wrap_event_response
+from sentry.issues.formatting.mixin import FormattableResponseMixin, format_event_response
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -127,10 +128,11 @@ def issue_search_query_to_conditions(
 
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
-class GroupEventDetailsEndpoint(GroupEndpoint):
+class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    formatter_adapter = staticmethod(format_event_response)
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -151,6 +153,17 @@ class GroupEventDetailsEndpoint(GroupEndpoint):
             IssueParams.ISSUE_ID,
             GlobalParams.ENVIRONMENT,
             EventParams.EVENT_ID_EXTENDED,
+            OpenApiParameter(
+                name="llmFormat",
+                location=OpenApiParameter.QUERY,
+                required=False,
+                type=str,
+                enum=["markdown", "xml"],
+                description=(
+                    "If set, adds a `formatted` field to the response with the event rendered "
+                    "as the requested format for LLM consumption."
+                ),
+            ),
         ],
         responses={
             200: inline_sentry_response_serializer(
