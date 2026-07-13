@@ -42,12 +42,15 @@ MAX_RUNS_PER_GROUP = 50
 NON_FAILING_CONCLUSIONS = frozenset({"success", "neutral", "skipped"})
 ABORTED_CONCLUSIONS = frozenset({"cancelled", "stale"})
 
-# Comment webhooks fold into ``participants`` only — no entry, no count.
+# Comment creations/edits fold into ``participants`` only — no entry, no count —
+# because their per-comment volume is exactly what this design sheds. A comment
+# *deletion* is different: it's a low-volume, human-only signal with no other
+# record (deleted comments are gone from the SCM at judge time), so it's kept as a
+# discrete entry, routed through the entry path by the caller rather than here.
 _COMMENT_EVENT_TYPES = frozenset(
     {
         PullRequestActivityType.COMMENT_CREATED,
         PullRequestActivityType.COMMENT_EDITED,
-        PullRequestActivityType.COMMENT_DELETED,
     }
 )
 
