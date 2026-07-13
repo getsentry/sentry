@@ -12,11 +12,12 @@ from django.db.models import F, Max, Q
 from django.utils import timezone
 from django.utils.functional import SimpleLazyObject
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.progress import PROGRESS_RESET_ACTIVITY_TYPES
+from sentry.issues.progress_state import IssueProgressState
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
@@ -272,11 +273,30 @@ def issue_activity_type_filter(activity_types: list[int], projects: Sequence[Pro
 
 
 def issue_progress_filter(progress_values: list[str], projects: Sequence[Project]) -> Q:
+    """Filters issues by their position in the resolution lifecycle:
+
+    identified -> assigned -> diagnosed -> fix_proposed -> fix_applied
     """
-    Filters issues by their position in the resolution lifecycle:
+    if projects and all(
+        features.has("projects:issue-stream-derived-progress", project) for project in projects
+    ):
+        return _issue_progress_filter_from_derived_data(progress_values)
+    return _issue_progress_filter_from_activity(progress_values, projects)
 
-      identified -> assigned -> diagnosed -> fix_proposed -> fix_applied
 
+def _issue_progress_filter_from_derived_data(progress_values: list[str]) -> Q:
+    """Reads progress from the materialized GroupDerivedData.progress column.
+    Groups without a derived row (or a null progress) are implicitly "identified"."""
+    q = Q(groupderiveddata__progress__in=progress_values)
+    if IssueProgressState.IDENTIFIED.value in progress_values:
+        q |= Q(groupderiveddata__isnull=True) | Q(groupderiveddata__progress__isnull=True)
+    return q
+
+
+def _issue_progress_filter_from_activity(
+    progress_values: list[str], projects: Sequence[Project]
+) -> Q:
+    """
     "diagnosed" and above are determined by seer/resolution activity types (see
     ISSUE_PROGRESS_TO_ACTIVITY_TYPES). A regression or manual unresolve resets an issue
     back, so only activities *after* the latest reset count.

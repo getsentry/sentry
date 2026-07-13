@@ -23,6 +23,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 
@@ -570,6 +571,45 @@ class TestProgressSort(PostgresSortTestBase):
         self.create_group_activity(group=self.groups[1], type=ActivityType.SEER_RCA_COMPLETED.value)
         assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
 
+    @with_feature("projects:issue-stream-derived-progress")
+    def test_reads_from_derived_data_when_flag_enabled(self):
+        # With the flag on, rank comes from GroupDerivedData.progress, not Activity.
+        # groups[0] would be fix_proposed from Activity, but its derived row says identified,
+        # so it must rank last.
+        self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_derived_data(group=self.groups[0], progress="identified")
+        self.create_group_derived_data(group=self.groups[1], progress="diagnosed")
+        self.create_group_derived_data(group=self.groups[2], progress="fix_applied")
+        assert self._query() == [self.groups[2], self.groups[1], self.groups[0]]
+
+    @with_feature("projects:issue-stream-derived-progress")
+    def test_derived_data_missing_row_defaults_to_identified(self):
+        # Only groups[0] has a derived row; the others default to identified and fall back
+        # to last_seen ordering (groups[2] newer than groups[1]).
+        self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
+        assert self._query() == [self.groups[0], self.groups[2], self.groups[1]]
+
+    def test_ignores_derived_data_when_flag_disabled(self):
+        # Flag off: rank comes from Activity, not the derived column. The derived rows claim
+        # the reverse order but Activity (groups[0] fix_proposed) must win.
+        self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_derived_data(group=self.groups[0], progress="identified")
+        self.create_group_derived_data(group=self.groups[1], progress="fix_applied")
+        assert self._query() == [self.groups[0], self.groups[2], self.groups[1]]
+
+    @with_feature("projects:issue-stream-derived-progress")
+    def test_last_progressed_at_breaks_ties(self):
+        # Both groups have the same rank but different last_progressed_at values;
+        # the more recently progressed group sorts first.
+        self.create_group_derived_data(
+            group=self.groups[0], progress="diagnosed", last_progressed_at=before_now(days=5)
+        )
+        self.create_group_derived_data(
+            group=self.groups[1], progress="diagnosed", last_progressed_at=before_now(days=1)
+        )
+        # groups[2] has no derived data -> identified (lowest rank), sorts last.
+        assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
+
 
 class TestDefaultPostgresSortStrategies(TestCase):
     def test_recommended_v2_registered(self):
@@ -591,7 +631,7 @@ class TestDefaultPostgresSortStrategies(TestCase):
         strategies = PostgresSnubaQueryExecutor().postgres_sort_strategies
         strategy = strategies["progress"]
         assert strategy.snuba_aggregations == ["last_seen"]
-        assert set(strategy.signal_resolvers) == {"progress_rank"}
+        assert set(strategy.signal_resolvers) == {"progress_rank", "last_progressed_at"}
         # progress maps to last_seen in sort_strategies so the chunked Snuba path has a
         # real aggregation to fall back to on candidate overflow.
         assert PostgresSnubaQueryExecutor.sort_strategies["progress"] == "last_seen"
