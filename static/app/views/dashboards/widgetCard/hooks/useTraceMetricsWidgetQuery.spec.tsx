@@ -8,7 +8,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {
-  useTraceMetricsHeatMapQuery,
+  useTraceMetricsHeatmapQuery,
   useTraceMetricsSeriesQuery,
   useTraceMetricsTableQuery,
 } from './useTraceMetricsWidgetQuery';
@@ -292,7 +292,7 @@ describe('useTraceMetricsTableQuery', () => {
   });
 });
 
-describe('useTraceMetricsHeatMapQuery', () => {
+describe('useTraceMetricsHeatmapQuery', () => {
   const organization = OrganizationFixture();
   // A narrow range keeps the hook on its single-request fast path (no chunking),
   // so these tests assert one unpinned `/events-heatmap/` request. Chunked
@@ -337,7 +337,7 @@ describe('useTraceMetricsHeatMapQuery', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useTraceMetricsHeatMapQuery({
+      useTraceMetricsHeatmapQuery({
         widget: heatmapWidget,
         organization,
         pageFilters,
@@ -362,7 +362,7 @@ describe('useTraceMetricsHeatMapQuery', () => {
     });
 
     renderHookWithProviders(() =>
-      useTraceMetricsHeatMapQuery({
+      useTraceMetricsHeatmapQuery({
         widget: heatmapWidget,
         organization,
         pageFilters,
@@ -396,7 +396,7 @@ describe('useTraceMetricsHeatMapQuery', () => {
     });
 
     renderHookWithProviders(() =>
-      useTraceMetricsHeatMapQuery({
+      useTraceMetricsHeatmapQuery({
         widget: misconfiguredWidget,
         organization,
         pageFilters,
@@ -418,7 +418,7 @@ describe('useTraceMetricsHeatMapQuery', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useTraceMetricsHeatMapQuery({
+      useTraceMetricsHeatmapQuery({
         widget: heatmapWidget,
         organization,
         pageFilters,
@@ -471,7 +471,7 @@ describe('useTraceMetricsHeatMapQuery', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useTraceMetricsHeatMapQuery({
+      useTraceMetricsHeatmapQuery({
         widget: durationWidget,
         organization,
         pageFilters,
