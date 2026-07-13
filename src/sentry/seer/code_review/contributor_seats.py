@@ -104,13 +104,14 @@ def track_contributor_seat(
     try:
         hostname = instance_hostname(integration)
     except Exception:
-        logger.info(
-            "scm.webhook.organization_contributor.seed_failed",
+        logger.warning(
+            "scm.webhook.organization_contributor.hostname_error",
             extra={
                 "provider": integration.provider,
                 "organization_id": organization.id,
                 "integration_id": integration.id,
             },
+            exc_info=True,
         )
         hostname = None
 
@@ -162,13 +163,14 @@ def record_contributor_action(
     try:
         hostname = instance_hostname(integration)
     except Exception:
-        logger.info(
-            "scm.webhook.organization_contributor.seed_failed",
+        logger.warning(
+            "scm.webhook.organization_contributor.hostname_error",
             extra={
                 "provider": integration.provider,
                 "organization_id": organization.id,
                 "integration_id": integration.id,
             },
+            exc_info=True,
         )
         hostname = None
 
