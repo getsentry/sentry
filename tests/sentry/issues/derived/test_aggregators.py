@@ -681,6 +681,79 @@ def test_pr_close_with_remaining_keeps_fix_proposed() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.PULL_REQUEST_MERGED,
+        GroupActionType.PULL_REQUEST_UNLINKED,
+    ],
+)
+def test_pr_merged_or_unlinked_demotes_when_no_open_prs_remain(action_type: int) -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                FakeEntry(
+                    type=action_type,
+                    data={"pull_request": 101, "has_other_open_prs": False},
+                ),
+            ],
+        )
+        == IssueProgressState.DIAGNOSED
+    )
+
+
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.PULL_REQUEST_MERGED,
+        GroupActionType.PULL_REQUEST_UNLINKED,
+    ],
+)
+def test_pr_merged_or_unlinked_with_remaining_keeps_fix_proposed(action_type: int) -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                FakeEntry(
+                    type=action_type,
+                    data={"pull_request": 101, "has_other_open_prs": True},
+                ),
+            ],
+        )
+        == IssueProgressState.FIX_PROPOSED
+    )
+
+
+def test_pr_reopened_restores_fix_proposed() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                _pr_closed(has_other=False),
+                FakeEntry(
+                    type=GroupActionType.PULL_REQUEST_REOPENED,
+                    data={"pull_request": 101},
+                ),
+            ],
+        )
+        == IssueProgressState.FIX_PROPOSED
+    )
+
+
 def test_pr_close_last_remaining_then_zero_demotes() -> None:
     assert (
         _run_for_feature(
