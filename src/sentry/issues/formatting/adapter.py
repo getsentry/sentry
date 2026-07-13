@@ -51,13 +51,22 @@ def _stacktrace(st: Any) -> Stacktrace | None:
     return Stacktrace(frames=frames)
 
 
+def _best_stacktrace(v: Mapping[str, Any]) -> Stacktrace | None:
+    # prefer the processed stacktrace; fall back to rawStacktrace when it has the frames
+    for key in ("stacktrace", "rawStacktrace"):
+        st = _stacktrace(v.get(key))
+        if st and st.frames:
+            return st
+    return None
+
+
 def _exception(v: Mapping[str, Any]) -> ExceptionDetails:
     mechanism = v.get("mechanism") or {}
     handled = mechanism.get("handled") if isinstance(mechanism, Mapping) else None
     return ExceptionDetails(
         type=v.get("type"),
         value=v.get("value"),
-        stacktrace=_stacktrace(v.get("stacktrace")),
+        stacktrace=_best_stacktrace(v),
         is_handled=handled,
     )
 
@@ -69,7 +78,7 @@ def _thread(v: Mapping[str, Any]) -> ThreadDetails:
         crashed=v.get("crashed"),
         current=v.get("current"),
         state=v.get("state"),
-        stacktrace=_stacktrace(v.get("stacktrace")),
+        stacktrace=_best_stacktrace(v),
     )
 
 
