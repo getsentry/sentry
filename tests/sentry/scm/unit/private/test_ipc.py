@@ -25,6 +25,7 @@ from sentry.scm.private.ipc import (
     deserialize_event,
     deserialize_pull_request_event,
     deserialize_pull_request_review_event,
+    deserialize_raw_event,
     exec_listener,
     produce_to_listeners,
     run_listener,
@@ -665,6 +666,25 @@ def test_serialize_deserialize_check_suite_event_no_conclusion() -> None:
 
     assert deserialized.check_suite["conclusion"] is None
     assert deserialized.check_suite["pull_request_ids"] == []
+
+
+def test_deserialize_github_check_suite_startup_failure() -> None:
+    event: SubscriptionEvent = {
+        "event": (
+            '{"action":"completed","check_suite":{"id":1,"status":"completed",'
+            '"conclusion":"startup_failure","pull_requests":[]}}'
+        ),
+        "event_type_hint": "check_suite",
+        "extra": {},
+        "received_at": 0,
+        "sentry_meta": [],
+        "type": "github",
+    }
+
+    parsed_event = deserialize_raw_event(event)
+
+    assert isinstance(parsed_event, CheckSuiteEvent)
+    assert parsed_event.check_suite["conclusion"] == "failure"
 
 
 def test_serialize_deserialize_pull_request_review_event() -> None:

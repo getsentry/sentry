@@ -115,12 +115,14 @@ const ActivityLineTitleText = styled(Text)`
 `;
 
 const ActivityLineDetails = styled('span')`
-  display: contents;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
   line-height: 1.4;
   overflow-wrap: anywhere;
   word-break: break-word;
+  /* Trim the line box so the text lines up with the title and timestamp. */
+  text-box-edge: text text;
+  text-box-trim: trim-both;
 `;
 
 const ActivityLineMeta = styled('span')`

@@ -1,5 +1,5 @@
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -168,7 +168,7 @@ export function BuildVcsInfo({buildDetailsData}: BuildVcsInfoProps) {
       width="100%"
       marginBottom={{'screen:xs': 'lg', 'screen:lg': '0'}}
     >
-      <Flex direction="column" gap="sm">
+      <Stack gap="sm">
         <Text bold>{t('Missing Git metadata')}</Text>
         <Text variant="muted" size="sm">
           {t('Integrate with CI to automate uploading, diffing, and alerting')}
@@ -180,7 +180,7 @@ export function BuildVcsInfo({buildDetailsData}: BuildVcsInfoProps) {
         >
           {t('View CI setup docs')}
         </LinkButton>
-      </Flex>
+      </Stack>
     </Container>
   );
 }

@@ -1,6 +1,6 @@
 import {useTheme} from '@emotion/react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
@@ -41,7 +41,7 @@ function BillingInformation({subscription}: Props) {
       <SettingsPageHeader title={t('Billing Information')} />
       {hasBillingPerms ? (
         subscription ? (
-          <Flex direction="column" gap="xl">
+          <Stack gap="xl">
             <CreditCardPanel
               organization={organization}
               subscription={subscription}
@@ -57,7 +57,7 @@ function BillingInformation({subscription}: Props) {
               shouldExpandInitially
               maxPanelWidth={maxPanelWidth}
             />
-          </Flex>
+          </Stack>
         ) : (
           <LoadingIndicator />
         )

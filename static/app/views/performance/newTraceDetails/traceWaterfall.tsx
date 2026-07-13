@@ -13,7 +13,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -683,7 +683,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
   }
 
   return (
-    <Flex direction="column" flex={1}>
+    <Stack flex={1}>
       <Flex gap="md">
         <TraceSearchInput onTraceSearch={onTraceSearch} />
         <TraceLinksNavigation
@@ -761,7 +761,7 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           onTabScrollToNode={onTabScrollToNode}
         />
       </TraceGrid>
-    </Flex>
+    </Stack>
   );
 }
 

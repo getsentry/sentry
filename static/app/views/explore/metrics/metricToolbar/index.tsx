@@ -2,7 +2,7 @@ import {Fragment, useCallback} from 'react';
 import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
@@ -110,8 +110,7 @@ export function MetricToolbar({
     : `${dndGrid}auto 1fr ${removeMetric}`;
 
   return (
-    <Flex
-      direction="column"
+    <Stack
       gap="md"
       width="100%"
       paddingLeft="xl"
@@ -196,6 +195,6 @@ export function MetricToolbar({
           disabled={isVisualizeEquation(visualize) && hasUnresolvedMetrics}
         />
       )}
-    </Flex>
+    </Stack>
   );
 }

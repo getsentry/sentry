@@ -408,7 +408,7 @@ function InnerSpendLimitSettings({
       category => !addOnCategories.includes(category)
     );
     inputs = (
-      <Flex direction="column" gap="xl" padding="0 xl xl">
+      <Stack gap="xl" padding="0 xl xl">
         <Container>
           {baseCategories.map((category, index) => {
             const reserved = currentReserved[category] ?? 0;
@@ -561,12 +561,12 @@ function InnerSpendLimitSettings({
             {t('* starting rate')}
           </Text>
         </Container>
-      </Flex>
+      </Stack>
     );
   } else {
     inputs = (
       <Fragment>
-        <Flex direction="column" gap="lg" padding="0 xl sm">
+        <Stack gap="lg" padding="0 xl sm">
           <SpendLimitInput
             activePlan={activePlan}
             budgetMode={OnDemandBudgetMode.SHARED}
@@ -582,7 +582,7 @@ function InnerSpendLimitSettings({
               )}
             </Text>
           </Container>
-        </Flex>
+        </Stack>
         <SharedSpendLimitPriceTable
           activePlan={activePlan}
           currentReserved={currentReserved}
@@ -594,7 +594,7 @@ function InnerSpendLimitSettings({
   }
 
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       <Container padding="xl xl 0">
         <Heading as="h2" size="lg">
           {tct('Monthly spending [limitTerm]', {
@@ -607,7 +607,7 @@ function InnerSpendLimitSettings({
         </Heading>
       </Container>
       {inputs}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -666,7 +666,7 @@ export function SpendLimitSettings({
   subscription,
 }: SpendLimitSettingsProps) {
   return (
-    <Flex direction="column" gap="sm">
+    <Stack gap="sm">
       {header}
       <Grid gap="2xl">
         <Text variant="muted">
@@ -702,7 +702,7 @@ export function SpendLimitSettings({
           {footer}
         </InnerContainer>
       </Grid>
-    </Flex>
+    </Stack>
   );
 }
 

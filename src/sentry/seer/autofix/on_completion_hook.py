@@ -511,7 +511,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 # if we have CI failure feedback in the queue but our last iteration
                 # updated the code for that PR, we should filter it out and see if it
                 # fails again
-                cls._consume_queued_feedback(organization, run_id, group)
+                cls._consume_queued_feedback(organization, run_id)
             return
 
         if stopping_point is None or reached_stopping_point:
@@ -576,15 +576,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         )
 
     @classmethod
-    def _consume_queued_feedback(
-        cls, organization: Organization, run_id: int, group: Group
-    ) -> None:
+    def _consume_queued_feedback(cls, organization: Organization, run_id: int) -> None:
         """Drain any feedback enqueued while the iteration was running."""
         consume_queued_autofix_feedback.apply_async(
             kwargs={
                 "run_id": run_id,
                 "organization_id": organization.id,
-                "group_id": group.id,
             }
         )
 

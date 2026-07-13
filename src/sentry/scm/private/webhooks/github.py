@@ -24,8 +24,11 @@ GitHubCheckConclusion = Literal[
     "skipped",
     "timed_out",
     "action_required",
+    "startup_failure",
     "stale",
 ]
+
+GITHUB_CHECK_SUITE_CONCLUSION_MAP = {**GITHUB_CONCLUSION_MAP, "startup_failure": "failure"}
 
 from sentry.scm.types import (
     CheckRunEvent,
@@ -221,7 +224,9 @@ def deserialize_github_check_suite_event(event: SubscriptionEvent) -> CheckSuite
     pull_request_ids = [str(pr.number) for pr in e.check_suite.pull_requests]
     status = GITHUB_STATUS_MAP.get(e.check_suite.status, "pending")
     conclusion = (
-        GITHUB_CONCLUSION_MAP.get(e.check_suite.conclusion) if e.check_suite.conclusion else None
+        GITHUB_CHECK_SUITE_CONCLUSION_MAP.get(e.check_suite.conclusion)
+        if e.check_suite.conclusion
+        else None
     )
 
     return CheckSuiteEvent(

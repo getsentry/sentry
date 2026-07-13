@@ -154,7 +154,7 @@ export function NewWelcomeUI(props: StepProps) {
                 </Text>
               </Stack>
             ) : (
-              <Flex direction="column" gap="sm" paddingBottom="2xl">
+              <Stack gap="sm" paddingBottom="2xl">
                 <Container>
                   <Heading as="h1" density="comfortable">
                     {t('Welcome to Sentry')}
@@ -165,7 +165,7 @@ export function NewWelcomeUI(props: StepProps) {
                     {t("Your code is probably broken. Let's fix it faster.")}
                   </Text>
                 </Container>
-              </Flex>
+              </Stack>
             )}
 
             {hasScmOnboarding ? null : (

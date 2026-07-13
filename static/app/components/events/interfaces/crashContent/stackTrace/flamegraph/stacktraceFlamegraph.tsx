@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
@@ -71,7 +71,7 @@ export function StacktraceFlamegraph({frames}: StacktraceFlamegraphProps) {
 
   return (
     <FlamegraphThemeProvider>
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         <FlamegraphLegend />
         <FlamegraphContainer>
           <FlamegraphPreview
@@ -80,7 +80,7 @@ export function StacktraceFlamegraph({frames}: StacktraceFlamegraphProps) {
             relativeStopTimestamp={duration}
           />
         </FlamegraphContainer>
-      </Flex>
+      </Stack>
     </FlamegraphThemeProvider>
   );
 }
