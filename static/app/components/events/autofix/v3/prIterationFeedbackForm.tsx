@@ -3,7 +3,7 @@ import {useRef, useState} from 'react';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -68,7 +68,7 @@ export function PrIterationFeedbackForm({
   };
 
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <Flex gap="xs" align="center">
         <Text>{prompt}</Text>
         <FeatureBadge type="alpha" />
@@ -112,6 +112,6 @@ export function PrIterationFeedbackForm({
           {isSubmitting ? t('Submitting feedback') : t('Submit')}
         </Button>
       </Flex>
-    </Flex>
+    </Stack>
   );
 }

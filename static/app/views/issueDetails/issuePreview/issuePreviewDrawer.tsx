@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -102,7 +102,7 @@ function IssuePreviewContent() {
   return (
     <Fragment>
       <Container paddingBottom="lg" borderBottom="muted">
-        <Flex direction="column" gap="xs">
+        <Stack gap="xs">
           <div>
             <Tooltip
               title={primaryTitle}
@@ -122,7 +122,7 @@ function IssuePreviewContent() {
             />
           </div>
           <GroupStatusSubtitle group={group} project={project} />
-        </Flex>
+        </Stack>
       </Container>
       <Flex
         paddingTop="lg"

@@ -1155,7 +1155,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "dynamic-sampling-schedule-per-org-calculations": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
-        "schedule": timedelta(minutes=1),
+        "schedule": timedelta(seconds=10),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",

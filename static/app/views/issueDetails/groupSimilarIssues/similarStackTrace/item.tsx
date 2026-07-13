@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {openDiffModal} from 'sentry/actionCreators/modal';
 import {Count} from 'sentry/components/count';
@@ -65,10 +65,10 @@ export function SimilarStackTraceItem({
     >
       <IssueCell>
         <Checkbox id={issue.id} value={issue.id} checked={checked} onChange={() => {}} />
-        <Flex direction="column" minWidth="0" flex="1">
+        <Stack minWidth="0" flex="1">
           <GroupHeaderRow data={issue} source="similar-issues" />
           <GroupMetaRow data={{...issue, lastSeen: ''}} />
-        </Flex>
+        </Stack>
       </IssueCell>
 
       <CenteredCell>
@@ -126,10 +126,10 @@ export function SimilarStackTraceItemSkeleton({
     <SimpleTable.Row>
       <IssueCell>
         <Placeholder height="16px" width="16px" />
-        <Flex direction="column" gap="xs" flex="1" minWidth="0">
+        <Stack gap="xs" flex="1" minWidth="0">
           <Placeholder height="16px" width="60%" />
           <Placeholder height="12px" width="40%" />
-        </Flex>
+        </Stack>
       </IssueCell>
       <CenteredCell>
         <Placeholder height="16px" width="32px" />

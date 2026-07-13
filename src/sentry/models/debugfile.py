@@ -21,6 +21,7 @@ from typing import IO, TYPE_CHECKING, Any, BinaryIO, ClassVar
 from django.db import models
 from django.db.models import ProtectedError, Q
 from django.db.models.functions import Now
+from django.http import HttpRequest
 from django.utils import timezone
 from objectstore_client import RequestError
 from objectstore_client.multipart import CompletePart, MultipartUpload
@@ -42,7 +43,7 @@ from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
-from sentry.objectstore import get_debug_files_session
+from sentry.objectstore import get_debug_files_session, get_download_redirect_url
 from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.zip import safe_extract_zip
@@ -277,6 +278,22 @@ class ProjectDebugFile(Model):
         if self.file is not None:
             return self.file.getfile()
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
+
+    def get_objectstore_presigned_url(self, request: HttpRequest) -> str:
+        """
+        Returns the URL that `request` should be redirected to in order to download this debug file
+        directly from Objectstore.
+
+        This function should only be called if this debug file is Objectstore-backed, it will raise an exception otherwise.
+        """
+        from sentry.models.project import Project
+
+        if self.storage_path is None:
+            raise ValueError("debug file is not stored in Objectstore")
+
+        session = self._get_objectstore_session()
+        org_id = Project.objects.get_from_cache(id=self.project_id).organization_id
+        return get_download_redirect_url(request, session, org_id, self.storage_path)
 
     def save_to(self, path: str) -> None:
         if self.storage_path is not None:

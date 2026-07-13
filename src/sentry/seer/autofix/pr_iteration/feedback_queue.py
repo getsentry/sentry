@@ -4,6 +4,7 @@ import logging
 
 from pydantic import BaseModel, ValidationError
 
+from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.types import Feedback
 from sentry.utils.redis import redis_clusters
@@ -25,14 +26,26 @@ def _feedback_queue_key(run_id: int) -> str:
     return f"autofix:feedback:{run_id}"
 
 
-def enqueue_autofix_feedback(
+def try_enqueue_autofix_feedback(
     *,
     run_id: int,
     organization_id: int,
     group_id: int,
     feedback: Feedback,
     referrer: AutofixReferrer,
-) -> None:
+    run_state: SeerRunState,
+) -> bool:
+    if not feedback.source.should_queue(run_state):
+        logger.info(
+            "autofix.feedback_queue.skipped_stale_feedback",
+            extra={
+                "organization_id": organization_id,
+                "group_id": group_id,
+                "run_id": run_id,
+            },
+        )
+        return False
+
     redis = redis_clusters.get(_REDIS_CLUSTER)
     key = _feedback_queue_key(run_id)
     redis.rpush(
@@ -45,6 +58,7 @@ def enqueue_autofix_feedback(
         ).json(),
     )
     redis.expire(key, _QUEUE_TTL_SECONDS)
+    return True
 
 
 def _parse_queued_item(raw_item: str) -> QueuedAutofixFeedback | None:
