@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {Button, ButtonBar, type ButtonProps} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 
 import {DropdownButton} from 'sentry/components/dropdownButton';
@@ -10,7 +10,7 @@ import type {
   ExternalIssueAction,
   ExternalIssueIntegration,
 } from 'sentry/components/group/externalIssuesList/hooks/types';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Theme} from 'sentry/utils/theme';
@@ -242,22 +242,85 @@ export function IssueTrackerActionDropdown({
   }));
   const issueTrackerActions = issueTrackerActionGroups.flatMap(group => group.actions);
 
+  const menuItems: MenuItemProps[] = [
+    ...issueTrackerActionGroups.map<MenuItemProps>(({integration, actions}) => ({
+      key: integration.key,
+      children: actions.map(
+        ({action, details, isDisabled, label, onAction, textValue, tooltipTitle}) => ({
+          key: `${integration.key}-${action.id}`,
+          label,
+          textValue,
+          details: isDisabled ? tooltipTitle : details,
+          leadingItems: (
+            <IssueTrackerIcon style={{transform: 'translateY(3px)'}}>
+              {integration.displayIcon}
+            </IssueTrackerIcon>
+          ),
+          disabled: isDisabled,
+          onAction,
+        })
+      ),
+    })),
+    {
+      key: 'custom-integration',
+      children: [
+        {
+          key: 'create-custom-integration',
+          label: (
+            <Text as="span" bold>
+              {t('Add your own tracker…')}
+            </Text>
+          ),
+          textValue: t('Add your own tracker'),
+          leadingItems: (
+            <IssueTrackerIcon style={{transform: 'translateY(3px)'}}>
+              <IconAdd size="sm" />
+            </IssueTrackerIcon>
+          ),
+          to: `/settings/${organization.slug}/developer-settings/new-internal/?referrer=link_issue_menu`,
+          onAction: () =>
+            trackAnalytics('integrations.link_issue_menu_custom_integration_clicked', {
+              organization,
+              view: 'issue_details',
+            }),
+        },
+      ],
+    },
+  ];
+
   if (issueTrackerActions.length === 1) {
     const {isDisabled, onAction, tooltipTitle} = issueTrackerActions[0]!;
 
+    const BarComponent = fullWidth ? FullWidthSplitButtonBar : ButtonBar;
     const ButtonComponent = fullWidth ? FullWidthButton : Button;
+    const ChevronComponent = fullWidth ? FullWidthSplitChevron : Button;
 
     return (
-      <ButtonComponent
-        disabled={isDisabled}
-        icon={<HeaderIssueTrackerIcon />}
-        onClick={onAction}
-        size="zero"
-        tooltipProps={{title: tooltipTitle}}
-        variant="transparent"
-      >
-        {issueTrackerActionLabel}
-      </ButtonComponent>
+      <BarComponent columns={fullWidth ? '1fr auto' : undefined}>
+        <ButtonComponent
+          disabled={isDisabled}
+          icon={<HeaderIssueTrackerIcon />}
+          onClick={onAction}
+          size="zero"
+          tooltipProps={{title: tooltipTitle}}
+          variant="transparent"
+        >
+          {issueTrackerActionLabel}
+        </ButtonComponent>
+        <DropdownMenu
+          maxMenuHeight={ISSUE_TRACKER_MENU_MAX_HEIGHT}
+          trigger={(triggerProps, isOpen) => (
+            <ChevronComponent
+              {...triggerProps}
+              aria-label={t('More link options')}
+              icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+              size="zero"
+              variant="transparent"
+            />
+          )}
+          items={menuItems}
+        />
+      </BarComponent>
     );
   }
 
@@ -282,24 +345,7 @@ export function IssueTrackerActionDropdown({
           </DropdownButtonComponent>
         );
       }}
-      items={issueTrackerActionGroups.map<MenuItemProps>(({integration, actions}) => ({
-        key: integration.key,
-        children: actions.map(
-          ({action, details, isDisabled, label, onAction, textValue, tooltipTitle}) => ({
-            key: `${integration.key}-${action.id}`,
-            label,
-            textValue,
-            details: isDisabled ? tooltipTitle : details,
-            leadingItems: (
-              <IssueTrackerIcon style={{transform: 'translateY(3px)'}}>
-                {integration.displayIcon}
-              </IssueTrackerIcon>
-            ),
-            disabled: isDisabled,
-            onAction,
-          })
-        ),
-      }))}
+      items={menuItems}
     />
   );
 }
@@ -351,6 +397,17 @@ const FullWidthButton = styled(Button)`
 
 const FullWidthDropdownButton = styled(DropdownButton)`
   ${fullWidthButtonStyles}
+`;
+
+const FullWidthSplitButtonBar = styled(ButtonBar)`
+  width: 100%;
+`;
+
+const FullWidthSplitChevron = styled(Button)`
+  min-height: 34px;
+  padding: 0 ${p => p.theme.space.sm};
+  border: 1px dashed ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
 `;
 
 const IssueTrackerIcon = styled('span')`

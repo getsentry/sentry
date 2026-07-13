@@ -19,8 +19,11 @@ import {
 import {SentryAppComponentsStore} from 'sentry/stores/sentryAppComponentsStore';
 import {SentryAppInstallationStore} from 'sentry/stores/sentryAppInstallationsStore';
 import type {GroupIntegration} from 'sentry/types/integrations';
+import {trackAnalytics} from 'sentry/utils/analytics';
 
 import {ExternalIssueSidebarList} from './externalIssueSidebarList';
+
+jest.mock('sentry/utils/analytics');
 
 describe('ExternalIssueSidebarList', () => {
   const organization = OrganizationFixture();
@@ -239,12 +242,15 @@ describe('ExternalIssueSidebarList', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Link issue'}));
 
     const menu = await screen.findByRole('menu');
-    expect(within(menu).getAllByRole('separator')).toHaveLength(2);
+    expect(within(menu).getAllByRole('separator')).toHaveLength(3);
     expect(await screen.findByRole('menuitemradio', {name: 'Asana'})).toBeInTheDocument();
     expect(
       await screen.findByRole('menuitemradio', {name: 'GitHub'})
     ).toBeInTheDocument();
     expect(await screen.findByRole('menuitemradio', {name: 'Jira'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('menuitemradio', {name: /Add your own tracker/})
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('menuitemradio', {name: 'Create Issue'})
     ).not.toBeInTheDocument();
@@ -274,6 +280,39 @@ describe('ExternalIssueSidebarList', () => {
     await waitFor(() => {
       expect(configMock).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('should show a custom integration CTA in the link issue menu', async () => {
+    mockExternalLinkRequests([
+      GitHubIntegrationFixture({
+        id: '1',
+        status: 'active',
+        externalIssues: [],
+        name: 'GitHub sentry',
+      }),
+    ]);
+
+    render(<ExternalIssueSidebarList event={event} group={group} />);
+
+    // A single action keeps the direct button and gains a chevron for the menu
+    expect(await screen.findByRole('button', {name: 'Link issue'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'More link options'}));
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'GitHub'})
+    ).toBeInTheDocument();
+
+    const cta = screen.getByRole('menuitemradio', {name: /Add your own tracker/});
+    expect(cta).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/developer-settings/new-internal/?referrer=link_issue_menu`
+    );
+
+    await userEvent.click(cta);
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'integrations.link_issue_menu_custom_integration_clicked',
+      expect.objectContaining({view: 'issue_details'})
+    );
   });
 
   it('should render linked issues as single-line full-width rows', async () => {

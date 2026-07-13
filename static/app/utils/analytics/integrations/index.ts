@@ -102,6 +102,7 @@ export type IntegrationEventParameters = {
   'integrations.installation_start': IntegrationInstallEventParams;
   'integrations.integration_tab_clicked': SingleIntegrationEventParams;
   'integrations.integration_viewed': SingleIntegrationEventParams;
+  'integrations.link_issue_menu_custom_integration_clicked': IntegrationView;
   'integrations.plugin_add_to_project_clicked': SingleIntegrationEventParams;
   'integrations.request_install': SingleIntegrationEventParams;
   'integrations.resolve_now_clicked': SingleIntegrationEventParams;
@@ -143,6 +144,8 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
     'Integrations: Directory Internal Integration Banner Clicked',
   'integrations.external_issue_custom_integration_cta_clicked':
     'Integrations: External Issue Custom Integration CTA Clicked',
+  'integrations.link_issue_menu_custom_integration_clicked':
+    'Integrations: Link Issue Menu Custom Integration Clicked',
   'integrations.serverless_functions_viewed': 'Integrations: Serverless Functions Viewed',
   'integrations.installation_input_value_changed':
     'Integrations: Installation Input Value Changed',
