@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {useCallback, useMemo, useRef} from 'react';
 import type {Location} from 'history';
 
+import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
@@ -22,13 +23,6 @@ interface ExploreLocationQueryParamsProviderProps {
   frozenParams?: Partial<ReadableQueryParamsOptions>;
   // Runs before navigation, e.g. to persist params to local storage.
   onSetWritableQueryParams?: (writableQueryParams: WritableQueryParams) => void;
-}
-
-function isSameLocation(a: Location, b: Location): boolean {
-  if (a.pathname !== b.pathname) {
-    return false;
-  }
-  return JSON.stringify(a.query) === JSON.stringify(b.query);
 }
 
 export function ExploreLocationQueryParamsProvider({
@@ -68,11 +62,7 @@ export function ExploreLocationQueryParamsProvider({
         writableQueryParams
       );
 
-      // Only navigate if the target URL is different from current location
-      // This prevents duplicate history entries which can cause browser back button issues
-      if (!isSameLocation(locationRef.current, target)) {
-        navigate(target);
-      }
+      navigateIfQueryChanged(navigate, locationRef.current, target);
     },
     [navigate, getTargetWithReadableQueryParams, onSetWritableQueryParams]
   );
