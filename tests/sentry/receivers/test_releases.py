@@ -425,6 +425,21 @@ class PullRequestClosedSignalTest(TestCase):
         self.pull_request.state = state
         self.pull_request.save()
 
+    def _link_pr(self, group: Group, key: str, state: str | None) -> PullRequest:
+        pr = self.create_pull_request(
+            repository_id=self.repo.id, organization_id=self.organization.id, key=key
+        )
+        if state is not None:
+            PullRequest.objects.filter(id=pr.id).update(state=state)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=pr.id,
+        )
+        return pr
+
     def test_closed_emits_activity(self) -> None:
         self._save_with_state(PullRequestLifecycleState.CLOSED)
 
@@ -432,7 +447,84 @@ class PullRequestClosedSignalTest(TestCase):
             group=self.group, type=ActivityType.PULL_REQUEST_CLOSED.value
         )
         assert activity.ident == str(self.pull_request.id)
-        assert activity.data == {"pull_request": self.pull_request.id}
+        assert activity.data == {
+            "pull_request": self.pull_request.id,
+            "has_other_open_prs": False,
+        }
+
+    def test_open_sibling_pr_counts_as_remaining(self) -> None:
+        self._link_pr(self.group, key="2", state=PullRequestLifecycleState.OPEN)
+
+        self._save_with_state(PullRequestLifecycleState.CLOSED)
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.PULL_REQUEST_CLOSED.value
+        )
+        assert activity.data["has_other_open_prs"] is True
+
+    def test_null_state_sibling_counts_as_remaining(self) -> None:
+        self._link_pr(self.group, key="2", state=None)
+
+        self._save_with_state(PullRequestLifecycleState.CLOSED)
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.PULL_REQUEST_CLOSED.value
+        )
+        assert activity.data["has_other_open_prs"] is True
+
+    def test_merged_sibling_does_not_count_as_remaining(self) -> None:
+        self._link_pr(self.group, key="2", state=PullRequestLifecycleState.MERGED)
+
+        self._save_with_state(PullRequestLifecycleState.CLOSED)
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.PULL_REQUEST_CLOSED.value
+        )
+        assert activity.data["has_other_open_prs"] is False
+
+    def test_last_open_pr_closing_reports_zero_remaining(self) -> None:
+        other = self._link_pr(self.group, key="2", state=PullRequestLifecycleState.OPEN)
+
+        # First PR closes while the second is still open.
+        self._save_with_state(PullRequestLifecycleState.CLOSED)
+        first_activity = Activity.objects.get(
+            group=self.group,
+            type=ActivityType.PULL_REQUEST_CLOSED.value,
+            ident=str(self.pull_request.id),
+        )
+        assert first_activity.data["has_other_open_prs"] is True
+
+        # The second (and last) PR closes -> nothing open remains.
+        other.state = PullRequestLifecycleState.CLOSED
+        other.save()
+        second_activity = Activity.objects.get(
+            group=self.group,
+            type=ActivityType.PULL_REQUEST_CLOSED.value,
+            ident=str(other.id),
+        )
+        assert second_activity.data["has_other_open_prs"] is False
+
+    def test_per_group_counts_when_pr_links_two_groups(self) -> None:
+        other_group = self.create_group(project=self.project)
+        # The closing PR also links the second group.
+        GroupLink.objects.create(
+            group_id=other_group.id,
+            project_id=other_group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pull_request.id,
+        )
+        # Only the second group has another open PR.
+        self._link_pr(other_group, key="2", state=PullRequestLifecycleState.OPEN)
+
+        self._save_with_state(PullRequestLifecycleState.CLOSED)
+
+        first = Activity.objects.get(group=self.group, type=ActivityType.PULL_REQUEST_CLOSED.value)
+        second = Activity.objects.get(
+            group=other_group, type=ActivityType.PULL_REQUEST_CLOSED.value
+        )
+        assert first.data["has_other_open_prs"] is False
+        assert second.data["has_other_open_prs"] is True
 
     def test_merged_does_not_emit_activity(self) -> None:
         self._save_with_state(PullRequestLifecycleState.MERGED)
