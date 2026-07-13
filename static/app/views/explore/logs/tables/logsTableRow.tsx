@@ -29,6 +29,7 @@ import type {Organization} from 'sentry/types/organization';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {toSplicedSorted} from 'sentry/utils/array/toSplicedSorted';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -738,16 +739,17 @@ function LogRowDetails({
               </DetailsBody>
               <LogAttributeTreeWrapper>
                 <AttributesTree<RendererExtra>
-                  attributes={[
-                    ...data.attributes.filter(
+                  attributes={toSplicedSorted(
+                    data.attributes.filter(
                       attribute => !HiddenLogDetailFields.includes(attribute.name)
                     ),
                     {
                       name: OurLogKnownFieldKey.TIMESTAMP,
                       type: 'str',
                       value: dataRow[OurLogKnownFieldKey.TIMESTAMP],
-                    } as const,
-                  ].sort((a, b) => a.name.localeCompare(b.name))}
+                    },
+                    (a, b) => a.name.localeCompare(b.name)
+                  )}
                   getCustomActions={getActions}
                   getAdjustedAttributeKey={adjustAliases}
                   renderers={LogAttributesRendererMap}
