@@ -51,8 +51,8 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
     current = state[STATUS]
 
     match entry.action:
-        case ReconcileStatusAction() as action:
-            new_status = IssueStatus(action.status)
+        case ReconcileStatusAction(status=raw_status):
+            new_status = IssueStatus(raw_status)
             if new_status != current:
                 return emit(STATUS.value(new_status))
         case ResolveAction() | ArchiveAction() if current == IssueStatus.OPEN:
