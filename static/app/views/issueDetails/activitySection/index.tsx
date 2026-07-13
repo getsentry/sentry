@@ -21,11 +21,11 @@ import {uniqueId} from 'sentry/utils/guid';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
+import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import {
-  ActivityLine,
   ActivityLineNote,
   isActivityNote,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
@@ -77,12 +77,7 @@ function TimelineItem({
     }
 
     return (
-      <ActivityLine
-        item={item}
-        group={group}
-        inputVariant={inputVariant}
-        timestampUnitStyle={timestampUnitStyle}
-      />
+      <ActivityLine item={item} group={group} timestampUnitStyle={timestampUnitStyle} />
     );
   }
 
@@ -431,6 +426,8 @@ const ActivityLineList = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
+  container-name: activity-list;
+  container-type: inline-size;
 
   &::before {
     content: '';
