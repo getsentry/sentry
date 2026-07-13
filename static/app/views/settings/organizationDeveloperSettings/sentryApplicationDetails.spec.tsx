@@ -201,6 +201,29 @@ describe('Sentry Application Details', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('requires a webhook URL to save enabled subscriptions', async () => {
+      createAppRequest = MockApiClient.addMockResponse({
+        url: '/sentry-apps/',
+        method: 'POST',
+        body: [],
+      });
+
+      renderComponent();
+
+      await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Issue & Event'}),
+        'Read'
+      );
+      await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+      expect(
+        await screen.findByText('This field is required when webhook events are enabled')
+      ).toBeInTheDocument();
+      expect(createAppRequest).not.toHaveBeenCalled();
+    });
+
     it('notes the payload transform when the URL fires a Claude routine', async () => {
       render(<SentryApplicationDetails />, {
         initialRouterConfig,
