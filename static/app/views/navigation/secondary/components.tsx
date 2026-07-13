@@ -33,8 +33,8 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {LeadingGraphic} from '@sentry/scraps/leadingGraphic';
 import {Link, type LinkProps} from '@sentry/scraps/link';
+import {ProjectsSavedBadge} from '@sentry/scraps/projectsSavedBadge';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
@@ -495,7 +495,7 @@ interface SecondaryNavigationProjectIconProps {
 
 function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconProps) {
   return (
-    // Keep the 18×18 nav-specific outer Stack; LeadingGraphic renders at 16×16 inside it.
+    // Keep the 18×18 nav-specific outer Stack; ProjectsSavedBadge renders at 16×16 inside it.
     <Stack
       flexShrink={0}
       justify="center"
@@ -506,8 +506,7 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
       data-project-icon
       aria-hidden="true"
     >
-      <LeadingGraphic
-        variant="badge-project"
+      <ProjectsSavedBadge
         projectPlatforms={props.projectPlatforms}
         allProjects={props.allProjects}
       />

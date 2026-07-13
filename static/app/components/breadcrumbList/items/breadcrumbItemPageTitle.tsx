@@ -3,13 +3,13 @@ import {Fragment} from 'react';
 import type {ButtonProps, LinkButtonProps} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
-import type {LeadingGraphicProps} from '@sentry/scraps/leadingGraphic';
 import type {LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {BreadcrumbCopyActionProps} from 'sentry/components/breadcrumbList/actions/breadcrumbCopyAction';
 import type {BreadcrumbMenuActionProps} from 'sentry/components/breadcrumbList/actions/breadcrumbMenuAction';
+import {BreadcrumbLeadingSlot} from 'sentry/components/breadcrumbList/items/breadcrumbLeadingSlot';
 import {IconChevron} from 'sentry/icons';
 
 /**
@@ -83,7 +83,11 @@ export interface BreadcrumbItemPageTitleProps {
    * custom tooltip (e.g. an issue short-id).
    */
   labelTooltip?: boolean | React.ReactNode;
-  leadingGraphic?: React.ReactElement<LeadingGraphicProps>;
+  /**
+   * Decorative 16×16 leading graphic — a `ProjectsSavedBadge`, avatar, or icon.
+   * Rendered aria-hidden inside a fixed-size slot; the label carries the meaning.
+   */
+  leadingGraphic?: React.ReactNode;
   /** Structured prev/next navigation rendered before the label. */
   pagination?: BreadcrumbItemPaginationProps;
   /** Trailing action slot — bounded to the component's compound parts. */
@@ -133,7 +137,7 @@ export function BreadcrumbItemPageTitle({
           </Tooltip>
         </Flex>
       )}
-      {leadingGraphic}
+      {leadingGraphic && <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>}
       {/* style={{minWidth: 0}} unblocks the Tooltip's wrapper <span> so the label
           can shrink. The visible-width floor lives on the outer Flex above. */}
       <Tooltip title={tooltipTitle} disabled={tooltipDisabled} style={{minWidth: 0}}>

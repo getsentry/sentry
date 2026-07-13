@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {LeadingGraphic} from '@sentry/scraps/leadingGraphic';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -95,17 +94,10 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
         type: 'page-title',
         props: {
           label: getShortEventId(replayRecord.id),
-          leadingGraphic: (
-            <LeadingGraphic
-              variant="avatar"
-              avatar={
-                project ? (
-                  <ProjectBadge disableLink project={project} avatarSize={16} hideName />
-                ) : (
-                  <Placeholder width="16px" height="16px" />
-                )
-              }
-            />
+          leadingGraphic: project ? (
+            <ProjectBadge disableLink project={project} avatarSize={16} hideName />
+          ) : (
+            <Placeholder width="16px" height="16px" />
           ),
           pagination: {
             previous: {

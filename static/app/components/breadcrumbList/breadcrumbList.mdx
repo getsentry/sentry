@@ -8,7 +8,7 @@ resources:
   figma: https://www.figma.com/design/a638AEl7pFxj29zMODCiOB/Specs--Page-Frame-v1?node-id=1198-17420
 ---
 
-import {LeadingGraphic} from '@sentry/scraps/leadingGraphic';
+import {ProjectsSavedBadge} from '@sentry/scraps/projectsSavedBadge';
 
 import {BreadcrumbList} from 'sentry/components/breadcrumbList';
 import {IconEllipsis, IconGlobe, IconStar} from 'sentry/icons';
@@ -136,10 +136,10 @@ A `CompactSelect` trigger used in settings pages where the user can switch betwe
 ## Leading graphic
 
 ```tsx
-import {LeadingGraphic} from '@sentry/scraps/leadingGraphic';
+import {ProjectsSavedBadge} from '@sentry/scraps/projectsSavedBadge';
 ```
 
-All item types accept an optional `leadingGraphic` prop typed as `React.ReactElement<LeadingGraphicProps>`. Pass a `<LeadingGraphic />` element — a project badge, Sentry icon, or avatar. See the [LeadingGraphic](/stories/display/leadinggraphic/) story for every variant.
+All item types accept an optional `leadingGraphic` prop typed as `React.ReactNode` — any decorative node (a `ProjectsSavedBadge`, an avatar, or a Sentry icon). It's rendered aria-hidden inside a fixed 16×16 slot, so the label always carries the meaning.
 
 <Storybook.Demo>
   <BreadcrumbList
@@ -150,10 +150,7 @@ All item types accept an optional `leadingGraphic` prop typed as `React.ReactEle
           label: 'My Projects',
           to: '/settings/sentry/projects/',
           leadingGraphic: (
-            <LeadingGraphic
-              variant="badge-project"
-              projectPlatforms={['python', 'javascript']}
-            />
+            <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
           ),
         },
       },
@@ -162,10 +159,7 @@ All item types accept an optional `leadingGraphic` prop typed as `React.ReactEle
         props: {
           label: 'Client Keys (DSN)',
           leadingGraphic: (
-            <LeadingGraphic
-              variant="badge-project"
-              projectPlatforms={['python', 'javascript']}
-            />
+            <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
           ),
         },
       },
@@ -173,7 +167,7 @@ All item types accept an optional `leadingGraphic` prop typed as `React.ReactEle
   />
 </Storybook.Demo>
 ```tsx leadingGraphic=
-{<LeadingGraphic variant="badge-project" projectPlatforms={['python', 'javascript']} />}
+{<ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />}
 ```
 
 ## Editable title
@@ -256,9 +250,7 @@ Trailing actions are always visible — a persistent, keyboard-accessible afford
         type: 'page-title',
         props: {
           label: 'JAVASCRIPT-2X9',
-          leadingGraphic: (
-            <LeadingGraphic variant="badge-project" projectPlatforms={['javascript']} />
-          ),
+          leadingGraphic: <ProjectsSavedBadge projectPlatforms={['javascript']} />,
           trailingActions: [
             <BreadcrumbList.CopyAction
               key="copy"

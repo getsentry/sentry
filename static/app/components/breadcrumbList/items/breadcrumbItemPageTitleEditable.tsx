@@ -1,7 +1,7 @@
 import {Container, Flex} from '@sentry/scraps/layout';
-import type {LeadingGraphicProps} from '@sentry/scraps/leadingGraphic';
 import {Text} from '@sentry/scraps/text';
 
+import {BreadcrumbLeadingSlot} from 'sentry/components/breadcrumbList/items/breadcrumbLeadingSlot';
 import {EditableText} from 'sentry/components/editableText';
 
 export interface BreadcrumbEditableTitleProps {
@@ -32,7 +32,11 @@ export function BreadcrumbEditableTitle(props: BreadcrumbEditableTitleProps) {
 export interface BreadcrumbItemPageTitleEditableProps {
   /** A `<BreadcrumbList.EditableTitle />` element. */
   title: React.ReactElement<BreadcrumbEditableTitleProps>;
-  leadingGraphic?: React.ReactElement<LeadingGraphicProps>;
+  /**
+   * Decorative 16×16 leading graphic — a `ProjectsSavedBadge`, avatar, or icon.
+   * Rendered aria-hidden inside a fixed-size slot; the label carries the meaning.
+   */
+  leadingGraphic?: React.ReactNode;
 }
 
 export function BreadcrumbItemPageTitleEditable({
@@ -44,7 +48,7 @@ export function BreadcrumbItemPageTitleEditable({
     // with the static one. No trailing-action slot: EditableText owns its own
     // edit affordance.
     <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px" flexShrink={1}>
-      {leadingGraphic}
+      {leadingGraphic && <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>}
       {/* Bold wrapper matches BreadcrumbItemPageTitle's weight; EditableText's
           compact label/input inherit font-weight from this context. */}
       <Container minWidth={0} width="auto" data-test-id="breadcrumb-item">

@@ -1,13 +1,11 @@
-import {cloneElement, Fragment} from 'react';
+import {Fragment} from 'react';
 import PlatformIcon from 'platformicons/build/platformIcon';
 
 import {Container, Stack} from '@sentry/scraps/layout';
 
 import {IconAllProjects, IconMyProjects} from 'sentry/icons';
 
-// badge-project variant — absorbs the 0/1/2+ platform logic from
-// SecondaryNavigationProjectIcon so both nav and breadcrumbs share one component.
-interface LeadingGraphicBadgeProject {
+export interface ProjectsSavedBadgeProps {
   /**
    * Platform slugs for the project(s) to display.
    * - 0 entries: renders an all-projects or my-projects icon
@@ -15,72 +13,20 @@ interface LeadingGraphicBadgeProject {
    * - 2+ entries: renders two stacked platform icons (top-right + bottom-right)
    */
   projectPlatforms: string[];
-  variant: 'badge-project';
   /** When projectPlatforms is empty, use all-projects icon instead of my-projects */
   allProjects?: boolean;
 }
 
-interface LeadingGraphicIcon {
-  icon: React.ReactElement<{size?: string}>;
-  variant: 'icon';
-}
-
-interface LeadingGraphicAvatar {
-  avatar: React.ReactNode;
-  variant: 'avatar';
-}
-
-export type LeadingGraphicProps =
-  | LeadingGraphicBadgeProject
-  | LeadingGraphicIcon
-  | LeadingGraphicAvatar;
-
 /**
- * A 16×16 leading graphic used by breadcrumb items and navigation links.
- * Supports three visual variants: badge-project (platform icons), icon, and avatar.
+ * A 16×16 badge representing the project(s) tied to a saved view — a starred
+ * project, saved query, dashboard, or issue view. Absorbs the 0/1/2+ platform
+ * logic so every call site (secondary navigation, breadcrumbs) shares one
+ * component.
  */
-export function LeadingGraphic(props: LeadingGraphicProps) {
-  if (props.variant === 'icon') {
-    const icon = cloneElement(props.icon, {
-      size: props.icon.props.size ?? 'md',
-    });
-    return (
-      <Stack
-        flexShrink={0}
-        justify="center"
-        align="center"
-        width="16px"
-        height="16px"
-        aria-hidden="true"
-      >
-        {icon}
-      </Stack>
-    );
-  }
-
-  if (props.variant === 'avatar') {
-    return (
-      <Stack
-        flexShrink={0}
-        justify="center"
-        align="center"
-        width="16px"
-        height="16px"
-        aria-hidden="true"
-      >
-        {props.avatar}
-      </Stack>
-    );
-  }
-
-  // badge-project variant
-  return <BadgeProjectGraphic {...props} />;
-}
-
-function BadgeProjectGraphic({
+export function ProjectsSavedBadge({
   projectPlatforms,
   allProjects,
-}: LeadingGraphicBadgeProject) {
+}: ProjectsSavedBadgeProps) {
   let icons: React.ReactNode;
 
   switch (projectPlatforms.length) {

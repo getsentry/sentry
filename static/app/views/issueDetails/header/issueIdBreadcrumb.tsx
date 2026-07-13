@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {LeadingGraphic} from '@sentry/scraps/leadingGraphic';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -59,16 +58,11 @@ export function useIssueIdBreadcrumbItem({
     props: {
       label: group.shortId,
       leadingGraphic: (
-        <LeadingGraphic
-          variant="avatar"
-          avatar={
-            <ProjectBadge
-              project={project}
-              avatarSize={16}
-              hideName
-              avatarProps={{hasTooltip: true, tooltip: project.slug}}
-            />
-          }
+        <ProjectBadge
+          project={project}
+          avatarSize={16}
+          hideName
+          avatarProps={{hasTooltip: true, tooltip: project.slug}}
         />
       ),
       labelTooltip: t(
