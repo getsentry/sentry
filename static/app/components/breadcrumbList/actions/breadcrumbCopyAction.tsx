@@ -1,5 +1,3 @@
-import {Tooltip} from '@sentry/scraps/tooltip';
-
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 
 export interface BreadcrumbCopyActionProps {
@@ -26,14 +24,13 @@ export function BreadcrumbCopyAction({
   onCopy,
 }: BreadcrumbCopyActionProps) {
   return (
-    <Tooltip title={tooltip} disabled={!tooltip}>
-      <CopyToClipboardButton
-        size="zero"
-        variant="transparent"
-        aria-label={label}
-        text={text}
-        onCopy={onCopy}
-      />
-    </Tooltip>
+    <CopyToClipboardButton
+      size="zero"
+      variant="transparent"
+      aria-label={label}
+      text={text}
+      onCopy={onCopy}
+      tooltipProps={{title: tooltip}}
+    />
   );
 }
