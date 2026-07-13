@@ -13,12 +13,11 @@ import {TurnMeta} from 'sentry/views/explore/conversations/components/turnMeta';
 import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {useToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/useToolOutputBytes';
 
 interface MessageToolCallsNewProps {
   nodeMap: Map<string, AITraceSpanNode>;
-  nodeTraceMap: Map<string, string>;
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
   toolCalls: ToolCall[];
@@ -33,7 +32,6 @@ export function MessageToolCallsNew({
   toolCalls,
   selectedNodeId,
   nodeMap,
-  nodeTraceMap,
   onSelectNode,
 }: MessageToolCallsNewProps) {
   const organization = useOrganization();
@@ -105,14 +103,7 @@ export function MessageToolCallsNew({
                 {toolNode && <ToolInputPreview node={toolNode} />}
               </Flex>
               <TurnMeta
-                metric={
-                  toolNode ? (
-                    <ToolOutputSize
-                      node={toolNode}
-                      traceId={nodeTraceMap.get(tool.nodeId)}
-                    />
-                  ) : null
-                }
+                metric={toolNode ? <ToolOutputSize node={toolNode} /> : null}
                 duration={
                   tool.duration === undefined || tool.duration <= 0 ? null : (
                     <Text size="xs" variant="muted" tabular align="right">
@@ -129,14 +120,8 @@ export function MessageToolCallsNew({
   );
 }
 
-function ToolOutputSize({
-  node,
-  traceId,
-}: {
-  node: AITraceSpanNode;
-  traceId: string | undefined;
-}) {
-  const bytes = useToolOutputBytes(node, traceId);
+function ToolOutputSize({node}: {node: AITraceSpanNode}) {
+  const bytes = getToolOutputBytes(node);
   return (
     <Text size="xs" variant="muted" tabular align="right">
       {formatBytesBase10(bytes)}

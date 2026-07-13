@@ -35,7 +35,6 @@ import {detectAIContentType} from 'sentry/views/performance/newTraceDetails/trac
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 interface MessagesPanelNewProps {
-  nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
@@ -51,7 +50,6 @@ export function MessagesPanelNew({
   nodes,
   selectedNodeId,
   onSelectNode,
-  nodeTraceMap,
   isLoading,
 }: MessagesPanelNewProps) {
   const organization = useOrganization();
@@ -126,7 +124,6 @@ export function MessagesPanelNew({
               isSelected={message.role === 'assistant' && isSelected}
               selectedNodeId={selectedNodeId}
               nodeMap={nodeMap}
-              nodeTraceMap={nodeTraceMap}
               onSelectNode={onSelectNode}
               onClick={() => handleMessageClick(message)}
             />
@@ -142,7 +139,6 @@ interface AssistantTurnProps {
   isSelected: boolean;
   message: ConversationMessage;
   nodeMap: Map<string, AITraceSpanNode>;
-  nodeTraceMap: Map<string, string>;
   onClick: () => void;
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
@@ -154,7 +150,6 @@ function AssistantTurn({
   isSelected,
   selectedNodeId,
   nodeMap,
-  nodeTraceMap,
   onSelectNode,
   onClick,
 }: AssistantTurnProps) {
@@ -176,7 +171,6 @@ function AssistantTurn({
             toolCalls={message.toolCalls}
             selectedNodeId={selectedNodeId}
             nodeMap={nodeMap}
-            nodeTraceMap={nodeTraceMap}
             onSelectNode={onSelectNode}
           />
         </MessageBlock>
