@@ -5,11 +5,12 @@ import random
 from time import sleep
 from typing import Any
 
-from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload, KafkaProducer
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import Topic
 from taskbroker_client.constants import CompressionType
 from taskbroker_client.retry import LastAction, NoRetriesRemainingError, Retry, RetryTaskError
 from taskbroker_client.retry import retry_task as retry_task_helper
+from taskbroker_client.worker.producer import TaskProducer
 
 from sentry.taskworker.namespaces import exampletasks
 from sentry.utils.redis import redis_clusters
@@ -140,7 +141,7 @@ def task_that_produces(
     def producer_factory() -> KafkaProducer:
         return KafkaProducer({"bootstrap.servers": bootstrap_servers})
 
-    producer = FutureTrackingProducer("test.producer", producer_factory)
+    producer = TaskProducer("test.producer", producer_factory)
     production_count = random.randint(1, production_count) if random_count else production_count
     for i in range(production_count):
         logger.debug(f"Producing message {i} onto topic {destination_topic}...")

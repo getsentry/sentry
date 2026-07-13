@@ -411,6 +411,8 @@ class SetRegressedAction(GroupAction):
 
 class PullRequestClosedAction(GroupAction):
     pull_request: int  # PullRequest model ID
+    # Whether the issue has other linked PRs still open when this one closed
+    has_other_open_prs: Optional[bool] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -639,14 +641,6 @@ class SeerIterationCompletedAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.SEER_ITERATION_COMPLETED
-
-
-class RelatedPullRequestClosedAction(GroupAction):
-    pull_request: Optional[int | str] = None
-
-    @classmethod
-    def get_type(cls) -> GroupActionType:
-        return GroupActionType.PULL_REQUEST_CLOSED
 
 
 class ReconcileStatusAction(GroupAction):

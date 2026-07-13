@@ -88,6 +88,7 @@ class AgentChatRequest(TypedDict):
     proxy_headers: NotRequired[dict[str, str] | None]
     ui_tools: NotRequired[str | None]
     monitoring_providers: NotRequired[list[dict[str, Any]]]
+    available_monitoring_providers: NotRequired[list[dict[str, Any]]]
 
 
 class AgentRunsRequest(TypedDict):

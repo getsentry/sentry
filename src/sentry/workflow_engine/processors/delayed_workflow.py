@@ -46,10 +46,10 @@ from sentry.workflow_engine.models.data_condition import (
 )
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
-    TriggerResult,
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
 )
+from sentry.workflow_engine.processors.evaluations import TriggerResult
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import (

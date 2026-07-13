@@ -170,7 +170,7 @@ export function ScmPlatformFeatures({
   }
 
   return (
-    <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
+    <Stack align="center" gap="2xl" flexGrow={1}>
       <Stack gap="3xl" maxWidth={SCM_STEP_CONTENT_WIDTH}>
         <Heading as="h2" size="4xl">
           {t('Create your first project')}
@@ -232,7 +232,7 @@ export function ScmPlatformFeatures({
           </MotionFlex>
         </LayoutGroup>
       </Stack>
-    </Flex>
+    </Stack>
   );
 }
 

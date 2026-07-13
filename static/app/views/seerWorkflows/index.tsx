@@ -5,7 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -221,13 +221,13 @@ function SeerWorkflows() {
 
   return (
     <SentryDocumentTitle title={t('Sentry Workflows')} orgSlug={organization.slug}>
-      <Flex direction="column" gap="lg" padding="xl">
-        <Flex direction="column" gap="2xs">
+      <Stack gap="lg" padding="xl">
+        <Stack gap="2xs">
           <Heading as="h1">{t('Sentry Workflows')}</Heading>
           <Text as="p" variant="muted">
             {t('Historical runs of Sentry workflows for this organization.')}
           </Text>
-        </Flex>
+        </Stack>
 
         {isError ? (
           <LoadingError onRetry={refetch} />
@@ -354,14 +354,14 @@ function SeerWorkflows() {
                           <StatusIcon status={row.status} />
                         </SimpleTable.RowCell>
                         <SimpleTable.RowCell>
-                          <Flex direction="column" gap="2xs">
+                          <Stack gap="2xs">
                             <Text size="sm">
                               <DateTime date={row.dateAdded} />
                             </Text>
                             <Text size="xs" variant="muted">
                               <TimeSince date={row.dateAdded} />
                             </Text>
-                          </Flex>
+                          </Stack>
                         </SimpleTable.RowCell>
                         <SimpleTable.RowCell>
                           <Flex gap="sm" align="center" wrap="wrap">
@@ -422,7 +422,7 @@ function SeerWorkflows() {
             </RunsTable>
           </Container>
         )}
-      </Flex>
+      </Stack>
     </SentryDocumentTitle>
   );
 }
@@ -592,7 +592,7 @@ function RunDetail({
 }) {
   const isSentryEmployee = useIsSentryEmployee();
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <UserSection row={row} organizationSlug={organizationSlug} />
       {isSentryEmployee ? (
         <Disclosure>
@@ -616,7 +616,7 @@ function RunDetail({
           </Disclosure.Content>
         </Disclosure>
       ) : null}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -628,14 +628,14 @@ function UserSection({
   row: WorkflowRow;
 }) {
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       {row.summary ? (
         <Text as="p" size="md">
           {row.summary}
         </Text>
       ) : null}
       <TriageIssuesUserPanel row={row} organizationSlug={organizationSlug} />
-    </Flex>
+    </Stack>
   );
 }
 
@@ -659,7 +659,7 @@ function DebugSection({
     max_candidates !== undefined;
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <Grid columns="max-content 1fr" gap="sm xl" align="start">
         <Text bold size="xs" variant="muted">
           {t('Run ID')}
@@ -711,7 +711,7 @@ function DebugSection({
         </Text>
       ) : null}
       <TriageIssuesDebugAddendum row={row} organizationSlug={organizationSlug} />
-    </Flex>
+    </Stack>
   );
 }
 
@@ -724,7 +724,7 @@ function TriageIssuesUserPanel({
 }) {
   const issues = row.triage?.issues ?? [];
   return (
-    <Flex direction="column" gap="sm">
+    <Stack gap="sm">
       <Text bold size="xs" variant="muted" uppercase>
         {t('Issues (%s)', issues.length)}
       </Text>
@@ -766,7 +766,7 @@ function TriageIssuesUserPanel({
           ])}
         </Grid>
       )}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -782,7 +782,7 @@ function TriageIssuesDebugAddendum({
     return null;
   }
   return (
-    <Flex direction="column" gap="sm">
+    <Stack gap="sm">
       <Text bold size="xs" variant="muted" uppercase>
         {t('Per-issue internals')}
       </Text>
@@ -828,7 +828,7 @@ function TriageIssuesDebugAddendum({
           ),
         ])}
       </Grid>
-    </Flex>
+    </Stack>
   );
 }
 

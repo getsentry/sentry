@@ -5,7 +5,7 @@ import devkitCrashesStep2 from 'sentry-images/tempest/devkit-crashes-step2.png';
 import devkitCrashesStep3 from 'sentry-images/tempest/devkit-crashes-step3.png';
 import windowToolImg from 'sentry-images/tempest/windows-tool-devkit.png';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
@@ -192,7 +192,7 @@ const onboardingDevkit: OnboardingConfig = {
         {
           type: 'custom',
           content: (
-            <Flex direction="column" gap="lg" align="center">
+            <Stack gap="lg" align="center">
               <CardIllustration
                 src={devkitCrashesStep1}
                 alt={t('DevKit set up screenshot step 1')}
@@ -205,7 +205,7 @@ const onboardingDevkit: OnboardingConfig = {
                 src={devkitCrashesStep3}
                 alt={t('DevKit set up screenshot step 3')}
               />
-            </Flex>
+            </Stack>
           ),
         },
       ],

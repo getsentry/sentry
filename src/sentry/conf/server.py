@@ -206,6 +206,8 @@ SENTRY_SESSION_STORE_REDIS_CLUSTER = "default"
 SENTRY_AUTH_IDPMIGRATION_REDIS_CLUSTER = "default"
 SENTRY_SNOWFLAKE_REDIS_CLUSTER = "default"
 SENTRY_SCM_REDIS_CLUSTER = "default"
+# Ephemeral dedup markers for self-chaining tasks (merge_groups / unmerge).
+SENTRY_SELFCHAIN_IDEMPOTENCY_REDIS_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -957,6 +959,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.auth.check_auth",
     "sentry.tasks.auth.cleanup_pending_users",
     "sentry.tasks.auto_ongoing_issues",
+    "sentry.tasks.backfill_group_action_log",
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.auto_source_code_config",
@@ -1152,7 +1155,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "dynamic-sampling-schedule-per-org-calculations": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.schedule_per_org_calculations",
-        "schedule": timedelta(minutes=1),
+        "schedule": timedelta(seconds=10),
     },
     "weekly-escalating-forecast": {
         "task": "issues:sentry.tasks.weekly_escalating_forecast.run_escalating_forecast",
@@ -2747,55 +2750,8 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "shared-resources-usage": "default",
     "buffered-segments": "default",
     "buffered-segments-dlq": "default",
-    # Taskworker topics
     "taskworker": "default",
-    "taskworker-dlq": "default",
-    "taskworker-push": "default",
-    "taskworker-billing": "default",
-    "taskworker-billing-dlq": "default",
-    "taskworker-buffer": "default",
-    "taskworker-buffer-dlq": "default",
     "taskworker-control": "default",
-    "taskworker-control-dlq": "default",
-    "taskworker-control-limited": "default",
-    "taskworker-control-limited-dlq": "default",
-    "taskworker-cutover": "default",
-    "taskworker-email": "default",
-    "taskworker-email-dlq": "default",
-    "taskworker-example": "default",
-    "taskworker-ingest": "default",
-    "taskworker-ingest-dlq": "default",
-    "taskworker-ingest-push": "default",
-    "taskworker-ingest-errors": "default",
-    "taskworker-ingest-errors-dlq": "default",
-    "taskworker-ingest-errors-postprocess": "default",
-    "taskworker-ingest-errors-postprocess-dlq": "default",
-    "taskworker-ingest-transactions": "default",
-    "taskworker-ingest-transactions-dlq": "default",
-    "taskworker-ingest-attachments": "default",
-    "taskworker-ingest-attachments-dlq": "default",
-    "taskworker-ingest-profiling": "default",
-    "taskworker-ingest-profiling-dlq": "default",
-    "taskworker-internal": "default",
-    "taskworker-internal-dlq": "default",
-    "taskworker-limited": "default",
-    "taskworker-limited-dlq": "default",
-    "taskworker-launchpad": "default",
-    "taskworker-launchpad-dlq": "default",
-    "taskworker-launchpad-push": "default",
-    "taskworker-long": "default",
-    "taskworker-long-dlq": "default",
-    "taskworker-process-segments": "default",
-    "taskworker-products": "default",
-    "taskworker-products-dlq": "default",
-    "taskworker-sentryapp": "default",
-    "taskworker-sentryapp-dlq": "default",
-    "taskworker-symbolication": "default",
-    "taskworker-symbolication-dlq": "default",
-    "taskworker-usage": "default",
-    "taskworker-usage-dlq": "default",
-    "taskworker-workflows-engine": "default",
-    "taskworker-workflows-engine-dlq": "default",
 }
 
 

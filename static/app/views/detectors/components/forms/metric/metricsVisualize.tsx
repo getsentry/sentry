@@ -215,7 +215,7 @@ export function MetricsVisualize() {
   const hasNoMetrics = isMetricOptionsEmpty && !search;
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <Flex gap="md" align="end">
         <Stack flex="1" gap="xs" maxWidth="425px">
           <div>
@@ -275,7 +275,7 @@ export function MetricsVisualize() {
           />
         </Stack>
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 

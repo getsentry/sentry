@@ -6,12 +6,13 @@ action_log.types — safe to import from models and other dependency-sensitive c
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Sequence
 
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     ActionSource,
@@ -24,6 +25,12 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
+
+# Test-only hook: notified on every publish_action() call.
+_PublishCallback = Callable[["GroupAction", str, int, "Project", "GroupActionActor"], None]
+_publish_callbacks: ContextVar[tuple[_PublishCallback, ...]] = ContextVar(
+    "_publish_callbacks", default=()
+)
 
 # Group Action Log — tracks who did what to an issue and how.
 #
@@ -95,6 +102,9 @@ def publish_action(
     from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
     from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
     from sentry.utils import metrics
+
+    for callback in _publish_callbacks.get():
+        callback(action, source, group_id, project, actor)
 
     action_name = action.get_type().name.lower()
     metrics.incr(
@@ -173,6 +183,58 @@ def publish_action_from_context(
         actor = ctx.actor
     publish_action(
         action,
+        source=source,
+        group_id=group_id,
+        project=project,
+        actor=actor,
+        force_async_derived=force_async_derived,
+    )
+
+
+def publish_actions_from_context_bulk(
+    actions: Sequence[GroupAction],
+    *,
+    group_id: int,
+    project: Project,
+    force_async_derived: bool = False,
+) -> None:
+    """
+    Record multiple issue actions using the current ActionContext. See docstring for
+    publish_action_from_context. The distinction is that this is a function to publish
+    multiple GroupActions at once while only flushing the Outbox once.
+    """
+    if len(actions) == 0:
+        return
+
+    ctx = get_action_context()
+    if ctx is None:
+        logger.error(
+            "publish_action_from_context_bulk called without ActionContext",
+            extra={
+                "actions": [action.get_type().name.lower() for action in actions],
+                "group_id": str(group_id),
+            },
+        )
+        source: str = ActionSource.UNKNOWN
+        actor = SYSTEM_ACTOR
+    else:
+        source = ctx.source
+        actor = ctx.actor
+
+    with outbox_context(flush=False):
+        for action in actions[:-1]:
+            publish_action(
+                action,
+                source=source,
+                group_id=group_id,
+                project=project,
+                actor=actor,
+                force_async_derived=force_async_derived,
+            )
+
+    # Flushes the outbox by default.
+    publish_action(
+        actions[-1],
         source=source,
         group_id=group_id,
         project=project,

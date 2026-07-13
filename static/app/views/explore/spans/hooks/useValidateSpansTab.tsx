@@ -1,8 +1,10 @@
 import {useQuery, skipToken} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {parseFunction} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  useQueryParamsAggregateFields,
   useQueryParamsFields,
   useQueryParamsGroupBys,
   useQueryParamsQuery,
@@ -21,6 +23,7 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
   const organization = useOrganization();
 
   const query = useQueryParamsQuery();
+  const aggregateFields = useQueryParamsAggregateFields();
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const groupBys = useQueryParamsGroupBys();
@@ -37,6 +40,15 @@ export function useValidateSpansTab({enabled = true}: UseValidateSpansTabArgs = 
           ...fields,
           ...groupBys.filter(g => g !== ''),
           ...visualizes.map(v => v.yAxis),
+          ...aggregateFields.flatMap(aggregateField => {
+            if ('groupBy' in aggregateField) {
+              return aggregateField.groupBy ? [aggregateField.groupBy] : [];
+            }
+            return [
+              aggregateField.yAxis,
+              ...(parseFunction(aggregateField.yAxis)?.arguments.filter(Boolean) ?? []),
+            ];
+          }),
         ])
       ),
       orderBy: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),

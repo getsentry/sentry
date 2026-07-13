@@ -15,8 +15,8 @@ from sentry.issues.action_log.types import (
     MarkReviewedAction,
     MergeFromOtherAction,
     NewProcessingIssuesAction,
+    PullRequestClosedAction,
     ReferencedInCommitAction,
-    RelatedPullRequestClosedAction,
     ReprocessAction,
     ResolveAction,
     ResolvedInPullRequestAction,
@@ -89,7 +89,7 @@ ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE: Mapping[int, type[GroupAction]] = {
     ActivityType.SEER_PR_CREATED.value: SeerPRCreatedAction,
     ActivityType.SEER_ITERATION_STARTED.value: SeerIterationStartedAction,
     ActivityType.SEER_ITERATION_COMPLETED.value: SeerIterationCompletedAction,
-    ActivityType.PULL_REQUEST_CLOSED.value: RelatedPullRequestClosedAction,
+    ActivityType.PULL_REQUEST_CLOSED.value: PullRequestClosedAction,
 }
 
 ACTIVITY_TYPE_TO_ARG_TRANSLATIONS: Mapping[int, Mapping[str, str]] = {
