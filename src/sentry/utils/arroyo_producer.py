@@ -102,7 +102,7 @@ def get_arroyo_producer(
     producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
 
     # temp(benmckerry): roll out poll metrics to our producers
-    poll_metrics_map = options.get("arroyo.producer.record_poll_metrics")
+    poll_metrics_map = options.get("arroyo.producer.record_poll_metrics") or []
     record_poll_metrics = False
     if name in poll_metrics_map or "all" in poll_metrics_map:
         record_poll_metrics = True
