@@ -1028,6 +1028,9 @@ class WeeklyReportsTest(
             "new_substatus_count": 0,
             "escalating_substatus_count": 0,
             "regression_substatus_count": 0,
+            "new_substatus_url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&query=is%3Anew&project={self.project.id}",
+            "escalating_substatus_url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&query=is%3Aescalating&project={self.project.id}",
+            "regression_substatus_url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&query=is%3Aregressed&project={self.project.id}",
         }
 
         assert ctx["trends"]["series"][-2][1][0] == {
