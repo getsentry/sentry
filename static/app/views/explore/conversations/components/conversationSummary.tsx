@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -287,7 +287,7 @@ export function ConversationSummary({
   }, [nodeTraceMap]);
 
   return (
-    <Flex direction="column" gap="md" flex={1}>
+    <Stack gap="md" flex={1}>
       <Flex align="center" gap="sm" minWidth={0}>
         <Tooltip
           title={conversationId}
@@ -375,7 +375,7 @@ export function ConversationSummary({
           })
         }
       />
-    </Flex>
+    </Stack>
   );
 }
 

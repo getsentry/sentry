@@ -5,7 +5,12 @@ import pytest
 
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
-from sentry.sentry_apps.utils.webhooks import SentryAppResourceType, is_subscribed, resource_of
+from sentry.sentry_apps.utils.webhooks import (
+    SentryAppResourceType,
+    has_granular_events,
+    is_subscribed,
+    resource_of,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -17,6 +22,14 @@ def test_resource_of() -> None:
     # Events outside the subscribable taxonomy (e.g. alerts) resolve to None.
     assert resource_of("metric_alert.critical") is None
     assert resource_of("bogus.thing") is None
+
+
+def test_has_granular_events() -> None:
+    assert has_granular_events(["issue.resolved"])
+    assert has_granular_events(["issue", "issue.resolved"])
+    assert not has_granular_events(["issue", "error"])
+    assert not has_granular_events([])
+    assert not has_granular_events(None)
 
 
 def test_is_subscribed_matches_exact_event() -> None:

@@ -274,6 +274,22 @@ class TestPublishActionFromContext(TestCase):
         assert getattr(info_record, "source") == "unknown"
 
 
+class TestPublishActionsFromContextBulk(TestCase):
+    def test_multiple_writes(self) -> None:
+        from sentry.issues.action_log import action_context_scope, publish_actions_from_context_bulk
+
+        actor = GroupActionActor.user(42)
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            with action_context_scope(source="web", actor=actor):
+                publish_actions_from_context_bulk(
+                    [ViewAction(), ResolveAction()],
+                    group_id=self.group.id,
+                    project=self.project,
+                )
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 2
+
+
 class TestActionLogIntegration(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import partial
 from typing import Any, Final
+from urllib.parse import urlencode
 
 import sentry_sdk
 from django.conf import settings
@@ -478,7 +479,7 @@ class _DuplicateDeliveryCheck:
         return is_duplicate_detected
 
 
-project_breakdown_colors = ["#7553FF", "#7C2282", "#F0369A", "#FF9838", "#FFD00E"]
+project_breakdown_colors = ["#7553FF", "#3A1873", "#F0369A", "#FF9838", "#FFD00E"]
 total_color = """
 linear-gradient(
     -45deg,
@@ -518,16 +519,16 @@ group_status_to_color = {
 }
 
 
-def _pct_change(current: int, previous: int) -> str | None:
-    """Returns a formatted string like '▲ 50%' or '▼ 25%', or None if not meaningful."""
+def _pct_change(current: int, previous: int) -> dict[str, str] | None:
     if previous == 0:
         return None
     change = (current - previous) / previous
     pct = round(change * 100)
     if pct == 0:
         return None
-    arrow = "▲" if change > 0 else "▼"
-    return f"{arrow} {abs(pct)}%"
+    if change > 0:
+        return {"arrow": "↑", "pct": f"{abs(pct)}%", "bg_color": "#F9F0D2", "text_color": "#A45200"}
+    return {"arrow": "↓", "pct": f"{abs(pct)}%", "bg_color": "#E3F7E3", "text_color": "#008900"}
 
 
 def get_group_status_badge(group: Group) -> tuple[str, str, str]:
@@ -857,6 +858,20 @@ def render_template_context(
 
     show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
 
+    errors_discover_query = urlencode(
+        [
+            ("field", "title"),
+            ("field", "event.type"),
+            ("field", "project"),
+            ("field", "user.display"),
+            ("field", "timestamp"),
+            ("dataset", "errors"),
+            ("sort", "-timestamp"),
+            ("referrer", "weekly_report"),
+            ("notification_uuid", notification_uuid),
+        ]
+    )
+
     return {
         "organization": ctx.organization,
         "start": date_format(local_start),
@@ -869,10 +884,12 @@ def render_template_context(
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
+        "errors_discover_query": errors_discover_query,
         "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
         "show_week_over_week_metric": features.has(
             "organizations:weekly-report-week-over-week-metric", ctx.organization
         ),
+        "notification_settings_link": "/settings/account/notifications/reports/",
     }
 
 
