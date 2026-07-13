@@ -47,6 +47,11 @@ class TestSentryCommand:
             "review",
             "@sentry",
             "@sentry    ",
+            "@sentry-cursor-agent please help",
+            "@sentry-bot do something",
+            "email@sentry.io",
+            "@sentry_bot",
+            "check@sentrycode",
         ],
     )
     def test_returns_none(self, body: str | None) -> None:
