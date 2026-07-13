@@ -9,6 +9,8 @@ from sentry.issues.action_log.backfill import (
     bulk_insert_action_log_entries,
 )
 from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.project import Project
@@ -75,9 +77,6 @@ def reset_and_backfill_group_action_log(
     group_id: int,
     **kwargs: object,
 ) -> None:
-    from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
-    from sentry.issues.models.groupderiveddata import GroupDerivedData
-
     try:
         group = Group.objects.get(id=group_id)
     except Group.DoesNotExist:
@@ -154,9 +153,6 @@ def backfill_group_action_log_for_project(
 
 
 def _reset_project(project: Project) -> None:
-    from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
-    from sentry.issues.models.groupderiveddata import GroupDerivedData
-
     deleted_derived, _ = GroupDerivedData.objects.filter(
         group__project_id=project.id,
     ).delete()
