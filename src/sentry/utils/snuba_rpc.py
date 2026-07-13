@@ -123,6 +123,11 @@ def get_trace_rpc(request: GetTraceRequest) -> GetTraceResponse:
     resp = _make_rpc_request("EndpointGetTrace", "v1", referrer=request.meta.referrer, req=request)
     response = GetTraceResponse()
     response.ParseFromString(resp.data)
+    _log_rpc_response(
+        "EndpointGetTrace",
+        request,
+        sum(len(group.items) for group in response.item_groups),
+    )
     return response
 
 
@@ -194,6 +199,7 @@ def _make_rpc_requests(
                 rpc_rows = 0
             logger_extra = {
                 "rpc_rows": rpc_rows,
+                "referrer": request.meta.referrer,
                 "organization_id": request.meta.organization_id,
                 "page_token": table_response.page_token,
                 "meta": table_response.meta,
@@ -217,6 +223,7 @@ def _make_rpc_requests(
                 rpc_rows = 0
             logger_extra = {
                 "rpc_rows": rpc_rows,
+                "referrer": request.meta.referrer,
                 "organization_id": request.meta.organization_id,
                 "meta": timeseries_response.meta,
                 "debug": debug is not False,
@@ -231,6 +238,32 @@ def _make_rpc_requests(
     return MultiRpcResponse(table_results, timeseries_results)
 
 
+def _log_rpc_response(
+    endpoint_name: str,
+    req: SnubaRPCRequest,
+    rpc_rows: int | None,
+    debug: str | bool = False,
+) -> None:
+    logger_extra: dict[str, object] = {
+        "rpc_rows": rpc_rows,
+        "referrer": req.meta.referrer,
+        "organization_id": req.meta.organization_id,
+        "trace_item_type": req.meta.trace_item_type,
+        "debug": debug is not False,
+    }
+    if isinstance(debug, str):
+        logger_extra["debug_msg"] = debug
+    logger.info(
+        "%s RPC query response",
+        endpoint_name,
+        extra=logger_extra,
+    )
+    if rpc_rows is not None:
+        metrics.distribution(
+            "snuba_rpc.response.length", rpc_rows, tags={"endpoint": endpoint_name}
+        )
+
+
 def attribute_names_rpc(
     req: TraceItemAttributeNamesRequest, debug: str | bool = False
 ) -> TraceItemAttributeNamesResponse:
@@ -243,6 +276,7 @@ def attribute_names_rpc(
     )
     response = TraceItemAttributeNamesResponse()
     response.ParseFromString(resp.data)
+    _log_rpc_response("EndpointTraceItemAttributeNames", req, len(response.attributes), debug=debug)
     return response
 
 
@@ -258,6 +292,7 @@ def attribute_values_rpc(req: TraceItemAttributeValuesRequest) -> TraceItemAttri
     resp = _make_rpc_request("AttributeValuesRequest", "v1", req.meta.referrer, req)
     response = TraceItemAttributeValuesResponse()
     response.ParseFromString(resp.data)
+    _log_rpc_response("AttributeValuesRequest", req, len(response.values))
     return response
 
 
@@ -269,6 +304,7 @@ def get_traces_rpc(req: GetTracesRequest) -> GetTracesResponse:
     resp = _make_rpc_request("EndpointGetTraces", "v1", req.meta.referrer, req)
     response = GetTracesResponse()
     response.ParseFromString(resp.data)
+    _log_rpc_response("EndpointGetTraces", req, len(response.traces))
     return response
 
 
@@ -276,6 +312,7 @@ def trace_item_stats_rpc(req: TraceItemStatsRequest) -> TraceItemStatsResponse:
     resp = _make_rpc_request("EndpointTraceItemStats", "v1", req.meta.referrer, req)
     response = TraceItemStatsResponse()
     response.ParseFromString(resp.data)
+    _log_rpc_response("EndpointTraceItemStats", req, len(response.results))
     return response
 
 
@@ -290,6 +327,7 @@ def trace_item_details_rpc(
     resp = _make_rpc_request("EndpointTraceItemDetails", "v1", req.meta.referrer, req, debug=debug)
     response = TraceItemDetailsResponse()
     response.ParseFromString(resp.data)
+    _log_rpc_response("EndpointTraceItemDetails", req, len(response.attributes), debug=debug)
     return response
 
 
@@ -301,6 +339,7 @@ def delete_trace_items_rpc(req: DeleteTraceItemsRequest) -> DeleteTraceItemsResp
     resp = _make_rpc_request("EndpointDeleteTraceItems", "v1", req.meta.referrer, req)
     response = DeleteTraceItemsResponse()
     response.ParseFromString(resp.data)
+    _log_rpc_response("EndpointDeleteTraceItems", req, response.matching_items_count)
     return response
 
 
@@ -346,6 +385,7 @@ def rpc(
     http_resp = _make_rpc_request(endpoint_name, class_version, req.meta.referrer, req)
     resp = resp_type()
     resp.ParseFromString(http_resp.data)
+    _log_rpc_response(endpoint_name, req, None)
     return resp
 
 
@@ -353,6 +393,7 @@ def export_logs_rpc(req: ExportTraceItemsRequest) -> ExportTraceItemsResponse:
     resp = _make_rpc_request("EndpointExportTraceItems", "v1", req.meta.referrer, req)
     response = ExportTraceItemsResponse()
     response.ParseFromString(resp.data)
+    _log_rpc_response("EndpointExportTraceItems", req, len(response.trace_items))
     return response
 
 
