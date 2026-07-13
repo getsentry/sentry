@@ -143,17 +143,7 @@ export function MetricsHeatMap({
           plottables={[new HeatMap(heatMapSeries)]}
           onZoom={handleZoom}
         />
-        {isFetchingMore ? (
-          <Flex position="absolute" inset="0" align="center" justify="center">
-            <Container
-              position="absolute"
-              inset="0"
-              background="primary"
-              style={{opacity: 0.5}}
-            />
-            <LoadingIndicator mini />
-          </Flex>
-        ) : null}
+        {isFetchingMore ? <StreamingOverlay /> : null}
       </Container>
     );
   }
@@ -178,5 +168,23 @@ export function MetricsHeatMap({
         borderless
       />
     </WidgetWrapper>
+  );
+}
+
+/**
+ * A translucent mask + centered spinner over the grid while more chunks stream
+ * in, so the already-rendered data stays visible underneath.
+ */
+function StreamingOverlay() {
+  return (
+    <Flex position="absolute" inset="0" align="center" justify="center">
+      <Container
+        position="absolute"
+        inset="0"
+        background="primary"
+        style={{opacity: 0.5}}
+      />
+      <LoadingIndicator mini />
+    </Flex>
   );
 }

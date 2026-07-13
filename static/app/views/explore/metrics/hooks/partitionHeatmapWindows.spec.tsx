@@ -26,15 +26,19 @@ const spanHours = (window: {end: string; start: string}) =>
   );
 
 describe('partitionHeatmapWindows', () => {
-  it('returns a single selection window for an unparseable interval', () => {
-    const {windows} = partitionHeatmapWindows(
-      absolute(0, 100 * HOUR),
-      'garbage',
-      'progressive'
+  it('returns an empty plan (nothing to fetch) for an unparseable interval', () => {
+    expect(
+      partitionHeatmapWindows(absolute(0, 100 * HOUR), 'garbage', 'progressive')
+    ).toEqual({windows: [], fullRange: {start: 0, end: 0}});
+  });
+
+  it('returns an empty plan when there is no interval', () => {
+    expect(partitionHeatmapWindows(absolute(0, 100 * HOUR), null, 'progressive')).toEqual(
+      {
+        windows: [],
+        fullRange: {start: 0, end: 0},
+      }
     );
-    expect(windows).toEqual([
-      {start: '1970-01-01T00:00:00.000', end: '1970-01-05T04:00:00.000'},
-    ]);
   });
 
   it('returns a single selection window for ranges below the minimum', () => {
@@ -57,22 +61,22 @@ describe('partitionHeatmapWindows', () => {
   describe('absolute ranges', () => {
     it('partitions into aligned, non-overlapping, progressive windows', () => {
       // 720 buckets (30d @ 1h), progressive → widths [6, 18, 54, 161, 481].
-      const {windows, fullRange, intervalMs} = partitionHeatmapWindows(
+      const {windows, fullRange} = partitionHeatmapWindows(
         absolute(0, 720 * HOUR),
         '1h',
         'progressive'
       );
 
-      expect(intervalMs).toBe(HOUR);
       expect(fullRange).toEqual({start: 0, end: 720 * HOUR});
       const absoluteWindows = windows as Array<{end: string; start: string}>;
-      expect(absoluteWindows.map(spanHours)).toEqual([6, 18, 54, 161, 481]);
+      // Oldest→newest (largest first); the newest window is the smallest.
+      expect(absoluteWindows.map(spanHours)).toEqual([481, 161, 54, 18, 6]);
 
-      // Newest-first, contiguous (no overlap), covering the whole range.
-      expect(moment.utc(absoluteWindows[0]!.end).valueOf()).toBe(720 * HOUR);
-      expect(moment.utc(absoluteWindows.at(-1)!.start).valueOf()).toBe(0);
+      // Contiguous (no overlap), covering the whole range.
+      expect(moment.utc(absoluteWindows[0]!.start).valueOf()).toBe(0);
+      expect(moment.utc(absoluteWindows.at(-1)!.end).valueOf()).toBe(720 * HOUR);
       for (let i = 1; i < absoluteWindows.length; i++) {
-        expect(absoluteWindows[i]!.end).toBe(absoluteWindows[i - 1]!.start);
+        expect(absoluteWindows[i]!.start).toBe(absoluteWindows[i - 1]!.end);
       }
     });
 
