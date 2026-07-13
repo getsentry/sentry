@@ -11,10 +11,6 @@ import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 export const WIZARD_STORAGE_KEY = 'project-creation-wizard';
 
 export interface WizardState {
-  // Id/slug of the project created in this wizard session. The id validates a
-  // return from getting-started (see the entry resolution in ScmCreateProject);
-  // the slug drives the getting-started navigation and the project-details
-  // reuse check.
   createdProjectId: string | undefined;
   createdProjectSlug: string | undefined;
   projectDetailsForm: ProjectDetailsFormState | undefined;
@@ -28,14 +24,6 @@ export interface WizardState {
  * Syncs product-selection changes made on the getting-started page back into
  * the SCM create-project wizard's session storage so that back-nav restores
  * the updated selection.
- *
- * Returns a memoized callback suitable for passing as `onProductSelectionSync`
- * to `SdkDocumentation`, or `undefined` when the SCM project-creation
- * experiment is not active or the current project does not match the wizard
- * session (e.g. the user landed on getting-started from a different flow).
- *
- * `reportExposure: false` because this page renders for every project-creation
- * flow, not just the SCM one.
  */
 export function useScmCreateProjectProductSync(
   project: Project
