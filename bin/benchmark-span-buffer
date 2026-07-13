@@ -17,7 +17,6 @@ import math
 import random
 import statistics
 import subprocess
-import sys
 import time
 from collections import defaultdict
 from collections.abc import Callable, Sequence
@@ -275,8 +274,7 @@ def parse_args() -> argparse.Namespace:
         default=1,
         type=int,
         help=(
-            "sample metrics and per-call latency on one call in N; "
-            "default: 1 to measure every call"
+            "sample metrics and per-call latency on one call in N; default: 1 to measure every call"
         ),
     )
     return parser.parse_args()
@@ -292,9 +290,7 @@ def main() -> int:
     client = redis.Redis(host=args.host, port=args.port, db=args.db)
     client.ping()
     if client.dbsize() != 0:
-        logger.critical(
-            f"Redis database {args.db} is not empty; refusing to flush it.", file=sys.stderr
-        )
+        logger.critical(f"Redis database {args.db} is not empty; refusing to flush it.")
         return 2
 
     variants = load_scripts(client, args.script, args.git_ref)
