@@ -387,11 +387,14 @@ class StatsigEventSerializer(serializers.Serializer):
     timestamp = serializers.CharField(required=True)
     metadata = serializers.DictField(required=True)
 
-    user = serializers.DictField(required=False, child=serializers.CharField())
+    # Statsig sends heterogeneous values in the user dict (nested objects, not just strings).
+    user = serializers.DictField(required=False)
     userID = serializers.CharField(required=False)
-    value = serializers.CharField(required=False)
+    # Statsig sometimes sends an empty string for value.
+    value = serializers.CharField(required=False, allow_blank=True)
     statsigMetadata = serializers.DictField(required=False)
-    timeUUID = serializers.UUIDField(required=False)
+    # Statsig sometimes sends non-UUID values; accept as a plain string.
+    timeUUID = serializers.CharField(required=False)
     unitID = serializers.CharField(required=False)
 
 

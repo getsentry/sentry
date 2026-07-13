@@ -158,6 +158,59 @@ class OrganizationFlagsHooksEndpointTestCase(APITestCase):
             )
             assert FlagAuditLogModel.objects.count() == 1
 
+    def test_statsig_post_create_with_nested_user_fields(self, mock_incr: MagicMock) -> None:
+        """Statsig sends heterogeneous user fields (nested objects, blank value, non-UUID timeUUID).
+
+        Previously StatsigEventSerializer rejected these with DeserializationError because
+        user was DictField(child=CharField()), value didn't allow blank, and timeUUID was
+        a UUIDField. These fields are not used in processing, so the validation is too strict.
+        """
+        request_data = {
+            "data": [
+                {
+                    "eventName": "statsig::gate_exposure",
+                    "timestamp": "1739400185198",
+                    "metadata": {
+                        "type": "Gate",
+                        "name": "gate1",
+                        "action": "updated",
+                    },
+                    "user": {
+                        "name": "johndoe",
+                        "email": "john@sentry.io",
+                        # Non-string values that Statsig sends in the wild
+                        "custom": {"role": "admin"},
+                        "statsigEnvironment": {"tier": "production"},
+                    },
+                    "value": "",
+                    "timeUUID": "not-a-uuid",
+                },
+            ]
+        }
+
+        secret = "webhook-Xk9pL8NQaR5Ym2cx7vHnWtBj4M3f6qyZdC12mnspk8"
+        FlagWebHookSigningSecretModel.objects.create(
+            organization=self.organization,
+            provider="statsig",
+            secret=secret,
+        )
+
+        request_timestamp = "1739400185400"
+        signature_basestring = f"v0:{request_timestamp}:{json.dumps(request_data)}".encode()
+        signature = "v0=" + hmac_sha256_hex_digest(key=secret, message=signature_basestring)
+        headers = {
+            "X-Statsig-Signature": signature,
+            "X-Statsig-Request-Timestamp": request_timestamp,
+        }
+
+        with self.feature(self.features):
+            response = self.client.post(
+                reverse(self.endpoint, args=(self.organization.slug, "statsig")),
+                request_data,
+                headers=headers,
+            )
+            assert response.status_code == 200, response.content
+
     def test_statsig_post_unauthorized(self, mock_incr: MagicMock) -> None:
         request_data = {
             "data": [
