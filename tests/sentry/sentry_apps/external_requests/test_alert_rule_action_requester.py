@@ -60,6 +60,27 @@ class TestSentryAppAlertRuleActionRequester(TestCase):
         self.success_message = "Created alert!"
 
     @responses.activate
+    def test_sends_custom_headers(self) -> None:
+        self.install.sentry_app.update(webhook_headers=["Authorization: Bearer secret-token"])
+
+        responses.add(
+            method=responses.POST,
+            url="https://example.com/sentry/alert-rule",
+            status=200,
+        )
+
+        with self.feature("organizations:sentry-apps-custom-webhook-headers"):
+            result = SentryAppAlertRuleActionRequester(
+                install=self.install,
+                uri="/sentry/alert-rule",
+                fields=self.fields,
+            ).run()
+
+        assert result["success"]
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == "Bearer secret-token"
+
+    @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_makes_successful_request(self, mock_record: MagicMock) -> None:
         responses.add(
