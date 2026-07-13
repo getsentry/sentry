@@ -83,7 +83,7 @@ function useRegisterServiceWorker() {
       .catch(error => {
         // AbortErrors from registration are expected (e.g. user navigates away
         // during the initial register call) and produce no stack trace.
-        if (error.name === 'AbortError') {
+        if (error instanceof Error && error.name === 'AbortError') {
           return;
         }
         log('error');
@@ -114,7 +114,7 @@ function useServiceWorkerUpdateCheck() {
         .catch(error => {
           // AbortErrors are expected when the user navigates away during an
           // update check — they are not actionable and produce no stack trace.
-          if (error.name === 'AbortError') {
+          if (error instanceof Error && error.name === 'AbortError') {
             return;
           }
           Sentry.captureException(error);
