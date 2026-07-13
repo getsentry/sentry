@@ -32,8 +32,7 @@ interface ToolCallStatusIconProps {
 
 /**
  * A compact status icon for a group of agent tool calls: a spinner while they
- * run and a semantic icon once they settle. Shared across agent conversation
- * surfaces (Seer Explorer, Dashboards AI, Autofix, …).
+ * run and a semantic icon once they settle.
  *
  * Placement and sizing of the surrounding slot are the caller's responsibility.
  */

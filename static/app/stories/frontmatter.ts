@@ -9,6 +9,7 @@ type ComponentCategory =
   | 'navigation'
   | 'status'
   | 'display'
+  | 'chat'
   | 'overlays'
   | 'utilities'
   | 'shared';

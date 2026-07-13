@@ -1,7 +1,7 @@
 ---
 title: ChatMessageBubble
 description: A single message bubble for the sender's own messages in an agent conversation.
-category: display
+category: chat
 source: '@sentry/scraps/chat'
 resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/chatMessageBubble.tsx
@@ -16,9 +16,8 @@ export const documentation =
   import('!!type-loader!@sentry/scraps/chat/chatMessageBubble');
 
 The `ChatMessageBubble` renders a single message bubble, styled for the
-sender's own messages in an agent conversation (Seer Explorer, Dashboards AI,
-Autofix, …). It is presentation only — alignment within the conversation is the
-caller's responsibility.
+sender's own messages in an agent conversation. It is presentation only —
+alignment within the conversation is the caller's responsibility.
 
 ## Usage
 

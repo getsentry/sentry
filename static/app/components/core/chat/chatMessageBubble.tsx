@@ -13,7 +13,7 @@ interface ChatMessageBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
 
 /**
  * A single chat message bubble, styled for the sender's own messages in an
- * agent conversation (Seer Explorer, Dashboards AI, Autofix, …).
+ * agent conversation.
  *
  * Presentation only — alignment within the conversation is the caller's
  * responsibility (wrap it in a right-aligned row for user messages).
