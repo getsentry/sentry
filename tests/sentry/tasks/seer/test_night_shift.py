@@ -361,6 +361,38 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         assert [ep.project.slug for ep in cron_result] == ["keep"]
         assert sorted(ep.project.slug for ep in manual_result) == ["drop", "keep"]
 
+    def test_logs_every_disqualifying_reason_at_once(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        project.update_option(
+            "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
+        )
+        project.update_option(
+            "sentry:seer_automated_run_stopping_point", AutofixStoppingPoint.CODE_CHANGES.value
+        )
+        project.update_option("sentry:seer_nightshift_tweaks", {"enabled": False})
+
+        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
+            result = _get_eligible_projects(org, "cron")
+
+        assert result == []
+        mock_logger.info.assert_called_once_with(
+            "night_shift.project_filtered",
+            extra={
+                "organization_id": org.id,
+                "project_id": project.id,
+                "reasons": [
+                    "no_connected_repos",
+                    "automation_tuning_off",
+                    "tweaks_disabled",
+                    "not_pr_producing",
+                ],
+                "automation_tuning": AutofixAutomationTuningSettings.OFF.value,
+                "tweaks_enabled": False,
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+            },
+        )
+
 
 @django_db_all
 class TestRunNightShiftForOrg(NightShiftFixtures, TestCase, SnubaTestCase):
