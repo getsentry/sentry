@@ -5,7 +5,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -34,11 +33,6 @@ interface UseMetricHeatMapDataOptions {
 // a lower-tier bounds scan would under-cover and clip the chunks' extreme buckets.
 // Verified against the backend (rpc_dataset_common / snuba aggregation), July 2025.
 const HEATMAP_CHUNK_SAMPLING_MODE = SAMPLING_MODE.HIGH_ACCURACY;
-
-// Only retry rate limits; a 500 fails the chunk fast so the grid degrades to a
-// partial render immediately rather than after the default 3 retries.
-const CHUNK_RETRY = (failureCount: number, error: Error) =>
-  error instanceof RequestError && error.status === 429 && failureCount < 3;
 
 /**
  * Heat map data source for Explore and Dashboards.
@@ -104,8 +98,8 @@ export function useMetricHeatMapData({
     enabled && validDims && windows.length > 0 && (chunked ? domainReady : true);
   const bounds = boundsQuery.data ?? undefined;
   const queries = shouldFetch
-    ? windows.map(timeParams => ({
-        ...metricHeatmapApiOptions({
+    ? windows.map(timeParams =>
+        metricHeatmapApiOptions({
           organization,
           selection,
           timeParams,
@@ -118,9 +112,8 @@ export function useMetricHeatMapData({
           yMin: bounds?.min,
           yMax: bounds?.max,
           sampling: defined(bounds) ? HEATMAP_CHUNK_SAMPLING_MODE : undefined,
-        }),
-        retry: CHUNK_RETRY,
-      }))
+        })
+      )
     : [];
   const combine = useMemo(
     () => metricHeatmapCombine({fullRange, intervalMs}),
