@@ -23,8 +23,11 @@ interface BreadcrumbItemMenuBreadcrumbsProps {
 export function BreadcrumbItemMenuBreadcrumbs({
   items,
 }: BreadcrumbItemMenuBreadcrumbsProps) {
-  const menuItems = items.map(item => ({
-    key: typeof item.to === 'string' ? item.to : JSON.stringify(item.to),
+  const menuItems = items.map((item, index) => ({
+    // Include the index so two crumbs pointing at the same destination don't
+    // collide on key — DropdownMenu requires unique keys. The list is static and
+    // never reordered, so the index is a stable identifier.
+    key: `${index}-${typeof item.to === 'string' ? item.to : JSON.stringify(item.to)}`,
     label: item.label,
     to: item.to,
   }));
