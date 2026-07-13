@@ -5,6 +5,9 @@ import {partitionDateTimeIntoHeatMapWindows} from 'sentry/views/explore/metrics/
 
 const HOUR = 60 * 60 * 1000;
 
+// A fixed, recent, hour-aligned anchor so window strings read as real dates.
+const BASE_MS = Date.UTC(2024, 0, 1); // 2024-01-01T00:00:00Z
+
 type DateTimeFilter = PageFilters['datetime'];
 
 describe('partitionDateTimeIntoHeatMapWindows', () => {
@@ -13,37 +16,28 @@ describe('partitionDateTimeIntoHeatMapWindows', () => {
 
     expect(
       partitionDateTimeIntoHeatMapWindows(
-        absolute(0, 100 * HOUR),
+        absolute(BASE_MS, BASE_MS + 100 * HOUR),
         'garbage',
         'progressive'
       )
     ).toMatchObject(empty);
     expect(
-      partitionDateTimeIntoHeatMapWindows(absolute(0, 100 * HOUR), null, 'progressive')
+      partitionDateTimeIntoHeatMapWindows(
+        absolute(BASE_MS, BASE_MS + 100 * HOUR),
+        null,
+        'progressive'
+      )
     ).toMatchObject(empty);
-  });
-
-  it('Exposes the whole selection as a fallback window', () => {
-    const {fullWindow, windows} = partitionDateTimeIntoHeatMapWindows(
-      absolute(0, 720 * HOUR),
-      '1h',
-      'progressive'
-    );
-    expect(windows.length).toBeGreaterThan(1);
-    expect(fullWindow).toEqual({
-      start: '1970-01-01T00:00:00.000',
-      end: '1970-01-31T00:00:00.000',
-    });
   });
 
   it('Returns a single selection window for ranges below the minimum', () => {
     const {windows} = partitionDateTimeIntoHeatMapWindows(
-      absolute(0, 23 * HOUR),
+      absolute(BASE_MS, BASE_MS + 23 * HOUR),
       '1h',
       'progressive'
     );
     expect(windows).toEqual([
-      {start: '1970-01-01T00:00:00.000', end: '1970-01-01T23:00:00.000'},
+      {start: '2024-01-01T00:00:00.000', end: '2024-01-01T23:00:00.000'},
     ]);
   });
 
@@ -60,19 +54,21 @@ describe('partitionDateTimeIntoHeatMapWindows', () => {
     it('Partitions into aligned, non-overlapping, progressive windows', () => {
       // 720 buckets (30d @ 1h), progressive → widths [55, 166, 499].
       const {windows, timeDomain} = partitionDateTimeIntoHeatMapWindows(
-        absolute(0, 720 * HOUR),
+        absolute(BASE_MS, BASE_MS + 720 * HOUR),
         '1h',
         'progressive'
       );
 
-      expect(timeDomain).toEqual({start: 0, end: 720 * HOUR});
+      expect(timeDomain).toEqual({start: BASE_MS, end: BASE_MS + 720 * HOUR});
       const absoluteWindows = windows as Array<{end: string; start: string}>;
 
       expect(absoluteWindows.map(spanHours)).toEqual([499, 166, 55]);
 
       // Contiguous (no overlap), covering the whole range.
-      expect(moment.utc(absoluteWindows[0]!.start).valueOf()).toBe(0);
-      expect(moment.utc(absoluteWindows.at(-1)!.end).valueOf()).toBe(720 * HOUR);
+      expect(moment.utc(absoluteWindows[0]!.start).valueOf()).toBe(BASE_MS);
+      expect(moment.utc(absoluteWindows.at(-1)!.end).valueOf()).toBe(
+        BASE_MS + 720 * HOUR
+      );
       for (let i = 1; i < absoluteWindows.length; i++) {
         expect(absoluteWindows[i]!.start).toBe(absoluteWindows[i - 1]!.end);
       }
@@ -80,7 +76,7 @@ describe('partitionDateTimeIntoHeatMapWindows', () => {
 
     it('Partitions equally when asked', () => {
       const {windows} = partitionDateTimeIntoHeatMapWindows(
-        absolute(0, 720 * HOUR),
+        absolute(BASE_MS, BASE_MS + 720 * HOUR),
         '1h',
         'equal'
       );

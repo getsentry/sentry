@@ -27,19 +27,11 @@ export interface TimeDomain {
 
 export interface MetricHeatMapPlan {
   /**
-   * The whole selection as one un-chunked window. It's already `windows[0]` for a
-   * narrow range; the caller also uses it as the fallback when a wide range's
-   * bounds resolve empty, firing one unpinned request so a real (empty) response
-   * drives "No data" instead of a synthesized grid.
-   */
-  fullWindow: HeatMapWindow;
-  /**
-   * Full epoch-aligned time domain in ms, used to size the merged grid. Kept
-   * alongside `fullWindow`: a relative range's windows are `statsPeriod`
-   * offsets with no absolute anchor, so only the partitioner — which resolved
-   * `now` — knows the concrete extent, while `fullWindow` is the un-aligned
-   * request params. `{0, 0}` when there's nothing to partition (fast path /
-   * empty), which merges nothing.
+   * Full epoch-aligned time domain in ms, used to size the merged grid. Returned
+   * (rather than derived by the caller) because a relative range's windows are
+   * `statsPeriod` offsets with no absolute anchor, so only the partitioner —
+   * which resolved `now` — knows the concrete extent. `{0, 0}` when there's
+   * nothing to partition (fast path / empty), which merges nothing.
    */
   timeDomain: TimeDomain;
   windows: HeatMapWindow[];
@@ -74,14 +66,16 @@ export function partitionDateTimeIntoHeatMapWindows(
   const intervalMs = defined(interval) ? intervalToMilliseconds(interval) : 0;
   const normalized = normalizeDateTimeParams(datetime);
   const timeDomain = pageFilterDateTimeToTimeDomain(normalized, datetime);
-  const fullWindow = dateTimeAsHeatMapWindow(normalized);
 
   if (intervalMs <= 0) {
-    return {windows: [], timeDomain: {start: 0, end: 0}, fullWindow};
+    return {windows: [], timeDomain: {start: 0, end: 0}};
   }
 
   if (!timeDomain || timeDomain.end - timeDomain.start < MINIMUM_PARTITION_RANGE) {
-    return {windows: [fullWindow], timeDomain: {start: 0, end: 0}, fullWindow};
+    return {
+      windows: [dateTimeAsHeatMapWindow(normalized)],
+      timeDomain: {start: 0, end: 0},
+    };
   }
 
   const alignedStart = Math.floor(timeDomain.start / intervalMs) * intervalMs;
@@ -95,7 +89,7 @@ export function partitionDateTimeIntoHeatMapWindows(
     ? absoluteWindows(alignedStart, bucketDistribution, intervalMs)
     : relativeWindows(bucketDistribution, intervalMs);
 
-  return {windows, timeDomain: {start: alignedStart, end: alignedEnd}, fullWindow};
+  return {windows, timeDomain: {start: alignedStart, end: alignedEnd}};
 }
 
 function dateTimeAsHeatMapWindow(

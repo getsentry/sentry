@@ -40,8 +40,11 @@ export function metricBoundsApiOptions({
 
   const {start, end, statsPeriod} = normalizeDateTimeParams(selection.datetime);
   // Absolute ranges are immutable → cache forever. Relative ranges drift as new
-  // extreme values arrive, so let them refetch when the query is re-triggered.
-  const staleTime = defined(start) && defined(end) ? Infinity : 0;
+  // extreme values arrive, but the y-domain moves slowly and refetching re-pins
+  // (and re-fetches) every chunk, so cache it a while instead of recomputing on
+  // every mount/focus (which `staleTime: 0` would do).
+  const staleTime =
+    defined(start) && defined(end) ? Infinity : RELATIVE_BOUNDS_STALE_TIME;
 
   return {
     ...apiOptions.as<TraceMetricEventsResult>()(
@@ -84,3 +87,6 @@ export function metricBoundsApiOptions({
 
 const MIN_VALUE_FIELD = 'min(value)';
 const MAX_VALUE_FIELD = 'max(value)';
+
+// How long a relative range's bounds stay fresh before refetching.
+const RELATIVE_BOUNDS_STALE_TIME = 5 * 60 * 1000; // 5 minutes

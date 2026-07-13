@@ -7,7 +7,6 @@ import {defined} from 'sentry/utils/defined';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {metricBoundsApiOptions} from 'sentry/views/explore/metrics/hooks/metricBoundsApiOptions';
 import {metricHeatMapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatMapApiOptions';
 import {makePartitionedHeatMapWindowCombiner} from 'sentry/views/explore/metrics/hooks/metricHeatMapCombine';
@@ -23,13 +22,6 @@ interface UseMetricHeatMapDataOptions {
   interval?: string | null;
   yBuckets?: number | null;
 }
-
-// Chunked requests AND their Phase A bounds run at this tier, and they MUST match:
-// the heat map endpoint computes its own y-bounds at its data query's sampling
-// mode, and `min`/`max` are the extremes of *scanned* rows (not extrapolated), so
-// a lower-tier bounds scan would under-cover and clip the chunks' extreme buckets.
-// Verified against the backend (rpc_dataset_common / snuba aggregation), July 2025.
-const HEATMAP_CHUNK_SAMPLING_MODE = SAMPLING_MODE.HIGH_ACCURACY;
 
 /**
  * Heat map data source for Explore and Dashboards.
@@ -59,7 +51,7 @@ export function useMetricHeatMapData({
   // change, so it's stable across renders (`partitionDateTimeIntoHeatMapWindows` reads
   // Date.now() for relative ranges — pinning it here avoids re-partitioning, and
   // relative windows stay relative so the backend still re-resolves now per fetch).
-  const {windows, timeDomain, fullWindow} = useMemo(
+  const {windows, timeDomain} = useMemo(
     () =>
       partitionDateTimeIntoHeatMapWindows(selection.datetime, interval, 'progressive'),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -81,7 +73,6 @@ export function useMetricHeatMapData({
       selection,
       traceMetric,
       query,
-      sampling: HEATMAP_CHUNK_SAMPLING_MODE,
     }),
     enabled: enabled && validDims && isChunked,
   });
@@ -90,10 +81,12 @@ export function useMetricHeatMapData({
   const boundsEmpty = boundsResolved && boundsQuery.data === null;
   const bounds = boundsQuery.data ?? undefined;
 
-  // Phase B, build the queries to fetch the actual heat map chunks
+  // Phase B, build the queries to fetch the actual heat map chunks. When the
+  // range is empty (bounds resolved to nothing), fall back to a single window so
+  // one real (empty) response drives "No data".
   const shouldFetch =
     enabled && validDims && windows.length > 0 && (isChunked ? boundsResolved : true);
-  const activeWindows = boundsEmpty ? [fullWindow] : windows;
+  const activeWindows = boundsEmpty ? windows.slice(0, 1) : windows;
 
   const queries = shouldFetch
     ? activeWindows.map(timeWindow =>
@@ -105,12 +98,11 @@ export function useMetricHeatMapData({
           query,
           interval,
           yBuckets,
-          // Pin the domain + tier only when we have real bounds (chunking) so every
-          // chunk shares aligned buckets on one exact tier. The fast path and the
-          // empty fallback have no bounds and stay unpinned.
+          // Pin the shared y-domain when chunking so every chunk has aligned
+          // y-buckets and can be merged. The fast path and empty fallback have no
+          // bounds and stay unpinned.
           yMin: bounds?.min,
           yMax: bounds?.max,
-          sampling: defined(bounds) ? HEATMAP_CHUNK_SAMPLING_MODE : undefined,
         })
       )
     : [];
