@@ -1,0 +1,62 @@
+---
+title: ChatMessageBubble
+description: A single message bubble for the sender's own messages in an agent conversation.
+category: display
+source: '@sentry/scraps/chat'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/chatMessageBubble.tsx
+---
+
+import {Flex} from '@sentry/scraps/layout';
+import {ChatMessageBubble} from '@sentry/scraps/chat';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation =
+  import('!!type-loader!@sentry/scraps/chat/chatMessageBubble');
+
+The `ChatMessageBubble` renders a single message bubble, styled for the
+sender's own messages in an agent conversation (Seer Explorer, Dashboards AI,
+Autofix, …). It is presentation only — alignment within the conversation is the
+caller's responsibility.
+
+## Usage
+
+Wrap the bubble in a right-aligned row for user messages so it sits opposite the
+agent's responses.
+
+<Storybook.Demo>
+  <Flex justify="end" width="100%">
+    <ChatMessageBubble>How many errors happened in the last 24 hours?</ChatMessageBubble>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<Flex justify="end" width="100%">
+  <ChatMessageBubble>How many errors happened in the last 24 hours?</ChatMessageBubble>
+</Flex>
+```
+
+## Width
+
+The bubble grows to fit its content up to `maxWidth` (default `80%`), so it
+never spans the full conversation width. Override `maxWidth` for narrower or
+wider surfaces.
+
+<Storybook.Demo>
+  <Flex direction="column" gap="md" width="100%">
+    <Flex justify="end" width="100%">
+      <ChatMessageBubble maxWidth="60%">
+        A longer question that wraps onto multiple lines once it reaches the max width of
+        the bubble.
+      </ChatMessageBubble>
+    </Flex>
+  </Flex>
+</Storybook.Demo>
+
+```jsx
+<ChatMessageBubble maxWidth="60%">…</ChatMessageBubble>
+```
+
+Whitespace and long unbroken tokens are preserved and wrapped, so pasted URLs
+or stack frames won't overflow the bubble.
