@@ -30,6 +30,7 @@ from sentry.tasks.summaries.organization_report_context_factory import (
 )
 from sentry.tasks.summaries.utils import (
     ONE_DAY,
+    SIX_HOURS,
     OrganizationReportContext,
     ProjectContext,
     _project_key_performance_issues_eap,
@@ -2423,20 +2424,20 @@ class WeeklyReportsTest(
         ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
         ctx.top_spans = [{"name": "/api/users", "p95": 120.5, "sum": 50000.0}]
 
-        day1_ts = int(ctx.start.timestamp())
-        day2_ts = day1_ts + ONE_DAY
+        ts1 = int(ctx.start.timestamp())
+        ts2 = ts1 + SIX_HOURS
 
         mock_ts_result = {
             "/api/users": SnubaTSResult(
                 data={
                     "data": [
-                        {"time": day1_ts, "p95(span.duration)": 100.0},
-                        {"time": day2_ts, "p95(span.duration)": 150.0},
+                        {"time": ts1, "p95(span.duration)": 100.0},
+                        {"time": ts2, "p95(span.duration)": 150.0},
                     ]
                 },
                 start=ctx.start,
                 end=ctx.end,
-                rollup=ONE_DAY,
+                rollup=SIX_HOURS,
             )
         }
 
@@ -2446,9 +2447,9 @@ class WeeklyReportsTest(
         ):
             organization_top_spans_timeseries(ctx, referrer=Referrer.REPORTS_TOP_SPANS.value)
 
-        assert "/api/users" in ctx.top_spans_by_day
-        assert ctx.top_spans_by_day["/api/users"][day1_ts] == 100.0
-        assert ctx.top_spans_by_day["/api/users"][day2_ts] == 150.0
+        assert "/api/users" in ctx.top_spans_timeseries
+        assert ctx.top_spans_timeseries["/api/users"][ts1] == 100.0
+        assert ctx.top_spans_timeseries["/api/users"][ts2] == 150.0
 
     def test_organization_top_spans_timeseries_skips_without_top_spans(self) -> None:
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
@@ -2461,7 +2462,7 @@ class WeeklyReportsTest(
             organization_top_spans_timeseries(ctx, referrer=Referrer.REPORTS_TOP_SPANS.value)
             mock_query.assert_not_called()
 
-        assert len(ctx.top_spans_by_day) == 0
+        assert len(ctx.top_spans_timeseries) == 0
 
     @with_feature("organizations:weekly-report-spans-chart")
     def test_enhanced_privacy_skips_top_spans(self) -> None:

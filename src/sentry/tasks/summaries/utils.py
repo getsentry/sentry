@@ -41,6 +41,7 @@ from sentry.utils.snuba import raw_snql_query
 from sentry.utils.tracing import start_span
 
 ONE_DAY = int(timedelta(days=1).total_seconds())
+SIX_HOURS = int(timedelta(hours=6).total_seconds())
 logger = logging.getLogger(__name__)
 
 
@@ -61,7 +62,7 @@ class OrganizationReportContext:
 
         # Top spans data for the spans chart
         self.top_spans: list[dict[str, Any]] = []  # [{name, p95, sum}, ...]
-        self.top_spans_by_day: dict[str, dict[int, float]] = {}  # {span_name: {timestamp: p95}}
+        self.top_spans_timeseries: dict[str, dict[int, float]] = {}  # {span_name: {timestamp: p95}}
         self.top_spans_projects: dict[str, set[int]] = {}  # {span_name: set of project_ids}
 
     def __repr__(self) -> str:
@@ -685,7 +686,7 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
         project_ctx.past_resolved_issues = project_ctx.past_resolved_issues[:3]
 
 
-TOP_SPANS_LIMIT = 9
+TOP_SPANS_LIMIT = 5
 TOP_SPANS_QUERY_LIMIT = 50
 
 
@@ -791,7 +792,7 @@ def organization_top_spans_timeseries(
         end=ctx.end,
         projects=projects,
         organization=ctx.organization,
-        granularity_secs=ONE_DAY,
+        granularity_secs=SIX_HOURS,
     )
     config = SearchResolverConfig(auto_fields=True)
 
@@ -813,7 +814,7 @@ def organization_top_spans_timeseries(
 
     for span_key, ts_data in ts_result.items():
         span_name = span_key
-        daily_p95: dict[int, float] = {}
+        interval_p95: dict[int, float] = {}
         for point in ts_data.data.get("data", []):
             timestamp = point.get("time")
             p95_value = point.get("p95(span.duration)", 0)
@@ -823,5 +824,5 @@ def organization_top_spans_timeseries(
                     if hasattr(timestamp, "timestamp")
                     else int(timestamp)
                 )
-                daily_p95[ts_int] = p95_value or 0
-        ctx.top_spans_by_day[span_name] = daily_p95
+                interval_p95[ts_int] = p95_value or 0
+        ctx.top_spans_timeseries[span_name] = interval_p95
