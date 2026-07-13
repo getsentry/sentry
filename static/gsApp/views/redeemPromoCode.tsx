@@ -2,6 +2,8 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {Container, Flex} from '@sentry/scraps/layout';
+
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
@@ -104,14 +106,18 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
                     )}
                     required
                   >
-                    <field.Input
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                    />
+                    <Flex gap="md" width="100%" align="end">
+                      <Container flex="1" minWidth={0}>
+                        <field.Input
+                          value={field.state.value}
+                          onChange={field.handleChange}
+                        />
+                      </Container>
+                      <form.SubmitButton>{t('Redeem')}</form.SubmitButton>
+                    </Flex>
                   </field.Layout.Row>
                 )}
               </form.AppField>
-              <form.SubmitButton>{t('Redeem')}</form.SubmitButton>
             </form.FieldGroup>
           </form.AppForm>
         </div>
