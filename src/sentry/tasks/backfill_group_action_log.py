@@ -115,6 +115,7 @@ def reset_and_backfill_group_action_log(
 def backfill_group_action_log_for_project(
     project_id: int,
     last_activity_id: int = 0,
+    reset: bool = False,
     **kwargs: object,
 ) -> None:
     task_state = current_task()
@@ -136,6 +137,9 @@ def backfill_group_action_log_for_project(
     except Project.DoesNotExist:
         return
 
+    if reset and last_activity_id == 0:
+        _reset_project(project)
+
     try:
         _backfill_project(project, last_activity_id, activation_id)
     except Exception:
@@ -147,6 +151,29 @@ def backfill_group_action_log_for_project(
             },
         )
         raise
+
+
+def _reset_project(project: Project) -> None:
+    from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+    from sentry.issues.models.groupderiveddata import GroupDerivedData
+
+    deleted_derived, _ = GroupDerivedData.objects.filter(
+        group__project_id=project.id,
+    ).delete()
+
+    deleted_entries, _ = GroupActionLogEntry.objects.filter(
+        project_id=project.id,
+        source=BACKFILL_ACTIVITY_SOURCE,
+    ).delete()
+
+    logger.info(
+        "backfill_group_action_log.project_reset_completed",
+        extra={
+            "project_id": project.id,
+            "deleted_entries": deleted_entries,
+            "deleted_derived": deleted_derived,
+        },
+    )
 
 
 def _backfill_project(
