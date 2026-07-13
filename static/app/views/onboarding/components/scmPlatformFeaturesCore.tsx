@@ -373,9 +373,7 @@ export function ScmPlatformFeaturesCore({
           <Flex flexShrink={0}>
             <IconBroadcast size="sm" />
           </Flex>
-          <Heading as="h4" ellipsis>
-            {t('Auto-detected from your repository')}
-          </Heading>
+          <Heading as="h4">{t('Auto-detected from your repository')}</Heading>
         </Flex>
         <Button size="xs" variant="link" onClick={handleChangePlatformClick}>
           {isDetecting
