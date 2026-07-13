@@ -16,7 +16,7 @@ import {
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
-import {FieldValueType} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
 function getFilterKeysFromQuery(value: string | undefined): string[] {
   if (!value) {
@@ -35,12 +35,36 @@ function getFilterKeysFromQuery(value: string | undefined): string[] {
   return Array.from(keys);
 }
 
+export function getFieldDefinitionForFilterKey(
+  key: string,
+  getFieldDefinition: FieldDefinitionGetter,
+  filterKeys?: TagCollection
+): FieldDefinition | null {
+  const fieldDef = getFieldDefinition(key);
+  if (fieldDef) {
+    return fieldDef;
+  }
+
+  switch (filterKeys?.[key]?.kind) {
+    case FieldKind.MEASUREMENT:
+    case FieldKind.NUMERIC_METRICS:
+      return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
+    case FieldKind.BOOLEAN:
+      return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+    case FieldKind.TAG:
+      return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
+    default:
+      return null;
+  }
+}
+
 function addKeyToSearchConfig(
   config: Partial<SearchConfig>,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter
+  getFieldDefinition: FieldDefinitionGetter,
+  filterKeys: TagCollection
 ) {
-  const fieldDef = getFieldDefinition(key);
+  const fieldDef = getFieldDefinitionForFilterKey(key, getFieldDefinition, filterKeys);
   if (!fieldDef) {
     return;
   }
@@ -93,11 +117,11 @@ function getSearchConfigFromKeys({
   } satisfies Partial<SearchConfig>;
 
   for (const key of Object.keys(keys)) {
-    addKeyToSearchConfig(config, key, getFieldDefinition);
+    addKeyToSearchConfig(config, key, getFieldDefinition, keys);
   }
 
   for (const key of queryKeys) {
-    addKeyToSearchConfig(config, key, getFieldDefinition);
+    addKeyToSearchConfig(config, key, getFieldDefinition, keys);
   }
 
   return config;

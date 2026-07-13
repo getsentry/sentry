@@ -1,6 +1,7 @@
 import type {ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 import {mutationOptions} from '@tanstack/react-query';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
@@ -138,6 +139,10 @@ const FILTER_KEY_SECTIONS: FilterKeySection[] = [
     children: ['custom_tag_name'],
   },
 ];
+
+const numberOperatorConversionOrganization = OrganizationFixture({
+  features: ['search-query-builder-number-operator-conversion'],
+});
 
 function getLastInput() {
   const input = screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1);
@@ -1323,6 +1328,59 @@ describe('SearchQueryBuilder', () => {
 
       expect(mockOnChange).toHaveBeenCalledTimes(1);
       expect(mockOnChange).toHaveBeenCalledWith('is:unresolved', expect.anything());
+    });
+
+    it.each([
+      ['>', 'timesSeen:>100'],
+      ['<', 'timesSeen:<100'],
+      ['=', 'timesSeen:=100'],
+    ])(
+      'adds default value for numeric filter when typing <filter>%s',
+      async (operator, expectedQuery) => {
+        render(<SearchQueryBuilder {...defaultProps} />, {
+          organization: numberOperatorConversionOrganization,
+        });
+        await userEvent.click(getLastInput());
+
+        await userEvent.keyboard(`timesSeen${operator}{Escape}`);
+
+        expect(await screen.findByRole('row', {name: expectedQuery})).toBeInTheDocument();
+      }
+    );
+
+    it('does not add a default value for numeric filters without the feature flag', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(getLastInput());
+
+      await userEvent.keyboard('timesSeen>');
+
+      expect(getLastInput()).toHaveValue('timesSeen>');
+    });
+
+    it('adds default value for numeric tag filters from filter key metadata', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: numberOperatorConversionOrganization,
+      });
+      await userEvent.click(getLastInput());
+
+      await userEvent.paste('tags[bar,number]>');
+      await userEvent.keyboard('{Escape}');
+
+      expect(
+        await screen.findByRole('row', {name: 'tags[bar,number]:>100'})
+      ).toBeInTheDocument();
+    });
+
+    it('does not automatically create a filter for non-numeric keys with comparison operators', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(getLastInput());
+
+      await userEvent.keyboard('browser.name>');
+
+      expect(getLastInput()).toHaveValue('browser.name>');
+      expect(
+        screen.queryByRole('button', {name: 'Edit key for filter: browser.name'})
+      ).not.toBeInTheDocument();
     });
 
     it('does not automatically create a filter if the user intends to wrap in quotes', async () => {
@@ -5640,6 +5698,34 @@ describe('SearchQueryBuilder', () => {
       expect(
         screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
       ).toHaveTextContent('bar');
+    });
+
+    it('replaces number key with suggestion when typing comparison operator', async () => {
+      render(<SearchQueryBuilder {...builderProps} />, {
+        organization: numberOperatorConversionOrganization,
+      });
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('bar>{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
+      ).toHaveTextContent('bar');
+      expect(
+        screen.getByRole('row', {name: 'tags[bar,number]:>100'})
+      ).toBeInTheDocument();
+    });
+
+    it('does not replace string key with suggestion when typing comparison operator', async () => {
+      render(<SearchQueryBuilder {...builderProps} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo>');
+
+      expect(getLastInput()).toHaveValue('foo>');
+      expect(
+        screen.queryByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
+      ).not.toBeInTheDocument();
     });
 
     it('replaces string key with suggestion on enter', async () => {

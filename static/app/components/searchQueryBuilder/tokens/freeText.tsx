@@ -29,17 +29,20 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import {
   collapseTextTokens,
+  getFieldDefinitionForFilterKey,
   parseTokenKey,
   recentSearchTypeToLabel,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
   InvalidReason,
   parseSearch,
+  TermOperator,
   Token,
   type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
@@ -106,13 +109,82 @@ function replaceFocusedWordWithFilter(
   value: string,
   cursorPosition: number,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter
+  getFieldDefinition: FieldDefinitionGetter,
+  operator?: TermOperator
 ) {
   return replaceFocusedWord(
     value,
     cursorPosition,
-    getInitialFilterText(key, getFieldDefinition(key))
+    getInitialFilterText(key, getFieldDefinition(key), operator)
   );
+}
+
+const NUMERIC_COMPARISON_VALUE_TYPES = new Set<FieldValueType>([
+  FieldValueType.INTEGER,
+  FieldValueType.NUMBER,
+  FieldValueType.CURRENCY,
+  FieldValueType.DURATION,
+  FieldValueType.SIZE,
+  FieldValueType.PERCENTAGE,
+]);
+
+const COMPARISON_SHORTCUT_OPERATORS = [
+  TermOperator.GREATER_THAN,
+  TermOperator.LESS_THAN,
+  TermOperator.EQUAL,
+] as const;
+
+function getNumericComparisonFilterShortcut({
+  value,
+  cursorPosition,
+  getSuggestedFilterKey,
+  getFieldDefinition,
+  filterKeys,
+}: {
+  cursorPosition: number;
+  filterKeys: TagCollection;
+  getFieldDefinition: FieldDefinitionGetter;
+  getSuggestedFilterKey: (key: string) => string | null;
+  value: string;
+}) {
+  const word = getWordAtCursorPosition(value, cursorPosition);
+  const operator = COMPARISON_SHORTCUT_OPERATORS.find(op => word.endsWith(op));
+
+  if (!operator) {
+    return null;
+  }
+
+  const key = word.slice(0, -operator.length);
+  if (!key || key.endsWith('!')) {
+    return null;
+  }
+
+  const filterKey = getSuggestedFilterKey(key) ?? key;
+  const fieldDefinition = getFieldDefinitionForFilterKey(
+    filterKey,
+    getFieldDefinition,
+    filterKeys
+  );
+  const valueType = fieldDefinition?.valueType;
+  if (
+    !fieldDefinition ||
+    fieldDefinition.kind === FieldKind.FUNCTION ||
+    !valueType ||
+    !NUMERIC_COMPARISON_VALUE_TYPES.has(valueType)
+  ) {
+    return null;
+  }
+
+  return {
+    fieldDefinition,
+    filterKey,
+    operator,
+    text: replaceFocusedWord(
+      value,
+      cursorPosition,
+      getInitialFilterText(filterKey, fieldDefinition, operator)
+    ),
+  };
 }
 
 function countPreviousItemsOfType({
@@ -260,6 +332,9 @@ function SearchQueryBuilderInputInternal({
   const [selectionIndex, setSelectionIndex] = useState(0);
 
   const organization = useOrganization();
+  const enableNumberOperatorConversion = organization.features.includes(
+    'search-query-builder-number-operator-conversion'
+  );
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -401,6 +476,29 @@ function SearchQueryBuilderInputInternal({
         .replace('\n', '')
         .trim();
 
+      const comparisonShortcut = getNumericComparisonFilterShortcut({
+        value: clipboardText,
+        cursorPosition: clipboardText.length,
+        getSuggestedFilterKey,
+        getFieldDefinition,
+        filterKeys,
+      });
+
+      if (enableNumberOperatorConversion && comparisonShortcut) {
+        dispatch({
+          type: 'UPDATE_FREE_TEXT_ON_COLON',
+          tokens: [token],
+          text: comparisonShortcut.text,
+          focusOverride: calculateNextFocusForFilter(
+            state,
+            comparisonShortcut.fieldDefinition
+          ),
+          shouldCommitQuery: false,
+        });
+        resetInputValue();
+        return;
+      }
+
       dispatch({
         type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE',
         tokens: [token],
@@ -408,7 +506,16 @@ function SearchQueryBuilderInputInternal({
       });
       resetInputValue();
     },
-    [dispatch, resetInputValue, token]
+    [
+      dispatch,
+      enableNumberOperatorConversion,
+      filterKeys,
+      getFieldDefinition,
+      getSuggestedFilterKey,
+      resetInputValue,
+      state,
+      token,
+    ]
   );
 
   const onClick = useCallback(() => {
@@ -650,6 +757,38 @@ function SearchQueryBuilderInputInternal({
               shouldCommitQuery: false,
             });
             resetInputValue();
+            return;
+          }
+
+          const cursorPosition = e.target.selectionStart ?? rawValue.length;
+          const comparisonShortcut = getNumericComparisonFilterShortcut({
+            value: rawValue,
+            cursorPosition,
+            getSuggestedFilterKey,
+            getFieldDefinition,
+            filterKeys,
+          });
+
+          if (enableNumberOperatorConversion && comparisonShortcut) {
+            const {fieldDefinition, filterKey, text} = comparisonShortcut;
+            const key = filterKeys[filterKey];
+            dispatch({
+              type: 'UPDATE_FREE_TEXT_ON_COLON',
+              tokens: [token],
+              text,
+              focusOverride: calculateNextFocusForFilter(state, fieldDefinition),
+              shouldCommitQuery: false,
+            });
+            resetInputValue();
+            trackAnalytics('search.key_manually_typed', {
+              organization,
+              search_type: recentSearchTypeToLabel(recentSearches),
+              search_source: searchSource,
+              item_name: filterKey,
+              item_kind: key?.kind ?? FieldKind.FIELD,
+              item_value_type: fieldDefinition.valueType ?? FieldValueType.STRING,
+              new_experience: true,
+            });
             return;
           }
 
