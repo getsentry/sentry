@@ -1,7 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import pytest
-from django.utils import timezone
 from pydantic import ValidationError
 
 from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
@@ -258,25 +257,6 @@ class ConsumeTaskTest(TestCase):
         task = ConsumeTask.Later(when=timedelta(seconds=30))
         assert task.countdown() == 30
 
-    def test_later_with_timezone_aware_datetime(self) -> None:
-        future = timezone.now() + timedelta(seconds=45)
-        task = ConsumeTask.Later(when=future)
-        countdown = task.countdown()
-        # Countdown should be around 45 seconds (allow small timing variance)
-        assert countdown is not None
-        assert 44 <= countdown <= 46
-
-    def test_later_with_past_datetime_returns_zero(self) -> None:
-        past = timezone.now() - timedelta(seconds=10)
-        task = ConsumeTask.Later(when=past)
+    def test_later_with_negative_timedelta_returns_zero(self) -> None:
+        task = ConsumeTask.Later(when=timedelta(seconds=-10))
         assert task.countdown() == 0
-
-    def test_later_coerces_naive_datetime(self) -> None:
-        # Naive datetimes are made aware via ensure_aware so countdown doesn't
-        # raise TypeError against timezone.now().
-        future = datetime.now() + timedelta(seconds=45)
-        assert timezone.is_naive(future)
-        task = ConsumeTask.Later(when=future)
-        countdown = task.countdown()
-        assert countdown is not None
-        assert 44 <= countdown <= 46

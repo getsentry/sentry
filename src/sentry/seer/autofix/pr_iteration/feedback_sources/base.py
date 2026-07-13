@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import timedelta
 from functools import cached_property
 from typing import ClassVar
 
-from django.utils import timezone
 from pydantic import BaseModel
 
 from sentry.seer.agent.client_models import SeerRunState
-from sentry.utils.dates import ensure_aware
 
 
 class ConsumeTask:
@@ -28,16 +26,10 @@ class _ConsumeNow(ConsumeTask):
 
 @dataclass(frozen=True)
 class _ConsumeLater(ConsumeTask):
-    when: timedelta | datetime
+    when: timedelta
 
     def countdown(self) -> int | None:
-        if isinstance(self.when, timedelta):
-            seconds = self.when.total_seconds()
-        else:
-            # Coerce naive datetimes so subtraction against timezone.now()
-            # (aware under USE_TZ) doesn't raise TypeError.
-            seconds = (ensure_aware(self.when) - timezone.now()).total_seconds()
-        return max(0, int(seconds))
+        return max(0, int(self.when.total_seconds()))
 
 
 ConsumeTask.Now = _ConsumeNow()
