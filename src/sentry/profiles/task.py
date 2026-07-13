@@ -59,8 +59,10 @@ from sentry.profiles.java import (
     merge_jvm_frames_with_android_methods,
 )
 from sentry.profiles.utils import (
+    PROFILE_FORMAT_V2_ANDROID_TRACE,
     Profile,
     apply_stack_trace_rules_to_profile,
+    is_android_trace_format,
 )
 from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
@@ -286,16 +288,20 @@ def process_profile_task(
     sentry_sdk.set_tag("platform", profile["platform"])
     sentry_sdk.set_attribute("platform", profile["platform"])
 
-    if "version" in profile:
-        version = profile["version"]
+    version = profile.get("version")
+
+    if is_android_trace_format(profile):
+        # Android trace format is sent both as legacy transaction profiles and as
+        # continuous-profiling chunks, the latter identified by a profiler_id.
+        fmt = "android_chunk" if "profiler_id" in profile else "legacy"
+        sentry_sdk.set_tag("format", fmt)
+        sentry_sdk.set_attribute("format", fmt)
+    elif version is not None:
         sentry_sdk.set_tag("format", f"sample_v{version}")
         sentry_sdk.set_attribute("format", f"sample_v{version}")
         set_span_attribute("profile.samples", len(profile["profile"]["samples"]))
         set_span_attribute("profile.stacks", len(profile["profile"]["stacks"]))
         set_span_attribute("profile.frames", len(profile["profile"]["frames"]))
-    elif "profiler_id" in profile and profile["platform"] == "android":
-        sentry_sdk.set_tag("format", "android_chunk")
-        sentry_sdk.set_attribute("format", "android_chunk")
     else:
         sentry_sdk.set_tag("format", "legacy")
         sentry_sdk.set_attribute("format", "legacy")
@@ -319,7 +325,7 @@ def process_profile_task(
     # only for those platforms that didn't go through symbolication
     _set_frames_platform(profile)
 
-    if "version" in profile:
+    if version is not None and not is_android_trace_format(profile):
         set_span_attribute("profile.samples.processed", len(profile["profile"]["samples"]))
         set_span_attribute("profile.stacks.processed", len(profile["profile"]["stacks"]))
         set_span_attribute("profile.frames.processed", len(profile["profile"]["frames"]))
@@ -627,7 +633,12 @@ def _normalize(profile: Profile, organization: Organization) -> None:
     platform = profile["platform"]
     version = profile.get("version")
 
-    if platform not in {"cocoa", "android"} or version == "2":
+    # Skip unsupported platforms and sample v2 profiles, which don't carry device
+    # classification. The version can't be trusted on android though, so only skip
+    # genuine sample v2 profiles there and not the (faulty-version) legacy format.
+    if platform not in {"cocoa", "android"} or (
+        version == "2" and not is_android_trace_format(profile)
+    ):
         return
 
     classification = profile.get("transaction_tags", {}).get("device.class", None)
@@ -1084,11 +1095,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                     }
                 ],
                 stacktraces=[
-                    {
-                        "frames": convert_android_methods_to_jvm_frames(
-                            profile["profile"]["methods"]
-                        )
-                    },
+                    {"frames": convert_android_methods_to_jvm_frames(profile)},
                 ],
                 # Methods in a profile aren't inherently ordered, but the order of returned
                 # inlinees should be caller first.
@@ -1111,7 +1118,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
                 if "stacktraces" in response:
                     merge_jvm_frames_with_android_methods(
                         frames=response["stacktraces"][0]["frames"],
-                        methods=profile["profile"]["methods"],
+                        profile=profile,
                     )
                     return True
             else:
@@ -1137,12 +1144,16 @@ def get_debug_file_id(profile: Profile) -> str | None:
 @metrics.wraps("process_profile.deobfuscate")
 def _deobfuscate(profile: Profile, project: Project) -> None:
     debug_file_id = get_debug_file_id(profile)
+
+    # if no proguard mapping was provided, we still need to decode the
+    # signatures on the legacy android trace format; sample v2 frames don't
+    # carry signatures, so there's nothing to do there.
     if debug_file_id is None:
-        # we still need to decode signatures
-        for m in profile["profile"]["methods"]:
-            if m.get("signature"):
-                types = deobfuscate_signature(m["signature"])
-                m["signature"] = format_signature(types)
+        if is_android_trace_format(profile):
+            for m in profile["profile"]["methods"]:
+                if m.get("signature"):
+                    types = deobfuscate_signature(m["signature"])
+                    m["signature"] = format_signature(types)
         return
 
     try:
@@ -1166,16 +1177,6 @@ def get_event_id(profile: Profile) -> str:
     elif "profile_id" in profile:
         return profile["profile_id"]
     return profile["event_id"]
-
-
-def get_data_category(profile: Profile) -> DataCategory:
-    if profile.get("version") == "2":
-        return (
-            DataCategory.PROFILE_CHUNK_UI
-            if profile["platform"] in UI_PROFILE_PLATFORMS
-            else DataCategory.PROFILE_CHUNK
-        )
-    return DataCategory.PROFILE_INDEXED
 
 
 @metrics.wraps("process_profile.track_outcome")
@@ -1265,16 +1266,13 @@ def _get_duration_category(profile: Profile) -> DataCategory:
 
 
 def _calculate_profile_duration_ms(profile: Profile) -> int:
+    if is_android_trace_format(profile):
+        return _calculate_duration_for_android_format(profile)
     version = profile.get("version")
-    if version:
-        if version == "1":
-            return _calculate_duration_for_sample_format_v1(profile)
-        elif version == "2":
-            return _calculate_duration_for_sample_format_v2(profile)
-    else:
-        platform = profile["platform"]
-        if platform == "android":
-            return _calculate_duration_for_android_format(profile)
+    if version == "1":
+        return _calculate_duration_for_sample_format_v1(profile)
+    elif version == "2":
+        return _calculate_duration_for_sample_format_v2(profile)
     return 0
 
 
@@ -1329,7 +1327,9 @@ def _calculate_duration_for_android_format(profile: Profile) -> int:
 def _set_frames_platform(profile: Profile) -> None:
     platform = profile["platform"]
     frames = (
-        profile["profile"]["methods"] if platform == "android" else profile["profile"]["frames"]
+        profile["profile"]["methods"]
+        if is_android_trace_format(profile)
+        else profile["profile"]["frames"]
     )
     for f in frames:
         if "platform" not in f:
@@ -1345,18 +1345,18 @@ class UnknownClientSDKException(Exception):
 
 
 def determine_profile_type(profile: Profile) -> EventType:
-    if "version" in profile:
-        version = profile["version"]
-        if version == "1":
-            return EventType.PROFILE
-        elif version == "2":
-            return EventType.PROFILE_CHUNK
-    elif profile["platform"] == "android":
+    if is_android_trace_format(profile):
         if "profiler_id" in profile:
             return EventType.PROFILE_CHUNK
         else:
             # This is the legacy android format
             return EventType.PROFILE
+
+    version = profile.get("version")
+    if version == "1":
+        return EventType.PROFILE
+    elif version == "2":
+        return EventType.PROFILE_CHUNK
     raise UnknownProfileTypeException
 
 
@@ -1583,7 +1583,19 @@ def _process_vroomrs_chunk_profile(profile: Profile, project: Project) -> bool:
                     tags={"type": "chunk", "platform": profile["platform"]},
                 )
             with start_span(op="json.unmarshal", name="json.unmarshal"):
-                chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
+                # Detect the android trace format before trusting `version`,
+                # analogous to how `symbolicate()` special-cases android: a
+                # faulty version can't be relied on, so a trace profile is
+                # always deserialized as "2.android-trace".
+                version = profile.get("version")
+                if is_android_trace_format(profile):
+                    chunk = vroomrs.profile_chunk_from_json_str_and_version(
+                        json_profile, PROFILE_FORMAT_V2_ANDROID_TRACE
+                    )
+                elif version is not None:
+                    chunk = vroomrs.profile_chunk_from_json_str_and_version(json_profile, version)
+                else:
+                    chunk = vroomrs.profile_chunk_from_json_str(json_profile, profile["platform"])
             chunk.normalize()
             with start_span(op="gcs.write", name="compress and write"):
                 storage = get_profiles_storage()
