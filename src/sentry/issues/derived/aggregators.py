@@ -2,6 +2,9 @@ from sentry.issues.action_log.types import (
     ArchiveAction,
     AssignAction,
     PullRequestClosedAction,
+    PullRequestMergedAction,
+    PullRequestReopenedAction,
+    PullRequestUnlinkedAction,
     ReconcileStatusAction,
     ResolveAction,
     ResolvedInPullRequestAction,
@@ -125,20 +128,28 @@ def track_root_cause(state: StateView, entry: GroupActionLogEntry) -> Aggregator
     scope=(
         ResolvedInPullRequestAction,
         PullRequestClosedAction,
+        PullRequestReopenedAction,
+        PullRequestMergedAction,
+        PullRequestUnlinkedAction,
     ),
 )
 def track_open_fix_prs(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     """Track whether an issue has an open fix PR.
-    When an issue has a fix PR created, the flag should be True.
-    When the last open PR closes, the flag should be False.
+    When an issue has a fix PR created or reopened, the flag should be True.
+    When the last open PR closes, merges, or is unlinked, the flag should be False.
     """
     current_has_open_fix_pr = state[HAS_OPEN_FIX_PR]
 
-    # TODO(malwilley): Merging or unlinking a PR should also clear the flag.
     match entry.action:
-        case ResolvedInPullRequestAction() if not current_has_open_fix_pr:
+        case ResolvedInPullRequestAction() | PullRequestReopenedAction() if (
+            not current_has_open_fix_pr
+        ):
             return emit(HAS_OPEN_FIX_PR.value(True))
-        case PullRequestClosedAction(has_other_open_prs=False) if current_has_open_fix_pr:
+        case (
+            PullRequestClosedAction(has_other_open_prs=False)
+            | PullRequestMergedAction(has_other_open_prs=False)
+            | PullRequestUnlinkedAction(has_other_open_prs=False)
+        ) if current_has_open_fix_pr:
             return emit(HAS_OPEN_FIX_PR.value(False))
 
     return None
