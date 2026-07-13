@@ -52,7 +52,7 @@ NATIVE_EXCEPTION = {
         ),
         pytest.param(
             [MINIDUMP_PLACEHOLDER, NATIVE_EXCEPTION],
-            [SymbolicatorFunction.minidump, SymbolicatorFunction.native],
+            [SymbolicatorFunction.native, SymbolicatorFunction.minidump],
             id="minidump_with_native_stacktrace",
         ),
         pytest.param(
@@ -67,7 +67,7 @@ NATIVE_EXCEPTION = {
         ),
         pytest.param(
             [APPLECRASHREPORT_PLACEHOLDER, NATIVE_EXCEPTION],
-            [SymbolicatorFunction.applecrashreport, SymbolicatorFunction.native],
+            [SymbolicatorFunction.native, SymbolicatorFunction.applecrashreport],
             id="applecrashreport_with_native",
         ),
         pytest.param(
