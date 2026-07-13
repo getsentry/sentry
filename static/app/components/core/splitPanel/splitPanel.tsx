@@ -343,14 +343,14 @@ const DividerLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
   &::before {
     content: '';
     position: absolute;
-    z-index: 1;
+    z-index: ${p => p.theme.zIndex.drawer};
   }
 
   /* Accent bar that lights up on hover/drag */
   &::after {
     content: '';
     position: absolute;
-    z-index: 1;
+    z-index: ${p => p.theme.zIndex.drawer};
     opacity: 0.8;
     background: transparent;
     transition: background ${p => p.theme.motion.smooth.slow} 0.1s;
