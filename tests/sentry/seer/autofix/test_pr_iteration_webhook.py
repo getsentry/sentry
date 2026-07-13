@@ -273,6 +273,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
+            reaction="eyes",
         )
 
     @patch(f"{TASK_PATH}.make_scm")
@@ -362,6 +363,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             source_type="github-pr-review-comment",
             pr_number=7,
             comment_id=999,
+            reaction="eyes",
         )
 
 

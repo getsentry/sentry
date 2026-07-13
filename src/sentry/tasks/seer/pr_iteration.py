@@ -433,7 +433,7 @@ def trigger_pr_iteration_from_comment(
             pr_number=pr_number,
             github_username=github_username,
             source_type=source.type,
-            comment_id=comment.get("id"),
+            comment_id=comment.id,
         )
         return None
 
