@@ -481,9 +481,6 @@ def _get_eligible_projects(
             pref.automated_run_stopping_point or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
         )
 
-        # Collect every disqualifying condition instead of stopping at the
-        # first one, so a project stuck on multiple settings doesn't look
-        # newly-broken each time an earlier one gets fixed.
         reasons: list[str] = []
         if not pref.repositories:
             reasons.append("no_connected_repos")
