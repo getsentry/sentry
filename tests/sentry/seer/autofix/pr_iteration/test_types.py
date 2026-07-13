@@ -446,7 +446,7 @@ class CheckSuiteShouldTriggerTest(TestCase):
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
     @patch("sentry.scm.factory.new")
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
-    def test_none_when_a_check_suite_not_completed(
+    def test_later_when_a_check_suite_not_completed(
         self,
         mock_resolve: MagicMock,
         mock_new: MagicMock,
@@ -456,7 +456,7 @@ class CheckSuiteShouldTriggerTest(TestCase):
         mock_new.return_value = MagicMock()
         mock_pages.return_value = [{"data": [{"status": "in_progress"}]}]
 
-        assert self._source().should_trigger(_run_state()) is None
+        assert self._source().should_trigger(_run_state()) == ConsumeTask.Later(timedelta(hours=1))
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages")
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)

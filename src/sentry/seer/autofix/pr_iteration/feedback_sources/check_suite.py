@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Literal
 
 from pydantic import BaseModel, Field, PrivateAttr, root_validator
@@ -223,8 +224,9 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         return matched
 
     def should_trigger(self, run_state: SeerRunState) -> ConsumeTask | None:
-        # Queue a consume task immediately once every check run has completed;
-        # skip while some are still pending.
+        # Always queue a consume task for this run: immediately once every check
+        # run has completed, or after a delay while some are still pending (they
+        # can get stuck, so we trigger anyway rather than wait forever).
         head_sha = self.event.check_suite.head_sha
         if not head_sha:
             logger.info(
@@ -284,7 +286,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
                     },
                 )
                 if incomplete_count:
-                    return None
+                    return ConsumeTask.Later(timedelta(hours=1))
         except Exception:
             logger.warning(
                 "autofix.pr_iteration.should_trigger.list_check_runs_failed",
