@@ -858,16 +858,26 @@ export function SearchQueryBuilderValueCombobox({
 
   // Re-run as the value changes (typing, or lifting a chip into the input).
   useEffect(() => {
-    const pendingCaret = pendingCaretRef.current;
-    if (pendingCaret !== null) {
-      pendingCaretRef.current = null;
-      const input = inputRef.current;
-      const matchesPendingValue = input?.value === pendingCaret.value;
-      if (input && matchesPendingValue) {
-        input.setSelectionRange(pendingCaret.pos, pendingCaret.pos);
-      }
-    }
     scrollInputIntoView();
+    const pendingCaret = pendingCaretRef.current;
+    if (pendingCaret === null) {
+      return;
+    }
+    pendingCaretRef.current = null;
+    const input = inputRef.current;
+    if (!input) {
+      return;
+    }
+    if (input.value !== pendingCaret.value) {
+      return;
+    }
+    input.setSelectionRange(pendingCaret.pos, pendingCaret.pos);
+    // scrollInputIntoView pins the tail of a long value into view, but a caret
+    // just placed at the start (after a mid-value comma split) has to win, or
+    // the remaining text keeps scrolling off-screen as the user types.
+    if (pendingCaret.pos === 0) {
+      input.scrollLeft = 0;
+    }
   }, [inputValue, scrollInputIntoView]);
 
   // While typing, surface the typed text as a custom option so results rank by
@@ -1452,16 +1462,17 @@ const ValueEditingChips = styled(Flex)`
 
 // Wraps the single combobox input. It sizes to its content while editing a chip
 // in place (so it doesn't push later chips around), but grows to fill the
-// trailing space when it sits at the end of the row (the add-a-value state).
+// trailing space when it sits at the end of the row (the add-a-value state). The
+// base min-width keeps a mid-row insertion point visible and clickable even when
+// its input is momentarily empty (e.g. right after a comma split).
 const ValueInputContainer = styled('div')`
   display: flex;
   width: auto;
-  min-width: 0;
+  min-width: ${p => p.theme.space.lg};
   flex: 0 0 auto;
 
   &:last-child {
     flex: 1 1 0%;
-    min-width: ${p => p.theme.space.lg};
   }
 `;
 
