@@ -306,3 +306,13 @@ class MNPlusOneDBDetectorTest(TestCase):
         event = get_event("m-n-plus-one-db/m-n-plus-one-prisma-client")
         assert self.find_problems(event, settings) == []
         metrics_mock.incr.assert_called_with("mn_plus_one_db_span_detector.no_parent_span")
+
+    def test_does_not_raise_when_db_span_missing_description(self) -> None:
+        event = get_event("m-n-plus-one-db/m-n-plus-one-graphql")
+        for span in event["spans"]:
+            if span.get("op", "").startswith("db"):
+                span.pop("description", None)
+
+        problems = self.find_problems(event)
+        assert len(problems) == 1
+        assert problems[0].desc == ""
