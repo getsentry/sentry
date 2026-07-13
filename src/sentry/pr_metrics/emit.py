@@ -31,6 +31,7 @@ from sentry.pr_metrics.contracts import (
     PrConversationAnalysis,
 )
 from sentry.pr_metrics.utils import is_activity_tracking_enabled, iso_or_none, resolved_group_ids
+from sentry.seer.models.run import SeerRun
 from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
@@ -121,6 +122,41 @@ def active_attributions(pull_request: PullRequest) -> list[dict[str, Any]]:
         {"signal_type": a.signal_type, "source": a.source, "signal_details": a.signal_details}
         for a in ordered
     ]
+
+
+def resolve_autofix_referrers(
+    pull_request: PullRequest, attributions: list[dict[str, Any]]
+) -> list[str]:
+    """The distinct ``SeerRun.referrer`` values behind this PR's attributions.
+
+    Order is not meaningful — attributions aren't recorded in any guaranteed
+    order — so this returns a plain deduplicated set.
+
+    Both the ``SENTRY_APP`` and ``SEER_DELEGATED_*`` signal paths stamp a Seer
+    ``run_id`` onto their ``signal_details`` (see ``SentryAppSignalDetails`` /
+    ``DelegatedAgentSignalDetails``). Resolves each distinct run id to its
+    mirrored ``SeerRun`` row rather than duplicating the referrer onto
+    ``signal_details`` at write time, so this reads correctly even for PRs
+    attributed before this field existed. Run ids with no matching (or
+    referrer-less) ``SeerRun`` row are skipped — not every run id resolves,
+    e.g. Cursor's delegated-agent path doesn't record one today.
+    """
+    run_ids = {
+        details["run_id"]
+        for attribution in attributions
+        if (details := attribution.get("signal_details")) and details.get("run_id") is not None
+    }
+    if not run_ids:
+        return []
+
+    referrers = (
+        SeerRun.objects.filter(
+            organization_id=pull_request.organization_id, seer_run_state_id__in=run_ids
+        )
+        .values_list("referrer", flat=True)
+        .distinct()
+    )
+    return list(filter(None, referrers))
 
 
 def _merge_commit_id(pull_request: PullRequest) -> int | None:
@@ -232,6 +268,7 @@ def build_pr_metrics_row(
         closed_by_bot=metrics.closed_by_bot,
         opened_and_closed_by_same_actor=metrics.opened_and_closed_by_same_actor,
         attributions=json.dumps(attributions),
+        autofix_referrers=resolve_autofix_referrers(pull_request, attributions),
         verdict=metrics.verdict,
         diagnosis_labels=list(diagnosis_labels) if diagnosis_labels is not None else None,
         **_conversation_analysis_fields(conversation_analysis),
