@@ -47,7 +47,12 @@ class Migration(CheckedMigration):
                     models.CharField(db_default="pending", default="pending", max_length=32),
                 ),
                 ("verdict", models.JSONField(null=True)),
-                ("predicted_identifier", models.TextField(null=True)),
+                (
+                    "predicted_assignee_user_id",
+                    sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                        "sentry.User", db_index=True, null=True, on_delete="SET_NULL"
+                    ),
+                ),
                 (
                     "actual_assignee_user_id",
                     sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(

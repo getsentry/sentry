@@ -65,10 +65,15 @@ class SeerSmartAssignmentResult(DefaultFieldsModel):
         db_default=SmartAssignmentStatus.PENDING,
     )
 
-    # The full delivered `AssigneeVerdict` (ranked candidates), and the top pick's
-    # identifier denormalized for querying.
+    # The full delivered `AssigneeVerdict` (ranked candidates), and the top pick
+    # resolved to a Sentry user, denormalized so evaluation can compare it directly
+    # against `actual_assignee_user_id`. Null when the agent named no one or we
+    # couldn't map the top pick's identifier to a user in the org (the raw
+    # identifier string is still recoverable from `verdict`).
     verdict = models.JSONField(null=True)
-    predicted_identifier = models.TextField(null=True)
+    predicted_assignee_user_id = HybridCloudForeignKey(
+        "sentry.User", null=True, on_delete="SET_NULL"
+    )
 
     # Ground truth: who the issue actually belonged to. Either an explicit assignee
     # (user and/or team -- a team assignee still lets us score whether our pick is
