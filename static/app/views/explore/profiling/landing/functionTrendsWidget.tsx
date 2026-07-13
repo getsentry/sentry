@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -146,7 +146,7 @@ export function FunctionTrendsWidget({
         paginationAnalyticsEvent={paginationAnalyticsEvent}
         trendType={trendType}
       />
-      <Flex flex="1 1 auto" direction="column" justify="center">
+      <Stack flex="1 1 auto" justify="center">
         {isLoading && (
           <StatusContainer>
             <LoadingIndicator />
@@ -189,7 +189,7 @@ export function FunctionTrendsWidget({
             })}
           </Accordion>
         )}
-      </Flex>
+      </Stack>
     </WidgetContainer>
   );
 }

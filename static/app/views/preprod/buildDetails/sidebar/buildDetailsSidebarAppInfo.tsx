@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
 import {CodeBlock} from '@sentry/scraps/code';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -35,7 +35,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
   });
 
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       <Flex align="center" gap="sm">
         {props.appInfo.name && (
           <Fragment>
@@ -130,7 +130,7 @@ export function BuildDetailsSidebarAppInfo(props: BuildDetailsSidebarAppInfoProp
           </Tooltip>
         )}
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 

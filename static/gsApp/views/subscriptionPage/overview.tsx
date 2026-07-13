@@ -1,6 +1,6 @@
 import {Fragment, useEffect} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -87,7 +87,7 @@ function Overview({subscription}: Props) {
         ) : isError ? (
           <LoadingError onRetry={refetchUsage} />
         ) : (
-          <Flex direction="column" gap="xl" paddingTop="xl">
+          <Stack gap="xl" paddingTop="xl">
             {/**
              * It's important to separate the views for folks with billing permissions (org:billing) and those without.
              * Only owners and billing admins have the billing scope, everyone else including managers, admins, and members lack that scope.
@@ -126,7 +126,7 @@ function Overview({subscription}: Props) {
             />
             <TrialEnded subscription={subscription} />
             <Footer subscription={subscription} />
-          </Flex>
+          </Stack>
         )}
       </SubscriptionPageContainer>
     </Fragment>
@@ -138,13 +138,7 @@ function Footer({subscription}: {subscription: Subscription}) {
     return null;
   }
   return (
-    <Flex
-      direction="column"
-      gap="sm"
-      padding="xl 0"
-      background="primary"
-      borderTop="primary"
-    >
+    <Stack gap="sm" padding="xl 0" background="primary" borderTop="primary">
       <Flex align="center" gap="sm">
         <Text bold>{t('Having trouble?')}</Text>
       </Flex>
@@ -162,7 +156,7 @@ function Footer({subscription}: {subscription: Subscription}) {
           ),
         })}
       </Text>
-    </Flex>
+    </Stack>
   );
 }
 

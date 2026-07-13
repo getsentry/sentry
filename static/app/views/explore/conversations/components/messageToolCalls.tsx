@@ -1,7 +1,7 @@
 import {css, useTheme} from '@emotion/react';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconFire} from 'sentry/icons';
@@ -35,7 +35,7 @@ export function MessageToolCalls({
   const theme = useTheme();
 
   return (
-    <Flex direction="column" gap="xs" padding="sm md xs md">
+    <Stack gap="xs" padding="sm md xs md">
       {toolCalls.map(tool => {
         const toolNode = nodeMap.get(tool.nodeId);
         const isToolSelected = tool.nodeId === selectedNodeId;
@@ -80,7 +80,7 @@ export function MessageToolCalls({
           </Container>
         );
       })}
-    </Flex>
+    </Stack>
   );
 }
 
