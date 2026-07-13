@@ -1,6 +1,6 @@
 import os
 from dataclasses import asdict
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import httpx
 import pytest
@@ -344,3 +344,63 @@ class ObjectstoreEndpointWithControlSiloTest(TransactionTestCase):
                 )
                 assert_status_code(response, 200)
                 assert response.content == data
+
+
+class ObjectstoreProxyQueryForwardingTest(TransactionTestCase):
+    """The proxy must forward the raw query string verbatim.
+
+    Pre-signed URLs carry an Ed25519 signature computed over the exact query bytes,
+    so any re-encoding by the proxy breaks verification on the Objectstore side.
+    Round-tripping the query through ``dict(request.GET)`` (the previous behaviour)
+    let ``requests`` re-encode it, e.g. percent-encoding the ``:`` in ``os_timestamp``.
+    """
+
+    def test_query_string_forwarded_verbatim(self) -> None:
+        from rest_framework.request import Request
+        from rest_framework.test import APIRequestFactory
+
+        from sentry.objectstore.endpoints.organization import ObjectstoreEndpoint
+
+        # Contains characters that ``dict(request.GET)`` + ``requests`` would re-encode:
+        # the ``:`` in the timestamp becomes ``%3A``, and the ``+`` would be mangled too.
+        query = (
+            "os_kid=sentry&os_timestamp=2026-07-13T13:19:24+00:00&os_duration=300&os_sig=ab_c-D9z"
+        )
+        request = APIRequestFactory().get(f"/v1/objects/test/org=1/key?{query}")
+
+        fake_response = MagicMock()
+        fake_response.status_code = 200
+        fake_response.headers = requests.structures.CaseInsensitiveDict()
+
+        with patch(
+            "sentry.objectstore.endpoints.organization.requests.request",
+            return_value=fake_response,
+        ) as mock_request:
+            ObjectstoreEndpoint()._proxy(Request(request), "v1/objects/test/org=1/key")
+
+        # A string is forwarded by ``requests`` untouched, unlike a dict.
+        params = mock_request.call_args.kwargs["params"]
+        assert params == query
+        # Guard against the specific regression: the timestamp is preserved as-is.
+        assert "2026-07-13T13:19:24+00:00" in params
+        assert "%3A" not in params
+
+    def test_empty_query_string_forwarded_as_none(self) -> None:
+        from rest_framework.request import Request
+        from rest_framework.test import APIRequestFactory
+
+        from sentry.objectstore.endpoints.organization import ObjectstoreEndpoint
+
+        request = APIRequestFactory().get("/v1/objects/test/org=1/key")
+
+        fake_response = MagicMock()
+        fake_response.status_code = 200
+        fake_response.headers = requests.structures.CaseInsensitiveDict()
+
+        with patch(
+            "sentry.objectstore.endpoints.organization.requests.request",
+            return_value=fake_response,
+        ) as mock_request:
+            ObjectstoreEndpoint()._proxy(Request(request), "v1/objects/test/org=1/key")
+
+        assert mock_request.call_args.kwargs["params"] is None
