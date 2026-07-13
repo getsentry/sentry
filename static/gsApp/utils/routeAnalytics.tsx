@@ -51,11 +51,11 @@ export function getUrlFromLocation(location: Location) {
  * @param string representing the route path in Amplitude format
  * @return Reload representation of the route path
  * Ex: Organizations :OrgId Alerts New :AlertType ->
- * organizations.:org_id.alerts.new.:alert_type
+ * organizations.org_id.alerts.new.alert_type
  */
 export function convertToReloadPath(routeString: string) {
   return routeString
     .split(' ')
-    .map(tok => tok.replace(/[\w ]+/g, snakeCase))
+    .map(tok => tok.replace(/^:/, '').replace(/[\w ]+/g, snakeCase))
     .join('.');
 }

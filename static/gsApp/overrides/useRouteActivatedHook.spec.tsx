@@ -24,6 +24,8 @@ function makeMatch(path: string): UIMatch {
 
 const SETTINGS_MATCHES = [makeMatch('/settings/:orgId/projects/:projectId/')];
 const RELEASES_MATCHES = [makeMatch('/organizations/:orgId/releases/:release/')];
+// Customer-domain issue detail route (no org prefix)
+const ISSUES_MATCHES = [makeMatch('/issues/'), makeMatch(':groupId/')];
 
 describe('useRouteActivatedHook', () => {
   const organization = OrganizationFixture();
@@ -68,8 +70,8 @@ describe('useRouteActivatedHook', () => {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith(
       {
         eventName: 'Page View: Settings :OrgId Projects :ProjectId',
-        eventKey: 'page_view.settings.:org_id.projects.:project_id',
-        parameterized_path: 'settings.:org_id.projects.:project_id',
+        eventKey: 'page_view.settings.org_id.projects.project_id',
+        parameterized_path: 'settings.org_id.projects.project_id',
         organization: expect.objectContaining(organization),
         subscription: expect.objectContaining(subscription),
         url: `http://localhost/settings/${organization.slug}/${project.slug}/`,
@@ -101,8 +103,8 @@ describe('useRouteActivatedHook', () => {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith(
       {
         eventName: 'Page View: Settings :OrgId Projects :ProjectId',
-        eventKey: 'page_view.settings.:org_id.projects.:project_id',
-        parameterized_path: 'settings.:org_id.projects.:project_id',
+        eventKey: 'page_view.settings.org_id.projects.project_id',
+        parameterized_path: 'settings.org_id.projects.project_id',
         organization: expect.objectContaining(organization),
         subscription: expect.objectContaining(subscription),
         url: `http://localhost/settings/${organization.slug}/${project.slug}/`,
@@ -183,8 +185,8 @@ describe('useRouteActivatedHook', () => {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith(
       {
         eventName: 'Page View: Organizations :OrgId Releases :Release',
-        eventKey: 'page_view.organizations.:org_id.releases.:release',
-        parameterized_path: 'organizations.:org_id.releases.:release',
+        eventKey: 'page_view.organizations.org_id.releases.release',
+        parameterized_path: 'organizations.org_id.releases.release',
         organization: expect.objectContaining(organization),
         subscription: expect.objectContaining(subscription),
         url: `http://localhost/organizations/${organization.slug}/releases/some-release/`,
@@ -207,11 +209,32 @@ describe('useRouteActivatedHook', () => {
       {
         eventName: 'Test Event',
         eventKey: 'test.event',
-        parameterized_path: 'settings.:org_id.projects.:project_id',
+        parameterized_path: 'settings.org_id.projects.project_id',
         organization: expect.objectContaining(organization),
         subscription: expect.objectContaining(subscription),
         url: `http://localhost/settings/${organization.slug}/${project.slug}/`,
       },
+      {time: loadTime}
+    );
+    expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends valid eventKey without colons for issue detail route (regression for JAVASCRIPT-39C7)', () => {
+    jest.useFakeTimers();
+    const {result} = renderHook(useRouteActivatedHook, {
+      initialProps: genProps({
+        location: LocationFixture({pathname: '/issues/123/'}),
+        matches: ISSUES_MATCHES,
+      }),
+    });
+    act(() => result.current.setOrganization(organization));
+    const loadTime = Date.now();
+    act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+    expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventKey: 'page_view.issues.group_id',
+        parameterized_path: 'issues.group_id',
+      }),
       {time: loadTime}
     );
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
@@ -240,8 +263,8 @@ describe('useRouteActivatedHook', () => {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith(
       {
         eventName: 'Page View: Settings :OrgId Projects :ProjectId',
-        eventKey: 'page_view.settings.:org_id.projects.:project_id',
-        parameterized_path: 'settings.:org_id.projects.:project_id',
+        eventKey: 'page_view.settings.org_id.projects.project_id',
+        parameterized_path: 'settings.org_id.projects.project_id',
         organization: expect.objectContaining(organization),
         subscription: expect.objectContaining(subscription),
         url: `http://localhost/settings/${organization.slug}/${project.slug}/`,
@@ -256,8 +279,8 @@ describe('useRouteActivatedHook', () => {
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith(
       {
         eventName: 'Page View: Organizations :OrgId Releases :Release',
-        eventKey: 'page_view.organizations.:org_id.releases.:release',
-        parameterized_path: 'organizations.:org_id.releases.:release',
+        eventKey: 'page_view.organizations.org_id.releases.release',
+        parameterized_path: 'organizations.org_id.releases.release',
         organization: expect.objectContaining(organization),
         subscription: expect.objectContaining(subscription),
         url: `http://localhost/organizations/${organization.slug}/releases/some-release/`,

@@ -67,9 +67,9 @@ describe('buttonTracking', () => {
 
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
       eventName: null,
-      eventKey: 'button_click.settings.:org_id.projects.:project_id',
+      eventKey: 'button_click.settings.org_id.projects.project_id',
       organization: expect.objectContaining(organization),
-      parameterized_path: 'settings.:org_id.projects.:project_id',
+      parameterized_path: 'settings.org_id.projects.project_id',
       text: 'Create Alert',
     });
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
@@ -91,7 +91,7 @@ describe('buttonTracking', () => {
       eventName: 'Settings: Create Alert',
       eventKey: 'settings.create_alert',
       organization: expect.objectContaining(organization),
-      parameterized_path: 'settings.:org_id.projects.:project_id',
+      parameterized_path: 'settings.org_id.projects.project_id',
       text: 'Create Alert',
       priority: 'primary',
       href: 'sentry.io/settings/create_alert',
@@ -114,7 +114,7 @@ describe('buttonTracking', () => {
       eventName: 'Settings: Create Alert',
       eventKey: 'settings.create_alert',
       organization: expect.objectContaining(organization),
-      parameterized_path: 'settings.:org_id.projects.:project_id',
+      parameterized_path: 'settings.org_id.projects.project_id',
       text: 'Create Alert',
     });
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
