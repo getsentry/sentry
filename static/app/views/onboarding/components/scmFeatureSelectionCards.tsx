@@ -36,7 +36,7 @@ export function ScmFeatureSelectionCards({
           </Heading>
           {availableFeatures.length > 1 ? (
             <Container>
-              <Text size="sm" variant="secondary" ellipsis>
+              <Text size="sm" variant="secondary">
                 {t('Choose one or more')}
               </Text>
             </Container>
