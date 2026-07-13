@@ -143,12 +143,3 @@ def deliver_smart_assignment_result(
     # Ground truth may already be recorded (assignment landed before Seer finished);
     # if so this completes the pair and scores correctness now.
     score_prediction(row)
-
-    logger.info(
-        "smart_assignment.delivery.recorded",
-        extra={
-            **log_extra,
-            "outcome": outcome,
-            "num_candidates": len(verdict.candidates),
-        },
-    )
