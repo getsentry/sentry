@@ -91,6 +91,13 @@ export function initializeSentry({
       /AbortError: The operation was aborted/i,
       /AbortError: signal is aborted without reason/i,
       /AbortError: The user aborted a request/i,
+      /**
+       * Native ESM module specifier resolution failures are always from third-party
+       * code (browser extensions, injected scripts, e.g. Microsoft Teams web client).
+       * Sentry's own bundled code never emits this error because webpack/rspack
+       * resolves all imports at build time.
+       */
+      /Failed to resolve module specifier/i,
     ],
     ignoreSpans: IGNORED_SPAN_NAMES,
 

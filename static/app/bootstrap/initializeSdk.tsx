@@ -155,6 +155,13 @@ export function initializeSdk(config: Config) {
        */
       "NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.",
       "NotFoundError: Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node.",
+      /**
+       * Native ESM module specifier resolution failures are always from third-party
+       * code (browser extensions, injected scripts, e.g. Microsoft Teams web client).
+       * Sentry's own bundled code never emits this error because webpack/rspack
+       * resolves all imports at build time.
+       */
+      /Failed to resolve module specifier/i,
     ],
 
     beforeBreadcrumb(crumb) {
