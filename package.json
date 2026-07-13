@@ -111,7 +111,7 @@
     "@sentry-internal/rrweb-player": "2.41.0",
     "@sentry-internal/rrweb-snapshot": "2.41.0",
     "@sentry/browser": "10.65.0",
-    "@sentry/conventions": "^0.8.0",
+    "@sentry/conventions": "^0.16.0",
     "@sentry/core": "10.65.0",
     "@sentry/node": "10.65.0",
     "@sentry/react": "10.65.0",
