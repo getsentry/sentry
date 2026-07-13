@@ -36,13 +36,14 @@ SUPPORTED_ACTIVITIES = [
 # Activities the smart assignment feature reacts to: Seer opening a PR, an
 # assignment, or a resolution. Each triggers a prediction (deduped to one per
 # group) and records ground truth; gating lives in maybe_trigger_smart_assignment.
+# SET_RESOLVED_BY_AGE is intentionally excluded: it's always the auto-resolve cron
+# (no acting user), so it carries no signal and would only ever be filtered out.
 _SMART_ASSIGNMENT_ACTIVITIES = frozenset(
     {
         ActivityType.SEER_PR_CREATED,
         ActivityType.ASSIGNED,
         ActivityType.SET_RESOLVED,
         ActivityType.SET_RESOLVED_IN_RELEASE,
-        ActivityType.SET_RESOLVED_BY_AGE,
         ActivityType.SET_RESOLVED_IN_COMMIT,
         ActivityType.SET_RESOLVED_IN_PULL_REQUEST,
     }

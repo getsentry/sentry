@@ -55,7 +55,11 @@ class SmartAssignmentActivityHandlerTest(TestCase):
 
     @mock.patch(TRIGGER)
     def test_skips_unrelated_activities(self, mock_trigger: MagicMock) -> None:
-        for activity_type in (ActivityType.SEER_SOLUTION_COMPLETED, ActivityType.NOTE):
+        for activity_type in (
+            ActivityType.SEER_SOLUTION_COMPLETED,
+            ActivityType.SET_RESOLVED_BY_AGE,
+            ActivityType.NOTE,
+        ):
             activity = self.create_group_activity(group=self.group, type=activity_type.value)
             smart_assignment_activity_handler(self.group, activity, None)
         mock_trigger.assert_not_called()
