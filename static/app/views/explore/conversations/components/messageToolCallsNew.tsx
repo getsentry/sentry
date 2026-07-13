@@ -1,6 +1,6 @@
 import {css, useTheme} from '@emotion/react';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -51,7 +51,7 @@ export function MessageToolCallsNew({
   `;
 
   return (
-    <Flex direction="column" gap="xs" width="100%">
+    <Stack gap="xs" width="100%">
       {toolCalls.map(tool => {
         const toolNode = nodeMap.get(tool.nodeId);
         const isToolSelected = tool.nodeId === selectedNodeId;
@@ -125,7 +125,7 @@ export function MessageToolCallsNew({
           </Container>
         );
       })}
-    </Flex>
+    </Stack>
   );
 }
 

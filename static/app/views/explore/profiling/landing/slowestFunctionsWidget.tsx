@@ -8,7 +8,7 @@ import omit from 'lodash/omit';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -256,7 +256,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
           paginationAnalyticsEvent={paginationAnalyticsEvent}
         />
       </HeaderContainer>
-      <Flex flex="1 1 auto" direction="column" justify="center">
+      <Stack flex="1 1 auto" justify="center">
         {isLoading && (
           <StatusContainer>
             <LoadingIndicator />
@@ -303,7 +303,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
             })}
           </Accordion>
         )}
-      </Flex>
+      </Stack>
     </WidgetContainer>
   );
 }
@@ -457,13 +457,13 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
         />
       </AccordionItem>
       {isExpanded && (
-        <Flex flex="1 1 auto" direction="column" justify="center">
+        <Stack flex="1 1 auto" justify="center">
           <FunctionChart
             func={func}
             breakdownFunction={breakdownFunction}
             stats={stats}
           />
-        </Flex>
+        </Stack>
       )}
     </Fragment>
   );

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import field
 from typing import Literal
 
 from sentry import analytics
@@ -76,6 +77,12 @@ class PrCloseMetricsEvent(analytics.Event):
     # the active (is_valid=True) attributions, each {signal_type, source,
     # signal_details}, ordered by attribution priority (highest-confidence first).
     attributions: str = "[]"
+    # Distinct ``AutofixReferrer`` values (e.g. "slack", "night_shift") behind the
+    # Seer runs that produced this PR's attributions, resolved via ``SeerRun`` at
+    # emit time rather than stored on ``attributions`` itself — see
+    # ``resolve_autofix_referrers``. Empty when no attribution carries a
+    # resolvable Seer run id.
+    autofix_referrers: list[str] = field(default_factory=list)
     # The terminal verdict, one of ``PullRequestVerdict``: the deterministic
     # outcome (``merged_unchanged`` / ``closed_unmerged``) on the no-judge path, or
     # the Seer judge's verdict on the judge path. Claimed before emit on both paths
@@ -83,8 +90,11 @@ class PrCloseMetricsEvent(analytics.Event):
     # ``| None`` is only the column's unset default, not an expected emitted value.
     verdict: str | None = None
     # Close-reason labels behind the verdict (e.g. out_of_scope_or_unwanted) — the
-    # "why", a vocabulary shared across judges, not specific to any one. Repeated
-    # free-string column; null off the judge path. BigQuery-only.
+    # "why", a vocabulary shared across judges, not specific to any one. Mostly
+    # judge-sourced, but Sentry's own deterministic CLOSED_UNMERGED path can also
+    # set "ci_failing_at_close" (see pr_metrics.emit.ci_failing_at_close) — so a
+    # non-null value doesn't by itself mean the row was judged. Repeated
+    # free-string column; null when nothing applies. BigQuery-only.
     diagnosis_labels: list[str] | None = None
 
     # --- Conversation judge (set only on a judged close/merge row) ---
