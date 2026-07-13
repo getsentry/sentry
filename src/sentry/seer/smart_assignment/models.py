@@ -12,6 +12,8 @@ names someone) still round-trips.
 
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -33,6 +35,12 @@ class SmartAssignmentPayload(_Base):
 
 class RankedCandidate(_Base):
     identifier: str
+    # How to resolve `identifier`: "username" (a linked Sentry user's @handle) or
+    # "email" (a raw commit email). Unlike `signals`/`confidence` above, this IS a
+    # field we switch on, so we mirror Seer's Literal exactly (rather than loosening
+    # it) -- an unexpected kind should fail loudly at parse time, not silently
+    # resolve to no user.
+    identifier_kind: Literal["email", "username"]
     reason: str = ""
     signals: list[str] = Field(default_factory=list)
     confidence: str = ""

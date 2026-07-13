@@ -24,17 +24,18 @@ logger = logging.getLogger(__name__)
 
 
 def _resolve_identifier_to_user_id(
-    organization: Organization, identifier: str | None
+    organization: Organization, identifier: str | None, kind: str | None
 ) -> int | None:
-    """Map an agent-produced `@username`/email `identifier` to a user id in the org.
+    """Map an agent-produced `identifier` to a Sentry user id in the org.
 
-    The agent predicts a person as a string -- preferably the `@username` of a
-    linked Sentry user, falling back to a raw commit email (see the
-    `RankedCandidate.identifier` contract on the Seer side). Email-shaped
-    identifiers resolve by verified email (the RPC already scopes to the org);
-    everything else resolves by unique username, which we confirm is an org member
-    so a match can't attribute a prediction to someone outside the org. Returns
-    None when nothing resolves.
+    The agent tags each pick with `identifier_kind` (see the `RankedCandidate`
+    contract on the Seer side) so we resolve deterministically instead of inferring
+    the type from the string:
+      - "email":    verified org email (the RPC already scopes to the org).
+      - "username": unique username, confirmed to be an org member so a global match
+                    can't attribute a prediction to someone outside the org.
+    `kind` is a validated Literal by the time it gets here, so this doesn't guess.
+    Returns None when the agent named no one or the identifier maps to no org user.
     """
     if not identifier:
         return None
@@ -43,20 +44,23 @@ def _resolve_identifier_to_user_id(
     if not cleaned:
         return None
 
-    if "@" in cleaned:
+    if kind == "email":
         users = user_service.get_many_by_email(
             emails=[cleaned], organization_id=organization.id, is_verified=True
         )
         return users[0].id if users else None
 
-    users = user_service.get_by_username(username=cleaned)
-    if not users:
-        return None
-    user_id = users[0].id
-    member = organization_service.check_membership_by_id(
-        organization_id=organization.id, user_id=user_id
-    )
-    return user_id if member is not None else None
+    if kind == "username":
+        users = user_service.get_by_username(username=cleaned)
+        if not users:
+            return None
+        user_id = users[0].id
+        member = organization_service.check_membership_by_id(
+            organization_id=organization.id, user_id=user_id
+        )
+        return user_id if member is not None else None
+
+    return None
 
 
 def deliver_smart_assignment_result(
@@ -112,13 +116,14 @@ def deliver_smart_assignment_result(
 
     top_pick = verdict.candidates[0] if verdict.candidates else None
     predicted_identifier = top_pick.identifier if top_pick is not None else None
+    predicted_kind = top_pick.identifier_kind if top_pick is not None else None
 
     # Resolve the top pick to a Sentry user so evaluation can compare it directly
     # against the recorded ground-truth assignee. Left null if the agent named no
     # one or the identifier doesn't map to a user in the org; the raw string is
     # still preserved in `verdict`.
     predicted_assignee_user_id = _resolve_identifier_to_user_id(
-        row.organization, predicted_identifier
+        row.organization, predicted_identifier, predicted_kind
     )
 
     row.update(

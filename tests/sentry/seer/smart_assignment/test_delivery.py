@@ -42,8 +42,18 @@ class DeliverSmartAssignmentResultTest(TestCase):
         self.create_member(user=alice, organization=self.organization)
         result = {
             "candidates": [
-                {"identifier": "@alice", "reason": "suspect commit", "confidence": "high"},
-                {"identifier": "@bob", "reason": "code owner", "confidence": "low"},
+                {
+                    "identifier": "@alice",
+                    "identifier_kind": "username",
+                    "reason": "suspect commit",
+                    "confidence": "high",
+                },
+                {
+                    "identifier": "@bob",
+                    "identifier_kind": "username",
+                    "reason": "code owner",
+                    "confidence": "low",
+                },
             ]
         }
         deliver_smart_assignment_result(
@@ -58,10 +68,39 @@ class DeliverSmartAssignmentResultTest(TestCase):
         self._assert_outcome(mock_metrics, "resolved")
 
     @patch(METRICS_PATH)
+    def test_email_kind_resolves_by_verified_email(self, mock_metrics: MagicMock) -> None:
+        # An email-kind pick (unlinked commit author) resolves by verified org email,
+        # even when the address happens to also be someone's username-shaped handle.
+        carol = self.create_user(email="carol@example.com")
+        self.create_member(user=carol, organization=self.organization)
+        result = {
+            "candidates": [
+                {
+                    "identifier": "carol@example.com",
+                    "identifier_kind": "email",
+                    "reason": "unlinked commit author",
+                    "confidence": "low",
+                },
+            ]
+        }
+        deliver_smart_assignment_result(
+            self.organization.id, str(self.seer_run.uuid), "completed", result, None
+        )
+
+        self.row.refresh_from_db()
+        assert self.row.predicted_assignee_user_id == carol.id
+        self._assert_outcome(mock_metrics, "resolved")
+
+    @patch(METRICS_PATH)
     def test_unresolvable_identifier_completes_with_no_user(self, mock_metrics: MagicMock) -> None:
         result = {
             "candidates": [
-                {"identifier": "@nobody-here", "reason": "guess", "confidence": "low"},
+                {
+                    "identifier": "@nobody-here",
+                    "identifier_kind": "username",
+                    "reason": "guess",
+                    "confidence": "low",
+                },
             ]
         }
         deliver_smart_assignment_result(
@@ -106,7 +145,16 @@ class DeliverSmartAssignmentResultTest(TestCase):
         alice = self.create_user(username="alice")
         self.create_member(user=alice, organization=self.organization)
         self.row.update(actual_assignee_user_id=alice.id)
-        result = {"candidates": [{"identifier": "@alice", "reason": "x", "confidence": "high"}]}
+        result = {
+            "candidates": [
+                {
+                    "identifier": "@alice",
+                    "identifier_kind": "username",
+                    "reason": "x",
+                    "confidence": "high",
+                }
+            ]
+        }
 
         deliver_smart_assignment_result(
             self.organization.id, str(self.seer_run.uuid), "completed", result, None
