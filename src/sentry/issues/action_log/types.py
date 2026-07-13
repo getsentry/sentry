@@ -151,12 +151,30 @@ class ActionSource(StrEnum):
 class GroupAction(BaseModel, abc.ABC):
     """Typed payload for a group action log entry. Frozen after construction."""
 
+    _registry: dict[GroupActionType, type[GroupAction]] = {}
+
     class Config:
         frozen = True
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        if not getattr(cls.get_type, "__isabstractmethod__", False):
+            action_type = cls.get_type()
+            existing = cls._registry.get(action_type)
+            if existing is not None:
+                raise TypeError(
+                    f"Duplicate GroupAction registration for {action_type!r}: "
+                    f"{cls.__name__} conflicts with {existing.__name__}"
+                )
+            cls._registry[action_type] = cls
 
     @classmethod
     @abc.abstractmethod
     def get_type(cls) -> GroupActionType: ...
+
+    @classmethod
+    def by_type(cls, action_type: GroupActionType) -> type[GroupAction] | None:
+        return cls._registry.get(action_type)
 
 
 class ViewAction(GroupAction):
