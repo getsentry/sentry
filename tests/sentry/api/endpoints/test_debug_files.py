@@ -354,7 +354,10 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
     def test_internal_request_redirects_to_objectstore(self) -> None:
         download_id = self._upload_and_get_download_id()
 
-        with patch("sentry.auth.system.is_internal_ip", return_value=True):
+        with (
+            self.feature("organizations:objectstore-debugfiles-direct-read"),
+            patch("sentry.auth.system.is_internal_ip", return_value=True),
+        ):
             response = self.client.get(f"{self.url}?id={download_id}")
 
         assert response.status_code == 302
@@ -365,7 +368,10 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
     def test_external_request_redirects_to_cell_proxy(self) -> None:
         download_id = self._upload_and_get_download_id()
 
-        with patch("sentry.auth.system.is_internal_ip", return_value=False):
+        with (
+            self.feature("organizations:objectstore-debugfiles-direct-read"),
+            patch("sentry.auth.system.is_internal_ip", return_value=False),
+        ):
             response = self.client.get(f"{self.url}?id={download_id}")
 
         assert response.status_code == 302
