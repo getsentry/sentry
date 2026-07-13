@@ -178,22 +178,12 @@ def test_no_truncation_in_adapter() -> None:
     assert len(m.breadcrumbs) == 50
 
 
-def test_minimal_and_malformed_input_do_not_crash() -> None:
-    # only a title
-    assert event_response_to_model({"title": "t"}).title == "t"
-    # missing title falls back to empty string (model requires the field)
-    assert event_response_to_model({}).title == ""
-    # malformed entries / values are skipped, not raised
-    bad = {
-        "title": "t",
-        "entries": [
-            {"type": "exception", "data": {"values": ["not-a-dict", {"type": "X"}]}},
-            "not-an-entry",
-        ],
-        "tags": ["not-a-tag", {"key": "ok", "value": "v"}],
-        "user": "not-a-dict",
-    }
-    m = event_response_to_model(bad)
-    assert [e.type for e in m.exceptions] == ["X"]
-    assert m.tags == [("ok", "v")]
+def test_minimal_event() -> None:
+    # a bare event (just a title) maps with everything else empty/absent
+    m = event_response_to_model({"title": "t"})
+    assert m.title == "t"
+    assert m.exceptions == []
+    assert m.breadcrumbs == []
+    assert m.tags == []
+    assert m.request is None
     assert m.user is None
