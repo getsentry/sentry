@@ -1,4 +1,4 @@
-import {Fragment, useState, type MouseEvent} from 'react';
+import {Fragment, useEffect, useState, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
@@ -6,9 +6,10 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
@@ -46,9 +47,11 @@ import type {
 } from 'sentry/types/integrations';
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -64,6 +67,10 @@ import {
   granularWebhookEvents,
   WEBHOOK_GRANULAR_EVENT_CHOICES,
 } from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import {
+  getSentryAppTemplate,
+  type SentryAppTemplate,
+} from 'sentry/views/settings/organizationDeveloperSettings/creationTemplates';
 import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 import {
   AllowedOriginsField,
@@ -405,6 +412,21 @@ export default function SentryApplicationDetails() {
   const isInternalRoute = location.pathname.endsWith('new-internal/');
   const isPublicRoute = location.pathname.endsWith('new-public/');
 
+  const template = isInternalRoute
+    ? getSentryAppTemplate(decodeScalar(location.query.template), organization)
+    : undefined;
+  const referrer = decodeScalar(location.query.referrer);
+
+  useEffect(() => {
+    if (template) {
+      trackAnalytics('integrations.sentry_app_template_applied', {
+        organization,
+        referrer,
+        template: template.slug,
+      });
+    }
+  }, [template, organization, referrer]);
+
   const sentryAppQueryOptions = sentryAppApiOptions({appSlug: appSlug ?? null});
 
   const {
@@ -443,6 +465,11 @@ export default function SentryApplicationDetails() {
         <LoadingIndicator />
       ) : isError ? (
         <LoadingError onRetry={refetch} />
+      ) : template ? (
+        <Fragment>
+          <TemplateHeader template={template} />
+          <TemplateSentryAppForm key={template.slug} template={template} />
+        </Fragment>
       ) : isInternalRoute ? (
         <InternalSentryAppCreationForm />
       ) : isPublicRoute ? (
@@ -453,6 +480,98 @@ export default function SentryApplicationDetails() {
         <LoadingError onRetry={refetch} />
       )}
     </div>
+  );
+}
+
+function TemplateHeader({template}: {template: SentryAppTemplate}) {
+  const location = useLocation();
+
+  return (
+    <Alert.Container>
+      <Alert variant="info">
+        <Stack gap="xs" align="start">
+          <Text bold>{template.heading}</Text>
+          <Text>{template.description}</Text>
+          <Link
+            to={{
+              pathname: location.pathname,
+              query: {...location.query, template: undefined},
+            }}
+          >
+            {t('Start from a blank integration instead')}
+          </Link>
+        </Stack>
+      </Alert>
+    </Alert.Container>
+  );
+}
+
+function TemplateSentryAppForm({template}: {template: SentryAppTemplate}) {
+  const organization = useOrganization();
+  const {handleSaveError, saveSentryAppMutation, scopeErrors} = useSaveSentryApp({
+    app: undefined,
+    isInternal: true,
+  });
+
+  const initialScopes = [...(template.prefill.scopes ?? [])];
+  const initialEvents: WebhookSubscription[] = granularWebhookEvents(
+    template.prefill.events ?? []
+  );
+
+  const templateSchema = sentryAppBaseSchema.superRefine((data, ctx) => {
+    requireField(ctx, data.name, 'name');
+    if (template.webhookUrlField?.required) {
+      requireField(ctx, data.webhookUrl, 'webhookUrl');
+    } else {
+      requireWebhookUrlForEvents(ctx, data);
+    }
+  });
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      ...emptySentryAppValues(organization.slug, true),
+      name: template.prefill.name ?? '',
+      webhookHeaders: convertMultilineFieldValue(template.prefill.webhookHeaders ?? []),
+      scopes: initialScopes,
+      events: initialEvents,
+    },
+    validators: {
+      onDynamic: templateSchema,
+    },
+    onSubmit: ({value, formApi}) =>
+      saveSentryAppMutation
+        .mutateAsync(buildSentryAppPayload(value))
+        .catch(error => handleSaveError(error, formApi)),
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.FieldGroup title={t('Internal Integration Details')}>
+        <NameField form={form} fields={{name: 'name'}} />
+
+        <WebhookUrlField
+          form={form}
+          fields={{webhookUrl: 'webhookUrl'}}
+          {...template.webhookUrlField}
+        />
+      </form.FieldGroup>
+
+      <PermissionsObserver
+        appPublished={false}
+        scopes={initialScopes}
+        events={initialEvents}
+        newApp
+        permissionErrors={scopeErrors.permissions}
+        continuousIntegrationError={scopeErrors.continuousIntegration}
+        onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
+        onEventsChange={events => form.setFieldValue('events', events)}
+      />
+
+      <Flex justify="end" paddingTop="xl">
+        <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
+      </Flex>
+    </form.AppForm>
   );
 }
 
