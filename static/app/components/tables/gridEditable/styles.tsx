@@ -95,6 +95,9 @@ export const Grid = styled('table')<{
       overflow-x: auto;
       overflow-y: scroll;
     `}
+  /* Pin the header to a definite track height in both layouts; a content-based
+     header track lets Safari mis-size the <thead> on back/forward navigation.
+     Body track: 1fr absorbs slack when a height is given, else auto. */
   ${p =>
     p.height
       ? css`
@@ -104,14 +107,22 @@ export const Grid = styled('table')<{
           min-height: 0;
 
           &:has(> thead + tbody) {
-            grid-template-rows: auto 1fr;
+            grid-template-rows: ${GRID_HEAD_ROW_HEIGHT}px 1fr;
           }
 
           &:has(> thead + tbody + tbody) {
-            grid-template-rows: auto fit-content(100%) 1fr;
+            grid-template-rows: ${GRID_HEAD_ROW_HEIGHT}px fit-content(100%) 1fr;
           }
         `
-      : ''}
+      : css`
+          &:has(> thead + tbody) {
+            grid-template-rows: ${GRID_HEAD_ROW_HEIGHT}px auto;
+          }
+
+          &:has(> thead + tbody + tbody) {
+            grid-template-rows: ${GRID_HEAD_ROW_HEIGHT}px fit-content(100%) auto;
+          }
+        `}
 
   min-width: ${p => p.fit}
 `;

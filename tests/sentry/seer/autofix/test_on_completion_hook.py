@@ -225,14 +225,16 @@ class TestMaybeReactToCompletedIteration(TestCase):
         return serialize_feedback(
             [
                 Feedback(
-                    text="inline feedback",
                     source=GithubPrReviewCommentFeedbackSource(
-                        comment={"id": 111}, repo_name=repo_name
+                        comment={"id": 111, "body": "@sentry fix the inline thing"},
+                        repo_name=repo_name,
                     ),
                 ),
                 Feedback(
-                    text="top-level feedback",
-                    source=GithubPrCommentFeedbackSource(comment={"id": 222}, repo_name=repo_name),
+                    source=GithubPrCommentFeedbackSource(
+                        comment={"id": 222, "body": "@sentry fix the top-level thing"},
+                        repo_name=repo_name,
+                    ),
                 ),
             ]
         )
@@ -325,7 +327,11 @@ class TestMaybeReactToCompletedIteration(TestCase):
     ) -> None:
         # Feedback serialized before repo_name existed -> resolve via the only repo.
         raw = serialize_feedback(
-            [Feedback(text="x", source=GithubPrCommentFeedbackSource(comment={"id": 222}))]
+            [
+                Feedback(
+                    source=GithubPrCommentFeedbackSource(comment={"id": 222, "body": "@sentry x"})
+                )
+            ]
         )
         with self.feature("organizations:autofix-pr-iteration"):
             self._run(self._state(blocks=[_iteration_block_with_feedback(1, raw)]))
@@ -341,7 +347,11 @@ class TestMaybeReactToCompletedIteration(TestCase):
     ) -> None:
         # No repo_name and more than one repo -> can't safely resolve -> skip.
         raw = serialize_feedback(
-            [Feedback(text="x", source=GithubPrCommentFeedbackSource(comment={"id": 222}))]
+            [
+                Feedback(
+                    source=GithubPrCommentFeedbackSource(comment={"id": 222, "body": "@sentry x"})
+                )
+            ]
         )
         state = self._state(
             blocks=[_iteration_block_with_feedback(1, raw)], repos=("owner/a", "owner/b")

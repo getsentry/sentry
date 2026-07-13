@@ -1,7 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -85,7 +85,7 @@ export function ReauthMonitoringProviderBlock({
   return (
     <Container padding="xl">
       <Container padding="xl" border="primary" radius="md">
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           <Text>
             {t('Your %s connection has expired. Reconnect to continue.', providerLabel)}
           </Text>
@@ -99,7 +99,7 @@ export function ReauthMonitoringProviderBlock({
               {t('Reconnect')}
             </Button>
           </Flex>
-        </Flex>
+        </Stack>
       </Container>
     </Container>
   );
