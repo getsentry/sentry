@@ -156,7 +156,10 @@ function buildStackFix(
   // Remove the now-redundant direction attribute along with the whitespace
   // separating it from the previous token, so an attribute alone on its own
   // line takes the whole line (including the preceding newline) with it.
-  const tokenBefore = context.sourceCode.getTokenBefore(directionAttr);
+  // includeComments keeps a preceding comment from being swallowed by the range.
+  const tokenBefore = context.sourceCode.getTokenBefore(directionAttr, {
+    includeComments: true,
+  });
   const start = tokenBefore ? tokenBefore.range[1] : directionAttr.range[0];
   fixes.push(fixer.removeRange([start, directionAttr.range[1]]));
 

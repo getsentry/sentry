@@ -78,5 +78,27 @@ const x = <Something.Flex direction="column">child</Something.Flex>;`,
       `import * as Something from '@sentry/scraps/layout';
 const x = <Something.Stack>child</Something.Stack>;`
     ),
+    invalid(
+      'preserves a comment preceding the removed direction attribute',
+      `import {Flex} from '@sentry/scraps/layout';
+const x = (
+  <Flex
+    gap="md"
+    // keep this comment
+    direction="column"
+  >
+    child
+  </Flex>
+);`,
+      `import {Flex, Stack} from '@sentry/scraps/layout';
+const x = (
+  <Stack
+    gap="md"
+    // keep this comment
+  >
+    child
+  </Stack>
+);`
+    ),
   ],
 });
