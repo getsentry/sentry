@@ -185,11 +185,12 @@ def _track_contributor_action_processor(
     record_contributor_action(
         organization=organization,
         repo=repo,
-        integration=integration,
+        integration_id=integration.id,
         user_id=author_id,
         user_username=(pull_request.get("user") or {}).get("login"),
         pr_number=pull_request["number"],
         is_opened=event.get("action") == "opened",
+        provider="github",
         logs_extra={"github_event_action": event.get("action")},
         tags={"is_private": is_private},
     )
@@ -1223,9 +1224,10 @@ class PullRequestEventWebhook(GitHubWebhook):
                 track_contributor_seat(
                     organization=organization,
                     repo=repo,
-                    integration=integration,
+                    integration_id=integration.id,
                     user_id=user["id"],
                     user_username=user["login"],
+                    provider="github",
                     logs_extra={
                         "pr_number": str(number),
                         "github_event_action": event.get("action"),

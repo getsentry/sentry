@@ -209,9 +209,10 @@ def track_gitlab_contributor_seat_processor(
     track_contributor_seat(
         organization=org,
         repo=repo,
-        integration=integration,
+        integration_id=integration.id,
         user_id=user_id,
         user_username=user_username,
+        provider="gitlab",
         logs_extra={
             "pr_number": str(iid),
             "github_event_action": object_attributes.get("action"),
@@ -276,9 +277,10 @@ def track_gitlab_contributor_action_processor(
     record_contributor_action(
         organization=org,
         repo=repo,
-        integration=integration,
+        integration_id=integration.id,
         user_id=user_id,
         user_username=user_username,
+        provider="gitlab",
         pr_number=iid,
         is_opened=object_attributes.get("action") == "open",
         tags={"is_private": visibility_level == 0},

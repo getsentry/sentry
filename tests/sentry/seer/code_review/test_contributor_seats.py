@@ -1,7 +1,6 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
     OrganizationContributorAction,
@@ -212,7 +211,6 @@ class TrackContributorSeatTest(TestCase):
             organization=self.organization,
             provider="github",
             external_id="github:1",
-            metadata={"domain_name": "github.com/example"},
         )
         self.repo = self.create_repo(
             project=self.project,
@@ -224,9 +222,10 @@ class TrackContributorSeatTest(TestCase):
         track_contributor_seat(
             organization=self.organization,
             repo=self.repo,
-            integration=serialize_integration(self.integration),
+            integration_id=self.integration.id,
             user_id=user_id,
             user_username=user_username,
+            provider="github",
         )
 
     @patch("sentry.seer.code_review.contributor_seats.logger")
@@ -245,8 +244,7 @@ class TrackContributorSeatTest(TestCase):
             external_identifier="999",
         )
         assert contributor.alias == "newuser"
-        assert contributor.provider == self.integration.provider
-        assert contributor.hostname == "github.com"
+        assert contributor.provider == "github"
         assert contributor.num_actions == 0
         mock_logger.info.assert_not_called()
 
@@ -266,7 +264,6 @@ class TrackContributorSeatTest(TestCase):
             organization=self.organization,
             integration_id=self.integration.id,
             external_identifier="12345",
-            provider=self.integration.provider,
             alias="testuser",
             num_actions=5,
         )
@@ -294,7 +291,6 @@ class RecordContributorActionTest(TestCase):
             organization=self.organization,
             provider="github",
             external_id="github:1",
-            metadata={"domain_name": "github.com/example"},
         )
         self.repo = self.create_repo(
             project=self.project,
@@ -318,9 +314,10 @@ class RecordContributorActionTest(TestCase):
         record_contributor_action(
             organization=self.organization,
             repo=self.repo,
-            integration=serialize_integration(self.integration),
+            integration_id=self.integration.id,
             user_id="123",
             user_username="alice",
+            provider="github",
             pr_number=pr_number,
             is_opened=is_opened,
         )
@@ -334,8 +331,7 @@ class RecordContributorActionTest(TestCase):
 
         contributor = self._contributor()
         assert contributor.alias == "alice"
-        assert contributor.provider == self.integration.provider
-        assert contributor.hostname == "github.com"
+        assert contributor.provider == "github"
         assert contributor.num_actions == 0
         assert self._action_count() == 0
 
@@ -401,7 +397,6 @@ class RecordContributorActionTest(TestCase):
             organization=self.organization,
             integration_id=self.integration.id,
             external_identifier="123",
-            provider=self.integration.provider,
             alias="alice",
             num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD - 1,
         )
@@ -424,7 +419,6 @@ class RecordContributorActionTest(TestCase):
             organization=self.organization,
             integration_id=self.integration.id,
             external_identifier="123",
-            provider=self.integration.provider,
             alias="alice",
             num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
         )

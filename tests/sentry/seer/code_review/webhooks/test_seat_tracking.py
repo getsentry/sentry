@@ -65,10 +65,10 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         kwargs = mock_track.call_args.kwargs
         assert kwargs["organization"].id == self.organization.id
         assert kwargs["repo"].id == self.repo.id
-        assert kwargs["integration"].id == self.integration.id
-        assert kwargs["integration"].provider == "gitlab"
+        assert kwargs["integration_id"] == self.integration.id
         assert kwargs["user_id"] == 51
         assert kwargs["user_username"] == "root"
+        assert kwargs["provider"] == "gitlab"
 
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_no_call_without_cohort_flag(self, mock_track: Any) -> None:
@@ -236,10 +236,10 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
         kwargs = mock_record.call_args.kwargs
         assert kwargs["organization"].id == self.organization.id
         assert kwargs["repo"].id == self.repo.id
-        assert kwargs["integration"].id == self.integration.id
-        assert kwargs["integration"].provider == "gitlab"
+        assert kwargs["integration_id"] == self.integration.id
         assert kwargs["user_id"] == 51
         assert kwargs["user_username"] == "root"
+        assert kwargs["provider"] == "gitlab"
         assert kwargs["pr_number"] == 1
         assert kwargs["is_opened"] is True
         assert kwargs["tags"] == {"is_private": True}
