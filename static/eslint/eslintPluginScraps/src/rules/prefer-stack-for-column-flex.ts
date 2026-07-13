@@ -125,17 +125,11 @@ function buildStackFix(
     fixes.push(fixer.replaceText(node.closingElement.name, stackName));
   }
 
-  // Remove the now-redundant direction attribute along with its leading
-  // whitespace. If it sits alone on its own line, drop the whole line
-  // (including the preceding newline).
-  const src = context.sourceCode.getText();
-  let start = directionAttr.range[0];
-  while (start > 0 && (src[start - 1] === ' ' || src[start - 1] === '\t')) {
-    start--;
-  }
-  if (src[start - 1] === '\n') {
-    start--;
-  }
+  // Remove the now-redundant direction attribute along with the whitespace
+  // separating it from the previous token, so an attribute alone on its own
+  // line takes the whole line (including the preceding newline) with it.
+  const tokenBefore = context.sourceCode.getTokenBefore(directionAttr);
+  const start = tokenBefore ? tokenBefore.range[1] : directionAttr.range[0];
   fixes.push(fixer.removeRange([start, directionAttr.range[1]]));
 
   const importFix = getStackImportFix(fixer, context, importTracker);
