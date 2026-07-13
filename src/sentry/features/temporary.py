@@ -384,8 +384,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable high date range options on new explore page
     manager.add("organizations:visibility-explore-range-high", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
-    # Use recommended sort instead of frequency sort for weekly report top issues
-    manager.add("organizations:weekly-report-recommended-sort", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Show combined resolved "past issues" section instead of separate key errors / performance issues
     manager.add("organizations:weekly-report-past-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Allow users to exclude specific projects from their weekly email reports

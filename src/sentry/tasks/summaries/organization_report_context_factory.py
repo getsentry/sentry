@@ -186,17 +186,11 @@ class OrganizationReportContextFactory:
             if not eligible_projects:
                 return
 
-            sort_by = (
-                "recommended"
-                if features.has("organizations:weekly-report-recommended-sort", organization)
-                else "freq"
-            )
-
             try:
                 errors_by_project, perf_by_project = org_top_issues(
                     ctx,
                     eligible_projects,
-                    sort_by=sort_by,
+                    sort_by="freq",
                     referrer=Referrer.REPORTS_TOP_ISSUES.value,
                 )
             except Exception:

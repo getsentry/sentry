@@ -131,7 +131,6 @@ def org_top_issues(
     projects: Sequence[Project],
     sort_by: str,
     referrer: str,
-    limit: int = 100,
 ) -> tuple[dict[int, list[tuple[int, int]]], dict[int, list[tuple[Group, int]]]]:
     """
     Fetch top issues (error + performance) for all org projects using the search backend.
@@ -141,6 +140,7 @@ def org_top_issues(
     """
     op = "weekly_reports.org_top_issues"
     with start_span(op=op, name=op):
+        limit = min(3 * len(projects), 1000)
         result = search.backend.query(
             projects=projects,
             sort_by=sort_by,
@@ -218,6 +218,7 @@ def _count_error_events(
     group_ids: list[int],
     referrer: str,
 ) -> dict[int, int]:
+    """Count error-level events per group from the events dataset for the report period."""
     query = Query(
         match=Entity("events"),
         select=[Column("group_id"), Function("count", [])],
@@ -247,6 +248,7 @@ def _count_search_issue_events(
     group_ids: list[int],
     referrer: str,
 ) -> dict[int, int]:
+    """Count performance issue events per group from the search_issues dataset for the report period."""
     query = Query(
         match=Entity("search_issues"),
         select=[Column("group_id"), Function("count", [])],
