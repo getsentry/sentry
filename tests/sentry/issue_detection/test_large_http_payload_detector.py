@@ -330,6 +330,24 @@ class LargeHTTPPayloadDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         assert len(detector.stored_problems) == 0
 
+    def test_does_not_raise_on_redacted_payload_size(self) -> None:
+        # PII scrubbing can replace numeric span data with '[Filtered]' or '[REDACTED]',
+        # which must be skipped gracefully rather than raising ValueError from int()
+        for redacted_value in ("[Filtered]", "[REDACTED]", "***"):
+            spans = [
+                create_span(
+                    "http.client",
+                    1000,
+                    "GET /api/0/organizations/endpoint1",
+                    "hash1",
+                    data={
+                        "http.response_content_length": redacted_value,
+                    },
+                ),
+            ]
+            event = create_event(spans)
+            assert self.find_problems(event) == [], f"Expected no problems for redacted value {redacted_value!r}"
+
     def test_does_not_trigger_detection_for_filtered_paths_without_trailing_slash(self) -> None:
         project = self.create_project()
         ProjectOption.objects.set_value(

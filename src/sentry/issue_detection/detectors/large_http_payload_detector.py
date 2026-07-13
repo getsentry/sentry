@@ -56,7 +56,11 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         payload_size_threshold = self.settings["payload_size_threshold"]
 
         if isinstance(encoded_body_size, str):
-            encoded_body_size = int(encoded_body_size)
+            try:
+                encoded_body_size = int(encoded_body_size)
+            except ValueError:
+                # Scrubbed/redacted values (e.g. '[Filtered]') can't be evaluated
+                return
 
         if encoded_body_size > payload_size_threshold:
             self._store_performance_problem(span)
