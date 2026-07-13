@@ -1508,7 +1508,7 @@ describe('ActivitySection', () => {
       }
     );
 
-    expect(await screen.findAllByText('Referenced by pull request')).toHaveLength(2);
+    expect(await screen.findAllByText('Referenced in pull request')).toHaveLength(2);
     expect(screen.queryByText('in a pull request')).not.toBeInTheDocument();
   });
 

@@ -329,7 +329,7 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
       const pullRequest = activity.data.pullRequest;
       return {
-        title: t('Referenced by pull request'),
+        title: t('Referenced in pull request'),
         details: pullRequest
           ? tct('[pullRequest] on [provider]', {
               provider: getPullRequestProvider(pullRequest),
