@@ -42,6 +42,36 @@ class BackfillEntry:
     idempotency_key: str
 
 
+def bulk_insert_action_log_entries(params: list[int | str | datetime], num_rows: int) -> int:
+    """Low-level INSERT into GroupActionLogEntry with ON CONFLICT DO NOTHING.
+
+    *params* is a flat list of values for *num_rows* rows, each with 10 columns:
+    (group_id, project_id, type, actor_type, actor_id, source, data,
+     date_added, date_updated, idempotency_key).
+
+    Returns the number of rows actually inserted (via RETURNING).
+    """
+    if num_rows == 0:
+        return 0
+
+    sql = """
+        INSERT INTO sentry_groupactionlogentry
+            (group_id, project_id, type, actor_type, actor_id, source, data,
+             date_added, date_updated, idempotency_key)
+        VALUES %s
+        ON CONFLICT (group_id, idempotency_key)
+            WHERE idempotency_key IS NOT NULL
+        DO NOTHING
+        RETURNING id
+    """
+    values_template = "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    values_clause = ", ".join(values_template for _ in range(num_rows))
+    using = router.db_for_write(GroupActionLogEntry)
+    with connections[using].cursor() as cursor:
+        cursor.execute(sql % values_clause, params)
+        return len(cursor.fetchall())
+
+
 def backfill_actions(
     *,
     entries: Sequence[BackfillEntry],
@@ -67,19 +97,6 @@ def backfill_actions(
         if entries[i].date_added < entries[i - 1].date_added:
             raise ValueError("entries must be sorted by date_added ascending")
 
-    # Use raw SQL so Postgres RETURNING gives us exact inserted count.
-    # Django's bulk_create with ignore_conflicts swallows RETURNING.
-    sql = """
-        INSERT INTO sentry_groupactionlogentry
-            (group_id, project_id, type, actor_type, actor_id, source, data,
-             date_added, date_updated, idempotency_key)
-        VALUES %s
-        ON CONFLICT (group_id, idempotency_key)
-            WHERE idempotency_key IS NOT NULL
-        DO NOTHING
-        RETURNING id
-    """
-    values_template = "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
     params: list[int | str | datetime] = []
     for entry in entries:
         params.extend(
@@ -97,12 +114,8 @@ def backfill_actions(
             ]
         )
 
-    values_clause = ", ".join(values_template for _ in entries)
-    using = router.db_for_write(GroupActionLogEntry)
-    with transaction.atomic(using=using):
-        with connections[using].cursor() as cursor:
-            cursor.execute(sql % values_clause, params)
-            inserted = len(cursor.fetchall())
+    with transaction.atomic(using=router.db_for_write(GroupActionLogEntry)):
+        inserted = bulk_insert_action_log_entries(params, len(entries))
 
     metrics.incr("issues.action_log.backfill", amount=inserted, sample_rate=1.0)
 
