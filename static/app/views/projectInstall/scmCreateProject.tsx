@@ -37,24 +37,13 @@ import {
   useScmProjectDetails,
 } from 'sentry/views/onboarding/components/useScmProjectDetails';
 import {useScmProviders} from 'sentry/views/onboarding/components/useScmProviders';
+import {
+  WIZARD_STORAGE_KEY,
+  type WizardState,
+} from 'sentry/views/projectInstall/scmCreateProjectSession';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 const CREATE_PROJECT_MAX_WIDTH = '700px';
-const WIZARD_STORAGE_KEY = 'project-creation-wizard';
-
-interface WizardState {
-  // Id/slug of the project created in this wizard session. The id validates a
-  // return from getting-started (see the entry resolution in ScmCreateProject);
-  // the slug drives the getting-started navigation and the project-details
-  // reuse check.
-  createdProjectId: string | undefined;
-  createdProjectSlug: string | undefined;
-  projectDetailsForm: ProjectDetailsFormState | undefined;
-  selectedFeatures: ProductSolution[] | undefined;
-  selectedIntegration: Integration | undefined;
-  selectedPlatform: OnboardingSelectedSDK | undefined;
-  selectedRepository: Repository | undefined;
-}
 
 const INITIAL_STATE: WizardState = {
   createdProjectId: undefined,
