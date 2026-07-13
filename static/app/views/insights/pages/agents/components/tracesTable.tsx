@@ -73,7 +73,7 @@ import {
   getHasAiSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
-// import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
+import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {DurationCell} from 'sentry/views/insights/pages/platform/shared/table/DurationCell';
 import {NumberCell} from 'sentry/views/insights/pages/platform/shared/table/NumberCell';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -564,6 +564,7 @@ function AgentTags({agents}: {agents: string[]}) {
       query: {
         ...location.query,
         globalFilter: newFilters.map(filter => JSON.stringify(filter)),
+        [TableUrlParams.CURSOR]: null,
       },
     });
   };
