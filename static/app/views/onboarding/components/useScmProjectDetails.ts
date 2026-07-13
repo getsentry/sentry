@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
@@ -187,23 +187,20 @@ export function useScmProjectDetails({
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const createProjectAndRules = useCreateProjectAndRules();
 
-  // Capture the persisted notification action once at mount so back-nav
-  // restores the previous selection. A ref + memo keeps the array reference
-  // stable and prevents the init effect from re-running on re-renders.
-  const initialNotificationActionRef = useRef(projectDetailsForm?.notificationAction);
-  const restoredActions = useMemo(
-    () =>
-      initialNotificationActionRef.current
-        ? [initialNotificationActionRef.current]
-        : undefined,
-    []
+  // Capture the persisted notification action once at mount so back-nav restores
+  // the previous selection. Held in a ref so the reference stays stable across
+  // renders and the notification hook's run-once init effect doesn't re-fire.
+  const restoredNotificationOptionsRef = useRef(
+    projectDetailsForm?.notificationAction
+      ? {actions: [projectDetailsForm.notificationAction]}
+      : undefined
   );
 
   // Provides the messaging-integration notification picker (notificationProps,
   // rendered in ScmAlertFrequencySection) and the side-effect that creates the
   // chosen notification rule at project creation.
   const {createNotificationAction, notificationProps} = useCreateNotificationAction(
-    restoredActions ? {actions: restoredActions} : undefined
+    restoredNotificationOptionsRef.current
   );
 
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
