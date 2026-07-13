@@ -88,9 +88,7 @@ class OrganizationGroupIndexProgressTest(APITestCase):
             )
 
 
-@with_feature(
-    ["organizations:issue-stream-progress-ui", "organizations:issue-stream-derived-progress"]
-)
+@with_feature(["organizations:issue-stream-progress-ui", "projects:issue-stream-derived-progress"])
 class OrganizationGroupIndexProgressDerivedDataTest(APITestCase):
     endpoint = "sentry-api-0-organization-group-index-progress"
 
@@ -112,7 +110,7 @@ class OrganizationGroupIndexProgressDerivedDataTest(APITestCase):
         group = self.create_group(project=self.project)
         GroupDerivedData.objects.create(group=group, progress=IssueProgressState.DIAGNOSED)
 
-        with self.feature({"organizations:issue-stream-derived-progress": False}):
+        with self.feature({"projects:issue-stream-derived-progress": False}):
             response = self.get_success_response(
                 self.organization.slug,
                 groups=[group.id],
