@@ -77,6 +77,9 @@ class GroupActionType(IntEnum):
     AUTOFIX_CODING_COMPLETE = 27
     PULL_REQUEST_CLOSED = 29
     RECONCILE_STATUS = 30
+    PULL_REQUEST_REOPENED = 31
+    PULL_REQUEST_MERGED = 32
+    PULL_REQUEST_UNLINKED = 33
 
     # Certain GroupActions are mirrors of Activity records.
     # (See ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE for the mapping.)
@@ -435,6 +438,32 @@ class PullRequestClosedAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.PULL_REQUEST_CLOSED
+
+
+class PullRequestReopenedAction(GroupAction):
+    pull_request: int
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.PULL_REQUEST_REOPENED
+
+
+class PullRequestMergedAction(GroupAction):
+    pull_request: int
+    has_other_open_prs: Optional[bool] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.PULL_REQUEST_MERGED
+
+
+class PullRequestUnlinkedAction(GroupAction):
+    pull_request: int
+    has_other_open_prs: Optional[bool] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.PULL_REQUEST_UNLINKED
 
 
 class GroupActionLogPayload(TypedDict):

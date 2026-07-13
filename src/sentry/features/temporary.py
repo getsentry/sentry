@@ -194,6 +194,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-web-vitals-seer-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the warning banner to inform users of pending deprecation of the transactions dataset
     manager.add("organizations:performance-transaction-deprecation-banner", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Create issue activities for pull request lifecycle events
+    manager.add("organizations:pr-lifecycle-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Write PullRequestActivity rows from GitHub PR lifecycle webhooks
     manager.add("organizations:pr-metrics-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Record PullRequestAttribution from webhook and seer.pr_created events
