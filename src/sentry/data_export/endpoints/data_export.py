@@ -168,7 +168,7 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
         query_type: str,
         query_info: dict[str, Any],
         full_export: bool = False,
-    ) -> None:
+    ) -> dict[str, Any]:
         # Validate the RPC query params, to avoid runtime failures later.
         query_info = self._validate_query_info(query_type, query_info)
         query_info = self._validate_dataset(query_type, query_info)
@@ -198,6 +198,7 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
         except InvalidSearchQuery as err:
             sentry_sdk.capture_exception(err)
             raise serializers.ValidationError("Invalid table query.")
+        return query_info
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         organization = self.context["organization"]
@@ -257,9 +258,11 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                 raise serializers.ValidationError("Invalid search query.")
 
         elif query_type == ExportQueryType.EXPLORE_STR:
-            self._validate_explore_eqs_query(organization, query_type, query_info)
+            query_info = self._validate_explore_eqs_query(organization, query_type, query_info)
         elif query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR:
-            self._validate_explore_eqs_query(organization, query_type, query_info, full_export=True)
+            query_info = self._validate_explore_eqs_query(
+                organization, query_type, query_info, full_export=True
+            )
             explore_output_mode = OutputMode.from_value(export_format)
             if explore_output_mode != OutputMode.JSONL:
                 raise serializers.ValidationError("For full export, output mode must be JSONL.")
