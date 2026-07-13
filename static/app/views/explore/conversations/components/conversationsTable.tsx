@@ -213,10 +213,7 @@ export function CellContent({text, ref, ...props}: CellContentProps) {
   const cleanedText = cleanMarkdownForCell(text);
   return (
     <SingleLineMarkdown ref={ref} {...props}>
-      {/* inline: no block <p>/<pre> children, so white-space:nowrap clamps to
-          one line without relying on `* {display:inline}` (Safari drops it on
-          MarkedText's async innerHTML swap, growing rows on back-nav). */}
-      <MarkedText inline text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
+      <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
     </SingleLineMarkdown>
   );
 }
