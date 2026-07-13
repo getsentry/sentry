@@ -34,13 +34,12 @@ export interface ChunkedHeatmapResult {
  * unstable combine would rebuild the (expensive) merge every render.
  */
 export function metricHeatmapCombine({
-  isChunked,
   fullRange,
   intervalMs,
-}: Pick<MetricHeatmapPlan, 'fullRange' | 'intervalMs'> & {
-  isChunked: boolean;
-}) {
+}: Pick<MetricHeatmapPlan, 'fullRange' | 'intervalMs'>) {
   return (results: Array<UseQueryResult<HeatMapSeries>>): ChunkedHeatmapResult => {
+    // One query per window, so >1 result means we chunked.
+    const isChunked = results.length > 1;
     const succeeded = results
       .filter(q => q.isSuccess && defined(q.data))
       .map(q => q.data!);
@@ -58,11 +57,7 @@ export function metricHeatmapCombine({
       // Fast path: the single unpinned response is already a dense, ordered grid.
       // Chunked: stitch the chunks into one dense, full-range grid.
       series = isChunked
-        ? mergeHeatMapChunks(succeeded, {
-            xStart: fullRange.start,
-            xEnd: fullRange.end,
-            intervalMs,
-          })
+        ? mergeHeatMapChunks(succeeded, {range: fullRange, intervalMs})
         : succeeded[0]!;
     }
 
@@ -83,13 +78,11 @@ interface HeatMapGrid {
    */
   intervalMs: number;
   /**
-   * Exclusive end of the full x range, in ms.
+   * The full x range in ms. Must be interval-aligned (its bounds are epoch
+   * multiples of `intervalMs`) so the synthesized empty columns land on the same
+   * grid as the loaded chunks' cells.
    */
-  xEnd: number;
-  /**
-   * Start of the full x range, in ms.
-   */
-  xStart: number;
+  range: {end: number; start: number};
 }
 
 /**
@@ -114,10 +107,10 @@ export function mergeHeatMapChunks(
     throw new Error('mergeHeatMapChunks requires at least one chunk');
   }
 
-  const {xStart, xEnd, intervalMs} = grid;
+  const {range, intervalMs} = grid;
 
   // Lay chunks out left-to-right; each is dense within its own window.
-  const ordered = [...chunks].sort((a, b) => columnStart(a) - columnStart(b));
+  const ordered = chunks.toSorted((a, b) => columnStart(a) - columnStart(b));
   const first = ordered[0]!;
 
   // The pinned y bucket lower-bounds are identical across chunks, so any chunk's
@@ -129,7 +122,7 @@ export function mergeHeatMapChunks(
     yValues.map(y => ({xAxis: x, yAxis: y, zAxis: null}));
 
   const values: HeatMapValue[] = [];
-  let x = xStart;
+  let x = range.start;
   for (const chunk of ordered) {
     // Pad the gap before this chunk with empty columns.
     for (; x < columnStart(chunk); x += intervalMs) {
@@ -139,7 +132,7 @@ export function mergeHeatMapChunks(
     x = columnEnd(chunk) + intervalMs;
   }
   // Pad any trailing gap after the last loaded chunk.
-  for (; x < xEnd; x += intervalMs) {
+  for (; x < range.end; x += intervalMs) {
     values.push(...emptyColumn(x));
   }
 
@@ -159,9 +152,9 @@ export function mergeHeatMapChunks(
     meta: {
       xAxis: {
         ...first.meta.xAxis,
-        start: xStart,
-        end: xEnd,
-        bucketCount: Math.round((xEnd - xStart) / intervalMs),
+        start: range.start,
+        end: range.end,
+        bucketCount: Math.round((range.end - range.start) / intervalMs),
         bucketSize: intervalMs / 1000,
       },
       // The y-axis is identical across pinned chunks; take it wholesale.

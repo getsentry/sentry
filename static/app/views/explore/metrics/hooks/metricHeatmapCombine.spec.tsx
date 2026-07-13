@@ -34,7 +34,7 @@ function makeChunk(columns: Array<{x: number; z: [number, number]}>): HeatMapSer
 }
 
 describe('mergeHeatMapChunks', () => {
-  const grid = {xStart: 0, xEnd: 3 * HOUR, intervalMs: HOUR};
+  const grid = {range: {start: 0, end: 3 * HOUR}, intervalMs: HOUR};
 
   it('throws when given no chunks', () => {
     expect(() => mergeHeatMapChunks([], grid)).toThrow();
@@ -105,9 +105,8 @@ describe('mergeHeatMapChunks', () => {
 });
 
 describe('metricHeatmapCombine', () => {
-  // A chunked plan covering [0, 2h).
+  // A plan covering [0, 2h); chunking is inferred from the number of results.
   const RESOLVED = {
-    isChunked: true,
     fullRange: {start: 0, end: 2 * HOUR},
     intervalMs: HOUR,
   };

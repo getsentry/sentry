@@ -8,36 +8,34 @@ import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMillisecon
 
 type DateTimeFilter = PageFilters['datetime'];
 
-// Each older chunk is this many times larger than the one after it, so the
-// newest chunk (which usually paints first) is the smallest.
+/**
+ * How to size the partitions:
+ * - `equal`: roughly equal-sized windows.
+ * - `progressive`: newest window smallest, each older one ~`GROWTH_FACTOR`×
+ *   larger, so the most-looked-at (recent) region loads first.
+ */
+type PartitionStrategy = 'equal' | 'progressive';
+
+// Number of windows a partitioned range is split into.
+const CHUNK_COUNT = 5;
+// For the `progressive` strategy: each older window is this many times larger
+// than the one after it.
 const GROWTH_FACTOR = 3;
-
-export interface ProgressiveSplitOptions {
-  /**
-   * Number of chunks to split into. The oldest chunk absorbs any remainder, so
-   * the actual count can be lower for very small ranges.
-   */
-  chunkCount?: number;
-  /**
-   * The range isn't split below this many buckets — a single request is already
-   * fast, so the original datetime is returned unchanged.
-   */
-  minimumBuckets?: number;
-}
-
-const DEFAULT_CHUNK_COUNT = 5;
-const DEFAULT_MINIMUM_BUCKETS = 60;
+// Ranges shorter than this aren't worth partitioning — a single request is fast,
+// so the original datetime is returned unchanged.
+const MINIMUM_PARTITION_RANGE = 1000 * 60 * 60 * 24; // 1 day
 
 /**
- * Splits a page-filter datetime into epoch-aligned, whole-bucket sub-windows that
- * grow older-ward (newest-first, each ~`GROWTH_FACTOR`× the previous). Each
- * returned datetime is a drop-in replacement for `selection.datetime`: spread it
- * back onto a `PageFilters` and hand it to any range-based query builder.
+ * Splits a page-filter datetime into epoch-aligned, whole-bucket sub-windows for
+ * parallel, streamed fetching. Each returned datetime is a drop-in replacement
+ * for `selection.datetime`: spread it back onto a `PageFilters` and hand it to any
+ * range-based query builder.
  *
- * A range not worth splitting — narrower than `minimumBuckets`, or an unparseable
- * interval — returns the ORIGINAL datetime unchanged as a single-element array. So
- * a relative range stays relative (keeps its `statsPeriod`). Split ranges resolve
- * to absolute windows (`start`/`end` Dates, no `period`).
+ * A range not worth partitioning — shorter than `MINIMUM_PARTITION_RANGE`, or an
+ * unparseable interval — returns the ORIGINAL datetime unchanged as a
+ * single-element array. So a relative range stays relative (keeps its
+ * `statsPeriod`). Partitioned ranges resolve to absolute windows (`start`/`end`
+ * Dates, no `period`), newest-first.
  *
  * Epoch alignment is mandatory when the windows feed a bucketed time-series query.
  * Verified against the EAP backend (July 2025): Snuba anchors each time bucket to
@@ -54,17 +52,14 @@ const DEFAULT_MINIMUM_BUCKETS = 60;
  * `start + k*g` lands on the epoch grid regardless of that backend flag, and
  * adjacent windows share the exact same edge — no overlap, gap, or double-count.
  */
-export function progressivelySplitDateTimeRange(
+export function partitionDateTimeRange(
   datetime: DateTimeFilter,
   interval: string,
-  {
-    chunkCount = DEFAULT_CHUNK_COUNT,
-    minimumBuckets = DEFAULT_MINIMUM_BUCKETS,
-  }: ProgressiveSplitOptions = {}
+  strategy: PartitionStrategy
 ): DateTimeFilter[] {
   const intervalMs = intervalToMilliseconds(interval);
   const range = resolveAbsoluteRange(datetime);
-  if (intervalMs <= 0 || !range) {
+  if (intervalMs <= 0 || !range || range.end - range.start < MINIMUM_PARTITION_RANGE) {
     return [datetime];
   }
 
@@ -72,19 +67,18 @@ export function progressivelySplitDateTimeRange(
   const alignedEnd = Math.ceil(range.end / intervalMs) * intervalMs;
   const totalBuckets = Math.round((alignedEnd - alignedStart) / intervalMs);
 
-  if (totalBuckets < minimumBuckets || chunkCount <= 1) {
-    return [datetime];
-  }
-
-  // Distribute buckets across the chunks along a geometric curve (weights
-  // 1, f, f², …), newest (smallest) first. The oldest chunk takes the remainder
-  // so coverage is exact and every edge stays on the bucket grid.
-  const weights = Array.from({length: chunkCount}, (_, i) => GROWTH_FACTOR ** i);
+  // `equal` weights every window the same; `progressive` grows them geometrically.
+  // Either way, distribute buckets by weight (newest/smallest first) and let the
+  // oldest window take the remainder, so coverage is exact and every edge stays on
+  // the bucket grid.
+  const weights = Array.from({length: CHUNK_COUNT}, (_, i) =>
+    strategy === 'progressive' ? GROWTH_FACTOR ** i : 1
+  );
   const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
 
   const windows: DateTimeFilter[] = [];
   let cursor = alignedEnd;
-  for (let i = 0; i < chunkCount - 1 && cursor > alignedStart; i++) {
+  for (let i = 0; i < CHUNK_COUNT - 1 && cursor > alignedStart; i++) {
     const remainingBuckets = Math.round((cursor - alignedStart) / intervalMs);
     const targetBuckets = Math.round((totalBuckets * weights[i]!) / weightSum);
     const chunkBuckets = Math.min(Math.max(targetBuckets, 1), remainingBuckets);

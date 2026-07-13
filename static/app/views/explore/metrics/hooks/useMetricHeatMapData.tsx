@@ -3,7 +3,7 @@ import {useQueries, useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {progressivelySplitDateTimeRange} from 'sentry/components/pageFilters/progressivelySplitDateTimeRange';
+import {partitionDateTimeRange} from 'sentry/components/pageFilters/partitionDateTimeRange';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -13,12 +13,10 @@ import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/uti
 import {
   chunkedMetricHeatmapApiOptions,
   emptyHeatMapSeries,
+  HEATMAP_CHUNK_SAMPLING_MODE,
   type MetricHeatmapPlan,
 } from 'sentry/views/explore/metrics/hooks/chunkedMetricHeatmap';
-import {
-  metricBoundsApiOptions,
-  reduceMetricBounds,
-} from 'sentry/views/explore/metrics/hooks/metricBoundsApiOptions';
+import {metricBoundsApiOptions} from 'sentry/views/explore/metrics/hooks/metricBoundsApiOptions';
 import {metricHeatmapCombine} from 'sentry/views/explore/metrics/hooks/metricHeatmapCombine';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
@@ -80,9 +78,9 @@ export function useMetricHeatMapData({
   const validDims = defined(yBuckets) && yBuckets > 0;
 
   // Split the range into epoch-aligned sub-windows once per filter/interval
-  // change. Date.now() (inside progressivelySplitDateTimeRange, for relative
-  // ranges) is captured once here; epoch-snapping keeps historical boundaries
-  // stable across renders, so only the live edge moves.
+  // change. Date.now() (inside partitionDateTimeRange, for relative ranges) is
+  // captured once here; epoch-snapping keeps historical boundaries stable across
+  // renders, so only the live edge moves.
   const plan = useMemo((): MetricHeatmapPlan => {
     if (!defined(interval)) {
       return EMPTY_PLAN;
@@ -92,7 +90,8 @@ export function useMetricHeatMapData({
       return EMPTY_PLAN;
     }
 
-    const windows = progressivelySplitDateTimeRange(selection.datetime, interval);
+    // Progressive: the recent region loads first in the smallest window.
+    const windows = partitionDateTimeRange(selection.datetime, interval, 'progressive');
     const isRelative = !defined(normalizeDateTimeParams(selection.datetime).start);
     // Absolute windows carry Dates; parse via moment for the merge grid's range.
     // A single (fast-path) window merges nothing, so its range is irrelevant.
@@ -119,41 +118,46 @@ export function useMetricHeatMapData({
   const {windows, fullRange, intervalMs, isRelative} = plan;
   const chunked = windows.length > 1;
 
-  // Phase A — global y-domain. Only fired when we actually chunk.
-  const boundsApiOptions = metricBoundsApiOptions({
-    organization,
-    selection,
-    traceMetric,
-    query,
-    interval,
-    enabled: enabled && validDims && chunked,
-  });
-  const boundsQuery = useQuery({
-    ...boundsApiOptions,
-    select: data => reduceMetricBounds(boundsApiOptions.select!(data)),
-  });
+  // Phase A — global y-domain. Only fired when we actually chunk. The bounds use
+  // the same sampling as the chunk requests so the pinned domain encloses exactly
+  // what the chunks scan (see the BACKEND CONTRACT note in chunkedMetricHeatmap).
+  const boundsQuery = useQuery(
+    metricBoundsApiOptions({
+      organization,
+      selection,
+      traceMetric,
+      query,
+      interval,
+      sampling: HEATMAP_CHUNK_SAMPLING_MODE,
+      enabled: enabled && validDims && chunked,
+    })
+  );
 
   const boundsResolved = chunked && boundsQuery.isSuccess;
   const boundsEmpty = boundsResolved && boundsQuery.data === null;
   const domainReady = boundsResolved && boundsQuery.data !== null;
 
-  // Phase B — pinned chunk requests + combine, both produced wholesale.
-  const queries = chunkedMetricHeatmapApiOptions({
-    windows,
-    isRelative,
-    intervalMs,
-    organization,
-    selection,
-    traceMetric,
-    query,
-    interval,
-    yBuckets,
-    bounds: boundsQuery.data ?? undefined,
-    enabled: enabled && validDims && (chunked ? domainReady : true),
-  });
+  // Phase B — pinned chunk requests + combine. Build the queries only once we're
+  // ready to run them (fast path: right away; chunked: after the domain resolves);
+  // that's how enablement is injected here rather than threaded into every chunk.
+  const shouldFetchChunks = enabled && validDims && (chunked ? domainReady : true);
+  const queries = shouldFetchChunks
+    ? chunkedMetricHeatmapApiOptions({
+        windows,
+        isRelative,
+        intervalMs,
+        organization,
+        selection,
+        traceMetric,
+        query,
+        interval,
+        yBuckets,
+        bounds: boundsQuery.data ?? undefined,
+      })
+    : [];
   const combine = useMemo(
-    () => metricHeatmapCombine({isChunked: chunked, fullRange, intervalMs}),
-    [chunked, fullRange, intervalMs]
+    () => metricHeatmapCombine({fullRange, intervalMs}),
+    [fullRange, intervalMs]
   );
   const {
     series: chunkSeries,

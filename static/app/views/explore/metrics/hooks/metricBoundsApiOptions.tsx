@@ -3,17 +3,23 @@ import {skipToken} from '@tanstack/react-query';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {TraceMetricEventsResult} from 'sentry/views/explore/metrics/types';
 import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils';
 
 const MIN_VALUE_FIELD = 'min(value)';
 const MAX_VALUE_FIELD = 'max(value)';
+
+export interface MetricBounds {
+  max: number;
+  min: number;
+}
 
 interface MetricBoundsApiOptions {
   enabled: boolean;
@@ -22,19 +28,20 @@ interface MetricBoundsApiOptions {
   selection: PageFilters;
   traceMetric: TraceMetric;
   interval?: string | null;
+  /**
+   * `min`/`max` are the extremes of the rows actually SCANNED (they're not
+   * extrapolated under downsampling), so the bounds depend on the sampling tier.
+   * Pass the SAME sampling you'll use on whatever query you pin these onto — that
+   * mirrors the heat map endpoint, which computes its own bounds at its data
+   * query's sampling mode. Omit for the backend default (NORMAL).
+   */
+  sampling?: SamplingMode;
 }
 
 /**
  * One cheap aggregate that learns a metric's value range (`min(value)` /
- * `max(value)`) over the current selection — the exact extremes across every row.
- *
- * Runs at HIGHEST_ACCURACY (no downsampling) so the bounds are exact. EAP picks a
- * downsampling tier per request from the query's time range + estimated row count
- * (snuba `outcomes_based.py`), and `min`/`max` are NOT extrapolated: on a
- * downsampled tier they're the extremes of *scanned* rows, biased inward. Callers
- * that pin a domain to these bounds (e.g. the chunked heat map, so parallel
- * chunks share aligned buckets) rely on them enclosing every row, so do not
- * "optimize" this back to default sampling.
+ * `max(value)`) over the current selection, reduced to `{min, max}` (or `null`
+ * when the range has no data). Generic — anything that needs a metric's extent.
  */
 export function metricBoundsApiOptions({
   organization,
@@ -43,6 +50,7 @@ export function metricBoundsApiOptions({
   query,
   enabled,
   interval,
+  sampling,
 }: MetricBoundsApiOptions) {
   const traceMetricFilter = createTraceMetricEventsFilter([traceMetric]);
   const combinedQuery = query ? `${traceMetricFilter} (${query})` : traceMetricFilter;
@@ -51,34 +59,34 @@ export function metricBoundsApiOptions({
   const usesRelativeDateRange = !defined(start) && !defined(end) && defined(statsPeriod);
   const intervalInMilliseconds = defined(interval) ? intervalToMilliseconds(interval) : 0;
 
-  return apiOptions.as<TraceMetricEventsResult>()(
-    '/organizations/$organizationIdOrSlug/events/',
-    {
-      path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
-      query: {
-        dataset: DiscoverDatasets.TRACEMETRICS,
-        field: [MIN_VALUE_FIELD, MAX_VALUE_FIELD],
-        // Exact extremes — see the docstring. Must not downsample.
-        sampling: SAMPLING_MODE.HIGH_ACCURACY,
-        query: combinedQuery,
-        project: selection.projects,
-        environment: selection.environments,
-        start,
-        end,
-        statsPeriod,
-        referrer: 'api.explore.tracemetrics-bounds',
-      },
-      staleTime:
-        usesRelativeDateRange && intervalInMilliseconds !== 0
-          ? intervalInMilliseconds
-          : Infinity,
-    }
-  );
-}
-
-export interface MetricBounds {
-  max: number;
-  min: number;
+  return {
+    ...apiOptions.as<TraceMetricEventsResult>()(
+      '/organizations/$organizationIdOrSlug/events/',
+      {
+        path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+        query: {
+          dataset: DiscoverDatasets.TRACEMETRICS,
+          field: [MIN_VALUE_FIELD, MAX_VALUE_FIELD],
+          sampling,
+          query: combinedQuery,
+          project: selection.projects,
+          environment: selection.environments,
+          start,
+          end,
+          statsPeriod,
+          referrer: 'api.explore.tracemetrics-bounds',
+        },
+        staleTime:
+          usesRelativeDateRange && intervalInMilliseconds !== 0
+            ? intervalInMilliseconds
+            : Infinity,
+      }
+    ),
+    // Reduce the single-row response to `{min, max}` (or null when empty) so
+    // consumers get the domain directly, not the raw events payload.
+    select: (response: ApiResponse<TraceMetricEventsResult>) =>
+      reduceMetricBounds(response.json),
+  };
 }
 
 /**

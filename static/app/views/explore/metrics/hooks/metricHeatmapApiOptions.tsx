@@ -13,11 +13,16 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {createTraceMetricEventsFilter} from 'sentry/views/explore/metrics/utils';
 
 interface MetricHeatmapApiOptions {
-  enabled: boolean;
   organization: Organization;
   query: string;
   selection: PageFilters;
   traceMetric: TraceMetric;
+  /**
+   * Defaults to true. Callers decide enablement by whether they build the query
+   * at all (e.g. an empty array from a disabled fan-out); this only skip-tokens
+   * an individual request when a caller explicitly disables it.
+   */
+  enabled?: boolean;
   interval?: string | null;
   sampling?: SamplingMode;
   staleTime?: number;
@@ -38,7 +43,7 @@ export function metricHeatmapApiOptions({
   selection,
   traceMetric,
   query,
-  enabled,
+  enabled = true,
   interval,
   yBuckets,
   yMin,

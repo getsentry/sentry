@@ -5,7 +5,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import {progressivelySplitDateTimeRange} from 'sentry/components/pageFilters/progressivelySplitDateTimeRange';
+import {partitionDateTimeRange} from 'sentry/components/pageFilters/partitionDateTimeRange';
 import type {PageFilters} from 'sentry/types/core';
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
@@ -31,7 +31,7 @@ const NARROW_SELECTION = PageFiltersFixture({
 
 // The split windows are absolute datetimes; each maps to one chunk request whose
 // query carries the normalized (UTC, `.SSS`, no `Z`) start/end.
-const WIDE_WINDOWS = progressivelySplitDateTimeRange(WIDE_SELECTION.datetime, '1h');
+const WIDE_WINDOWS = partitionDateTimeRange(WIDE_SELECTION.datetime, '1h', 'progressive');
 const windowMs = (window: PageFilters['datetime']) => ({
   start: moment.utc(window.start ?? undefined).valueOf(),
   end: moment.utc(window.end ?? undefined).valueOf(),
