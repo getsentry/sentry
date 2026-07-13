@@ -382,7 +382,11 @@ class AddCommentEyesReactionTest(TestCase):
     def test_review_comment_uses_review_comment_reaction(self, mock_actions: MagicMock) -> None:
         scm = MagicMock(spec=CreateReviewCommentReactionProtocol)
         _add_comment_reaction(
-            scm, source_type="github-pr-review-comment", pr_number=7, comment_id=999, reaction="eyes"
+            scm,
+            source_type="github-pr-review-comment",
+            pr_number=7,
+            comment_id=999,
+            reaction="eyes",
         )
 
         mock_actions.create_review_comment_reaction.assert_called_once_with(scm, "7", "999", "eyes")
