@@ -478,6 +478,67 @@ class GitHubApiClientTest(TestCase):
         assert [item["id"] for item in result] == [1, 2]
         assert len(responses.calls) == 2
 
+    @mock.patch("sentry.integrations.github.client.metrics")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_parallel_records_success_metric(
+        self, get_jwt, mock_metrics
+    ) -> None:
+        # A successful parallel fan-out records its width (total pages) and a
+        # success outcome so we can watch the fast path in production.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=3>; rel="last"'},
+        )
+        responses.add(method=responses.GET, url=f"{url}&page=2", json=[{"id": 2}])
+        responses.add(method=responses.GET, url=f"{url}&page=3", json=[{"id": 3}])
+
+        self.github_client._get_with_pagination(f"/repos/{self.repo.name}/assignees", parallel=True)
+
+        mock_metrics.distribution.assert_called_once_with(
+            "integrations.github.parallel_pagination.pages", 3, sample_rate=1.0
+        )
+        mock_metrics.incr.assert_any_call(
+            "integrations.github.parallel_pagination",
+            tags={"outcome": "success"},
+            sample_rate=1.0,
+        )
+
+    @mock.patch("sentry.integrations.github.client.metrics")
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_parallel_records_rate_limited_metric(
+        self, get_jwt, mock_metrics
+    ) -> None:
+        # A 429 from any page in the fan-out surfaces as ApiRateLimitedError and
+        # is attributed to the parallel path, so we can tell whether the extra
+        # concurrency is what trips Github's secondary rate limits.
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json=[{"id": 1}],
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=3>; rel="last"'},
+        )
+        responses.add(method=responses.GET, url=f"{url}&page=2", json=[{"id": 2}])
+        responses.add(
+            method=responses.GET, url=f"{url}&page=3", status=429, json={"message": "rate limited"}
+        )
+
+        with pytest.raises(ApiRateLimitedError):
+            self.github_client._get_with_pagination(
+                f"/repos/{self.repo.name}/assignees", parallel=True
+            )
+
+        mock_metrics.incr.assert_any_call(
+            "integrations.github.parallel_pagination",
+            tags={"outcome": "rate_limited"},
+            sample_rate=1.0,
+        )
+
     @mock.patch(
         "sentry.integrations.github.integration.GitHubIntegration.check_file",
         return_value=GITHUB_CODEOWNERS["html_url"],

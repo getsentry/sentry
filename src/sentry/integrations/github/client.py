@@ -837,18 +837,43 @@ class GitHubBaseClient(
                         )
 
                     if remaining_pages:
-                        with ContextPropagatingThreadPoolExecutor(
-                            thread_name_prefix=__name__,
-                            max_workers=min(PAGINATION_MAX_WORKERS, len(remaining_pages)),
-                        ) as executor:
-                            # ``map`` yields results in input order, so the pages
-                            # are concatenated in order regardless of which request
-                            # finished first. If a page fails, ``map`` cancels the
-                            # pages it has not started yet, so a failed fan-out costs
-                            # at most roughly one in-flight batch of extra requests
-                            # (bounded by max_workers), not the whole page range.
-                            for resp in executor.map(fetch_page, remaining_pages):
-                                output.extend(page_items(resp))
+                        # Stats for the parallel fan-out so we can watch whether
+                        # the extra concurrency is what tips installs over
+                        # GitHub's secondary rate limits (the ``rate_limited``
+                        # outcome), and how wide the fan-outs actually get. These
+                        # fire only on multi-page picker opens, and rate_limited
+                        # is rarer still, so pin sample_rate=1.0 (prod lowers the
+                        # global default) to keep the rare event visible.
+                        metrics.distribution(
+                            "integrations.github.parallel_pagination.pages",
+                            len(remaining_pages) + 1,
+                            sample_rate=1.0,
+                        )
+                        try:
+                            with ContextPropagatingThreadPoolExecutor(
+                                thread_name_prefix=__name__,
+                                max_workers=min(PAGINATION_MAX_WORKERS, len(remaining_pages)),
+                            ) as executor:
+                                # ``map`` yields results in input order, so the pages
+                                # are concatenated in order regardless of which request
+                                # finished first. If a page fails, ``map`` cancels the
+                                # pages it has not started yet, so a failed fan-out costs
+                                # at most roughly one in-flight batch of extra requests
+                                # (bounded by max_workers), not the whole page range.
+                                for resp in executor.map(fetch_page, remaining_pages):
+                                    output.extend(page_items(resp))
+                        except ApiRateLimitedError:
+                            metrics.incr(
+                                "integrations.github.parallel_pagination",
+                                tags={"outcome": "rate_limited"},
+                                sample_rate=1.0,
+                            )
+                            raise
+                        metrics.incr(
+                            "integrations.github.parallel_pagination",
+                            tags={"outcome": "success"},
+                            sample_rate=1.0,
+                        )
 
                     if truncated and raise_on_page_limit:
                         raise ApiPaginationTruncated(
