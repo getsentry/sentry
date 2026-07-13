@@ -80,7 +80,7 @@ class SnubaQueryValidatorTest(TestCase):
         self.valid_data["dataset"] = Dataset.Sessions.value
         validator = SnubaQueryValidator(data=self.valid_data, context=self.context)
         assert not validator.is_valid()
-        non_field_errors = validator.errors.get("non_field_errors", [])
+        non_field_errors = validator.errors.get("nonFieldErrors", [])
         assert any("Invalid dataset for alerts" in str(e) for e in non_field_errors)
 
     def test_validated_create_source_limits(self) -> None:
