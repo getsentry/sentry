@@ -2,7 +2,6 @@ from unittest.mock import MagicMock, patch
 
 from sentry import features
 from sentry.integrations.services.integration.serial import serialize_integration
-from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.seer.code_review.preflight import CodeReviewPreflightService, PreflightDenialReason
 from sentry.silo.base import SiloMode
@@ -23,6 +22,7 @@ class TestCodeReviewPreflightService(TestCase):
                 organization=self.organization,
                 provider="github",
                 external_id="github:123",
+                metadata={"domain_name": "github.com/example"},
             )
             self.integration = serialize_integration(integration)
         self.external_identifier = "user123"
@@ -80,11 +80,10 @@ class TestCodeReviewPreflightService(TestCase):
             enabled_code_review=True,
         )
 
-        OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
             external_identifier=self.external_identifier,
-            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -120,11 +119,10 @@ class TestCodeReviewPreflightService(TestCase):
             enabled_code_review=True,
         )
 
-        OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
             external_identifier=self.external_identifier,
-            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -147,11 +145,10 @@ class TestCodeReviewPreflightService(TestCase):
             enabled_code_review=True,
         )
 
-        OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
             external_identifier=self.external_identifier,
-            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -196,11 +193,10 @@ class TestCodeReviewPreflightService(TestCase):
             enabled_code_review=True,
         )
 
-        OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
             external_identifier=self.external_identifier,
-            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -229,11 +225,10 @@ class TestCodeReviewPreflightService(TestCase):
             ],
         )
 
-        OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
             external_identifier=self.external_identifier,
-            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -264,11 +259,10 @@ class TestCodeReviewPreflightService(TestCase):
             code_review_triggers=[CodeReviewTrigger.ON_NEW_COMMIT.value],
         )
 
-        OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
             external_identifier=self.external_identifier,
-            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -344,11 +338,10 @@ class TestCodeReviewPreflightService(TestCase):
             enabled_code_review=True,
         )
 
-        OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
             external_identifier=self.external_identifier,
-            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -376,11 +369,10 @@ class TestCodeReviewPreflightService(TestCase):
             code_review_triggers=[CodeReviewTrigger.ON_NEW_COMMIT.value],
         )
 
-        OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
             external_identifier=self.external_identifier,
-            provider=self.integration.provider,
         )
 
         service = self._create_service()
@@ -405,11 +397,10 @@ class TestCodeReviewPreflightService(TestCase):
             enabled_code_review=True,
         )
 
-        OrganizationContributors.objects.create(
-            organization_id=self.organization.id,
-            integration_id=self.integration.id,
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
             external_identifier=self.external_identifier,
-            provider=self.integration.provider,
             alias="dependabot[bot]",
         )
 

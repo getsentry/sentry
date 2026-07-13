@@ -261,11 +261,10 @@ class TrackContributorSeatTest(TestCase):
         mock_logger: MagicMock,
         mock_assign_seat: MagicMock,
     ) -> None:
-        OrganizationContributors.objects.create(
+        self.create_organization_contributor(
             organization=self.organization,
-            integration_id=self.integration.id,
+            integration=self.integration,
             external_identifier="12345",
-            provider=self.integration.provider,
             alias="testuser",
             num_actions=5,
         )
@@ -395,11 +394,10 @@ class RecordContributorActionTest(TestCase):
     def test_increments_and_assigns_at_threshold(
         self, mock_should: MagicMock, mock_assign: MagicMock
     ) -> None:
-        OrganizationContributors.objects.create(
+        self.create_organization_contributor(
             organization=self.organization,
-            integration_id=self.integration.id,
+            integration=self.integration,
             external_identifier="123",
-            provider=self.integration.provider,
             alias="alice",
             num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD - 1,
         )
@@ -418,11 +416,10 @@ class RecordContributorActionTest(TestCase):
     def test_increments_and_assigns_above_threshold(
         self, mock_should: MagicMock, mock_assign: MagicMock
     ) -> None:
-        OrganizationContributors.objects.create(
+        self.create_organization_contributor(
             organization=self.organization,
-            integration_id=self.integration.id,
+            integration=self.integration,
             external_identifier="123",
-            provider=self.integration.provider,
             alias="alice",
             num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
         )
