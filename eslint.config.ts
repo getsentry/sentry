@@ -1187,6 +1187,14 @@ export default typescript.config([
     },
   },
   {
+    // Flex's own documentation intentionally demonstrates `direction="column"`.
+    name: 'files/mdx/flex-docs',
+    files: ['static/app/components/core/layout/flex.mdx'],
+    rules: {
+      '@sentry/scraps/prefer-stack-for-column-flex': 'off',
+    },
+  },
+  {
     name: 'plugin/boundaries',
     plugins: {
       boundaries,
