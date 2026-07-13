@@ -95,6 +95,21 @@ interface HeatMapGrid {
  * guarantees the complete copy exists in one chunk, and since `z` is `count()` the
  * complete count is the larger one, so max picks it. See `partitionHeatmapWindows`.
  *
+ * Why max and not "just take the older chunk"? Each chunk has a partial bucket at
+ * its OWN unaligned edge, and across an overlap those edges sit at opposite ends —
+ * so neither "always older" nor "always newer" is right. For the overlap between a
+ * newer window `[now-6h, now]` and an older `[now-24h, now-4h]` (`B = floor(now)`):
+ *
+ *   bucket          newer chunk        older chunk
+ *   [B-6h, B-5h)    partial (starts)   complete
+ *   [B-5h, B-4h)    complete           complete
+ *   [B-4h, B-3h)    complete           partial (ends)
+ *
+ * "Take older" undercounts `[B-4h, B-3h)`; "take newer" undercounts `[B-6h, B-5h)`.
+ * Max grabs the complete (larger) copy at both ends without tracking which is
+ * which. (The exact aggregate-agnostic alternative is picking the chunk whose
+ * window fully contains each bucket — more bookkeeping for the same result.)
+ *
  * The grid is dense over its full width, with empty (`zAxis: null`) cells for
  * columns no chunk has loaded yet, so a partial load occupies its true slice
  * instead of stretching to fill the chart.
