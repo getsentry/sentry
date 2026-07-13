@@ -2087,19 +2087,20 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
 
     @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
-    def test_ineligible_attribution_emits_merged_with_push_activity(
+    def test_ineligible_attribution_emits_merged_with_iteration(
         self, mock_record: MagicMock, mock_delay: MagicMock
     ) -> None:
         # Only SENTRY_APP and SEER_DELEGATED_* attributions qualify for the judge.
         # A PR tracked only via MCP or REFERENCED_ISSUE settles locally instead of
-        # being dropped: merged with a later commit becomes MERGED_WITH_PUSH_ACTIVITY.
+        # being dropped: merged with a later commit becomes MERGED_WITH_ITERATION,
+        # the same label the judge would use, even though no judge looked at it.
         PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(
             signal_type=PullRequestAttributionSignalType.MCP
         )
         self._call()
         assert mock_delay.call_count == 0
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
-            "merged_with_push_activity"
+            "merged_with_iteration"
         )
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
 
@@ -2118,7 +2119,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
             self._call()
         assert mock_delay.call_count == 0
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
-            "merged_with_push_activity"
+            "merged_with_iteration"
         )
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
 

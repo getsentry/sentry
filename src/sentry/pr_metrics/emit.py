@@ -136,8 +136,9 @@ def select_fallback_verdict(pull_request: PullRequest) -> PullRequestVerdict:
     would sit at ``verdict=None`` forever and never emit. Decided directly from
     push activity rather than the judge's conversation/diff analysis:
 
-    - Merged with commits after open → ``MERGED_WITH_PUSH_ACTIVITY``, distinct from
-      the judge-only ``MERGED_WITH_ITERATION`` since no judge looked at the diff.
+    - Merged with commits after open → ``MERGED_WITH_ITERATION``, reusing the
+      judge's verdict label even though no judge looked at the diff here — weak
+      attribution's iteration signal is push activity alone, same outcome bucket.
     - Merged with no commits after open → ``MERGED_UNCHANGED``, same as the
       deterministic case in ``select_verdict``.
     - Closed unmerged → ``CLOSED_UNMERGED`` unconditionally; there's no
@@ -149,7 +150,7 @@ def select_fallback_verdict(pull_request: PullRequest) -> PullRequestVerdict:
             pull_request=pull_request, event_type=PullRequestActivityType.SYNCHRONIZED
         ).exists()
         return (
-            PullRequestVerdict.MERGED_WITH_PUSH_ACTIVITY
+            PullRequestVerdict.MERGED_WITH_ITERATION
             if has_commits_after_open
             else PullRequestVerdict.MERGED_UNCHANGED
         )

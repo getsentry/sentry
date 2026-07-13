@@ -284,11 +284,10 @@ class PrMetricsEmissionTest(TestCase):
     def test_select_fallback_verdict_merged_without_later_commits_is_unchanged(self) -> None:
         assert select_fallback_verdict(self.pull_request) == PullRequestVerdict.MERGED_UNCHANGED
 
-    def test_select_fallback_verdict_merged_with_later_commits_is_push_activity(self) -> None:
+    def test_select_fallback_verdict_merged_with_later_commits_is_iteration(self) -> None:
         self._add_synchronize()
         assert (
-            select_fallback_verdict(self.pull_request)
-            == PullRequestVerdict.MERGED_WITH_PUSH_ACTIVITY
+            select_fallback_verdict(self.pull_request) == PullRequestVerdict.MERGED_WITH_ITERATION
         )
 
     def test_select_fallback_verdict_closed_is_unmerged(self) -> None:
