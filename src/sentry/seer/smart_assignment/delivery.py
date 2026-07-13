@@ -15,6 +15,7 @@ from sentry.models.organization import Organization
 from sentry.organizations.services.organization import organization_service
 from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.models.smart_assignment import SeerSmartAssignmentResult, SmartAssignmentStatus
+from sentry.seer.smart_assignment.models import AssigneeVerdict
 from sentry.seer.smart_assignment.scoring import score_prediction
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -98,10 +99,19 @@ def deliver_smart_assignment_result(
         logger.warning("smart_assignment.delivery.no_result", extra={**log_extra, "status": status})
         return
 
-    candidates = result.get("candidates") if isinstance(result, dict) else None
-    predicted_identifier = None
-    if isinstance(candidates, list) and candidates and isinstance(candidates[0], dict):
-        predicted_identifier = candidates[0].get("identifier")
+    try:
+        verdict = AssigneeVerdict.parse_obj(result)
+    except Exception:
+        row.update(
+            status=SmartAssignmentStatus.ERROR,
+            extras={**(row.extras or {}), "error": "invalid_artifact"},
+        )
+        metrics.incr("smart_assignment.delivery", tags={"outcome": "error"})
+        logger.warning("smart_assignment.delivery.invalid_result", extra=log_extra)
+        return
+
+    top_pick = verdict.candidates[0] if verdict.candidates else None
+    predicted_identifier = top_pick.identifier if top_pick is not None else None
 
     # Resolve the top pick to a Sentry user so evaluation can compare it directly
     # against the recorded ground-truth assignee. Left null if the agent named no
@@ -134,6 +144,6 @@ def deliver_smart_assignment_result(
         extra={
             **log_extra,
             "outcome": outcome,
-            "num_candidates": len(candidates) if isinstance(candidates, list) else 0,
+            "num_candidates": len(verdict.candidates),
         },
     )

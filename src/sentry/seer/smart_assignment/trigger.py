@@ -27,6 +27,7 @@ from sentry.seer.models.smart_assignment import (
     SmartAssignmentStatus,
     SmartAssignmentTrigger,
 )
+from sentry.seer.smart_assignment.models import SmartAssignmentPayload
 from sentry.seer.smart_assignment.scoring import record_ground_truth
 from sentry.utils import metrics
 
@@ -132,11 +133,12 @@ def _dispatch(group: Group, trigger: SmartAssignmentTrigger) -> None:
             status=SmartAssignmentStatus.PENDING,
         )
 
+    payload = SmartAssignmentPayload(group_id=group.id, project_slug=group.project.slug)
     title = f"Smart assignment for {group.qualified_short_id or group.id}"
     try:
         client.start_feature_run(
             feature_id=FEATURE_ID,
-            payload={"group_id": group.id, "project_slug": group.project.slug},
+            payload=payload.dict(),
             title=title,
             flush=False,
             on_run_created=_create_row,
