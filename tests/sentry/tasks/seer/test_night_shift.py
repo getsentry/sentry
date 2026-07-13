@@ -5,7 +5,7 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.group import Group
 from sentry.models.organization import OrganizationStatus
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunResult,
@@ -370,6 +370,27 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 
         assert [ep.project.slug for ep in cron_result] == ["keep"]
         assert sorted(ep.project.slug for ep in manual_result) == ["drop", "keep"]
+
+    def test_skips_project_missing_from_preferences_lookup(self) -> None:
+        """project_map and preferences come from separate queries, so a
+        project absent from the preferences result (e.g. deleted in the gap
+        between the two queries) must be skipped, not raise a KeyError."""
+        org = self.create_organization()
+        present = self._make_eligible(self.create_project(organization=org))
+        missing = self._make_eligible(self.create_project(organization=org))
+
+        real_preferences = bulk_read_preferences_from_sentry_db(org.id, [present.id, missing.id])
+        stale_preferences = {
+            pid: pref for pid, pref in real_preferences.items() if pid != missing.id
+        }
+
+        with patch(
+            "sentry.tasks.seer.night_shift.cron.bulk_read_preferences_from_sentry_db",
+            return_value=stale_preferences,
+        ):
+            result = _get_eligible_projects(org, "manual")
+
+        assert [ep.project for ep in result] == [present]
 
 
 @django_db_all

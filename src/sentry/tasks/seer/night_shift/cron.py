@@ -475,7 +475,9 @@ def _get_eligible_projects(
 
     eligible: list[EligibleProject] = []
     for pid, project in project_map.items():
-        pref = preferences[pid]
+        pref = preferences.get(pid)
+        if pref is None:
+            continue
         tweaks = get_night_shift_tweaks(project)
         stopping_point = AutofixStoppingPoint(
             pref.automated_run_stopping_point or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
