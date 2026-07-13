@@ -912,7 +912,7 @@ describe('ActivitySection', () => {
         id: 'auto-ongoing-1',
         dateCreated: '2020-01-01T00:00:00',
         data: {after_days: 7},
-      },
+      } satisfies GroupActivity,
       expectedCopy: ['Became ongoing', 'after 7 days'],
     },
     {
@@ -922,7 +922,7 @@ describe('ActivitySection', () => {
         id: 'priority-ongoing-1',
         dateCreated: '2020-01-01T00:00:00',
         data: {priority: PriorityLevel.MEDIUM, reason: 'ongoing'},
-      },
+      } satisfies GroupActivity,
       expectedCopy: ['Priority set', 'Med', /after becoming ongoing/],
     },
     {
@@ -932,7 +932,7 @@ describe('ActivitySection', () => {
         id: 'priority-escalating-1',
         dateCreated: '2020-01-01T00:00:00',
         data: {priority: PriorityLevel.HIGH, reason: 'escalating'},
-      },
+      } satisfies GroupActivity,
       expectedCopy: ['Priority set', 'High', /when it escalated/],
     },
     {
@@ -942,7 +942,7 @@ describe('ActivitySection', () => {
         id: 'escalating-1',
         dateCreated: '2020-01-01T00:00:00',
         data: {forecast: 4470},
-      },
+      } satisfies GroupActivity,
       expectedCopy: ['Escalated', 'after more than 4470 events in an hour'],
     },
     {
@@ -960,7 +960,7 @@ describe('ActivitySection', () => {
             window: 10,
           },
         },
-      },
+      } satisfies GroupActivity,
       expectedCopy: ['Escalated', /after reaching 50 events within/, '10 minutes'],
     },
     {
@@ -970,7 +970,7 @@ describe('ActivitySection', () => {
         id: 'archived-event-threshold-1',
         dateCreated: '2020-01-01T00:00:00',
         data: {ignoreCount: 50, ignoreWindow: 10},
-      },
+      } satisfies GroupActivity,
       expectedCopy: ['Archived', /until 50 events occur within/, '10 minutes'],
     },
     {
@@ -981,7 +981,7 @@ describe('ActivitySection', () => {
         dateCreated: '2020-01-01T00:00:00',
         data: {current_release_version: 'frontend@1.0.0'},
         user,
-      },
+      } satisfies GroupActivity,
       expectedCopy: ['Resolved', /in the next release after/, '1.0.0'],
     },
     {
@@ -995,7 +995,7 @@ describe('ActivitySection', () => {
           resolved_in_version: 'frontend@1.0.0',
           follows_semver: true,
         },
-      },
+      } satisfies GroupActivity,
       expectedCopy: ['Regressed', /Compared with resolved version/, /using SemVer/],
     },
   ])('renders $name v2 activity copy', async ({activity, expectedCopy}) => {
