@@ -24,6 +24,7 @@ class IsAutofixEnabledForRepoTest(TestCase):
             organization=self.organization,
             provider="github",
             external_id="github:1",
+            metadata={"domain_name": "github.com/example"},
         )
         self.repo = self.create_repo(
             project=self.project,
@@ -83,6 +84,7 @@ class ShouldIncrementContributorSeatTest(TestCase):
             organization=self.organization,
             provider="github",
             external_id="github:1",
+            metadata={"domain_name": "github.com/example"},
         )
         self.repo = self.create_repo(
             project=self.project,
@@ -212,6 +214,7 @@ class TrackContributorSeatTest(TestCase):
             organization=self.organization,
             provider="github",
             external_id="github:1",
+            metadata={"domain_name": "github.com/example"},
         )
         self.repo = self.create_repo(
             project=self.project,
@@ -292,6 +295,7 @@ class RecordContributorActionTest(TestCase):
             organization=self.organization,
             provider="github",
             external_id="github:1",
+            metadata={"domain_name": "github.com/example"},
         )
         self.repo = self.create_repo(
             project=self.project,
