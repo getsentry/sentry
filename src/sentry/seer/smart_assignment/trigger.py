@@ -30,16 +30,14 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-FEATURE_FLAG = "organizations:seer-smart-assignment"
+FEATURE_FLAG = "organizations:seer-smart-assignment-run"
 FEATURE_ID = "smart_assignment"
 
-
-def _skip(reason: str, group: Group) -> None:
-    metrics.incr("smart_assignment.trigger.skipped", tags={"reason": reason})
-    logger.info(
-        "smart_assignment.trigger.skipped",
-        extra={"reason": reason, "group_id": group.id, "organization_id": group.organization.id},
-    )
+# Marker the acting code stamps into the ASSIGNED activity's data (via the assign()
+# `extra` dict) when it auto-assigns based on a prediction. Lets ground-truth
+# capture skip our own assignment -- recording it would just score us against
+# ourselves.
+AUTO_ASSIGN_SOURCE = "seer_smart_assignment"
 
 
 def maybe_trigger_smart_assignment(
@@ -60,13 +58,13 @@ def maybe_trigger_smart_assignment(
     organization = group.organization
 
     if not features.has(FEATURE_FLAG, organization):
-        _skip("flag_disabled", group)
+        metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "flag_disabled"})
         return
 
     if trigger == SmartAssignmentTrigger.RESOLUTION and (
         activity is None or activity.user_id is None
     ):
-        _skip("automatic_resolution", group)
+        metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "automatic_resolution"})
         return
 
     if not SeerSmartAssignmentResult.objects.filter(group_id=group.id).exists():
@@ -88,7 +86,7 @@ def _dispatch(group: Group, trigger: SmartAssignmentTrigger) -> None:
             category_value=str(group.id),
         )
     except SeerPermissionError:
-        _skip("no_seer_access", group)
+        metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "no_seer_access"})
         return
 
     def _create_row(run: SeerRun) -> None:
@@ -112,7 +110,7 @@ def _dispatch(group: Group, trigger: SmartAssignmentTrigger) -> None:
     except IntegrityError:
         # A concurrent trigger already created the row (unique on group); the run
         # dispatch is rolled back with it. Treat as a dedup no-op.
-        _skip("already_predicted_race", group)
+        metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "already_predicted_race"})
         return
     except SeerApiError:
         logger.exception("smart_assignment.trigger.dispatch_failed", extra={"group_id": group.id})
@@ -132,10 +130,13 @@ def record_ground_truth(
 ) -> None:
     """Annotate an existing prediction row with ground truth for the given outcome.
 
-    No-op if no prediction was made for the group, or the trigger carries no useful
-    signal (`PR_CREATED`, or an automatic resolution with no acting user). For an
-    assignment we mirror the current assignee (user and/or team); for a user-driven
-    resolution we record the resolver as the assumed assignee.
+    No-op if no prediction was made for the group, or the outcome carries no useful
+    signal: `PR_CREATED`, an automatic resolution with no acting user, or our own
+    auto-assignment (tagged with `AUTO_ASSIGN_SOURCE`, which would just score us
+    against ourselves). For an assignment we mirror the current assignee (user
+    and/or team). For a user-driven resolution we record the resolver as the assumed
+    assignee only when no explicit assignee is set -- an assignment is better ground
+    truth than the resolver.
     """
     row = SeerSmartAssignmentResult.objects.filter(group_id=group.id).first()
     if row is None:
@@ -143,6 +144,10 @@ def record_ground_truth(
 
     updates: dict[str, object] = {}
     if trigger == SmartAssignmentTrigger.ASSIGNMENT:
+        if activity is not None and (activity.data or {}).get("source") == AUTO_ASSIGN_SOURCE:
+            # Our own auto-assignment from a prediction isn't independent ground
+            # truth -- recording it would just score us against ourselves.
+            return
         assignee = GroupAssignee.objects.filter(group=group).first()
         if assignee is None:
             return
@@ -153,8 +158,13 @@ def record_ground_truth(
     elif trigger == SmartAssignmentTrigger.RESOLUTION:
         if activity is None or activity.user_id is None:
             return
-        # Don't clear an existing team assignee: a user resolving a team-assigned
-        # issue is extra signal (they're presumably on that team), not a correction.
+        if row.actual_assignee_user_id is not None:
+            # An explicit assignee is better ground truth than the resolver; don't
+            # overwrite it with whoever happened to resolve the issue.
+            return
+        # No assignee yet: treat the resolving user as the assumed assignee. Keep any
+        # existing team assignee (a user resolving a team-assigned issue is extra
+        # signal that they're on that team, not a correction).
         updates["actual_assignee_user_id"] = activity.user_id
     else:
         return

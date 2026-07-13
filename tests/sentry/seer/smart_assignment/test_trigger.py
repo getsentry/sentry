@@ -47,7 +47,7 @@ class MaybeTriggerSmartAssignmentTest(TestCase):
     @patch(CLIENT_PATH)
     def test_dispatch_creates_pending_row(self, mock_client_cls: MagicMock) -> None:
         seer_run = self._wire_client(mock_client_cls)
-        with self.feature("organizations:seer-smart-assignment"):
+        with self.feature("organizations:seer-smart-assignment-run"):
             maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.PR_CREATED)
 
         row = SeerSmartAssignmentResult.objects.get(group=self.group)
@@ -72,7 +72,7 @@ class MaybeTriggerSmartAssignmentTest(TestCase):
             trigger=SmartAssignmentTrigger.PR_CREATED,
             status=SmartAssignmentStatus.PENDING,
         )
-        with self.feature("organizations:seer-smart-assignment"):
+        with self.feature("organizations:seer-smart-assignment-run"):
             maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.PR_CREATED)
         mock_client_cls.return_value.start_feature_run.assert_not_called()
 
@@ -83,7 +83,7 @@ class MaybeTriggerSmartAssignmentTest(TestCase):
         GroupAssignee.objects.create(
             group=self.group, project=self.group.project, user_id=assignee.id
         )
-        with self.feature("organizations:seer-smart-assignment"):
+        with self.feature("organizations:seer-smart-assignment-run"):
             maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.ASSIGNMENT)
 
         row = SeerSmartAssignmentResult.objects.get(group=self.group)
@@ -98,7 +98,7 @@ class MaybeTriggerSmartAssignmentTest(TestCase):
         self._wire_client(mock_client_cls)
         team = self.create_team(organization=self.organization)
         GroupAssignee.objects.create(group=self.group, project=self.group.project, team=team)
-        with self.feature("organizations:seer-smart-assignment"):
+        with self.feature("organizations:seer-smart-assignment-run"):
             maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.ASSIGNMENT)
 
         row = SeerSmartAssignmentResult.objects.get(group=self.group)
@@ -109,7 +109,7 @@ class MaybeTriggerSmartAssignmentTest(TestCase):
     def test_user_resolution_records_resolver_as_assignee(self, mock_client_cls: MagicMock) -> None:
         self._wire_client(mock_client_cls)
         resolver = self.create_user()
-        with self.feature("organizations:seer-smart-assignment"):
+        with self.feature("organizations:seer-smart-assignment-run"):
             maybe_trigger_smart_assignment(
                 self.group, SmartAssignmentTrigger.RESOLUTION, self._resolved_activity(resolver.id)
             )
@@ -122,7 +122,7 @@ class MaybeTriggerSmartAssignmentTest(TestCase):
     @patch(CLIENT_PATH)
     def test_automatic_resolution_is_skipped(self, mock_client_cls: MagicMock) -> None:
         self._wire_client(mock_client_cls)
-        with self.feature("organizations:seer-smart-assignment"):
+        with self.feature("organizations:seer-smart-assignment-run"):
             maybe_trigger_smart_assignment(
                 self.group, SmartAssignmentTrigger.RESOLUTION, self._resolved_activity(None)
             )
@@ -198,3 +198,42 @@ class RecordGroundTruthTest(TestCase):
 
         row.refresh_from_db()
         assert row.ground_truth_source is None
+
+    def test_our_auto_assignment_is_not_recorded(self) -> None:
+        from sentry.seer.smart_assignment.trigger import AUTO_ASSIGN_SOURCE
+
+        row = self._row()
+        assignee = self.create_user()
+        GroupAssignee.objects.create(
+            group=self.group, project=self.group.project, user_id=assignee.id
+        )
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.ASSIGNED.value,
+            data={
+                "assignee": str(assignee.id),
+                "assigneeType": "user",
+                "source": AUTO_ASSIGN_SOURCE,
+            },
+        )
+        record_ground_truth(self.group, SmartAssignmentTrigger.ASSIGNMENT, activity)
+
+        row.refresh_from_db()
+        assert row.actual_assignee_user_id is None
+        assert row.ground_truth_source is None
+
+    def test_resolution_does_not_overwrite_existing_assignee(self) -> None:
+        assignee = self.create_user()
+        row = self._row()
+        row.update(
+            actual_assignee_user_id=assignee.id,
+            ground_truth_source=SmartAssignmentTrigger.ASSIGNMENT,
+        )
+        resolver = self.create_user()
+        record_ground_truth(
+            self.group, SmartAssignmentTrigger.RESOLUTION, self._resolved_activity(resolver.id)
+        )
+
+        row.refresh_from_db()
+        assert row.actual_assignee_user_id == assignee.id
+        assert row.ground_truth_source == SmartAssignmentTrigger.ASSIGNMENT
