@@ -151,11 +151,20 @@ interface GithubPrReviewCommentFeedbackSource {
   comment?: {html_url?: string; user?: {login: string}};
 }
 
-type RawFeedbackSource =
+export interface CheckSuiteFeedbackSource {
+  app_name: string;
+  event: {
+    check_suite: {head_sha: string; id: number};
+    repository: {html_url: string};
+  };
+  type: 'check-suite';
+}
+
+export type RawFeedbackSource =
   | UserUiFeedbackSource
   | GithubPrCommentFeedbackSource
-  | GithubPrReviewCommentFeedbackSource;
-
+  | GithubPrReviewCommentFeedbackSource
+  | CheckSuiteFeedbackSource;
 export interface RawFeedback {
   text: string;
   source?: RawFeedbackSource;
