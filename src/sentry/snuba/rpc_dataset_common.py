@@ -797,9 +797,7 @@ class RPCBase:
                 expressions=[
                     cls.categorize_aggregate(fn)
                     for fn in {
-                        fn.public_alias: fn
-                        for fn in (functions + equations)
-                        if fn.is_aggregate
+                        fn.public_alias: fn for fn in (functions + equations) if fn.is_aggregate
                     }.values()
                 ],
                 group_by=[
