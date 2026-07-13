@@ -187,9 +187,6 @@ export function useScmProjectDetails({
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const createProjectAndRules = useCreateProjectAndRules();
 
-  // Capture the persisted notification action once at mount so back-nav restores
-  // the previous selection. Held in a ref so the reference stays stable across
-  // renders and the notification hook's run-once init effect doesn't re-fire.
   const restoredNotificationOptionsRef = useRef(
     projectDetailsForm?.notificationAction
       ? {actions: [projectDetailsForm.notificationAction]}
@@ -339,10 +336,6 @@ export function useScmProjectDetails({
     alertRuleConfig.interval === savedAlert?.interval &&
     alertRuleConfig.metric === savedAlert?.metric &&
     alertRuleConfig.threshold === savedAlert?.threshold &&
-    // Precise comparison of the notification action: if the user hasn't changed
-    // the integration selection, the built action will equal the persisted one
-    // and we can safely reuse the project. A change (different channel, provider
-    // swap, etc.) creates a new project + rule so nothing is silently dropped.
     isEqual(
       notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION)
         ? buildIntegrationAction(notificationProps)

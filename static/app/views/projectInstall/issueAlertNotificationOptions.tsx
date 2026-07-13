@@ -172,12 +172,10 @@ export function useCreateNotificationAction({
 
   const hasInitializedSelection = useRef(false);
 
-  // Single run-once initialization effect, gated on the integrations query
-  // completing so that `providersToIntegrations` is populated before we try to
-  // match an integration. The `hasInitializedSelection` ref ensures this never
-  // runs again on subsequent refetches (preserving user edits) and eliminates
-  // the earlier two-effect clobber where the auto-select effect ran after the
-  // restore effect and wiped provider/channel back to defaults.
+  // Seeds the notification picker once, after the integrations query resolves:
+  // restores the provider/integration/channel from a default action when one is
+  // present, otherwise auto-selects the first available integration. Guarded by
+  // a ref so it runs a single time and never overwrites later user edits.
   useEffect(() => {
     if (!messagingIntegrationsQuery.isSuccess || hasInitializedSelection.current) {
       return;
@@ -218,8 +216,6 @@ export function useCreateNotificationAction({
           : [MultipleCheckboxOptions.EMAIL, MultipleCheckboxOptions.INTEGRATION];
       setActions(newActions);
 
-      // Discord stores the channel under `channel_id` rather than `channel`
-      // (VDY-125). Both fields are supported here so any provider restores.
       const restoredChannel = firstAction.channel ?? firstAction.channel_id;
       if (restoredChannel) {
         // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state

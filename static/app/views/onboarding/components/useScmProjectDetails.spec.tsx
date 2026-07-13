@@ -180,15 +180,12 @@ describe('useScmProjectDetails', () => {
     });
 
     beforeEach(() => {
-      // Override the empty integrations mock set in the outer beforeEach so
-      // that the notification hook can resolve the Slack integration.
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/`,
         body: [slackIntegration],
         match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
       });
-      // Background GETs triggered by ProjectsStore.onCreateSuccess / store updates.
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/`,
         body: organization,
@@ -207,13 +204,13 @@ describe('useScmProjectDetails', () => {
 
     it('includes notificationAction in the submittedForm passed to onComplete', async () => {
       const createdProject = ProjectFixture({slug: 'my-project', platform: 'python'});
-      // useCreateProject POSTs to /teams/{org}/{team}/projects/ when a team is set.
+
       MockApiClient.addMockResponse({
         url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
         method: 'POST',
         body: createdProject,
       });
-      // createProjectAndRules also creates alert rules; mock so it doesn't 404.
+
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${createdProject.slug}/rules/`,
         method: 'POST',
@@ -230,12 +227,10 @@ describe('useScmProjectDetails', () => {
         onComplete,
       });
 
-      // Wait for the integrations query to settle so the hook's init effect runs.
       await waitFor(() =>
         expect(result.current.notificationProps.provider).toBe('slack')
       );
 
-      // Simulate user selecting integration + channel.
       act(() => {
         result.current.notificationProps.setActions([
           MultipleCheckboxOptions.EMAIL,
