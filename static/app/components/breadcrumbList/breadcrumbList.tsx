@@ -88,8 +88,8 @@ function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
   // Responsive display values using container queries (bare breakpoint keys):
   //   '2xs' is the smallest breakpoint → applies as the base
   //   'xs'  = 500px → overrides at container width ≥ 500px
-const visibleWhenWide: Responsive<'flex' | 'none'> = {xs: 'flex', '2xs': 'none'};
-const visibleWhenNarrow: Responsive<'flex' | 'none'> = {xs: 'none', '2xs': 'flex'};
+  const visibleWhenWide: Responsive<'flex' | 'none'> = {xs: 'flex', '2xs': 'none'};
+  const visibleWhenNarrow: Responsive<'flex' | 'none'> = {xs: 'none', '2xs': 'flex'};
 
   return (
     // Renders as inline content (no <nav> landmark, no own heading): breadcrumbs
