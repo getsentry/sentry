@@ -201,16 +201,7 @@ class OAuth2Provider(Provider):
             error_resp = e.response
             exc = ApiError.from_response(error_resp, url=url)
             if isinstance(exc, ApiUnauthorized) or isinstance(exc, ApiInvalidRequestError):
-                logger.warning(
-                    "oauth2.refresh_token.rejected",
-                    extra={
-                        "identity_id": identity.id,
-                        "status_code": error_resp.status_code,
-                        "response_body": error_resp.text[:512],
-                        "url": url,
-                    },
-                )
-                raise IdentityNotValid(error_resp.text[:256]) from e
+                raise IdentityNotValid from e
             raise exc from e
 
         return req
