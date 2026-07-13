@@ -93,7 +93,7 @@ export function metricBoundsApiOptions({
  * Reduces the single-row bounds response to a `{min, max}` range, or `null` when
  * the range has no data (so the caller can skip pinning a bogus domain).
  */
-export function reduceMetricBounds(result: TraceMetricEventsResult): MetricBounds | null {
+function reduceMetricBounds(result: TraceMetricEventsResult): MetricBounds | null {
   const row = result.data?.[0];
   if (!row) {
     return null;
