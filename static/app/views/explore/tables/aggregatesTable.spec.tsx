@@ -77,9 +77,11 @@ function createAggregatesTableResult({
 
 function AggregatesTableWithParamsProvider({
   aggregatesTableResult,
+  aggregateNumberTags = numberTags,
   validatedFieldTypes = {},
 }: {
   aggregatesTableResult: AggregatesTableResult;
+  aggregateNumberTags?: TagCollection;
   validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 }) {
   return (
@@ -87,7 +89,7 @@ function AggregatesTableWithParamsProvider({
       <AggregatesTable
         aggregatesTableResult={aggregatesTableResult}
         stringTags={stringTags}
-        numberTags={numberTags}
+        numberTags={aggregateNumberTags}
         booleanTags={booleanTags}
         validatedFieldTypes={validatedFieldTypes}
       />
@@ -262,5 +264,54 @@ describe('AggregatesTable', () => {
     expect(
       screen.queryByRole('menuitemradio', {name: 'Add to filter'})
     ).not.toBeInTheDocument();
+  });
+
+  it('prettifies validated aggregate field names', () => {
+    const aggregate = 'count(span.duration)';
+    const eventView = EventView.fromLocation(
+      LocationFixture({query: {field: ['span.op', aggregate]}})
+    );
+
+    render(
+      <AggregatesTableWithParamsProvider
+        aggregateNumberTags={{
+          ...numberTags,
+          [aggregate]: {
+            key: aggregate,
+            name: aggregate,
+            kind: FieldKind.MEASUREMENT,
+          },
+        }}
+        aggregatesTableResult={createAggregatesTableResult({
+          eventView,
+          result: {
+            meta: {
+              fields: {
+                'span.op': FieldValueType.STRING,
+                [aggregate]: FieldValueType.NUMBER,
+              },
+              units: {},
+            },
+          },
+        })}
+      />,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              visualize: JSON.stringify({yAxes: [aggregate]}),
+              aggregateSort: `-${aggregate}`,
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    expect(screen.getByText('count(spans)')).toBeInTheDocument();
+    expect(screen.queryByText(aggregate)).not.toBeInTheDocument();
   });
 });
