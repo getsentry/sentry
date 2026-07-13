@@ -243,26 +243,24 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if not is_synced:
             return
 
-        opening_block = next(
-            (
-                block
-                for block in reversed(state.blocks)
-                if (block.message.metadata or {}).get("step") == AutofixStep.PR_ITERATION.value
-            ),
-            None,
-        )
-        raw = (opening_block.message.metadata or {}).get("feedback") if opening_block else None
+        # The consumed feedback is serialized once onto the iteration's opening
+        # PR_ITERATION block, so find the most recent one and read it off there.
+        raw = None
+        for block in reversed(state.blocks):
+            metadata = block.message.metadata or {}
+            if metadata.get("step") == AutofixStep.PR_ITERATION.value:
+                raw = metadata.get("feedback")
+                break
         if not raw:
             return
 
-        sources = [
-            feedback.source
-            for feedback in parse_feedback(raw)
+        sources: list[GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource] = []
+        for feedback in parse_feedback(raw):
             if isinstance(
                 feedback.source,
                 (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource),
-            )
-        ]
+            ):
+                sources.append(feedback.source)
         if not sources:
             return
 
