@@ -8,6 +8,8 @@ import {Stack} from '@sentry/scraps/layout';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {LogoSentry} from 'sentry/components/logoSentry';
+import {PageCorners} from 'sentry/components/onboarding/pageCorners';
+import {Stepper} from 'sentry/components/onboarding/stepper';
 import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
@@ -18,8 +20,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-import {PageCorners} from 'sentry/views/onboarding/components/pageCorners';
-import {Stepper} from 'sentry/views/onboarding/components/stepper';
 
 import {EncryptBackup} from './encryptBackup';
 import {GetStarted} from './getStarted';
