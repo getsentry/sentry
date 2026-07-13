@@ -97,27 +97,27 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
         <div className="ref-redeem-code">
           <form.AppForm form={form}>
             <form.FieldGroup title={t('Redeem Promotional Code')}>
-              <form.AppField name="code">
-                {field => (
-                  <field.Layout.Row
-                    label={t('Promotional Code')}
-                    hintText={t(
-                      'Received a promotional code? Enter it here to apply credit to your organization.'
-                    )}
-                    required
-                  >
-                    <Flex gap="md" width="100%" align="end">
-                      <Container flex="1" minWidth={0}>
+              <Flex gap="md" width="100%" align="end">
+                <Container flex="1" minWidth={0}>
+                  <form.AppField name="code">
+                    {field => (
+                      <field.Layout.Row
+                        label={t('Promotional Code')}
+                        hintText={t(
+                          'Received a promotional code? Enter it here to apply credit to your organization.'
+                        )}
+                        required
+                      >
                         <field.Input
                           value={field.state.value}
                           onChange={field.handleChange}
                         />
-                      </Container>
-                      <form.SubmitButton>{t('Redeem')}</form.SubmitButton>
-                    </Flex>
-                  </field.Layout.Row>
-                )}
-              </form.AppField>
+                      </field.Layout.Row>
+                    )}
+                  </form.AppField>
+                </Container>
+                <form.SubmitButton>{t('Redeem')}</form.SubmitButton>
+              </Flex>
             </form.FieldGroup>
           </form.AppForm>
         </div>
