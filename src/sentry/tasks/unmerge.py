@@ -503,6 +503,37 @@ def unlock_hashes(project_id: int, locked_primary_hashes: Sequence[str]) -> None
 
 
 @instrumented_task(
+    name="sentry.tasks.unmerge.start_unmerge",
+    namespace=issues_merge_tasks,
+    alias_namespace=issues_tasks,
+    processing_deadline_duration=300,
+    silo_mode=SiloMode.CELL,
+)
+def start_unmerge(
+    project_id: int,
+    source_id: int,
+    destination_id: int | None,
+    fingerprints: Sequence[str],
+    actor_id: int | None,
+    batch_size: int = 500,
+) -> None:
+    logger.info(
+        "unmerge.start",
+        extra={
+            "project_id": project_id,
+            "source_id": source_id,
+            "num_fingerprints": len(fingerprints),
+            "actor_id": actor_id,
+        },
+    )
+    metrics.incr("unmerge.started")
+
+    unmerge.delay(
+        project_id, source_id, destination_id, fingerprints, actor_id, batch_size=batch_size
+    )
+
+
+@instrumented_task(
     name="sentry.tasks.unmerge",
     namespace=issues_merge_tasks,
     alias_namespace=issues_tasks,

@@ -31,6 +31,44 @@ _TASK_KEY = "merge_groups"
 
 
 @instrumented_task(
+    name="sentry.tasks.merge.start_merge_groups",
+    namespace=issues_merge_tasks,
+    alias_namespace=issues_tasks,
+    retry=Retry(delay=60 * 5),
+    silo_mode=SiloMode.CELL,
+)
+@track_group_async_operation
+def start_merge_groups(
+    from_object_ids: list[int] | None = None,
+    to_object_id: int | str | None = None,
+    transaction_id: int | None = None,
+    eventstream_state: Mapping[str, Any] | None = None,
+) -> bool:
+    if not (from_object_ids and to_object_id):
+        logger.error("merge.start.missing_params", extra={"transaction_id": transaction_id})
+        return False
+
+    logger.info(
+        "merge.start",
+        extra={
+            "transaction_id": transaction_id,
+            "to_group_id": to_object_id,
+            "from_group_ids": from_object_ids,
+            "num_groups": len(from_object_ids),
+        },
+    )
+    metrics.incr("merge.started")
+
+    merge_groups.delay(
+        from_object_ids=from_object_ids,
+        to_object_id=to_object_id,
+        transaction_id=transaction_id,
+        eventstream_state=eventstream_state,
+    )
+    return True
+
+
+@instrumented_task(
     name="sentry.tasks.merge.merge_groups",
     namespace=issues_merge_tasks,
     alias_namespace=issues_tasks,
@@ -42,7 +80,6 @@ def merge_groups(
     from_object_ids: list[int] | None = None,
     to_object_id: int | str | None = None,
     transaction_id: int | None = None,
-    recursed: bool = False,
     eventstream_state: Mapping[str, Any] | None = None,
 ) -> bool:
     # TODO(mattrobenolt): Write tests for all of this
@@ -80,6 +117,16 @@ def merge_groups(
     # until each group has been merged.
     from_object_id = from_object_ids[0]
 
+    logger.info(
+        "merge.batch",
+        extra={
+            "transaction_id": transaction_id,
+            "from_object_id": from_object_id,
+            "remaining_groups": len(from_object_ids),
+            "to_group_id": to_object_id,
+        },
+    )
+
     try:
         new_group, _ = get_group_with_redirect(
             to_object_id,
@@ -102,21 +149,6 @@ def merge_groups(
         if eventstream_state:
             eventstream.backend.end_merge(eventstream_state)
         return False
-
-    if not recursed:
-        logger.info(
-            "merge.queued",
-            extra={
-                "transaction_id": transaction_id,
-                "new_group_id": new_group.id,
-                "old_group_ids": from_object_ids,
-                # TODO(jtcunning): figure out why these are full seq scans and/or alternative solution
-                # 'new_event_id': getattr(new_group.event_set.order_by('-id').first(), 'id', None),
-                # 'old_event_id': getattr(group.event_set.order_by('-id').first(), 'id', None),
-                # 'new_hash_id': getattr(new_group.grouphash_set.order_by('-id').first(), 'id', None),
-                # 'old_hash_id': getattr(group.grouphash_set.order_by('-id').first(), 'id', None),
-            },
-        )
 
     try:
         group = Group.objects.select_related("project").get(id=from_object_id)
@@ -239,7 +271,6 @@ def merge_groups(
             from_object_ids=from_object_ids,
             to_object_id=to_object_id,
             transaction_id=transaction_id,
-            recursed=True,
             eventstream_state=eventstream_state,
         )
         # Record that this activation has spawned its continuation. A subsequent re-pend of this
