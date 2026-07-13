@@ -22,6 +22,7 @@ from sentry.pr_metrics.emit import (
     build_pr_metrics_row,
     emit_pr_metrics_row,
     is_pr_tracked,
+    resolve_autofix_referrers,
     select_verdict,
 )
 from sentry.pr_metrics.utils import _commit_shas_from_activity, resolved_group_ids
@@ -368,6 +369,75 @@ class PrMetricsEmissionTest(TestCase):
                 "signal_details": {"group_ids": [7]},
             },
         ]
+
+    def test_resolve_autofix_referrers_empty_without_run_id(self) -> None:
+        assert resolve_autofix_referrers(self.pull_request, [SENTRY_APP_ATTRIBUTION]) == []
+
+    def test_resolve_autofix_referrers_resolves_seer_run(self) -> None:
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=555, referrer="slack"
+        )
+        attributions = [
+            {
+                "signal_type": "sentry_app",
+                "source": "seer_data",
+                "signal_details": {"run_id": seer_run.seer_run_state_id},
+            }
+        ]
+        assert resolve_autofix_referrers(self.pull_request, attributions) == ["slack"]
+
+    def test_resolve_autofix_referrers_dedupes_repeated_run_ids(self) -> None:
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=556, referrer="night_shift"
+        )
+        details = {"run_id": seer_run.seer_run_state_id}
+        attributions = [
+            {"signal_type": "sentry_app", "source": "seer_data", "signal_details": details},
+            {
+                "signal_type": "seer_delegated:claude_code",
+                "source": "seer_data",
+                "signal_details": details,
+            },
+        ]
+        assert resolve_autofix_referrers(self.pull_request, attributions) == ["night_shift"]
+
+    def test_resolve_autofix_referrers_skips_run_ids_with_no_matching_seer_run(self) -> None:
+        attributions = [
+            {
+                "signal_type": "seer_delegated:cursor",
+                "source": "seer_data",
+                # Cursor's delegated-agent path doesn't record a run_id today.
+                "signal_details": {"run_id": None},
+            }
+        ]
+        assert resolve_autofix_referrers(self.pull_request, attributions) == []
+
+    def test_build_row_carries_autofix_referrers(self) -> None:
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=557, referrer="night_shift"
+        )
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[
+                {
+                    "signal_type": "sentry_app",
+                    "source": "seer_data",
+                    "signal_details": {"run_id": seer_run.seer_run_state_id},
+                }
+            ],
+            group_ids=[],
+        )
+        assert row.autofix_referrers == ["night_shift"]
+
+    def test_build_row_autofix_referrers_empty_by_default(self) -> None:
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.autofix_referrers == []
 
     def test_resolved_group_ids_returns_sorted_resolving_links(self) -> None:
         ids = sorted([self._link_group(), self._link_group()])
