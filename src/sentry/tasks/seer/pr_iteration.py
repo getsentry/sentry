@@ -49,6 +49,15 @@ from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
+# Posted when someone ``@sentry``-iterates a PR that isn't backed by an Autofix
+# explorer run with ``repo_pr_states`` — including coding-agent-handoff PRs and
+# unrelated human PRs. We can't reliably tell those apart at comment time.
+INELIGIBLE_PR_ITERATION_COMMENT = (
+    "PR iteration only works on pull requests created by Seer's Autofix agent. "
+    "PRs that the Autofix Agent didn't create aren't eligible. This includes PRs "
+    "created by the Coding Agent handoff and unrelated human PRs."
+)
+
 
 def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferrer:
     referrers = {item.referrer for item in items}
@@ -243,6 +252,24 @@ def _add_comment_eyes_reaction(
         sentry_sdk.capture_exception(e)
 
 
+def _comment_pr_iteration_ineligible(
+    client: Any,
+    *,
+    repo_name: str,
+    pr_number: int,
+    organization_id: int,
+) -> None:
+    """Explain on the PR why ``@sentry`` iteration didn't run."""
+    try:
+        client.create_comment(repo_name, str(pr_number), {"body": INELIGIBLE_PR_ITERATION_COMMENT})
+    except Exception:
+        logger.warning(
+            "autofix.pr_iteration.comment_trigger.ineligible_comment_failed",
+            extra={"organization_id": organization_id, "pr_number": pr_number},
+            exc_info=True,
+        )
+
+
 @instrumented_task(
     name="sentry.tasks.autofix.trigger_pr_iteration_from_comment",
     namespace=seer_tasks,
@@ -329,6 +356,12 @@ def trigger_pr_iteration_from_comment(
         logger.info(
             "autofix.pr_iteration.comment_trigger.no_run",
             extra={"organization_id": organization_id, "pr_id": pr_id},
+        )
+        _comment_pr_iteration_ineligible(
+            client,
+            repo_name=repo.name,
+            pr_number=pr_number,
+            organization_id=organization_id,
         )
         return None
 

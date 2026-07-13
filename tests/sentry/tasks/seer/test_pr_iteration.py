@@ -17,6 +17,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeed
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.models import SeerApiError
 from sentry.tasks.seer.pr_iteration import (
+    INELIGIBLE_PR_ITERATION_COMMENT,
     consume_queued_autofix_feedback,
     trigger_consume_pr_iteration_feedback,
     trigger_pr_iteration_from_comment,
@@ -161,7 +162,8 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
     ) -> None:
-        mock_get_integration.return_value = self._mock_integration()
+        mock_integration = self._mock_integration()
+        mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = None
 
         self._call()
@@ -169,6 +171,11 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_has_access.assert_not_called()
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
+        mock_integration.get_installation.return_value.get_client.return_value.create_comment.assert_called_once_with(
+            self.repo.name,
+            "7",
+            {"body": INELIGIBLE_PR_ITERATION_COMMENT},
+        )
 
     @patch(f"{TASK_PATH}._add_comment_eyes_reaction")
     @patch(f"{TASK_PATH}.make_scm")
