@@ -187,7 +187,7 @@ class OrganizationReportContextFactory:
                 return
 
             try:
-                errors_by_project, perf_by_project = org_top_issues(
+                error_issues_by_project, perf_issues_by_project = org_top_issues(
                     ctx,
                     eligible_projects,
                     sort_by="freq",
@@ -202,10 +202,10 @@ class OrganizationReportContextFactory:
                 assert isinstance(project_ctx, ProjectContext), (
                     f"Expected a ProjectContext, received {type(project_ctx)}"
                 )
-                if project.id in errors_by_project:
-                    project_ctx.key_errors_by_id = errors_by_project[project.id]
-                if project.id in perf_by_project:
-                    project_ctx.key_performance_issues = perf_by_project[project.id]
+                if project.id in error_issues_by_project:
+                    project_ctx.key_errors_by_id = error_issues_by_project[project.id]
+                if project.id in perf_issues_by_project:
+                    project_ctx.key_performance_issues = perf_issues_by_project[project.id]
 
     @metrics.wraps("weekly_report.create_context.hydrate_key_error_groups")
     def _hydrate_key_error_groups(self, ctx: OrganizationReportContext) -> None:

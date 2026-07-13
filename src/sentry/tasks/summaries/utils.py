@@ -135,8 +135,8 @@ def org_top_issues(
     """
     Fetch top issues (error + performance) for all org projects using the search backend.
     Returns:
-      - errors_by_project: {project_id: [(group_id, count), ...]} (top 5 per project)
-      - perf_by_project: {project_id: [(Group, count), ...]} (top 5 per project)
+      - error_issues_by_project: {project_id: [(group_id, count), ...]} (top 5 per project)
+      - perf_issues_by_project: {project_id: [(Group, count), ...]} (top 5 per project)
     """
     op = "weekly_reports.org_top_issues"
     with start_span(op=op, name=op):
@@ -191,25 +191,25 @@ def org_top_issues(
                 referrer=referrer,
             )
 
-        errors_by_project: dict[int, list[tuple[int, int]]] = {}
+        error_issues_by_project: dict[int, list[tuple[int, int]]] = {}
         for group in error_groups:
             count = error_counts.get(group.id, 0)
             pid = group.project_id
-            if pid not in errors_by_project:
-                errors_by_project[pid] = []
-            if len(errors_by_project[pid]) < 5:
-                errors_by_project[pid].append((group.id, count))
+            if pid not in error_issues_by_project:
+                error_issues_by_project[pid] = []
+            if len(error_issues_by_project[pid]) < 5:
+                error_issues_by_project[pid].append((group.id, count))
 
-        perf_by_project: dict[int, list[tuple[Group, int]]] = {}
+        perf_issues_by_project: dict[int, list[tuple[Group, int]]] = {}
         for group in perf_groups:
             count = perf_counts.get(group.id, 0)
             pid = group.project_id
-            if pid not in perf_by_project:
-                perf_by_project[pid] = []
-            if len(perf_by_project[pid]) < 5:
-                perf_by_project[pid].append((group, count))
+            if pid not in perf_issues_by_project:
+                perf_issues_by_project[pid] = []
+            if len(perf_issues_by_project[pid]) < 5:
+                perf_issues_by_project[pid].append((group, count))
 
-        return errors_by_project, perf_by_project
+        return error_issues_by_project, perf_issues_by_project
 
 
 def _count_error_events(
