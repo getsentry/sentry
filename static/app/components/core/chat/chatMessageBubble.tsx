@@ -1,4 +1,6 @@
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
+
+import {Container} from '@sentry/scraps/layout';
 
 interface ChatMessageBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -22,21 +24,26 @@ export function ChatMessageBubble({
   ...props
 }: ChatMessageBubbleProps) {
   return (
-    <Bubble maxWidth={maxWidth} {...props}>
+    <Container
+      maxWidth={maxWidth}
+      minWidth={0}
+      padding="xs md"
+      background="secondary"
+      border="primary"
+      radius="md"
+      whiteSpace="pre-wrap"
+      css={wrapStyles}
+      {...props}
+    >
       {children}
-    </Bubble>
+    </Container>
   );
 }
 
-const Bubble = styled('div')<{maxWidth: React.CSSProperties['maxWidth']}>`
-  max-width: ${p => p.maxWidth};
-  min-width: 0;
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-  white-space: pre-wrap;
+// `overflow-wrap`/`word-wrap` are not layout props; they keep long unbroken
+// tokens (URLs, stack frames) from overflowing the bubble.
+const wrapStyles = (theme: import('@emotion/react').Theme) => css`
+  color: ${theme.tokens.content.primary};
   word-wrap: break-word;
   overflow-wrap: anywhere;
-  color: ${p => p.theme.tokens.content.primary};
-  background: ${p => p.theme.tokens.background.secondary};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
 `;
