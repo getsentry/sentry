@@ -101,6 +101,19 @@ def track_contributor_seat(
     logs_extra: Mapping[str, Any] | None = None,
 ) -> None:
     """Informational logging for the legacy seat-charging path."""
+    try:
+        hostname = instance_hostname(integration)
+    except Exception:
+        logger.info(
+            "scm.webhook.organization_contributor.seed_failed",
+            extra={
+                "provider": integration.provider,
+                "organization_id": organization.id,
+                "integration_id": integration.id,
+            },
+        )
+        hostname = None
+
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
         integration_id=integration.id,
@@ -108,10 +121,9 @@ def track_contributor_seat(
         defaults={
             "alias": user_username,
             "provider": integration.provider,
-            "hostname": instance_hostname(integration),
+            "hostname": hostname,
         },
     )
-
     if not should_increment_contributor_seat(organization, repo, contributor):
         return
 
@@ -147,6 +159,19 @@ def record_contributor_action(
     tags: Mapping[str, Any] | None = None,
 ) -> None:
     """Seed a contributor and record the contributor's PR-opened action."""
+    try:
+        hostname = instance_hostname(integration)
+    except Exception:
+        logger.info(
+            "scm.webhook.organization_contributor.seed_failed",
+            extra={
+                "provider": integration.provider,
+                "organization_id": organization.id,
+                "integration_id": integration.id,
+            },
+        )
+        hostname = None
+
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
         integration_id=integration.id,
@@ -154,7 +179,7 @@ def record_contributor_action(
         defaults={
             "alias": user_username,
             "provider": integration.provider,
-            "hostname": instance_hostname(integration),
+            "hostname": hostname,
         },
     )
 
