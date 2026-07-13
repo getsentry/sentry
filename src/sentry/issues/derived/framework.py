@@ -278,16 +278,30 @@ class Aggregator[E: HasType]:
     scope: tuple[int, ...] | None = None
 
 
-def aggregator[E: HasType, S: IntEnum](
+class _HasGetType(Protocol):
+    @classmethod
+    def get_type(cls) -> IntEnum: ...
+
+
+type ScopeItem = IntEnum | type[_HasGetType]
+
+
+def _scope_int(item: ScopeItem) -> int:
+    if isinstance(item, IntEnum):
+        return item.value
+    return item.get_type().value
+
+
+def aggregator[E: HasType](
     outputs: tuple[Feature[Any], ...],
     *,
     deps: tuple[Feature[Any], ...] = (),
-    scope: tuple[S, ...] | None = None,
+    scope: tuple[ScopeItem, ...] | None = None,
 ) -> Callable[[AggregatorFn[E]], Aggregator[E]]:
-    """Decorator to create an Aggregator. `scope` accepts enum members directly."""
+    """Decorator to create an Aggregator. `scope` accepts enum members or classes with get_type()."""
     if not outputs:
         raise ValueError("aggregator must declare at least one output")
-    raw_scope = tuple(s.value for s in scope) if scope is not None else None
+    raw_scope = tuple(_scope_int(s) for s in scope) if scope is not None else None
 
     def decorator(fn: AggregatorFn[E]) -> Aggregator[E]:
         return Aggregator(name=fn.__name__, deps=deps, outputs=outputs, fn=fn, scope=raw_scope)

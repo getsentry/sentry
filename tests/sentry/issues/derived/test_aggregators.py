@@ -13,7 +13,12 @@ from typing import Any, get_args, get_type_hints
 
 import pytest
 
-from sentry.issues.action_log.types import GroupActionType, GroupActorType, ReconcileStatusAction
+from sentry.issues.action_log.types import (
+    GroupAction,
+    GroupActionType,
+    GroupActorType,
+    ReconcileStatusAction,
+)
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
     LAST_PROGRESSED_AT,
@@ -57,6 +62,14 @@ class FakeEntry:
     actor_type: int = GroupActorType.SYSTEM
     actor_id: int = 0
     data: dict[str, object] = field(default_factory=dict)
+
+    @property
+    def action(self) -> GroupAction:
+        action_type = GroupActionType(self.type)
+        action_cls = GroupAction.by_type(action_type)
+        if action_cls is None:
+            raise ValueError(f"No GroupAction registered for {action_type!r}")
+        return action_cls(**self.data)
 
 
 def _ts(year: int = 2025, month: int = 1, day: int = 1, hour: int = 0) -> datetime:
