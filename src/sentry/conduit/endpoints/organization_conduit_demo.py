@@ -1,3 +1,5 @@
+from typing import Any
+
 import sentry_sdk
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -14,13 +16,13 @@ from sentry.conduit.tasks import stream_demo_data
 from sentry.models.organization import Organization
 
 
-class ConduitCredentialsSerializer(serializers.Serializer):
+class ConduitCredentialsSerializer(serializers.Serializer[Any]):
     token = serializers.CharField()
     channel_id = serializers.UUIDField()
     url = serializers.URLField()
 
 
-class ConduitCredentialsResponseSerializer(serializers.Serializer):
+class ConduitCredentialsResponseSerializer(serializers.Serializer[Any]):
     conduit = ConduitCredentialsSerializer()
 
 
