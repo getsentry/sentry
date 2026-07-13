@@ -43,13 +43,13 @@ class DeliverSmartAssignmentResultTest(TestCase):
         result = {
             "candidates": [
                 {
-                    "identifier": "@alice",
+                    "identifier": "alice",
                     "identifier_kind": "username",
                     "reason": "suspect commit",
                     "confidence": "high",
                 },
                 {
-                    "identifier": "@bob",
+                    "identifier": "bob",
                     "identifier_kind": "username",
                     "reason": "code owner",
                     "confidence": "low",
@@ -96,7 +96,7 @@ class DeliverSmartAssignmentResultTest(TestCase):
         result = {
             "candidates": [
                 {
-                    "identifier": "@nobody-here",
+                    "identifier": "nobody-here",
                     "identifier_kind": "username",
                     "reason": "guess",
                     "confidence": "low",
@@ -148,7 +148,7 @@ class DeliverSmartAssignmentResultTest(TestCase):
         result = {
             "candidates": [
                 {
-                    "identifier": "@alice",
+                    "identifier": "alice",
                     "identifier_kind": "username",
                     "reason": "x",
                     "confidence": "high",

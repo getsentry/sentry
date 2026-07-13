@@ -40,18 +40,18 @@ def _resolve_identifier_to_user_id(
     if not identifier:
         return None
 
-    cleaned = identifier.strip().lstrip("@").strip()
-    if not cleaned:
+    value = identifier.strip()
+    if not value:
         return None
 
     if kind == "email":
         users = user_service.get_many_by_email(
-            emails=[cleaned], organization_id=organization.id, is_verified=True
+            emails=[value], organization_id=organization.id, is_verified=True
         )
         return users[0].id if users else None
 
     if kind == "username":
-        users = user_service.get_by_username(username=cleaned)
+        users = user_service.get_by_username(username=value)
         if not users:
             return None
         user_id = users[0].id
