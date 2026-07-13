@@ -11,7 +11,6 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, ce
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.hybridcloud.services.replica import control_replica_service
 from sentry.integrations.types import (
     ExternalActorSource,
     ExternalProviders,
@@ -90,13 +89,6 @@ class ExternalActor(ReplicatedCellModel):
                 )
 
         return super().delete(*args, **kwargs)
-
-    def handle_async_replication(self, shard_identifier: int) -> None:
-        from sentry.notifications.services.serial import serialize_external_actor
-
-        control_replica_service.upsert_external_actor_replica(
-            external_actor=serialize_external_actor(self)
-        )
 
 
 def process_resource_change(instance: ExternalActor, **kwargs):

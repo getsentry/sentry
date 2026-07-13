@@ -26,6 +26,15 @@ describe('addValidatedFieldTypesToMeta', () => {
     });
   });
 
+  it('uses span field definitions over validated field types', () => {
+    const meta = addValidatedFieldTypesToMeta({
+      meta: {fields: {'span.duration': FieldValueType.NUMBER}},
+      validatedFieldTypes: {'span.duration': FieldValueType.NUMBER},
+    });
+
+    expect(meta.fields?.['span.duration']).toBe(FieldValueType.DURATION);
+  });
+
   it('passes validated field types to table column metadata', () => {
     const eventView = EventView.fromLocation(
       LocationFixture({query: {field: ['sentry.duration']}})
