@@ -286,7 +286,7 @@ def test_should_increment_counters_for_sdk_crash(incr, sdk_crash_reporter, store
 @patch("sentry.utils.metrics.incr")
 def test_anr_event_tags_is_anr_or_apphang_true(incr, sdk_crash_reporter, store_event) -> None:
     event_data = get_crash_event()
-    set_path(event_data, "exception", "values", -1, "mechanism", "type", value="ANR")
+    event_data["exception"]["values"][-1]["mechanism"]["type"] = "ANR"
     event = store_event(data=event_data)
 
     sdk_crash_detection.detect_sdk_crash(event=event, configs=build_sdk_configs())
