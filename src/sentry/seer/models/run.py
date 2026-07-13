@@ -147,7 +147,7 @@ class SeerRunCodingAgentHandoff(DefaultFieldsModel):
     provider = models.CharField(max_length=256)
     agent_id = models.CharField(max_length=256, unique=True)
     status = models.CharField(
-        max_length=32,
+        max_length=256,
         choices=SeerRunCodingAgentHandoffStatus.choices,
         default=SeerRunCodingAgentHandoffStatus.PENDING,
         db_default=SeerRunCodingAgentHandoffStatus.PENDING,
