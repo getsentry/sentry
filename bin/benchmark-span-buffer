@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import itertools
 import logging
+import math
 import random
 import statistics
 import subprocess
@@ -216,21 +217,35 @@ def run_calls(
     sha: str,
     calls: Sequence[Call],
     metrics_sample_rate: int,
-) -> tuple[float, float]:
+) -> tuple[float, float, list[int]]:
     calls_before, usec_before = evalsha_stats(client)
     wall_start = time.perf_counter()
+    latencies_us: list[int] = []
     call_iter = iter(calls)
     while block := list(itertools.islice(call_iter, 500)):
         with client.pipeline(transaction=False) as pipeline:
             for trace, args in block:
                 full_args = args[:8] + [metrics_sample_rate] + args[8:]
                 pipeline.execute_command("EVALSHA", sha, 1, trace, *full_args)
-            pipeline.execute()
+            responses = pipeline.execute()
+        for response in responses:
+            if not isinstance(response, list) or len(response) < 3:
+                raise RuntimeError(f"unexpected EVALSHA response: {response!r}")
+            latency_us = response[2]
+            if not isinstance(latency_us, int):
+                raise RuntimeError(f"unexpected latency value: {latency_us!r}")
+            if latency_us >= 0:
+                latencies_us.append(latency_us)
     wall_seconds = time.perf_counter() - wall_start
     calls_after, usec_after = evalsha_stats(client)
     if calls_after - calls_before != len(calls):
         raise RuntimeError(f"expected {len(calls)} EVALSHA calls, got {calls_after - calls_before}")
-    return (usec_after - usec_before) / len(calls), wall_seconds
+    return (usec_after - usec_before) / len(calls), wall_seconds, latencies_us
+
+
+def nearest_rank(sorted_values: Sequence[int], percentile: float) -> int:
+    """Return a percentile from non-empty sorted values using the nearest-rank method."""
+    return sorted_values[math.ceil(percentile * len(sorted_values)) - 1]
 
 
 def parse_args() -> argparse.Namespace:
@@ -259,7 +274,10 @@ def parse_args() -> argparse.Namespace:
         "--metrics-sample-rate",
         default=1,
         type=int,
-        help="sample metrics on one call in N; default: 1 to include instrumentation cost",
+        help=(
+            "sample metrics and per-call latency on one call in N; "
+            "default: 1 to measure every call"
+        ),
     )
     return parser.parse_args()
 
@@ -280,7 +298,8 @@ def main() -> int:
         return 2
 
     variants = load_scripts(client, args.script, args.git_ref)
-    results: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+    batch_results: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+    latency_results: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(list))
     names = list(variants)
     try:
         for trial in range(args.trials):
@@ -289,13 +308,14 @@ def main() -> int:
                 order = names[trial % len(names) :] + names[: trial % len(names)]
                 for name in order:
                     client.flushdb()
-                    usec, wall_seconds = run_calls(
+                    usec, wall_seconds, latencies_us = run_calls(
                         client,
                         variants[name],
                         calls,
                         args.metrics_sample_rate,
                     )
-                    results[workload_name][name].append(usec)
+                    batch_results[workload_name][name].append(usec)
+                    latency_results[workload_name][name].extend(latencies_us)
                     logger.critical(
                         f"trial={trial} workload={workload_name} variant={name} "
                         f"server_usec_per_call={usec:.2f} wall_seconds={wall_seconds:.2f}"
@@ -304,14 +324,33 @@ def main() -> int:
         client.flushdb()
 
     baseline = names[0]
-    logger.critical(f"\nMedians (server usec/call; delta versus {baseline})")
+    logger.critical(f"\nBatch-average medians (server usec/call; delta versus {baseline})")
     for workload_name in WORKLOADS:
-        baseline_value = statistics.median(results[workload_name][baseline])
+        baseline_value = statistics.median(batch_results[workload_name][baseline])
         logger.critical(workload_name)
         for name in names:
-            median = statistics.median(results[workload_name][name])
+            median = statistics.median(batch_results[workload_name][name])
             delta = (median - baseline_value) / baseline_value * 100
             logger.critical(f"  {name:24} {median:8.2f}  {delta:+6.1f}%")
+
+    logger.critical("\nPer-call Lua latency (usec; sampled calls across all trials)")
+    logger.critical(
+        f"{'workload':16} {'variant':24} {'avg':>10} {'p95':>10} "
+        f"{'p99':>10} {'max':>10} {'samples':>10}"
+    )
+    for workload_name in WORKLOADS:
+        for name in names:
+            latencies_us = sorted(latency_results[workload_name][name])
+            if not latencies_us:
+                logger.critical(f"{workload_name:16} {name:24} {'no samples':>54}")
+                continue
+            logger.critical(
+                f"{workload_name:16} {name:24} "
+                f"{statistics.fmean(latencies_us):10.2f} "
+                f"{nearest_rank(latencies_us, 0.95):10d} "
+                f"{nearest_rank(latencies_us, 0.99):10d} "
+                f"{latencies_us[-1]:10d} {len(latencies_us):10d}"
+            )
     return 0
 
 
