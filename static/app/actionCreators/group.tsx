@@ -3,7 +3,7 @@ import {queryOptions} from '@tanstack/react-query';
 import type {RequestCallbacks} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {GroupStore} from 'sentry/stores/groupStore';
-import type {Tag as GroupTag, TagValue} from 'sentry/types/group';
+import type {Group, Tag as GroupTag, TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {uniqueId} from 'sentry/utils/guid';
@@ -132,7 +132,7 @@ export async function bulkUpdate(
   const query = paramsToQueryArgs(params);
   const id = uniqueId();
 
-  const optimisticData =
+  const optimisticData: Partial<Group> =
     typeof data.assignedTo === 'string'
       ? {...data, assignedTo: parseActorString(data.assignedTo) ?? null}
       : data;
