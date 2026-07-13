@@ -26,89 +26,39 @@ class WorkflowActivityRegistryTest(TestCase):
 
 
 class SmartAssignmentActivityHandlerTest(TestCase):
-    FLAG = "organizations:seer-smart-assignment"
     TRIGGER = "sentry.seer.smart_assignment.trigger.maybe_trigger_smart_assignment"
-    GROUND_TRUTH = "sentry.seer.smart_assignment.trigger.record_ground_truth"
 
     def setUp(self) -> None:
         self.group = self.create_group()
 
-    @mock.patch(GROUND_TRUTH)
     @mock.patch(TRIGGER)
-    def test_pr_created_triggers_without_ground_truth(
-        self, mock_trigger: MagicMock, mock_ground_truth: MagicMock
-    ) -> None:
+    def test_delegates_for_relevant_activities(self, mock_trigger: MagicMock) -> None:
         from sentry.seer.models.smart_assignment import SmartAssignmentTrigger
 
-        activity = self.create_group_activity(
-            group=self.group, type=ActivityType.SEER_PR_CREATED.value
-        )
-        with self.feature(self.FLAG):
+        cases = [
+            (ActivityType.SEER_PR_CREATED, SmartAssignmentTrigger.PR_CREATED, None),
+            (
+                ActivityType.ASSIGNED,
+                SmartAssignmentTrigger.ASSIGNMENT,
+                {"assignee": "1", "assigneeType": "user"},
+            ),
+            (ActivityType.SET_RESOLVED, SmartAssignmentTrigger.RESOLUTION, None),
+            (ActivityType.SET_RESOLVED_IN_COMMIT, SmartAssignmentTrigger.RESOLUTION, None),
+        ]
+        for activity_type, expected_trigger, data in cases:
+            mock_trigger.reset_mock()
+            activity = self.create_group_activity(
+                group=self.group, type=activity_type.value, data=data
+            )
             smart_assignment_activity_handler(self.group, activity, None)
-        mock_trigger.assert_called_once_with(self.group, SmartAssignmentTrigger.PR_CREATED)
-        mock_ground_truth.assert_not_called()
+            mock_trigger.assert_called_once_with(self.group, expected_trigger, activity)
 
-    @mock.patch(GROUND_TRUTH)
     @mock.patch(TRIGGER)
-    def test_assignment_triggers_and_records_assignee(
-        self, mock_trigger: MagicMock, mock_ground_truth: MagicMock
-    ) -> None:
-        from sentry.models.groupassignee import GroupAssignee
-        from sentry.seer.models.smart_assignment import SmartAssignmentTrigger
-
-        assignee = self.create_user()
-        GroupAssignee.objects.create(
-            group=self.group, project=self.group.project, user_id=assignee.id
-        )
-        activity = self.create_group_activity(
-            group=self.group,
-            type=ActivityType.ASSIGNED.value,
-            data={"assignee": str(assignee.id), "assigneeType": "user"},
-        )
-        with self.feature(self.FLAG):
-            smart_assignment_activity_handler(self.group, activity, None)
-        mock_trigger.assert_called_once_with(self.group, SmartAssignmentTrigger.ASSIGNMENT)
-        mock_ground_truth.assert_called_once_with(self.group, assignee_user_id=assignee.id)
-
-    @mock.patch(GROUND_TRUTH)
-    @mock.patch(TRIGGER)
-    def test_resolution_triggers_and_records_resolver(
-        self, mock_trigger: MagicMock, mock_ground_truth: MagicMock
-    ) -> None:
-        from sentry.seer.models.smart_assignment import SmartAssignmentTrigger
-
-        resolver = self.create_user()
-        activity = self.create_group_activity(
-            group=self.group, type=ActivityType.SET_RESOLVED.value, user_id=resolver.id
-        )
-        with self.feature(self.FLAG):
-            smart_assignment_activity_handler(self.group, activity, None)
-        mock_trigger.assert_called_once_with(self.group, SmartAssignmentTrigger.RESOLUTION)
-        mock_ground_truth.assert_called_once_with(self.group, resolver_user_id=resolver.id)
-
-    @mock.patch(GROUND_TRUTH)
-    @mock.patch(TRIGGER)
-    def test_skips_unrelated_activities(
-        self, mock_trigger: MagicMock, mock_ground_truth: MagicMock
-    ) -> None:
+    def test_skips_unrelated_activities(self, mock_trigger: MagicMock) -> None:
         for activity_type in (ActivityType.SEER_SOLUTION_COMPLETED, ActivityType.NOTE):
             activity = self.create_group_activity(group=self.group, type=activity_type.value)
-            with self.feature(self.FLAG):
-                smart_assignment_activity_handler(self.group, activity, None)
+            smart_assignment_activity_handler(self.group, activity, None)
         mock_trigger.assert_not_called()
-        mock_ground_truth.assert_not_called()
-
-    @mock.patch(GROUND_TRUTH)
-    @mock.patch(TRIGGER)
-    def test_flag_disabled_is_noop(
-        self, mock_trigger: MagicMock, mock_ground_truth: MagicMock
-    ) -> None:
-        activity = self.create_group_activity(
-            group=self.group, type=ActivityType.SEER_PR_CREATED.value
-        )
-        smart_assignment_activity_handler(self.group, activity, None)
-        mock_trigger.assert_not_called()
-        mock_ground_truth.assert_not_called()
 
 
 class SeerActivityHandlerTest(TestCase):

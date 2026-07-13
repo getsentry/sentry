@@ -9,13 +9,13 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 
 
 class SmartAssignmentTrigger(models.TextChoices):
-    """What event caused us to make a prediction for this issue.
+    """What caused us to make a prediction for this issue.
 
     Recorded on the result row so evaluation can separate predictions made from a
     clean pre-outcome signal (`PR_CREATED`) from ones triggered by the very action
     they're scored against (`ASSIGNMENT`, `RESOLUTION`), which can be biased toward
-    the actor. Whichever event fires first wins the row (predictions are deduped to
-    one per group), so this reflects the earliest trigger.
+    the actor. Not tied to `ActivityType`: predictions may be triggered from other
+    sources (e.g. new issues via post_process) in the future.
     """
 
     PR_CREATED = "pr_created"
@@ -36,8 +36,9 @@ class SeerSmartAssignmentResult(DefaultFieldsModel):
 
     Written when a prediction is triggered (one row per group, enforced by the
     unique constraint), filled in with the agent's verdict when Seer delivers the
-    result, and later annotated with who actually got assigned / resolved the
-    issue so we can evaluate prediction quality offline.
+    result, and later annotated with who the issue actually belonged to (the
+    assignee, or a user who resolved it) so we can evaluate prediction quality
+    offline.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -54,6 +55,8 @@ class SeerSmartAssignmentResult(DefaultFieldsModel):
         related_name="smart_assignment_results",
     )
 
+    # What first triggered the prediction. Predictions are deduped to one per group,
+    # so this reflects the earliest trigger.
     trigger = models.CharField(max_length=64, choices=SmartAssignmentTrigger.choices)
     status = models.CharField(
         max_length=32,
@@ -67,11 +70,20 @@ class SeerSmartAssignmentResult(DefaultFieldsModel):
     verdict = models.JSONField(null=True)
     predicted_identifier = models.TextField(null=True)
 
-    # Ground truth captured from later assignment / resolution activity.
+    # Ground truth: who the issue actually belonged to. Either an explicit assignee
+    # (user and/or team -- a team assignee still lets us score whether our pick is
+    # on the right team), or, for a user-driven resolution, the resolver, whom we
+    # assume should have been the assignee. `ground_truth_source` records which
+    # outcome produced the label so the resolution-inferred assumption can be
+    # evaluated separately.
     actual_assignee_user_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
-    actual_resolver_user_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
-    assigned_at = models.DateTimeField(null=True)
-    resolved_at = models.DateTimeField(null=True)
+    actual_assignee_team = FlexibleForeignKey(
+        "sentry.Team", null=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    ground_truth_source = models.CharField(
+        max_length=64, null=True, choices=SmartAssignmentTrigger.choices
+    )
+    ground_truth_at = models.DateTimeField(null=True)
 
     extras = models.JSONField(db_default={}, default=dict)
 

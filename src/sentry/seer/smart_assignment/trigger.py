@@ -1,10 +1,10 @@
 """Gating, dispatch, and ground-truth capture for the smart assignment feature.
 
 `maybe_trigger_smart_assignment` is the single gated entrypoint: it checks the
-feature flag, dedups to one prediction per issue, and dispatches the Seer
-`smart_assignment` feature run, creating the `SeerSmartAssignmentResult` row
-atomically with the run. `record_ground_truth` annotates an existing row with who
-actually got assigned / resolved the issue.
+feature flag, dedups to one prediction per issue (so a run is only dispatched the
+first time), and records the observed ground truth whether or not a new run was
+dispatched. It takes a `SmartAssignmentTrigger` (not an `ActivityType`) so callers
+that aren't driven by an activity can trigger too.
 """
 
 from __future__ import annotations
@@ -15,7 +15,9 @@ from django.db import IntegrityError
 from django.utils import timezone
 
 from sentry import features
+from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.groupassignee import GroupAssignee
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerRun
@@ -40,12 +42,20 @@ def _skip(reason: str, group: Group) -> None:
     )
 
 
-def maybe_trigger_smart_assignment(group: Group, trigger: SmartAssignmentTrigger) -> None:
-    """Gate and dispatch a smart-assignment prediction for `group`.
+def maybe_trigger_smart_assignment(
+    group: Group,
+    trigger: SmartAssignmentTrigger,
+    activity: Activity | None = None,
+) -> None:
+    """Gate + dispatch a prediction for `group`, and record ground truth.
 
-    No-op unless the org is flagged and no prediction row already exists for the
-    group. Safe to call from any event hook (e.g. an activity handler now, or
-    post_process later).
+    Dispatches a Seer run the first time (deduped to one row per group); records the
+    observed ground truth for `ASSIGNMENT` / `RESOLUTION` triggers either way.
+    `activity` is only needed to capture the resolving user for a `RESOLUTION`.
+    No-op unless the org is flagged. Automatic resolutions (no acting user, e.g.
+    resolved by age) are skipped entirely -- we only treat a resolution as signal
+    when a human resolved the issue, since then they probably should have been the
+    assignee.
     """
     organization = group.organization
 
@@ -53,9 +63,21 @@ def maybe_trigger_smart_assignment(group: Group, trigger: SmartAssignmentTrigger
         _skip("flag_disabled", group)
         return
 
-    if SeerSmartAssignmentResult.objects.filter(group_id=group.id).exists():
-        _skip("already_predicted", group)
+    if trigger == SmartAssignmentTrigger.RESOLUTION and (
+        activity is None or activity.user_id is None
+    ):
+        _skip("automatic_resolution", group)
         return
+
+    if not SeerSmartAssignmentResult.objects.filter(group_id=group.id).exists():
+        _dispatch(group, trigger)
+
+    record_ground_truth(group, trigger, activity)
+
+
+def _dispatch(group: Group, trigger: SmartAssignmentTrigger) -> None:
+    """Dispatch a Seer smart-assignment run and create the pending result row."""
+    organization = group.organization
 
     try:
         client = SeerAgentClient(
@@ -105,29 +127,39 @@ def maybe_trigger_smart_assignment(group: Group, trigger: SmartAssignmentTrigger
 
 def record_ground_truth(
     group: Group,
-    *,
-    assignee_user_id: int | None = None,
-    resolver_user_id: int | None = None,
+    trigger: SmartAssignmentTrigger,
+    activity: Activity | None = None,
 ) -> None:
-    """Annotate an existing prediction row with observed ground truth.
+    """Annotate an existing prediction row with ground truth for the given outcome.
 
-    No-op if no prediction was made for the group. Only fields with a provided,
-    non-null id are written.
+    No-op if no prediction was made for the group, or the trigger carries no useful
+    signal (`PR_CREATED`, or an automatic resolution with no acting user). For an
+    assignment we mirror the current assignee (user and/or team); for a user-driven
+    resolution we record the resolver as the assumed assignee.
     """
     row = SeerSmartAssignmentResult.objects.filter(group_id=group.id).first()
     if row is None:
         return
 
     updates: dict[str, object] = {}
-    now = timezone.now()
-    if assignee_user_id is not None:
-        updates["actual_assignee_user_id"] = assignee_user_id
-        updates["assigned_at"] = now
-    if resolver_user_id is not None:
-        updates["actual_resolver_user_id"] = resolver_user_id
-        updates["resolved_at"] = now
-    if not updates:
+    if trigger == SmartAssignmentTrigger.ASSIGNMENT:
+        assignee = GroupAssignee.objects.filter(group=group).first()
+        if assignee is None:
+            return
+        # Current assignment is authoritative: set whichever of user/team it is and
+        # clear the other so the row reflects the latest assignee.
+        updates["actual_assignee_user_id"] = assignee.user_id
+        updates["actual_assignee_team_id"] = assignee.team_id
+    elif trigger == SmartAssignmentTrigger.RESOLUTION:
+        if activity is None or activity.user_id is None:
+            return
+        # Don't clear an existing team assignee: a user resolving a team-assigned
+        # issue is extra signal (they're presumably on that team), not a correction.
+        updates["actual_assignee_user_id"] = activity.user_id
+    else:
         return
 
+    updates["ground_truth_source"] = trigger
+    updates["ground_truth_at"] = timezone.now()
     row.update(**updates)
-    metrics.incr("smart_assignment.ground_truth.recorded")
+    metrics.incr("smart_assignment.ground_truth.recorded", tags={"trigger": trigger})
