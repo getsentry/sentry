@@ -1861,10 +1861,40 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_check_suite_cooldown_verdict_allows_late_check(self) -> None:
+        PullRequestMetrics.objects.create(
+            pull_request=self.pr,
+            verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN,
+        )
+
+        self._call_suite()
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
     def test_check_run_verdict_claimed_skips(self) -> None:
         PullRequestMetrics.objects.create(pull_request=self.pr, verdict="closed_unmerged")
 
         self._call_run()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_run_cooldown_verdict_allows_late_check(self) -> None:
+        PullRequestMetrics.objects.create(
+            pull_request=self.pr,
+            verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN,
+        )
+
+        self._call_run()
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_suite_judge_in_progress_skips(self) -> None:
+        PullRequestMetrics.objects.create(
+            pull_request=self.pr,
+            verdict=PullRequestVerdict.JUDGE_IN_PROGRESS,
+        )
+
+        self._call_suite()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
