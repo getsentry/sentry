@@ -34,15 +34,14 @@ const HEATMAP_CHUNK_SAMPLING_MODE = SAMPLING_MODE.HIGH_ACCURACY;
 /**
  * Heat map data source for Explore and Dashboards.
  *
- * Wide ranges are fetched in two phases. Phase A learns the global y-domain with
- * one cheap `min`/`max` aggregate (`metricBoundsApiOptions`). Phase B fires one
- * pinned `/events-heatmap/` request per partition window and `combine`s them into
- * one dense grid (`metricHeatMapCombine`). The metric unit is patched onto the
- * merged grid here, once. A failed chunk degrades to a partial render.
+ * Wide ranges are fetched in two phases. Phase A learns the global y-domain
+ * with one cheap `min`/`max` aggregate (`metricBoundsApiOptions`). Phase B
+ * fires one pinned `/events-heatmap/` request per partition window and
+ * `combine`s them into one grid (`metricHeatMapCombine`). The metric unit is
+ * patched onto the merged grid here, once.
  *
  * Narrow ranges skip Phase A and issue one unpinned request over the selection.
- * A wide range whose Phase A finds no data falls back to that same single request,
- * so a real (empty) response drives "No data" — no synthesized grid.
+ * A wide range whose Phase A finds no data falls back to that same single request.
  */
 export function useMetricHeatMapData({
   organization,
@@ -61,7 +60,6 @@ export function useMetricHeatMapData({
   // Date.now() for relative ranges — pinning it here avoids re-partitioning, and
   // relative windows stay relative so the backend still re-resolves now per fetch).
   const {windows, timeDomain, fullWindow} = useMemo(
-    // Progressive: the recent region loads first in the smallest window.
     () =>
       partitionDateTimeIntoHeatMapWindows(selection.datetime, interval, 'progressive'),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -73,9 +71,10 @@ export function useMetricHeatMapData({
       selection.datetime.utc,
     ]
   );
-  const chunked = windows.length > 1;
 
-  // Phase A — global y-domain, only fetched when we actually chunk.
+  const isChunked = windows.length > 1;
+
+  // Phase A, fetch Y-axis range
   const boundsQuery = useQuery({
     ...metricBoundsApiOptions({
       organization,
@@ -84,20 +83,18 @@ export function useMetricHeatMapData({
       query,
       sampling: HEATMAP_CHUNK_SAMPLING_MODE,
     }),
-    enabled: enabled && validDims && chunked,
+    enabled: enabled && validDims && isChunked,
   });
 
-  const boundsResolved = chunked && boundsQuery.isSuccess;
+  const boundsResolved = isChunked && boundsQuery.isSuccess;
   const boundsEmpty = boundsResolved && boundsQuery.data === null;
   const bounds = boundsQuery.data ?? undefined;
 
-  // Phase B — build the queries only once we're ready to fire (fast path: right
-  // away; chunked: after bounds resolve). A wide range whose bounds came back
-  // empty falls back to one unpinned query over the whole selection — like the
-  // fast path — so a real empty response renders "No data" without a fake grid.
+  // Phase B, build the queries to fetch the actual heat map chunks
   const shouldFetch =
-    enabled && validDims && windows.length > 0 && (chunked ? boundsResolved : true);
+    enabled && validDims && windows.length > 0 && (isChunked ? boundsResolved : true);
   const activeWindows = boundsEmpty ? [fullWindow] : windows;
+
   const queries = shouldFetch
     ? activeWindows.map(timeWindow =>
         metricHeatMapApiOptions({
@@ -117,10 +114,12 @@ export function useMetricHeatMapData({
         })
       )
     : [];
+
   const combine = useMemo(
     () => makePartitionedHeatMapWindowCombiner({timeDomain, intervalMs}),
     [timeDomain, intervalMs]
   );
+
   const {
     series: chunkSeries,
     error: chunkError,
@@ -128,8 +127,7 @@ export function useMetricHeatMapData({
     isFetchingMore,
   } = useQueries({queries, combine});
 
-  // Patch the metric unit onto the y-axis once, here — the combiner doesn't need
-  // to know about units.
+  // Patch the metric unit onto the Y-axis, since the server can't infer this
   const series = chunkSeries
     ? mergeMetricUnit(chunkSeries, traceMetric.unit ?? undefined)
     : chunkSeries;
@@ -145,14 +143,10 @@ export function useMetricHeatMapData({
 }
 
 export interface MetricHeatMapData {
-  /**
-   * A fatal error — Phase A failed, all chunks failed, or (fast path) the single
-   * request failed. Partial chunk failures do NOT set this.
-   */
   error: Error | null;
   /**
-   * At least one chunk is still loading while others have already resolved —
-   * i.e. the grid is painting progressively.
+   * At least one chunk is still loading while others have already resolved.
+   * i.e., the grid is painting progressively.
    */
   isFetchingMore: boolean;
   /**

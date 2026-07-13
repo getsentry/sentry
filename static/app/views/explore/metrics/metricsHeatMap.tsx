@@ -134,21 +134,21 @@ export function MetricsHeatMap({
   } else if (heatMapSeries.values.length === 0) {
     visualization = <Widget.WidgetError error={t('No data')} />;
   } else {
-    // While more chunks stream in, dim the already-rendered grid behind a
-    // centered spinner so you get a peek at the data loading underneath. Every
-    // visible cell is final; we're only filling in more columns.
+    // Show a loading spinner over the existing data while chunks are loading.
+    // This improves perception of performance over a spinner that blocks the
+    // UI.
     visualization = (
       <Container position="relative" height="100%">
         <HeatMapWidgetVisualization
           plottables={[new HeatMap(heatMapSeries)]}
           onZoom={handleZoom}
         />
-        {isFetchingMore ? <StreamingOverlay /> : null}
+        {isFetchingMore ? <TransparentLoadingMask /> : null}
       </Container>
     );
   }
 
-  // A failed chunk leaves a gap; note it without blocking the rest of the grid.
+  // A failed chunk leaves a gap. Note it but allow users to browse the loaded data.
   const footer =
     hasChart && isPartial ? (
       <Text size="sm" variant="warning">
@@ -171,11 +171,7 @@ export function MetricsHeatMap({
   );
 }
 
-/**
- * A translucent mask + centered spinner over the grid while more chunks stream
- * in, so the already-rendered data stays visible underneath.
- */
-function StreamingOverlay() {
+function TransparentLoadingMask() {
   return (
     <Flex position="absolute" inset="0" align="center" justify="center">
       <Container

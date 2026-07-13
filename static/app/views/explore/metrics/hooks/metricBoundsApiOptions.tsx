@@ -24,11 +24,9 @@ interface MetricBoundsApiOptions {
 }
 
 /**
- * One cheap aggregate that learns a metric's value range (`min(value)` /
- * `max(value)`) over the current selection, reduced to `{min, max}` (or `null`
- * when the range has no data). Generic — anything that needs a metric's extent.
- *
- * Disable it at the call site (`useQuery({...metricBoundsApiOptions(), enabled})`).
+ * Run an aggregate to get the Y-axis range of a given trace metric over the
+ * current selection. Useful for generating preview data, or aligning other
+ * fetches.
  */
 export function metricBoundsApiOptions({
   organization,
@@ -65,18 +63,20 @@ export function metricBoundsApiOptions({
         staleTime,
       }
     ),
-    // Reduce the single-row response to `{min, max}` (or null when empty) so
-    // consumers get the domain directly, not the raw events payload.
     select: (response: ApiResponse<TraceMetricEventsResult>): MetricBounds | null => {
       const row = response.json.data?.[0];
+
       if (!row) {
         return null;
       }
+
       const min = Number(row[MIN_VALUE_FIELD]);
       const max = Number(row[MAX_VALUE_FIELD]);
+
       if (!Number.isFinite(min) || !Number.isFinite(max)) {
         return null;
       }
+
       return {min, max};
     },
   };

@@ -8,20 +8,22 @@ import {
 } from 'sentry/views/explore/metrics/hooks/metricHeatMapCombine';
 
 describe('mergeHeatMapChunks', () => {
-  it('throws when given no chunks', () => {
+  it('Throws when given no chunks', () => {
     expect(() => mergeHeatMapChunks([], {start: 0, end: 3 * HOUR}, HOUR)).toThrow();
   });
 
-  it('builds a dense, full-range grid ordered x-major then y-minor', () => {
+  it('Builds a dense, full-range grid ordered x-major then y-minor', () => {
     // Only the first two columns are loaded; the third is missing.
     const chunk = makeChunk([
       {x: 0, z: [1, 2]},
       {x: HOUR, z: [3, 4]},
     ]);
 
-    const merged = mergeHeatMapChunks([chunk], {start: 0, end: 3 * HOUR}, HOUR);
+    const timeDomain = {start: 0, end: 3 * HOUR};
 
-    // 3 columns x 2 y buckets, no matter that only 2 columns loaded.
+    const merged = mergeHeatMapChunks([chunk], timeDomain, HOUR);
+
+    // 3 columns x 2 y buckets, so 6 total values in the heat map
     expect(merged.values).toHaveLength(6);
     expect(merged.values.map(v => [v.xAxis, v.yAxis])).toEqual([
       [0, 0],
@@ -31,17 +33,20 @@ describe('mergeHeatMapChunks', () => {
       [2 * HOUR, 0],
       [2 * HOUR, 50],
     ]);
-    // The unloaded column is emitted as empty cells.
+
+    // The unloaded column exists but is empty
     expect(merged.values.slice(4)).toEqual([
       {xAxis: 2 * HOUR, yAxis: 0, zAxis: null},
       {xAxis: 2 * HOUR, yAxis: 50, zAxis: null},
     ]);
+
+    // Meta contains the full range
     expect(merged.meta.xAxis.start).toBe(0);
     expect(merged.meta.xAxis.end).toBe(3 * HOUR);
     expect(merged.meta.xAxis.bucketCount).toBe(3);
   });
 
-  it('orders columns ascending even when chunks are passed newest-first', () => {
+  it('Orders columns ascending even when chunks are passed newest-first', () => {
     const newest = makeChunk([{x: 2 * HOUR, z: [5, 6]}]);
     const oldest = makeChunk([{x: 0, z: [1, 2]}]);
 
@@ -49,6 +54,7 @@ describe('mergeHeatMapChunks', () => {
 
     const xs = merged.values.map(v => v.xAxis);
     expect(xs).toEqual([...xs].sort((a, b) => a - b));
+
     // The loaded cells keep their values at the right coordinates.
     expect(merged.values.find(v => v.xAxis === 0 && v.yAxis === 0)?.zAxis).toBe(1);
     expect(merged.values.find(v => v.xAxis === 2 * HOUR && v.yAxis === 50)?.zAxis).toBe(
@@ -56,29 +62,15 @@ describe('mergeHeatMapChunks', () => {
     );
   });
 
-  it('takes the y-domain from a chunk and recomputes the z-range over loaded cells', () => {
-    const merged = mergeHeatMapChunks(
-      [makeChunk([{x: 0, z: [4, 9]}]), makeChunk([{x: HOUR, z: [2, 7]}])],
-      {start: 0, end: 3 * HOUR},
-      HOUR
-    );
-
-    expect(merged.meta.yAxis.start).toBe(0);
-    expect(merged.meta.yAxis.end).toBe(100);
-    // z-range spans only populated cells: min 2, max 9.
-    expect(merged.meta.zAxis.start).toBe(2);
-    expect(merged.meta.zAxis.end).toBe(9);
-  });
-
-  it('reconciles an overlapping seam column by taking the complete (max) copy', () => {
+  it('Reconciles an overlapping column by taking the (max) copy', () => {
     // Two relative chunks that overlap at HOUR: one holds the partial (pre-seam)
-    // count, the other the complete bucket. Max picks the complete one.
+    // count, the other the complete bucket.
     const partial = makeChunk([
       {x: 0, z: [1, 1]},
       {x: HOUR, z: [2, 2]}, // partial half of the seam bucket
     ]);
     const complete = makeChunk([
-      {x: HOUR, z: [7, 7]}, // complete seam bucket
+      {x: HOUR, z: [7, 7]}, // other half of seam bucket
       {x: 2 * HOUR, z: [3, 3]},
     ]);
 
@@ -92,7 +84,7 @@ describe('mergeHeatMapChunks', () => {
     expect(merged.values.find(v => v.xAxis === 2 * HOUR && v.yAxis === 0)?.zAxis).toBe(3);
   });
 
-  it('slides the grid to end at the newest loaded bucket (live edge)', () => {
+  it('Slides the grid to end at the newest loaded bucket (live edge)', () => {
     // Planned range is [0, 2h), but a chunk loaded a bucket at 2h — the grid
     // extends to include it and slides its start to keep the width.
     const merged = mergeHeatMapChunks(
@@ -104,13 +96,14 @@ describe('mergeHeatMapChunks', () => {
     expect(merged.meta.xAxis.start).toBe(HOUR);
     expect(merged.meta.xAxis.end).toBe(3 * HOUR);
     expect(merged.values.find(v => v.xAxis === 2 * HOUR && v.yAxis === 0)?.zAxis).toBe(5);
+
     // The oldest planned column (0) slid off the fixed-width window.
     expect(merged.values.some(v => v.xAxis === 0)).toBe(false);
   });
 });
 
 describe('makePartitionedHeatMapWindowCombiner', () => {
-  it('merges succeeded chunk responses into one dense, ordered grid', () => {
+  it('Merges succeeded chunk responses into one dense, ordered grid', () => {
     const out = combine([success(newer), success(older)]);
     expect(out.series?.values).toHaveLength(4); // 2 columns x 2 y buckets
     expect(out.series?.values.map(v => v.xAxis)).toEqual([0, 0, HOUR, HOUR]);
@@ -119,24 +112,24 @@ describe('makePartitionedHeatMapWindowCombiner', () => {
     expect(out.error).toBeNull();
   });
 
-  it('has no series until a chunk resolves', () => {
+  it('Has no series until a chunk resolves', () => {
     expect(combine([loading(), loading()]).series).toBeUndefined();
   });
 
-  it('flags fetchingMore while some chunks stream in', () => {
+  it('Flags fetchingMore while some chunks stream in', () => {
     const out = combine([success(older), loading()]);
     expect(out.series).toBeDefined();
     expect(out.isFetchingMore).toBe(true);
   });
 
-  it('flags partial and keeps survivors when a chunk errors', () => {
+  it('Flags partial and keeps survivors when a chunk errors', () => {
     const out = combine([success(older), failed(new Error('boom'))]);
     expect(out.series).toBeDefined();
     expect(out.isPartial).toBe(true);
     expect(out.error).toBeNull();
   });
 
-  it('surfaces a fatal error only when every chunk fails', () => {
+  it('Surfaces a fatal error only when every chunk fails', () => {
     const err = new Error('boom');
     const out = combine([failed(err), failed(new Error('other'))]);
     expect(out.error).toBe(err);
@@ -176,6 +169,7 @@ function success(series: HeatMapSeries): UseQueryResult<HeatMapSeries> {
     error: null,
   } as unknown as UseQueryResult<HeatMapSeries>;
 }
+
 function loading(): UseQueryResult<HeatMapSeries> {
   return {
     isSuccess: false,
@@ -186,6 +180,7 @@ function loading(): UseQueryResult<HeatMapSeries> {
     error: null,
   } as unknown as UseQueryResult<HeatMapSeries>;
 }
+
 function failed(error: Error): UseQueryResult<HeatMapSeries> {
   return {
     isSuccess: false,

@@ -16,11 +16,6 @@ interface MetricHeatMapApiOptions {
   organization: Organization;
   query: string;
   selection: PageFilters;
-  /**
-   * The window's exact time params (`{start,end}` / `{statsPeriod*}`), spread
-   * straight into the request. An absolute (`start`/`end`) window is immutable and
-   * caches forever; a relative one refetches each interval as it slides.
-   */
   timeWindow: HeatMapWindow;
   traceMetric: TraceMetric;
   interval?: string | null;
@@ -31,10 +26,8 @@ interface MetricHeatMapApiOptions {
 }
 
 /**
- * Builds one `/events-heatmap/` request for a single window. The caller supplies
- * the range as `timeWindow` — the whole selection (fast path) or one partition
- * chunk — so this doesn't care whether it's absolute or relative beyond picking a
- * `staleTime`.
+ * Builds API options for a request to `/events-heatmap/`. Requires a "window"
+ * since Heat Map visualizations load their data in chunks.
  */
 export function metricHeatMapApiOptions({
   organization,
@@ -53,7 +46,7 @@ export function metricHeatMapApiOptions({
 
   const intervalInMilliseconds = defined(interval) ? intervalToMilliseconds(interval) : 0;
   const valid =
-    defined(interval) && defined(yBuckets) && yBuckets > 0 && intervalInMilliseconds > 0;
+    defined(interval) && intervalInMilliseconds > 0 && defined(yBuckets) && yBuckets > 0;
 
   // Absolute windows are immutable → cache forever. Relative windows slide with
   // `now`, so refetch once per interval to pull the newest bucket.

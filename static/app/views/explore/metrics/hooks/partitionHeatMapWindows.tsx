@@ -10,16 +10,16 @@ import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMillisecon
 type DateTimeFilter = PageFilters['datetime'];
 
 /**
- * The exact `/events-heatmap/` time params for one window — an absolute range, a
- * relative window ending in the past, or a relative window running to now. Spread
- * straight into the request query.
+ * A loading window for a Heat Map visualization. Heat Maps load data in
+ * "chunks" by windowing the X-axis time range, and loading them in parallel. A
+ * window can be absolute, or relative.
  */
 export type HeatMapWindow =
   | {end: string; start: string}
   | {statsPeriodEnd: string; statsPeriodStart: string}
   | {statsPeriod: string};
 
-/** An epoch-ms time span (the heat map's x-axis extent). */
+/** An epoch-ms time span (the heat map's X-axis domain) */
 export interface TimeDomain {
   end: number;
   start: number;
@@ -35,11 +35,11 @@ export interface MetricHeatMapPlan {
   fullWindow: HeatMapWindow;
   /**
    * Full epoch-aligned time domain in ms, used to size the merged grid. Kept
-   * alongside `fullWindow` (neither derives from the other): a relative range's
-   * windows are `statsPeriod` offsets with no absolute anchor, so only the
-   * partitioner — which resolved `now` — knows the concrete ms extent, while
-   * `fullWindow` is the un-aligned request params. `{0, 0}` when there's nothing
-   * to partition (fast path / empty), which merges nothing.
+   * alongside `fullWindow`: a relative range's windows are `statsPeriod`
+   * offsets with no absolute anchor, so only the partitioner — which resolved
+   * `now` — knows the concrete extent, while `fullWindow` is the un-aligned
+   * request params. `{0, 0}` when there's nothing to partition (fast path /
+   * empty), which merges nothing.
    */
   timeDomain: TimeDomain;
   windows: HeatMapWindow[];
@@ -47,30 +47,24 @@ export interface MetricHeatMapPlan {
 
 /**
  * How to size the partitions:
- * - `equal`: roughly equal-sized windows.
- * - `progressive`: newest window smallest, each older one ~`GROWTH_FACTOR`×
- *   larger, so the most-looked-at (recent) region loads first.
+ * - `equal`: roughly equal-sized windows
+ * - `progressive`: newer windows smaller, so they load earlier
  */
 type PartitionStrategy = 'equal' | 'progressive';
 
 /**
- * Partitions a page-filter datetime into the per-chunk `/events-heatmap/` time
- * params for parallel, streamed fetching, preserving the range's nature:
+ * Partitions a page-filter datetime into the per-chunk time params for
+ * parallel, streamed fetching, preserving the range's nature:
  *
- * - ABSOLUTE ranges → epoch-aligned, non-overlapping `{start, end}` windows.
- *   Aligned seams land on bucket boundaries, so the backend's row filter never
- *   splits a bucket — no overlap needed.
- * - RELATIVE ranges → `{statsPeriodStart, statsPeriodEnd}` (or `{statsPeriod}` for
- *   the live edge) windows. The backend resolves `now` fresh each fetch, so the
- *   data refreshes and `staleTime` works without pinning an absolute edge. But a
- *   relative seam (`now − Nd`) is never grid-aligned, so the backend's row filter
- *   (built from the un-rounded bound) bisects the seam bucket. To fix that, each
- *   window overlaps its newer neighbor by `RELATIVE_OVERLAP_BUCKETS` so every
- *   bucket is complete in ≥1 chunk; the merge picks the complete copy.
+ * Absolute ranges become epoch-aligned, non-overlapping `{start, end}`
+ * windows. Aligned seams land on bucket boundaries so there are no gaps or
+ * overlaps.
+ * Relative ranges become `{statsPeriodStart, statsPeriodEnd}` (or
+ * `{statsPeriod}` for the live edge) windows. Windows slightly overlap each
+ * other to cover the case where these relative ranges split the bucket
+ * boundaries.
  *
- * A range shorter than `MINIMUM_PARTITION_RANGE` returns a single window with the
- * selection's own params — byte-for-byte today's request. No usable interval
- * returns nothing to fetch.
+ * Short ranges return a single window with the selection's own params. No usable interval returns nothing to fetch.
  */
 export function partitionDateTimeIntoHeatMapWindows(
   datetime: DateTimeFilter,
@@ -79,13 +73,13 @@ export function partitionDateTimeIntoHeatMapWindows(
 ): MetricHeatMapPlan {
   const intervalMs = defined(interval) ? intervalToMilliseconds(interval) : 0;
   const normalized = normalizeDateTimeParams(datetime);
-  const timeDomain = resolveAbsoluteDomain(normalized, datetime);
+  const timeDomain = pageFilterDateTimeToTimeDomain(normalized, datetime);
   const fullWindow = dateTimeAsHeatMapWindow(normalized);
 
   if (intervalMs <= 0) {
-    // Nothing to fetch — no usable interval.
     return {windows: [], timeDomain: {start: 0, end: 0}, fullWindow};
   }
+
   if (!timeDomain || timeDomain.end - timeDomain.start < MINIMUM_PARTITION_RANGE) {
     return {windows: [fullWindow], timeDomain: {start: 0, end: 0}, fullWindow};
   }
@@ -96,6 +90,7 @@ export function partitionDateTimeIntoHeatMapWindows(
   const bucketDistribution = distributeBucketCount(totalBuckets, strategy);
 
   const isAbsolute = defined(normalized.start) && defined(normalized.end);
+
   const windows = isAbsolute
     ? absoluteWindows(alignedStart, bucketDistribution, intervalMs)
     : relativeWindows(bucketDistribution, intervalMs);
@@ -103,21 +98,21 @@ export function partitionDateTimeIntoHeatMapWindows(
   return {windows, timeDomain: {start: alignedStart, end: alignedEnd}, fullWindow};
 }
 
-/** The whole selection as a single window — the un-chunked fast path. */
 function dateTimeAsHeatMapWindow(
   normalized: ReturnType<typeof normalizeDateTimeParams>
 ): HeatMapWindow {
   if (defined(normalized.start) && defined(normalized.end)) {
     return {start: normalized.start, end: normalized.end};
   }
+
   return {statsPeriod: normalized.statsPeriod ?? ''};
 }
 
 /**
- * Splits `totalBuckets` across (up to) `CHUNK_COUNT` windows, newest/smallest
- * first, with the oldest window taking the remainder. Returns the per-window
- * bucket counts. e.g. 720 buckets → progressive (weights 1:3:9): `[55, 166,
- * 499]`; equal: `[240, 240, 240]`.
+ * Splits buckets across windows, newest/smallest first, with the oldest window
+ * taking the remainder. Returns the per-window bucket counts. e.g., 720 buckets
+ * becomes progressive (weights 1:3:9): `[55, 166, 499]`; equal: `[240, 240,
+ * 240]`.
  */
 function distributeBucketCount(
   totalBuckets: number,
@@ -126,52 +121,53 @@ function distributeBucketCount(
   const weights = Array.from({length: CHUNK_COUNT}, (_, i) =>
     strategy === 'progressive' ? GROWTH_FACTOR ** i : 1
   );
+
   const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
 
   const bucketDistribution: number[] = [];
   let remaining = totalBuckets;
+
   for (let i = 0; i < CHUNK_COUNT - 1 && remaining > 0; i++) {
     // This window's weighted share of the total, floored at 1 bucket and capped
-    // at what's left. e.g. progressive 720: 55 (=round(720/13)), 166, then the
+    // at what's left. e.g., progressive 720: 55 (=round(720/13)), 166, then the
     // oldest window takes the remaining 499.
     const target = Math.round((totalBuckets * weights[i]!) / weightSum);
     const count = Math.min(Math.max(target, 1), remaining);
     bucketDistribution.push(count);
     remaining -= count;
   }
+
   if (remaining > 0) {
     bucketDistribution.push(remaining);
   }
+
   return bucketDistribution;
 }
 
 /**
- * Non-overlapping absolute windows walking oldest→newest from the start. Order
- * within the array doesn't matter — requests fire in parallel and the merge keys
- * cells by timestamp.
+ * Non-overlapping absolute windows walking oldest to newest from the start.
  */
 function absoluteWindows(
   alignedStart: number,
   bucketDistribution: number[],
   intervalMs: number
 ): HeatMapWindow[] {
-  // bucketDistribution is newest-first (smallest first); reverse so the largest
-  // (oldest) window sits at the start.
   const windows: HeatMapWindow[] = [];
+
   let cursor = alignedStart;
   for (const count of bucketDistribution.toReversed()) {
     const end = cursor + count * intervalMs;
     windows.push({start: getUtcDateString(cursor), end: getUtcDateString(end)});
     cursor = end;
   }
+
   return windows;
 }
 
 /**
- * Relative windows as `statsPeriod*` offsets (seconds ago), newest-first. Each
- * window's newer edge is pulled `RELATIVE_OVERLAP_BUCKETS` toward now to overlap
- * its neighbor; when that would cross now it just runs to now (`statsPeriod`).
- * Order within the array doesn't matter (see `absoluteWindows`).
+ * Relative windows as `statsPeriod*` offsets, newest-first. Each window's newer
+ * edge is pulled `RELATIVE_OVERLAP_BUCKETS` toward now to overlap its neighbor;
+ * when that would cross now it just runs to now (`statsPeriod`).
  */
 function relativeWindows(
   bucketDistribution: number[],
@@ -179,10 +175,12 @@ function relativeWindows(
 ): HeatMapWindow[] {
   const overlapMs = RELATIVE_OVERLAP_BUCKETS * intervalMs;
   const windows: HeatMapWindow[] = [];
+
   let newerOffsetMs = 0;
   for (const count of bucketDistribution) {
     const olderOffsetMs = newerOffsetMs + count * intervalMs;
     const endOffsetMs = newerOffsetMs - overlapMs;
+
     windows.push(
       endOffsetMs > 0
         ? {
@@ -193,22 +191,24 @@ function relativeWindows(
     );
     newerOffsetMs = olderOffsetMs;
   }
+
   return windows;
 }
 
 const secondsAgo = (ms: number) => `${Math.round(ms / 1000)}s`;
 
 /**
- * Resolves a datetime to concrete epoch-ms bounds for sizing (the x-axis domain).
- * Absolute ranges parse as UTC (`normalizeDateTimeParams` emits UTC strings
- * without a `Z`); relative ranges anchor `end` to now and subtract the period — a
- * snapshot used only to size the range, never sent (relative windows stay
- * relative). Returns null for a domain that can't be resolved to a positive span.
+ * Resolves a datetime page filter to concrete epoch-ms bounds for sizing (the
+ * x-axis domain). Absolute ranges parse as UTC (`normalizeDateTimeParams` emits
+ * UTC strings without a `Z`); relative ranges anchor `end` to now and subtract
+ * the period — a snapshot used only to size the range, never sent (relative
+ * windows stay relative). Returns null for a domain that can't be resolved to a
+ * positive span.
  */
-function resolveAbsoluteDomain(
+function pageFilterDateTimeToTimeDomain(
   normalized: ReturnType<typeof normalizeDateTimeParams>,
   datetime: DateTimeFilter
-): {end: number; start: number} | null {
+): TimeDomain | null {
   if (defined(normalized.start) && defined(normalized.end)) {
     const start = moment.utc(normalized.start).valueOf();
     const end = moment.utc(normalized.end).valueOf();
@@ -221,13 +221,13 @@ function resolveAbsoluteDomain(
 
 // Number of windows a partitioned range is split into.
 const CHUNK_COUNT = 3;
+
 // For the `progressive` strategy: each older window is this many times larger
 // than the one after it.
 const GROWTH_FACTOR = 3;
+
 // Ranges shorter than this aren't worth partitioning — a single request is fast.
 const MINIMUM_PARTITION_RANGE = 1000 * 60 * 60 * 24; // 1 day
-// Relative windows overlap their newer neighbor by this many buckets so the seam
-// bucket (which the backend's row filter would otherwise split — see
-// mergeHeatMapChunks) lands complete in at least one chunk. Two absorbs the
-// millisecond `now` skew between the parallel requests.
+
+// Relative windows overlap their newer neighbor by this many buckets.
 const RELATIVE_OVERLAP_BUCKETS = 2;

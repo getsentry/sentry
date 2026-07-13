@@ -423,11 +423,6 @@ export function useTraceMetricsTableQuery(
 }
 
 /**
- * Fetches heat map data for a trace metrics widget. Heat maps render a
- * time (X) x value-bucket (Y) grid colored by count (Z). Delegates to the
- * shared `useMetricHeatMapData` hook, which chunks wide ranges into parallel,
- * bucket-aligned requests against `/events-heatmap/` and merges them (and patches
- * the metric unit) — mirroring the Explore panel.
  *
  * The X-axis `widgetInterval` and Y-axis `yBuckets` are derived from the
  * widget's rendered dimensions and passed in from the chart container, since

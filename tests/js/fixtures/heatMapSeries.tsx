@@ -1,11 +1,8 @@
 import type {HeatMapSeries} from 'sentry/views/dashboards/widgets/common/types';
 
-/**
- * A minimal, valid `HeatMapSeries`. Override `values` and any `meta` axis as
- * needed; each axis is shallow-merged over the defaults.
- */
 export function HeatMapSeriesFixture(params: Partial<HeatMapSeries> = {}): HeatMapSeries {
   const {meta, values, ...rest} = params;
+
   return {
     values: values ?? [],
     meta: {

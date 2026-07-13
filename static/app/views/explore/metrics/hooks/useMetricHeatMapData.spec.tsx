@@ -15,7 +15,6 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 const organization = OrganizationFixture();
 const traceMetric: TraceMetric = {name: 'foo', type: 'distribution', unit: 'millisecond'};
 
-// Absolute range → deterministic, epoch-aligned chunk boundaries.
 const ABSOLUTE_START = '2024-01-01T00:00:00.000Z';
 const ABSOLUTE_END = '2024-02-01T00:00:00.000Z';
 
@@ -29,73 +28,18 @@ const NARROW_SELECTION = PageFiltersFixture({
   datetime: {start: null, end: null, period: '1h', utc: null},
 });
 
-// An absolute selection partitions into absolute {start, end} windows — each is
-// the exact query params for one chunk request.
 const WIDE_WINDOWS = partitionDateTimeIntoHeatMapWindows(
   WIDE_SELECTION.datetime,
   '1h',
   'progressive'
 ).windows as Array<{end: string; start: string}>;
-const windowMs = (window: {end: string; start: string}) => ({
-  start: moment.utc(window.start).valueOf(),
-  end: moment.utc(window.end).valueOf(),
-});
-
-function chunkBody(chunk: {end: number; start: number}, zValue: number): HeatMapSeries {
-  return {
-    meta: {
-      xAxis: {
-        name: 'time',
-        start: chunk.start,
-        end: chunk.end,
-        bucketCount: 1,
-        bucketSize: 3600,
-      },
-      yAxis: {
-        name: 'value',
-        start: 10,
-        end: 500,
-        bucketCount: 10,
-        bucketSize: 49,
-        valueType: 'number',
-        valueUnit: null,
-      },
-      zAxis: {name: 'count()', start: zValue, end: zValue},
-    },
-    // One value per chunk, keyed by the chunk's (distinct) start → no seam dups.
-    values: [{xAxis: chunk.start, yAxis: 10, zAxis: zValue}],
-  };
-}
-
-function mockBounds(body: {data: Array<Record<string, number>>}) {
-  return MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events/`,
-    method: 'GET',
-    match: [MockApiClient.matchQuery({referrer: 'api.explore.tracemetrics-bounds'})],
-    body: {...body, meta: {}},
-  });
-}
-
-function renderHeatMapData(selection: PageFilters, enabled = true) {
-  return renderHookWithProviders(() =>
-    useMetricHeatMapData({
-      organization,
-      selection,
-      traceMetric,
-      query: '',
-      interval: '1h',
-      yBuckets: 10,
-      enabled,
-    })
-  );
-}
 
 describe('useMetricHeatMapData', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
-  it('fetches bounds then pinned chunks and merges them (two-phase)', async () => {
+  it('Fetches bounds then pinned chunks and merges them (two-phase)', async () => {
     const boundsMock = mockBounds({data: [{'min(value)': 10, 'max(value)': 500}]});
 
     const chunkMocks = WIDE_WINDOWS.map((window, index) =>
@@ -265,3 +209,57 @@ describe('useMetricHeatMapData', () => {
     expect(result.current.isPending).toBe(true);
   });
 });
+
+const windowMs = (window: {end: string; start: string}) => ({
+  start: moment.utc(window.start).valueOf(),
+  end: moment.utc(window.end).valueOf(),
+});
+
+function chunkBody(chunk: {end: number; start: number}, zValue: number): HeatMapSeries {
+  return {
+    meta: {
+      xAxis: {
+        name: 'time',
+        start: chunk.start,
+        end: chunk.end,
+        bucketCount: 1,
+        bucketSize: 3600,
+      },
+      yAxis: {
+        name: 'value',
+        start: 10,
+        end: 500,
+        bucketCount: 10,
+        bucketSize: 49,
+        valueType: 'number',
+        valueUnit: null,
+      },
+      zAxis: {name: 'count()', start: zValue, end: zValue},
+    },
+    // One value per chunk, keyed by the chunk's (distinct) start → no seam dups.
+    values: [{xAxis: chunk.start, yAxis: 10, zAxis: zValue}],
+  };
+}
+
+function mockBounds(body: {data: Array<Record<string, number>>}) {
+  return MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events/`,
+    method: 'GET',
+    match: [MockApiClient.matchQuery({referrer: 'api.explore.tracemetrics-bounds'})],
+    body: {...body, meta: {}},
+  });
+}
+
+function renderHeatMapData(selection: PageFilters, enabled = true) {
+  return renderHookWithProviders(() =>
+    useMetricHeatMapData({
+      organization,
+      selection,
+      traceMetric,
+      query: '',
+      interval: '1h',
+      yBuckets: 10,
+      enabled,
+    })
+  );
+}

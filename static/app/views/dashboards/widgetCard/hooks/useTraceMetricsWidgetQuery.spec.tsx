@@ -294,9 +294,8 @@ describe('useTraceMetricsTableQuery', () => {
 
 describe('useTraceMetricsHeatmapQuery', () => {
   const organization = OrganizationFixture();
-  // A narrow range keeps the hook on its single-request fast path (no chunking),
-  // so these tests assert one unpinned `/events-heatmap/` request. Chunked
-  // two-phase behavior is covered in useMetricHeatMapData.spec.tsx.
+  // Set a narrow range to prevent windowed heat map requests, which keeps the
+  // test simpler. The windowing is tested elsewhere.
   const pageFilters = PageFiltersFixture({
     datetime: {period: '1h', start: null, end: null, utc: null},
   });
