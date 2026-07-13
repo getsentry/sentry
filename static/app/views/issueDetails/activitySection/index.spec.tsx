@@ -998,6 +998,58 @@ describe('ActivitySection', () => {
       } satisfies GroupActivity,
       expectedCopy: ['Regressed', /Compared with resolved version/, /using SemVer/],
     },
+    {
+      name: 'reprocessed events',
+      activity: {
+        type: GroupActivityType.REPROCESS,
+        id: 'reprocessed-1',
+        dateCreated: '2020-01-01T00:00:00',
+        data: {eventCount: 4, newGroupId: 2, oldGroupId: 1},
+      } satisfies GroupActivity,
+      expectedCopy: ['Reprocessed', 'into 4 new events'],
+    },
+    {
+      name: 'Seer pull request creation',
+      activity: {
+        type: GroupActivityType.SEER_PR_CREATED,
+        id: 'seer-pr-created-1',
+        dateCreated: '2020-01-01T00:00:00',
+        data: {
+          pull_requests: [
+            {
+              provider: 'github',
+              pull_request: {
+                pr_number: 42,
+                pr_url: 'https://github.com/org/repo/pull/42',
+              },
+              repo_name: 'org/repo',
+            },
+          ],
+        },
+      } satisfies GroupActivity,
+      expectedCopy: [/Pull request.*created/, '#42', 'on GitHub'],
+    },
+    {
+      name: 'Seer pull request update',
+      activity: {
+        type: GroupActivityType.SEER_ITERATION_COMPLETED,
+        id: 'seer-pr-updated-1',
+        dateCreated: '2020-01-01T00:00:00',
+        data: {
+          pull_requests: [
+            {
+              provider: 'github',
+              pull_request: {
+                pr_number: 42,
+                pr_url: 'https://github.com/org/repo/pull/42',
+              },
+              repo_name: 'org/repo',
+            },
+          ],
+        },
+      } satisfies GroupActivity,
+      expectedCopy: [/Pull request.*updated/, '#42', 'on GitHub'],
+    },
   ])('renders $name v2 activity copy', async ({activity, expectedCopy}) => {
     const activityGroup = GroupFixture({
       id: '1339',
@@ -1010,7 +1062,12 @@ describe('ActivitySection', () => {
         <ActivitySection group={activityGroup} variant="standalone" size="md" />
       </GroupDataContextProvider>,
       {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+        organization: OrganizationFixture({
+          features: [
+            'display-seer-actions-as-issue-activities',
+            'issue-activity-feed-v2',
+          ],
+        }),
       }
     );
 
@@ -1042,9 +1099,14 @@ describe('ActivitySection', () => {
     render(
       <GroupDataContextProvider group={resolvedGroup} project={resolvedGroup.project}>
         <ActivitySection group={resolvedGroup} />
-      </GroupDataContextProvider>
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
     );
-    expect(await screen.findByText('Resolved')).toBeInTheDocument();
+    expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
+      'Resolved in 1.0.0 via Jira Server'
+    );
     expect(screen.getByRole('link', {name: '1.0.0'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Jira Server'})).toBeInTheDocument();
   });
@@ -1161,7 +1223,9 @@ describe('ActivitySection', () => {
       }
     );
 
-    expect(await screen.findByText('Resolved')).toBeInTheDocument();
+    expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
+      'Resolved in 1.0.0 via f7f395d'
+    );
     expect(screen.getByRole('link', {name: 'f7f395d'})).toHaveAttribute(
       'href',
       'https://github.com/example/repository/commit/f7f395d14b2fe29a4e253bf1d3094d61e6ad4434'
@@ -1237,7 +1301,7 @@ describe('ActivitySection', () => {
     );
 
     expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
-      'Referenced in commit f7f395d on GitHub via #1234'
+      'Referenced in f7f395d on GitHub via #1234'
     );
     expect(screen.getByRole('link', {name: 'f7f395d'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '#1234'})).toHaveAttribute(
@@ -1342,7 +1406,9 @@ describe('ActivitySection', () => {
     );
 
     expect(await screen.findByText('Resolved')).toBeInTheDocument();
-    expect(screen.getByText(/by commit/)).toBeInTheDocument();
+    expect(screen.getByTestId('activity-timeline')).toHaveTextContent(
+      'Resolved by 42485aa on GitHub'
+    );
     expect(screen.getByText(/on GitHub/)).toBeInTheDocument();
     expect(screen.queryByText(/Unknown Provider/)).not.toBeInTheDocument();
     expect(screen.getByRole('link', {name: /42485aa/})).toHaveAttribute(
@@ -1684,7 +1750,11 @@ describe('ActivitySection', () => {
     expect(screen.queryByText('sentry[bot]')).not.toBeInTheDocument();
   });
 
-  it('renders closed PR author name in activity line items when activity user is null', async () => {
+  it('does not attribute a PR closure to the pull request author', async () => {
+    const pullRequest = PullRequestFixture({
+      id: '1234',
+      author: {name: 'Shashank N Jarmale', email: 'shash@sentry.io'},
+    });
     const prGroup = GroupFixture({
       id: '1348',
       activity: [
@@ -1693,9 +1763,7 @@ describe('ActivitySection', () => {
           id: 'pr-author-4',
           dateCreated: '2020-01-01T00:00:00',
           data: {
-            pullRequest: PullRequestFixture({
-              author: {name: 'Shashank N Jarmale', email: 'shash@sentry.io'},
-            }),
+            pullRequest,
           },
           user: null,
         },
@@ -1712,41 +1780,9 @@ describe('ActivitySection', () => {
       }
     );
 
-    expect(await screen.findByText('Pull request closed')).toBeInTheDocument();
-    expect(screen.getByText(/by Shashank N Jarmale on GitHub/)).toBeInTheDocument();
-    expect(screen.queryByText('Sentry')).not.toBeInTheDocument();
-  });
-
-  it('falls back to Sentry for closed PR bot authors with @localhost email', async () => {
-    const prGroup = GroupFixture({
-      id: '1349',
-      activity: [
-        {
-          type: GroupActivityType.PULL_REQUEST_CLOSED,
-          id: 'pr-author-5',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {
-            pullRequest: PullRequestFixture({
-              author: {name: 'sentry[bot]', email: 'sentry[bot]@localhost'},
-            }),
-          },
-          user: null,
-        },
-      ],
-      project,
-    });
-
-    render(
-      <GroupDataContextProvider group={prGroup} project={prGroup.project}>
-        <ActivitySection group={prGroup} />
-      </GroupDataContextProvider>,
-      {
-        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
-      }
+    expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
+      'Pull request #1234 closed on GitHub'
     );
-
-    expect(await screen.findByText('Pull request closed')).toBeInTheDocument();
-    expect(screen.getByText(/by Sentry on GitHub/)).toBeInTheDocument();
-    expect(screen.queryByText('sentry[bot]')).not.toBeInTheDocument();
+    expect(screen.queryByText('Shashank N Jarmale')).not.toBeInTheDocument();
   });
 });

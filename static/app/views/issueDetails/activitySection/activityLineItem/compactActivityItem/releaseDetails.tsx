@@ -20,7 +20,7 @@ function getReleaseResolutionSource(commit: Commit | null | undefined) {
   }
 
   if (commit) {
-    return tct(' via commit [commit]', {
+    return tct(' via [commit]', {
       commit: <CommitChip commit={commit} />,
     });
   }
