@@ -1,21 +1,34 @@
 import type {ProfilerOnRenderCallback, ReactNode} from 'react';
-import {Fragment, Profiler, useEffect, useRef} from 'react';
-import type {Client, Span} from '@sentry/core';
 import {
-  browserPerformanceTimeOrigin,
-  spanToStreamedSpanJSON,
-  timestampInSeconds,
-} from '@sentry/core';
+  Fragment,
+  Profiler,
+  useEffect,
+  useEffectEvent,
+  useLayoutEffect,
+  useRef,
+} from 'react';
+import type {Client, Span} from '@sentry/core';
+import {spanToStreamedSpanJSON, timestampInSeconds} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import {usePrevious} from 'sentry/utils/usePrevious';
 
 const MIN_UPDATE_SPAN_TIME = 16; // Frame boundary @ 60fps
 const WAIT_POST_INTERACTION = 50; // Leave a small amount of time for observers and onRenderCallback to log since they come in after they occur and not during.
 const INTERACTION_TIMEOUT = 2 * 60_000; // 2min. Wrap interactions up after this time since we don't want transactions sticking around forever.
 const VCD_START = 'vcd-start';
 const VCD_END = 'vcd-end';
+
+// User Timing entries remain in memory until they are explicitly cleared.
+function replacePerformanceMark(name: string) {
+  performance.clearMarks(name);
+  performance.mark(name);
+}
+
+function replacePerformanceMeasure(name: string, startMark: string, endMark: string) {
+  performance.clearMeasures(name);
+  performance.measure(name, startMark, endMark);
+}
 
 // This re-export makes it possible to stub out the Profiler globally if required
 export {Profiler};
@@ -149,92 +162,86 @@ export function VisuallyCompleteWithData({
   isLoading?: boolean;
 }) {
   const location = useLocation();
-  const previousLocation = usePrevious(location);
 
-  const isDataCompleteSet = useRef(false);
-
-  const num = useRef(1);
-
-  const isVCDSet = useRef(false);
-
-  const locationPath = useRef(location.pathname);
-  locationPath.current = location.pathname;
-
-  if (isVCDSet && hasData && performance?.mark && !disabled) {
-    performance.mark(`${id}-${VCD_START}`);
-    isVCDSet.current = true;
-  }
-
-  const _hasData = isLoading === undefined ? hasData : hasData && !isLoading;
-
-  useEffect(() => {
-    // Capture changes in location to reset VCD as it's likely indicative of a route change.
-    if (location !== previousLocation) {
-      isDataCompleteSet.current = false;
-      performance
-        .getEntriesByType('mark')
-        .map(m => m.name)
-        .filter(n => n.includes('vcd'))
-        .forEach(n => performance.clearMarks(n));
-    }
-  }, [location, previousLocation]);
-
-  useEffect(() => {
-    if (disabled) {
-      return;
-    }
+  // Read the latest route without making it part of the measurement lifecycle.
+  const recordVCDMetric = useEffectEvent((vcdTime: number) => {
     try {
-      const span = Sentry.getActiveSpan();
-
-      if (!span) {
-        return;
-      }
-      const rootSpan = Sentry.getRootSpan(span);
-
-      if (!isDataCompleteSet.current && _hasData) {
-        isDataCompleteSet.current = true;
-
-        performance.mark(`${id}-${VCD_END}-pretimeout`);
-
-        window.setTimeout(() => {
-          if (!browserPerformanceTimeOrigin) {
-            return;
-          }
-          performance.mark(`${id}-${VCD_END}`);
-          const startMarks = performance.getEntriesByName(`${id}-${VCD_START}`);
-          const endMarks = performance.getEntriesByName(`${id}-${VCD_END}`);
-          if (startMarks.length > 1 || endMarks.length > 1) {
-            rootSpan.setAttribute('vcd_extra_recorded_marks', true);
-          }
-
-          const startMark = startMarks.at(-1);
-          const endMark = endMarks.at(-1);
-          if (!startMark || !endMark) {
-            return;
-          }
-          try {
-            const vcdTime = endMark.startTime - startMark.startTime;
-            Sentry.metrics.count('visually_complete_with_data', vcdTime, {
-              attributes: {
-                url: locationPath.current,
-              },
-              unit: 'millisecond', // DOMHighResTimeStamp
-            });
-          } catch (_) {
-            // Defensive catch since this code is auxiliary.
-          }
-          performance.measure(
-            `VCD [${id}] #${num.current}`,
-            `${id}-${VCD_START}`,
-            `${id}-${VCD_END}`
-          );
-          num.current = num.current++;
-        }, 0);
-      }
+      Sentry.metrics.count('visually_complete_with_data', vcdTime, {
+        attributes: {
+          url: location.pathname,
+        },
+        unit: 'millisecond', // DOMHighResTimeStamp
+      });
     } catch (_) {
       // Defensive catch since this code is auxiliary.
     }
-  }, [_hasData, disabled, id]);
+  });
+
+  const isDataCompleteSet = useRef(false);
+
+  const startMarkName = `${id}-${VCD_START}`;
+  const endMarkName = `${id}-${VCD_END}`;
+  const preTimeoutEndMarkName = `${endMarkName}-pretimeout`;
+  const measureName = `VCD [${id}] #1`;
+
+  const isDataReady = isLoading === undefined ? hasData : hasData && !isLoading;
+
+  useLayoutEffect(() => {
+    isDataCompleteSet.current = false;
+  }, [id, location]);
+
+  useLayoutEffect(() => {
+    if (disabled || !hasData || !performance?.mark) {
+      return;
+    }
+
+    // Layout effects only run for committed renders and run before paint.
+    replacePerformanceMark(startMarkName);
+  }, [disabled, hasData, location, startMarkName]);
+
+  useEffect(() => {
+    if (
+      disabled ||
+      !isDataReady ||
+      !Sentry.getActiveSpan() ||
+      isDataCompleteSet.current
+    ) {
+      return;
+    }
+
+    isDataCompleteSet.current = true;
+    replacePerformanceMark(preTimeoutEndMarkName);
+
+    const timeoutId = window.setTimeout(() => {
+      try {
+        replacePerformanceMark(endMarkName);
+        const startMark = performance.getEntriesByName(startMarkName).at(-1);
+        const endMark = performance.getEntriesByName(endMarkName).at(-1);
+
+        if (!startMark || !endMark) {
+          return;
+        }
+
+        recordVCDMetric(endMark.startTime - startMark.startTime);
+        replacePerformanceMeasure(measureName, startMarkName, endMarkName);
+      } catch (_) {
+        // Defensive catch since this code is auxiliary.
+      }
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      isDataCompleteSet.current = false;
+    };
+  }, [
+    disabled,
+    endMarkName,
+    isDataReady,
+    location,
+    measureName,
+    preTimeoutEndMarkName,
+    startMarkName,
+  ]);
 
   if (disabled) {
     return <Fragment>{children}</Fragment>;
