@@ -5,7 +5,9 @@ from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
 from sentry.seer.autofix.pr_iteration.types import (
     Feedback,
     GithubPrCommentFeedbackSource,
+    GithubPrReviewCommentFeedbackSource,
     UserUIFeedbackSource,
+    format_feedback_for_prompt,
     parse_feedback,
     serialize_feedback,
 )
@@ -28,6 +30,24 @@ def _feedback_block(*feedbacks: Feedback) -> MemoryBlock:
         id="block-1",
         message=Message(role="assistant", metadata={"feedback": serialize_feedback(feedbacks)}),
         timestamp="2024-01-01T00:00:00Z",
+    )
+
+
+def _review_feedback(
+    file_path: str | None = "src/sentry/foo.py",
+    line: int | None = 42,
+    start_line: int | None = None,
+) -> Feedback:
+    return Feedback(
+        source=GithubPrReviewCommentFeedbackSource(
+            comment={
+                "id": 1,
+                "body": "@sentry fix it",
+                "path": file_path,
+                "line": line,
+                "start_line": start_line,
+            },
+        ),
     )
 
 
@@ -193,3 +213,47 @@ class GithubPrCommentShouldConsumeTest(TestCase):
         source = GithubPrCommentFeedbackSource(comment={"body": "@sentry a"})
 
         assert source.should_consume(_run_state()) is True
+
+
+class FormatFeedbackForPromptTest(TestCase):
+    def test_format_review_comment_range_anchor(self) -> None:
+        feedback = _review_feedback(line=42, start_line=40)
+        assert (
+            format_feedback_for_prompt(feedback)
+            == "Inline comment on src/sentry/foo.py:40-42:\nfix it"
+        )
+
+    def test_format_review_comment_single_line_anchor(self) -> None:
+        feedback = _review_feedback(line=42, start_line=None)
+        assert (
+            format_feedback_for_prompt(feedback)
+            == "Inline comment on src/sentry/foo.py:42:\nfix it"
+        )
+
+    def test_format_review_comment_collapsed_range_uses_single_line(self) -> None:
+        # start_line == line: GitHub effectively treats this as single-line.
+        feedback = _review_feedback(line=42, start_line=42)
+        assert (
+            format_feedback_for_prompt(feedback)
+            == "Inline comment on src/sentry/foo.py:42:\nfix it"
+        )
+
+    def test_format_review_comment_file_only_anchor(self) -> None:
+        feedback = _review_feedback(line=None, start_line=None)
+        assert (
+            format_feedback_for_prompt(feedback) == "Inline comment on src/sentry/foo.py:\nfix it"
+        )
+
+    def test_format_review_comment_no_file_path_passes_through(self) -> None:
+        feedback = _review_feedback(file_path=None, line=None)
+        assert format_feedback_for_prompt(feedback) == "fix it"
+
+    def test_format_top_level_comment_passes_through(self) -> None:
+        feedback = Feedback(
+            source=GithubPrCommentFeedbackSource(comment={"id": 1, "body": "@sentry fix it"})
+        )
+        assert format_feedback_for_prompt(feedback) == "fix it"
+
+    def test_format_ui_feedback_passes_through(self) -> None:
+        feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="ui feedback"))
+        assert format_feedback_for_prompt(feedback) == "ui feedback"

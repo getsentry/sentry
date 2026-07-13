@@ -229,14 +229,21 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             referrer=AutofixReferrer.GITHUB_PR_COMMENT,
         )
 
-    def _review_feedback(self, comment_id: int) -> Feedback:
+    def _review_feedback(
+        self,
+        comment_id: int,
+        *,
+        line: int | None = 42,
+        start_line: int | None = None,
+    ) -> Feedback:
         return Feedback(
             source=GithubPrReviewCommentFeedbackSource(
                 comment={
                     "id": comment_id,
                     "body": "@sentry fix it",
                     "path": "src/sentry/foo.py",
-                    "line": 42,
+                    "line": line,
+                    "start_line": start_line,
                 },
             )
         )
@@ -443,6 +450,74 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         ]
 
         self._call()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_review_comment_range_anchor_in_user_context(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [self._queued(self._review_feedback(888, line=42, start_line=40))]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert (
+            mock_trigger.call_args.kwargs["user_context"]
+            == "Inline comment on src/sentry/foo.py:40-42:\nfix it"
+        )
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_review_comment_single_line_anchor_in_user_context(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [self._queued(self._review_feedback(999, line=42))]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert (
+            mock_trigger.call_args.kwargs["user_context"]
+            == "Inline comment on src/sentry/foo.py:42:\nfix it"
+        )
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_non_review_feedback_text_passed_through(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(
+                Feedback(
+                    source=GithubPrCommentFeedbackSource(
+                        comment={"id": 1001, "body": "@sentry top level"}
+                    )
+                )
+            ),
+            self._queued(
+                Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="ui feedback"))
+            ),
+        ]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert mock_trigger.call_args.kwargs["user_context"] == "top level\n\nui feedback"
 
 
 class TriggerConsumePrIterationFeedbackTest(TestCase):
