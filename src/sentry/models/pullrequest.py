@@ -443,6 +443,35 @@ class PullRequestActivity(DefaultFieldsModel):
 
 
 @cell_silo_model
+class PullRequestActivityLog(DefaultFieldsModel):
+    """One reduced activity document per PR — the 1:1 replacement for the
+    per-webhook-event ``PullRequestActivity`` rows.
+
+    The PR-metrics webhook pipeline folds every processed event into this single
+    JSONB document in place (see ``sentry.pr_metrics.activity_doc``) rather than
+    inserting a row per event. The two high-volume families are stored only in
+    reduced form: CI checks as a per-``(head_sha, app_slug)`` rollup, and comments
+    not as entries at all (folded into a participants map). A dedicated 1:1 model
+    rather than a field on ``PullRequestMetrics`` because the doc is swept at the
+    terminal emit while the metrics row must survive, and ``handle_metrics``
+    rewrites the metrics row on every ``pull_request`` webhook.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    pull_request = models.OneToOneField(
+        "sentry.PullRequest", on_delete=models.CASCADE, related_name="activity_log"
+    )
+    data = models.JSONField(default=dict)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pullrequest_activity_log"
+
+    __repr__ = sane_repr("pull_request_id")
+
+
+@cell_silo_model
 class PullRequestAttribution(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
