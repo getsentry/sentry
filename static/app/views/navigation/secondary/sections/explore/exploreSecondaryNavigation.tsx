@@ -4,6 +4,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
@@ -15,8 +16,13 @@ import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondar
 
 export function ExploreSecondaryNavigation() {
   const organization = useOrganization();
+  const location = useLocation();
 
   const baseUrl = `/organizations/${organization.slug}/explore`;
+
+  const isReleasesActive =
+    location.pathname.includes('/explore/releases/') ||
+    location.pathname.includes('/preprod/');
 
   const {data: starredQueries} = useGetSavedQueries({
     starred: true,
@@ -117,6 +123,7 @@ export function ExploreSecondaryNavigation() {
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
                 to={`${baseUrl}/releases/`}
+                isActive={isReleasesActive}
                 analyticsItemName="explore_releases"
               >
                 {t('Releases')}
