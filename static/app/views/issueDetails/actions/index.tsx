@@ -62,9 +62,8 @@ import {discardIssueMutationOptions} from 'sentry/views/issueDetails/discardIssu
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/header/assigneeSelector';
-import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 type UpdateData =
   | {isBookmarked: boolean; inbox?: boolean}
@@ -115,7 +114,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
   const navigate = useNavigate();
   const location = useLocation();
   const queryClient = useQueryClient();
-  const environments = useEnvironmentsFromUrl();
   const {mutate: discardIssue} = useMutation(discardIssueMutationOptions({navigate}));
 
   const bookmarkKey = group.isBookmarked ? 'unbookmark' : 'bookmark';
@@ -244,11 +242,10 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           }
           onComplete?.();
           queryClient.invalidateQueries({
-            queryKey: groupApiOptions({
+            queryKey: groupQueryKey({
               organizationSlug: organization.slug,
               groupId: group.id,
-              environments,
-            }).queryKey,
+            }),
           });
         },
       }

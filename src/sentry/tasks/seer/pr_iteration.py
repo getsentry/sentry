@@ -6,10 +6,14 @@ from typing import Any
 
 import sentry_sdk
 from scm import actions as scm_actions
-from scm.types import GetRepositoryUserPermissionProtocol
+from scm.manager import SourceCodeManager
+from scm.types import (
+    CreatePullRequestCommentReactionProtocol,
+    CreateReviewCommentReactionProtocol,
+    GetRepositoryUserPermissionProtocol,
+)
 from taskbroker_client.retry import Retry
 
-from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.services.integration import integration_service
 from sentry.locks import locks
 from sentry.models.group import Group
@@ -153,26 +157,11 @@ def consume_queued_autofix_feedback(run_id: int, organization_id: int, group_id:
 
 
 def _github_commenter_has_repo_write_access(
-    *,
-    organization_id: int,
-    repo_id: int,
+    scm: SourceCodeManager,
     github_username: str,
 ) -> bool:
-    try:
-        scm = make_scm(organization_id, repo_id, referrer="seer")
-    except Exception:
-        logger.warning(
-            "autofix.pr_iteration.comment_trigger.scm_init_failed",
-            extra={"organization_id": organization_id, "repo_id": repo_id},
-            exc_info=True,
-        )
-        return False
-
     if not isinstance(scm, GetRepositoryUserPermissionProtocol):
-        logger.warning(
-            "autofix.pr_iteration.comment_trigger.unsupported_provider",
-            extra={"organization_id": organization_id, "repo_id": repo_id},
-        )
+        logger.warning("autofix.pr_iteration.comment_trigger.unsupported_provider")
         return False
 
     try:
@@ -180,16 +169,37 @@ def _github_commenter_has_repo_write_access(
     except Exception:
         logger.info(
             "autofix.pr_iteration.comment_trigger.permission_check_failed",
-            extra={
-                "organization_id": organization_id,
-                "repo_id": repo_id,
-                "github_username": github_username,
-            },
+            extra={"github_username": github_username},
             exc_info=True,
         )
         return False
 
     return result["data"]["perms"] in ("write", "admin")
+
+
+def _add_comment_eyes_reaction(
+    scm: SourceCodeManager,
+    *,
+    source_type: GithubPrCommentFeedbackType,
+    pr_number: int,
+    comment_id: int,
+) -> None:
+    """Acknowledge a PR comment with an :eyes: reaction via the SCM platform."""
+    try:
+        if source_type == "github-pr-review-comment":
+            if not isinstance(scm, CreateReviewCommentReactionProtocol):
+                logger.warning("autofix.pr_iteration.comment_trigger.unsupported_provider")
+                return
+            scm_actions.create_review_comment_reaction(scm, str(pr_number), str(comment_id), "eyes")
+        else:
+            if not isinstance(scm, CreatePullRequestCommentReactionProtocol):
+                logger.warning("autofix.pr_iteration.comment_trigger.unsupported_provider")
+                return
+            scm_actions.create_pull_request_comment_reaction(
+                scm, str(pr_number), str(comment_id), "eyes"
+            )
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
 
 
 @instrumented_task(
@@ -265,11 +275,17 @@ def trigger_pr_iteration_from_comment(
         )
         return None
 
-    if not _github_commenter_has_repo_write_access(
-        organization_id=organization_id,
-        repo_id=repo_id,
-        github_username=github_username,
-    ):
+    try:
+        scm = make_scm(organization_id, repo_id, referrer="seer")
+    except Exception:
+        logger.warning(
+            "autofix.pr_iteration.comment_trigger.scm_init_failed",
+            extra={"organization_id": organization_id, "repo_id": repo_id},
+            exc_info=True,
+        )
+        return None
+
+    if not _github_commenter_has_repo_write_access(scm, github_username):
         metrics.incr("autofix.pr_iteration.comment_trigger.unauthorized")
         logger.info(
             "autofix.pr_iteration.comment_trigger.unauthorized",
@@ -317,16 +333,9 @@ def trigger_pr_iteration_from_comment(
     if comment_id is None:
         return None
 
-    # Only top-level PR comments get the eyes reaction. Inline review comments
-    # need the pulls/comments reactions endpoint, which the SCM platform does not
-    # yet expose; skip rather than reach for a bespoke client method.
-    if source_type != "github-pr-comment":
-        return None
-
-    try:
-        client.create_comment_reaction(repo.name, str(comment_id), GitHubReaction.EYES)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
+    _add_comment_eyes_reaction(
+        scm, source_type=source_type, pr_number=pr_number, comment_id=comment_id
+    )
 
     logger.info(
         "autofix.pr_iteration.comment_trigger.success",
