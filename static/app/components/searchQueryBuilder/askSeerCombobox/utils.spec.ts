@@ -223,6 +223,8 @@ describe('parseNaturalLanguageToQuery', () => {
     ['count() < 100', 'count():<100'],
     ['count() >= 100', 'count():>=100'],
     ['count() <= 100', 'count():<=100'],
+    ['count() is greater than or equal to 100', 'count():>=100'],
+    ['count() is less than or equal to 5', 'count():<=5'],
     ['browser.name contains chrome', 'browser.name:*chrome*'],
     ['browser.name starts with Chr', 'browser.name:Chr*'],
     ['browser.name ends with ome', 'browser.name:*ome'],
@@ -245,6 +247,9 @@ describe('parseNaturalLanguageToQuery', () => {
     'hello event.type is error',
     // a known key not followed by an operator phrase
     'browser.name chrome',
+    // mid-typing a longer comparator phrase: must not fire the shorter prefix
+    // ("is greater than") and consume "or" as the value -> count():>or
+    'count() is greater than or equal',
   ])('returns null for "%s"', input => {
     expect(parseNaturalLanguageToQuery(input, isKey)).toBeNull();
   });

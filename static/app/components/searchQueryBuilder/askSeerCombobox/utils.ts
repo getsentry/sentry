@@ -337,14 +337,29 @@ const FILTER_PHRASES: ReadonlyArray<{
   phrase: string;
 }> = [
   // Prose comparators: "<key> is [not] greater than <value>"
-  {phrase: 'is not greater than or equal to', esq: (k, v) => `!${k}:>=${v}`},
-  {phrase: 'is not less than or equal to', esq: (k, v) => `!${k}:<=${v}`},
-  {phrase: 'is greater than or equal to', esq: (k, v) => `${k}:>=${v}`},
-  {phrase: 'is less than or equal to', esq: (k, v) => `${k}:<=${v}`},
-  {phrase: 'is not greater than', esq: (k, v) => `!${k}:>${v}`},
-  {phrase: 'is not less than', esq: (k, v) => `!${k}:<${v}`},
-  {phrase: 'is greater than', esq: (k, v) => `${k}:>${v}`},
-  {phrase: 'is less than', esq: (k, v) => `${k}:<${v}`},
+  {
+    phrase: 'is not greater than or equal to',
+    esq: (k, v) => `!${k}:${TermOperator.GREATER_THAN_EQUAL}${v}`,
+  },
+  {
+    phrase: 'is not less than or equal to',
+    esq: (k, v) => `!${k}:${TermOperator.LESS_THAN_EQUAL}${v}`,
+  },
+  {
+    phrase: 'is greater than or equal to',
+    esq: (k, v) => `${k}:${TermOperator.GREATER_THAN_EQUAL}${v}`,
+  },
+  {
+    phrase: 'is less than or equal to',
+    esq: (k, v) => `${k}:${TermOperator.LESS_THAN_EQUAL}${v}`,
+  },
+  {
+    phrase: 'is not greater than',
+    esq: (k, v) => `!${k}:${TermOperator.GREATER_THAN}${v}`,
+  },
+  {phrase: 'is not less than', esq: (k, v) => `!${k}:${TermOperator.LESS_THAN}${v}`},
+  {phrase: 'is greater than', esq: (k, v) => `${k}:${TermOperator.GREATER_THAN}${v}`},
+  {phrase: 'is less than', esq: (k, v) => `${k}:${TermOperator.LESS_THAN}${v}`},
   // Wildcards, rendered as the human-typeable `*` glob
   {phrase: 'does not contain', esq: (k, v) => `!${k}:*${v}*`},
   {phrase: 'does not start with', esq: (k, v) => `!${k}:${v}*`},
@@ -357,10 +372,19 @@ const FILTER_PHRASES: ReadonlyArray<{
   {phrase: 'is', esq: (k, v) => `${k}:${v}`},
   // Symbolic comparators follow the key directly, with no "is":
   // "span.duration > 100ms" -> span.duration:>100ms
-  {phrase: '>=', esq: (k, v) => `${k}:>=${v}`},
-  {phrase: '<=', esq: (k, v) => `${k}:<=${v}`},
-  {phrase: '>', esq: (k, v) => `${k}:>${v}`},
-  {phrase: '<', esq: (k, v) => `${k}:<${v}`},
+  {
+    phrase: TermOperator.GREATER_THAN_EQUAL,
+    esq: (k, v) => `${k}:${TermOperator.GREATER_THAN_EQUAL}${v}`,
+  },
+  {
+    phrase: TermOperator.LESS_THAN_EQUAL,
+    esq: (k, v) => `${k}:${TermOperator.LESS_THAN_EQUAL}${v}`,
+  },
+  {
+    phrase: TermOperator.GREATER_THAN,
+    esq: (k, v) => `${k}:${TermOperator.GREATER_THAN}${v}`,
+  },
+  {phrase: TermOperator.LESS_THAN, esq: (k, v) => `${k}:${TermOperator.LESS_THAN}${v}`},
 ];
 
 function valueAt(words: string[], index: number): string | undefined {
@@ -391,6 +415,21 @@ function matchFilter(
     // retry shorter phrases: "count() is greater than" must not parse as
     // count():greater.
     if (value === undefined) {
+      return null;
+    }
+    // If a longer phrase shares this one's prefix and the candidate value would
+    // continue it, the user is mid-typing that longer phrase (e.g. "is greater
+    // than" inside "is greater than or equal to"). Decline rather than consume
+    // "or" as the value and emit count():>or from "...greater than or equal".
+    const midLongerPhrase = FILTER_PHRASES.some(({phrase: longer}) => {
+      const longerParts = longer.split(' ');
+      return (
+        longerParts.length > parts.length &&
+        parts.every((part, k) => longerParts[k] === part) &&
+        longerParts[parts.length]?.toLowerCase() === value.toLowerCase()
+      );
+    });
+    if (midLongerPhrase) {
       return null;
     }
     return {esq: esq(key, value), next: keyIndex + parts.length + 2};
