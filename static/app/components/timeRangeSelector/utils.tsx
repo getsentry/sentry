@@ -66,7 +66,7 @@ const parseStatsPeriodString = (statsPeriodString: string) => {
   const result = STATS_PERIOD_REGEX.exec(statsPeriodString);
 
   if (result === null) {
-    throw new Error('Invalid stats period');
+    return null;
   }
 
   const value = parseInt(result[1]!, 10);
@@ -92,8 +92,14 @@ export function parseStatsPeriod(
   statsPeriod: string,
   outputFormat: string | null = DATE_TIME_FORMAT,
   utc = false
-): {end: string; start: string} {
-  const {value, unit} = parseStatsPeriodString(statsPeriod);
+): {end: string; start: string} | null {
+  const parsed = parseStatsPeriodString(statsPeriod);
+
+  if (parsed === null) {
+    return null;
+  }
+
+  const {value, unit} = parsed;
 
   const momentUnit = SUPPORTED_RELATIVE_PERIOD_UNITS[unit]!.momentUnit;
 

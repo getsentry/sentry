@@ -25,13 +25,11 @@ export function usePlaylistQuery(
   };
 
   if (typeof statsPeriod === 'string') {
-    const {start: playlistStart, end: playlistEnd} = parseStatsPeriod(
-      statsPeriod,
-      undefined,
-      true
-    );
-    eventViewQuery.playlistStart = playlistStart;
-    eventViewQuery.playlistEnd = playlistEnd;
+    const parsedPeriod = parseStatsPeriod(statsPeriod, undefined, true);
+    if (parsedPeriod) {
+      eventViewQuery.playlistStart = parsedPeriod.start;
+      eventViewQuery.playlistEnd = parsedPeriod.end;
+    }
   } else if (start && end) {
     eventViewQuery.playlistStart = start;
     eventViewQuery.playlistEnd = end;

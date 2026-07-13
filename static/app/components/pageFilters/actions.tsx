@@ -320,8 +320,19 @@ export function initializeUrlState({
 
     if (pageFilters.datetime.period) {
       const parsedPeriod = parseStatsPeriod(pageFilters.datetime.period);
-      start = parsedPeriod.start;
-      end = parsedPeriod.end;
+      if (parsedPeriod) {
+        start = parsedPeriod.start;
+        end = parsedPeriod.end;
+      } else {
+        // Invalid period string (e.g. a URL path ended up in the stats period);
+        // clear the invalid period and fall back to the default.
+        pageFilters.datetime = {
+          period: null,
+          start: null,
+          end: null,
+          utc: pageFilters.datetime.utc,
+        };
+      }
     }
 
     if (start && end) {
