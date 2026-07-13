@@ -2,8 +2,6 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
-import {Container, Flex} from '@sentry/scraps/layout';
-
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
@@ -97,27 +95,23 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
         <div className="ref-redeem-code">
           <form.AppForm form={form}>
             <form.FieldGroup title={t('Redeem Promotional Code')}>
-              <Flex gap="md" width="100%" align="end">
-                <Container flex="1" minWidth={0}>
-                  <form.AppField name="code">
-                    {field => (
-                      <field.Layout.Row
-                        label={t('Promotional Code')}
-                        hintText={t(
-                          'Received a promotional code? Enter it here to apply credit to your organization.'
-                        )}
-                        required
-                      >
-                        <field.Input
-                          value={field.state.value}
-                          onChange={field.handleChange}
-                        />
-                      </field.Layout.Row>
+              <form.AppField name="code">
+                {field => (
+                  <field.Layout.Row
+                    label={t('Promotional Code')}
+                    hintText={t(
+                      'Received a promotional code? Enter it here to apply credit to your organization.'
                     )}
-                  </form.AppField>
-                </Container>
-                <form.SubmitButton>{t('Redeem')}</form.SubmitButton>
-              </Flex>
+                    required
+                  >
+                    <field.Input
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                    />
+                  </field.Layout.Row>
+                )}
+              </form.AppField>
+              <form.SubmitButton>{t('Redeem')}</form.SubmitButton>
             </form.FieldGroup>
           </form.AppForm>
         </div>
