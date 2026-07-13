@@ -61,7 +61,7 @@ def create_activity_alert_example(
 
 
 class SetResolvedInCommitActionData(ActivityAlertActionData):
-    commit_short_id: str | None = None
+    commit_sha: str | None = None
     commit_message: str | None = None
 
 

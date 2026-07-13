@@ -27,7 +27,7 @@ def create_set_resolved_in_commit_example() -> SetResolvedInCommitActionData:
     action_data = create_activity_alert_example(ActivityType.SET_RESOLVED_IN_COMMIT)
     return SetResolvedInCommitActionData(
         **action_data.dict(),
-        commit_short_id="abc1234",
+        commit_sha="abc1234",
         commit_message="Fix null pointer dereference in auth flow",
     )
 
@@ -42,10 +42,10 @@ class SetResolvedInCommitActivityTemplate(NotificationTemplate[SetResolvedInComm
         resolution_blocks: list[NotificationTextBlock] = [
             PlainTextBlock(text="was resolved in a commit.")
         ]
-        if data.commit_short_id:
+        if data.commit_sha:
             resolution_blocks = [
                 PlainTextBlock(text="was resolved in commit"),
-                CodeTextBlock(text=data.commit_short_id),
+                CodeTextBlock(text=data.commit_sha),
             ]
             if data.commit_message:
                 extra_body_sections.append(

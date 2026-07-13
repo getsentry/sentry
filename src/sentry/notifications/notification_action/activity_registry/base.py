@@ -96,17 +96,17 @@ def build_activity_action_data(
 
     match activity.type:
         case ActivityType.SET_RESOLVED_IN_COMMIT.value:
-            commit_short_id = None
+            commit_sha = None
             commit_message = None
             if activity.data and "commit" in activity.data:
                 try:
                     commit = Commit.objects.get(id=activity.data["commit"])
-                    commit_short_id = commit.short_id
+                    commit_sha = commit.short_id
                     commit_message = commit.message
                 except Commit.DoesNotExist:
                     pass
             return SetResolvedInCommitActionData(
-                **action_data, commit_short_id=commit_short_id, commit_message=commit_message
+                **action_data, commit_sha=commit_sha, commit_message=commit_message
             )
         case ActivityType.SET_RESOLVED_IN_RELEASE.value:
             release_url = None
