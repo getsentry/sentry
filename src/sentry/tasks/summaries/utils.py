@@ -713,12 +713,15 @@ def project_past_resolved_issues(
         error_group_ids = [
             g.id
             for g in valid_candidates
-            if g.type is None or g.issue_category == GroupCategory.ERROR
+            if g.type is None
+            or g.type == DEFAULT_TYPE_ID
+            or g.issue_category == GroupCategory.ERROR
         ]
         perf_group_ids = [
             g.id
             for g in valid_candidates
             if g.type is not None
+            and g.type != DEFAULT_TYPE_ID
             and (
                 g.issue_category == GroupCategory.PERFORMANCE
                 or g.issue_category in PERFORMANCE_ISSUE_CATEGORIES
