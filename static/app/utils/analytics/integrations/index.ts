@@ -60,6 +60,10 @@ type IntegrationCategorySelectEventParams = {
   category: string;
 } & IntegrationView;
 
+type IntegrationBannerClickEventParams = {
+  search_term: string;
+} & IntegrationView;
+
 type IntegrationServerlessFunctionsViewedParams = {
   num_functions: number;
 } & SingleIntegrationEventParams;
@@ -83,6 +87,7 @@ export type IntegrationEventParameters = {
   'integrations.config_saved': SingleIntegrationEventParams;
   'integrations.details_viewed': SingleIntegrationEventParams;
   'integrations.directory_category_selected': IntegrationCategorySelectEventParams;
+  'integrations.directory_internal_integration_banner_clicked': IntegrationBannerClickEventParams;
   'integrations.directory_item_searched': IntegrationSearchEventParams;
   'integrations.disabled': SingleIntegrationEventParams;
   'integrations.enabled': SingleIntegrationEventParams;
@@ -131,6 +136,8 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.index_viewed': 'Integrations: Index Page Viewed',
   'integrations.directory_item_searched': 'Integrations: Directory Item Searched',
   'integrations.directory_category_selected': 'Integrations: Directory Category Selected',
+  'integrations.directory_internal_integration_banner_clicked':
+    'Integrations: Directory Internal Integration Banner Clicked',
   'integrations.serverless_functions_viewed': 'Integrations: Serverless Functions Viewed',
   'integrations.installation_input_value_changed':
     'Integrations: Installation Input Value Changed',
