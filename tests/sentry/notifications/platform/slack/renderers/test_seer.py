@@ -37,6 +37,8 @@ class SeerSlackRendererTest(TestCase):
         changes: list[SeerAutofixCodeChange] | None = None,
         pull_requests: list[SeerAutofixPullRequest] | None = None,
         handoff_target: str | None = None,
+        reasoning_header: str | None = None,
+        steps_header: str | None = None,
     ) -> SeerAutofixUpdate:
         return SeerAutofixUpdate(
             run_id=MOCK_RUN_ID,
@@ -51,6 +53,8 @@ class SeerSlackRendererTest(TestCase):
             changes=changes or [],
             pull_requests=pull_requests or [],
             handoff_target=handoff_target,
+            reasoning_header=reasoning_header,
+            steps_header=steps_header,
         )
 
     def test_render_footer_blocks_with_has_complete_stage(self) -> None:
