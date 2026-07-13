@@ -39,7 +39,7 @@ const mockHandleAddMultipleQueriesToDashboard = jest.mocked(
 
 describe('useSaveAsMetricItems', () => {
   const organization = OrganizationFixture({
-    features: ['tracemetrics-enabled', 'tracemetrics-equations-in-alerts'],
+    features: ['tracemetrics-enabled'],
   });
   const project = ProjectFixture({id: '1'});
   const queryClient = makeTestQueryClient();
@@ -267,11 +267,7 @@ describe('useSaveAsMetricItems', () => {
 
   it('enables equations in add-to-dashboard with the feature flag', () => {
     const orgWithEquationsInDashboards = OrganizationFixture({
-      features: [
-        'tracemetrics-enabled',
-        'tracemetrics-equations-in-alerts',
-        'tracemetrics-equations-in-dashboards',
-      ],
+      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-dashboards'],
     });
 
     // Break the equation into its components to match how metric queries are encoded:
