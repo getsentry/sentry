@@ -96,8 +96,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
     >
       <StoryGrid>
         <StoryContainer style={{gap: theme.space['2xl']}}>
-          <Flex
-            direction="column"
+          <Stack
             gap="xl"
             padding={
               props.story.exports.frontmatter?.layout === 'document'
@@ -128,7 +127,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
                 {description}
               </Text>
             )}
-          </Flex>
+          </Stack>
 
           <StoryTabList />
         </StoryContainer>

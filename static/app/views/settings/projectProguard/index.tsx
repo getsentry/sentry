@@ -2,7 +2,7 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -108,7 +108,7 @@ export default function ProjectProguard() {
         )}
       />
 
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         <SearchBar
           placeholder={t('Filter mappings')}
           onSearch={handleSearch}
@@ -147,7 +147,7 @@ export default function ProjectProguard() {
             : null}
         </StyledPanelTable>
         <Pagination pageLinks={mappingsPageLinks} />
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }

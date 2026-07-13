@@ -45,7 +45,7 @@ def deliver_night_shift_result(
         SeerNightShiftRunShard.objects.filter(
             seer_run__uuid=run_uuid, run__organization_id=organization_id
         )
-        .select_related("run", "run__organization")
+        .select_related("run", "run__organization", "seer_run")
         .first()
     )
     if shard is None:
@@ -55,6 +55,8 @@ def deliver_night_shift_result(
         )
         return
     run = shard.run
+    # Guaranteed by the seer_run__uuid filter above: a null FK can't match a uuid.
+    assert shard.seer_run is not None
 
     # Per-delivery error_message lives on the shard so a sibling shard's success
     # can't clear it.
@@ -63,7 +65,9 @@ def deliver_night_shift_result(
 
     log_extra: dict[str, object] = {
         "organization_id": run.organization_id,
-        "run_id": run.id,
+        "run_id": shard.seer_run.seer_run_state_id,
+        "sentry_run_id": run_uuid,
+        "night_shift_run_id": run.id,
     }
 
     if status == "error" or result is None:
@@ -131,10 +135,14 @@ def _process_verdicts(
 
     # Groups this run already has a result row for (e.g. Seer redelivered a
     # shard result): don't re-trigger autofix or write duplicate rows for them.
+    # Matched on group_id, not idempotency_key, so rows written before
+    # idempotency_key existed (and are still null) are recognized too.
     recorded_group_ids = set(
-        SeerNightShiftRunResult.objects.filter(run=run, group_id__in=group_ids).values_list(
-            "group_id", flat=True
-        )
+        SeerNightShiftRunResult.objects.filter(
+            run=run,
+            kind=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+            group_id__in=group_ids,
+        ).values_list("group_id", flat=True)
     )
 
     # SKIP and ROOT_CAUSE_ONLY are both suppressed from future runs via the skip
@@ -228,6 +236,7 @@ def _process_verdicts(
                 run=run,
                 kind=SeerWorkflowStrategy.AGENTIC_TRIAGE,
                 group=groups_by_id[v.group_id],
+                idempotency_key=str(v.group_id),
                 seer_run_id=seer_run_id,
                 result_seer_run=result_seer_run,
                 extras=extras,

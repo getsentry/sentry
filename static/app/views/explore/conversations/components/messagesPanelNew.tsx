@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
@@ -282,20 +282,20 @@ export function MessagesPanelSkeleton() {
           <Placeholder height="14px" width="180px" />
         </UserMessageBlock>
         <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
-          <Flex direction="column" gap="md">
+          <Stack gap="md">
             <Placeholder style={invertedPlaceholderStyle} height="12px" width="320px" />
             <Placeholder style={invertedPlaceholderStyle} height="12px" width="260px" />
             <Placeholder style={invertedPlaceholderStyle} height="12px" width="180px" />
-          </Flex>
+          </Stack>
         </AssistantMessageBlock>
         <UserMessageBlock>
           <Placeholder height="14px" width="120px" />
         </UserMessageBlock>
         <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
-          <Flex direction="column" gap="md">
+          <Stack gap="md">
             <Placeholder style={invertedPlaceholderStyle} height="12px" width="280px" />
             <Placeholder style={invertedPlaceholderStyle} height="12px" width="200px" />
-          </Flex>
+          </Stack>
         </AssistantMessageBlock>
       </Stack>
     </PanelContainer>
@@ -304,15 +304,9 @@ export function MessagesPanelSkeleton() {
 
 function PanelContainer({children}: {children: React.ReactNode}) {
   return (
-    <Flex
-      direction="column"
-      padding="xl 0"
-      background="primary"
-      minHeight="100%"
-      width="100%"
-    >
+    <Stack padding="xl 0" background="primary" minHeight="100%" width="100%">
       {children}
-    </Flex>
+    </Stack>
   );
 }
 

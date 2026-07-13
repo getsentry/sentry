@@ -340,6 +340,21 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Idempotency guard for self-chaining tasks (merge_groups / unmerge): dedupe the chain-step
+# spawn keyed on the broker activation id so a broker re-pend cannot fork the chain.
+register(
+    "taskworker.selfchain_idempotency.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.selfchain_idempotency.ttl",
+    default=3600,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "cleanup.abort_execution",
@@ -3102,6 +3117,14 @@ register(
     "notifications.platform-rollout.general-access",
     type=Dict,
     default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Rollout rate for resolution activity notifications via the notification platform
+register(
+    "notifications.platform.resolution-notifications.rollout-rate",
+    type=Float,
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

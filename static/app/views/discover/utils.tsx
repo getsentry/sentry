@@ -921,3 +921,7 @@ export const SAVED_QUERY_DATASET_TO_WIDGET_TYPE = {
   [SavedQueryDatasets.ERRORS]: WidgetType.ERRORS,
   [SavedQueryDatasets.TRANSACTIONS]: WidgetType.TRANSACTIONS,
 };
+
+export function getTransactionsDeprecation(organization: Organization) {
+  return organization.features.includes('discover-saved-queries-deprecation');
+}

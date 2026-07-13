@@ -38,9 +38,9 @@ function getSortTooltip(key: IssueSortOptions) {
     case IssueSortOptions.RECOMMENDED:
     case IssueSortOptions.RECOMMENDED_V1:
     case IssueSortOptions.RECOMMENDED_EXPERIMENTAL:
-      return t('Issues ranked by combined recency, severity, and impact signals.');
+      return t('Relevance and impact.');
     case IssueSortOptions.PROGRESS:
-      return t('Issues ranked by how far along they are toward a fix.');
+      return t('Progress toward a fix.');
     case IssueSortOptions.DATE:
     default:
       return t('Last time the issue occurred.');
@@ -56,6 +56,9 @@ export function IssueListSortOptions({
   showIcon = true,
 }: Props) {
   const organization = useOrganization();
+  const hasRecommendedSortDefault = organization.features.includes(
+    'issue-stream-recommended-sort-default'
+  );
   const hasProgressSort =
     organization.features.includes('issue-stream-progress-sort') ||
     sort === IssueSortOptions.PROGRESS;
@@ -74,13 +77,13 @@ export function IssueListSortOptions({
     organization.features.includes('issue-stream-recommended-sort-default') ||
     sortKey === IssueSortOptions.RECOMMENDED;
   const sortKeys = [
+    ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
     ...(FOR_REVIEW_QUERIES.includes(query || '') ? [IssueSortOptions.INBOX] : []),
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
     IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
-    ...(hasRecommendedSort ? [IssueSortOptions.RECOMMENDED] : []),
     ...(hasProgressSort ? [IssueSortOptions.PROGRESS] : []),
   ];
 
@@ -93,6 +96,9 @@ export function IssueListSortOptions({
         value: key,
         label: getSortLabel(key),
         details: getSortTooltip(key),
+        ...(key === IssueSortOptions.RECOMMENDED
+          ? {trailingItems: <FeatureBadge type="new" />}
+          : {}),
       }))}
       menuWidth={240}
       value={sortKey}
@@ -102,8 +108,7 @@ export function IssueListSortOptions({
           size={triggerSize}
           icon={showIcon && <IconSort />}
         >
-          {organization.features.includes('issue-stream-recommended-sort-default') &&
-          sortKey === IssueSortOptions.RECOMMENDED ? (
+          {hasRecommendedSortDefault && sortKey === IssueSortOptions.RECOMMENDED ? (
             <Flex as="span" gap="sm" align="center">
               {triggerProps.children}
               <FeatureBadge
