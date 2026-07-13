@@ -104,7 +104,8 @@ def breadcrumbs_section(model: EventObject, fmt: Formatter, limits: Limits) -> s
         line = f"{level}{category}{crumb.message or ''}".strip()
         if crumb.data:
             line += f" {crumb.data}"
-        lines.append(_truncate(line, limits.max_single_breadcrumb_chars))
+        if line:
+            lines.append(_truncate(line, limits.max_single_breadcrumb_chars))
 
     if not lines:
         return ""
@@ -169,13 +170,16 @@ def threads_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
 
 
 def spans_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
-    if not model.spans:
-        return ""
     lines: list[str] = []
     for span in model.spans:
         label = ": ".join(p for p in (span.op, span.description) if p)
         timing = f" ({span.exclusive_time_ms}ms)" if span.exclusive_time_ms is not None else ""
-        lines.append(f"{label}{timing}".strip())
+        line = f"{label}{timing}".strip()
+        if line:
+            lines.append(line)
+
+    if not lines:
+        return ""
     return fmt.block("Span Evidence", _truncate("\n".join(lines), limits.max_spans_chars))
 
 

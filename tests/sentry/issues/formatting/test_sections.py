@@ -199,6 +199,17 @@ def test_spans_section() -> None:
     assert "db: SELECT 1 (12.5ms)" in out
 
 
+def test_spans_all_blank_renders_nothing() -> None:
+    # spans present but every field empty -> no empty "## Span Evidence" block
+    event = EventObject(title="t", spans=[EvidenceSpan(), EvidenceSpan()])
+    assert spans_section(event, MD, LIMITS_DEFAULT) == ""
+
+
+def test_breadcrumbs_all_blank_renders_nothing() -> None:
+    event = EventObject(title="t", breadcrumbs=[Breadcrumb(), Breadcrumb()])
+    assert breadcrumbs_section(event, MD, LIMITS_DEFAULT) == ""
+
+
 def _serialized_event() -> dict[str, Any]:
     return {
         "eventID": "abc123",
