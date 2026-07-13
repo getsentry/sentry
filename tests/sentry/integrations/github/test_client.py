@@ -346,6 +346,41 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
+    def test_get_with_pagination_parallel_preserves_path_query_params(self, get_jwt) -> None:
+        # A query string embedded in ``path`` must ride along on every page the
+        # parallel fan-out fetches, not just the first. ``fetch_page`` reuses
+        # ``path``, so pages 2..N keep the original query params alongside the
+        # reconstructed per_page/page. No caller does this today (all pass bare
+        # paths), so this locks in that invariant. The strict query_param_matcher
+        # fails the request if ``type`` is dropped from any page.
+        pp = self.github_client.page_size
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees"
+        last_link = f'<{url}?type=all&per_page={pp}&page=2>; rel="last"'
+        responses.add(
+            method=responses.GET,
+            url=url,
+            match=[matchers.query_param_matcher({"type": "all", "per_page": pp})],
+            json=[{"id": 1}],
+            headers={"link": last_link},
+        )
+        responses.add(
+            method=responses.GET,
+            url=url,
+            match=[matchers.query_param_matcher({"type": "all", "per_page": pp, "page": 2})],
+            json=[{"id": 2}],
+        )
+
+        result = self.github_client._get_with_pagination(
+            f"/repos/{self.repo.name}/assignees?type=all", parallel=True
+        )
+
+        assert [item["id"] for item in result] == [1, 2]
+        assert len(responses.calls) == 2
+        # Both requests carried the query param that was embedded in ``path``.
+        assert all("type=all" in call.request.url for call in responses.calls)
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
     def test_get_with_pagination_falls_back_to_serial_without_last_link(self, get_jwt) -> None:
         # Even with parallel requested, cursor-style pagination provides `next`
         # links but no `rel="last"`, so arbitrary page jumps are unavailable and

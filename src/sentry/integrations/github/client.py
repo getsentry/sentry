@@ -820,12 +820,15 @@ class GitHubBaseClient(
                     remaining_pages = range(2, min(last_page_number, page_number_limit) + 1)
 
                     # Pages are addressed by number (per_page + page) rather than
-                    # by following Github's next-link URLs. That is only equivalent
-                    # when the request carries no other query params, which holds
-                    # for the sole opt-in caller (the repo-list endpoint sends
-                    # none). A future parallel caller that adds filter/sort/q params
-                    # would need them threaded in here, since this reconstructed URL
-                    # would otherwise silently drop them.
+                    # by following Github's next-link URLs. Any query params
+                    # already in ``path`` survive because fetch_page reuses it, so
+                    # this matches next-link following for offset-paginated
+                    # endpoints (the only kind we take this path for, since it is
+                    # gated on a numeric rel="last"). The one gap: if this function
+                    # ever grows a ``params`` argument for filter/sort/q, fetch_page
+                    # must forward it too -- it hardcodes only per_page and page, so
+                    # params supplied any way other than via ``path`` would be
+                    # dropped from pages 2..N.
                     def fetch_page(page_number: int) -> Any:
                         return self.get(
                             path,
