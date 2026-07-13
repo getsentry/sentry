@@ -16,6 +16,7 @@ from django.db.models import F
 
 from sentry import features, quotas
 from sentry.constants import DataCategory, ObjectStatus
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.utils.hostname import instance_hostname
 from sentry.models.organization import Organization
@@ -94,7 +95,7 @@ def track_contributor_seat(
     *,
     organization: Organization,
     repo: Repository,
-    integration: RpcIntegration,
+    integration: Integration | RpcIntegration,
     user_id: str | int,
     user_username: str,
     logs_extra: Mapping[str, Any] | None = None,
@@ -137,7 +138,7 @@ def record_contributor_action(
     *,
     organization: Organization,
     repo: Repository,
-    integration: RpcIntegration,
+    integration: Integration | RpcIntegration,
     user_id: str | int,
     user_username: str | None,
     pr_number: str | int,
