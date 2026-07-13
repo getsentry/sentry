@@ -1,3 +1,4 @@
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 /**
@@ -13,7 +14,15 @@ export interface SentryAppTemplate {
   slug: string;
 }
 
-const SENTRY_APP_TEMPLATES: SentryAppTemplate[] = [];
+const SENTRY_APP_TEMPLATES: SentryAppTemplate[] = [
+  {
+    slug: 'claude-routine',
+    heading: t('Trigger a Claude routine'),
+    description: t(
+      'New issues will fire your Claude routine with a short plain-text prompt linking to the issue.'
+    ),
+  },
+];
 
 export function getSentryAppTemplates(organization: Organization): SentryAppTemplate[] {
   if (!organization.features.includes('sentry-apps-creation-templates')) {
