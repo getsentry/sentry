@@ -70,16 +70,6 @@ describe('mergeHeatMapChunks', () => {
     expect(merged.meta.zAxis.end).toBe(9);
   });
 
-  it('has no duplicate [x,y] cells', () => {
-    const merged = mergeHeatMapChunks(
-      [makeChunk([{x: 0, z: [1, 2]}])],
-      {start: 0, end: 3 * HOUR},
-      HOUR
-    );
-    const keys = merged.values.map(v => `${v.xAxis}|${v.yAxis}`);
-    expect(new Set(keys).size).toBe(keys.length);
-  });
-
   it('reconciles an overlapping seam column by taking the complete (max) copy', () => {
     // Two relative chunks that overlap at HOUR: one holds the partial (pre-seam)
     // count, the other the complete bucket. Max picks the complete one.

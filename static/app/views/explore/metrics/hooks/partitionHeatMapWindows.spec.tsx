@@ -26,20 +26,19 @@ const spanHours = (window: {end: string; start: string}) =>
   );
 
 describe('partitionDateTimeIntoHeatMapWindows', () => {
-  it('returns an empty plan (nothing to fetch) for an unparseable interval', () => {
+  it('returns an empty plan when the interval is unusable', () => {
+    // No usable interval — unparseable or missing — means nothing to fetch.
+    const empty = {windows: [], timeDomain: {start: 0, end: 0}};
     expect(
       partitionDateTimeIntoHeatMapWindows(
         absolute(0, 100 * HOUR),
         'garbage',
         'progressive'
       )
-    ).toMatchObject({windows: [], timeDomain: {start: 0, end: 0}});
-  });
-
-  it('returns an empty plan when there is no interval', () => {
+    ).toMatchObject(empty);
     expect(
       partitionDateTimeIntoHeatMapWindows(absolute(0, 100 * HOUR), null, 'progressive')
-    ).toMatchObject({windows: [], timeDomain: {start: 0, end: 0}});
+    ).toMatchObject(empty);
   });
 
   it('exposes the whole selection as a fallback window even when chunked', () => {

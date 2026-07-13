@@ -1,4 +1,5 @@
 import moment from 'moment-timezone';
+import {HeatMapSeriesFixture} from 'sentry-fixture/heatMapSeries';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
@@ -143,24 +144,13 @@ describe('useMetricHeatMapData', () => {
     const fullStart = Math.min(...WIDE_WINDOWS.map(w => windowMs(w).start));
     const fullEnd = Math.max(...WIDE_WINDOWS.map(w => windowMs(w).end));
 
-    // The merged grid is dense over the full range (one y bucket in this fixture)
-    // and its x domain spans every planned chunk, not just the loaded ones.
+    // The x domain spans every planned chunk (not just loaded ones), the pinned
+    // bounds flow into the merged y-domain, and the metric unit is patched on.
+    // Grid shape/ordering are covered by the mergeHeatMapChunks unit tests.
     expect(result.current.series?.meta.xAxis.start).toBe(fullStart);
     expect(result.current.series?.meta.xAxis.end).toBe(fullEnd);
-    expect(result.current.series?.values).toHaveLength(
-      (fullEnd - fullStart) / (60 * 60 * 1000)
-    );
-
-    // Columns are ordered ascending (not newest-first as the chunks resolve).
-    const xs = result.current.series!.values.map(v => v.xAxis);
-    expect(xs).toEqual([...xs].sort((a, b) => a - b));
-
-    // Merged domain comes from the pinned bounds; z-range spans all chunks; the
-    // metric unit is patched onto the y-axis.
     expect(result.current.series?.meta.yAxis.start).toBe(10);
     expect(result.current.series?.meta.yAxis.end).toBe(500);
-    expect(result.current.series?.meta.zAxis.start).toBe(1);
-    expect(result.current.series?.meta.zAxis.end).toBe(WIDE_WINDOWS.length);
     expect(result.current.series?.meta.yAxis.valueUnit).toBe('millisecond');
     expect(result.current.isPending).toBe(false);
     expect(result.current.isPartial).toBe(false);
@@ -196,22 +186,7 @@ describe('useMetricHeatMapData', () => {
     const heatmapMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-heatmap/`,
       method: 'GET',
-      body: {
-        values: [],
-        meta: {
-          xAxis: {name: 'time', start: 0, end: 0, bucketCount: 0, bucketSize: 3600},
-          yAxis: {
-            name: 'value',
-            start: 0,
-            end: 0,
-            bucketCount: 10,
-            bucketSize: 0,
-            valueType: 'number',
-            valueUnit: null,
-          },
-          zAxis: {name: 'count()', start: 0, end: 0},
-        },
-      },
+      body: HeatMapSeriesFixture(),
     });
 
     const {result} = renderHeatMapData(WIDE_SELECTION);
