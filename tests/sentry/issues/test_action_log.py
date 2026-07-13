@@ -698,6 +698,35 @@ class TestPublishActionWrite(TestCase):
         # No async task needed (single entry = caught up)
         mock_task.delay.assert_not_called()
 
+    def test_idempotency_key_publish(self) -> None:
+        idempotency_key = "test_idempotency_key_publish"
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                project=self.group.project,
+                actor=GroupActionActor.user(self.user.id),
+                idempotency_key=idempotency_key,
+            )
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.idempotency_key == idempotency_key
+
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            outbox_runner(),
+        ):
+            # Tacitly assert silent failure / no exception
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                project=self.group.project,
+                actor=GroupActionActor.user(self.user.id),
+                idempotency_key=idempotency_key,
+            )
+
 
 class TestCaptureActionLog(TestCase):
     def _publish(self, action: GroupAction, **kwargs: Any) -> None:
