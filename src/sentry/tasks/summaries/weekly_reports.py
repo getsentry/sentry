@@ -37,7 +37,12 @@ from sentry.tasks.summaries.metrics import (
 from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
-from sentry.tasks.summaries.utils import ONE_DAY, PAST_ISSUES_LINK_BOOST, OrganizationReportContext
+from sentry.tasks.summaries.utils import (
+    ONE_DAY,
+    PAST_ISSUES_LINK_BOOST,
+    OrganizationReportContext,
+    ProjectContext,
+)
 from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.types.group import GroupSubStatus
@@ -612,7 +617,27 @@ def render_template_context(
     local_start, local_end = get_local_dates(ctx, user_id)
 
     # Render the first section of the email where we had the table showing the
-    # number of accepted errors/transactions for each project.
+    # number of errors, new/escalating/regressed issues for each project.
+    def _substatus_url(project_ctx: ProjectContext, query: str) -> str:
+        return project_ctx.project.get_absolute_url(
+            params={
+                "referrer": "weekly_report",
+                "notification_uuid": notification_uuid,
+                "query": query,
+            }
+        )
+
+    def _multi_project_substatus_url(project_ctxs: list[ProjectContext], query: str) -> str:
+        path = f"/organizations/{ctx.organization.slug}/issues/"
+        params = [
+            ("referrer", "weekly_report"),
+            ("notification_uuid", notification_uuid),
+            ("query", query),
+        ]
+        for pc in project_ctxs:
+            params.append(("project", pc.project.id))
+        return ctx.organization.absolute_url(path, query=urlencode(params))
+
     def trends():
         # Given an iterator of event counts, sum up their accepted errors/transaction counts.
         def sum_error_counts(project_ctxs):
@@ -645,8 +670,11 @@ def render_template_context(
                 "color": project_breakdown_colors[i],
                 "accepted_error_count": project_ctx.accepted_error_count,
                 "new_substatus_count": project_ctx.new_substatus_count,
+                "new_substatus_url": _substatus_url(project_ctx, "is:new"),
                 "escalating_substatus_count": project_ctx.escalating_substatus_count,
+                "escalating_substatus_url": _substatus_url(project_ctx, "is:escalating"),
                 "regression_substatus_count": project_ctx.regression_substatus_count,
+                "regression_substatus_url": _substatus_url(project_ctx, "is:regressed"),
             }
             for i, project_ctx in enumerate(projects_taken)
         ]
@@ -659,11 +687,18 @@ def render_template_context(
                     "color": other_color,
                     "accepted_error_count": others_error,
                     "new_substatus_count": sum(p.new_substatus_count for p in projects_not_taken),
+                    "new_substatus_url": _multi_project_substatus_url(projects_not_taken, "is:new"),
                     "escalating_substatus_count": sum(
                         p.escalating_substatus_count for p in projects_not_taken
                     ),
+                    "escalating_substatus_url": _multi_project_substatus_url(
+                        projects_not_taken, "is:escalating"
+                    ),
                     "regression_substatus_count": sum(
                         p.regression_substatus_count for p in projects_not_taken
+                    ),
+                    "regression_substatus_url": _multi_project_substatus_url(
+                        projects_not_taken, "is:regressed"
                     ),
                 }
             )
@@ -676,11 +711,20 @@ def render_template_context(
                     "new_substatus_count": sum(
                         p.new_substatus_count for p in projects_associated_with_user
                     ),
+                    "new_substatus_url": _multi_project_substatus_url(
+                        projects_associated_with_user, "is:new"
+                    ),
                     "escalating_substatus_count": sum(
                         p.escalating_substatus_count for p in projects_associated_with_user
                     ),
+                    "escalating_substatus_url": _multi_project_substatus_url(
+                        projects_associated_with_user, "is:escalating"
+                    ),
                     "regression_substatus_count": sum(
                         p.regression_substatus_count for p in projects_associated_with_user
+                    ),
+                    "regression_substatus_url": _multi_project_substatus_url(
+                        projects_associated_with_user, "is:regressed"
                     ),
                 }
             )
@@ -842,6 +886,9 @@ def render_template_context(
         ]
     )
 
+    view_all_issues_url = _multi_project_substatus_url(user_projects, "is:unresolved")
+    view_all_errors_url = _multi_project_substatus_url(user_projects, "is:unresolved")
+
     return {
         "organization": ctx.organization,
         "start": date_format(local_start),
@@ -855,6 +902,8 @@ def render_template_context(
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
         "errors_discover_query": errors_discover_query,
+        "view_all_issues_url": view_all_issues_url,
+        "view_all_errors_url": view_all_errors_url,
         "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
         "show_week_over_week_metric": features.has(
             "organizations:weekly-report-week-over-week-metric", ctx.organization
