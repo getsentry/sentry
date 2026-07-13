@@ -372,7 +372,6 @@ function ReleaseOverview() {
                     release={release}
                     releaseSessions={thisRelease}
                     allSessions={allReleases}
-                    platform={project.platform}
                     loading={loading}
                     reloading={reloading}
                     errored={errored}

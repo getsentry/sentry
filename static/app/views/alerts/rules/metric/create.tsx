@@ -83,7 +83,6 @@ export function MetricRulesCreate(props: Props) {
       rule={{...defaultRule, environment, projects: [project.slug]}}
       sessionId={sessionId}
       project={project}
-      userTeamIds={userTeamIds}
       eventView={eventView}
       location={location}
       {...otherProps}

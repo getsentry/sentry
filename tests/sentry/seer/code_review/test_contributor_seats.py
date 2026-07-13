@@ -244,6 +244,7 @@ class TrackContributorSeatTest(TestCase):
             external_identifier="999",
         )
         assert contributor.alias == "newuser"
+        assert contributor.provider == "github"
         assert contributor.num_actions == 0
         mock_logger.info.assert_not_called()
 
@@ -330,6 +331,7 @@ class RecordContributorActionTest(TestCase):
 
         contributor = self._contributor()
         assert contributor.alias == "alice"
+        assert contributor.provider == "github"
         assert contributor.num_actions == 0
         assert self._action_count() == 0
 

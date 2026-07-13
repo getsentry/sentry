@@ -94,7 +94,6 @@ type LogsTableProps = {
     event?: Event;
     scrollToDisabled?: boolean;
   };
-  allowPagination?: boolean;
   booleanAttributes?: TagCollection;
   embedded?: boolean;
   embeddedOptions?: {

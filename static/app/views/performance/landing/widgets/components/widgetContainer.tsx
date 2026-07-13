@@ -55,7 +55,6 @@ interface Props extends ChartRowProps {
   rowChartSettings: PerformanceWidgetSetting[];
   setRowChartSettings: (settings: PerformanceWidgetSetting[]) => void;
   withStaticFilters: boolean;
-  chartColor?: string;
   forceDefaultChartSetting?: boolean;
 }
 

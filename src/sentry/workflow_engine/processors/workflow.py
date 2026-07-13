@@ -11,6 +11,7 @@ from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.services.eventstore.models import GroupEvent
+from sentry.utils.tracing import trace
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.caches.action_filters import get_action_filters_by_workflows
 from sentry.workflow_engine.caches.workflow import get_workflows_by_detectors
@@ -21,11 +22,11 @@ from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContextData,
 )
 from sentry.workflow_engine.processors.data_condition_group import (
-    TriggerResult,
     get_data_conditions_for_group,
     process_data_condition_group,
 )
 from sentry.workflow_engine.processors.detector import get_detectors_for_event_data
+from sentry.workflow_engine.processors.evaluations import TriggerResult
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import (
     WorkflowEvaluation,
@@ -132,7 +133,7 @@ def _get_data_conditions_for_group_by_dcg(dcg_ids: Sequence[int]) -> dict[int, l
     )
 
 
-@sentry_sdk.trace
+@trace
 @scopedstats.timer()
 def evaluate_workflow_triggers(
     workflows: set[Workflow],
@@ -236,7 +237,7 @@ def evaluate_workflow_triggers(
     return triggered_workflows, queue_items_by_workflow, stats
 
 
-@sentry_sdk.trace
+@trace
 @scopedstats.timer()
 def evaluate_workflows_action_filters(
     triggered_workflows: dict[Workflow, TriggerResult],

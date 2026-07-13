@@ -11,10 +11,12 @@ from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.analytics.events.rule_reenable import RuleReenableEdit
 from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.models.environment import Environment
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.sentry_apps.services.app.model import RpcAlertRuleActionResult
 from sentry.sentry_apps.utils.errors import SentryAppErrorType
@@ -124,6 +126,16 @@ def assert_serializer_results_match(
             del rule_action_data["legacy_rule_id"]
         if rule_action_data.get("workflow_id"):
             del rule_action_data["workflow_id"]
+        # NotifyEventAction dual-writes to WEBHOOK("webhooks"), which serializes back as
+        # NotifyEventServiceAction(service="webhooks"). This divergence is intentional, so treat the
+        # two forms as equal.
+        if (
+            rule_action_data.get("id") == "sentry.rules.actions.notify_event.NotifyEventAction"
+            and workflow_action_data.get("id")
+            == "sentry.rules.actions.notify_event_service.NotifyEventServiceAction"
+            and workflow_action_data.get("service") == "webhooks"
+        ):
+            continue
         assert rule_action_data == workflow_action_data
 
     # XXX: actionMatch is always coerced to 'any-short' for a Workflow as it is the only acceptable value
@@ -182,7 +194,7 @@ class ProjectRuleDetailsBaseTestCase(APITestCase, BaseWorkflowTest):
             }
         ]
         # create single written workflow
-        self.detector = self.create_detector()
+        self.detector = self.create_detector(project=self.project)
         self.workflow_triggers = self.create_data_condition_group()
         self.workflow = self.create_workflow(
             when_condition_group=self.workflow_triggers,
@@ -249,6 +261,40 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
     def test_non_existing_rule(self) -> None:
         self.get_error_response(self.organization.slug, self.project.slug, 12345, status_code=404)
 
+    def test_cannot_get_other_project_workflow_rule(self) -> None:
+        """
+        Test that a user with access to project A but not project B must not be able to
+        reach project B's workflow-backed rule by using project A's slug in the
+        URL together with project B's rule id
+        """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],  # self.team owns self.project (project A), not project B
+        )
+        self.login_as(member_user)
+
+        other_project = self.create_project(organization=self.organization)
+
+        # Dual-written rule in project B (resolved via AlertRuleWorkflow.rule_id).
+        other_rule = self.create_project_rule(project=other_project)
+        self.get_error_response(
+            self.organization.slug, self.project.slug, other_rule.id, status_code=404
+        )
+
+        # Single-written workflow in project B (resolved via the fake workflow id).
+        other_detector = self.create_detector(project=other_project)
+        other_workflow = self.create_workflow(organization=self.organization)
+        self.create_detector_workflow(detector=other_detector, workflow=other_workflow)
+        fake_other_workflow_id = get_fake_id_from_object_id(other_workflow.id)
+        self.get_error_response(
+            self.organization.slug, self.project.slug, fake_other_workflow_id, status_code=404
+        )
+
     @freeze_time()
     def test_last_triggered(self) -> None:
         response = self.get_success_response(
@@ -298,6 +344,12 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
 
 class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
     method = "PUT"
+
+    def setUp(self) -> None:
+        super().setUp()
+        # NotifyEventAction (used by several tests) only dual-writes a WEBHOOK action when webhooks
+        # are enabled; enable it so the parity checks have a comparable action to compare.
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
 
     def mock_conversations_list(self, channels):
         return patch(
@@ -1548,6 +1600,63 @@ class DeleteProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert not Workflow.objects.filter(id=workflow.id).exists()
         other_rule.refresh_from_db()
         assert other_rule.status == ObjectStatus.ACTIVE
+
+    def test_cannot_delete_other_project_workflow_rule(self) -> None:
+        """
+        Test that a user with access to project A but not project B must not be able to
+        delete project B's workflow-backed rule via project A's slug
+        """
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member_user = self.create_user()
+        self.create_member(
+            user=member_user,
+            organization=self.organization,
+            role="member",
+            teams=[self.team],  # self.team owns self.project (project A), not project B
+        )
+        self.login_as(member_user)
+
+        other_project = self.create_project(organization=self.organization)
+
+        # Dual-written rule in project B (resolved via AlertRuleWorkflow.rule_id).
+        other_rule = self.create_project_rule(project=other_project)
+        other_workflow = AlertRuleWorkflow.objects.get(rule_id=other_rule.id).workflow
+        self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            other_rule.id,
+            method="delete",
+            status_code=404,
+        )
+        other_rule.refresh_from_db()
+        other_workflow.refresh_from_db()
+        assert other_rule.status == ObjectStatus.ACTIVE
+        assert other_workflow.status == ObjectStatus.ACTIVE
+        assert not CellScheduledDeletion.objects.filter(
+            model_name="Workflow", object_id=other_workflow.id
+        ).exists()
+        assert not CellScheduledDeletion.objects.filter(
+            model_name="Rule", object_id=other_rule.id
+        ).exists()
+
+        # Single-written workflow in project B (resolved via the fake workflow id).
+        other_detector = self.create_detector(project=other_project)
+        single_written_workflow = self.create_workflow(organization=self.organization)
+        self.create_detector_workflow(detector=other_detector, workflow=single_written_workflow)
+        fake_other_workflow_id = get_fake_id_from_object_id(single_written_workflow.id)
+        self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            fake_other_workflow_id,
+            method="delete",
+            status_code=404,
+        )
+        single_written_workflow.refresh_from_db()
+        assert single_written_workflow.status == ObjectStatus.ACTIVE
+        assert not CellScheduledDeletion.objects.filter(
+            model_name="Workflow", object_id=single_written_workflow.id
+        ).exists()
 
 
 class GetProjectRuleDetailsDeltaTest(ProjectRuleDetailsBaseTestCase):

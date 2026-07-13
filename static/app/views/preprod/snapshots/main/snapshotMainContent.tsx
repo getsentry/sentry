@@ -3,7 +3,7 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -22,7 +22,7 @@ import type {SidebarItem} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {DiffImageDisplay, type DiffMode} from './imageDisplay/diffImageDisplay';
 import {SingleImageDisplay} from './imageDisplay/singleImageDisplay';
-import {CardHeader, DarkAware, ErroredBanner} from './snapshotCards';
+import {CardHeader, DarkAware, ErroredBanner, useCanvasTheme} from './snapshotCards';
 import {SnapshotCardFrame, SnapshotVariantFrame} from './snapshotFrames';
 import {
   buildSnapshotLink,
@@ -112,8 +112,18 @@ export function SnapshotMainContent({
 }: SnapshotMainContentProps) {
   const organization = useOrganization();
   const breakpoints = useBreakpoints();
-  const [isDark, setIsDark] = useState(false);
-  const toggleDark = useCallback(() => setIsDark(v => !v), []);
+  const selectedImage = useMemo(() => {
+    if (!selectedItem) {
+      return null;
+    }
+    return isPairSidebarItem(selectedItem)
+      ? selectedItem.pairs[variantIndex]?.head_image
+      : selectedItem.images[variantIndex];
+  }, [selectedItem, variantIndex]);
+  const {isDark, toggleIsDark} = useCanvasTheme(
+    selectedImage?.canvas_theme,
+    selectedImage?.key // reused across images: resync the canvas on navigation
+  );
   const [scrollProgress, setScrollProgress] = useState(0);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
@@ -222,14 +232,7 @@ export function SnapshotMainContent({
 
   if (viewMode === 'list') {
     return (
-      <Flex
-        direction="column"
-        gap="0"
-        padding="0"
-        height="100%"
-        width="100%"
-        background="secondary"
-      >
+      <Stack gap="0" padding="0" height="100%" width="100%" background="secondary">
         <ToolbarContainer
           toggle={toggle}
           sortDropdown={sortDropdown}
@@ -252,13 +255,13 @@ export function SnapshotMainContent({
           diffImageBaseUrl={diffImageBaseUrl}
           onVisibleGroupChange={onVisibleGroupChange}
         />
-      </Flex>
+      </Stack>
     );
   }
 
   if (!selectedItem) {
     return (
-      <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
+      <Stack gap="0" padding="0" height="100%" width="100%">
         <ToolbarContainer
           toggle={toggle}
           sortDropdown={sortDropdown}
@@ -268,7 +271,7 @@ export function SnapshotMainContent({
         <Flex align="center" justify="center" padding="3xl" width="100%" flex="1">
           <Text variant="muted">{t('Select an image from the sidebar.')}</Text>
         </Flex>
-      </Flex>
+      </Stack>
     );
   }
 
@@ -284,7 +287,7 @@ export function SnapshotMainContent({
     return (
       <SingleViewLayout
         isDark={isDark}
-        onToggleDark={toggleDark}
+        onToggleDark={toggleIsDark}
         groupName={groupName}
         toggle={toggle}
         soloDiffToggle={soloDiffToggle}
@@ -341,7 +344,7 @@ export function SnapshotMainContent({
     return (
       <SingleViewLayout
         isDark={isDark}
-        onToggleDark={toggleDark}
+        onToggleDark={toggleIsDark}
         groupName={groupName}
         toggle={toggle}
         soloDiffToggle={soloDiffToggle}
@@ -402,7 +405,7 @@ export function SnapshotMainContent({
   return (
     <SingleViewLayout
       isDark={isDark}
-      onToggleDark={toggleDark}
+      onToggleDark={toggleIsDark}
       groupName={groupName}
       toggle={toggle}
       soloDiffToggle={soloDiffToggle}
@@ -535,14 +538,13 @@ function SingleViewLayout({
         showBottomBorder={false}
       />
       {banner}
-      <Flex direction="column" flex="1" minHeight="0">
+      <Stack flex="1" minHeight="0">
         {body}
-      </Flex>
+      </Stack>
     </SnapshotVariantFrame>
   );
   return (
-    <Flex
-      direction="column"
+    <Stack
       gap="0"
       padding="0"
       height="100%"
@@ -559,13 +561,13 @@ function SingleViewLayout({
       />
       <SingleViewScroll ref={scrollRef}>
         <Flex direction="row" gap="xl" flex="1" minHeight="0" align="stretch">
-          <Flex direction="column" flex="1" minWidth="0">
+          <Stack flex="1" minWidth="0">
             <DarkAware isDark={isDark}>
               <SnapshotCardFrame groupName={groupName} fillHeight>
                 {card}
               </SnapshotCardFrame>
             </DarkAware>
-          </Flex>
+          </Stack>
           <Container
             flexShrink={0}
             onClick={e => e.stopPropagation()}
@@ -596,7 +598,7 @@ function SingleViewLayout({
           </Container>
         </Flex>
       </SingleViewScroll>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -616,7 +618,7 @@ const SingleViewScroll = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) and (max-width: ${p =>
-      p.theme.breakpoints.md}) {
+    p.theme.breakpoints.md}) {
     padding-left: ${p => p.theme.space.xl};
   }
 `;

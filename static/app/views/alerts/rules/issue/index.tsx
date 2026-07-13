@@ -501,11 +501,13 @@ class IssueRuleEditor extends DeprecatedAsyncComponent<Props, State> {
       try {
         scope.setTag('type', 'issue');
         scope.setTag('operation', isNew ? 'create' : 'edit');
+        scope.setAttributes({type: 'issue', operation: isNew ? 'create' : 'edit'});
 
         if (rule) {
           for (const action of rule.actions) {
             if (action.id === IssueAlertActionType.SLACK) {
               scope?.setTag('SlackNotifyServiceAction', true);
+              scope?.setAttribute('SlackNotifyServiceAction', true);
             }
             // to avoid storing inconsistent data in the db, don't pass the name fields
             delete action.name;

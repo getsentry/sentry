@@ -372,10 +372,6 @@ export type Subscription = {
   trialEnd: string | null;
   trialPlan: string | null;
   type: BillingType;
-  /**
-   * All quotas available on the plan are exceeded
-   */
-  usageExceeded: boolean;
   // Seats
   usedLicenses: number;
   acv?: number;
@@ -761,7 +757,6 @@ export type BillingMetricHistory = {
   paygCpe: number | null;
   prepaid: number;
   reserved: number | null;
-  sentUsageWarning: boolean;
   // TODO(isabella): Make SoftCapType an enum
   softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null;
   usage: number;
@@ -794,12 +789,10 @@ export type BillingHistory = {
 
 export type PreviewData = {
   atPeriodEnd: boolean;
-  balanceChange: number;
   billedAmount: number;
   creditApplied: number;
   effectiveAt: string;
   invoiceItems: PreviewInvoiceItem[];
-  newBalance: number;
   previewToken: string;
   proratedAmount: number;
   /** Only set by the next-bill preview: the plan/period the bill covers is annual. */

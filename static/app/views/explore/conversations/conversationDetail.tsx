@@ -59,14 +59,14 @@ function ConversationDetailPageLegacy() {
   return (
     <ViewportConstrainedPage background="secondary">
       <Stack flex={1} minHeight="0" overflow="hidden" padding="md 2xl" gap="md">
-        <Flex direction="column" gap="md" flexShrink={0}>
+        <Stack gap="md" flexShrink={0}>
           <ConversationSummary
             nodes={nodes}
             nodeTraceMap={nodeTraceMap}
             conversationId={conversationId}
             isLoading={isLoading}
           />
-        </Flex>
+        </Stack>
         <ConversationViewContainer>
           <ConversationViewContent
             conversation={conversation}
@@ -91,6 +91,7 @@ export function ConversationViewContainer({children}: {children: React.ReactNode
       overflow="hidden"
       border={hasConversationsRedesign ? undefined : 'primary'}
       radius={hasConversationsRedesign ? undefined : 'md'}
+      maxWidth={hasConversationsRedesign ? '1340px' : undefined}
       background="primary"
       display="flex"
     >

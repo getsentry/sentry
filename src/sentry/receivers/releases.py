@@ -1,11 +1,12 @@
 import logging
+from collections.abc import Sequence
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.db.models.signals import post_save, pre_save
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.analytics import IntegrationResolveCommitEvent, IntegrationResolvePREvent
 from sentry.issues.action_log import (
@@ -26,7 +27,6 @@ from sentry.models.grouphistory import (
 )
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
@@ -273,19 +273,44 @@ def resolved_in_pull_request(instance: PullRequest, created, **kwargs):
                 )
 
 
+def _groups_with_other_open_prs(group_ids: Sequence[int], *, closing_pr_id: int) -> set[int]:
+    """
+    Return the subset of `group_ids` that still have at least one linked PR
+    (other than `closing_pr_id`) in an open state.
+
+    A PR counts as open when its state is OPEN/LOCKED or NULL. NULL rows are
+    legacy/unsynced PRs whose real state is unknown, so we conservatively count
+    them as open.
+    """
+    sibling_links = list(
+        GroupLink.objects.filter(
+            linked_type=GroupLink.LinkedType.pull_request,
+            group_id__in=group_ids,
+        )
+        .exclude(linked_id=closing_pr_id)
+        .values_list("group_id", "linked_id")
+    )
+    if not sibling_links:
+        return set()
+
+    open_states = (PullRequestLifecycleState.OPEN, PullRequestLifecycleState.LOCKED)
+    sibling_pr_ids = {linked_id for _, linked_id in sibling_links}
+    open_pr_ids = {
+        pr_id
+        for pr_id, state in PullRequest.objects.filter(id__in=sibling_pr_ids).values_list(
+            "id", "state"
+        )
+        if state is None or state in open_states
+    }
+    return {group_id for group_id, linked_id in sibling_links if linked_id in open_pr_ids}
+
+
 def pull_request_closing(instance: PullRequest, **kwargs: object) -> None:
     """
     Emit PULL_REQUEST_CLOSED group activity when a PR transitions to closed.
     """
     try:
         if instance.state != PullRequestLifecycleState.CLOSED:
-            return
-
-        try:
-            organization = Organization.objects.get_from_cache(id=instance.organization_id)
-        except Organization.DoesNotExist:
-            return
-        if not features.has("organizations:pr-group-activity", organization):
             return
 
         if instance.pk is not None:
@@ -306,16 +331,28 @@ def pull_request_closing(instance: PullRequest, **kwargs: object) -> None:
             # This runs after the transaction commits, outside the try/except below,
             # so it needs its own error handling to avoid propagating failures.
             try:
+                # For each linked group, check whether any *other* linked PR is
+                # still open. This data is used by the published close PR action.
+                groups_with_open_prs = _groups_with_other_open_prs(
+                    group_ids, closing_pr_id=instance.id
+                )
                 for group in Group.objects.filter(id__in=group_ids).select_related("project"):
+                    has_other = group.id in groups_with_open_prs
                     Activity.objects.create(
                         project_id=group.project_id,
                         group=group,
                         type=ActivityType.PULL_REQUEST_CLOSED.value,
                         ident=str(instance.id),
-                        data={"pull_request": instance.id},
+                        data={
+                            "pull_request": instance.id,
+                            "has_other_open_prs": has_other,
+                        },
                     )
                     publish_action(
-                        PullRequestClosedAction(pull_request=instance.id),
+                        PullRequestClosedAction(
+                            pull_request=instance.id,
+                            has_other_open_prs=has_other,
+                        ),
                         source=ActionSource.SYSTEM,
                         group_id=group.id,
                         project=group.project,

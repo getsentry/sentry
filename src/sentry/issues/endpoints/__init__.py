@@ -26,7 +26,6 @@ from .organization_group_search_views_starred import OrganizationGroupSearchView
 from .organization_issues_count import OrganizationIssuesCountEndpoint
 from .organization_issues_with_supergroups import OrganizationIssuesWithSupergroupsEndpoint
 from .organization_release_previous_commits import OrganizationReleasePreviousCommitsEndpoint
-from .organization_searches import OrganizationSearchesEndpoint
 from .organization_shortid import ShortIdLookupEndpoint
 from .project_event_details import EventJsonEndpoint, ProjectEventDetailsEndpoint
 from .project_events import ProjectEventsEndpoint
@@ -66,7 +65,6 @@ __all__ = (
     "OrganizationIssuesCountEndpoint",
     "OrganizationIssuesWithSupergroupsEndpoint",
     "OrganizationReleasePreviousCommitsEndpoint",
-    "OrganizationSearchesEndpoint",
     "ProjectEventDetailsEndpoint",
     "ProjectEventsEndpoint",
     "ProjectGroupIndexEndpoint",

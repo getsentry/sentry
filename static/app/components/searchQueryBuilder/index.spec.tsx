@@ -1,6 +1,7 @@
 import type {ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 import {mutationOptions} from '@tanstack/react-query';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
@@ -17,6 +18,7 @@ import {
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import {useInitialSeerQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
@@ -138,6 +140,10 @@ const FILTER_KEY_SECTIONS: FilterKeySection[] = [
   },
 ];
 
+const numberOperatorConversionOrganization = OrganizationFixture({
+  features: ['search-query-builder-number-operator-conversion'],
+});
+
 function getLastInput() {
   const input = screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1);
 
@@ -232,6 +238,87 @@ describe('SearchQueryBuilder', () => {
     expect(
       await screen.findByRole('row', {name: 'browser.name:Firefox'})
     ).toBeInTheDocument();
+  });
+
+  describe('severity value indicators', () => {
+    const severityFilterKeys: TagCollection = {
+      ...FILTER_KEYS,
+      severity: {
+        key: 'severity',
+        name: 'Severity',
+        kind: FieldKind.FIELD,
+        predefined: true,
+        values: ['error', 'warn', 'info'],
+      },
+    };
+
+    it('renders a severity indicator next to each severity value option', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={severityFilterKeys}
+          initialQuery="severity:error"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: severity'})
+      );
+
+      const errorOption = await screen.findByRole('option', {name: 'error'});
+      expect(within(errorOption).getByTestId('severity-indicator')).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('option', {name: 'warn'})).getByTestId(
+          'severity-indicator'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('renders a severity indicator next to each level value option', async () => {
+      const levelFilterKeys: TagCollection = {
+        ...FILTER_KEYS,
+        level: {
+          key: 'level',
+          name: 'Level',
+          kind: FieldKind.FIELD,
+          predefined: true,
+          values: ['fatal', 'error', 'warning', 'info', 'sample'],
+        },
+      };
+
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={levelFilterKeys}
+          initialQuery="level:error"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: level'})
+      );
+
+      const errorOption = await screen.findByRole('option', {name: 'error'});
+      expect(within(errorOption).getByTestId('severity-indicator')).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('option', {name: 'warning'})).getByTestId(
+          'severity-indicator'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('does not render a severity indicator for non-severity value options', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      const option = await screen.findByRole('option', {name: 'Firefox'});
+      expect(within(option).queryByTestId('severity-indicator')).not.toBeInTheDocument();
+    });
   });
 
   describe('rendering search query builder', () => {
@@ -1241,6 +1328,59 @@ describe('SearchQueryBuilder', () => {
 
       expect(mockOnChange).toHaveBeenCalledTimes(1);
       expect(mockOnChange).toHaveBeenCalledWith('is:unresolved', expect.anything());
+    });
+
+    it.each([
+      ['>', 'timesSeen:>100'],
+      ['<', 'timesSeen:<100'],
+      ['=', 'timesSeen:=100'],
+    ])(
+      'adds default value for numeric filter when typing <filter>%s',
+      async (operator, expectedQuery) => {
+        render(<SearchQueryBuilder {...defaultProps} />, {
+          organization: numberOperatorConversionOrganization,
+        });
+        await userEvent.click(getLastInput());
+
+        await userEvent.keyboard(`timesSeen${operator}{Escape}`);
+
+        expect(await screen.findByRole('row', {name: expectedQuery})).toBeInTheDocument();
+      }
+    );
+
+    it('does not add a default value for numeric filters without the feature flag', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(getLastInput());
+
+      await userEvent.keyboard('timesSeen>');
+
+      expect(getLastInput()).toHaveValue('timesSeen>');
+    });
+
+    it('adds default value for numeric tag filters from filter key metadata', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: numberOperatorConversionOrganization,
+      });
+      await userEvent.click(getLastInput());
+
+      await userEvent.paste('tags[bar,number]>');
+      await userEvent.keyboard('{Escape}');
+
+      expect(
+        await screen.findByRole('row', {name: 'tags[bar,number]:>100'})
+      ).toBeInTheDocument();
+    });
+
+    it('does not automatically create a filter for non-numeric keys with comparison operators', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(getLastInput());
+
+      await userEvent.keyboard('browser.name>');
+
+      expect(getLastInput()).toHaveValue('browser.name>');
+      expect(
+        screen.queryByRole('button', {name: 'Edit key for filter: browser.name'})
+      ).not.toBeInTheDocument();
     });
 
     it('does not automatically create a filter if the user intends to wrap in quotes', async () => {
@@ -2396,6 +2536,25 @@ describe('SearchQueryBuilder', () => {
 
       expect(
         await screen.findByRole('row', {name: 'custom_tag_name:tag_value_one'})
+      ).toBeInTheDocument();
+    });
+
+    it('does not crash when opening values for Object prototype filter keys', async () => {
+      const mockGetTagValues = jest.fn().mockResolvedValue(['tag_value_one']);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          getTagValues={mockGetTagValues}
+          initialQuery="constructor:something"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: constructor'})
+      );
+
+      expect(
+        await screen.findByRole('option', {name: 'tag_value_one'})
       ).toBeInTheDocument();
     });
 
@@ -5205,6 +5364,31 @@ describe('SearchQueryBuilder', () => {
       ).toBeInTheDocument();
     });
 
+    it('should support configured filters named like Object prototype keys', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowUnsupportedFilters
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            constructor: {
+              key: 'constructor',
+              name: 'Constructor',
+              kind: FieldKind.TAG,
+            },
+          }}
+          initialQuery="constructor:value"
+        />
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('row', {name: 'constructor:value'})).not.toHaveAttribute(
+          'aria-invalid',
+          'true'
+        );
+      });
+    });
+
     describe('secondary aliases provided', () => {
       it('should not mark secondary aliases as invalid', async () => {
         render(
@@ -5514,6 +5698,34 @@ describe('SearchQueryBuilder', () => {
       expect(
         screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
       ).toHaveTextContent('bar');
+    });
+
+    it('replaces number key with suggestion when typing comparison operator', async () => {
+      render(<SearchQueryBuilder {...builderProps} />, {
+        organization: numberOperatorConversionOrganization,
+      });
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('bar>{Escape}');
+
+      expect(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
+      ).toHaveTextContent('bar');
+      expect(
+        screen.getByRole('row', {name: 'tags[bar,number]:>100'})
+      ).toBeInTheDocument();
+    });
+
+    it('does not replace string key with suggestion when typing comparison operator', async () => {
+      render(<SearchQueryBuilder {...builderProps} />);
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo>');
+
+      expect(getLastInput()).toHaveValue('foo>');
+      expect(
+        screen.queryByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
+      ).not.toBeInTheDocument();
     });
 
     it('replaces string key with suggestion on enter', async () => {
@@ -6112,6 +6324,45 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('free text', () => {
+      type AskSeerTestResponse = {
+        queries: never[];
+        status: string;
+        unsupported_reason: string | null;
+      };
+
+      function makeMockAskSeer() {
+        return jest.fn((_query: string) =>
+          Promise.resolve<AskSeerTestResponse>({
+            queries: [],
+            status: 'ok',
+            unsupported_reason: null,
+          })
+        );
+      }
+
+      function AskSeerAutoSubmitTestComponent({
+        children,
+        mockAskSeer,
+      }: {
+        children: React.ReactNode;
+        mockAskSeer: ReturnType<typeof makeMockAskSeer>;
+      }) {
+        const {displayAskSeer} = useSearchQueryBuilderAI();
+        const initialSeerQuery = useInitialSeerQuery();
+
+        return displayAskSeer ? (
+          <AskSeerComboBox
+            initialQuery={initialSeerQuery}
+            applySeerSearchQuery={() => {}}
+            askSeerMutationOptions={mutationOptions({
+              mutationFn: mockAskSeer,
+            })}
+          />
+        ) : (
+          children
+        );
+      }
+
       it('displays ask seer button when searching free text', async () => {
         const mockOnSearch = jest.fn();
         render(
@@ -6129,6 +6380,272 @@ describe('SearchQueryBuilder', () => {
         expect(
           screen.getByRole('option', {name: /Ask AI to build your query/i})
         ).toBeInTheDocument();
+      });
+
+      it('submits typed free text when opening ask seer from the dropdown', async () => {
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          enableAISearch: true,
+          initialQuery: 'browser.name:firefox',
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'find slow spans');
+
+        const askSeer = await screen.findByRole('option', {
+          name: /Ask AI to build your query/,
+        });
+        await userEvent.click(askSeer);
+
+        expect(
+          await screen.findByRole('combobox', {
+            name: 'Ask Seer with Natural Language',
+          })
+        ).toHaveValue('browser.name is firefox find slow spans ');
+        await waitFor(() => {
+          expect(mockAskSeer).toHaveBeenCalledWith(
+            'browser.name is firefox find slow spans',
+            expect.anything()
+          );
+        });
+      });
+
+      it('submits free text to ask seer when defaulting to ask seer is enabled', async () => {
+        const mockOnSearch = jest.fn();
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          defaultToAskSeerOnFreeTextSearch: true,
+          enableAISearch: true,
+          onSearch: mockOnSearch,
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'find slow spans{enter}');
+
+        expect(
+          await screen.findByRole('combobox', {
+            name: 'Ask Seer with Natural Language',
+          })
+        ).toHaveValue('find slow spans ');
+        await waitFor(() => {
+          expect(mockAskSeer).toHaveBeenCalledWith('find slow spans', expect.anything());
+        });
+        expect(mockOnSearch).not.toHaveBeenCalled();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Close Seer Search'}));
+
+        expect(
+          screen.queryByRole('row', {name: 'find slow spans'})
+        ).not.toBeInTheDocument();
+        expect(screen.queryByDisplayValue('find slow spans')).not.toBeInTheDocument();
+      });
+
+      it('does not duplicate committed free text when defaulting to ask seer', async () => {
+        const mockOnSearch = jest.fn();
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          defaultToAskSeerOnFreeTextSearch: true,
+          enableAISearch: true,
+          initialQuery: 'find slow',
+          onSearch: mockOnSearch,
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+            },
+          }
+        );
+
+        await userEvent.click(screen.getByRole('row', {name: 'find slow'}));
+        await userEvent.type(screen.getByDisplayValue('find slow'), ' spans{enter}');
+
+        expect(
+          await screen.findByRole('combobox', {
+            name: 'Ask Seer with Natural Language',
+          })
+        ).toHaveValue('find slow spans ');
+        await waitFor(() => {
+          expect(mockAskSeer).toHaveBeenCalledWith('find slow spans', expect.anything());
+        });
+        expect(mockAskSeer).not.toHaveBeenCalledWith(
+          'find slow find slow spans',
+          expect.anything()
+        );
+        expect(mockOnSearch).not.toHaveBeenCalled();
+      });
+
+      it('does not submit free text to ask seer when valid filters are present', async () => {
+        const mockOnSearch = jest.fn();
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          defaultToAskSeerOnFreeTextSearch: true,
+          enableAISearch: true,
+          initialQuery: 'browser.name:firefox',
+          onSearch: mockOnSearch,
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'find slow spans{enter}');
+
+        await waitFor(() => {
+          expect(mockOnSearch).toHaveBeenCalledWith(
+            'browser.name:firefox find slow spans',
+            expect.anything()
+          );
+        });
+        expect(mockAskSeer).not.toHaveBeenCalled();
+      });
+
+      it('does not submit free text to ask seer when incomplete filters are present', async () => {
+        const mockOnSearch = jest.fn();
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          defaultToAskSeerOnFreeTextSearch: true,
+          enableAISearch: true,
+          initialQuery: 'browser.name:',
+          onSearch: mockOnSearch,
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'find slow spans{enter}');
+
+        await waitFor(() => {
+          expect(mockOnSearch).toHaveBeenCalled();
+        });
+        expect(mockOnSearch.mock.calls.at(-1)?.[0]).toEqual(
+          expect.stringContaining('browser.name:')
+        );
+        expect(mockOnSearch.mock.calls.at(-1)?.[0]).toEqual(
+          expect.stringContaining('find slow spans')
+        );
+        expect(mockAskSeer).not.toHaveBeenCalled();
+      });
+
+      it('does not submit free text to ask seer when defaulting to ask seer is disabled', async () => {
+        const mockOnSearch = jest.fn();
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          enableAISearch: true,
+          onSearch: mockOnSearch,
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features', 'gen-ai-default-to-ask-seer'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'some free text{enter}');
+
+        await waitFor(() => {
+          expect(mockOnSearch).toHaveBeenCalledWith('some free text', expect.anything());
+        });
+        expect(mockAskSeer).not.toHaveBeenCalled();
+      });
+
+      it('does not submit free text to ask seer without the defaulting feature flag', async () => {
+        const mockOnSearch = jest.fn();
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          defaultToAskSeerOnFreeTextSearch: true,
+          enableAISearch: true,
+          onSearch: mockOnSearch,
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'some free text{enter}');
+
+        await waitFor(() => {
+          expect(mockOnSearch).toHaveBeenCalledWith('some free text', expect.anything());
+        });
+        expect(mockAskSeer).not.toHaveBeenCalled();
       });
     });
 

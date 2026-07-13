@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -138,7 +138,7 @@ export function AttributeDistribution() {
 
   return (
     <Panel>
-      <Flex direction="column" gap="xl" padding="xl">
+      <Stack gap="xl" padding="xl">
         <ChartSelectionAlert />
         <AttributeBreakdownsComponent.ControlsContainer>
           <AttributeBreakdownsComponent.StyledBaseSearchBar
@@ -200,7 +200,7 @@ export function AttributeDistribution() {
         ) : (
           <AttributeBreakdownsComponent.EmptySearchState />
         )}
-      </Flex>
+      </Stack>
     </Panel>
   );
 }

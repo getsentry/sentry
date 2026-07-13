@@ -13,7 +13,9 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.issues.progress import get_group_progress_states
+from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -97,8 +99,40 @@ class OrganizationGroupIndexProgressEndpoint(OrganizationEndpoint):
 
         found_group_ids = [g.id for g in groups]
 
-        progress_by_group = get_group_progress_states(found_group_ids)
+        if features.has(
+            "organizations:issue-stream-derived-progress", organization, actor=request.user
+        ):
+            progress_by_group = _get_derived_progress(found_group_ids)
+        else:
+            progress_by_group = get_group_progress_states(found_group_ids)
 
         return Response(
             {"results": {str(gid): {"progress": progress_by_group[gid]} for gid in found_group_ids}}
         )
+
+
+def _get_derived_progress(group_ids: list[int]) -> dict[int, str]:
+    """
+    Read progress directly from GroupDerivedData.
+
+    GroupDerivedData stores progress=None for closed issues (resolved/archived).
+    This endpoint maps None to FIX_APPLIED since closed issues have completed
+    their progress lifecycle. Groups without a derived-data row default to
+    IDENTIFIED.
+    """
+    derived_rows = GroupDerivedData.objects.filter(group_id__in=group_ids).values_list(
+        "group_id", "progress"
+    )
+
+    result: dict[int, str] = {}
+    for group_id, progress in derived_rows:
+        if progress is None:
+            result[group_id] = IssueProgressState.FIX_APPLIED.value
+        else:
+            result[group_id] = progress
+
+    for group_id in group_ids:
+        if group_id not in result:
+            result[group_id] = IssueProgressState.IDENTIFIED.value
+
+    return result
