@@ -99,10 +99,12 @@ class SymbolicatorTaskKind:
     the platform and whether it's an existing event being reprocessed.
     """
 
-    function: SymbolicatorFunction
+    function: SymbolicatorPlatform | SymbolicatorFunction  # platform still allowed for old tasks
     is_reprocessing: bool = False
 
-    def with_function(self, function: SymbolicatorFunction) -> SymbolicatorTaskKind:
+    def with_function(
+        self, function: SymbolicatorPlatform | SymbolicatorFunction
+    ) -> SymbolicatorTaskKind:
         return dataclasses.replace(self, function=function)
 
 
@@ -112,10 +114,20 @@ class SymbolicatorPools(Enum):
     jvm = "jvm"
 
 
-def pool_for_function(function: SymbolicatorFunction) -> SymbolicatorPools:
+def pool_for_function(function: SymbolicatorFunction | SymbolicatorPlatform) -> SymbolicatorPools:
     """Returns the Symbolicator pool to use to symbolicate events for
     the given platform.
     """
+    if isinstance(function, SymbolicatorPlatform):
+        # legacy behavior for old tasks
+        match function:
+            case SymbolicatorPlatform.native:
+                return SymbolicatorPools.default
+            case SymbolicatorPlatform.js:
+                return SymbolicatorPools.js
+            case SymbolicatorPlatform.jvm:
+                return SymbolicatorPools.jvm
+
     match function:
         case SymbolicatorFunction.native:
             return SymbolicatorPools.default

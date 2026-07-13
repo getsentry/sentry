@@ -7,7 +7,6 @@ from django.conf import settings
 
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.processing import (
-    find_stacktraces_in_data,
     get_native_symbolication_function,
     get_native_symbolication_functions,
 )
@@ -22,7 +21,7 @@ from sentry.models.project import Project
 from sentry.services.eventstore import processing
 from sentry.services.eventstore.processing.base import Event
 from sentry.silo.base import SiloMode
-from sentry.stacktraces.processing import StacktraceInfo
+from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import symbolication_tasks
@@ -80,14 +79,14 @@ class SymbolicationTimeout(Exception):
 
 
 def _do_symbolicate_event(
+    *,
     task_kind: SymbolicatorTaskKind,
     cache_key: str,
     start_time: float | None,
     event_id: str | None,
     data: Event | None = None,
     has_attachments: bool = False,
-    symbolicate_platforms: list[SymbolicatorFunction] | None = None,
-    symbolicate_functions: list[SymbolicatorFunction] | None = None,
+    symbolicate_functions: list[SymbolicatorPlatform] | list[SymbolicatorFunction] | None = None,
 ) -> None:
     if data is None:
         data = processing.event_processing_store.get(cache_key)
@@ -106,7 +105,7 @@ def _do_symbolicate_event(
     set_current_event_project(project_id)
 
     def _continue_to_process_event(was_killswitched: bool = False) -> None:
-        # Go through the remaining symbolication platforms
+        # Go through the remaining symbolication platforms/functions
         # and submit the next one.
         if not was_killswitched and symbolicate_functions:
             next_function = symbolicate_functions.pop(0)
@@ -131,22 +130,22 @@ def _do_symbolicate_event(
             has_attachments=has_attachments,
         )
 
-    if symbolicate_platforms is not None:
+    if isinstance(task_kind.function, SymbolicatorPlatform):
         # Legacy behavior for old tasks.
         try:
             stacktraces = find_stacktraces_in_data(data)
             symbolication_function = get_symbolication_function_for_platform(
-                task_kind.platform, data, stacktraces
+                task_kind.function, data, stacktraces
             )
         except AssertionError:
             symbolication_function = None
+        symbolication_function_name = getattr(symbolication_function, "__name__", "none")
     else:
         # New behavior
         symbolication_function = task_kind.function
+        symbolication_function_name = getattr(symbolication_function.function(), "__name__", "none")
 
-    symbolication_function_name = getattr(task_kind.function.function(), "__name__", "none")
-
-    if task_kind.function is None or killswitch_matches_context(
+    if symbolication_function is None or killswitch_matches_context(
         "store.load-shed-symbolicate-event-projects",
         {
             "project_id": project_id,
@@ -255,7 +254,7 @@ def submit_symbolicate(
     event_id: str | None,
     start_time: float | None,
     has_attachments: bool = False,
-    symbolicate_functions: list[SymbolicatorFunction] | None = None,
+    symbolicate_functions: list[SymbolicatorFunction] | list[SymbolicatorPlatform] | None = None,
 ) -> None:
     # Because of `mock` usage, we cannot just save a reference to the actual function
     # into the `TASK_FNS` dict. We actually have to access it at runtime from the global scope
@@ -274,7 +273,7 @@ def submit_symbolicate(
         start_time=start_time,
         event_id=event_id,
         has_attachments=has_attachments,
-        symbolicate_functions=symbolicate_function_names,  # TODO: is changing params here OK, or will it interfer with inflight tasks?
+        symbolicate_functions=symbolicate_function_names,
     )
 
 
@@ -313,18 +312,23 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         :param string event_id: the event identifier
         """
 
-        # [legacy] Turn symbolicate_platforms back into proper enum values
-        symbolicate_platform_values = (
-            None
-            if symbolicate_platforms is None
-            else [SymbolicatorPlatform(p) for p in symbolicate_platforms]
-        )
-        # Turn symbolicate_functions back into proper enum values
-        symbolicate_function_values = (
-            None
-            if symbolicate_functions is None
-            else [SymbolicatorFunction(p) for p in symbolicate_functions]
-        )
+        symbolicate_function_values: (
+            list[SymbolicatorPlatform] | list[SymbolicatorFunction] | None
+        ) = None
+        if symbolicate_platforms is not None:
+            # [legacy] Turn symbolicate_platforms back into proper enum values
+            symbolicate_function_values = (
+                None
+                if symbolicate_platforms is None
+                else [SymbolicatorPlatform(p) for p in symbolicate_platforms]
+            )
+        else:
+            # Turn symbolicate_functions back into proper enum values
+            symbolicate_function_values = (
+                None
+                if symbolicate_functions is None
+                else [SymbolicatorFunction(p) for p in symbolicate_functions]
+            )
         return _do_symbolicate_event(
             task_kind=task_kind,
             cache_key=cache_key,
@@ -332,7 +336,6 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
             event_id=event_id,
             data=data,
             has_attachments=has_attachments,
-            symbolicate_platforms=symbolicate_platform_values,
             symbolicate_functions=symbolicate_function_values,
         )
 
