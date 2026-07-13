@@ -15,6 +15,7 @@ from scm.types import (
 )
 from taskbroker_client.retry import Retry
 
+from sentry.cache import default_cache
 from sentry.integrations.services.integration import integration_service
 from sentry.locks import locks
 from sentry.models.group import Group
@@ -47,7 +48,6 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
-from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
@@ -281,12 +281,18 @@ def _comment_pr_iteration_ineligible(
     comment_id: int | None,
 ) -> None:
     """React :confused: and, at most once per PR, explain why iteration didn't run."""
+    log_extra = {
+        "organization_id": organization_id,
+        "repo_id": repo_id,
+        "pr_number": pr_number,
+    }
+
     try:
         scm = make_scm(organization_id, repo_id, referrer="seer")
     except Exception:
         logger.warning(
             "autofix.pr_iteration.comment_trigger.ineligible_scm_init_failed",
-            extra={"organization_id": organization_id, "repo_id": repo_id},
+            extra=log_extra,
             exc_info=True,
         )
         scm = None
@@ -303,31 +309,33 @@ def _comment_pr_iteration_ineligible(
     cache_key = _ineligible_comment_cache_key(
         organization_id=organization_id, repo_id=repo_id, pr_number=pr_number
     )
-    if not cache.add(cache_key, True, timeout=_INELIGIBLE_COMMENT_CACHE_TTL):
-        logger.info(
-            "autofix.pr_iteration.comment_trigger.ineligible_comment_skipped",
-            extra={
-                "organization_id": organization_id,
-                "repo_id": repo_id,
-                "pr_number": pr_number,
-            },
-        )
-        return
-
+    lock = locks.get(
+        f"autofix:pr_iteration:ineligible_comment:lock:{organization_id}:{repo_id}:{pr_number}",
+        duration=30,
+        name="autofix_pr_iteration_ineligible_comment",
+    )
     try:
-        client.create_comment(
-            repo_name,
-            str(pr_number),
-            {"body": _ineligible_pr_iteration_comment_body(github_username)},
-        )
-    except Exception:
-        # Allow a later ping to retry the explanatory comment.
-        cache.delete(cache_key)
-        logger.warning(
-            "autofix.pr_iteration.comment_trigger.ineligible_comment_failed",
-            extra={"organization_id": organization_id, "pr_number": pr_number},
-            exc_info=True,
-        )
+        with lock.acquire():
+            if default_cache.get(cache_key) is not None:
+                return
+
+            try:
+                client.create_comment(
+                    repo_name,
+                    str(pr_number),
+                    {"body": _ineligible_pr_iteration_comment_body(github_username)},
+                )
+            except Exception:
+                logger.warning(
+                    "autofix.pr_iteration.comment_trigger.ineligible_comment_failed",
+                    extra=log_extra,
+                    exc_info=True,
+                )
+                return
+
+            default_cache.set(cache_key, True, timeout=_INELIGIBLE_COMMENT_CACHE_TTL)
+    except UnableToAcquireLock:
+        pass
 
 
 @instrumented_task(
