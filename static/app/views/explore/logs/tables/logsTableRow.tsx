@@ -738,9 +738,16 @@ function LogRowDetails({
               </DetailsBody>
               <LogAttributeTreeWrapper>
                 <AttributesTree<RendererExtra>
-                  attributes={data.attributes.filter(
-                    attribute => !HiddenLogDetailFields.includes(attribute.name)
-                  )}
+                  attributes={[
+                    ...data.attributes.filter(
+                      attribute => !HiddenLogDetailFields.includes(attribute.name)
+                    ),
+                    {
+                      name: OurLogKnownFieldKey.TIMESTAMP,
+                      type: 'str',
+                      value: dataRow[OurLogKnownFieldKey.TIMESTAMP],
+                    } as const,
+                  ].sort((a, b) => a.name.localeCompare(b.name))}
                   getCustomActions={getActions}
                   getAdjustedAttributeKey={adjustAliases}
                   renderers={LogAttributesRendererMap}
