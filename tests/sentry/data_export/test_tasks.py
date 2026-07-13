@@ -1146,7 +1146,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         """
         logs = [
             self.create_ourlog(
-                {"body": f"match-{i}", **(matching_fields or {})},
+                {"body": f"match-{i}", **(matching_fields or {})},  # type: ignore[arg-type,typeddict-item]
                 timestamp=before_now(minutes=10, seconds=i),
                 organization=self.org,
                 project=self.project,
@@ -1155,7 +1155,7 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
             for i in range(matching)
         ] + [
             self.create_ourlog(
-                {"body": f"other-{i}", **(other_fields or {})},
+                {"body": f"other-{i}", **(other_fields or {})},  # type: ignore[arg-type,typeddict-item]
                 timestamp=before_now(minutes=10, seconds=i),
                 organization=self.org,
                 project=self.project,
