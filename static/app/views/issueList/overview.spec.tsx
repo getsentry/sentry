@@ -434,6 +434,27 @@ describe('IssueList', () => {
       const recommendedOption = screen.getByRole('option', {name: /Recommended/});
       expect(within(recommendedOption).getByLabelText('new')).toBeInTheDocument();
     });
+
+    it('hides the trigger badge once the user has chosen a sort', async () => {
+      const featureOrg = OrganizationFixture({
+        ...organization,
+        features: ['issue-stream-recommended-sort-default'],
+      });
+      // An explicitly chosen sort (even Recommended itself) means the user has
+      // seen the dropdown, so the announcement badge no longer shows
+      setStoredIssueSort(featureOrg.slug, IssueSortOptions.RECOMMENDED);
+      render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
+
+      expect(
+        await screen.findByRole('button', {name: /Recommended/})
+      ).toBeInTheDocument();
+      expect(screen.queryByLabelText('new')).not.toBeInTheDocument();
+
+      // The Recommended option inside the dropdown keeps its badge
+      await userEvent.click(screen.getByRole('button', {name: /Recommended/}));
+      const recommendedOption = screen.getByRole('option', {name: /Recommended/});
+      expect(within(recommendedOption).getByLabelText('new')).toBeInTheDocument();
+    });
   });
 
   describe('transitionTo', () => {
