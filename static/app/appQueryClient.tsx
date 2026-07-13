@@ -1,7 +1,7 @@
 import {createAsyncStoragePersister} from '@tanstack/query-async-storage-persister';
 import {notifyManager, QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {PersistQueryClientProvider} from '@tanstack/react-query-persist-client';
-import {get as getItem, del as removeItem, set as setItem} from 'idb-keyval';
+import {del, get, set} from 'idb-keyval';
 
 import {SENTRY_RELEASE_VERSION} from 'sentry/constants/sdk';
 import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClient';
@@ -28,9 +28,49 @@ if (process.env.NODE_ENV !== 'test') {
   notifyManager.setScheduler(queueMicrotask);
 }
 
+// Track whether IndexedDB has failed so we can disable persistence for the session.
+// IndexedDB can throw DOMExceptions (e.g. ConstraintError, QuotaExceededError) in
+// certain browsers or when storage is corrupted. When that happens, we clear any
+// corrupted data and stop trying to persist for the rest of the session.
+let idbFailed = false;
+
+async function idbGetItem(key: string): Promise<string | null | undefined> {
+  if (idbFailed) return null;
+  try {
+    return (await get<string>(key)) ?? null;
+  } catch {
+    idbFailed = true;
+    return null;
+  }
+}
+
+async function idbSetItem(key: string, value: string): Promise<void> {
+  if (idbFailed) return;
+  try {
+    await set(key, value);
+  } catch {
+    // Clear potentially corrupted data and disable persistence for this session.
+    idbFailed = true;
+    try {
+      await del(cacheKey);
+    } catch {
+      // ignore cleanup errors
+    }
+  }
+}
+
+async function idbRemoveItem(key: string): Promise<void> {
+  if (idbFailed) return;
+  try {
+    await del(key);
+  } catch {
+    idbFailed = true;
+  }
+}
+
 const indexedDbPersister = createAsyncStoragePersister({
   // We're using indexedDB as our storage provider because projects cache can be large
-  storage: {getItem, setItem, removeItem},
+  storage: {getItem: idbGetItem, setItem: idbSetItem, removeItem: idbRemoveItem},
   // Reduce the frequency of writes to indexedDB
   throttleTime: 10_000,
   // The cache is stored entirely on one key
@@ -84,6 +124,6 @@ export async function clearQueryCache() {
       queryKey: ['bootstrap-projects'],
       refetchType: 'none',
     });
-    await removeItem(cacheKey);
+    await idbRemoveItem(cacheKey);
   }
 }
