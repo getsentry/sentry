@@ -167,7 +167,7 @@ export function GroupInsightItemDiffTable({
 
   let rowIndex = 0;
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <DiffTableWithColumns gridTemplateColumns="150px minmax(200px, 3fr) 180px">
         <DiffTableHeader>
           {tableHeaders.map(header => (
@@ -287,6 +287,6 @@ export function GroupInsightItemDiffTable({
           </ButtonBar>
         </Flex>
       )}
-    </Flex>
+    </Stack>
   );
 }

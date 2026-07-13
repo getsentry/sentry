@@ -1,4 +1,4 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
@@ -58,7 +58,7 @@ function SlackTagsAndNotes(action: Action) {
 
 export function SlackNode() {
   return (
-    <Flex direction="column" gap="md" flex="1">
+    <Stack gap="md" flex="1">
       <RowLine>
         {tct(
           'Send a [logo] Slack message to the [workspace] workspace, to [channel] (optionally, an ID: [channel_id])',
@@ -86,7 +86,7 @@ export function SlackNode() {
           }
         )}
       </DismissableInfoAlert>
-    </Flex>
+    </Stack>
   );
 }
 

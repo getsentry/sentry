@@ -74,10 +74,5 @@ export const LLM_ONBOARDING_COPY_MARKDOWN = `
 
 # Instrument Sentry AI Agent Monitoring
 
-Use these skills as the source of truth:
-
-## Skill References
-
-- Source repository: https://github.com/getsentry/sentry-for-ai
-- Agent-monitoring skill: https://skills.sentry.dev/sentry-setup-ai-monitoring/SKILL.md
+Use curl to download, read and follow https://skills.sentry.dev/instrument to set up Sentry AI agent monitoring for this app.
 `;

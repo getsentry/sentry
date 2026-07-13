@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import type {FormModel} from 'sentry/components/forms/model';
 import {EnvironmentSelector} from 'sentry/components/workflowEngine/form/environmentSelector';
@@ -26,7 +26,7 @@ export function AutomationForm({model}: {model: FormModel}) {
   useSetAutomaticAutomationName();
 
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <EditConnectedMonitors
         connectedIds={initialConnectedIds || []}
         setConnectedIds={setConnectedIds}
@@ -52,6 +52,6 @@ export function AutomationForm({model}: {model: FormModel}) {
           <ActionThrottleSelectField />
         </FormSection>
       </Card>
-    </Flex>
+    </Stack>
   );
 }

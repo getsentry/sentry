@@ -1,7 +1,7 @@
 import type React from 'react';
 import {useMemo} from 'react';
 
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -287,7 +287,7 @@ function MonitoringAndDataFeatures({
   const activePlanType = activePlan.name.toLowerCase() as PlanType;
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <Flex paddingBottom="md">
         <Heading as="h4" size="xs" variant="muted">
           {t('MONITORING & DATA')}
@@ -308,7 +308,7 @@ function MonitoringAndDataFeatures({
               Object.keys(info.displayStringMap)[0] === 'business'
             }
           >
-            <Flex direction="column" gap="xs">
+            <Stack gap="xs">
               {Object.entries(info.displayStringMap).map(([planType, displayString]) => {
                 const isActivePlanType = planType === activePlanType;
                 const planTypeIndex = ORDERED_PLAN_TYPES.indexOf(planType);
@@ -372,11 +372,11 @@ function MonitoringAndDataFeatures({
                   </Text>
                 );
               })}
-            </Flex>
+            </Stack>
           </FeatureItem>
         );
       })}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -387,7 +387,7 @@ function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
   );
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <Flex paddingBottom="md">
         <Heading as="h4" size="xs" variant="muted">
           {t('EXPANSION PACK')}
@@ -409,7 +409,7 @@ function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
             isOnlyOnBusiness={isOnlyOnBusiness}
             isIncluded={hasFeature}
           >
-            <Flex direction="column" gap="xs">
+            <Stack gap="xs">
               {Object.entries(info.displayStringMap).map(([planType, displayString]) => {
                 const hasFeatureVersion = checkHasFeatureVersion({
                   activePlanTypeIndex,
@@ -449,11 +449,11 @@ function ExpansionPackFeatures({activePlan}: {activePlan: Plan}) {
                   </Text>
                 );
               })}
-            </Flex>
+            </Stack>
           </FeatureItem>
         );
       })}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -518,15 +518,8 @@ export function PlanFeatures({
   });
 
   return (
-    <Flex direction="column">
-      <Flex
-        background="secondary"
-        padding="xl"
-        radius="lg"
-        border="primary"
-        gap="xl"
-        direction="column"
-      >
+    <Stack>
+      <Stack background="secondary" padding="xl" radius="lg" border="primary" gap="xl">
         <Grid columns={{'screen:xs': '1fr', 'screen:sm': 'repeat(2, 1fr)'}} gap="xl">
           <MonitoringAndDataFeatures planOptions={planOptions} activePlan={activePlan} />
           <ExpansionPackFeatures activePlan={activePlan} />
@@ -541,7 +534,7 @@ export function PlanFeatures({
             </ExternalLink>
           </Flex>
         )}
-      </Flex>
+      </Stack>
       {Object.entries(perPlanPriceDiffs).map(([planId, info]) => {
         const {plan, ...priceDiffs} = info;
         const planName = plan.name;
@@ -581,6 +574,6 @@ export function PlanFeatures({
           </Container>
         );
       })}
-    </Flex>
+    </Stack>
   );
 }

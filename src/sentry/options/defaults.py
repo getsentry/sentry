@@ -3120,6 +3120,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate for resolution activity notifications via the notification platform
+register(
+    "notifications.platform.resolution-notifications.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch list of NotificationSource values that should be blocked from being
 # dispatched by the notification platform's NotificationService. Values must match
 # the string values of `sentry.notifications.platform.types.NotificationSource`.

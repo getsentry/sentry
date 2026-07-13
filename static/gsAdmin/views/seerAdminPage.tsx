@@ -5,7 +5,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -71,7 +71,7 @@ export function SeerAdminPage() {
   return (
     <div>
       <PageHeader title="Seer Admin Page" />
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Text as="p">
           Admin tools for managing Seer features. Select a region before performing
           actions.
@@ -98,7 +98,7 @@ export function SeerAdminPage() {
         <Grid columns={{'screen:xs': '1fr', 'screen:md': '1fr 1fr'}} gap="xl">
           <form onSubmit={handleNightShiftSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
-              <Flex direction="column" gap="md" align="start">
+              <Stack gap="md" align="start">
                 <Heading as="h3">Trigger Night Shift Run</Heading>
                 <Text as="p" variant="muted">
                   Dispatch a night shift run. Provide an organization ID to scope the run
@@ -152,11 +152,11 @@ export function SeerAdminPage() {
                     ? 'Trigger Night Shift (all orgs)'
                     : 'Trigger Night Shift'}
                 </Button>
-              </Flex>
+              </Stack>
             </Container>
           </form>
         </Grid>
-      </Flex>
+      </Stack>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
 
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -112,9 +112,8 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
   // space instead of letting the tall page content grow it — giving Seer's pane
   // a viewport-bounded height.
   return (
-    <Flex
+    <Stack
       ref={sidebarContainerRef}
-      direction="column"
       flex="1"
       minWidth="0"
       minHeight="0"
@@ -133,7 +132,7 @@ function SeerExplorerSidebarLayoutInSidebarMode({children}: {children: React.Rea
         sized={contentPane}
         fill={isOpen ? <SeerExplorerPanel /> : undefined}
       />
-    </Flex>
+    </Stack>
   );
 }
 
