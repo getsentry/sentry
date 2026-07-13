@@ -43,12 +43,8 @@ def get_supported_action_types() -> frozenset[Action.Type]:
 
 
 def extract_notification_models_by_activity(
-    activity_id: int,
-) -> tuple[Activity, Group, Project, Organization]:
-    try:
-        activity = Activity.objects.get(id=activity_id)
-    except Activity.DoesNotExist:
-        raise ValueError(f"Activity not found: {activity_id}")
+    activity: Activity,
+) -> tuple[Group, Project, Organization]:
     try:
         group = Group.objects.get_from_cache(id=activity.group_id)
     except Group.DoesNotExist:
@@ -62,7 +58,7 @@ def extract_notification_models_by_activity(
     except Organization.DoesNotExist:
         raise ValueError(f"Organization not found: {project.organization_id}")
 
-    return activity, group, project, organization
+    return group, project, organization
 
 
 def build_activity_action_data(
@@ -72,7 +68,7 @@ def build_activity_action_data(
     if source is None:
         raise ValueError(f"No notification source for activity type: {activity.type}")
 
-    activity, group, project, organization = extract_notification_models_by_activity(activity.id)
+    group, project, organization = extract_notification_models_by_activity(activity)
 
     action_data = dict(
         source=source,
