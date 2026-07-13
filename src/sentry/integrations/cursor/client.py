@@ -15,7 +15,8 @@ from sentry.integrations.cursor.models import (
     CursorApiKeyMetadata,
     CursorModelsResponse,
 )
-from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState, CodingAgentStatus
+from sentry.seer.autofix.constants import CodingAgentStatus
+from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiForbiddenError,

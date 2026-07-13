@@ -26,7 +26,8 @@ from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_cont
 from sentry.models.pullrequest import PullRequestAttributionSignalType
 from sentry.pr_metrics.attribution import attribute_delegated_agent_pull_request
 from sentry.seer.autofix.coding_agent_handoffs import sync_coding_agent_status
-from sentry.seer.autofix.utils import CodingAgentResult, CodingAgentStatus
+from sentry.seer.autofix.constants import CodingAgentStatus
+from sentry.seer.autofix.utils import CodingAgentResult
 
 logger = logging.getLogger(__name__)
 

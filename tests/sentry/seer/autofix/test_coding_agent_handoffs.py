@@ -5,11 +5,8 @@ from sentry.seer.autofix.coding_agent_handoffs import (
     create_seer_run_coding_agent_handoff,
     sync_coding_agent_status,
 )
-from sentry.seer.autofix.utils import (
-    CodingAgentProviderType,
-    CodingAgentState,
-    CodingAgentStatus,
-)
+from sentry.seer.autofix.constants import CodingAgentStatus
+from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState
 from sentry.seer.models.run import SeerRunCodingAgentHandoff, SeerRunType
 from sentry.testutils.cases import TestCase
 

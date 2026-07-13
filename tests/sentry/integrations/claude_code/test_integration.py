@@ -487,7 +487,8 @@ class ClaudeCodeIntegrationTest(IntegrationTestCase):
     ):
         """Set up mocks for launch tests. Returns (installation, mock_client, mock_cls, request)."""
         from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
-        from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentStatus
+        from sentry.seer.autofix.constants import CodingAgentStatus
+        from sentry.seer.autofix.utils import CodingAgentProviderType
         from sentry.seer.models import SeerRepoDefinition
 
         mock_cls, mock_client = _mock_client_class()

@@ -10,6 +10,7 @@ from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, cell_si
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.pullrequest import PullRequest
+from sentry.seer.autofix.constants import CodingAgentStatus
 
 
 class SeerRunType(models.TextChoices):
@@ -116,15 +117,6 @@ class SeerRunPullRequest(DefaultFieldsModel):
     __repr__ = sane_repr("seer_run_id", "pull_request_id")
 
 
-class SeerRunCodingAgentHandoffStatus(models.TextChoices):
-    """Keep in sync with sentry.seer.autofix.utils.CodingAgentStatus"""
-
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
-
-
 class SeerRunCodingAgentHandoffExtras(TypedDict, total=False):
     # Deep link to the agent's session on the provider's own site (e.g. Cursor).
     # Not every provider supplies one.
@@ -148,9 +140,9 @@ class SeerRunCodingAgentHandoff(DefaultFieldsModel):
     agent_id = models.CharField(max_length=256, unique=True)
     status = models.CharField(
         max_length=256,
-        choices=SeerRunCodingAgentHandoffStatus.choices,
-        default=SeerRunCodingAgentHandoffStatus.PENDING,
-        db_default=SeerRunCodingAgentHandoffStatus.PENDING,
+        choices=[(s.value, s.value) for s in CodingAgentStatus],
+        default=CodingAgentStatus.PENDING,
+        db_default=CodingAgentStatus.PENDING,
     )
     # See SeerRunCodingAgentHandoffExtras for the expected shape.
     extras = models.JSONField(db_default={}, default=dict)

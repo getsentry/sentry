@@ -148,12 +148,12 @@ from sentry.preprod.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotMetrics,
 )
+from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.models.run import (
     SeerAgentRun,
     SeerRun,
     SeerRunCodingAgentHandoff,
-    SeerRunCodingAgentHandoffStatus,
     SeerRunType,
 )
 from sentry.sentry_apps.installations import (
@@ -3003,7 +3003,7 @@ class Factories:
         seer_run: SeerRun,
         provider: str = "github_copilot_agent",
         agent_id: str | None = None,
-        status: str = SeerRunCodingAgentHandoffStatus.PENDING,
+        status: str = CodingAgentStatus.PENDING,
         **kwargs,
     ) -> SeerRunCodingAgentHandoff:
         if agent_id is None:

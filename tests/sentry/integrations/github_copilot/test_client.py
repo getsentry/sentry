@@ -4,7 +4,8 @@ from unittest.mock import Mock, patch
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.github_copilot.models import GithubCopilotTask
-from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentStatus
+from sentry.seer.autofix.constants import CodingAgentStatus
+from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import TestCase
 

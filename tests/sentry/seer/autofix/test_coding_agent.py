@@ -15,13 +15,13 @@ from sentry.seer.autofix.coding_agent import (
     poll_claude_code_agents,
     poll_github_copilot_agents,
 )
+from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.autofix.utils import (
     AutofixRequest,
     AutofixState,
     CodingAgentProviderType,
     CodingAgentResult,
     CodingAgentState,
-    CodingAgentStatus,
 )
 from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import TestCase
