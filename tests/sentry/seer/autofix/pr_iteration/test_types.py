@@ -10,6 +10,7 @@ from sentry.seer.autofix.pr_iteration.feedback import (
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubIssueComment,
     GithubPrCommentFeedbackSource,
+    GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.testutils.cases import TestCase
@@ -31,6 +32,24 @@ def _feedback_block(*feedbacks: Feedback) -> MemoryBlock:
         id="block-1",
         message=Message(role="assistant", metadata={"feedback": serialize_feedback(feedbacks)}),
         timestamp="2024-01-01T00:00:00Z",
+    )
+
+
+def _review_feedback(
+    file_path: str | None = "src/sentry/foo.py",
+    line: int | None = 42,
+    start_line: int | None = None,
+) -> Feedback:
+    return Feedback(
+        source=GithubPrReviewCommentFeedbackSource(
+            comment={
+                "id": 1,
+                "body": "@sentry fix it",
+                "path": file_path,
+                "line": line,
+                "start_line": start_line,
+            },
+        ),
     )
 
 
@@ -197,3 +216,31 @@ class GithubPrCommentShouldConsumeTest(TestCase):
         source = GithubPrCommentFeedbackSource(comment={"body": "@sentry a"})
 
         assert source.should_consume(_run_state()) is True
+
+
+class GithubPrReviewCommentTextTest(TestCase):
+    def test_text_includes_range_anchor(self) -> None:
+        feedback = _review_feedback(line=42, start_line=40)
+        assert feedback.text == "Inline comment on src/sentry/foo.py:40-42:\nfix it"
+        assert feedback.ui_text == "fix it"
+
+    def test_text_includes_single_line_anchor(self) -> None:
+        feedback = _review_feedback(line=42, start_line=None)
+        assert feedback.text == "Inline comment on src/sentry/foo.py:42:\nfix it"
+        assert feedback.ui_text == "fix it"
+
+    def test_text_collapsed_range_uses_single_line(self) -> None:
+        # start_line == line: GitHub effectively treats this as single-line.
+        feedback = _review_feedback(line=42, start_line=42)
+        assert feedback.text == "Inline comment on src/sentry/foo.py:42:\nfix it"
+        assert feedback.ui_text == "fix it"
+
+    def test_text_file_only_anchor(self) -> None:
+        feedback = _review_feedback(line=None, start_line=None)
+        assert feedback.text == "Inline comment on src/sentry/foo.py:\nfix it"
+        assert feedback.ui_text == "fix it"
+
+    def test_text_no_file_path_passes_through(self) -> None:
+        feedback = _review_feedback(file_path=None, line=None)
+        assert feedback.text == "fix it"
+        assert feedback.ui_text == "fix it"

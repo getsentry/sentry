@@ -58,9 +58,13 @@ from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import json, metrics
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
+
     from sentry.models.group import Group
     from sentry.models.organization import Organization
     from sentry.seer.agent.client_models import MemoryBlock
+    from sentry.users.models.user import User
+    from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -267,6 +271,7 @@ def get_autofix_agent_client(
     enable_coding: bool = False,
     code_review_enabled: bool = False,
     enable_pr_context_tools: bool = False,
+    user: User | RpcUser | AnonymousUser | None = None,
 ) -> SeerAgentClient:
     from sentry.seer.autofix.on_completion_hook import (
         AutofixOnCompletionHook,  # nested to avoid circular import
@@ -276,7 +281,7 @@ def get_autofix_agent_client(
         organization=group.organization,
         project=group.project,
         group=group,
-        user=None,  # No user personalization for autofix
+        user=user,
         category_key="autofix",
         category_value=str(group.id),
         intelligence_level=intelligence_level,
@@ -359,6 +364,7 @@ def trigger_autofix_agent(
     user_context: str | None = None,
     insert_index: int | None = None,
     feedback: Sequence[Feedback] | None = None,
+    user: User | RpcUser | AnonymousUser | None = None,
 ) -> int:
     """
     Start or continue an agent-based autofix run.
@@ -390,6 +396,7 @@ def trigger_autofix_agent(
         group,
         enable_coding=config.enable_coding,
         enable_pr_context_tools=is_iteration_step,
+        user=user,
     )
 
     run_state: SeerRunState | None = None

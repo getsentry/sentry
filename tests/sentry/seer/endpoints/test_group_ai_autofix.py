@@ -1,5 +1,5 @@
 import uuid
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.issues.action_log.types import TriggerAutofixAction
@@ -292,6 +292,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             run_id=None,
             user_context=None,
             insert_index=None,
+            user=ANY,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
@@ -316,6 +317,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             run_id=42,
             user_context=None,
             insert_index=3,
+            user=ANY,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.publish_action", autospec=True)

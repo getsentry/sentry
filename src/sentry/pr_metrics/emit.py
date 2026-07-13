@@ -94,6 +94,45 @@ def select_verdict(
     return PullRequestVerdict.CLOSED_UNMERGED
 
 
+# Diagnosis label Sentry can derive on its own (unlike the judge's free-string
+# vocabulary): the deterministic closed-unmerged path's "why", read straight off
+# the PR's own check-suite activity rather than a judge's opinion.
+CI_FAILING_AT_CLOSE = "ci_failing_at_close"
+
+# Conclusions that unambiguously mean the check errored out, as opposed to
+# cancelled/skipped/stale (never ran to completion, not a failure verdict),
+# neutral (a soft pass), or action_required (blocked on approval, not broken).
+_FAILING_CHECK_CONCLUSIONS = frozenset({"failure", "timed_out", "startup_failure"})
+
+
+def ci_failing_at_close(pull_request: PullRequest) -> bool:
+    """Whether any CI provider's check suite was failing when the PR closed.
+
+    Reads ``CHECK_SUITE_COMPLETED`` activity rows — the aggregate "was CI green
+    or red" signal per provider app (``app_slug``), per ``CheckSuiteCompletedPayload``
+    — keeping only the latest completion per app: a check suite can be rerun with
+    no new push (no ``SYNCHRONIZED`` row), so an earlier failure superseded by a
+    passing rerun shouldn't count.
+
+    Only meaningful for ``select_verdict``'s deterministic ``CLOSED_UNMERGED``
+    outcome: that path is reached only when there were no commits after open, so
+    every recorded check row necessarily belongs to the PR's one and only head
+    commit — there's no other commit's CI status to accidentally mix in.
+    """
+    rows = (
+        PullRequestActivity.objects.filter(
+            pull_request=pull_request, event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED
+        )
+        .order_by("date_added", "id")
+        .values_list("payload__app_slug", "payload__conclusion")
+    )
+    # dict() keeps the last entry per key, i.e. each app's latest conclusion.
+    latest_conclusion_by_app: dict[str, str] = dict(rows)
+    return any(
+        conclusion in _FAILING_CHECK_CONCLUSIONS for conclusion in latest_conclusion_by_app.values()
+    )
+
+
 def is_pr_tracked(pull_request: PullRequest) -> bool:
     """Whether the PR has ≥1 valid attribution — the emission tracking gate.
 
@@ -219,10 +258,12 @@ def build_pr_metrics_row(
     emitted row read the same query. A missing metrics row (a PR Sentry never saw
     active) coalesces every counter to its default.
 
-    The judge enrichment is set on the judge path only: ``conversation_analysis``
-    is the conversation judge's result (semantic outputs become columns, its
-    ``metadata`` is JSON-encoded), and ``diagnosis_labels`` is the cross-judge
-    close-reason "why".
+    ``conversation_analysis`` is set on the judge path only: the conversation
+    judge's result (semantic outputs become columns, its ``metadata`` is
+    JSON-encoded). ``diagnosis_labels`` is the cross-judge close-reason "why" —
+    mostly judge-sourced, but ``select_verdict``'s deterministic
+    ``CLOSED_UNMERGED`` path can also populate it (see ``ci_failing_at_close``),
+    so its presence doesn't by itself mean the row was judged.
     """
     head_commit_sha = pull_request.head_commit_sha
     closed_at = pull_request.closed_at
@@ -379,8 +420,10 @@ def emit_pr_metrics_row(
     attributed to. Returns whether a row was emitted, for callers/tests.
 
     Takes only the canonical ``PullRequest`` — no webhook payload — so Seer's
-    judge can call it directly via RPC callback. ``conversation_analysis`` and
-    ``diagnosis_labels`` are set only on that judge path.
+    judge can call it directly via RPC callback. ``conversation_analysis`` is set
+    only on that judge path; ``diagnosis_labels`` is mostly judge-sourced but the
+    deterministic ``CLOSED_UNMERGED`` path can also pass one in (see
+    ``ci_failing_at_close``).
     """
     # Fetch the attribution snapshot once: it both gates emission (≥1 valid row)
     # and rides along on the emitted row, so the two can't diverge.

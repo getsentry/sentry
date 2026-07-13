@@ -74,22 +74,18 @@ class OrganizationReportContextFactory:
                 )
                 total = data["total"]
                 timestamp = int(parse_snuba_datetime(data["time"]).timestamp())
-                if data["category"] == DataCategory.TRANSACTION:
-                    project_ctx.accepted_transaction_count += total
-                    project_ctx.transaction_count_by_day[timestamp] = total
-                else:
-                    project_ctx.accepted_error_count += total
-                    project_ctx.error_count_by_day[timestamp] = (
-                        project_ctx.error_count_by_day.get(timestamp, 0) + total
-                    )
+                project_ctx.accepted_error_count += total
+                project_ctx.error_count_by_day[timestamp] = (
+                    project_ctx.error_count_by_day.get(timestamp, 0) + total
+                )
 
     @metrics.wraps("weekly_report.create_context.previous_week_counts")
     def _append_previous_week_counts(self, ctx: OrganizationReportContext) -> None:
         """Populate previous-week error/transaction/issue counts for week-over-week comparison.
 
         Reads from Redis cache first (written by cache_project_metrics() at the end of each
-        weekly report run), then falls back to Snuba (errors/transactions) and Django ORM
-        (issues) for any cache misses.
+        weekly report run), then falls back to Snuba (errors) and Django ORM (issues) for
+        any cache misses.
         """
         with start_span(
             op="weekly_reports.previous_week_counts",
@@ -99,7 +95,6 @@ class OrganizationReportContextFactory:
             cached = read_project_metrics(ctx.organization.id, project_ids)
 
             error_missed_project_ids: set[int] = set()
-            transaction_missed_project_ids: set[int] = set()
             issue_missed_project_ids: set[int] = set()
 
             for project_id, values in cached.items():
@@ -108,10 +103,6 @@ class OrganizationReportContextFactory:
                     project_ctx.prev_week_accepted_error_count = values["e"]
                 else:
                     error_missed_project_ids.add(project_id)
-                if "t" in values:
-                    project_ctx.prev_week_accepted_transaction_count = values["t"]
-                else:
-                    transaction_missed_project_ids.add(project_id)
                 if "i" in values:
                     project_ctx.prev_week_total_substatus_count = values["i"]
                 else:
@@ -119,14 +110,12 @@ class OrganizationReportContextFactory:
 
             no_cache_project_ids = set(project_ids) - set(cached.keys())
             error_missed_project_ids |= no_cache_project_ids
-            transaction_missed_project_ids |= no_cache_project_ids
             issue_missed_project_ids |= no_cache_project_ids
 
             prev_start = ctx.start - (ctx.end - ctx.start)
             prev_end = ctx.start
 
-            snuba_project_ids = error_missed_project_ids | transaction_missed_project_ids
-            if snuba_project_ids:
+            if error_missed_project_ids:
                 event_counts = project_event_counts_for_organization(
                     start=prev_start,
                     end=prev_end,
@@ -141,10 +130,7 @@ class OrganizationReportContextFactory:
                     total = data["total"]
                     if data["outcome"] != Outcome.ACCEPTED:
                         continue
-                    if data["category"] == DataCategory.TRANSACTION:
-                        if project_id in transaction_missed_project_ids:
-                            project_ctx.prev_week_accepted_transaction_count += total
-                    elif data["category"] in DataCategory.error_categories():
+                    if data["category"] in DataCategory.error_categories():
                         if project_id in error_missed_project_ids:
                             project_ctx.prev_week_accepted_error_count += total
 

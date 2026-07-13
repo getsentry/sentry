@@ -122,6 +122,30 @@ class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
         values["start_line"] = comment.start_line
         return values
 
+    def anchor(self) -> str | None:
+        """``file_path:line`` (or ``file_path:start-end``) the inline comment is
+        attached to, or ``None`` when it isn't line-anchored."""
+        if not self.file_path:
+            return None
+        if self.start_line and self.line and self.start_line != self.line:
+            return f"{self.file_path}:{self.start_line}-{self.line}"
+        if self.line:
+            return f"{self.file_path}:{self.line}"
+        return self.file_path
+
+    @property
+    def text(self) -> str:
+        """Prompt text: prefixes the comment with its diff anchor when present."""
+        anchor = self.anchor()
+        if anchor:
+            return f"Inline comment on {anchor}:\n{self.comment_feedback}"
+        return self.comment_feedback
+
+    @property
+    def ui_text(self) -> str | None:
+        # UI shows the comment body only; the anchor is rendered separately.
+        return self.comment_feedback
+
 
 __all__ = (
     "GithubIssueComment",
