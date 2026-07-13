@@ -40,6 +40,14 @@ def random_hex(rng: random.Random, length: int) -> str:
 
 
 def fresh_calls(rng: random.Random, count: int, num_spans: int) -> list[Call]:
+    """Generate isolated subsegment calls, each for a new trace.
+
+    This measures the base ingestion path and how its cost scales with the number of
+    spans in one call. Every call starts without redirect, counter, or member-key
+    state, and does not exercise segment merging, size detachment, or flush locks.
+    Results are relevant to first-seen subsegments and to comparing per-span overhead
+    across batch sizes.
+    """
     calls: list[Call] = []
     for _ in range(count):
         trace = f"1:{random_hex(rng, 32)}"
@@ -65,7 +73,14 @@ def fresh_calls(rng: random.Random, count: int, num_spans: int) -> list[Call]:
 
 
 def trace_calls(rng: random.Random, num_traces: int, num_spans: int) -> list[Call]:
-    """Ten subsegments per trace, with the first carrying the root span."""
+    """Generate ten subsegment calls that accumulate into each trace's root segment.
+
+    The first call contains the root span and the following nine calls target that
+    same root, exercising repeated updates to existing redirect, counter, and
+    member-key state without merging independently buffered child segments. Results
+    are relevant when traces arrive in several small, ordered batches whose common
+    segment is already known.
+    """
     calls: list[Call] = []
     for _ in range(num_traces):
         trace = f"1:{random_hex(rng, 32)}"
@@ -97,7 +112,14 @@ def trace_calls(rng: random.Random, num_traces: int, num_spans: int) -> list[Cal
 
 
 def merge_calls(rng: random.Random, num_traces: int) -> list[Call]:
-    """Three child segments followed by a parent subsegment that merges them."""
+    """Generate three buffered child segments and a call that merges them into a parent.
+
+    Each child is ingested as a separate two-span segment before a five-span parent
+    subsegment references all three child roots. This exercises child counter reads,
+    member-set merging, redirect updates, and cleanup of superseded child metadata.
+    Results are relevant to out-of-order traces where child subtrees arrive before
+    the subsegment that connects them.
+    """
     calls: list[Call] = []
     for _ in range(num_traces):
         trace = f"1:{random_hex(rng, 32)}"
@@ -146,6 +168,9 @@ WORKLOADS: dict[str, Workload] = {
     "fresh_n100": lambda rng: fresh_calls(rng, 3_000, 100),
     "fresh_n200": lambda rng: fresh_calls(rng, 3_000, 200),
     "trace10_n5": lambda rng: trace_calls(rng, 2_000, 5),
+    "trace10_n20": lambda rng: trace_calls(rng, 1_000, 20),
+    "trace10_n100": lambda rng: trace_calls(rng, 300, 100),
+    "trace10_n200": lambda rng: trace_calls(rng, 300, 200),
     "merge3": lambda rng: merge_calls(rng, 5_000),
 }
 
