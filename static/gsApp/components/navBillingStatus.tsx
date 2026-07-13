@@ -480,11 +480,7 @@ export function PrimaryNavigationQuotaExceeded({
     subscription?.onDemandPeriodStart,
   ]);
 
-  const shouldShow =
-    exceededCategories.length > 0 &&
-    subscription &&
-    subscription.canSelfServe &&
-    !subscription.hasOverageNotificationsDisabled;
+  const shouldShow = exceededCategories.length > 0 && subscription?.canSelfServe;
   if (!shouldShow || isLoading || isError) {
     return null;
   }
@@ -567,7 +563,7 @@ const Title = styled('h2')`
 `;
 
 const Body = styled('div')`
-  margin: ${p => p.theme.space.xl};
+  padding: ${p => p.theme.space.xl};
   font-size: ${p => p.theme.font.size.md};
   display: flex;
   flex-direction: column;

@@ -33,13 +33,14 @@ EVENT_ATTACHMENTS_QUERY_PARAM = OpenApiParameter(
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class EventAttachmentsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.FOUNDATIONAL_STORAGE
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
-        operation_id="List an Event's Attachments",
+        operation_id="listProjectEventAttachments",
+        summary="List an Event's Attachments",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,

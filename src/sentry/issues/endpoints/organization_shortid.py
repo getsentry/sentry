@@ -38,7 +38,8 @@ class ShortIdLookupEndpoint(GroupEndpoint):
     }
 
     @extend_schema(
-        operation_id="Resolve a Short ID",
+        operation_id="resolveOrganizationShortId",
+        summary="Resolve a Short ID",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(

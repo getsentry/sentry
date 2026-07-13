@@ -89,7 +89,10 @@ export function SpansTabCrossEventSearchBars({
 
     return (
       <Fragment key={`${crossEvent.type}-${index}`}>
-        <Container justifySelf="end" width={{sm: '100%', md: 'min-content'}}>
+        <Container
+          justifySelf="end"
+          width={{'screen:sm': '100%', 'screen:md': 'min-content'}}
+        >
           {props => (
             <CompactSelect
               {...props}
@@ -194,7 +197,10 @@ export function SpansTabCrossEventSearchBars({
   return (
     <Grid
       gap="md"
-      columns={{sm: '1fr', md: 'minmax(300px, max-content) 1fr min-content'}}
+      columns={{
+        'screen:sm': '1fr',
+        'screen:md': 'minmax(300px, max-content) 1fr min-content',
+      }}
     >
       {crossEventRows}
     </Grid>

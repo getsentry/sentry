@@ -6,6 +6,7 @@ from django.db import connections, router, transaction
 
 from sentry import options
 from sentry.constants import DataCategory
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
 from sentry.silo.base import SiloMode
@@ -14,6 +15,7 @@ from sentry.taskworker.namespaces import relay_tasks
 from sentry.utils import metrics
 from sentry.utils.exceptions import quiet_redis_noise
 from sentry.utils.sdk import set_current_event_project
+from sentry.utils.tracing import set_span_tag, start_span, trace
 
 logger = logging.getLogger(__name__)
 
@@ -203,6 +205,9 @@ def compute_projectkey_config(key):
     if key.status != ProjectKeyStatus.ACTIVE:
         return {"disabled": True}
     else:
+        # Clear the local options cache; if any of them changed, we may need to get the latest values,
+        OrganizationOption.objects.reload_task_local_cache(key.project.organization_id)
+
         return get_project_config(key.project, project_keys=[key]).to_dict()
 
 
@@ -268,7 +273,7 @@ def invalidate_project_config(
     projectconfig_cache.backend.set_many(updated_configs)
 
 
-@sentry_sdk.tracing.trace
+@trace
 def schedule_invalidate_project_config(
     *,
     trigger,
@@ -344,10 +349,11 @@ def schedule_invalidate_project_config(
             countdown=countdown,
         )
 
-    with sentry_sdk.start_span(
+    with start_span(
         op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
+        name="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
     ) as span:
-        span.set_tag("transaction_db", transaction_db)
+        set_span_tag(span, "transaction_db", transaction_db)
         if (
             options.get("relay.invalidation-direct-outside-atomic")
             and not connections[transaction_db].in_atomic_block

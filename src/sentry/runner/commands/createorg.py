@@ -57,7 +57,7 @@ def createorg(
 
     try:
         rpc_org = organization_provisioning_service.provision_organization_in_cell(
-            cell_name=settings.SENTRY_MONOLITH_REGION,
+            cell_name=settings.SENTRY_FALLBACK_CELL,
             provisioning_options=provision_args,
         )
     except OrganizationProvisioningException as e:

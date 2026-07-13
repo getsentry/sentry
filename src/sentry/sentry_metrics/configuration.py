@@ -153,6 +153,7 @@ def initialize_subprocess_state(config: MetricsIngestConfiguration) -> None:
     """
 
     sentry_sdk.set_tag("sentry_metrics.use_case_key", config.use_case_id.value)
+    sentry_sdk.set_attribute("sentry_metrics.use_case_key", config.use_case_id.value)
 
 
 def initialize_main_process_state(config: MetricsIngestConfiguration) -> None:
@@ -164,6 +165,7 @@ def initialize_main_process_state(config: MetricsIngestConfiguration) -> None:
     """
 
     sentry_sdk.set_tag("sentry_metrics.use_case_key", config.use_case_id.value)
+    sentry_sdk.set_attribute("sentry_metrics.use_case_key", config.use_case_id.value)
 
     from sentry.utils.metrics import add_global_tags
 

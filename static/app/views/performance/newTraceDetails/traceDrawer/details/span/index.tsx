@@ -46,7 +46,7 @@ import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/de
 import {AIInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {AIIOAlert} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiIOAlert';
 import {AIOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
-import {Attributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
+import {AttributesSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {Contexts} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/contexts';
 import {MCPInputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpInput';
 import {MCPOutputSection} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcpOutput';
@@ -82,7 +82,6 @@ function SpanSections({
   node: SpanNode;
   onParentClick: (node: BaseNode) => void;
   organization: Organization;
-  project: Project | undefined;
 }) {
   const theme = useTheme();
 
@@ -123,7 +122,6 @@ function SpanSections({
 export function SpanNodeDetails(props: TraceTreeNodeDetailsProps<SpanNode>) {
   const {node, organization} = props;
   const location = useLocation();
-  const theme = useTheme();
   const {projects} = useProjects();
   const issues = node.uniqueIssues;
 
@@ -185,7 +183,6 @@ export function SpanNodeDetails(props: TraceTreeNodeDetailsProps<SpanNode>) {
                   project={project}
                   issues={issues}
                   location={location}
-                  theme={theme}
                 />
               </LogsPageDataProvider>
             </LogsQueryParamsProvider>
@@ -210,7 +207,6 @@ function SpanNodeDetailsContent({
   issues: TraceTree.TraceIssue[];
   location: Location;
   project: Project | undefined;
-  theme: Theme;
 }) {
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -261,7 +257,6 @@ function SpanNodeDetailsContent({
         <MCPOutputSection node={node} />
         <SpanSections
           node={node}
-          project={project}
           organization={organization}
           location={location}
           onParentClick={onParentClick}
@@ -283,8 +278,8 @@ function SpanNodeDetailsContent({
   );
 }
 
-function useAvgSpanDuration(
-  span: TraceTree.EAPSpan,
+export function useAvgSpanDuration(
+  span: TraceTree.EAPSpan | undefined,
   location: Location
 ): number | undefined {
   const dataset = useSpansDataset();
@@ -292,15 +287,15 @@ function useAvgSpanDuration(
   const eventView = useMemo(() => {
     const search = new MutableSearch('');
 
-    search.addFilterValue('span.op', span.op);
-    search.addFilterValue('span.description', span.description ?? '');
+    search.addFilterValue('span.op', span?.op ?? '');
+    search.addFilterValue('span.description', span?.description ?? '');
 
     const discoverQuery: NewQuery = {
       id: undefined,
       name: 'Trace View - Span Avg Duration',
       fields: ['avg(span.duration)'],
       query: search.formatString(),
-      projects: [span.project_id],
+      projects: span ? [span.project_id] : [],
       version: 2,
       range: '24h',
       dataset,
@@ -310,7 +305,7 @@ function useAvgSpanDuration(
   }, [span, location, dataset]);
 
   const result = useSpansQueryWithoutPageFilters({
-    enabled: !!span.description && !!span.op,
+    enabled: !!span?.description && !!span?.op,
     eventView,
     initialData: [],
     referrer: 'api.explore.spans-aggregates-table', // TODO: replace with trace span details referrer
@@ -505,6 +500,18 @@ function EAPSpanNodeDetailsContent({
     }
   }, [hasProfileDetails, hasLogDetails, organization]);
 
+  const genAiOperationType = attributesMap['gen_ai.operation.type'];
+  useEffect(() => {
+    // Skip when rendered outside the waterfall drawer (e.g. the AI tab and
+    // conversations views render the same details with node actions hidden).
+    if (hideNodeActions) {
+      return;
+    }
+    if (typeof genAiOperationType === 'string' && genAiOperationType) {
+      traceAnalytics.trackGenAISpanDetailsViewed(organization, genAiOperationType);
+    }
+  }, [genAiOperationType, organization, hideNodeActions]);
+
   const isSdkSentV2Span =
     // The presence of this attribute indicates that the EAP span was sent as a v2 span
     // from SDKs rather than an SDK-sent transaction converted to EAP spans during ingestion.
@@ -574,7 +581,7 @@ function EAPSpanNodeDetailsContent({
         />
         <MCPInputSection node={node} attributes={attributes} />
         <MCPOutputSection node={node} attributes={attributes} />
-        <Attributes
+        <AttributesSection
           node={node}
           attributes={attributes}
           theme={theme}

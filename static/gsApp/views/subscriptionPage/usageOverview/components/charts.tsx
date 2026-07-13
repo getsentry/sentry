@@ -1,4 +1,4 @@
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {OptionSelector} from 'sentry/components/charts/optionSelector';
 import {ChartControls, InlineContainer} from 'sentry/components/charts/styles';
@@ -8,8 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {CHART_OPTIONS_DATA_TRANSFORM} from 'sentry/views/organizationStats/usageChart';
 
-import {PlanTier} from 'getsentry/types';
-import {addBillingStatTotals, checkIsAddOn, isAm2Plan} from 'getsentry/utils/billing';
+import {addBillingStatTotals, checkIsAddOn} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getChunkCategoryFromDuration,
@@ -73,7 +72,9 @@ export function UsageCharts({
     ? {
         ...addBillingStatTotals(totals, [
           eventTotals[getChunkCategoryFromDuration(category)] ?? EMPTY_STAT_TOTAL,
-          !isAm2Plan(subscription.plan) &&
+          // on span-based plans, transaction profiles also count toward
+          // profile duration; on earlier plans they are billed with transactions
+          subscription.planDetails.categories.includes(DataCategory.SPANS) &&
           selectedProduct === DataCategory.PROFILE_DURATION
             ? (eventTotals[DataCategory.PROFILES] ?? EMPTY_STAT_TOTAL)
             : EMPTY_STAT_TOTAL,
@@ -84,7 +85,7 @@ export function UsageCharts({
 
   const showEventBreakdown =
     organization.features.includes('profiling-billing') &&
-    subscription.planTier === PlanTier.AM2 &&
+    subscription.planDetails.categories.includes(DataCategory.PROFILE_DURATION) &&
     category === DataCategory.TRANSACTIONS;
 
   const renderFooter = () => {
@@ -130,7 +131,7 @@ export function UsageCharts({
         usagePeriodEnd={usageData.periodEnd}
         footer={renderFooter()}
       />
-      <Flex direction="column" gap="xl">
+      <Stack gap="xl">
         <UsageTotalsTable
           category={category}
           subscription={subscription}
@@ -149,7 +150,7 @@ export function UsageCharts({
               />
             );
           })}
-      </Flex>
+      </Stack>
     </Container>
   );
 }

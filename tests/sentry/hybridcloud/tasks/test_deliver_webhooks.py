@@ -24,16 +24,15 @@ from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
-from sentry.types.cell import Cell, CellResolutionError, RegionCategory
+from sentry.types.cell import Cell, CellResolutionError
 
-cell_config = [Cell("us", 1, "http://us.testserver", RegionCategory.MULTI_TENANT)]
+cell_config = [Cell("us", 1, "http://us.testserver")]
 cell_config_with_gateway = [
     Cell(
         name="us",
         snowflake_id=1,
         address="http://us.testserver",
         api_gateway_address="http://sentry-rpc-gateway",
-        category=RegionCategory.MULTI_TENANT,
     )
 ]
 
@@ -577,7 +576,6 @@ class DrainMailboxTest(TestCase):
 
     @responses.activate
     @override_cells(cell_config_with_gateway)
-    @override_options({"apigateway.proxy.use_gateway_address": 1.0})
     def test_drain_success_api_gateway_address(self) -> None:
         responses.add(
             responses.POST,

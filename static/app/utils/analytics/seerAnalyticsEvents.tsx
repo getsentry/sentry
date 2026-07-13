@@ -1,4 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
+import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 export type SeerAnalyticsEventsParameters = {
   'ai_query.applied': {
@@ -10,6 +11,16 @@ export type SeerAnalyticsEventsParameters = {
   'ai_query.error': {
     area: string;
     natural_language_query: string;
+    /**
+     * True when the error occurred while polling/fetching results, false (or
+     * absent) when it occurred while starting the search agent.
+     */
+    is_fetch?: boolean;
+    /**
+     * HTTP status code of the failed start request. Only available on the
+     * start-failure path; absent for polling errors (which have no HTTP status).
+     */
+    status_code?: number;
   };
   'ai_query.feedback': {
     area: string;
@@ -56,6 +67,12 @@ export type SeerAnalyticsEventsParameters = {
     group_id: string;
     organization: Organization;
     tool_name: string;
+  };
+  'autofix.pr_iteration.feedback': {
+    group_id: string;
+    organization: Organization;
+    mode?: 'explorer';
+    referrer?: string;
   };
   'autofix.root_cause.find_solution': {
     group_id: string;
@@ -126,7 +143,7 @@ export type SeerAnalyticsEventsParameters = {
     conversations_url: string | undefined;
     explorer_url: string | undefined;
     langfuse_url: string | undefined;
-    run_id: number | undefined;
+    run_id: SeerExplorerRunId | undefined;
     type: 'positive' | 'negative';
   };
   'seer.explorer.global_panel.opened': {
@@ -148,7 +165,10 @@ export type SeerAnalyticsEventsParameters = {
   };
   'seer.explorer.session_link_copied': Record<string, unknown>;
   'seer.explorer.timed_out': {
-    run_id: number | null;
+    run_id: SeerExplorerRunId | null;
+  };
+  'seer.explorer.update_slack_clicked': {
+    num_configurations: number;
   };
 };
 
@@ -165,6 +185,7 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'autofix.code_changes.re_run': 'Autofix: Code Changes Re-run',
   'autofix.create_pr_clicked': 'Autofix: Create PR Setup Clicked',
   'autofix.evidence.clicked': 'Autofix: Evidence Clicked',
+  'autofix.pr_iteration.feedback': 'Autofix: PR Iteration Feedback',
   'autofix.root_cause.find_solution': 'Autofix: Root Cause Find Solution',
   'autofix.root_cause.re_run': 'Autofix: Root Cause Re-run',
   'autofix.solution.code': 'Autofix: Code It Up',
@@ -184,4 +205,5 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
     'Seer Explorer: Session Copied to Clipboard',
   'seer.explorer.session_link_copied': 'Seer Explorer: Session Link Copied',
   'seer.explorer.timed_out': 'Seer Explorer: Timed Out',
+  'seer.explorer.update_slack_clicked': 'Seer Explorer: Update Slack Clicked',
 };

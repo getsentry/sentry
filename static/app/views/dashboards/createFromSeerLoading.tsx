@@ -1,9 +1,8 @@
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {IndeterminateLoader} from '@sentry/scraps/loader';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import type {Block} from 'sentry/views/seerExplorer/types';
 
 import {DashboardChatBlock} from './dashboardChatBlock';
@@ -15,11 +14,10 @@ interface CreateFromSeerLoadingProps {
 
 export function CreateFromSeerLoading({blocks, seerRunId}: CreateFromSeerLoadingProps) {
   const blocksToRender = blocks.slice(-3);
-  const hasPageFrame = useHasPageFrameFeature();
   return (
-    <Stack flex={1} padding="2xl 3xl" background={hasPageFrame ? undefined : 'secondary'}>
-      <Flex direction="column" gap="lg" align="center" justify="center" flex="1">
-        <Flex direction="column" gap="sm" width="640px">
+    <Stack flex={1} padding="2xl 3xl">
+      <Stack gap="lg" align="center" justify="center" flex="1">
+        <Stack gap="sm" width="640px">
           <Container paddingBottom="lg">
             <IndeterminateLoader />
           </Container>
@@ -43,8 +41,8 @@ export function CreateFromSeerLoading({blocks, seerRunId}: CreateFromSeerLoading
               ))}
             </Stack>
           </Container>
-        </Flex>
-      </Flex>
+        </Stack>
+      </Stack>
     </Stack>
   );
 }

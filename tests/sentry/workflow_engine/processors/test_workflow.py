@@ -20,9 +20,9 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
-    TriggerResult,
     get_data_conditions_for_group,
 )
+from sentry.workflow_engine.processors.evaluations import TriggerResult
 from sentry.workflow_engine.processors.workflow import (
     EvaluationStats,
     enqueue_workflows,

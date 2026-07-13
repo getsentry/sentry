@@ -2,18 +2,17 @@ import {useMemo} from 'react';
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 
-import type {BillingConfig, Plan, PlanTier, Subscription} from 'getsentry/types';
+import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
 import {
   isBizPlanFamily,
   isDeveloperPlan,
   isNewPayingCustomer,
-  isTrialPlan,
 } from 'getsentry/utils/billing';
 import {PlanFeatures} from 'getsentry/views/amCheckout/components/planFeatures';
 import {PlanSelectCard} from 'getsentry/views/amCheckout/components/planSelectCard';
@@ -32,7 +31,6 @@ interface PlanSubstepProps extends BaseSubstepProps {
   billingConfig: BillingConfig;
   organization: Organization;
   subscription: Subscription;
-  checkoutTier?: PlanTier;
 }
 
 interface AdditionalProductsSubstepProps extends BaseSubstepProps {
@@ -49,8 +47,8 @@ function PlanSubstep({
 }: PlanSubstepProps) {
   const planOptions = useMemo(() => {
     const plans = billingConfig.planList.filter(
-      ({contractInterval, id}) =>
-        contractInterval === activePlan.contractInterval &&
+      ({billingInterval, id}) =>
+        billingInterval === activePlan.billingInterval &&
         !id.includes(billingConfig.freePlan) // TODO(billing): If we ever surface Developer in checkout, we'll need to remove this filter
     );
 
@@ -60,14 +58,14 @@ function PlanSubstep({
 
     // sort by price ascending
     return plans.sort((a, b) => a.basePrice - b.basePrice);
-  }, [billingConfig, activePlan.contractInterval]);
+  }, [billingConfig, activePlan.billingInterval]);
 
   const getBadge = (plan: Plan): React.ReactNode | undefined => {
     if (
       plan.id === subscription.plan ||
       // If Developer is surfaced in checkout and the current plan is a trial plan, we should show the `Current` badge
       // on the Developer plan
-      (isTrialPlan(subscription.plan) && isDeveloperPlan(plan))
+      (subscription.onTrialPlan && isDeveloperPlan(plan))
     ) {
       const copy = t('Current');
       return <Tag variant="muted">{copy}</Tag>;
@@ -92,8 +90,11 @@ function PlanSubstep({
   };
 
   return (
-    <Flex direction="column" gap="xl">
-      <Grid columns={{xs: '1fr', lg: `repeat(${planOptions.length}, 1fr)`}} gap="lg">
+    <Stack gap="xl">
+      <Grid
+        columns={{'screen:xs': '1fr', 'screen:lg': `repeat(${planOptions.length}, 1fr)`}}
+        gap="lg"
+      >
         {planOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
           const shouldShowDefaultPayAsYouGo = isNewPayingCustomer(
@@ -121,7 +122,7 @@ function PlanSubstep({
         })}
       </Grid>
       <PlanFeatures planOptions={planOptions} activePlan={activePlan} />
-    </Flex>
+    </Stack>
   );
 }
 
@@ -132,16 +133,16 @@ function AdditionalProductsSubstep({
   subscription,
 }: AdditionalProductsSubstepProps) {
   return (
-    <Flex direction="column" gap="xl" paddingTop="3xl">
-      <Flex direction="column" gap="xl">
+    <Stack gap="xl" paddingTop="3xl">
+      <Stack gap="xl">
         <ProductSelect
           activePlan={activePlan}
           formData={formData}
           onUpdate={onUpdate}
           subscription={subscription}
         />
-      </Flex>
-    </Flex>
+      </Stack>
+    </Stack>
   );
 }
 
@@ -153,7 +154,6 @@ export function BuildYourPlan({
   formData,
   onUpdate,
   stepNumber,
-  checkoutTier,
 }: StepProps) {
   return (
     <Stack gap="xl" direction="column" id={`step${stepNumber}`}>
@@ -165,7 +165,6 @@ export function BuildYourPlan({
         onUpdate={onUpdate}
         organization={organization}
         subscription={subscription}
-        checkoutTier={checkoutTier}
       />
       <AdditionalProductsSubstep
         activePlan={activePlan}

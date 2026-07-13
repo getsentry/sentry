@@ -6,7 +6,7 @@ Please confirm your email ({{ confirm_email|safe }}) by clicking the link below:
 
 {{ url|safe }}
 
-This link will expire in 48 hours.
+This link will expire in {{ expiry_text|default:"48 hours" }}.
 
 {% if is_new_user %}
 If you did not sign up, you may simply ignore this email.

@@ -6,8 +6,15 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isScmProvider} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {sortByScmProviderOrder} from './scmProviderOrder';
+
 type ScmProvidersData = {
+  // First active SCM integration, if any. Kept for callers that only support a
+  // single integration (the onboarding connect step).
   activeIntegrationExisting: Integration | null;
+  // Every active SCM integration, for callers that let the user pick which one
+  // to search repos within (the project-creation connect surface).
+  activeIntegrations: Integration[];
   isError: boolean;
   isPending: boolean;
   refetch: () => void;
@@ -37,7 +44,13 @@ export function useScmProviders(): ScmProvidersData {
   );
 
   const scmProviders = useMemo(
-    () => (providersQuery.data?.providers ?? []).filter(isScmProvider),
+    () =>
+      // Order providers the same way ScmProviderPills displays them (primary
+      // providers first, then the rest) so every consumer lists them alike.
+      sortByScmProviderOrder(
+        (providersQuery.data?.providers ?? []).filter(isScmProvider),
+        p => p.key
+      ),
     [providersQuery.data]
   );
 
@@ -52,17 +65,24 @@ export function useScmProviders(): ScmProvidersData {
     })
   );
 
-  const activeIntegration = useMemo(
+  const activeIntegrations = useMemo(
     () =>
-      (integrationsQuery.data ?? []).find(
-        i => i.organizationIntegrationStatus === 'active' && i.status === 'active'
-      ) ?? null,
+      // Same provider order as scmProviders, so activeIntegrationExisting (the
+      // first one) prioritizes the primary providers too.
+      sortByScmProviderOrder(
+        (integrationsQuery.data ?? []).filter(
+          i => i.organizationIntegrationStatus === 'active' && i.status === 'active'
+        ),
+        i => i.provider.key
+      ),
     [integrationsQuery.data]
   );
 
   return {
-    // V1 only supports a single active SCM integration in onboarding.
-    activeIntegrationExisting: activeIntegration,
+    // The onboarding connect step only supports a single active SCM
+    // integration, so it reads the first one.
+    activeIntegrationExisting: activeIntegrations[0] ?? null,
+    activeIntegrations,
     scmProviders,
     isPending: providersQuery.isPending || integrationsQuery.isPending,
     isError: providersQuery.isError || integrationsQuery.isError,

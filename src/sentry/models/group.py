@@ -37,7 +37,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.issues.action_log import publish_action_from_context
+from sentry.issues.action_log.publish import publish_action_from_context
 from sentry.issues.action_log.types import (
     ArchiveAction,
     GroupAction,
@@ -609,8 +609,7 @@ class GroupManager(BaseManager["Group"]):
                 publish_action_from_context(
                     action_cls(),
                     group_id=group.id,
-                    organization_id=group.project.organization_id,
-                    project_id=group.project_id,
+                    project=group.project,
                 )
 
             if group.id in updated_priority:

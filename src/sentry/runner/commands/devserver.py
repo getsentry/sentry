@@ -11,6 +11,7 @@ import sentry_sdk
 
 from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
+from sentry.utils.tracing import start_span
 
 # NOTE: These do NOT start automatically. Add your daemon to the `daemons` list
 # in `devserver()` like so:
@@ -23,14 +24,6 @@ _DEFAULT_DAEMONS = {
     "taskworker": ["sentry", "run", "taskworker"],
     "taskworker-scheduler": ["sentry", "run", "taskworker-scheduler"],
 }
-
-_SUBSCRIPTION_RESULTS_CONSUMERS = [
-    "events-subscription-results",
-    "transactions-subscription-results",
-    "generic-metrics-subscription-results",
-    "metrics-subscription-results",
-    "subscription-results-eap-items",
-]
 
 
 def add_daemon(name: str, command: list[str]) -> None:
@@ -171,7 +164,7 @@ def devserver(
         dsn=os.environ.get("SENTRY_DEVSERVICES_DSN", ""),
         traces_sample_rate=1.0,
     )
-    with sentry_sdk.start_transaction(op="command", name="sentry.devserver"):
+    with start_span(op="command", name="sentry.devserver", transaction=True):
         passed_options = {
             p.name: ctx.params[p.name]
             for p in ctx.command.params
@@ -181,6 +174,7 @@ def devserver(
 
         for option_name, option_value in passed_options.items():
             sentry_sdk.set_tag(f"devserver.{option_name}", option_value)
+            sentry_sdk.set_attribute(f"devserver.{option_name}", option_value)
 
         if bind is None:
             bind = "127.0.0.1:8000"
@@ -311,9 +305,6 @@ def devserver(
 
             daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
 
-            if settings.SENTRY_DEV_PROCESS_SUBSCRIPTIONS:
-                kafka_consumers.update(_SUBSCRIPTION_RESULTS_CONSUMERS)
-
             if settings.SENTRY_USE_METRICS_DEV and settings.SENTRY_USE_RELAY:
                 kafka_consumers.add("ingest-metrics")
                 kafka_consumers.add("ingest-generic-metrics")
@@ -352,10 +343,10 @@ def devserver(
             from sentry_kafka_schemas import list_topics
 
             from sentry.utils.batching_kafka_consumer import create_topics
-            from sentry.utils.kafka_config import get_topic_definition_from_name
+            from sentry.utils.kafka_config import get_topic_definition
 
             for topic in list_topics():
-                topic_defn = get_topic_definition_from_name(topic)
+                topic_defn = get_topic_definition(topic)
                 create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
 
         # Set up Kafka consumers if they are configured

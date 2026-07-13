@@ -1,3 +1,5 @@
+from django.test import override_settings
+
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import jwt
@@ -14,7 +16,7 @@ class OrganizationIntercomJwtEndpointTest(APITestCase):
         """With secret configured, should return JWT and user data."""
         test_secret = "test-intercom-secret-key"
 
-        with self.options({"intercom.sentry-api-secret": test_secret}):
+        with override_settings(SENTRY_INTERCOM_API_SECRET=test_secret):
             response = self.get_success_response(self.organization.slug)
 
         assert "jwt" in response.data

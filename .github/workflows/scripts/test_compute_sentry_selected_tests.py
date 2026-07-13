@@ -19,7 +19,25 @@ _mod = importlib.util.module_from_spec(_spec)
 sys.modules["compute_sentry_selected_tests"] = _mod
 _spec.loader.exec_module(_mod)
 
-from compute_sentry_selected_tests import ALWAYS_RUN_TESTS, _query_coverage, main
+from compute_sentry_selected_tests import (
+    ALWAYS_RUN_TESTS,
+    EXTRA_DIR_TO_TEST_MAPPING,
+    EXTRA_FILE_TO_TEST_MAPPING,
+    FULL_SUITE_TRIGGERS,
+    _query_coverage,
+    main,
+)
+
+# Repo root — used to resolve config paths, which are all repo-relative.
+_REPO_ROOT = Path(__file__).parents[3]
+
+
+def _stale_msg(path: str, kind: str = "file") -> str:
+    return (
+        f"{path!r} no longer exists on disk.\n"
+        f"  If this {kind} was renamed, update this path in the selective testing config.\n"
+        f"  If it was deleted, remove this entry from the config too."
+    )
 
 
 def _create_coverage_db(path: str, file_to_contexts: dict[str, list[str]]) -> None:
@@ -408,3 +426,46 @@ class TestMain:
     def test_missing_db_returns_error(self):
         ret = _run(["--coverage-db", "/nonexistent/coverage.db", "--changed-files", "foo.py"])
         assert ret == 1
+
+
+class TestConfigPaths:
+    """Assert every literal path in the selective testing config still exists on disk.
+
+    Catches renames and deletions that would silently make a trigger or mapping
+    entry dead — a renamed trigger file stops triggering the full suite; a renamed
+    mapping source stops selecting its associated tests.
+    """
+
+    @pytest.mark.parametrize("trigger", [t for t in FULL_SUITE_TRIGGERS if isinstance(t, str)])
+    def test_full_suite_triggers_exist(self, trigger: str) -> None:
+        assert (_REPO_ROOT / trigger).exists(), _stale_msg(trigger)
+
+    @pytest.mark.parametrize("path", sorted(ALWAYS_RUN_TESTS))
+    def test_always_run_tests_exist(self, path: str) -> None:
+        assert (_REPO_ROOT / path).exists(), _stale_msg(path, "test file")
+
+    @pytest.mark.parametrize("path", sorted(EXTRA_FILE_TO_TEST_MAPPING))
+    def test_extra_file_mapping_sources_exist(self, path: str) -> None:
+        assert (_REPO_ROOT / path).exists(), _stale_msg(path)
+
+    @pytest.mark.parametrize(
+        "path",
+        sorted({p for paths in EXTRA_FILE_TO_TEST_MAPPING.values() for p in paths}),
+    )
+    def test_extra_file_mapping_targets_exist(self, path: str) -> None:
+        assert (_REPO_ROOT / path).exists(), _stale_msg(path, "test file")
+
+    @pytest.mark.parametrize("prefix", sorted(EXTRA_DIR_TO_TEST_MAPPING))
+    def test_extra_dir_mapping_prefixes_exist(self, prefix: str) -> None:
+        assert (_REPO_ROOT / prefix).is_dir(), (
+            f"Directory {prefix!r} no longer exists on disk.\n"
+            f"  If this directory was renamed, update this prefix in the selective testing config.\n"
+            f"  If it was deleted, remove this entry from the config too."
+        )
+
+    @pytest.mark.parametrize(
+        "path",
+        sorted({p for paths in EXTRA_DIR_TO_TEST_MAPPING.values() for p in paths}),
+    )
+    def test_extra_dir_mapping_targets_exist(self, path: str) -> None:
+        assert (_REPO_ROOT / path).exists(), _stale_msg(path, "test file")

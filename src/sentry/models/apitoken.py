@@ -6,7 +6,7 @@ import logging
 import re
 import secrets
 from collections.abc import Collection, Mapping
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, ClassVar, TypeGuard
 
 from django.db import models, router, transaction
@@ -99,7 +99,7 @@ def validate_pkce_challenge(
     return True, None
 
 
-def default_expiration():
+def default_expiration() -> datetime:
     return timezone.now() + DEFAULT_EXPIRATION
 
 
@@ -131,7 +131,7 @@ class TokenRefreshError(Exception):
 
 
 class ApiTokenManager(ControlOutboxProducingManager["ApiToken"]):
-    def create(self, *args, **kwargs):
+    def create(self, *args: Any, **kwargs: Any) -> ApiToken:
         token_type: AuthTokenType | None = kwargs.get("token_type", None)
 
         # Typically the .create() method is called with `refresh_token=None` as an
@@ -183,10 +183,7 @@ class ApiTokenManager(ControlOutboxProducingManager["ApiToken"]):
 class ApiToken(ReplicatedControlModel, HasApiScopes):
     __relocation_scope__ = {RelocationScope.Global, RelocationScope.Config}
     category = OutboxCategory.API_TOKEN_UPDATE
-
-    # Outbox settings
-    enqueue_after_flush = True
-    _default_flush: bool | None = None
+    replication_version = 2
 
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
@@ -365,7 +362,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         grant: ApiGrant,
         redirect_uri: str | None = None,
         code_verifier: str | None = None,
-    ):
+    ) -> ApiToken:
         """Create an ApiToken from an ApiGrant with full OAuth2 validation.
 
         This method performs comprehensive validation including:
@@ -467,13 +464,13 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
             # We should not delete here as it could interfere with the lock holder.
             raise InvalidGrantError("grant already in use")
 
-    def is_expired(self):
+    def is_expired(self) -> bool:
         if not self.expires_at:
             return False
 
         return timezone.now() >= self.expires_at
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {"scopes": self.get_scopes()}
 
     def get_allowed_origins(self) -> list[str]:
@@ -481,7 +478,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
             return self.application.get_allowed_origins()
         return []
 
-    def refresh(self, expires_at=None):
+    def refresh(self, expires_at: datetime | None = None) -> None:
         if self.token_type == AuthTokenType.USER:
             raise NotSupported("User auth tokens do not support refreshing the token")
 
@@ -608,21 +605,6 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
             return install_token.sentry_app_installation.organization_id
 
         return installation.organization_id
-
-    @property
-    def default_flush(self) -> bool:
-        from sentry import options
-
-        has_async_flush = options.get("api-token-async-flush")
-
-        if self._default_flush is not None:
-            return self._default_flush
-
-        return not has_async_flush
-
-    @default_flush.setter
-    def default_flush(self, value: bool) -> None:
-        self._default_flush = value
 
 
 def is_api_token_auth(auth: object) -> TypeGuard[AuthenticatedToken | ApiToken | ApiTokenReplica]:

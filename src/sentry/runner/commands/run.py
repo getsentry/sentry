@@ -10,6 +10,7 @@ from typing import Any
 import click
 import taskbroker_client.constants as taskworker_constants
 
+from sentry import options as sentry_options
 from sentry.bgtasks.api import managed_bgtasks
 from sentry.runner.decorators import configuration, log_options
 from sentry.utils.kafka import run_processor_with_signals
@@ -107,14 +108,11 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     from django.conf import settings
     from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
-    from sentry.taskworker.adapters import SentryMetricsBackend
     from sentry.taskworker.runtime import app
     from sentry.utils.redis import redis_clusters
 
     app.load_modules()
-    run_storage = RunStorage(
-        metrics=SentryMetricsBackend(), redis=redis_clusters.get(redis_cluster)
-    )
+    run_storage = RunStorage(metrics=app.metrics, redis=redis_clusters.get(redis_cluster))
 
     with managed_bgtasks(role="taskworker-scheduler"):
         runner = ScheduleRunner(app, run_storage)
@@ -137,6 +135,9 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 @run.command()
 @click.option(
     "--push-mode", help="Whether to run in PUSH or PULL mode.", default=False, is_flag=True
+)
+@click.option(
+    "--batch-push-mode", help="Whether to run in BATCH PUSH mode.", default=False, is_flag=True
 )
 @click.option(
     "--rpc-host",
@@ -163,6 +164,9 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     default=taskworker_constants.DEFAULT_CHILD_TASK_COUNT,
 )
 @click.option("--concurrency", help="Number of child processes to create.", default=1)
+@click.option(
+    "--min-concurrency", help="Minimum number of children that should always be active.", default=0
+)
 @click.option(
     "--namespace", help="The dedicated task namespace that this worker processes", default=None
 )
@@ -200,6 +204,25 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     help="The number of seconds before touching the health check file",
     default=taskworker_constants.DEFAULT_WORKER_HEALTH_CHECK_SEC_PER_TOUCH,
 )
+@click.option(
+    "--push-timeout-sec",
+    help="The timeout in seconds for the worker to wait to push a task into the child queue",
+    default=5.0,
+    type=float,
+)
+@click.option(
+    "--future-checking-frequency",
+    help="How long the future checking thread in each worker child sleeps between iterations"
+    "to take pressure off the GIL",
+    default=0.1,
+    type=float,
+)
+@click.option(
+    "--prometheus-port",
+    help="Expose worker occupancy on this port for Prometheus scraping. Unset = disabled.",
+    default=None,
+    type=int,
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -213,6 +236,7 @@ def taskworker(**options: Any) -> None:
 
 def run_taskworker(
     push_mode: bool,
+    batch_push_mode: bool,
     worker_rpc_port: int,
     rpc_host: str,
     num_brokers: int | None,
@@ -220,6 +244,7 @@ def run_taskworker(
     max_child_task_count: int,
     namespace: str | None,
     concurrency: int,
+    min_concurrency: int,
     child_tasks_queue_maxsize: int,
     result_queue_maxsize: int,
     rebalance_after: int,
@@ -227,14 +252,18 @@ def run_taskworker(
     pod_name: str,
     health_check_file_path: str | None,
     health_check_sec_per_touch: float,
+    push_timeout_sec: float,
+    future_checking_frequency: float,
+    prometheus_port: int | None,
     **options: Any,
 ) -> None:
     """
     taskworker factory that can be reloaded
     """
-    from taskbroker_client.worker import PushTaskWorker, TaskWorker
+    from taskbroker_client.worker import BatchPushTaskWorker, PushTaskWorker, TaskWorker
     from taskbroker_client.worker.client import make_broker_hosts
 
+    skip_awaiting_futures = sentry_options.get("taskworker.skip.awaiting.futures")
     with managed_bgtasks(role="taskworker"):
         if push_mode:
             worker: PushTaskWorker | TaskWorker = PushTaskWorker(
@@ -243,6 +272,7 @@ def run_taskworker(
                 max_child_task_count=max_child_task_count,
                 namespace=namespace,
                 concurrency=concurrency,
+                min_concurrency=min_concurrency,
                 child_tasks_queue_maxsize=child_tasks_queue_maxsize,
                 result_queue_maxsize=result_queue_maxsize,
                 rebalance_after=rebalance_after,
@@ -251,6 +281,31 @@ def run_taskworker(
                 health_check_file_path=health_check_file_path,
                 health_check_sec_per_touch=health_check_sec_per_touch,
                 grpc_port=worker_rpc_port,
+                push_task_timeout=push_timeout_sec,
+                skip_awaiting_futures=skip_awaiting_futures,
+                future_checking_frequency=future_checking_frequency,
+                prometheus_port=prometheus_port,
+            )
+        elif batch_push_mode:
+            worker = BatchPushTaskWorker(
+                app_module="sentry.taskworker.bootstrap:app",
+                broker_service=rpc_host,
+                max_child_task_count=max_child_task_count,
+                namespace=namespace,
+                concurrency=concurrency,
+                min_concurrency=min_concurrency,
+                child_tasks_queue_maxsize=child_tasks_queue_maxsize,
+                result_queue_maxsize=result_queue_maxsize,
+                rebalance_after=rebalance_after,
+                processing_pool_name=processing_pool_name,
+                pod_name=pod_name,
+                health_check_file_path=health_check_file_path,
+                health_check_sec_per_touch=health_check_sec_per_touch,
+                grpc_port=worker_rpc_port,
+                update_in_batches=True,
+                skip_awaiting_futures=skip_awaiting_futures,
+                future_checking_frequency=future_checking_frequency,
+                prometheus_port=prometheus_port,
             )
         else:
             worker = TaskWorker(
@@ -261,12 +316,15 @@ def run_taskworker(
                 max_child_task_count=max_child_task_count,
                 namespace=namespace,
                 concurrency=concurrency,
+                min_concurrency=min_concurrency,
                 child_tasks_queue_maxsize=child_tasks_queue_maxsize,
                 result_queue_maxsize=result_queue_maxsize,
                 rebalance_after=rebalance_after,
                 processing_pool_name=processing_pool_name,
                 health_check_file_path=health_check_file_path,
                 health_check_sec_per_touch=health_check_sec_per_touch,
+                skip_awaiting_futures=skip_awaiting_futures,
+                future_checking_frequency=future_checking_frequency,
             )
         exitcode = worker.start()
         raise SystemExit(exitcode)
@@ -346,8 +404,12 @@ def taskbroker_send_tasks(
     namespace: str,
     extra_arg_bytes: int | None,
 ) -> None:
+    from taskbroker_client.canary import CANARY_TASK_NAME
+    from taskbroker_client.constants import INTERNAL_NAMESPACE
+
     from sentry.conf.server import KAFKA_CLUSTERS
     from sentry.taskworker.adapters import set_route_overrides
+    from sentry.taskworker.runtime import app
     from sentry.utils.imports import import_string
 
     if bootstrap_servers:
@@ -356,11 +418,14 @@ def taskbroker_send_tasks(
     if kafka_topic and namespace:
         set_route_overrides({namespace: kafka_topic})
 
-    try:
-        func = import_string(task_function_path)
-    except Exception as e:
-        click.echo(f"Error: {e}")
-        raise click.Abort()
+    if task_function_path == CANARY_TASK_NAME and namespace == INTERNAL_NAMESPACE:
+        func = app.get_task(namespace, task_function_path)
+    else:
+        try:
+            func = import_string(task_function_path)
+        except Exception as e:
+            click.echo(f"Error: {e}")
+            raise click.Abort()
 
     task_args = [] if not args else eval(args)
     task_kwargs = {} if not kwargs else eval(kwargs)
@@ -515,9 +580,9 @@ def basic_consumer(
 
     Example:
 
-        sentry run consumer ingest-profiles --consumer-group ingest-profiles
+        sentry run consumer ingest-occurrences --consumer-group ingest-occurrences
 
-    runs the ingest-profiles consumer with the consumer group ingest-profiles.
+    runs the ingest-occurrences consumer with the consumer group ingest-occurrences.
 
     Consumers are defined in 'sentry.consumers'. Each consumer can take
     additional CLI options. Those can be passed after '--':

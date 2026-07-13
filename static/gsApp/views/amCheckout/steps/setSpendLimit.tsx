@@ -1,4 +1,4 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 
@@ -21,7 +21,6 @@ export function SetSpendLimit({
   onUpdate,
   organization,
   subscription,
-  checkoutTier,
 }: StepProps) {
   const handleBudgetChange = ({onDemandBudgets}: {onDemandBudgets: OnDemandBudgets}) => {
     const totalBudget = getTotalBudget(onDemandBudgets);
@@ -43,7 +42,7 @@ export function SetSpendLimit({
   };
 
   return (
-    <Flex direction="column" gap="2xl" id={`step${stepNumber}`}>
+    <Stack gap="2xl" id={`step${stepNumber}`}>
       <SpendLimitSettings
         organization={organization}
         subscription={subscription}
@@ -64,10 +63,9 @@ export function SetSpendLimit({
             onUpdate={onUpdate}
             organization={organization}
             subscription={subscription}
-            checkoutTier={checkoutTier}
           />
         }
       />
-    </Flex>
+    </Stack>
   );
 }

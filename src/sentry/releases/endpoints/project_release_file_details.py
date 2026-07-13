@@ -232,16 +232,17 @@ class ReleaseFileDetailsMixin:
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
-        "DELETE": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ProjectReleasePermission,)
 
     @extend_schema(
-        operation_id="Retrieve a Project Release's File",
+        operation_id="getProjectReleaseFile",
+        summary="Retrieve a Project Release's File",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -286,7 +287,8 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
         )
 
     @extend_schema(
-        operation_id="Update a Project Release's File",
+        operation_id="updateProjectReleaseFile",
+        summary="Update a Project Release File",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -321,7 +323,8 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
         return self.update_releasefile(request, release, file_id)
 
     @extend_schema(
-        operation_id="Delete a Project Release's File",
+        operation_id="deleteProjectReleaseFile",
+        summary="Delete a Project Release's File",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -335,7 +338,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, project, version, file_id) -> Response:
+    def delete(self, request: Request, project, version, file_id) -> Response[None]:
         """
         Permanently remove a file from a release. Also removes the physical file from
         storage, unless it is stored as part of an artifact bundle.

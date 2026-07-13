@@ -1,11 +1,12 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {skipToken, useQuery} from '@tanstack/react-query';
+import * as qs from 'query-string';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
@@ -178,11 +179,17 @@ export default function IntegrationOrganizationLink() {
       const normalizedUrl = normalizeUrl(
         `/settings/${orgId}/integrations/${data.provider.key}/${data.id}/`
       );
-      window.location.assign(
-        `${organization?.links.organizationUrl || ''}${normalizedUrl}`
+      // Preserve the `next` param (e.g. Vercel's marketplace return URL) so the
+      // integration's configure page can offer a "Complete on <provider>" link
+      // back to where the install was initiated.
+      const nextParam =
+        typeof location.query.next === 'string' ? location.query.next : undefined;
+      const search = nextParam ? `?${qs.stringify({next: nextParam})}` : '';
+      testableWindowLocation.assign(
+        `${organization?.links.organizationUrl || ''}${normalizedUrl}${search}`
       );
     },
-    [organization]
+    [organization, location.query.next]
   );
 
   // GitHub App listing installs arrive here with `installationId` as a URL
@@ -364,7 +371,7 @@ export default function IntegrationOrganizationLink() {
     return (
       <IntegrationFeatures organization={organization} features={featuresComponents}>
         {({disabled, disabledReason}) => (
-          <Flex direction="column" align="center" justify="center">
+          <Stack align="center" justify="center">
             <Button
               variant="primary"
               disabled={!hasAccess || disabled}
@@ -373,7 +380,7 @@ export default function IntegrationOrganizationLink() {
               {t('Install %s', provider.name)}
             </Button>
             {disabled && <IntegrationLayout.DisabledNotice reason={disabledReason} />}
-          </Flex>
+          </Stack>
         )}
       </IntegrationFeatures>
     );

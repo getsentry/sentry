@@ -62,10 +62,10 @@ function Item({
       ) : (
         <IconWrapper className="timeline-icon-wrapper" />
       )}
-      <Flex align="center" gap="xs" wrap="wrap">
+      <TitleRow align="center" gap="xs" wrap="wrap">
         <Title style={{color: config.title}}>{title}</Title>
         {titleTrailingItems}
-      </Flex>
+      </TitleRow>
       {timestamp ?? <div />}
       <Container justifySelf="center" width="0" height="100%" column="span 1" />
       <Content hasMarker={hasMarker}>{children}</Content>
@@ -120,6 +120,8 @@ const IconWrapper = styled('div')`
     margin: ${p => p.theme.space.xs};
   }
 `;
+
+const TitleRow = styled(Flex)``;
 
 const Title = styled('div')`
   font-weight: bold;
@@ -177,6 +179,8 @@ const TimelineContainer = styled('div')`
 export const Timeline = {
   Data,
   Text,
+  Title,
+  TitleRow,
   Item,
   Container: TimelineContainer,
 };

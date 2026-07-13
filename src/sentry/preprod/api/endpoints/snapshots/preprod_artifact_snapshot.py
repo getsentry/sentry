@@ -1,19 +1,20 @@
 from __future__ import annotations
 
 import logging
+from io import BytesIO
 from typing import Any, cast
 
 import jsonschema
 import orjson
 import pydantic
-from django.conf import settings
+import zstandard
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -22,12 +23,14 @@ from sentry.api.bases.organization import (
     OrganizationReleasePermission,
 )
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
+from sentry.api.endpoints.chunk import ChunkTooLarge, _read_bounded
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
+from sentry.issues.action_log import resolve_action_source
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -81,6 +84,7 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -141,7 +145,28 @@ def build_snapshot_image_response(
         else global_diff_threshold,
         description=metadata.description,
         tags=metadata.tags,
+        canvas_theme=metadata.canvas_theme,
     )
+
+
+MAX_SNAPSHOT_REQUEST_BODY_SIZE = 256 * 1024 * 1024
+
+
+def decode_preprod_snapshot_request_body(request: Request) -> tuple[bytes | None, str | None]:
+    encoding = request.headers.get("Content-Encoding", "").strip().lower()
+    if encoding in ("", "identity"):
+        return request.body, None
+    if encoding != "zstd":
+        return None, "Unsupported Content-Encoding"
+    try:
+        reader = zstandard.ZstdDecompressor().stream_reader(
+            BytesIO(request.body), read_across_frames=True
+        )
+        return _read_bounded(reader, MAX_SNAPSHOT_REQUEST_BODY_SIZE), None
+    except ChunkTooLarge:
+        return None, "Decompressed request body too large"
+    except zstandard.ZstdError:
+        return None, "Invalid zstd payload"
 
 
 def validate_preprod_snapshot_post_schema(
@@ -201,7 +226,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
     @extend_schema(
-        operation_id="Delete a Snapshot",
+        operation_id="deleteOrganizationPreprodArtifactSnapshot",
+        summary="Delete a Snapshot",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -226,11 +252,6 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         This endpoint requires a bearer token with `project:write` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         try:
             artifact = PreprodArtifact.objects.select_related("project").get(
                 id=snapshot_id, project__organization_id=organization.id
@@ -283,7 +304,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         return Response(status=204)
 
     @extend_schema(
-        operation_id="Retrieve Snapshot details",
+        operation_id="getOrganizationPreprodArtifactSnapshot",
+        summary="Retrieve Snapshot details",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -318,20 +340,19 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         Retrieve full details for a snapshot, including categorized image lists
         and comparison status.
 
-        When a comparison exists, images are categorized into `changed`, `added`,
-        `removed`, `renamed`, `unchanged`, `errored`, and `skipped` lists with
-        counts. Without a comparison, only the `images` list is populated.
+        When a comparison exists (`comparison_type` is `diff`), images are
+        categorized into `changed`, `added`, `removed`, `renamed`, `unchanged`,
+        `errored`, and `skipped` lists with counts, and the top-level `images`
+        array is empty because those images are already present in the
+        categorized lists. For `solo` and `waiting_for_base` snapshots the
+        categorized lists are empty and `images` is the only populated source.
+        `image_count` is accurate in all modes.
 
         Use `compact_metadata=1` to strip image objects down to `display_name`,
         `image_file_name`, `group`, and `description` only.
 
         This endpoint requires a bearer token with `project:read` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         compact = request.GET.get("compact_metadata", "0") in ("1", "true")
 
         try:
@@ -356,8 +377,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         try:
             session = get_preprod_session(organization.id, artifact.project_id)
             get_response = session.get(manifest_key)
-            manifest_data = orjson.loads(get_response.payload.read())
-            manifest = SnapshotManifest(**manifest_data)
+            with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
+                raw_manifest = get_response.payload.read()
+            with start_span(
+                op="preprod.snapshot.parse_manifest", name="parse_head_manifest"
+            ) as span:
+                manifest = SnapshotManifest(**orjson.loads(raw_manifest))
+                set_span_data(span, "image_count", len(manifest.images))
         except Exception:
             logger.exception(
                 "Failed to retrieve snapshot manifest",
@@ -400,9 +426,17 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             comparison_key = (comparison.extras or {}).get("comparison_key")
             if comparison_key:
                 try:
-                    comparison_manifest = ComparisonManifest(
-                        **orjson.loads(session.get(comparison_key).payload.read())
-                    )
+                    with start_span(
+                        op="preprod.snapshot.read_manifest", name="read_comparison_manifest"
+                    ):
+                        raw_comparison_manifest = session.get(comparison_key).payload.read()
+                    with start_span(
+                        op="preprod.snapshot.parse_manifest", name="parse_comparison_manifest"
+                    ) as span:
+                        comparison_manifest = ComparisonManifest(
+                            **orjson.loads(raw_comparison_manifest)
+                        )
+                        set_span_data(span, "image_count", len(comparison_manifest.images))
                 except Exception:
                     comparison_manifest = None
                     logger.exception(
@@ -416,9 +450,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             base_manifest_key = (comparison.base_snapshot_metrics.extras or {}).get("manifest_key")
             if base_manifest_key:
                 try:
-                    base_manifest = SnapshotManifest(
-                        **orjson.loads(session.get(base_manifest_key).payload.read())
-                    )
+                    with start_span(op="preprod.snapshot.read_manifest", name="read_base_manifest"):
+                        raw_base_manifest = session.get(base_manifest_key).payload.read()
+                    with start_span(
+                        op="preprod.snapshot.parse_manifest", name="parse_base_manifest"
+                    ) as span:
+                        base_manifest = SnapshotManifest(**orjson.loads(raw_base_manifest))
+                        set_span_data(span, "image_count", len(base_manifest.images))
                 except Exception:
                     logger.exception(
                         "Failed to fetch base manifest",
@@ -433,6 +471,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                     request.user.id if request.user and request.user.is_authenticated else None
                 ),
                 artifact_id=str(artifact.id),
+                client=resolve_action_source(request),
             )
         )
 
@@ -452,17 +491,18 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                         app_id=artifact.app_id,
                         artifact_type=artifact.artifact_type,
                         build_configuration=artifact.build_configuration,
-                        allow_selective=features.has(
-                            "organizations:preprod-selective-base-snapshots", organization
-                        ),
                     )
                     is not None
                 )
 
-        image_list = [
-            build_snapshot_image_response(key, metadata, manifest.diff_threshold)
-            for key, metadata in sorted(manifest.images.items())
-        ]
+        with start_span(
+            op="preprod.snapshot.serialize_images", name="serialize_head_images"
+        ) as span:
+            set_span_data(span, "image_count", len(manifest.images))
+            image_list = [
+                build_snapshot_image_response(key, metadata, manifest.diff_threshold)
+                for key, metadata in sorted(manifest.images.items())
+            ]
 
         images_by_file_name: dict[str, SnapshotImageResponse] = {
             img.image_file_name: img for img in image_list
@@ -472,9 +512,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
 
         if comparison_manifest is not None:
             base_artifact_id = str(comparison_manifest.base_artifact_id)
-            categorized = categorize_comparison_images(
-                comparison_manifest, images_by_file_name, base_manifest
-            )
+            with start_span(
+                op="preprod.snapshot.categorize_comparison", name="categorize_comparison_images"
+            ) as span:
+                set_span_data(span, "image_count", len(comparison_manifest.images))
+                categorized = categorize_comparison_images(
+                    comparison_manifest, images_by_file_name, base_manifest
+                )
         else:
             if comparison is not None:
                 base_artifact_id = str(comparison.base_snapshot_metrics.preprod_artifact_id)
@@ -569,45 +613,49 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
         )
 
-        response_data = SnapshotDetailsApiResponse(
-            head_artifact_id=str(artifact.id),
-            base_artifact_id=base_artifact_id,
-            project_id=str(artifact.project_id),
-            comparison_type=comparison_type,
-            state=artifact.state,
-            vcs_info=vcs_info,
-            app_id=artifact.app_id,
-            is_selective=snapshot_metrics.is_selective,
-            images=image_list,
-            image_count=snapshot_metrics.image_count,
-            changed=categorized.changed,
-            changed_count=len(categorized.changed),
-            added=categorized.added,
-            added_count=len(categorized.added),
-            removed=categorized.removed,
-            removed_count=len(categorized.removed),
-            renamed=categorized.renamed,
-            renamed_count=len(categorized.renamed),
-            unchanged=categorized.unchanged,
-            unchanged_count=len(categorized.unchanged),
-            errored=categorized.errored,
-            errored_count=len(categorized.errored),
-            skipped=categorized.skipped,
-            skipped_count=len(categorized.skipped),
-            diff_threshold=manifest.diff_threshold,
-            comparison_state=derived_status.comparison_state,
-            approval_status=derived_status.approval_status,
-            comparison_error_message=derived_status.comparison_error_message,
-            approvers=approver_list if approved else [],
-        ).dict()
+        with start_span(
+            op="preprod.snapshot.serialize_response", name="serialize_response_body"
+        ) as span:
+            set_span_data(span, "image_count", len(image_list))
+            response_data = SnapshotDetailsApiResponse(
+                head_artifact_id=str(artifact.id),
+                base_artifact_id=base_artifact_id,
+                project_id=str(artifact.project_id),
+                comparison_type=comparison_type,
+                state=artifact.state,
+                vcs_info=vcs_info,
+                app_id=artifact.app_id,
+                is_selective=snapshot_metrics.is_selective,
+                images=image_list if comparison_type != "diff" else [],
+                image_count=snapshot_metrics.image_count,
+                changed=categorized.changed,
+                changed_count=len(categorized.changed),
+                added=categorized.added,
+                added_count=len(categorized.added),
+                removed=categorized.removed,
+                removed_count=len(categorized.removed),
+                renamed=categorized.renamed,
+                renamed_count=len(categorized.renamed),
+                unchanged=categorized.unchanged,
+                unchanged_count=len(categorized.unchanged),
+                errored=categorized.errored,
+                errored_count=len(categorized.errored),
+                skipped=categorized.skipped,
+                skipped_count=len(categorized.skipped),
+                diff_threshold=manifest.diff_threshold,
+                comparison_state=derived_status.comparison_state,
+                approval_status=derived_status.approval_status,
+                comparison_error_message=derived_status.comparison_error_message,
+                approvers=approver_list if approved else [],
+            ).dict()
 
-        if compact:
-            for key in _COMPACT_IMAGE_LIST_KEYS:
-                response_data[key] = [_strip_to_compact(img) for img in response_data[key]]
-            for key in _COMPACT_PAIR_LIST_KEYS:
-                for pair in response_data[key]:
-                    pair["base_image"] = _strip_to_compact(pair["base_image"])
-                    pair["head_image"] = _strip_to_compact(pair["head_image"])
+            if compact:
+                for key in _COMPACT_IMAGE_LIST_KEYS:
+                    response_data[key] = [_strip_to_compact(img) for img in response_data[key]]
+                for key in _COMPACT_PAIR_LIST_KEYS:
+                    for pair in response_data[key]:
+                        pair["base_image"] = _strip_to_compact(pair["base_image"])
+                        pair["head_image"] = _strip_to_compact(pair["head_image"])
 
         # cast() sanctioned here: pydantic .dict() returns dict[str, Any] with no
         # static link back to SnapshotDetailsResponseDict. The TypedDict and the
@@ -634,7 +682,8 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="Upload a Snapshot",
+        operation_id="uploadProjectPreprodArtifactSnapshot",
+        summary="Upload a Snapshot",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=None,
         responses={
@@ -662,12 +711,11 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         This endpoint requires a bearer token with `project:write` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", project.organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
+        request_body, decode_error = decode_preprod_snapshot_request_body(request)
+        if request_body is None:
+            return Response({"detail": decode_error or "Invalid request body"}, status=400)
 
-        data, error_message = validate_preprod_snapshot_post_schema(request.body)
+        data, error_message = validate_preprod_snapshot_post_schema(request_body)
         if error_message:
             return Response({"detail": error_message}, status=400)
 
@@ -686,9 +734,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         pr_number = data.get("pr_number")
 
         selective = data.get("selective", False)
-        allow_selective = features.has(
-            "organizations:preprod-selective-base-snapshots", project.organization
-        )
         all_image_file_names = data.get("all_image_file_names")
 
         if all_image_file_names is not None and not selective:
@@ -839,7 +884,6 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                     app_id=artifact.app_id,
                     artifact_type=artifact.artifact_type,
                     build_configuration=artifact.build_configuration,
-                    allow_selective=allow_selective,
                 )
                 if base_artifact:
                     logger.info(
@@ -903,7 +947,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
 
         # Trigger comparisons for any head artifacts that were uploaded before this base.
         # Handles possible out-of-order uploads where heads arrive before their base build.
-        if commit_comparison is not None and (not selective or allow_selective):
+        if commit_comparison is not None:
             try:
                 waiting_heads = find_head_snapshot_artifacts_awaiting_base(
                     organization_id=project.organization_id,

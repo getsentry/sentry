@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 import sentry_sdk
+from pydantic import BaseModel
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import SAFE_METHODS
@@ -20,6 +21,7 @@ from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_us
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
@@ -34,6 +36,11 @@ logger = logging.getLogger(__name__)
 
 
 _CODE_MODE_VALUES = frozenset({"off", "on", "only"})
+
+
+class SeerAgentChatStateResponse(BaseModel):
+    session: SeerRunState
+    sentry_run_id: str | None
 
 
 class CodeModeField(serializers.Field):
@@ -188,7 +195,9 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         try:
             client = SeerAgentClient(organization, request.user)
             state = client.get_run(run_id=resolved.seer_run_state_id)
-            return Response({"session": state.dict()})
+            return Response(
+                SeerAgentChatStateResponse(session=state, sentry_run_id=resolved.uuid).dict()
+            )
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
         except SeerApiError as e:

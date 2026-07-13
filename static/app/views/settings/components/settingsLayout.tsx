@@ -17,7 +17,7 @@ export function SettingsLayout({children}: Props) {
   return (
     <SettingsColumn>
       <TopBar.Slot name="title">
-        <StyledSettingsBreadcrumb params={params} />
+        <SettingsBreadcrumb params={params} />
       </TopBar.Slot>
       <Flex flex="1">
         <Stack flex="1" padding="xl" minWidth="0">
@@ -36,8 +36,4 @@ const SettingsColumn = styled('div')`
   footer {
     margin-top: 0;
   }
-`;
-
-const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
-  flex: 1;
 `;

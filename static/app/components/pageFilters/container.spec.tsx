@@ -560,6 +560,47 @@ describe('PageFiltersContainer', () => {
         })
       );
     });
+
+    it('applies maxPickableDays when mounted route changes to absolute params in the past', async () => {
+      const {router} = render(<PageFiltersContainer maxPickableDays={30} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/test/',
+            query: {statsPeriod: '14d'},
+          },
+          route: '/organizations/:orgId/test/',
+        },
+      });
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime).toEqual({
+          period: '14d',
+          utc: null,
+          start: null,
+          end: null,
+        })
+      );
+
+      const start = moment().subtract(45, 'days').format('YYYY-MM-DDTHH:mm:ss');
+      const end = moment().subtract(44, 'days').format('YYYY-MM-DDTHH:mm:ss');
+
+      act(() => {
+        router.navigate({
+          pathname: '/organizations/org-slug/test/',
+          search: `start=${start}&end=${end}`,
+        });
+      });
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().selection.datetime).toEqual({
+          period: '30d',
+          utc: null,
+          start: null,
+          end: null,
+        })
+      );
+    });
   });
 
   describe('maxDateRange param', () => {

@@ -1,4 +1,4 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -6,35 +6,29 @@ import {ExternalIssueListContent} from 'sentry/components/group/externalIssuesLi
 import {useGroupExternalIssues} from 'sentry/components/group/externalIssuesList/hooks/useGroupExternalIssues';
 import {IssueTrackerActionDropdown} from 'sentry/components/group/externalIssuesList/issueTrackerActions';
 import {
+  getLinkedPullRequestActivityIds,
   LinkedPullRequests,
   useLinkedPullRequests,
 } from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 
 interface Props {
   event: Event;
   group: Group;
-  project: Project;
 }
 
-export function ExternalIssueSidebarList({event, group, project}: Props) {
-  const organization = useOrganization();
-  const hasLinkedPullRequestsFeature = organization.features.includes(
-    'issue-details-linked-pull-requests'
-  );
-  const externalIssueData = useGroupExternalIssues({group, event, project});
+export function ExternalIssueSidebarList({event, group}: Props) {
+  const externalIssueData = useGroupExternalIssues({group, event});
   const {data: linkedPullRequestsData, isPending: isLinkedPullRequestsLoading} =
     useLinkedPullRequests({group});
+  const hasLinkedPullRequestActivity = getLinkedPullRequestActivityIds(group).size > 0;
   const showEmptyIssueTrackerAction =
-    hasLinkedPullRequestsFeature &&
     !externalIssueData.isLoading &&
-    !isLinkedPullRequestsLoading &&
+    !(hasLinkedPullRequestActivity && isLinkedPullRequestsLoading) &&
     externalIssueData.integrations.length > 0 &&
     externalIssueData.linkedIssues.length === 0 &&
     linkedPullRequestsData?.pullRequests.length === 0;
@@ -44,20 +38,20 @@ export function ExternalIssueSidebarList({event, group, project}: Props) {
       dataTestId="linked-issues"
       title={
         <Heading as="h3" size="md">
-          {hasLinkedPullRequestsFeature ? t('External Links') : t('Issue Tracking')}
+          {t('External Links')}
         </Heading>
       }
       actions={
-        hasLinkedPullRequestsFeature && !showEmptyIssueTrackerAction ? (
+        showEmptyIssueTrackerAction ? undefined : (
           <IssueTrackerActionDropdown
             integrations={externalIssueData.integrations}
             isLoading={externalIssueData.isLoading}
           />
-        ) : undefined
+        )
       }
       sectionKey={SectionKey.EXTERNAL_ISSUES}
     >
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         <ExternalIssueListContent
           integrations={externalIssueData.integrations}
           isLoading={externalIssueData.isLoading}
@@ -67,7 +61,6 @@ export function ExternalIssueSidebarList({event, group, project}: Props) {
           <LinkedPullRequests
             group={group}
             showEmptyState={
-              hasLinkedPullRequestsFeature &&
               !showEmptyIssueTrackerAction &&
               !externalIssueData.isLoading &&
               externalIssueData.integrations.length > 0 &&
@@ -82,7 +75,7 @@ export function ExternalIssueSidebarList({event, group, project}: Props) {
             isLoading={externalIssueData.isLoading}
           />
         )}
-      </Flex>
+      </Stack>
     </SidebarFoldSection>
   );
 }

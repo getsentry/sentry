@@ -30,9 +30,12 @@ import * as Sentry from "@sentry/astro";
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-  // To disable sending user data, uncomment the line below. For more info visit:
-  // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#dataCollection
-  // dataCollection: { userInfo: false },${logsConfig}${performanceConfig}
+  dataCollection: {
+    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+    // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#dataCollection
+    // userInfo: false,
+    // httpBodies: [],
+  },${logsConfig}${performanceConfig}
 });
 `;
 }
@@ -81,9 +84,12 @@ import * as Sentry from "@sentry/astro";
 
 Sentry.init({
   dsn: "${params.dsn.public}",
-  // To disable sending user data, uncomment the line below. For more info visit:
-  // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#dataCollection
-  // dataCollection: { userInfo: false },${integrationsConfig}${logsConfig}${performanceConfig}${replaySampleRates}
+  dataCollection: {
+    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
+    // https://docs.sentry.io/platforms/javascript/guides/astro/configuration/options/#dataCollection
+    // userInfo: false,
+    // httpBodies: [],
+  },${integrationsConfig}${logsConfig}${performanceConfig}${replaySampleRates}
 });
 `;
 }

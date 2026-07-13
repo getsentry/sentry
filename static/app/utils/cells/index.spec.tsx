@@ -1,6 +1,6 @@
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import {getLocalityUrlOptions, getLocalityNameOptions} from 'sentry/utils/cells';
+import {getLocalityUrlOptions, getSignupLocalities} from 'sentry/utils/cells';
 
 describe('getLocalityUrlOptions', () => {
   let configstate: Config;
@@ -28,7 +28,7 @@ describe('getLocalityUrlOptions', () => {
       value: 'https://de.sentry.io',
       label: '🇪🇺 European Union (EU)',
     });
-    expect(res[1]).toEqual({value: 'https://ja.sentry.io', label: ' ja'});
+    expect(res[1]).toEqual({value: 'https://ja.sentry.io', label: 'ja'});
 
     // Excluding the only included option = empty set.
     const none = getLocalityUrlOptions(
@@ -52,22 +52,9 @@ describe('getLocalityUrlOptions', () => {
       label: '🇺🇸 United States of America (US)',
     });
   });
-
-  it('always excludes US2', () => {
-    ConfigStore.set('localities', [
-      {name: 'us', url: 'https://us.sentry.io'},
-      {name: 'us2', url: 'https://us2.sentry.io'},
-      {name: 'de', url: 'https://de.sentry.io'},
-      {name: 'ja', url: 'https://ja.sentry.io'},
-    ]);
-
-    const res = getLocalityUrlOptions();
-    expect(res).toHaveLength(3);
-    res.forEach(item => expect(item.value).not.toContain('us2'));
-  });
 });
 
-describe('getLocalityNameOptions', () => {
+describe('getSignupLocalities', () => {
   let configstate: Config;
 
   beforeEach(() => {
@@ -77,7 +64,8 @@ describe('getLocalityNameOptions', () => {
   afterEach(() => {
     ConfigStore.loadInitialData(configstate);
   });
-  it('always excludes US2', () => {
+  it('returns options', () => {
+    ConfigStore.set('signupLocalities', ['us', 'us2', 'de', 'ja']);
     ConfigStore.set('localities', [
       {name: 'us', url: 'https://us.sentry.io'},
       {name: 'us2', url: 'https://us2.sentry.io'},
@@ -85,11 +73,49 @@ describe('getLocalityNameOptions', () => {
       {name: 'ja', url: 'https://ja.sentry.io'},
     ]);
 
-    const res = getLocalityNameOptions();
-    expect(res).toHaveLength(3);
+    const res = getSignupLocalities();
+    expect(res).toHaveLength(4);
 
-    expect(res[0]).toEqual({value: 'us', label: '🇺🇸 United States of America (US)'});
+    expect(res[0]).toEqual({
+      value: 'us',
+      url: 'https://us.sentry.io',
+      label: '🇺🇸 United States of America (US)',
+    });
+    expect(res[1]).toEqual({
+      value: 'us2',
+      url: 'https://us2.sentry.io',
+      label: '🇺🇸 United States of America (US2)',
+    });
+    expect(res[2]).toEqual({
+      value: 'de',
+      url: 'https://de.sentry.io',
+      label: '🇪🇺 European Union (EU)',
+    });
+    // No defined label name
+    expect(res[3]).toEqual({value: 'ja', url: 'https://ja.sentry.io', label: 'ja'});
+  });
 
-    res.forEach(item => expect(item.label).not.toContain('us2'));
+  it('filters to signupLocalities', () => {
+    ConfigStore.set('signupLocalities', ['us', 'de']);
+    ConfigStore.set('localities', [
+      {name: 'us', url: 'https://us.sentry.io'},
+      {name: 'us2', url: 'https://us2.sentry.io'},
+      {name: 'de', url: 'https://de.sentry.io'},
+      {name: 'ja', url: 'https://ja.sentry.io'},
+    ]);
+
+    const res = getSignupLocalities();
+    expect(res).toHaveLength(2);
+
+    expect(res[0]).toEqual({
+      value: 'us',
+      url: 'https://us.sentry.io',
+      label: '🇺🇸 United States of America (US)',
+    });
+    expect(res[1]).toEqual({
+      value: 'de',
+      url: 'https://de.sentry.io',
+      label: '🇪🇺 European Union (EU)',
+    });
   });
 });

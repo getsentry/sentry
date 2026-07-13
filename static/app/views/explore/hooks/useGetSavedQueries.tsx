@@ -105,7 +105,13 @@ export type SortOption =
 // Comes from ExploreSavedQueryModelSerializer
 export type ReadableSavedQuery = {
   // ExploreSavedQueryDataset
-  dataset: 'logs' | 'spans' | 'segment_spans' | 'metrics' | 'replays';
+  dataset:
+    | 'logs'
+    | 'spans'
+    | 'segment_spans'
+    | 'metrics'
+    | 'replays'
+    | 'ai_conversations';
   dateAdded: string;
   dateUpdated: string;
   id: number;
@@ -116,6 +122,7 @@ export type ReadableSavedQuery = {
   projects: number[];
   query: [ReadableQuery, ...ReadableQuery[]];
   starred: boolean;
+  agent?: string[];
   caseInsensitive?: CaseInsensitive;
   changedReason?: ExploreQueryChangedReason | null;
   createdBy?: User;
@@ -139,6 +146,7 @@ export class SavedQuery {
   query: [SavedQueryQuery, ...SavedQueryQuery[]];
   dataset: ReadableSavedQuery['dataset'];
   starred: boolean;
+  agent?: string[];
   changedReason?: ExploreQueryChangedReason | null;
   crossEvents?: CrossEvent[];
   createdBy?: User;
@@ -149,6 +157,7 @@ export class SavedQuery {
   start?: string | DateString;
 
   constructor(savedQuery: ReadableSavedQuery) {
+    this.agent = savedQuery.agent;
     this.changedReason = savedQuery.changedReason;
     this.crossEvents = savedQuery.crossEvents;
     this.dateAdded = savedQuery.dateAdded;
@@ -301,6 +310,7 @@ const DATASET_LABEL_MAP: Record<ReadableSavedQuery['dataset'], string> = {
   segment_spans: 'Traces',
   metrics: 'Application Metrics',
   replays: 'Replays',
+  ai_conversations: 'Conversations',
 };
 
 const DATASET_TO_TRACE_ITEM_DATASET_MAP: Record<
@@ -312,6 +322,7 @@ const DATASET_TO_TRACE_ITEM_DATASET_MAP: Record<
   segment_spans: TraceItemDataset.SPANS,
   metrics: TraceItemDataset.TRACEMETRICS,
   replays: TraceItemDataset.REPLAYS,
+  ai_conversations: TraceItemDataset.SPANS,
 };
 
 export function getSavedQueryDatasetLabel(dataset: ReadableSavedQuery['dataset']) {

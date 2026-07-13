@@ -7,7 +7,6 @@ class CellConfig(TypedDict):
     name: str
     snowflake_id: int
     address: str
-    category: str  # TODO(cells): drop once category is fully moved to LocalityConfig
     api_gateway_address: NotRequired[str]
     visible: NotRequired[bool]
 
@@ -19,3 +18,4 @@ class LocalityConfig(TypedDict):
     cells: list[str]
     new_org_cell: str
     visible: NotRequired[bool]
+    signup_visible: NotRequired[bool]

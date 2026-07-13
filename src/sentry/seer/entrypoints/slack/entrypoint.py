@@ -32,7 +32,7 @@ from sentry.seer.entrypoints.types import (
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
 )
-from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
@@ -366,6 +366,7 @@ class SlackAutofixEntrypoint(
                         "current_point": AutofixStoppingPoint.ROOT_CAUSE,
                         "summary": summary,
                         "steps": steps,
+                        "reasoning": root_cause.get("five_whys", []),
                         "handoff_target": cache_payload.get("handoff_target"),
                     }
                 )

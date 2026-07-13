@@ -7,12 +7,8 @@ from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.group import GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
-from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import (
-    STATUS_CHANGE_VIA_ACTIVITY_FLAG,
-)
 from tests.sentry.issues.test_status_change_consumer import get_test_message_status_change
 
 
@@ -35,9 +31,7 @@ class IssuePlatformIntegrationTests(TestCase):
 
     def test_handler_invoked__when_update_status_called(self) -> None:
         """
-        Integration test to ensure the `update_status` method
-        will correctly invoke the `workflow_status_update_handler`
-        and increment the metric.
+        Integration test to ensure the `update_status` method trigger workflow_engine
         """
         message = get_test_message_status_change(
             project_id=self.project.id,
@@ -46,17 +40,21 @@ class IssuePlatformIntegrationTests(TestCase):
         )
 
         with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
-            _process_message(message)
+            with self.tasks():
+                _process_message(message)
 
             mock_incr.assert_any_call(
-                "workflow_engine.tasks.process_workflows.activity_update",
-                tags={"activity_type": ActivityType.SET_RESOLVED.value},
+                "workflow_engine.tasks.process_workflows.activity_update.executed",
+                tags={
+                    "activity_type": ActivityType.SET_RESOLVED.value,
+                    "detector_type": self.detector.type,
+                },
+                sample_rate=1.0,
             )
 
     def test_handler_invoked__when_resolved(self) -> None:
         """
-        Integration test to ensure the `update_status` method
-        will correctly invoke the `workflow_state_update_handler`
+        Integration test to ensure the `update_status` method trigger workflow_engine
         and increment the metric.
         """
         message = StatusChangeMessageData(
@@ -70,10 +68,15 @@ class IssuePlatformIntegrationTests(TestCase):
         )
 
         with mock.patch("sentry.workflow_engine.tasks.workflows.metrics.incr") as mock_incr:
-            update_status(self.group, message)
+            with self.tasks():
+                update_status(self.group, message)
             mock_incr.assert_any_call(
-                "workflow_engine.tasks.process_workflows.activity_update",
-                tags={"activity_type": ActivityType.SET_RESOLVED.value},
+                "workflow_engine.tasks.process_workflows.activity_update.executed",
+                tags={
+                    "activity_type": ActivityType.SET_RESOLVED.value,
+                    "detector_type": self.detector.type,
+                },
+                sample_rate=1.0,
             )
 
     def _resolved_message(self) -> StatusChangeMessageData:
@@ -85,30 +88,4 @@ class IssuePlatformIntegrationTests(TestCase):
             fingerprint=[self.fingerprint],
             detector_id=self.detector.id,
             activity_data={"test": "test"},
-        )
-
-    @mock.patch("sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay")
-    def test_single_dispatch__flag_off(self, mock_delay: mock.MagicMock) -> None:
-        """
-        With the flag off, only the legacy group_status_update_registry path dispatches
-        the task. The generic activity_handler bails at the flag check, so we get exactly
-        one dispatch (no double-processing).
-        """
-        update_status(self.group, self._resolved_message())
-        assert mock_delay.call_count == 1
-
-    @with_feature(STATUS_CHANGE_VIA_ACTIVITY_FLAG)
-    @mock.patch("sentry.workflow_engine.tasks.workflows.process_workflow_activity.delay")
-    def test_single_dispatch__flag_on(self, mock_delay: mock.MagicMock) -> None:
-        """
-        With the flag on, the generic activity_handler (via create_group_activity) owns
-        the dispatch and the legacy handler bails for SET_RESOLVED, so we still get
-        exactly one dispatch.
-        """
-        update_status(self.group, self._resolved_message())
-        assert mock_delay.call_count == 1
-        mock_delay.assert_called_once_with(
-            activity_id=mock.ANY,
-            group_id=self.group.id,
-            detector_id=self.detector.id,
         )

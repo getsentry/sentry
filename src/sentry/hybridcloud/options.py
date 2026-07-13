@@ -1,5 +1,5 @@
 from sentry.options import FLAG_AUTOMATOR_MODIFIABLE, register
-from sentry.utils.types import Bool, Dict, Float, Int, Sequence
+from sentry.utils.types import Bool, Dict, Int, Sequence
 
 register(
     "outbox_replication.sentry_organizationmember.replication_version",
@@ -157,6 +157,13 @@ register(
 )
 
 register(
+    "outbox_replication.sentry_apitoken.backfill.target_cells",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "hybrid_cloud.authentication.disabled_organization_shards",
     type=Sequence,
     default=[],
@@ -199,17 +206,5 @@ register(
     "apigateway.proxy.circuit-breaker.enforce",
     type=Bool,
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "apigateway.proxy.use_gateway_address",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "hybridcloud.rpc.use_pooling_rate",
-    type=Float,
-    default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

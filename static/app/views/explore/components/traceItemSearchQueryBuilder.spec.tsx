@@ -206,6 +206,18 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.disabled).toBe(true);
   });
 
+  it('passes invalid filter keys through to search query builder provider props', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        invalidFilterKeys: ['missing.key'],
+      },
+      organization,
+    });
+
+    expect(result.current.invalidFilterKeys).toEqual(['missing.key']);
+  });
+
   it('getTagKeys fetches keys across string, number, and boolean attributes', async () => {
     const traceItemAttributesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',

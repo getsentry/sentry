@@ -2,11 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSeer} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 const SUGGESTED_QUESTIONS = [
   t('Which of my open issues are getting worse, not better?'),
@@ -15,17 +16,19 @@ const SUGGESTED_QUESTIONS = [
 ];
 
 interface EmptyStateProps {
+  displaySlackAgentReminder?: boolean;
   errorStatusCode?: number | null;
   isError?: boolean;
   isLoading?: boolean;
   onSuggestionClick?: (question: string) => void;
-  runId?: number | null;
+  runId?: SeerExplorerRunId | null;
 }
 
 export function EmptyState({
   isLoading = false,
   isError = false,
   errorStatusCode = null,
+  displaySlackAgentReminder = false,
   runId,
   onSuggestionClick,
 }: EmptyStateProps) {
@@ -55,7 +58,7 @@ export function EmptyState({
           <IconSeer size="xl" animation="waiting" />
           <Text>{t('Ask Seer anything about your application.')}</Text>
           {onSuggestionClick && (
-            <Flex direction="column" align="center" gap="md" paddingTop="2xl">
+            <Stack align="center" gap="md" paddingTop="2xl">
               {SUGGESTED_QUESTIONS.map(question => (
                 <SuggestionButton
                   key={question}
@@ -65,7 +68,12 @@ export function EmptyState({
                   {question}
                 </SuggestionButton>
               ))}
-            </Flex>
+            </Stack>
+          )}
+          {displaySlackAgentReminder && (
+            <Text>
+              {t('Want to chat in Slack? Just @ Sentry to debug and investigate issues.')}
+            </Text>
           )}
         </Fragment>
       )}

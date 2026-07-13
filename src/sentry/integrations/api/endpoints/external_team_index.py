@@ -37,7 +37,8 @@ class ExternalTeamEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
     owner = ApiOwner.INTEGRATION_PLATFORM
 
     @extend_schema(
-        operation_id="Create an External Team",
+        operation_id="createTeamExternalTeam",
+        summary="Create an External Team",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
         request=ExternalTeamSerializer,
         responses={

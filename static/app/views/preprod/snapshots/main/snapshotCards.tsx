@@ -1,14 +1,16 @@
-import {Fragment, memo, useState} from 'react';
+import {memo, useCallback, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IconFile, IconInfo, IconLightning, IconLink, IconMoon} from 'sentry/icons';
+import {IconFile, IconInfo, IconLink, IconMoon, IconSun, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
@@ -43,12 +45,64 @@ export function DarkAware({
   children: React.ReactNode;
   isDark: boolean;
 }) {
-  if (!isDark) {
-    return <Fragment>{children}</Fragment>;
-  }
+  // `isDark` is an absolute target: only impose a theme when it differs from the
+  // site theme, otherwise inherit the ambient one.
   const siteIsDark = ConfigStore.get('theme') === 'dark';
+  if (isDark === siteIsDark) {
+    return children;
+  }
   return (
-    <ThemeProvider theme={siteIsDark ? lightTheme : darkTheme}>{children}</ThemeProvider>
+    <ThemeProvider theme={isDark ? darkTheme : lightTheme}>{children}</ThemeProvider>
+  );
+}
+
+type CanvasTheme = 'light' | 'dark' | 'auto';
+
+function isDarkCanvas(theme: CanvasTheme): boolean {
+  switch (theme) {
+    case 'dark':
+      return true;
+    case 'light':
+      return false;
+    case 'auto':
+      return ConfigStore.get('theme') === 'dark';
+  }
+}
+
+// Canvas (dark/light) for a snapshot image: its canvas_theme, else the site
+// theme; user-toggleable. With resyncKey set, navigating to a themed image
+// adopts its canvas while a themeless one keeps the current (so a toggle sticks).
+export function useCanvasTheme(
+  imageTheme: SnapshotImage['canvas_theme'],
+  resyncKey?: string
+): {isDark: boolean; toggleIsDark: () => void} {
+  const [canvasTheme, setCanvasTheme] = useState<CanvasTheme>(() => imageTheme ?? 'auto');
+
+  const [lastKey, setLastKey] = useState(resyncKey);
+  if (resyncKey !== lastKey) {
+    setLastKey(resyncKey);
+    if (imageTheme) {
+      setCanvasTheme(imageTheme);
+    }
+  }
+
+  const toggleIsDark = useCallback(
+    () => setCanvasTheme(theme => (isDarkCanvas(theme) ? 'light' : 'dark')),
+    []
+  );
+
+  return {isDark: isDarkCanvas(canvasTheme), toggleIsDark};
+}
+
+export function ErroredBanner() {
+  return (
+    <Container padding="0 xl md">
+      <Alert variant="danger" showIcon>
+        {t(
+          'Unknown error: failed to compare these images (base and head images still shown below).'
+        )}
+      </Alert>
+    </Container>
   );
 }
 
@@ -60,8 +114,10 @@ export const PairCard = memo(function PairCard({
   copyUrl,
   diffMode,
   overlayColor,
+  overlayOpacity,
   diffImageBaseUrl,
   snapshotKey,
+  status = DiffStatus.CHANGED,
   onSelectSnapshot,
   onOpenSnapshot,
   onCopyLink,
@@ -80,8 +136,10 @@ export const PairCard = memo(function PairCard({
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
+  overlayOpacity?: number;
+  status?: DiffStatus;
 }) {
-  const [isDark, setIsDark] = useState(false);
+  const {isDark, toggleIsDark} = useCanvasTheme(pair.head_image.canvas_theme);
   const image = pair.head_image;
   const baseUrl = getSnapshotImageUrl(imageBaseUrl, pair.base_image);
   const headUrl = getSnapshotImageUrl(imageBaseUrl, image);
@@ -94,8 +152,10 @@ export const PairCard = memo(function PairCard({
     : undefined;
   const handleOpen = onOpenSnapshot ? () => onOpenSnapshot(snapshotKey) : undefined;
 
+  const effectiveDiffMode = status === DiffStatus.ERRORED ? 'split' : diffMode;
+
   let body: React.ReactNode;
-  if (diffMode === 'split') {
+  if (effectiveDiffMode === 'split') {
     body = (
       <SnapshotCanvasWrapper>
         <SplitPairBody
@@ -106,12 +166,13 @@ export const PairCard = memo(function PairCard({
           headLabel={headBranch ?? t('Head')}
           altPrefix={getImageName(image)}
           overlayColor={overlayColor}
+          overlayOpacity={overlayOpacity}
           diffImageKey={pair.diff_image_key}
           diffImageBaseUrl={diffImageBaseUrl}
         />
       </SnapshotCanvasWrapper>
     );
-  } else if (diffMode === 'wipe') {
+  } else if (effectiveDiffMode === 'wipe') {
     body = (
       <WipeCardBody
         baseUrl={baseUrl}
@@ -142,10 +203,10 @@ export const PairCard = memo(function PairCard({
           displayName={image.display_name}
           fileName={image.image_file_name}
           tags={image.tags}
-          status={DiffStatus.CHANGED}
+          status={status}
           diffPercent={pair.diff}
           isDark={isDark}
-          onToggleDark={() => setIsDark(v => !v)}
+          onToggleDark={toggleIsDark}
           copyData={pair}
           copyUrl={copyUrl}
           onDoubleClick={handleOpen}
@@ -153,6 +214,7 @@ export const PairCard = memo(function PairCard({
           onCopyLink={onCopyLink}
           onCopyMetadata={onCopyMetadata}
         />
+        {status === DiffStatus.ERRORED && <ErroredBanner />}
         <Container padding="0 xl xl">{body}</Container>
       </SnapshotVariantFrame>
     </DarkAware>
@@ -184,7 +246,7 @@ export const ImageCard = memo(function ImageCard({
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
 }) {
-  const [isDark, setIsDark] = useState(false);
+  const {isDark, toggleIsDark} = useCanvasTheme(image.canvas_theme);
   const imageUrl = getSnapshotImageUrl(imageBaseUrl, image);
   let status: DiffStatus | null;
   switch (cardType) {
@@ -229,7 +291,7 @@ export const ImageCard = memo(function ImageCard({
           tags={image.tags}
           status={status}
           isDark={isDark}
-          onToggleDark={() => setIsDark(v => !v)}
+          onToggleDark={toggleIsDark}
           copyData={copyData ?? image}
           copyUrl={copyUrl}
           onDoubleClick={handleOpen}
@@ -299,7 +361,7 @@ export const CardHeader = memo(function CardHeader({
           <IconButton
             aria-label={isDark ? t('Light preview') : t('Dark preview')}
             tooltip={isDark ? t('Light preview') : t('Dark preview')}
-            icon={isDark ? <IconLightning size="sm" /> : <IconMoon size="sm" />}
+            icon={isDark ? <IconSun size="sm" /> : <IconMoon size="sm" />}
             onClick={onToggleDark}
           />
           <IconButton
@@ -347,18 +409,24 @@ function MetadataInfoButton({
   );
 
   return (
-    <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480} isHoverable>
-      <InfoIconButton
-        type="button"
-        aria-label={t('Copy metadata as JSON')}
-        onClick={() => {
-          copy(json, {successMessage: t('Copied metadata as JSON')});
-          onCopy?.();
-        }}
-      >
-        <IconInfo size="sm" />
-      </InfoIconButton>
-    </Tooltip>
+    <Flex
+      align="center"
+      onDoubleClick={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
+    >
+      <Tooltip title={<MetadataTooltip json={json} />} maxWidth={480} isHoverable>
+        <InfoIconButton
+          type="button"
+          aria-label={t('Copy metadata as JSON')}
+          onClick={() => {
+            copy(json, {successMessage: t('Copied metadata as JSON')});
+            onCopy?.();
+          }}
+        >
+          <IconInfo size="sm" />
+        </InfoIconButton>
+      </Tooltip>
+    </Flex>
   );
 }
 
@@ -368,6 +436,7 @@ const STATUS_VARIANT: Record<DiffStatus, ContentVariant | 'muted' | 'secondary'>
   [DiffStatus.REMOVED]: 'danger',
   [DiffStatus.RENAMED]: 'warning',
   [DiffStatus.UNCHANGED]: 'secondary',
+  [DiffStatus.ERRORED]: 'danger',
   [DiffStatus.SKIPPED]: 'muted',
 };
 
@@ -378,6 +447,14 @@ const StatusBadge = memo(function StatusBadge({
   status: DiffStatus;
   diffPercent?: number | null;
 }) {
+  if (status === DiffStatus.ERRORED) {
+    return (
+      <Tag variant="danger" icon={<IconWarning />}>
+        {t('Failed to compare')}
+      </Tag>
+    );
+  }
+
   let label: string;
   switch (status) {
     case DiffStatus.CHANGED:

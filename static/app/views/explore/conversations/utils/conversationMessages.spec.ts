@@ -3,6 +3,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 import {
   buildConversationTurns,
   extractMessagesFromNodes,
+  getInputMessageStats,
   getNodeTimestamp,
   mergeEmptyTurns,
   messagesToMarkdown,
@@ -61,6 +62,23 @@ function createMockToolNode(overrides: {
       [SpanFields.GEN_AI_TOOL_NAME]: toolName,
     },
     errors: new Set(),
+  };
+}
+
+type Turn = Parameters<typeof turnsToMessages>[0][number];
+
+function makeTurn(overrides: Partial<Turn> = {}): Turn {
+  return {
+    generation: {
+      id: 'gen-1',
+      value: {start_timestamp: 1000, end_timestamp: 1100},
+    } as any,
+    userContent: null,
+    assistantContent: null,
+    toolCalls: [],
+    reasoning: null,
+    userEmail: undefined,
+    ...overrides,
   };
 }
 
@@ -222,6 +240,52 @@ describe('conversationMessages utilities', () => {
     });
   });
 
+  describe('getInputMessageStats', () => {
+    it.each([
+      {
+        name: 'counts total and user messages in a cumulative history',
+        input: JSON.stringify([
+          {role: 'user', content: 'First'},
+          {role: 'assistant', content: 'Reply'},
+          {role: 'user', content: 'Second'},
+        ]),
+        expected: {totalMessageCount: 3, userMessageCount: 2},
+      },
+      {
+        name: 'reports a single-message input as non-cumulative',
+        input: JSON.stringify([{role: 'user', content: 'Only message'}]),
+        expected: {totalMessageCount: 1, userMessageCount: 1},
+      },
+      {
+        name: 'excludes system messages from counts',
+        input: JSON.stringify([
+          {role: 'system', content: 'You are a helpful assistant'},
+          {role: 'user', content: 'Hello'},
+        ]),
+        expected: {totalMessageCount: 1, userMessageCount: 1},
+      },
+      {
+        name: 'returns zeroes when input is scrubbed',
+        input: '[Filtered]',
+        expected: {totalMessageCount: 0, userMessageCount: 0},
+      },
+    ])('$name', ({input, expected}) => {
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: input},
+      });
+      expect(getInputMessageStats(node as any)).toEqual(expected);
+    });
+
+    it('returns zeroes when input is missing', () => {
+      const node = createMockNode({id: 'node-1'});
+      expect(getInputMessageStats(node as any)).toEqual({
+        totalMessageCount: 0,
+        userMessageCount: 0,
+      });
+    });
+  });
+
   describe('parseAssistantContent', () => {
     it('parses assistant message from gen_ai.output.messages', () => {
       const messages = JSON.stringify([{role: 'assistant', content: 'Output response'}]);
@@ -231,7 +295,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Output response');
+      expect(parseAssistantContent(node as any).content).toBe('Output response');
     });
 
     it('falls back to gen_ai.response.text', () => {
@@ -241,7 +305,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response text fallback',
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Response text fallback');
+      expect(parseAssistantContent(node as any).content).toBe('Response text fallback');
     });
 
     it('falls back to gen_ai.response.object', () => {
@@ -251,7 +315,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_RESPONSE_OBJECT]: 'Response object fallback',
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Response object fallback');
+      expect(parseAssistantContent(node as any).content).toBe('Response object fallback');
     });
 
     it('prefers gen_ai.output.messages over response.text', () => {
@@ -265,12 +329,12 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response loses',
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Output wins');
+      expect(parseAssistantContent(node as any).content).toBe('Output wins');
     });
 
-    it('returns null when no assistant content', () => {
+    it('returns null content when no assistant content', () => {
       const node = createMockNode({id: 'node-1'});
-      expect(parseAssistantContent(node as any)).toBeNull();
+      expect(parseAssistantContent(node as any).content).toBeNull();
     });
 
     it('extracts content from non-array JSON object in output messages', () => {
@@ -281,7 +345,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_OUTPUT_MESSAGES]: outputObj,
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Object content response');
+      expect(parseAssistantContent(node as any).content).toBe('Object content response');
     });
 
     it('falls back to response.text when output messages is object without content', () => {
@@ -293,7 +357,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Fallback text',
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Fallback text');
+      expect(parseAssistantContent(node as any).content).toBe('Fallback text');
     });
 
     it('returns [Filtered] when output messages are scrubbed', () => {
@@ -303,7 +367,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_OUTPUT_MESSAGES]: '[Filtered]',
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('[Filtered]');
+      expect(parseAssistantContent(node as any).content).toBe('[Filtered]');
     });
 
     it('treats a plain string output.messages as the assistant response', () => {
@@ -313,7 +377,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_OUTPUT_MESSAGES]: 'just a plain response',
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('just a plain response');
+      expect(parseAssistantContent(node as any).content).toBe('just a plain response');
     });
 
     it('parses parts-format assistant messages', () => {
@@ -326,7 +390,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Parts response');
+      expect(parseAssistantContent(node as any).content).toBe('Parts response');
     });
 
     it('falls back to response.text when output.messages has no assistant role', () => {
@@ -338,10 +402,10 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_RESPONSE_TEXT]: 'fallback text',
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('fallback text');
+      expect(parseAssistantContent(node as any).content).toBe('fallback text');
     });
 
-    it('returns null when output.messages has tool calls but no text', () => {
+    it('returns null content when output.messages has tool calls but no text', () => {
       const messages = JSON.stringify([
         {
           role: 'assistant',
@@ -356,7 +420,7 @@ describe('conversationMessages utilities', () => {
         },
       });
       // Should NOT fall through to gen_ai.response.object
-      expect(parseAssistantContent(node as any)).toBeNull();
+      expect(parseAssistantContent(node as any).content).toBeNull();
     });
 
     it('returns text when output.messages has both text and tool calls', () => {
@@ -375,7 +439,7 @@ describe('conversationMessages utilities', () => {
           [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
         },
       });
-      expect(parseAssistantContent(node as any)).toBe('Let me search for that');
+      expect(parseAssistantContent(node as any).content).toBe('Let me search for that');
     });
   });
 
@@ -483,20 +547,17 @@ describe('conversationMessages utilities', () => {
   describe('mergeEmptyTurns', () => {
     it('merges tool calls from empty turns into next turn', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {id: 'gen-1'} as any,
           userContent: 'Question 1',
-          assistantContent: null,
           toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {id: 'gen-2'} as any,
           userContent: 'Question 2',
           assistantContent: 'Answer',
           toolCalls: [{name: 'calc', nodeId: 'tool-2', hasError: false}],
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const merged = mergeEmptyTurns(turns);
@@ -508,27 +569,21 @@ describe('conversationMessages utilities', () => {
 
     it('chains multiple empty turns', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {id: 'gen-1'} as any,
           userContent: 'Q1',
-          assistantContent: null,
           toolCalls: [{name: 'tool-a', nodeId: 't-1', hasError: false}],
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {id: 'gen-2'} as any,
-          userContent: null,
-          assistantContent: null,
           toolCalls: [{name: 'tool-b', nodeId: 't-2', hasError: false}],
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {id: 'gen-3'} as any,
           userContent: 'Q2',
           assistantContent: 'Final answer',
           toolCalls: [{name: 'tool-c', nodeId: 't-3', hasError: false}],
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const merged = mergeEmptyTurns(turns);
@@ -547,20 +602,15 @@ describe('conversationMessages utilities', () => {
 
     it('flushes pending tool calls onto last turn when no subsequent turn has content', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {id: 'gen-1'} as any,
           userContent: 'Question',
           assistantContent: 'Answer',
-          toolCalls: [],
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {id: 'gen-2'} as any,
-          userContent: null,
-          assistantContent: null,
           toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const merged = mergeEmptyTurns(turns);
@@ -573,13 +623,10 @@ describe('conversationMessages utilities', () => {
 
     it('preserves user content turns even without assistant response', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {id: 'gen-1'} as any,
           userContent: 'Question without answer',
-          assistantContent: null,
-          toolCalls: [],
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const merged = mergeEmptyTurns(turns);
@@ -592,16 +639,15 @@ describe('conversationMessages utilities', () => {
   describe('turnsToMessages', () => {
     it('creates user and assistant messages from turns', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'Hello',
           assistantContent: 'Hi there',
-          toolCalls: [],
           userEmail: 'user@example.com',
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -618,62 +664,76 @@ describe('conversationMessages utilities', () => {
       });
     });
 
-    it('deduplicates user messages by exact content', () => {
-      const turns = [
-        {
+    // Same user text in two turns: collapse only for a cumulative tool loop.
+    it.each([
+      {
+        name: 'collapses identical content in a cumulative history',
+        turn1: {assistantContent: 'A1'},
+        turn2: {assistantContent: 'A2'},
+        users: 1,
+      },
+      {
+        name: 'keeps a repeat when the cumulative user-message count grows',
+        turn1: {assistantContent: 'A1', userMessageCount: 1},
+        turn2: {assistantContent: 'A2', userMessageCount: 2},
+        users: 2,
+      },
+      {
+        name: 'keeps a repeat from non-cumulative single-message inputs',
+        turn1: {assistantContent: 'A', hasInputHistory: false},
+        turn2: {assistantContent: 'A', hasInputHistory: false},
+        users: 2,
+      },
+      {
+        name: 'collapses a repeat carried across a tool loop (stable count)',
+        turn1: {
+          toolCalls: [{name: 'weather', nodeId: 'tool-1', hasError: false}],
+          userMessageCount: 1,
+        },
+        turn2: {assistantContent: 'A', userMessageCount: 1},
+        users: 1,
+      },
+    ])('deduplicates user messages: $name', ({turn1, turn2, users}) => {
+      const messages = turnsToMessages([
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'Hello',
-          assistantContent: 'Response 1',
-          toolCalls: [],
-          userEmail: undefined,
-        },
-        {
+          ...turn1,
+        }),
+        makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 2000, end_timestamp: 2100},
           } as any,
-          userContent: 'Hello', // Exact same content
-          assistantContent: 'Response 2',
-          toolCalls: [],
-          userEmail: undefined,
-        },
-      ];
+          userContent: 'Hello',
+          ...turn2,
+        }),
+      ]);
 
-      const messages = turnsToMessages(turns);
-
-      // Should have 1 user message and 2 assistant messages
-      const userMessages = messages.filter(m => m.role === 'user');
-      const assistantMessages = messages.filter(m => m.role === 'assistant');
-
-      expect(userMessages).toHaveLength(1);
-      expect(assistantMessages).toHaveLength(2);
+      expect(messages.filter(m => m.role === 'user')).toHaveLength(users);
     });
 
     it('does not deduplicate user messages with different whitespace or case', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'Hello',
           assistantContent: 'Response 1',
-          toolCalls: [],
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 2000, end_timestamp: 2100},
           } as any,
           userContent: '  HELLO  ', // Different due to whitespace and case
           assistantContent: 'Response 2',
-          toolCalls: [],
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -684,26 +744,22 @@ describe('conversationMessages utilities', () => {
 
     it('deduplicates assistant messages by exact content', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'Question 1',
           assistantContent: 'Same response',
-          toolCalls: [],
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 2000, end_timestamp: 2100},
           } as any,
           userContent: 'Question 2',
           assistantContent: 'Same response', // Exact same content
-          toolCalls: [],
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -714,26 +770,22 @@ describe('conversationMessages utilities', () => {
 
     it('does not deduplicate [Filtered] messages across turns', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: '[Filtered]',
           assistantContent: '[Filtered]',
-          toolCalls: [],
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 2000, end_timestamp: 2100},
           } as any,
           userContent: '[Filtered]',
           assistantContent: '[Filtered]',
-          toolCalls: [],
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -745,118 +797,49 @@ describe('conversationMessages utilities', () => {
       expect(assistantMessages).toHaveLength(2);
     });
 
-    it('includes agentName from gen_ai.agent.name', () => {
+    function assistantFromAttributes(attributes: Record<string, string>) {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
-            attributes: {
-              [SpanFields.GEN_AI_AGENT_NAME]: 'my-agent',
-            },
+            attributes,
           } as any,
           userContent: 'Hello',
           assistantContent: 'Hi',
-          toolCalls: [],
-          userEmail: undefined,
-        },
+        }),
       ];
+      return turnsToMessages(turns).find(m => m.role === 'assistant');
+    }
 
-      const messages = turnsToMessages(turns);
-      const assistant = messages.find(m => m.role === 'assistant');
-      expect(assistant?.agentName).toBe('my-agent');
+    it('resolves agentName from agent.name, then function_id, preferring agent.name', () => {
+      expect(
+        assistantFromAttributes({[SpanFields.GEN_AI_AGENT_NAME]: 'my-agent'})?.agentName
+      ).toBe('my-agent');
+      expect(
+        assistantFromAttributes({[SpanFields.GEN_AI_FUNCTION_ID]: 'vercel-func'})
+          ?.agentName
+      ).toBe('vercel-func');
+      expect(
+        assistantFromAttributes({
+          [SpanFields.GEN_AI_AGENT_NAME]: 'preferred-agent',
+          [SpanFields.GEN_AI_FUNCTION_ID]: 'fallback-func',
+        })?.agentName
+      ).toBe('preferred-agent');
     });
 
-    it('falls back agentName to gen_ai.function_id', () => {
-      const turns = [
-        {
-          generation: {
-            id: 'gen-1',
-            value: {start_timestamp: 1000, end_timestamp: 1100},
-            attributes: {
-              [SpanFields.GEN_AI_FUNCTION_ID]: 'vercel-func',
-            },
-          } as any,
-          userContent: 'Hello',
-          assistantContent: 'Hi',
-          toolCalls: [],
-          userEmail: undefined,
-        },
-      ];
-
-      const messages = turnsToMessages(turns);
-      const assistant = messages.find(m => m.role === 'assistant');
-      expect(assistant?.agentName).toBe('vercel-func');
-    });
-
-    it('prefers gen_ai.agent.name over gen_ai.function_id for agentName', () => {
-      const turns = [
-        {
-          generation: {
-            id: 'gen-1',
-            value: {start_timestamp: 1000, end_timestamp: 1100},
-            attributes: {
-              [SpanFields.GEN_AI_AGENT_NAME]: 'preferred-agent',
-              [SpanFields.GEN_AI_FUNCTION_ID]: 'fallback-func',
-            },
-          } as any,
-          userContent: 'Hello',
-          assistantContent: 'Hi',
-          toolCalls: [],
-          userEmail: undefined,
-        },
-      ];
-
-      const messages = turnsToMessages(turns);
-      const assistant = messages.find(m => m.role === 'assistant');
-      expect(assistant?.agentName).toBe('preferred-agent');
-    });
-
-    it('includes modelName from gen_ai.response.model', () => {
-      const turns = [
-        {
-          generation: {
-            id: 'gen-1',
-            value: {start_timestamp: 1000, end_timestamp: 1100},
-            attributes: {
-              [SpanFields.GEN_AI_RESPONSE_MODEL]: 'gpt-4o',
-            },
-          } as any,
-          userContent: 'Hello',
-          assistantContent: 'Hi',
-          toolCalls: [],
-          userEmail: undefined,
-        },
-      ];
-
-      const messages = turnsToMessages(turns);
-      const assistant = messages.find(m => m.role === 'assistant');
-      expect(assistant?.modelName).toBe('gpt-4o');
-    });
-
-    it('leaves agentName and modelName undefined when not set', () => {
-      const turns = [
-        {
-          generation: {
-            id: 'gen-1',
-            value: {start_timestamp: 1000, end_timestamp: 1100},
-          } as any,
-          userContent: 'Hello',
-          assistantContent: 'Hi',
-          toolCalls: [],
-          userEmail: undefined,
-        },
-      ];
-
-      const messages = turnsToMessages(turns);
-      const assistant = messages.find(m => m.role === 'assistant');
+    it('resolves modelName from gen_ai.response.model, undefined when unset', () => {
+      expect(
+        assistantFromAttributes({[SpanFields.GEN_AI_RESPONSE_MODEL]: 'gpt-4o'})?.modelName
+      ).toBe('gpt-4o');
+      const assistant = assistantFromAttributes({});
       expect(assistant?.agentName).toBeUndefined();
       expect(assistant?.modelName).toBeUndefined();
     });
 
     it('attaches tool calls to assistant messages', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
@@ -864,8 +847,7 @@ describe('conversationMessages utilities', () => {
           userContent: 'Question',
           assistantContent: 'Answer',
           toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -877,26 +859,22 @@ describe('conversationMessages utilities', () => {
 
     it('sorts messages by timestamp', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 2000, end_timestamp: 2100},
           } as any,
           userContent: 'Second',
           assistantContent: 'Second response',
-          toolCalls: [],
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'First',
           assistantContent: 'First response',
-          toolCalls: [],
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -909,16 +887,14 @@ describe('conversationMessages utilities', () => {
 
     it('creates assistant message for tool-call-only turns without text', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'Do something',
-          assistantContent: null,
           toolCalls: [{name: 'search', nodeId: 'tool-1', hasError: false}],
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -932,16 +908,13 @@ describe('conversationMessages utilities', () => {
 
     it('does not create assistant message when no content and no tool calls', () => {
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
           userContent: 'Hello',
-          assistantContent: null,
-          toolCalls: [],
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
@@ -955,41 +928,48 @@ describe('conversationMessages utilities', () => {
       // start, assistant at span end, so pairing must hold even when turns
       // are tightly packed.
       const turns = [
-        {
+        makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 0, end_timestamp: 1.1},
           } as any,
           userContent: 'Q1',
           assistantContent: 'A1',
-          toolCalls: [],
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 1.2, end_timestamp: 1.97},
           } as any,
           userContent: 'Q2',
           assistantContent: 'A2',
-          toolCalls: [],
-          userEmail: undefined,
-        },
-        {
+        }),
+        makeTurn({
           generation: {
             id: 'gen-3',
             value: {start_timestamp: 2, end_timestamp: 2.64},
           } as any,
           userContent: 'Q3',
           assistantContent: 'A3',
-          toolCalls: [],
-          userEmail: undefined,
-        },
+        }),
       ];
 
       const messages = turnsToMessages(turns);
 
       expect(messages.map(m => m.content)).toEqual(['Q1', 'A1', 'Q2', 'A2', 'Q3', 'A3']);
+    });
+
+    it('attaches reasoning to the assistant message', () => {
+      const turns = [
+        makeTurn({
+          userContent: 'Question',
+          assistantContent: 'Answer',
+          reasoning: 'Let me think step by step...',
+        }),
+      ];
+
+      const assistant = turnsToMessages(turns).find(m => m.role === 'assistant');
+      expect(assistant?.reasoning).toBe('Let me think step by step...');
     });
   });
 
@@ -1123,34 +1103,82 @@ describe('conversationMessages utilities', () => {
       ]);
     });
 
-    it('deduplicates messages', () => {
-      const sameMessage = JSON.stringify([{role: 'user', content: 'Duplicate'}]);
-
+    // Same question in two spans: collapse only for a cumulative tool loop.
+    const Q = 'How is the weather in Vienna?';
+    it.each([
+      {
+        name: 'collapses a last message replayed across a cumulative tool loop',
+        input2: [
+          {role: 'user', content: Q},
+          {role: 'assistant', content: 'R1'},
+        ],
+        users: 1,
+      },
+      {
+        name: 'keeps repeats from non-cumulative single-message inputs',
+        input2: [{role: 'user', content: Q}],
+        users: 2,
+      },
+      {
+        name: 'keeps a repeat when the cumulative history gains a user message',
+        input2: [
+          {role: 'user', content: Q},
+          {role: 'assistant', content: 'R1'},
+          {role: 'user', content: Q},
+        ],
+        users: 2,
+      },
+    ])('user-message dedup end to end: $name', ({input2, users}) => {
       const node1 = createMockNode({
         id: 'span-1',
         startTimestamp: 1000,
         attributes: {
-          [SpanFields.GEN_AI_REQUEST_MESSAGES]: sameMessage,
-          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response 1',
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+            {role: 'user', content: Q},
+          ]),
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'R1',
         },
       });
-
       const node2 = createMockNode({
         id: 'span-2',
         startTimestamp: 2000,
         attributes: {
-          [SpanFields.GEN_AI_REQUEST_MESSAGES]: sameMessage,
-          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response 2',
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify(input2),
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'R2',
         },
       });
 
       const messages = extractMessagesFromNodes([node1, node2] as any);
 
-      const userMessages = messages.filter(m => m.role === 'user');
-      const assistantMessages = messages.filter(m => m.role === 'assistant');
+      expect(messages.filter(m => m.role === 'user')).toHaveLength(users);
+    });
 
-      expect(userMessages).toHaveLength(1);
-      expect(assistantMessages).toHaveLength(2);
+    it('keeps repeated user messages from non-cumulative inputs with a system prompt', () => {
+      const sysInput = (userText: string) =>
+        JSON.stringify([
+          {role: 'system', content: 'You are helpful'},
+          {role: 'user', content: userText},
+        ]);
+
+      const node1 = createMockNode({
+        id: 'span-1',
+        startTimestamp: 1000,
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: sysInput(Q),
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'R1',
+        },
+      });
+      const node2 = createMockNode({
+        id: 'span-2',
+        startTimestamp: 2000,
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: sysInput(Q),
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'R2',
+        },
+      });
+
+      const messages = extractMessagesFromNodes([node1, node2] as any);
+      expect(messages.filter(m => m.role === 'user')).toHaveLength(2);
     });
 
     it('returns empty array for empty input', () => {
@@ -1160,6 +1188,70 @@ describe('conversationMessages utilities', () => {
     it('returns empty array when no generation spans', () => {
       const tool = createMockToolNode({id: 'tool-1', toolName: 'search'});
       expect(extractMessagesFromNodes([tool as any])).toEqual([]);
+    });
+  });
+
+  describe('parseAssistantContent with reasoning', () => {
+    it('extracts reasoning separately from content', () => {
+      const messages = JSON.stringify([
+        {
+          role: 'assistant',
+          parts: [
+            {type: 'reasoning', content: 'Let me think...'},
+            {type: 'text', text: 'The answer is 42'},
+          ],
+        },
+      ]);
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
+        },
+      });
+      const result = parseAssistantContent(node as any);
+      expect(result.content).toBe('The answer is 42');
+      expect(result.reasoning).toBe('Let me think...');
+    });
+
+    it('returns null reasoning when no reasoning parts', () => {
+      const messages = JSON.stringify([
+        {role: 'assistant', parts: [{type: 'text', text: 'Just text'}]},
+      ]);
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
+        },
+      });
+      const result = parseAssistantContent(node as any);
+      expect(result.content).toBe('Just text');
+      expect(result.reasoning).toBeNull();
+    });
+
+    it('returns reasoning even with no text content', () => {
+      const messages = JSON.stringify([
+        {
+          role: 'assistant',
+          parts: [
+            {type: 'reasoning', content: 'Thinking only...'},
+            {
+              type: 'tool_call',
+              toolCallId: 'tc-1',
+              toolName: 'search',
+              args: {},
+            },
+          ],
+        },
+      ]);
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
+        },
+      });
+      const result = parseAssistantContent(node as any);
+      expect(result.content).toBeNull();
+      expect(result.reasoning).toBe('Thinking only...');
     });
   });
 
@@ -1275,6 +1367,51 @@ describe('conversationMessages utilities', () => {
 
     it('returns empty string for empty messages', () => {
       expect(messagesToMarkdown([])).toBe('');
+    });
+
+    it('includes reasoning as a Thinking blockquote', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'The answer is 42',
+          timestamp: 1000,
+          nodeId: 'n1',
+          reasoning: 'Let me think step by step...',
+        },
+      ]);
+      expect(result).toContain('> Thinking:');
+      expect(result).toContain('> Let me think step by step...');
+      expect(result).toContain('The answer is 42');
+    });
+
+    it('prefixes every line of multi-line reasoning with a blockquote marker', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'Done',
+          timestamp: 1000,
+          nodeId: 'n1',
+          reasoning: 'First I check the input.\nThen I compute the result.',
+        },
+      ]);
+      expect(result).toContain(
+        '> Thinking:\n> First I check the input.\n> Then I compute the result.'
+      );
+    });
+
+    it('omits the Thinking blockquote when there is no reasoning', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'assistant-1',
+          role: 'assistant',
+          content: 'The answer is 42',
+          timestamp: 1000,
+          nodeId: 'n1',
+        },
+      ]);
+      expect(result).not.toContain('Thinking:');
     });
   });
 });

@@ -26,6 +26,7 @@ from sentry.utils.iterators import chunked
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import RateLimitExceeded, SnubaError
+from sentry.utils.tracing import start_span, trace
 from sentry.workflow_engine.buffer.batch_client import (
     DelayedWorkflowClient,
     ProjectDelayedWorkflowClient,
@@ -45,10 +46,10 @@ from sentry.workflow_engine.models.data_condition import (
 )
 from sentry.workflow_engine.processors.data_condition_group import (
     ProcessedDataConditionGroup,
-    TriggerResult,
     evaluate_data_conditions,
     get_slow_conditions_for_groups,
 )
+from sentry.workflow_engine.processors.evaluations import TriggerResult
 from sentry.workflow_engine.processors.log_util import track_batch_performance
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.types import (
@@ -393,7 +394,7 @@ def generate_unique_queries(
     return unique_queries
 
 
-@sentry_sdk.trace
+@trace
 def get_condition_query_groups(
     data_condition_groups: list[DataConditionGroup],
     event_data: EventRedisData,
@@ -434,7 +435,7 @@ def get_condition_query_groups(
     # We want this to be accurate enough for alerting, so sample 100%
     sample_rate=1.0,
 )
-@sentry_sdk.trace
+@trace
 def get_condition_group_results(
     queries_to_groups: dict[UniqueConditionQuery, GroupQueryParams],
 ) -> dict[UniqueConditionQuery, QueryResult]:
@@ -606,7 +607,7 @@ class DelayedWorkflowEvaluationResult:
         }
 
 
-@sentry_sdk.trace
+@trace
 def get_groups_to_fire(
     data_condition_groups: list[DataConditionGroup],
     workflows_to_envs: Mapping[WorkflowId, int | None],
@@ -714,7 +715,7 @@ def get_groups_to_fire(
     )
 
 
-@sentry_sdk.trace
+@trace
 def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event]:
     node_id_to_event_id = {
         Event.generate_node_id(project.id, event_id=event_id): event_id for event_id in event_ids
@@ -743,7 +744,7 @@ def bulk_fetch_events(event_ids: list[str], project: Project) -> dict[str, Event
     "workflow_engine.delayed_workflow.get_group_to_groupevent",
     sample_rate=1.0,
 )
-@sentry_sdk.trace
+@trace
 def get_group_to_groupevent(
     event_data: EventRedisData,
     groups_to_dcgs: dict[GroupId, set[DataConditionGroup]],
@@ -786,7 +787,7 @@ def get_group_to_groupevent(
     return group_to_groupevent
 
 
-@sentry_sdk.trace
+@trace
 def fire_actions_for_groups(
     organization: Organization,
     groups_to_fire: dict[GroupId, set[DataConditionGroup]],
@@ -876,7 +877,7 @@ def fire_actions_for_groups(
     )
 
 
-@sentry_sdk.trace
+@trace
 def cleanup_redis_buffer(
     client: ProjectDelayedWorkflowClient, event_keys: Iterable[EventKey], batch_key: str | None
 ) -> None:
@@ -897,7 +898,7 @@ def _summarize_by_first[T1, T2: int | str](it: Iterable[tuple[T1, T2]]) -> dict[
 
 def _process_workflows_for_project(project: Project, event_data: EventRedisData) -> None:
     """Process workflows for a project - evaluate conditions and fire actions."""
-    with sentry_sdk.start_span(op="delayed_workflow.prepare_data"):
+    with start_span(op="delayed_workflow.prepare_data", name="delayed_workflow.prepare_data"):
         if features.has(
             "organizations:workflow-engine-process-workflows-logs", project.organization
         ):
@@ -1017,7 +1018,7 @@ def _process_workflows_for_project(project: Project, event_data: EventRedisData)
         )
 
 
-@sentry_sdk.trace
+@trace
 def process_delayed_workflows(
     batch_client: DelayedWorkflowClient, project_id: int, batch_key: str | None = None
 ) -> None:

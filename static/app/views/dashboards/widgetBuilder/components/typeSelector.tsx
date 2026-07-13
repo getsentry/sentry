@@ -8,6 +8,7 @@ import {IconGraph, IconMarkdown, IconNumber, IconSettings, IconTable} from 'sent
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
@@ -18,6 +19,7 @@ import {useDashboardWidgetSource} from 'sentry/views/dashboards/widgetBuilder/ho
 import {useIsEditingWidget} from 'sentry/views/dashboards/widgetBuilder/hooks/useIsEditingWidget';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
+import {canUseMetricsHeatMap} from 'sentry/views/explore/metrics/metricsFlags';
 
 export const DISPLAY_TYPE_ICONS: Partial<Record<DisplayType, React.ReactNode>> = {
   [DisplayType.AREA]: <IconGraph key="area" type="area" />,
@@ -27,6 +29,7 @@ export const DISPLAY_TYPE_ICONS: Partial<Record<DisplayType, React.ReactNode>> =
   [DisplayType.BIG_NUMBER]: <IconNumber key="number" />,
   [DisplayType.DETAILS]: <IconSettings key="details" />,
   [DisplayType.CATEGORICAL_BAR]: <IconGraph key="categorical_bar" type="bar" />,
+  [DisplayType.HEATMAP]: <IconGraph key="heatmap" type="heatmap" />,
   [DisplayType.TEXT]: <IconMarkdown key="text" />,
 };
 
@@ -46,6 +49,7 @@ export function WidgetBuilderTypeSelector({
   const organization = useOrganization();
 
   const hasDetailsWidget = organization.features.includes('dashboards-details-widget');
+  const hasHeatMapWidget = canUseMetricsHeatMap(organization);
   // Use an array to define display type order explicitly.
   // Object key ordering in JS is technically specified but easy to break accidentally.
   const displayTypeOrder: Array<{
@@ -68,6 +72,15 @@ export function WidgetBuilderTypeSelector({
       label: t('Bar (Categorical)'),
       details: t('Compare measurements across categories.'),
     },
+    ...(hasHeatMapWidget
+      ? [
+          {
+            type: DisplayType.HEATMAP,
+            label: t('Heat Map'),
+            details: t('Visualize the distribution of a measurement over time.'),
+          },
+        ]
+      : []),
     {
       type: DisplayType.LINE,
       label: t('Line'),
@@ -160,14 +173,17 @@ export function WidgetBuilderTypeSelector({
       >
         <CompactSelect
           value={state.displayType}
-          options={displayTypeOrder.map(({type, label, details}) => ({
-            leadingItems: DISPLAY_TYPE_ICONS[type],
-            label,
-            value: type,
-            details,
-            disabled:
-              type !== DisplayType.TEXT && !config.supportedDisplayTypes.includes(type),
-          }))}
+          options={displayTypeOrder.map(({type, label, details}) => {
+            const disabledReason = getVisualizationTypeDisabledReason(type, config);
+            return {
+              leadingItems: DISPLAY_TYPE_ICONS[type],
+              label,
+              value: type,
+              details,
+              disabled: defined(disabledReason),
+              tooltip: disabledReason,
+            };
+          })}
           menuWidth={300}
           onChange={selection => {
             const newValue = selection.value;
@@ -186,7 +202,9 @@ export function WidgetBuilderTypeSelector({
                 payload: newValue,
               });
               if (
-                (newValue === DisplayType.TABLE || newValue === DisplayType.BIG_NUMBER) &&
+                (newValue === DisplayType.TABLE ||
+                  newValue === DisplayType.BIG_NUMBER ||
+                  newValue === DisplayType.HEATMAP) &&
                 state.query?.length
               ) {
                 dispatch({
@@ -209,6 +227,18 @@ export function WidgetBuilderTypeSelector({
       </StyledFieldGroup>
     </Fragment>
   );
+}
+
+// Returns why a display type is unavailable, or undefined when it's usable — so
+// the dropdown can both disable and explain the option from a single source.
+function getVisualizationTypeDisabledReason(
+  type: DisplayType,
+  config: ReturnType<typeof getDatasetConfig>
+): string | undefined {
+  if (type !== DisplayType.TEXT && !config.supportedDisplayTypes.includes(type)) {
+    return t('This visualization is not supported for the selected dataset.');
+  }
+  return undefined;
 }
 
 const StyledFieldGroup = styled(FieldGroup)`

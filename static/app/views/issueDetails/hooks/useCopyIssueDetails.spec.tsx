@@ -1,12 +1,14 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHook, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
 import * as explorerAutofixHooks from 'sentry/components/events/autofix/useExplorerAutofix';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {EntryType} from 'sentry/types/event';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import * as copyToClipboardModule from 'sentry/utils/useCopyToClipboard';
@@ -99,7 +101,67 @@ describe('useCopyIssueDetails', () => {
 
       expect(result).toContain(`# ${group.title}`);
       expect(result).toContain(`**Issue ID:** ${group.id}`);
+      expect(result).toContain(`**Short ID:** ${group.shortId}`);
       expect(result).toContain(`**Project:** ${group.project?.slug}`);
+    });
+
+    it("renders the date in the user's timezone and clock preference", () => {
+      const user = UserFixture();
+      user.options.timezone = 'America/New_York';
+      user.options.clock24Hours = false;
+      ConfigStore.set('user', user);
+
+      try {
+        const result = issueAndEventToMarkdown({group, event, organization});
+
+        // dateCreated is 2023-01-01T00:00:00Z, which is EST (UTC-5) in New York,
+        // and the timezone abbreviation is appended so it's unambiguous.
+        expect(result).toContain('**Date:** Dec 31, 2022 7:00:00 PM EST');
+      } finally {
+        ConfigStore.set('user', UserFixture());
+      }
+    });
+
+    it("renders the date with the user's 24-hour clock preference", () => {
+      const user = UserFixture();
+      user.options.timezone = 'America/New_York';
+      user.options.clock24Hours = true;
+      ConfigStore.set('user', user);
+
+      try {
+        const result = issueAndEventToMarkdown({group, event, organization});
+
+        expect(result).toContain('**Date:** Dec 31, 2022 19:00:00 EST');
+      } finally {
+        ConfigStore.set('user', UserFixture());
+      }
+    });
+
+    it('falls back to dateReceived when dateCreated is absent', () => {
+      const user = UserFixture();
+      user.options.timezone = 'America/New_York';
+      user.options.clock24Hours = false;
+      ConfigStore.set('user', user);
+
+      // Transaction/performance events (e.g. N+1 DB) carry dateReceived but not
+      // dateCreated.
+      const performanceEvent = EventFixture({
+        id: '123456',
+        dateCreated: undefined,
+        dateReceived: '2023-01-01T00:00:00Z',
+      });
+
+      try {
+        const result = issueAndEventToMarkdown({
+          group: performanceGroup,
+          event: performanceEvent,
+          organization,
+        });
+
+        expect(result).toContain('**Date:** Dec 31, 2022 7:00:00 PM EST');
+      } finally {
+        ConfigStore.set('user', UserFixture());
+      }
     });
 
     it('includes autofix data when provided', () => {
@@ -112,6 +174,37 @@ describe('useCopyIssueDetails', () => {
 
       expect(result).toContain('## Root Cause');
       expect(result).toContain('## Plan');
+    });
+
+    it('includes the message when it differs from the title', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: 'TypeError'}),
+        event: EventFixture({...event, message: 'Connection to database timed out'}),
+        organization,
+      });
+
+      expect(result).toContain('## Message');
+      expect(result).toContain('Connection to database timed out');
+    });
+
+    it('omits the message when it is already part of the title', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: 'TypeError: connection failed'}),
+        event: EventFixture({...event, message: 'connection failed'}),
+        organization,
+      });
+
+      expect(result).not.toContain('## Message');
+    });
+
+    it('omits the message when it is empty', () => {
+      const result = issueAndEventToMarkdown({
+        group: GroupFixture({title: 'TypeError'}),
+        event: EventFixture({...event, message: '   '}),
+        organization,
+      });
+
+      expect(result).not.toContain('## Message');
     });
 
     it('includes tags when present in event', () => {
@@ -175,6 +268,64 @@ describe('useCopyIssueDetails', () => {
       expect(result).toContain('**Type:** TypeError');
       expect(result).toContain('**Value:** Cannot read property of undefined');
       expect(result).toContain('#### Stacktrace');
+      // No mechanism on this exception, so no handled line.
+      expect(result).not.toContain('**Handled:**');
+    });
+
+    it('marks an unhandled exception', () => {
+      const eventWithUnhandled = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                {
+                  type: 'TypeError',
+                  value: 'boom',
+                  mechanism: {type: 'onerror', handled: false},
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithUnhandled,
+        organization,
+      });
+
+      expect(result).toContain('**Handled:** No');
+    });
+
+    it('marks a handled exception', () => {
+      const eventWithHandled = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [
+                {
+                  type: 'ValueError',
+                  value: 'caught',
+                  mechanism: {type: 'generic', handled: true},
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithHandled,
+        organization,
+      });
+
+      expect(result).toContain('**Handled:** Yes');
     });
 
     it('includes thread stacktrace when activeThreadId matches', () => {
@@ -341,6 +492,328 @@ describe('useCopyIssueDetails', () => {
 
       expect(result).not.toContain('## Thread');
       expect(result).not.toContain('mainFunction');
+    });
+
+    it('includes breadcrumbs when present in event', () => {
+      const eventWithBreadcrumbs = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {
+              values: [
+                {
+                  type: 'http',
+                  category: 'fetch',
+                  level: 'error',
+                  message: 'GET /api/users',
+                  data: {url: '/api/users', status_code: 500},
+                },
+                {
+                  type: 'navigation',
+                  category: 'ui.click',
+                  level: 'info',
+                  message: 'User clicked submit',
+                  data: null,
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithBreadcrumbs,
+        organization,
+      });
+
+      expect(result).toContain('## Breadcrumbs');
+      expect(result).toContain('- **http** `fetch` [error]');
+      expect(result).toContain('  GET /api/users');
+      expect(result).toContain('  {"url":"/api/users","status_code":500}');
+      expect(result).toContain('- **navigation** `ui.click` [info]');
+      expect(result).toContain('  User clicked submit');
+    });
+
+    it('truncates a single breadcrumb to the per-crumb character limit', () => {
+      const longMessage = 'x'.repeat(600);
+      const eventWithLongBreadcrumb = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {
+              values: [{type: 'default', level: 'info', message: longMessage}],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithLongBreadcrumb,
+        organization,
+      });
+
+      // Kept the first 500 chars plus an ellipsis, dropped the rest.
+      expect(result).toContain(`${'x'.repeat(500)}...`);
+      expect(result).not.toContain('x'.repeat(501));
+    });
+
+    it('truncates the breadcrumbs section to the total character limit', () => {
+      // 10 crumbs near the per-crumb cap (~490 chars each) overflow the 5000
+      // total. The first crumb's content survives; the last crumb's tail (well
+      // past the 5000th char) is cut off.
+      const values = Array.from({length: 10}, (_, i) => {
+        if (i === 0) {
+          return {type: 'default', level: 'info', message: `FIRSTHEAD${'a'.repeat(481)}`};
+        }
+        if (i === 9) {
+          return {
+            type: 'default',
+            level: 'info',
+            message: `LASTHEAD${'a'.repeat(470)}LASTTAIL`,
+          };
+        }
+        return {type: 'default', level: 'info', message: 'a'.repeat(490)};
+      });
+      const eventWithManyLargeBreadcrumbs = EventFixture({
+        ...event,
+        entries: [{type: EntryType.BREADCRUMBS, data: {values}}],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithManyLargeBreadcrumbs,
+        organization,
+      });
+
+      expect(result).toContain('... (breadcrumbs truncated to first 5,000 characters)');
+      expect(result).toContain('FIRSTHEAD');
+      expect(result).not.toContain('LASTTAIL');
+    });
+
+    it('renders breadcrumbs after exceptions', () => {
+      const eventWithBoth = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {
+              values: [{type: 'default', level: 'info', message: 'crumb'}],
+            },
+          },
+          {
+            type: EntryType.EXCEPTION,
+            data: {
+              values: [{type: 'TypeError', value: 'boom'}],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithBoth,
+        organization,
+      });
+
+      expect(result.indexOf('## Exception')).toBeLessThan(
+        result.indexOf('## Breadcrumbs')
+      );
+    });
+
+    it('limits breadcrumbs to the most recent 10', () => {
+      const values = Array.from({length: 15}, (_, i) => ({
+        type: 'default',
+        level: 'info',
+        message: `crumb ${i}`,
+      }));
+      const eventWithManyBreadcrumbs = EventFixture({
+        ...event,
+        entries: [{type: EntryType.BREADCRUMBS, data: {values}}],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithManyBreadcrumbs,
+        organization,
+      });
+
+      // The oldest 5 are dropped, the most recent 10 are kept.
+      expect(result).not.toContain('crumb 4');
+      expect(result).toContain('crumb 5');
+      expect(result).toContain('crumb 14');
+    });
+
+    it('skips breadcrumbs with filtered content', () => {
+      const eventWithFiltered = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {
+              values: [
+                {type: 'http', level: 'info', message: 'token: [Filtered]'},
+                {
+                  type: 'http',
+                  level: 'info',
+                  message: 'visible',
+                  data: {secret: '[Filtered]'},
+                },
+                {type: 'default', level: 'info', message: 'kept crumb'},
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithFiltered,
+        organization,
+      });
+
+      expect(result).toContain('kept crumb');
+      expect(result).not.toContain('[Filtered]');
+      expect(result).not.toContain('visible');
+    });
+
+    it('does not include a breadcrumbs section when there are none', () => {
+      const eventWithEmptyBreadcrumbs = EventFixture({
+        ...event,
+        entries: [{type: EntryType.BREADCRUMBS, data: {values: []}}],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithEmptyBreadcrumbs,
+        organization,
+      });
+
+      expect(result).not.toContain('## Breadcrumbs');
+    });
+
+    it('includes the request method, url, and body when present', () => {
+      const eventWithRequest = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data: {
+              method: 'POST',
+              url: 'https://example.com/api/checkout/',
+              data: {cart_id: 'abc123', total: 4200},
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithRequest,
+        organization,
+      });
+
+      expect(result).toContain('## Request');
+      expect(result).toContain('POST https://example.com/api/checkout/');
+      expect(result).toContain('Body:');
+      expect(result).toContain('"cart_id": "abc123"');
+    });
+
+    it('renders a string request body as-is', () => {
+      const eventWithStringBody = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data: {
+              method: 'GET',
+              url: 'https://example.com/api/items/',
+              data: 'raw body payload',
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithStringBody,
+        organization,
+      });
+
+      expect(result).toContain('GET https://example.com/api/items/');
+      expect(result).toContain('raw body payload');
+    });
+
+    it('renders the request after breadcrumbs', () => {
+      const eventWithBoth = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data: {method: 'GET', url: 'https://example.com/', data: null},
+          },
+          {
+            type: EntryType.BREADCRUMBS,
+            data: {values: [{type: 'default', level: 'info', message: 'crumb'}]},
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithBoth,
+        organization,
+      });
+
+      expect(result.indexOf('## Breadcrumbs')).toBeLessThan(result.indexOf('## Request'));
+    });
+
+    it('truncates a large request body to the character limit', () => {
+      const eventWithLargeBody = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data: {
+              method: 'POST',
+              url: 'https://example.com/api/upload/',
+              data: 'z'.repeat(2500),
+            },
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithLargeBody,
+        organization,
+      });
+
+      expect(result).toContain(`${'z'.repeat(2000)}...`);
+      expect(result).not.toContain('z'.repeat(2001));
+    });
+
+    it('does not include a request section when there is no request data', () => {
+      const eventWithEmptyRequest = EventFixture({
+        ...event,
+        entries: [
+          {
+            type: EntryType.REQUEST,
+            data: {method: null, url: '', data: null},
+          },
+        ],
+      });
+
+      const result = issueAndEventToMarkdown({
+        group,
+        event: eventWithEmptyRequest,
+        organization,
+      });
+
+      expect(result).not.toContain('## Request');
     });
 
     // 1006 is the occurrence type for N+1 DB Queries. Spans mirror the classic

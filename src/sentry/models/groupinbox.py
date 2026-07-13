@@ -5,7 +5,6 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, TypedDict
 
-import sentry_sdk
 from django.db import models
 from django.utils import timezone
 
@@ -13,7 +12,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.issues.action_log import publish_action_from_context
+from sentry.issues.action_log.publish import publish_action_from_context
 from sentry.issues.action_log.types import MarkReviewedAction
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -23,6 +22,7 @@ from sentry.models.grouphistory import (
     record_group_history,
 )
 from sentry.types.activity import ActivityType
+from sentry.utils.tracing import start_span
 
 if TYPE_CHECKING:
     from sentry.models.team import Team
@@ -108,8 +108,7 @@ def remove_group_from_inbox(
             publish_action_from_context(
                 MarkReviewedAction(),
                 group_id=group_inbox.group_id,
-                organization_id=group_inbox.group.project.organization_id,
-                project_id=group_inbox.group.project_id,
+                project=group_inbox.group.project,
             )
     except GroupInbox.DoesNotExist:
         pass
@@ -120,7 +119,7 @@ def bulk_remove_groups_from_inbox(
     action: GroupInboxRemoveAction | None = None,
     user: User | RpcUser | Team | None = None,
 ) -> None:
-    with sentry_sdk.start_span(name="bulk_remove_groups_from_inbox"):
+    with start_span(name="bulk_remove_groups_from_inbox"):
         try:
             group_inbox = GroupInbox.objects.filter(group__in=groups)
             group_inbox.delete()

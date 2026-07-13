@@ -92,7 +92,6 @@
 /src/sentry/tasks/assemble.py                            @getsentry/ingest
 /src/sentry/tasks/reprocessing2.py                       @getsentry/ingest
 /src/sentry/reprocessing2.py                             @getsentry/ingest
-/src/sentry/api/endpoints/event_attachments.py           @getsentry/ingest
 /src/sentry/attachments/                                 @getsentry/ingest
 /src/sentry/debug_files/                                 @getsentry/ingest
 /src/sentry/lang/                                        @getsentry/ingest
@@ -122,6 +121,7 @@
 ## Dev
 /devenv/                                                 @getsentry/owners-sentry-dev @getsentry/dev-infra
 /devservices/                                            @getsentry/owners-sentry-dev @getsentry/dev-infra
+/devservices/config/taskbroker.yml                       @getsentry/streaming-platform
 /.github/                                                @getsentry/owners-sentry-dev
 /config/hooks/                                           @getsentry/owners-sentry-dev
 /scripts/                                                @getsentry/owners-sentry-dev
@@ -229,6 +229,8 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 /tests/sentry/silo/                                      @getsentry/hybrid-cloud
 /tests/sentry/models/test_projectkeymapping.py           @getsentry/hybrid-cloud
 /.agents/skills/hybrid-cloud-*                           @getsentry/hybrid-cloud
+/src/apigw/                                              @getsentry/hybrid-cloud @gi0baro
+/tests/apigw/                                            @getsentry/hybrid-cloud @gi0baro
 ## End of Hybrid Cloud
 
 ## Alerts & Notifications
@@ -363,6 +365,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/insights/                                               @getsentry/dashboards
 
 /static/app/views/dashboards/                                             @getsentry/dashboards
+/static/app/utils/dashboards/                                             @getsentry/dashboards
 /static/app/components/modals/widgetViewerModal*                          @getsentry/dashboards
 
 /static/app/views/discover/                                               @getsentry/explore
@@ -370,6 +373,12 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/utils/discover/                                               @getsentry/explore
 /static/app/utils/timeSeries/                                             @getsentry/data-browsing
 ## Endof Visibility
+
+## Data Browsing Migration Tests
+/tests/sentry/migrations/test_1125_transactions_to_spans_alerts_self_hosted.py @getsentry/data-browsing
+/tests/sentry/migrations/test_1126_transactions_to_spans_widgets_self_hosted.py @getsentry/data-browsing
+/tests/sentry/migrations/test_1127_discover_to_explore_queries_self_hosted.py @getsentry/data-browsing
+## End of Data Browsing Migration Tests
 
 
 ## Profiling
@@ -568,6 +577,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 ## SDK
 /src/sentry/utils/sdk.py                                             @getsentry/team-web-sdk-backend
+/src/sentry/utils/tracing.py                                         @getsentry/team-web-sdk-backend
 /src/sentry/build/                                                   @getsentry/team-web-sdk-backend
 /src/sentry/api/endpoints/source_map_debug.py                        @getsentry/team-javascript-sdks
 /src/sentry/web/frontend/setup_wizard.py                             @getsentry/team-javascript-sdks
@@ -908,6 +918,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 # End of cell architecture
 
 # Foundational Storage
+/src/sentry/api/endpoints/event_attachments.py        @getsentry/foundational-storage
 /src/sentry/objectstore/                              @getsentry/foundational-storage
 /tests/sentry/objectstore/                            @getsentry/foundational-storage
 # End of Foundational Storage

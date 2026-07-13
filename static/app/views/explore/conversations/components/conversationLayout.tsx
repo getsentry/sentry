@@ -1,12 +1,12 @@
 import type React from 'react';
 import {useRef} from 'react';
-import styled from '@emotion/styled';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {SplitPanel} from '@sentry/scraps/splitPanel';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {SplitPanel} from 'sentry/components/splitPanel';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
@@ -15,44 +15,10 @@ const RIGHT_PANEL_MIN = 400;
 const DIVIDER_WIDTH = 1;
 const DEFAULT_STORAGE_KEY = 'conversation-split-size';
 
-/**
- * Minimal resize divider matching the trace drawer style:
- * a 1px border line with an invisible wider hit area for dragging.
- */
-const BorderDivider = styled(
-  ({
-    icon: _icon,
-    ...props
-  }: {
-    'data-is-held': boolean;
-    'data-slide-direction': 'leftright' | 'updown';
-    onDoubleClick: React.MouseEventHandler<HTMLElement>;
-    onMouseDown: React.MouseEventHandler<HTMLElement>;
-    icon?: React.ReactNode;
-  }) => <div {...props} />
-)`
-  width: ${DIVIDER_WIDTH}px;
-  height: 100%;
-  position: relative;
-  user-select: none;
-  background: ${p => p.theme.tokens.border.primary};
-
-  /* Invisible wider hit area for dragging */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: -5px;
-    width: 11px;
-    cursor: ew-resize;
-    z-index: 1;
-  }
-
-  &[data-is-held='true'] {
-    background: ${p => p.theme.tokens.border.accent.moderate};
-  }
-`;
+const CONTENT_MIN_WIDTH = 400;
+const DETAIL_MIN_WIDTH = 400;
+const CONTENT_WIDTH_RATIO = 0.6;
+const SPLIT_LAYOUT_STORAGE_KEY = 'conversation-split-layout-size';
 
 /**
  * Resizable two-column layout for conversation views.
@@ -71,38 +37,188 @@ export function ConversationSplitLayout({
   const measureRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: measureRef});
 
-  const hasSize = width > 0;
-  const maxLeft = Math.max(LEFT_PANEL_MIN, width - RIGHT_PANEL_MIN - DIVIDER_WIDTH);
-  const defaultLeft = Math.min(
-    maxLeft,
-    Math.max(LEFT_PANEL_MIN, (width - DIVIDER_WIDTH) * 0.5)
-  );
-
+  // Wait for the container to be measured before mounting the SplitPanel.
+  // useLocalStorageState captures its default on first mount, so we need
+  // width > 0 to compute a sensible half-width default for fresh visits.
   return (
     <Flex ref={measureRef} flex="1" minHeight="0" overflow="hidden">
-      {hasSize ? (
-        <SplitPanel
-          availableSize={width}
-          sizeStorageKey={sizeStorageKey}
-          SplitDivider={BorderDivider}
-          left={{
-            content: left,
-            default: defaultLeft,
-            min: LEFT_PANEL_MIN,
-            max: maxLeft,
-          }}
-          right={right}
-        />
+      {width > 0 ? (
+        <MeasuredSplitPanel width={width} sizeStorageKey={sizeStorageKey}>
+          {{left, right}}
+        </MeasuredSplitPanel>
       ) : null}
     </Flex>
   );
 }
 
+function MeasuredSplitPanel({
+  children: {left, right},
+  sizeStorageKey,
+  width,
+}: {
+  children: {left: React.ReactNode; right: React.ReactNode};
+  sizeStorageKey: string;
+  width: number;
+}) {
+  // The sized pane's max is derived inside SplitPanel from `fillMinSize`, so we
+  // only need a sensible half-width default here.
+  const defaultLeft = Math.max(LEFT_PANEL_MIN, (width - DIVIDER_WIDTH) * 0.5);
+
+  const [storedSize, setStoredSize] = useLocalStorageState(sizeStorageKey, defaultLeft);
+
+  return (
+    <SplitPanel
+      orientation="horizontal"
+      defaultSize={defaultLeft}
+      initialSize={storedSize}
+      minSize={LEFT_PANEL_MIN}
+      fillMinSize={RIGHT_PANEL_MIN}
+      onResizeEnd={({endSize}) => setStoredSize(endSize)}
+      sized={left}
+      fill={right}
+    />
+  );
+}
+
 export function ConversationLeftPanel({children}: {children: React.ReactNode}) {
   return (
-    <Flex direction="column" flex={1} minHeight="0" overflow="hidden">
+    <Stack flex={1} minWidth="0" minHeight="0" overflow="hidden">
       {children}
+    </Stack>
+  );
+}
+
+export function SpanDetailCard({
+  children,
+  embedded,
+  ref,
+}: {
+  children: React.ReactNode;
+  embedded?: boolean;
+  ref?: React.Ref<HTMLDivElement>;
+}) {
+  return (
+    <Stack
+      ref={ref}
+      background="primary"
+      border={embedded ? undefined : 'primary'}
+      radius={embedded ? undefined : 'md'}
+      padding="xl"
+      gap="lg"
+      flex="1"
+      minWidth="0"
+      minHeight="0"
+      height="100%"
+      overflowY="auto"
+      overflowX="hidden"
+    >
+      {children}
+    </Stack>
+  );
+}
+
+export function ConversationContentLayout({
+  left,
+  right,
+  leftPadding = 'md',
+}: {
+  left: React.ReactNode;
+  leftPadding?: React.ComponentProps<typeof Container>['padding'];
+  right?: React.ReactNode;
+}) {
+  const measureRef = useRef<HTMLDivElement>(null);
+  const {width} = useDimensions({elementRef: measureRef});
+
+  return (
+    <Flex flex="1" minWidth="0" minHeight="0" overflow="hidden">
+      <ConversationLeftPanel>
+        <Container
+          containerType="inline-size"
+          flex="1"
+          minHeight="0"
+          width="100%"
+          background="secondary"
+        >
+          <Flex ref={measureRef} height="100%" width="100%" minHeight="0" minWidth="0">
+            {width > 0 ? (
+              <MeasuredContentSplit
+                width={width}
+                detail={right}
+                content={
+                  <Container
+                    flex="1"
+                    minWidth="0"
+                    minHeight="0"
+                    padding={leftPadding}
+                    background="primary"
+                    border="primary"
+                    radius="md"
+                    overflowX="hidden"
+                    overflowY="auto"
+                  >
+                    {left}
+                  </Container>
+                }
+              />
+            ) : null}
+          </Flex>
+        </Container>
+      </ConversationLeftPanel>
     </Flex>
+  );
+}
+
+function MeasuredContentSplit({
+  content,
+  detail,
+  width,
+}: {
+  content: React.ReactNode;
+  width: number;
+  detail?: React.ReactNode;
+}) {
+  const defaultContent = Math.max(
+    CONTENT_MIN_WIDTH,
+    Math.round((width - DIVIDER_WIDTH) * CONTENT_WIDTH_RATIO)
+  );
+  const [storedSize, setStoredSize] = useLocalStorageState(
+    SPLIT_LAYOUT_STORAGE_KEY,
+    defaultContent
+  );
+
+  return (
+    <SplitPanel
+      orientation={{xs: 'vertical', md: 'horizontal'}}
+      defaultSize={defaultContent}
+      initialSize={storedSize}
+      minSize={CONTENT_MIN_WIDTH}
+      fillMinSize={DETAIL_MIN_WIDTH}
+      onResizeEnd={({endSize}) => setStoredSize(endSize)}
+      sized={
+        <Stack
+          flex="1"
+          minWidth="0"
+          minHeight="0"
+          paddingRight={{xs: '0', md: 'md'}}
+          paddingBottom={{xs: 'md', md: '0'}}
+        >
+          {content}
+        </Stack>
+      }
+      fill={
+        detail ? (
+          <Stack
+            flex="1"
+            minWidth="0"
+            minHeight="0"
+            paddingLeft={{xs: '0', md: 'md'}}
+            paddingTop={{xs: 'md', md: '0'}}
+          >
+            {detail}
+          </Stack>
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -117,8 +233,7 @@ export function ConversationDetailPanel({
 }) {
   const organization = useOrganization();
   return (
-    <Flex
-      direction="column"
+    <Stack
       flex={1}
       minHeight="0"
       background="primary"
@@ -136,7 +251,7 @@ export function ConversationDetailPanel({
         hideNodeActions: true,
         initiallyCollapseAiIO,
       })}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -151,13 +266,13 @@ export function ConversationViewSkeleton() {
               <Placeholder height="14px" width="40px" />
             </Flex>
           </Container>
-          <Flex direction="column" flex="1" gap="md" padding="lg" background="secondary">
-            <Flex direction="column" gap="sm" padding="sm md">
+          <Stack flex="1" gap="md" padding="lg" background="secondary">
+            <Stack gap="sm" padding="sm md">
               <Placeholder height="12px" width="120px" />
               <Placeholder height="12px" width="80%" />
-            </Flex>
+            </Stack>
             <Container background="primary" radius="md" border="primary" padding="sm md">
-              <Flex direction="column" gap="sm">
+              <Stack gap="sm">
                 <Flex align="center" gap="sm">
                   <Placeholder height="12px" width="100px" />
                   <Placeholder height="12px" width="40px" />
@@ -168,48 +283,48 @@ export function ConversationViewSkeleton() {
                 <Placeholder height="12px" width="90%" />
                 <Placeholder height="12px" width="70%" />
                 <Placeholder height="12px" width="60%" />
-              </Flex>
+              </Stack>
             </Container>
-            <Flex direction="column" gap="sm" padding="sm md">
+            <Stack gap="sm" padding="sm md">
               <Placeholder height="12px" width="120px" />
               <Placeholder height="12px" width="60%" />
-            </Flex>
+            </Stack>
             <Container background="primary" radius="md" border="primary" padding="sm md">
-              <Flex direction="column" gap="sm">
+              <Stack gap="sm">
                 <Flex align="center" gap="sm">
                   <Placeholder height="12px" width="80px" />
                   <Placeholder height="12px" width="35px" />
                 </Flex>
                 <Placeholder height="12px" width="85%" />
                 <Placeholder height="12px" width="50%" />
-              </Flex>
+              </Stack>
             </Container>
-          </Flex>
+          </Stack>
         </ConversationLeftPanel>
       }
       right={
-        <Flex direction="column" gap="lg" padding="lg">
-          <Flex direction="column" gap="sm">
+        <Stack gap="lg" padding="lg">
+          <Stack gap="sm">
             <Placeholder height="14px" width="180px" />
             <Placeholder height="16px" width="60px" />
-          </Flex>
-          <Flex direction="column" gap="sm">
+          </Stack>
+          <Stack gap="sm">
             <Placeholder height="12px" width="80px" />
             <Placeholder height="12px" width="200px" />
-          </Flex>
-          <Flex direction="column" gap="sm">
+          </Stack>
+          <Stack gap="sm">
             <Placeholder height="12px" width="60px" />
             <Placeholder height="12px" width="160px" />
-          </Flex>
-          <Flex direction="column" gap="sm">
+          </Stack>
+          <Stack gap="sm">
             <Placeholder height="14px" width="80px" />
             <Placeholder height="80px" width="100%" />
-          </Flex>
-          <Flex direction="column" gap="sm">
+          </Stack>
+          <Stack gap="sm">
             <Placeholder height="14px" width="80px" />
             <Placeholder height="120px" width="100%" />
-          </Flex>
-        </Flex>
+          </Stack>
+        </Stack>
       }
     />
   );

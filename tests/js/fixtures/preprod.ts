@@ -6,7 +6,7 @@ import type {
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 
-function PreprodAppInfoFixture(
+export function PreprodAppInfoFixture(
   params: Partial<BuildDetailsAppInfo> = {}
 ): BuildDetailsAppInfo {
   return {
@@ -68,6 +68,7 @@ function PreprodBuildDetailsFixture(
       is_installable: false,
       download_count: 0,
       release_notes: null,
+      install_groups: null,
     },
     vcs_info: PreprodVcsInfoFixture(),
     size_info: undefined,

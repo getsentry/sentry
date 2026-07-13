@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,9 +16,23 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
-from sentry.api.serializers import serialize
+from sentry.api.serializers import Serializer, serialize
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.integration_examples import IntegrationExamples
+from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
-from sentry.integrations.api.serializers.models.integration import IntegrationSerializer
+from sentry.integrations.api.serializers.models.integration import (
+    IntegrationSerializer,
+    IntegrationSerializerResponse,
+)
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -39,6 +56,7 @@ from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
+from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
     IntegrationError,
@@ -53,14 +71,23 @@ from sentry.users.services.user.model import RpcUser
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
 
-class IntegrationIssueConfigSerializer(IntegrationSerializer):
-    def __init__(
-        self,
-        group: Group,
-        action: str,
-        config: Mapping[str, Any],
-    ) -> None:
-        self.group = group
+class IntegrationIssueConfigResponse(IntegrationSerializerResponse, total=False):
+    # Exactly one of these is present on a given response, selected by the `action`
+    # query param: `linkIssueConfig` for `link`, `createIssueConfig` for `create`.
+    linkIssueConfig: list[dict[str, Any]]
+    createIssueConfig: list[dict[str, Any]]
+
+
+class ExternalIssueLinkResponse(TypedDict):
+    id: int
+    key: str
+    url: str
+    integrationId: int
+    displayName: str
+
+
+class IntegrationIssueConfigSerializer(Serializer[IntegrationIssueConfigResponse]):
+    def __init__(self, action: str, config: list[dict[str, Any]]) -> None:
         self.action = action
         self.config = config
 
@@ -70,31 +97,70 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
         attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> MutableMapping[str, Any]:
-        data = super().serialize(obj, attrs, user)
-
+    ) -> IntegrationIssueConfigResponse:
+        base = IntegrationSerializer().serialize(obj, attrs, user)
         if self.action == "link":
-            data["linkIssueConfig"] = self.config
-        if self.action == "create":
-            data["createIssueConfig"] = self.config
-
-        return data
+            return {**base, "linkIssueConfig": self.config}
+        return {**base, "createIssueConfig": self.config}
 
 
+ACTION_PARAM = OpenApiParameter(
+    name="action",
+    location=OpenApiParameter.QUERY,
+    type=OpenApiTypes.STR,
+    required=True,
+    enum=["link", "create"],
+    description=(
+        "Whether to fetch the config for linking an existing external issue (`link`) "
+        "or creating a new one (`create`)."
+    ),
+)
+
+
+@extend_schema(tags=["Integration"])
 @cell_silo_endpoint
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
-        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
+        "DELETE": ApiPublishStatus.PUBLIC,
     }
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
-    def get(self, request: Request, group, integration_id) -> Response:
+    @extend_schema(
+        operation_id="Retrieve an Integration's Issue Config for an Issue",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+            GlobalParams.INTEGRATION_ID,
+            ACTION_PARAM,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "IntegrationIssueConfigResponse", IntegrationIssueConfigResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=IntegrationExamples.GROUP_INTEGRATION_ISSUE_CONFIG,
+    )
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-integration-details",
+        url_names=["sentry-api-0-group-integration-details"],
+    )
+    def get(
+        self, request: Request, group: Group, integration_id: str
+    ) -> Response[IntegrationIssueConfigResponse] | Response[DetailResponse]:
         """
-        Retrieves the config needed to either link or create an external issue for a group.
+        Retrieve the form fields needed to either link an existing external issue
+        (such as a Jira ticket or GitHub issue) to a Sentry issue, or create a new
+        one. The returned `linkIssueConfig`/`createIssueConfig` describes the fields
+        to submit back to this endpoint via `PUT`/`POST` respectively.
         """
         if not request.user.is_authenticated:
             return Response(status=400)
@@ -141,15 +207,58 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             serialize(
                 integration,
                 request.user,
-                IntegrationIssueConfigSerializer(group, action, config),
+                IntegrationIssueConfigSerializer(action, config),
                 organization_id=organization_id,
             )
         )
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
-    def post(self, request: Request, group, integration_id) -> Response:
+    @extend_schema(
+        operation_id="Create an External Issue and Link It to an Issue",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+            GlobalParams.INTEGRATION_ID,
+        ],
+        request=inline_serializer(
+            "CreateExternalIssueRequest",
+            fields={
+                "title": serializers.CharField(
+                    help_text="The title of the external issue to create."
+                ),
+                "description": serializers.CharField(
+                    required=False,
+                    help_text="The description (body) of the external issue to create.",
+                ),
+            },
+        ),
+        responses={
+            201: inline_sentry_response_serializer(
+                "ExternalIssueLinkResponse", ExternalIssueLinkResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=IntegrationExamples.EXTERNAL_ISSUE_LINK,
+    )
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-integration-details",
+        url_names=["sentry-api-0-group-integration-details"],
+    )
+    def post(
+        self, request: Request, group: Group, integration_id: str
+    ) -> (
+        Response[ExternalIssueLinkResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
-        Creates a new external issue and links it to a group.
+        Create a new issue in the external provider (such as a Jira ticket or GitHub
+        issue) and link it to the given Sentry issue. The accepted fields are
+        integration-specific; fetch them from the `createIssueConfig` returned by the
+        `GET` endpoint with `?action=create`.
         """
         if not request.user.is_authenticated:
             return Response(status=400)
@@ -190,7 +299,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 return Response({"non_field_errors": [str(exc)]}, status=400)
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
-                return Response(exc.field_errors, status=400)
+                return Response(dict(exc.field_errors or {}), status=400)
             except IntegrationError as e:
                 lifecycle.record_failure(e)
                 return Response({"non_field_errors": [str(e)]}, status=400)
@@ -245,8 +354,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             ),
             source=resolve_action_source(request),
             group_id=group.id,
-            organization_id=organization_id,
-            project_id=group.project_id,
+            project=group.project,
             actor=resolve_action_actor(request),
         )
 
@@ -261,10 +369,50 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         }
         return Response(context, status=201)
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
-    def put(self, request: Request, group, integration_id) -> Response:
+    @extend_schema(
+        operation_id="Link an Existing External Issue to an Issue",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+            GlobalParams.INTEGRATION_ID,
+        ],
+        request=inline_serializer(
+            "LinkExternalIssueRequest",
+            fields={
+                "externalIssue": serializers.CharField(
+                    help_text="The identifier of the existing external issue to link, "
+                    "as understood by the provider (such as a Jira issue key)."
+                ),
+            },
+        ),
+        responses={
+            201: inline_sentry_response_serializer(
+                "ExternalIssueLinkResponse", ExternalIssueLinkResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=IntegrationExamples.EXTERNAL_ISSUE_LINK,
+    )
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-integration-details",
+        url_names=["sentry-api-0-group-integration-details"],
+    )
+    def put(
+        self, request: Request, group: Group, integration_id: str
+    ) -> (
+        Response[ExternalIssueLinkResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
-        Links an existing external issue to a group.
+        Link an issue that already exists in the external provider (such as a Jira
+        ticket or GitHub issue) to the given Sentry issue. Additional accepted fields
+        are integration-specific; fetch them from the `linkIssueConfig` returned by
+        the `GET` endpoint with `?action=link`.
         """
         if not request.user.is_authenticated:
             return Response(status=400)
@@ -299,7 +447,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 data = installation.get_issue(external_issue_id, data=request.data)
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
-                return Response(exc.field_errors, status=400)
+                return Response(dict(exc.field_errors or {}), status=400)
             except IntegrationError as e:
                 lifecycle.record_failure(e)
                 return Response({"non_field_errors": [str(e)]}, status=400)
@@ -333,7 +481,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 installation.after_link_issue(external_issue, data=request.data)
             except IntegrationFormError as exc:
                 lifecycle.record_halt(exc)
-                return Response(exc.field_errors, status=400)
+                return Response(dict(exc.field_errors or {}), status=400)
             except IntegrationError as e:
                 lifecycle.record_failure(e)
                 return Response({"non_field_errors": [str(e)]}, status=400)
@@ -360,8 +508,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             ),
             source=resolve_action_source(request),
             group_id=group.id,
-            organization_id=organization_id,
-            project_id=group.project_id,
+            project=group.project,
             actor=resolve_action_actor(request),
         )
 
@@ -377,10 +524,40 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         }
         return Response(context, status=201)
 
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
-    def delete(self, request: Request, group, integration_id) -> Response:
+    @extend_schema(
+        operation_id="Unlink an External Issue from an Issue",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            IssueParams.ISSUE_ID,
+            GlobalParams.INTEGRATION_ID,
+            OpenApiParameter(
+                name="externalIssue",
+                location=OpenApiParameter.QUERY,
+                type=OpenApiTypes.INT,
+                required=True,
+                description="The ID of the `ExternalIssue` link to remove.",
+            ),
+        ],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-integration-details",
+        url_names=["sentry-api-0-group-integration-details"],
+    )
+    def delete(
+        self, request: Request, group: Group, integration_id: str
+    ) -> Response[None] | Response[DetailResponse]:
         """
-        Deletes a link between a group and an external issue.
+        Remove the link between a Sentry issue and an external issue. If no other
+        Sentry issues reference the external issue, the link record is deleted
+        entirely. This does not delete the issue in the external provider.
         """
         if not self._has_issue_feature(group.organization, request.user):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
@@ -432,14 +609,15 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 ),
                 source=resolve_action_source(request),
                 group_id=group.id,
-                organization_id=organization_id,
-                project_id=group.project_id,
+                project=group.project,
                 actor=resolve_action_actor(request),
             )
 
         return Response(status=204)
 
-    def _has_issue_feature(self, organization, user) -> bool:
+    def _has_issue_feature(
+        self, organization: Organization, user: User | RpcUser | AnonymousUser
+    ) -> bool:
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", organization, actor=user
         )
@@ -470,7 +648,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         installation: IssueBasicIntegration,
         external_issue: ExternalIssue,
         new: bool,
-    ):
+    ) -> None:
         issue_information = {
             "title": external_issue.title,
             "provider": installation.model.get_provider().name,

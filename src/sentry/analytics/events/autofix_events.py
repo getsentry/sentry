@@ -7,6 +7,7 @@ class AiAutofixPhaseEvent(analytics.Event):
     project_id: int
     group_id: int
     referrer: str | None
+    run_id: int | None = None
     iteration_index: int | None = None
 
 

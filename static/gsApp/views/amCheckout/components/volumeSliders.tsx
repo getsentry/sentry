@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {RangeSlider} from 'sentry/components/forms/controls/rangeSlider';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
@@ -12,13 +12,13 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory, DataCategoryExact} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
 
-import {PlanTier} from 'getsentry/types';
 import {formatReservedWithUnits} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
   getSingularCategoryName,
   isByteCategory,
+  isReservedBudgetCategory,
 } from 'getsentry/utils/dataCategory';
 import {UnitTypeItem} from 'getsentry/views/amCheckout/components/unitTypeItem';
 import type {StepProps} from 'getsentry/views/amCheckout/types';
@@ -61,15 +61,10 @@ export function renderPerformanceHovercard() {
 
 export function VolumeSliders({
   currentSliderValues,
-  checkoutTier,
   activePlan,
   organization,
-  subscription,
   onReservedChange,
-}: Pick<
-  StepProps,
-  'activePlan' | 'checkoutTier' | 'organization' | 'onUpdate' | 'subscription'
-> & {
+}: Pick<StepProps, 'activePlan' | 'organization' | 'onUpdate'> & {
   currentSliderValues: Partial<Record<DataCategory, number>>;
   onReservedChange: (value: number, category: DataCategory) => void;
 }) {
@@ -84,10 +79,14 @@ export function VolumeSliders({
 
   return (
     <SlidersContainer>
-      {activePlan.checkoutCategories
+      {activePlan.categories
         .filter(
-          // only show sliders for checkout categories with more than 1 bucket
-          category => (activePlan.planCategories[category]?.length ?? 0) > 1
+          // Show sliders for categories with a multi-bucket reserved-volume
+          // schedule, excluding those configured via a reserved budget (e.g.
+          // Seer), which are set through the budget rather than a volume slider.
+          category =>
+            (activePlan.planCategories[category]?.length ?? 0) > 1 &&
+            !isReservedBudgetCategory(category, activePlan)
         )
         .map(category => {
           const allowedValues = activePlan.planCategories[category]?.map(
@@ -118,28 +117,25 @@ export function VolumeSliders({
 
           const sliderId = `slider-${category}`;
 
-          // pre-AM3 specific behavior
+          // AM2-specific behavior: AM2 rebrands transactions as "performance
+          // units". AM2 is the only tier that bills both transactions and
+          // continuous profiling (AM1 has no profiling; AM3 replaced
+          // transactions with spans), so this pair of data categories
+          // identifies it without branching on the tier id.
+          const isAm2Plan =
+            activePlan.categories.includes(DataCategory.TRANSACTIONS) &&
+            activePlan.categories.includes(DataCategory.PROFILE_DURATION);
           const showPerformanceUnits =
-            checkoutTier === PlanTier.AM2 &&
+            isAm2Plan &&
             organization?.features?.includes('profiling-billing') &&
             category === DataCategory.TRANSACTIONS;
-
-          // TODO: Remove after profiling launch
-          const showTransactionsDisclaimer =
-            !showPerformanceUnits &&
-            category === DataCategory.TRANSACTIONS &&
-            checkoutTier === PlanTier.AM2 &&
-            subscription.planTier === PlanTier.AM1 &&
-            subscription.planDetails.name === activePlan.name &&
-            subscription.billingInterval === activePlan.billingInterval &&
-            (subscription.categories.transactions?.reserved ?? 0) > 5_000_000;
 
           const isIncluded = eventBucket.price === 0;
 
           return (
             <DataVolumeItem key={category} data-test-id={`${category}-volume-item`}>
               <CategoryContainer>
-                <Flex direction="column">
+                <Stack>
                   {showPerformanceUnits && renderPerformanceUnitDecoration()}
                   <Title htmlFor={sliderId}>
                     <div>{getPlanCategoryName({plan: activePlan, category})}</div>
@@ -162,7 +158,7 @@ export function VolumeSliders({
                       </div>
                     </Description>
                   )}
-                </Flex>
+                </Stack>
                 <div>
                   <SpaceBetweenGrid>
                     <VolumeAmount>
@@ -219,13 +215,6 @@ export function VolumeSliders({
                     </div>
                   </MinMax>
                 </div>
-                {showTransactionsDisclaimer && (
-                  <span>
-                    {t(
-                      'We updated your event quota to make sure you get the best cost per transaction. Feel free to adjust as needed.'
-                    )}
-                  </span>
-                )}
               </CategoryContainer>
             </DataVolumeItem>
           );

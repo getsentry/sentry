@@ -1,9 +1,10 @@
 from collections.abc import Generator
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
+from pydantic import ValidationError
 from scm.types import CreatePullRequestCommentReactionProtocol
 
 from fixtures.gitlab import (
@@ -15,6 +16,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
+from sentry.seer.code_review.models import SeerCodeReviewTaskRequestForPrReview
 from sentry.seer.code_review.webhooks.merge_request import (
     WEBHOOK_NOTE_SEEN_KEY_PREFIX,
     WEBHOOK_SEEN_KEY_PREFIX,
@@ -76,7 +78,7 @@ class _MergeRequestHandlerTestBase(GitLabTestCase):
     CODE_REVIEW_FEATURES = {
         "organizations:gen-ai-features",
         "organizations:code-review-beta",
-        "organizations:seer-code-review-gitlab",
+        "organizations:seer-gitlab-support",
     }
 
     @pytest.fixture(autouse=True)
@@ -162,7 +164,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_open_uses_review_request_endpoint(self) -> None:
@@ -174,11 +176,49 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/scm_code_review/review-request"
+        assert call_kwargs["path"] == "/v1/code_review/review-request"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-gitlab-support",
+        }
+    )
+    def test_validation_failure_is_captured_and_review_dropped(self) -> None:
+        # A payload that fails SeerCodeReviewTaskRequest validation means the
+        # review is dropped entirely and never reaches Seer, so it must be
+        # escalated via sentry_sdk.capture_exception (not just debug-logged).
+        self._setup_code_review()
+        event = _make_event("open")
+
+        with pytest.raises(ValidationError) as exc_info:
+            SeerCodeReviewTaskRequestForPrReview.parse_obj({})
+        validation_error = exc_info.value
+
+        with (
+            patch(
+                "sentry.seer.code_review.webhooks.merge_request."
+                "SeerCodeReviewTaskRequestForPrReview.parse_obj",
+                side_effect=validation_error,
+            ),
+            patch(
+                "sentry.seer.code_review.webhooks.merge_request.sentry_sdk.capture_exception"
+            ) as mock_capture,
+            self.tasks(),
+        ):
+            self._call_handler(event)
+
+        mock_capture.assert_called_once_with(
+            validation_error,
+            level="warning",
+            contexts={"code_review_validation": {"seer_path": ANY}},
+        )
+        self.mock_seer.assert_not_called()
 
     @with_feature({"organizations:gen-ai-features", "organizations:code-review-beta"})
     def test_skips_when_gitlab_flag_disabled(self) -> None:
-        # The GitLab MR handler is gated on organizations:seer-code-review-gitlab,
+        # The GitLab MR handler is gated on organizations:seer-gitlab-support,
         # independent of the other code-review flags.
         self._setup_code_review()
         event = _make_event("open")
@@ -192,7 +232,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_close_uses_pr_closed_endpoint(self) -> None:
@@ -204,13 +244,13 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/scm_code_review/pr-closed"
+        assert call_kwargs["path"] == "/v1/code_review/pr-closed"
 
     @with_feature(
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_merge_uses_pr_closed_endpoint(self) -> None:
@@ -222,13 +262,13 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/scm_code_review/pr-closed"
+        assert call_kwargs["path"] == "/v1/code_review/pr-closed"
 
     @with_feature(
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_update_uses_review_request_endpoint(self) -> None:
@@ -240,13 +280,13 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/scm_code_review/review-request"
+        assert call_kwargs["path"] == "/v1/code_review/review-request"
 
     @with_feature(
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_update_without_oldrev_is_skipped(self) -> None:
@@ -263,7 +303,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_update_with_unrelated_changes_is_skipped(self) -> None:
@@ -281,7 +321,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_undraft_update_uses_review_request_endpoint(self) -> None:
@@ -297,13 +337,13 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
             self._call_handler(event)
 
         self.mock_seer.assert_called_once()
-        assert self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
+        assert self.mock_seer.call_args[1]["path"] == "/v1/code_review/review-request"
 
     @with_feature(
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_undraft_update_via_work_in_progress_uses_review_request_endpoint(self) -> None:
@@ -316,13 +356,13 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
             self._call_handler(event)
 
         self.mock_seer.assert_called_once()
-        assert self.mock_seer.call_args[1]["path"] == "/v1/scm_code_review/review-request"
+        assert self.mock_seer.call_args[1]["path"] == "/v1/code_review/review-request"
 
     @with_feature(
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_undraft_update_trigger_is_ready_for_review(self) -> None:
@@ -340,7 +380,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_undraft_update_filtered_when_ready_trigger_disabled(self) -> None:
@@ -358,7 +398,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_skips_draft_mr(self) -> None:
@@ -374,7 +414,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_skips_work_in_progress_mr(self) -> None:
@@ -390,7 +430,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_close_still_sends_for_draft_mr(self) -> None:
@@ -406,7 +446,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_skips_unsupported_action(self) -> None:
@@ -422,7 +462,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_skips_unknown_action(self) -> None:
@@ -438,7 +478,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_skips_missing_action(self) -> None:
@@ -455,7 +495,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_skips_when_integration_is_none(self) -> None:
@@ -485,7 +525,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_skips_missing_last_commit(self) -> None:
@@ -502,7 +542,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_open_filtered_when_trigger_disabled(self) -> None:
@@ -518,7 +558,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_update_filtered_when_trigger_disabled(self) -> None:
@@ -534,7 +574,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_close_filtered_when_no_triggers_configured(self) -> None:
@@ -550,7 +590,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_close_sends_when_triggers_configured(self) -> None:
@@ -566,7 +606,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_payload_contains_correct_pr_id(self) -> None:
@@ -585,7 +625,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_payload_contains_gitlab_provider(self) -> None:
@@ -604,7 +644,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_payload_owner_and_name_use_path_not_display_name(self) -> None:
@@ -625,7 +665,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_payload_owner_and_name_handle_subgroups(self) -> None:
@@ -644,7 +684,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_payload_is_private_true_for_private_project(self) -> None:
@@ -663,7 +703,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_payload_is_private_true_for_internal_project(self) -> None:
@@ -682,7 +722,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_payload_is_private_false_for_public_project(self) -> None:
@@ -701,7 +741,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_payload_is_private_none_when_visibility_absent(self) -> None:
@@ -720,7 +760,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_payload_trigger_on_ready_for_review_for_open(self) -> None:
@@ -739,7 +779,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_payload_trigger_on_new_commit_for_update(self) -> None:
@@ -758,7 +798,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_payload_contains_trigger_user_from_event(self) -> None:
@@ -777,7 +817,90 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
+        }
+    )
+    def test_open_with_gitlab_space_utc_timestamp_enqueues(self) -> None:
+        # GitLab serializes merge_request object_attributes timestamps as the
+        # Rails "Time#to_s" default -- e.g. "2026-01-16 05:56:22 UTC" (space
+        # separator, textual "UTC" suffix) -- per the documented payload at
+        # https://docs.gitlab.com/user/project/integrations/webhook_events/.
+        # That form is NOT ISO 8601, so SeerCodeReviewConfig.trigger_at (a
+        # Pydantic v1 datetime) rejects it with value_error.datetime and the
+        # whole review is silently dropped in _schedule_task. The shared fixture
+        # happens to use ISO 8601, so this case is exercised explicitly here.
+        self._setup_code_review()
+        event = _make_event(
+            "open",
+            created_at="2026-01-16 05:56:22 UTC",
+            updated_at="2026-01-16 05:56:25 UTC",
+        )
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        payload = self.mock_seer.call_args[1]["payload"]
+        # updated_at wins over created_at and is normalized to ISO 8601 (UTC).
+        assert payload["data"]["config"]["trigger_at"] == "2026-01-16T05:56:25+00:00"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-gitlab-support",
+        }
+    )
+    def test_open_with_iso8601_timestamp_still_enqueues(self) -> None:
+        # Some GitLab versions/editions emit ISO 8601 for MR events. dateutil
+        # normalization must remain a strict superset and not regress that path.
+        self._setup_code_review()
+        event = _make_event(
+            "open",
+            created_at="2017-09-20T08:31:45.944Z",
+            updated_at="2017-09-28T12:23:42.365Z",
+        )
+
+        with self.tasks():
+            self._call_handler(event)
+
+        self.mock_seer.assert_called_once()
+        payload = self.mock_seer.call_args[1]["payload"]
+        assert payload["data"]["config"]["trigger_at"] == "2017-09-28T12:23:42.365000+00:00"
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-gitlab-support",
+        }
+    )
+    def test_open_with_unparseable_timestamp_captures_and_falls_back(self) -> None:
+        # An unparseable trigger_at is not fatal -- the review proceeds with a
+        # "now" fallback -- but the unhandled format must be escalated to Sentry
+        # so we learn about it instead of silently using the wrong timestamp.
+        self._setup_code_review()
+        event = _make_event("open", created_at="not a timestamp", updated_at="not a timestamp")
+
+        with (
+            patch(
+                "sentry.seer.code_review.webhooks.merge_request.sentry_sdk.capture_exception"
+            ) as mock_capture,
+            self.tasks(),
+        ):
+            self._call_handler(event)
+
+        mock_capture.assert_called_once()
+        # Review still enqueues with a valid ISO 8601 fallback timestamp.
+        self.mock_seer.assert_called_once()
+        trigger_at = self.mock_seer.call_args[1]["payload"]["data"]["config"]["trigger_at"]
+        assert trigger_at.endswith("+00:00")
+
+    @with_feature(
+        {
+            "organizations:gen-ai-features",
+            "organizations:code-review-beta",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_duplicate_delivery_within_window_skipped(self) -> None:
@@ -794,7 +917,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_duplicate_delivery_after_ttl_processes_again(self) -> None:
@@ -822,7 +945,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_distinct_commits_are_not_deduped(self) -> None:
@@ -916,7 +1039,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_sentry_review_comment_schedules_seer_task(self) -> None:
@@ -929,13 +1052,13 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
         self.mock_seer.assert_called_once()
         call_kwargs = self.mock_seer.call_args[1]
-        assert call_kwargs["path"] == "/v1/scm_code_review/review-request"
+        assert call_kwargs["path"] == "/v1/code_review/review-request"
 
     @with_feature(
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_payload_trigger_is_on_command_phrase(self) -> None:
@@ -953,7 +1076,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_payload_contains_trigger_comment_id_and_type(self) -> None:
@@ -972,7 +1095,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_payload_trigger_user_is_commenter(self) -> None:
@@ -990,7 +1113,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_eyes_reaction_added_to_note(self) -> None:
@@ -1011,7 +1134,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_non_review_command_is_ignored(self) -> None:
@@ -1028,7 +1151,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_issue_note_is_ignored(self) -> None:
@@ -1045,7 +1168,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_non_create_action_is_ignored(self) -> None:
@@ -1062,7 +1185,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_sentry_review_case_insensitive(self) -> None:
@@ -1079,7 +1202,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_duplicate_note_skipped(self) -> None:
@@ -1094,7 +1217,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         self.mock_seer.assert_called_once()
 
     def test_skips_when_feature_flag_disabled(self) -> None:
-        """Handler must no-op when organizations:seer-code-review-gitlab is off."""
+        """Handler must no-op when organizations:seer-gitlab-support is off."""
         self._setup_code_review()
         event = _make_note_event()
 
@@ -1107,7 +1230,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_skips_when_integration_is_none(self) -> None:
@@ -1132,7 +1255,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_reaction_failure_does_not_block_seer_task(self) -> None:
@@ -1150,7 +1273,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_duplicate_note_after_ttl_processes_again(self) -> None:
@@ -1197,7 +1320,7 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_eyes_reaction_added_for_open_action(self) -> None:
@@ -1215,7 +1338,7 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_stale_hooray_reaction_deleted_before_eyes_added(self) -> None:
@@ -1242,7 +1365,7 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_other_users_hooray_reaction_not_deleted(self) -> None:
@@ -1268,7 +1391,7 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_no_reaction_for_close_action(self) -> None:
@@ -1287,7 +1410,7 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_no_reaction_for_merge_action(self) -> None:
@@ -1306,7 +1429,7 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_reaction_failure_does_not_block_seer_task(self) -> None:
@@ -1326,7 +1449,7 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
         {
             "organizations:gen-ai-features",
             "organizations:code-review-beta",
-            "organizations:seer-code-review-gitlab",
+            "organizations:seer-gitlab-support",
         }
     )
     def test_eyes_reaction_added_for_update_with_new_commit(self) -> None:

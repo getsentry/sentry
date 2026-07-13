@@ -12,6 +12,8 @@ from sentry.replays.testutils import (
     mock_replay_tap,
     mock_replay_viewed,
 )
+from sentry.replays.usecases.query import QueryResponse
+from sentry.replays.validators import ReplaySelectorValidator, ReplayValidator
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.utils.cursors import Cursor
 from sentry.utils.snuba import QueryMemoryLimitExceeded
@@ -28,6 +30,29 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     @property
     def features(self) -> dict[str, bool]:
         return {"organizations:session-replay": True}
+
+    def test_replay_validators_accept_project_slugs(self) -> None:
+        replay_validator = ReplayValidator(data={"project": ["my-project"]})
+        selector_validator = ReplaySelectorValidator(data={"project": ["my-project"]})
+
+        assert replay_validator.is_valid(), replay_validator.errors
+        assert selector_validator.is_valid(), selector_validator.errors
+
+    def test_get_replays_empty_project_uses_project_slug_filter(self) -> None:
+        project = self.create_project(teams=[self.team], slug="replay-project")
+
+        with self.feature(self.features):
+            with mock.patch(
+                "sentry.replays.endpoints.organization_replay_index.query_replays_collection_paginated",
+                return_value=QueryResponse(response=[], has_more=False, source="mock"),
+            ) as mock_query:
+                response = self.client.get(
+                    self.url,
+                    {"projectSlug": project.slug, "project": ""},
+                )
+
+        assert response.status_code == 200
+        assert mock_query.call_args.kwargs["project_ids"] == [project.id]
 
     def test_feature_flag_disabled(self) -> None:
         """Test replays can be disabled."""
