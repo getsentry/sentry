@@ -12,8 +12,11 @@ export function mockElementSize({
   width = 500,
   height = 500,
 }: MockElementSizeOptions = {}) {
+  // TanStack Virtual uses offset dimensions to measure its viewport and items.
   jest.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(width);
   jest.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(height);
+
+  // Keep component layout reads consistent with the dimensions seen by the virtualizer.
   jest.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
     width,
     height,
