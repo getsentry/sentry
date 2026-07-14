@@ -33,7 +33,7 @@ _TASK_KEY = "merge_groups"
 @instrumented_task(
     name="sentry.tasks.merge.start_merge_groups",
     namespace=issues_merge_tasks,
-    retry=Retry(delay=60 * 5),
+    at_most_once=True,
     silo_mode=SiloMode.CELL,
 )
 @track_group_async_operation
