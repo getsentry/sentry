@@ -254,6 +254,7 @@ class UniversalImportExportService(ImportExportService):
                         "json", json.dumps([item]), use_natural_keys=False, ignorenonexistent=True
                     )
                     model_instance = next(deserialize_result).object
+                    assert isinstance(model_instance, BaseModel)
 
                     for f in filters:
                         if getattr(model_instance, f.field, None) not in f.values:
