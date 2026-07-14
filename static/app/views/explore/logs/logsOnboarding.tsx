@@ -40,6 +40,7 @@ import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -127,19 +128,13 @@ function OnboardingPanel({
             <div>
               <HeaderWrapper>
                 <HeaderText>
-                  <Title>{t('Your Source for Log-ical Data')}</Title>
+                  <Title>{t('Logs in Sentry')}</Title>
                   <SubTitle>
-                    {t(
-                      "It's about time we offered something a bit more robust than breadcrumbs. With logs, you'll be able to have a lot more control and context over all your data."
-                    )}
+                    {t('Search and visualize application logs at scale.')}
                   </SubTitle>
                   <BulletList>
-                    <li>
-                      {t('Access logs in real time and query them by any attribute')}
-                    </li>
-                    <li>
-                      {t('Correlate your logs with errors and traces for full context')}
-                    </li>
+                    <li>{t('View logs in context with errors and traces')}</li>
+                    <li>{t('Query, filter, and group logs by any attribute')}</li>
                     <li>
                       {t('Build alerts and dashboard widgets based on log queries')}
                     </li>
@@ -358,6 +353,7 @@ function Onboarding({organization, project}: OnboardingProps) {
               {index === steps.length - 1 ? (
                 <GuidedSteps.ButtonWrapper>
                   <GuidedSteps.BackButton size="md" />
+                  <EventWaitingIndicator />
                 </GuidedSteps.ButtonWrapper>
               ) : (
                 <GuidedSteps.ButtonWrapper>
@@ -372,6 +368,29 @@ function Onboarding({organization, project}: OnboardingProps) {
     </OnboardingPanel>
   );
 }
+
+const PulsingIndicator = styled('div')`
+  ${pulsingIndicatorStyles};
+  flex-shrink: 0;
+`;
+
+const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
+  <div {...p}>
+    {t("Waiting for this project's first log")}
+    <PulsingIndicator />
+  </div>
+))`
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: 0 ${p => p.theme.space.md};
+  z-index: 10;
+  gap: ${p => p.theme.space.md};
+  flex-grow: 1;
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.colors.pink500};
+  padding-right: ${p => p.theme.space['3xl']};
+`;
 
 const SubTitle = styled('div')`
   margin-bottom: ${p => p.theme.space.md};

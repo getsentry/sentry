@@ -562,7 +562,7 @@ export const getNodeLogsOnboarding = <
           {
             type: 'text',
             text: t(
-              'Send a test log from your app to verify logs are arriving in Sentry.'
+              'Send a test log from your app, then refresh this page to verify it arrived in Sentry.'
             ),
           },
           {
