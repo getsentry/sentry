@@ -456,10 +456,11 @@ export function useTraceMetricsHeatmapQuery(
 
   // Don't fetch until the widget's aggregate resolves to a real metric —
   // otherwise we'd request with an empty `metric.name` filter.
-  const heatmapEnabled =
-    enabled && yBuckets > 0 && Boolean(widgetInterval) && Boolean(traceMetric?.name);
+  const heatMapConditionsAreValid =
+    yBuckets > 0 && Boolean(widgetInterval) && Boolean(traceMetric?.name);
+  const heatmapEnabled = enabled && heatMapConditionsAreValid;
 
-  const {series, error, isPending} = useMetricHeatMapData({
+  const {series, error, isPending, isFetching} = useMetricHeatMapData({
     traceMetric: traceMetric ?? {name: '', type: '', unit: NONE_UNIT},
     enabled: heatmapEnabled,
     organization,
@@ -478,10 +479,7 @@ export function useTraceMetricsHeatmapQuery(
     return {loading: false, errorMessage: error.message, rawData: EMPTY_ARRAY};
   }
 
-  // No data yet: a request is in flight, or the chart hasn't been measured
-  // (so the queries are still disabled). Report loading like the series/table
-  // hooks do, so the chart container needs no heat-map-specific loading branch.
-  if (isPending) {
+  if (isFetching || isPending) {
     return {loading: true, rawData: EMPTY_ARRAY};
   }
 

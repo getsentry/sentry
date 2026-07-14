@@ -118,8 +118,9 @@ export function useMetricHeatMapData({
   const {
     series: chunkSeries,
     error: chunkError,
+    isPending: isPending,
+    isFetching: isFetching,
     isPartial,
-    isFetchingMore,
   } = useQueries({queries, combine});
 
   // Patch the metric unit onto the Y-axis, since the server can't infer this
@@ -133,28 +134,19 @@ export function useMetricHeatMapData({
   return {
     series,
     error,
+    isPending: isPending || boundsQuery.isPending,
+    isFetching: isFetching || boundsQuery.isFetching,
     isPartial,
-    isFetchingMore,
-    // Only "pending" while actually loading — a disabled hook has nothing in
-    // flight, so it must not report loading (would spin forever in the UI).
-    isPending: enabled && !series && !error,
   };
 }
 
 export interface MetricHeatMapData {
   error: Error | null;
-  /**
-   * At least one chunk is still loading while others have already resolved.
-   * i.e., the grid is painting progressively.
-   */
-  isFetchingMore: boolean;
+  isFetching: boolean;
   /**
    * A chunk failed but others succeeded; the grid is rendered with a gap.
    */
   isPartial: boolean;
-  /**
-   * Nothing to render yet and no fatal error.
-   */
   isPending: boolean;
   /**
    * The merged, unit-patched grid. Present as soon as one chunk resolves.

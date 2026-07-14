@@ -54,13 +54,7 @@ export function MetricsHeatMap({
   const location = useLocation();
   const navigate = useNavigate();
 
-  const {
-    series: heatMapSeries,
-    isPending,
-    isPartial,
-    isFetchingMore,
-    error,
-  } = heatMapData;
+  const {series: heatMapSeries, isPending, isPartial, isFetching, error} = heatMapData;
 
   const aggregate = visualize.yAxis;
   const chartTitle =
@@ -129,11 +123,14 @@ export function MetricsHeatMap({
   let visualization: React.ReactNode;
   if (error) {
     visualization = <Widget.WidgetError error={error} />;
-  } else if (isPending) {
-    visualization = <WidgetLoadingPanel />;
-  } else if (!heatMapSeries || heatMapSeries.values.length === 0) {
+  } else if (
+    !isPending &&
+    !isFetching &&
+    (!heatMapSeries || heatMapSeries.values.length === 0)
+  ) {
+    // We are no longer pending any data, and none has come back
     visualization = <Widget.WidgetError error={t('No data')} />;
-  } else {
+  } else if (heatMapSeries) {
     // Show a loading spinner over the existing data while chunks are loading.
     // This improves perception of performance over a spinner that blocks the
     // UI.
@@ -143,9 +140,12 @@ export function MetricsHeatMap({
           plottables={[new HeatMap(heatMapSeries)]}
           onZoom={handleZoom}
         />
-        {isFetchingMore ? <LoadingOverlay /> : null}
+        {isFetching || isPending ? <LoadingOverlay /> : null}
       </Container>
     );
+  } else {
+    // The query is not enabled yet, waiting for measurement
+    visualization = <WidgetLoadingPanel />;
   }
 
   // A failed chunk leaves a gap. Note it but allow users to browse the loaded data.

@@ -9,14 +9,12 @@ import type {TimeDomain} from 'sentry/views/explore/metrics/hooks/partitionHeatM
 
 export interface ChunkedHeatMapResult {
   error: Error | null;
-  /**
-   * At least one chunk is still loading while others have resolved.
-   */
-  isFetchingMore: boolean;
+  isFetching: boolean;
   /**
    * A chunk failed but others succeeded.
    */
   isPartial: boolean;
+  isPending: boolean;
   /**
    * The merged grid, present once one chunk resolves.
    */
@@ -40,7 +38,7 @@ export function makePartitionedHeatMapWindowCombiner({
       .map(q => q.data!);
     const anySuccess = succeeded.length > 0;
     const anyError = results.some(q => q.isError);
-    const anyLoading = results.some(q => q.isPending && q.fetchStatus === 'fetching');
+    const anyLoading = results.some(q => q.isPending && q.isFetching);
     const allErrored = results.length > 0 && results.every(q => q.isError);
 
     let series: HeatMapSeries | undefined;
@@ -56,8 +54,9 @@ export function makePartitionedHeatMapWindowCombiner({
     return {
       series,
       error: allErrored ? (results.find(q => q.error)?.error ?? null) : null,
+      isPending: results.some(result => result.isPending),
+      isFetching: results.some(result => result.isFetching),
       isPartial: anySuccess && anyError && !anyLoading,
-      isFetchingMore: anySuccess && anyLoading,
     };
   };
 }
