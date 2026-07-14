@@ -139,6 +139,7 @@ export function GiftRecurringCredits() {
   const [orgTokens, setOrgTokens] = useState('');
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvFileName, setCsvFileName] = useState<string | null>(null);
+  const [notes, setNotes] = useState('');
   const [dryRun, setDryRun] = useState(true);
   const [skipCurrentPeriod, setSkipCurrentPeriod] = useState(false);
   const [results, setResults] = useState<ResultRow[] | null>(null);
@@ -299,6 +300,7 @@ export function GiftRecurringCredits() {
       formData.append('amount', String(Math.round((amount ?? 0) * multiplier)));
       formData.append('billingPeriods', String(billingPeriods));
       formData.append('skipCurrentPeriod', String(skipCurrentPeriod));
+      formData.append('notes', notes);
       formData.append('dryRun', String(dryRun));
       const response: {results: ResultRow[]} = await api.requestPromise(
         `/_admin/cells/${cell?.name}/gift-recurring-credits/`,
@@ -365,7 +367,8 @@ export function GiftRecurringCredits() {
     billingPeriods !== null &&
     Number.isInteger(billingPeriods) &&
     billingPeriods >= 1 &&
-    billingPeriods <= MAX_BILLING_PERIODS;
+    billingPeriods <= MAX_BILLING_PERIODS &&
+    notes.trim().length > 0;
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -541,6 +544,15 @@ export function GiftRecurringCredits() {
             </UploadHint>
           )}
         </UploadRow>
+        <label htmlFor="notes">Notes:</label>
+        <OrgTextarea
+          id="notes"
+          name="notes"
+          rows={2}
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          placeholder="Why these orgs are being gifted"
+        />
         <CheckboxRow>
           <input
             type="checkbox"

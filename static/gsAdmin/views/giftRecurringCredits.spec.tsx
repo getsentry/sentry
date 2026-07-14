@@ -86,6 +86,7 @@ describe('GiftRecurringCredits', () => {
 
   async function fillRequiredFields() {
     await userEvent.type(screen.getByLabelText(/Amount per billing period/), '5000');
+    await userEvent.type(screen.getByLabelText('Notes:'), 'note');
   }
 
   it('submits the raw textarea tokens as multipart, without parsing them', async () => {
@@ -266,6 +267,7 @@ describe('GiftRecurringCredits', () => {
 
     expect(screen.getByText('Amount per billing period (GB):')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText(/Amount per billing period/), '5');
+    await userEvent.type(screen.getByLabelText('Notes:'), 'note');
     await userEvent.type(screen.getByLabelText(/Target organizations/), 'acme');
 
     await userEvent.click(screen.getByTestId('gift-submit'));
@@ -532,6 +534,7 @@ describe('GiftRecurringCredits', () => {
   it('blocks submission of a fractional count amount', async () => {
     render(<GiftRecurringCredits />);
     await userEvent.type(screen.getByLabelText(/Target organizations/), 'acme');
+    await userEvent.type(screen.getByLabelText('Notes:'), 'note');
 
     const amountInput = screen.getByLabelText(/Amount per billing period/);
     await userEvent.type(amountInput, '5000.5');
