@@ -1,4 +1,4 @@
-import {Fragment, useContext, useMemo, useRef} from 'react';
+import {Fragment, memo, useContext, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaOptionProps} from '@react-aria/listbox';
 import {useOption} from '@react-aria/listbox';
@@ -29,7 +29,7 @@ export interface ListBoxOptionProps extends AriaOptionProps {
  * A <li /> element with accessible behaviors & attributes.
  * https://react-spectrum.adobe.com/react-aria/useListBox.html
  */
-export function ListBoxOption({
+function ListBoxOptionComponent({
   item,
   listState,
   size,
@@ -128,6 +128,10 @@ export function ListBoxOption({
     />
   );
 }
+
+// Virtualizer range changes re-render the list. Retained rows keep stable props, so
+// memoization limits each scroll update to rows entering or leaving the buffer.
+export const ListBoxOption = memo(ListBoxOptionComponent);
 
 const StyledMenuListItem = styled(MenuListItem)`
   > ${InnerWrap} {

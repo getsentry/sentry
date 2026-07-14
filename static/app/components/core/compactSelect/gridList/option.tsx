@@ -1,9 +1,9 @@
-import {Fragment, useContext, useMemo, useRef, useState} from 'react';
+import {Fragment, memo, useContext, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {AriaGridListItemOptions} from '@react-aria/gridlist';
 import {useGridListItem, useGridListSelectionCheckbox} from '@react-aria/gridlist';
 import {useFocusWithin, useHover} from '@react-aria/interactions';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
@@ -25,16 +25,20 @@ export interface GridListOptionProps<
   listState: ListState<T>;
   node: Node<T>;
   size: FormSize;
+  'data-index'?: number;
+  ref?: React.Ref<HTMLLIElement>;
 }
 
 /**
  * A <li /> element with accessibile behaviors & attributes.
  * https://react-spectrum.adobe.com/react-aria/useGridList.html
  */
-export function GridListOption<T extends ListItemBase>({
+function GridListOptionComponent<T extends ListItemBase>({
   node,
   listState,
   size,
+  ref: refProp,
+  'data-index': dataIndex,
 }: GridListOptionProps<T>) {
   const ref = useRef<HTMLLIElement>(null);
   const {
@@ -125,7 +129,8 @@ export function GridListOption<T extends ListItemBase>({
   return (
     <StyledMenuListItem
       {...rowPropsMerged}
-      ref={ref}
+      data-index={dataIndex}
+      ref={mergeRefs(ref, refProp)}
       size={size}
       label={renderedLabel}
       details={details}
@@ -144,6 +149,12 @@ export function GridListOption<T extends ListItemBase>({
     />
   );
 }
+
+// Virtualizer range changes re-render the list. Retained rows keep stable props, so
+// memoization limits each scroll update to rows entering or leaving the buffer.
+export const GridListOption = memo(
+  GridListOptionComponent
+) as typeof GridListOptionComponent;
 
 const StyledMenuListItem = styled(MenuListItem)`
   > ${InnerWrap} {
