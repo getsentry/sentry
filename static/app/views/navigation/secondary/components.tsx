@@ -248,9 +248,10 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   children: ReactNode;
   to: To;
   /**
-   * Will display the link as active under the given path.
+   * Will display the link as active under the given path. Pass a list of paths
+   * to display the link as active when any of them match.
    */
-  activeTo?: To;
+  activeTo?: To | To[];
   analyticsItemName?: string;
   /**
    * When passed, will not show the link as active for descendant paths.
@@ -440,8 +441,12 @@ function SecondaryNavigationLink({
 }: SecondaryNavigationItemProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const activeToList = Array.isArray(activeTo) ? activeTo : [activeTo];
   const isActive =
-    incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
+    incomingIsActive ??
+    activeToList.some(path =>
+      isPrimaryNavigationLinkActive(path, location.pathname, {end})
+    );
 
   const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
@@ -801,8 +806,12 @@ function SecondaryNavigationReorderableLink({
 }: SecondaryNavigationReorderableLinkProps) {
   const organization = useOrganization();
   const location = useLocation();
+  const activeToList = Array.isArray(activeTo) ? activeTo : [activeTo];
   const isActive =
-    incomingIsActive ?? isPrimaryNavigationLinkActive(activeTo, location.pathname, {end});
+    incomingIsActive ??
+    activeToList.some(path =>
+      isPrimaryNavigationLinkActive(path, location.pathname, {end})
+    );
   const {layout, features} = usePrimaryNavigation();
   const {reset: closeCollapsedNavigationHovercard} = useHovercardContext();
   const {setView} = useSecondaryNavigation();
