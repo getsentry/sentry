@@ -101,7 +101,7 @@ describe('mergeHeatMapChunks', () => {
     expect(merged.values.some(v => v.xAxis === 0)).toBe(false);
   });
 
-  it('keeps older loaded columns when the live edge extends past the planned end', () => {
+  it('Keeps older loaded columns when the live edge extends past the planned end', () => {
     // Planned range is [0, 2h). A newer chunk pushes the live edge to 2h while an
     // older chunk holds real data at 0 — the slide must not trim that column.
     const olderChunk = makeChunk([{x: 0, z: [1, 1]}]);
@@ -121,7 +121,7 @@ describe('mergeHeatMapChunks', () => {
 });
 
 describe('makePartitionedHeatMapWindowCombiner', () => {
-  it('reports a settled series when every chunk succeeds', () => {
+  it('Reports a settled series when every chunk succeeds', () => {
     const out = combine([success(newer), success(older)]);
     expect(out.series).toBeDefined();
     expect(out.isPartial).toBe(false);
