@@ -14,8 +14,16 @@ interface ImageEntry {
 const imageContext = require.context('sentry-images', true, /\.(svg|gif|png)$/, 'sync');
 const images: ImageEntry[] = imageContext.keys().map(file => ({
   file: file.replace(/^\.\//, 'sentry-images/'),
-  src: imageContext(file),
+  src: loadImage(file),
 }));
+
+function loadImage(file: string): string {
+  const image = imageContext(file);
+  if (typeof image !== 'string') {
+    throw new TypeError(`Expected ${file} to resolve to an image URL`);
+  }
+  return image;
+}
 
 const toCamelCase = function camalize(str: string) {
   return str
