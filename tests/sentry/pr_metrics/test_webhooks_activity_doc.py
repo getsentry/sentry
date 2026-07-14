@@ -483,7 +483,7 @@ class ActivityDocumentWritePathTest(TestCase):
 
     def test_reopened_ignored_when_option_off(self) -> None:
         self._activity(action="reopened")
-        assert self._doc() is None
+        assert self._doc_or_none() is None
         assert self._rows() == 0
 
     def test_reopened_ignored_when_pr_on_legacy_store(self) -> None:
@@ -497,7 +497,7 @@ class ActivityDocumentWritePathTest(TestCase):
         )
         with override_options(DOC_ON):
             self._activity(action="reopened", webhook_id="ro1")
-        assert self._doc() is None
+        assert self._doc_or_none() is None
         assert self._rows() == 1
 
     def test_edited_captures_changed_field_names_only(self) -> None:
@@ -537,7 +537,7 @@ class ActivityDocumentWritePathTest(TestCase):
         )
         with override_options(DOC_ON):
             self._activity(action="synchronize", webhook_id="s1", before="a", after="b")
-        assert self._doc() is None
+        assert self._doc_or_none() is None
 
     def test_comment_deleted_human_recorded_as_entry(self) -> None:
         with override_options(DOC_ON):
@@ -553,11 +553,11 @@ class ActivityDocumentWritePathTest(TestCase):
         with override_options(DOC_ON):
             self._comment_deleted(webhook_id="cd1", sender={"login": "sticky[bot]", "type": "Bot"})
         # Delete+recreate churn from sticky-comment bots is not recorded.
-        assert self._doc() is None
+        assert self._doc_or_none() is None
 
     def test_comment_deleted_ignored_when_option_off(self) -> None:
         self._comment_deleted(webhook_id="cd1", sender={"login": "human", "type": "User"})
-        assert self._doc() is None
+        assert self._doc_or_none() is None
         assert self._rows() == 0
 
     def test_review_comment_deleted_marks_is_review(self) -> None:
