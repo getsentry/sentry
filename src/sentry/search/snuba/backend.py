@@ -284,7 +284,7 @@ def issue_progress_filter(progress_values: list[str], projects: Sequence[Project
     Otherwise it's reconstructed from Activity records.
     """
     if projects and all(
-        features.has("projects:issue-action-log-write-to-db", project) for project in projects
+        features.has("projects:issue-stream-derived-progress", project) for project in projects
     ):
         return _issue_progress_filter_from_derived_data(progress_values, projects)
     return _issue_progress_filter_from_activity(progress_values, projects)

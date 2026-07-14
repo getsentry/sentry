@@ -1145,7 +1145,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         results = self.make_query(search_filter_query="issue.progress:fix_proposed")
         assert self.group1 not in set(results)
 
-    @with_feature("projects:issue-action-log-write-to-db")
+    @with_feature("projects:issue-stream-derived-progress")
     def test_issue_progress_from_db(self) -> None:
         self.create_group_derived_data(group=self.group1, progress=IssueProgressState.DIAGNOSED)
         self.create_group_derived_data(group=self.group2, progress=IssueProgressState.FIX_PROPOSED)
@@ -1169,7 +1169,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == set()
 
-    @with_feature("projects:issue-action-log-write-to-db")
+    @with_feature("projects:issue-stream-derived-progress")
     def test_issue_progress_from_db_multiple_values(self) -> None:
         self.create_group_derived_data(group=self.group1, progress=IssueProgressState.DIAGNOSED)
         self.create_group_derived_data(group=self.group2, progress=IssueProgressState.FIX_PROPOSED)
@@ -1181,7 +1181,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == {self.group1, self.group2}
 
-    @with_feature("projects:issue-action-log-write-to-db")
+    @with_feature("projects:issue-stream-derived-progress")
     def test_issue_progress_from_db_base_states(self) -> None:
         self.create_group_derived_data(group=self.group1, progress=IssueProgressState.IDENTIFIED)
         self.create_group_derived_data(group=self.group2, progress=IssueProgressState.ASSIGNED)
@@ -1196,7 +1196,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == {self.group2}
 
-    @with_feature("projects:issue-action-log-write-to-db")
+    @with_feature("projects:issue-stream-derived-progress")
     def test_issue_progress_from_db_missing_row_is_identified(self) -> None:
         # A group with no GroupDerivedData row is implicitly "identified" on the DB
         # path, matching the sort resolver, so it's returned alongside groups with
@@ -1208,7 +1208,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         )
         assert set(results) == {self.group1, self.group2}
 
-    @with_feature("projects:issue-action-log-write-to-db")
+    @with_feature("projects:issue-stream-derived-progress")
     def test_issue_progress_from_db_negation(self) -> None:
         self.create_group_derived_data(group=self.group1, progress=IssueProgressState.DIAGNOSED)
         self.create_group_derived_data(group=self.group2, progress=IssueProgressState.FIX_PROPOSED)

@@ -1085,14 +1085,10 @@ def resolve_progress_signal(
     actor: Any | None, organization: Organization, projects: Sequence[Project], group_ids: list[int]
 ) -> dict[int, int]:
     """Progress-cycle rank per group (identified=1 .. fix_applied=5). When every project in
-    scope has the ``projects:issue-action-log-write-to-db`` flag enabled, progress is read
+    scope has the ``projects:issue-stream-derived-progress`` flag enabled, progress is read
     from the materialized GroupDerivedData.progress column; otherwise it's derived from the
     same Activity records as the ``issue.progress`` filter. Every group gets a rank."""
-    project_ids = set(Group.objects.filter(id__in=group_ids).values_list("project_id", flat=True))
-    projects = list(Project.objects.filter(id__in=project_ids))
-    if projects and all(
-        features.has("projects:issue-action-log-write-to-db", project) for project in projects
-    ):
+    if all(features.has("projects:issue-stream-derived-progress", project) for project in projects):
         states = _get_group_progress_states_from_derived_data(group_ids)
     else:
         states = get_group_progress_states(group_ids)
@@ -1100,6 +1096,22 @@ def resolve_progress_signal(
         group_id: PROGRESS_STATE_SORT_RANK[IssueProgressState(state)]
         for group_id, state in states.items()
     }
+
+
+def _resolve_last_progressed_at(
+    actor: Any | None, organization: Organization, projects: Sequence[Project], group_ids: list[int]
+) -> dict[int, float]:
+    """Epoch-millisecond timestamp of the last progress change per group, read from
+    GroupDerivedData.last_progressed_at. Groups without a value are omitted; score_fn
+    falls through to last_seen for them."""
+    if not all(
+        features.has("projects:issue-stream-derived-progress", project) for project in projects
+    ):
+        return {}
+    rows = GroupDerivedData.objects.filter(
+        group_id__in=group_ids, last_progressed_at__isnull=False
+    ).values_list("group_id", "last_progressed_at")
+    return {group_id: ts.timestamp() * 1000 for group_id, ts in rows if ts is not None}
 
 
 def progress_strategy() -> PostgresSortStrategy:
@@ -1110,13 +1122,20 @@ def progress_strategy() -> PostgresSortStrategy:
 
     def score_fn(data: dict[str, Any]) -> float:
         rank = data.get("progress_rank") or 0
+        last_progressed = data.get("last_progressed_at") or 0
+        if last_progressed:
+            return rank + last_progressed / LAST_SEEN_TIEBREAK_DIVISOR
+
         last_seen = data.get("last_seen") or 0
         return rank + last_seen / LAST_SEEN_TIEBREAK_DIVISOR
 
     return PostgresSortStrategy(
         postgres_fields={},
         snuba_aggregations=["last_seen"],
-        signal_resolvers={"progress_rank": resolve_progress_signal},
+        signal_resolvers={
+            "progress_rank": resolve_progress_signal,
+            "last_progressed_at": _resolve_last_progressed_at,
+        },
         score_fn=score_fn,
     )
 
