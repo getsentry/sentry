@@ -185,7 +185,7 @@ def set_viewer_context_organization(organization_id: int) -> None:
 def set_viewer_context_project(project_id: int) -> None:
     """Update the current ``ViewerContext`` with a resolved project id.
 
-    No-op when no ViewerContext exists — use ``set_system_viewer_context``
+    No-op when no ViewerContext exists — use ``viewer_context_scope``
     for system-originated tasks without middleware.
     """
     ctx = get_viewer_context()
