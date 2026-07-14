@@ -2642,6 +2642,100 @@ describe('SearchQueryBuilder', () => {
       expect(listBox).toBeChecked();
     });
 
+    it('splits a pasted comma-separated value into separate values', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          onChange={mockOnChange}
+          initialQuery="browser.name:Firefox"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      // Pasting bypasses the per-keystroke comma delimiter, so the whole string
+      // reaches the commit path and must still split into separate values rather
+      // than collapse into one quoted value.
+      await userEvent.paste('foo,bar');
+      await userEvent.keyboard('{enter}');
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          'browser.name:[Firefox,foo,bar]',
+          expect.anything()
+        );
+      });
+    });
+
+    it('splits a pasted comma-separated value into chips before committing', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      await userEvent.paste('foo,bar');
+
+      // "foo" becomes its own chip immediately rather than sitting in the input
+      // as raw comma-separated text; the trailing "bar" stays in the input.
+      expect(
+        await screen.findByRole('button', {name: 'Edit value: foo'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+        'bar'
+      );
+    });
+
+    it('drops empty segments from consecutive commas when pasting', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          onChange={mockOnChange}
+          initialQuery="browser.name:Firefox"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      // Consecutive commas must not produce blank or literal-comma chips
+      await userEvent.paste('foo,,,');
+      await userEvent.keyboard('{enter}');
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          'browser.name:[Firefox,foo]',
+          expect.anything()
+        );
+      });
+    });
+
+    it('commits nothing when pasting only commas', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:Firefox" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      await userEvent.paste(',,,');
+
+      // No stray chip is created; only the original Firefox chip remains
+      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
+      expect(screen.getAllByRole('button', {name: /^Edit value:/})).toHaveLength(1);
+      expect(
+        screen.getByRole('button', {name: 'Edit value: Firefox'})
+      ).toBeInTheDocument();
+    });
+
     it('strips multiple wildcards into a single wildcard', async () => {
       const mockOnChange = jest.fn();
       render(
@@ -3025,7 +3119,7 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('string', () => {
-      it('defaults to an empty string when no value is provided', async () => {
+      it('resets to an empty string when the last value is removed', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
         );
@@ -3033,19 +3127,13 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
-        await userEvent.clear(
-          await screen.findByRole('combobox', {name: 'Edit filter value'})
-        );
-        await userEvent.keyboard('{enter}');
 
-        // Should have empty quotes `""`
+        // Removing the only value chip resets the value to empty quotes `""`
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Remove value: firefox'})
+        );
         expect(
           await screen.findByRole('row', {name: 'browser.name:""'})
-        ).toBeInTheDocument();
-        expect(
-          within(
-            screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
-          ).getByText('""')
         ).toBeInTheDocument();
       });
 
@@ -3108,12 +3196,11 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
-        // Should start with previous values and an appended ',' for the next value
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-            'firefox,'
-          );
-        });
+        // Previous values render as chips and the input starts empty
+        expect(
+          screen.getByRole('button', {name: 'Edit value: firefox'})
+        ).toBeInTheDocument();
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
 
         // Clicking the "Chrome option should add it to the list and commit changes
         await userEvent.click(screen.getByRole('option', {name: 'Chrome'}));
@@ -3209,16 +3296,15 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
-        // Input value should start with previous value and appended ','
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-            'firefox,'
-          );
-        });
+        // Previous value renders as a chip and the input starts empty
+        expect(
+          await screen.findByRole('button', {name: 'Edit value: firefox'})
+        ).toBeInTheDocument();
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
 
         // Toggling off the "firefox" option should:
         // - Commit an empty string as the filter value
-        // - Input value should be cleared
+        // - Remove the firefox chip
         // - Keep focus inside the input
         // - Not call onChange
         await userEvent.click(
@@ -3228,16 +3314,16 @@ describe('SearchQueryBuilder', () => {
           await screen.findByRole('row', {name: 'browser.name:""'})
         ).toBeInTheDocument();
         await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-            ''
-          );
+          expect(
+            screen.queryByRole('button', {name: 'Edit value: firefox'})
+          ).not.toBeInTheDocument();
         });
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
         expect(mockOnChange).not.toHaveBeenCalled();
 
         // Toggling on the "Chrome" option should:
         // - Commit the value "Chrome" to the filter
-        // - Input value should be "Chrome,"
+        // - Render a "Chrome" chip
         // - Keep focus inside the input
         // - Still not call onChange
         await userEvent.click(
@@ -3246,11 +3332,9 @@ describe('SearchQueryBuilder', () => {
         expect(
           await screen.findByRole('row', {name: 'browser.name:Chrome'})
         ).toBeInTheDocument();
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-            'Chrome,'
-          );
-        });
+        expect(
+          await screen.findByRole('button', {name: 'Edit value: Chrome'})
+        ).toBeInTheDocument();
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
         expect(mockOnChange).not.toHaveBeenCalled();
 
@@ -3285,11 +3369,12 @@ describe('SearchQueryBuilder', () => {
         expect(
           await screen.findByRole('row', {name: 'browser.name:[firefox,Chrome]'})
         ).toBeInTheDocument();
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-            'firefox,Chrome,'
-          );
-        });
+        expect(
+          await screen.findByRole('button', {name: 'Edit value: firefox'})
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', {name: 'Edit value: Chrome'})
+        ).toBeInTheDocument();
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
 
         // onChange should not be called until exiting edit mode
@@ -3326,11 +3411,12 @@ describe('SearchQueryBuilder', () => {
         expect(
           await screen.findByRole('row', {name: 'browser.name:[firefox,Chrome]'})
         ).toBeInTheDocument();
-        await waitFor(() => {
-          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-            'firefox,Chrome,'
-          );
-        });
+        expect(
+          await screen.findByRole('button', {name: 'Edit value: firefox'})
+        ).toBeInTheDocument();
+        expect(
+          screen.getByRole('button', {name: 'Edit value: Chrome'})
+        ).toBeInTheDocument();
         expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
 
         // onChange should not be called until exiting edit mode
@@ -3343,6 +3429,286 @@ describe('SearchQueryBuilder', () => {
             expect.anything()
           );
         });
+      });
+
+      it('does not re-add a value that is toggled off while being edited', async () => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,chrome]"
+            onChange={mockOnChange}
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Lift the firefox chip into the input for editing
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Edit value: firefox'})
+        );
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+          'firefox'
+        );
+
+        // Toggling firefox off should cancel the edit instead of leaving it staged
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle firefox'})
+        );
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+            ''
+          );
+        });
+
+        // Blurring should not re-add the toggled-off value
+        await userEvent.click(document.body);
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenLastCalledWith(
+            'browser.name:chrome',
+            expect.anything()
+          );
+        });
+      });
+
+      it('re-anchors a chip edit when an earlier value is toggled off', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,chrome,safari]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Edit the last chip, then clear it
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Edit value: safari'})
+        );
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(input);
+
+        // Toggle an earlier value off from the dropdown — this shifts the token
+        // indices without going through the chip's remove button
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle firefox'})
+        );
+
+        // The replacement must update the edited chip's (shifted) slot rather than
+        // append after a now-stale index
+        await userEvent.type(input, 'edge');
+        await userEvent.keyboard('{enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[chrome,edge]'})
+        ).toBeInTheDocument();
+      });
+
+      it('re-anchors a mid-row partial when an earlier value is toggled off', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,chrome,safari]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Edit the middle chip, then commit a value with a trailing comma so the
+        // input becomes a bare insertion point sitting mid-row (behind edge)
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Edit value: chrome'})
+        );
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(input);
+        await userEvent.type(input, 'edge,');
+        expect(
+          await screen.findByRole('button', {name: 'Edit value: edge'})
+        ).toBeInTheDocument();
+
+        // Toggling an earlier value off shifts indices under the bare insertion
+        // point, which must follow rather than commit the partial to the end
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Toggle firefox'})
+        );
+        await userEvent.type(input, 'x');
+        await userEvent.keyboard('{enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[edge,x,safari]'})
+        ).toBeInTheDocument();
+      });
+
+      it('keeps a pasted value adjacent when it duplicates an existing chip', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,chrome,safari]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Edit the middle chip, then paste values where one duplicates an existing
+        // chip (firefox). The duplicate collapses on save, so it must not count
+        // toward where the trailing partial lands
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Edit value: chrome'})
+        );
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(input);
+        await userEvent.paste('firefox,edge,x');
+        await userEvent.keyboard('{enter}');
+
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[firefox,edge,x,safari]'})
+        ).toBeInTheDocument();
+      });
+
+      it('commits pending input when a different chip is clicked to edit', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,chrome]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Type a value but don't commit it, then click another chip to edit it.
+        // The uncommitted text must be saved rather than silently dropped.
+        const input = await screen.findByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.type(input, 'safari');
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Edit value: firefox'})
+        );
+
+        // The clicked chip is now lifted for editing; committing it back unchanged
+        // leaves the previously typed value in place
+        expect(input).toHaveValue('firefox');
+        await userEvent.keyboard('{enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[firefox,chrome,safari]'})
+        ).toBeInTheDocument();
+      });
+
+      it('keeps a pasted value adjacent when it duplicates a quoted existing chip', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery='browser.name:["foo bar",chrome,safari]'
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Edit the middle chip, then paste a value that duplicates the existing
+        // quoted chip. Matching the stored (unescaped) form must recognize it as a
+        // duplicate so it doesn't count toward where the trailing partial lands
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Edit value: chrome'})
+        );
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.clear(input);
+        await userEvent.paste('"foo bar",edge,x');
+        await userEvent.keyboard('{enter}');
+
+        expect(
+          await screen.findByRole('row', {
+            name: 'browser.name:["foo bar",edge,x,safari]',
+          })
+        ).toBeInTheDocument();
+      });
+
+      it('preserves duplicate values when editing one of them', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,firefox]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Both duplicate chips render
+        const chips = await screen.findAllByRole('button', {name: 'Edit value: firefox'});
+        expect(chips).toHaveLength(2);
+
+        // Editing the second one only hides that chip; the other remains
+        await userEvent.click(chips[1]!);
+        expect(
+          screen.getByRole('button', {name: 'Edit value: firefox'})
+        ).toBeInTheDocument();
+
+        // Committing a new value keeps the untouched duplicate
+        await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter value'}));
+        await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[firefox,Chrome]'})
+        ).toBeInTheDocument();
+      });
+
+      it('removes only the targeted duplicate when deleting a chip', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,firefox]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const removeButtons = await screen.findAllByRole('button', {
+          name: 'Remove value: firefox',
+        });
+        expect(removeButtons).toHaveLength(2);
+
+        // Removing one chip leaves the other intact
+        await userEvent.click(removeButtons[0]!);
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:firefox'})
+        ).toBeInTheDocument();
+      });
+
+      it('re-quotes an edited value that contains spaces', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery='browser.name:["foo bar",chrome]'
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // The chip lifts into the input in its unescaped form
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'Edit value: foo bar'})
+        );
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+          'foo bar'
+        );
+
+        // Committing it unchanged must round-trip the quotes, not corrupt the query
+        await userEvent.keyboard('{enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:["foo bar",chrome]'})
+        ).toBeInTheDocument();
       });
 
       it('collapses many selected options', async () => {
@@ -3724,10 +4090,11 @@ describe('SearchQueryBuilder', () => {
           screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
         );
 
-        // Input value should have the escaped value (with a trailing comma)
-        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-          expected + ','
-        );
+        // The value renders as a chip and the input is empty
+        expect(
+          screen.getByRole('button', {name: `Edit value: ${value}`})
+        ).toBeInTheDocument();
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
 
         // The original value should be selected in the dropdown
         expect(
@@ -3735,7 +4102,7 @@ describe('SearchQueryBuilder', () => {
         ).toBeChecked();
       });
 
-      it('can replace a value with a new one', async () => {
+      it('can edit a value by clicking its chip', async () => {
         render(
           <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />
         );
@@ -3743,22 +4110,269 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
         );
+
+        // Clicking the "c" chip removes it and lifts its value into the input
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: c'}));
         await waitFor(() => {
           expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
-            '1,c,3,'
+            'c'
           );
         });
 
-        // Arrow left three times to put cursor inside "c" value
-        await userEvent.keyboard('{ArrowLeft}{ArrowLeft}{ArrowLeft}');
-
-        // When on c value, should show options matching "c"
-        const chromeOption = await screen.findByRole('option', {name: 'Chrome'});
-
-        // Clicking the "Chrome option should replace "c" with "Chrome" and commit chagnes
-        await userEvent.click(chromeOption);
+        // Selecting the "Chrome" option adds it back in the edited value's place
+        await userEvent.click(await screen.findByRole('option', {name: 'Chrome'}));
         expect(
           await screen.findByRole('row', {name: 'browser.name:[1,Chrome,3]'})
+        ).toBeInTheDocument();
+      });
+
+      it('splits a value at the cursor when a comma is typed mid-value', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:abcd" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Lift the chip into the input and move the cursor to the middle
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: abcd'}));
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await waitFor(() => {
+          expect(input).toHaveValue('abcd');
+        });
+
+        // Typing a comma after "ab" splits it off as a chip, leaving "cd" in the
+        // input rather than re-committing the whole value unchanged
+        await userEvent.type(input, '{ArrowLeft}{ArrowLeft},');
+        expect(
+          await screen.findByRole('button', {name: 'Edit value: ab'})
+        ).toBeInTheDocument();
+        expect(input).toHaveValue('cd');
+      });
+
+      it('leaves the caret at the split boundary after a mid-value comma', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await userEvent.type(input, 'abc{ArrowLeft}{ArrowLeft},');
+
+        // "a" splits off; the caret sits at the start of the remaining "bc"
+        expect(input).toHaveValue('bc');
+        if (!(input instanceof HTMLInputElement)) {
+          throw new Error('expected an input element');
+        }
+        await waitFor(() => {
+          expect(input.selectionStart).toBe(0);
+        });
+      });
+
+      it('does not reset the caret on later input after pasting only commas', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="browser.name:" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        // Pasting only commas commits nothing and leaves the input empty, so the
+        // caret adjustment must not carry over to the next keystroke.
+        await userEvent.paste(',,,');
+        await userEvent.type(input, 'x');
+
+        expect(input).toHaveValue('x');
+        if (!(input instanceof HTMLInputElement)) {
+          throw new Error('expected an input element');
+        }
+        expect(input.selectionStart).toBe(1);
+      });
+
+      it('keeps a split value adjacent when editing a middle chip', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Edit the middle chip and split a new value off it
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: c'}));
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await waitFor(() => {
+          expect(input).toHaveValue('c');
+        });
+
+        // Typing ",z" keeps "z" next to "c" instead of shoving it to the end
+        await userEvent.type(input, ',z');
+        await userEvent.keyboard('{enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[1,c,z,3]'})
+        ).toBeInTheDocument();
+      });
+
+      it('keeps pasted values adjacent when editing a middle chip', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: c'}));
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await waitFor(() => {
+          expect(input).toHaveValue('c');
+        });
+
+        // Replace the lifted "c" with a pasted multi-value string; the completed
+        // values land in place and the trailing partial stays adjacent
+        await userEvent.clear(input);
+        await userEvent.paste('p,q,r');
+        await userEvent.keyboard('{enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[1,p,q,r,3]'})
+        ).toBeInTheDocument();
+      });
+
+      it('keeps the trailing partial adjacent when a middle-chip paste repeats a value', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: c'}));
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        await waitFor(() => {
+          expect(input).toHaveValue('c');
+        });
+
+        // "p" repeated in the paste collapses to one chip; "q" must still land
+        // right after it rather than at the end of the row
+        await userEvent.clear(input);
+        await userEvent.paste('p,p,q');
+        await userEvent.keyboard('{enter}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[1,p,q,3]'})
+        ).toBeInTheDocument();
+      });
+
+      it('keeps a typed chip edit in its original position', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Lift the "c" chip, replace it with a typed value, and commit
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: c'}));
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+            'c'
+          );
+        });
+        await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter value'}));
+        await userEvent.keyboard('z{Enter}');
+
+        // The typed value stays where "c" was rather than moving to the end
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[1,z,3]'})
+        ).toBeInTheDocument();
+      });
+
+      it('merges into the matching chip when a chip edit selects another value', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[Firefox,Safari]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Lift "Safari" into the input, then clear it to surface all options
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: Safari'}));
+        await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter value'}));
+
+        // Selecting "Firefox" (already a chip) merges the edit into it rather than
+        // toggling it off — both values must not disappear
+        await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:Firefox'})
+        ).toBeInTheDocument();
+      });
+
+      it('restores a lifted value when canceling a chip edit with Escape', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Lift "c" into the input, then cancel with Escape
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: c'}));
+        await waitFor(() => {
+          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+            'c'
+          );
+        });
+        await userEvent.keyboard('{Escape}');
+
+        // The value is preserved in place, not dropped or reordered
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[1,c,3]'})
+        ).toBeInTheDocument();
+      });
+
+      it('preserves an escaped value when canceling its edit', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery='browser.name:"foo bar"' />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Lift the value containing a space, then cancel by clicking away
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: foo bar'}));
+        await userEvent.click(document.body);
+
+        // Value stays correctly quoted rather than being re-added unescaped
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:"foo bar"'})
+        ).toBeInTheDocument();
+      });
+
+      it('does not remove other chips when backspacing during an edit', async () => {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:[1,c,3]" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Lift "c", clear the input, then Backspace on the now-empty input
+        await userEvent.click(screen.getByRole('button', {name: 'Edit value: c'}));
+        await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter value'}));
+        await userEvent.keyboard('{Backspace}');
+        await userEvent.keyboard('{Escape}');
+
+        // No unrelated chip is removed and the edited value is preserved
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:[1,c,3]'})
         ).toBeInTheDocument();
       });
 
@@ -3771,6 +4385,31 @@ describe('SearchQueryBuilder', () => {
         await userEvent.keyboard('foo,bar{enter}');
         expect(
           await screen.findByRole('row', {name: 'browser.name:[foo,bar]'})
+        ).toBeInTheDocument();
+      });
+
+      it('removes the last value chip when pressing backspace in an empty input', async () => {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[firefox,chrome]"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+
+        // Input is empty, so backspace removes the last value chip
+        await userEvent.keyboard('{Backspace}');
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:firefox'})
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', {name: 'Edit value: chrome'})
+        ).not.toBeInTheDocument();
+        expect(
+          screen.getByRole('button', {name: 'Edit value: firefox'})
         ).toBeInTheDocument();
       });
 
