@@ -17,6 +17,7 @@ from sentry.pr_metrics.activity_doc import (
     MAX_CHECK_GROUPS,
     MAX_EVENTS,
     MAX_RUNS_PER_GROUP,
+    ActivityDoc,
     apply_activity,
     extract_event_at,
     is_failing_conclusion,
@@ -30,9 +31,9 @@ MODULE = "sentry.pr_metrics.activity_doc"
 
 
 def _entry(
-    doc: dict[str, Any],
+    doc: ActivityDoc,
     *,
-    event_type: str = PullRequestActivityType.SYNCHRONIZED,
+    event_type: PullRequestActivityType = PullRequestActivityType.SYNCHRONIZED,
     webhook_id: str = "d1",
     ts: str = "2026-07-10T12:00:00Z",
     event_at: str | None = None,
@@ -49,9 +50,9 @@ def _entry(
 
 
 def _comment(
-    doc: dict[str, Any],
+    doc: ActivityDoc,
     *,
-    event_type: str = PullRequestActivityType.COMMENT_CREATED,
+    event_type: PullRequestActivityType = PullRequestActivityType.COMMENT_CREATED,
     sender_login: str = "alice",
     sender_type: str = "User",
     webhook_id: str = "c1",
@@ -66,7 +67,7 @@ def _comment(
 
 
 def _suite(
-    doc: dict[str, Any],
+    doc: ActivityDoc,
     *,
     conclusion: str = "success",
     head_sha: str = "sha1",
@@ -89,7 +90,7 @@ def _suite(
 
 
 def _run(
-    doc: dict[str, Any],
+    doc: ActivityDoc,
     *,
     check_name: str = "test",
     conclusion: str = "failure",
@@ -111,7 +112,7 @@ def _run(
     )
 
 
-def _group(doc: dict[str, Any], head_sha: str = "sha1", app_slug: str = "github-actions") -> Any:
+def _group(doc: ActivityDoc, head_sha: str = "sha1", app_slug: str = "github-actions") -> Any:
     return doc["checks"][f"{head_sha}|{app_slug}"]
 
 
@@ -608,7 +609,7 @@ def test_runs_cap_does_not_block_updates_to_existing_runs() -> None:
 
 
 def test_full_sequence_reapplication_is_idempotent_except_failed_attempts() -> None:
-    def build(double: bool) -> dict[str, Any]:
+    def build(double: bool) -> ActivityDoc:
         doc = new_document()
         sequence: list[Any] = [
             lambda d: _entry(

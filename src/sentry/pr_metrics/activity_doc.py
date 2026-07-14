@@ -8,11 +8,13 @@ from each webhook and calls :func:`apply_activity`; the readers in
 ``emit``/``utils``/``judge`` project the document back into the counters and
 timeline they used to derive from rows.
 
-Three event families reduce differently:
+Three event families, which :func:`apply_activity` dispatches on ``event_type``,
+reduce differently:
 
-- **entries** — low-volume lifecycle events (opened, synchronized, reviews,
-  labels, the close itself, ...). Appended to ``events`` in arrival order, deduped
-  by ``webhook_id`` containment, and counted once per delivery in ``counts``.
+- **entries** (stored under the ``events`` key) — low-volume lifecycle events
+  (opened, synchronized, reviews, labels, the close itself, ...). Appended to
+  ``events`` in arrival order, deduped by ``webhook_id`` containment, and counted
+  once per delivery in ``counts``.
 - **checks** — every ``check_run_completed`` / ``check_suite_completed`` collapses
   into a per-``(head_sha, app_slug)`` rollup. A pure monotone reducer: latest-wins
   on provider timestamps, ``min()`` for ``first_failure_at``, ``max()`` for counts,
@@ -27,7 +29,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, TypedDict
 
 from sentry.models.pullrequest import PullRequestActivityType
 from sentry.utils import metrics
@@ -61,6 +63,48 @@ _COMMENT_EVENT_TYPES = frozenset(
 )
 
 
+class CheckRun(TypedDict):
+    conclusion: str
+    completed_at: str | None
+    failed_attempts: int
+
+
+class CheckGroup(TypedDict):
+    head_sha: str
+    app_slug: str
+    suite_conclusion: str | None
+    suite_updated_at: str | None
+    check_runs_count: int
+    runs: dict[str, CheckRun]
+    first_failure_at: str | None
+    last_event_at: str | None
+
+
+class ActivityEntry(TypedDict):
+    event_type: str
+    ts: str
+    event_at: str | None
+    webhook_id: str | None
+    payload: dict[str, Any]
+
+
+class ActivityDoc(TypedDict):
+    """The JSON-round-tripped storage shape of the activity document.
+
+    These types describe what is persisted and read back, not the live objects: a
+    stored/loaded doc is plain ``dict``/``list`` values (the TypedDict types are
+    erased at runtime) with every timestamp kept as the raw provider string.
+    Doc-shape evolution is versioned via the ``version`` field.
+    """
+
+    version: int
+    events: list[ActivityEntry]
+    checks: dict[str, CheckGroup]
+    participants: dict[str, str]
+    counts: dict[str, int]
+    events_dropped: int
+
+
 def is_failing_conclusion(conclusion: str | None) -> bool:
     """Whether a check conclusion counts as a failure.
 
@@ -73,7 +117,7 @@ def is_failing_conclusion(conclusion: str | None) -> bool:
     return conclusion not in NON_FAILING_CONCLUSIONS and conclusion not in ABORTED_CONCLUSIONS
 
 
-def new_document() -> dict[str, Any]:
+def new_document() -> ActivityDoc:
     """An empty activity document at the current version."""
     return {
         "version": DOC_VERSION,
@@ -85,7 +129,7 @@ def new_document() -> dict[str, Any]:
     }
 
 
-def extract_event_at(event_type: str, event: Mapping[str, Any]) -> str | None:
+def extract_event_at(event_type: PullRequestActivityType, event: Mapping[str, Any]) -> str | None:
     """The provider event-scoped timestamp for the types that carry one, else None.
 
     GitHub has no delivery sequence number and most ``pull_request`` actions carry
@@ -112,9 +156,9 @@ def extract_event_at(event_type: str, event: Mapping[str, Any]) -> str | None:
 
 
 def apply_activity(
-    doc: dict[str, Any],
+    doc: ActivityDoc,
     *,
-    event_type: str,
+    event_type: PullRequestActivityType,
     payload: Mapping[str, Any],
     ts: str,
     event_at: str | None = None,
@@ -153,7 +197,7 @@ def apply_activity(
     )
 
 
-def _fold_participant(doc: dict[str, Any], payload: Mapping[str, Any]) -> None:
+def _fold_participant(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
     """Union the event's sender into ``participants`` (login -> sender_type).
 
     Idempotent and order-free. A missing/empty login (check apps, malformed
@@ -166,9 +210,9 @@ def _fold_participant(doc: dict[str, Any], payload: Mapping[str, Any]) -> None:
 
 
 def _apply_entry(
-    doc: dict[str, Any],
+    doc: ActivityDoc,
     *,
-    event_type: str,
+    event_type: PullRequestActivityType,
     payload: Mapping[str, Any],
     ts: str,
     event_at: str | None,
@@ -215,12 +259,12 @@ def _apply_entry(
     )
 
 
-def _is_duplicate(doc: dict[str, Any], webhook_id: str) -> bool:
+def _is_duplicate(doc: ActivityDoc, webhook_id: str) -> bool:
     return any(entry.get("webhook_id") == webhook_id for entry in doc["events"])
 
 
 def _apply_check_suite(
-    doc: dict[str, Any], payload: Mapping[str, Any], suite_updated_at: str | None
+    doc: ActivityDoc, payload: Mapping[str, Any], suite_updated_at: str | None
 ) -> None:
     """Fold a completed ``check_suite`` into its ``(head_sha, app_slug)`` group.
 
@@ -244,7 +288,7 @@ def _apply_check_suite(
 
 
 def _apply_check_run(
-    doc: dict[str, Any], payload: Mapping[str, Any], completed_at: str | None
+    doc: ActivityDoc, payload: Mapping[str, Any], completed_at: str | None
 ) -> None:
     """Fold a completed ``check_run`` into its group's ever-failing ``runs`` map.
 
@@ -294,7 +338,7 @@ def _apply_check_run(
         group["first_failure_at"] = _min_ts(group.get("first_failure_at"), completed_at)
 
 
-def _get_or_create_group(doc: dict[str, Any], payload: Mapping[str, Any]) -> dict[str, Any]:
+def _get_or_create_group(doc: ActivityDoc, payload: Mapping[str, Any]) -> CheckGroup:
     """The rollup for a check payload's ``(head_sha, app_slug)``.
 
     Existing groups always resolve. A new group beyond ``MAX_CHECK_GROUPS`` evicts
@@ -333,7 +377,7 @@ def _get_or_create_group(doc: dict[str, Any], payload: Mapping[str, Any]) -> dic
     return group
 
 
-def _touch_last_event(group: dict[str, Any], ts: str | None) -> None:
+def _touch_last_event(group: CheckGroup, ts: str | None) -> None:
     if _is_newer(ts, group.get("last_event_at")):
         group["last_event_at"] = ts
 
