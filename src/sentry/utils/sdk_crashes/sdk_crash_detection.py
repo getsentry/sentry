@@ -29,7 +29,7 @@ def get_hybrid_sdk_parent(sdk_name: str, event_data: Mapping[str, Any]) -> tuple
 
     parent_sdk_name, parent_package_name = parent_sdk
     packages = get_path(event_data, "sdk", "packages")
-    if not isinstance(packages, Sequence) or isinstance(packages, (str, bytes)):
+    if not isinstance(packages, Sequence) or isinstance(packages, str | bytes):
         return None
 
     versions = {
