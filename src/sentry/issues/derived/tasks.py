@@ -8,8 +8,8 @@ from sentry.taskworker.namespaces import issues_tasks
 
 logger = logging.getLogger(__name__)
 
-BATCH_PROCESSING_DEADLINE = timedelta(seconds=30)
-BATCH_RETRIGGER_TIMEOUT = timedelta(seconds=20)
+BATCH_PROCESSING_DEADLINE = timedelta(seconds=30)  # taskworker hard kill timeout
+BATCH_RETRIGGER_TIMEOUT = timedelta(seconds=20)  # self-reschedule before the hard kill
 
 
 @instrumented_task(
@@ -18,6 +18,7 @@ BATCH_RETRIGGER_TIMEOUT = timedelta(seconds=20)
     silo_mode=SiloMode.CELL,
 )
 def process_group_log_task(group_id: int, **kwargs: object) -> None:
+    """Drain all pending action log entries for a single group into its derived data."""
     from sentry.issues.derived.processing import process_group_log
     from sentry.models.group import Group
 
@@ -33,6 +34,11 @@ def process_group_log_task(group_id: int, **kwargs: object) -> None:
     silo_mode=SiloMode.CELL,
 )
 def process_project_derived_data(project_id: int, **kwargs: object) -> None:
+    """Build derived data for all unprocessed groups in a project.
+
+    Finds groups without a GroupDerivedData row, partitions them into
+    ID ranges, and fans out a batch task for each range.
+    """
     from django.db.models import Exists, OuterRef
 
     from sentry import options
@@ -96,6 +102,10 @@ def process_project_derived_data_batch(
     group_id_end: int,
     **kwargs: object,
 ) -> None:
+    """Process derived data for groups in the ID range [group_id_start, group_id_end).
+
+    Reschedules itself with the remaining range if the timeout is reached.
+    """
     from sentry.issues.derived.processing import GroupLogTimeout, process_group_log
     from sentry.models.group import Group
 
