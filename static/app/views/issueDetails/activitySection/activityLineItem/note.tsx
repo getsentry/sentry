@@ -1,19 +1,18 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
 import {NoteBody} from 'sentry/components/activity/note/body';
 import {TimeSince} from 'sentry/components/timeSince';
+import {t} from 'sentry/locale';
 import {GroupActivityType, type Group, type GroupActivity} from 'sentry/types/group';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 
 import {ActivityLineActor} from './actor';
-import {
-  ActivityLineContent,
-  ActivityLineHeadline,
-  ActivityLineRow,
-  type ActivityLineVariant,
-} from './layout';
+import {ActivityLineContent, ActivityLineRow, type ActivityLineVariant} from './layout';
 import {ActivityLineMarker} from './progressMarker';
 
 type GroupActivityNote = Extract<GroupActivity, {type: GroupActivityType.NOTE}>;
@@ -53,14 +52,15 @@ export function ActivityLineNote({
   );
 
   return (
-    <ActivityLineRow variant={inputVariant}>
+    <ActivityLineRow>
       <ActivityLineMarker item={activity} />
       <ActivityLineActor item={activity} />
-      <ActivityLineHeadline
-        title={getNoteAuthorName(activity)}
+      <ActivityLineNoteHeadline
+        title={t('%s commented', getNoteAuthorName(activity))}
         timestamp={timestamp}
         variant={inputVariant}
         actions={
+          inputVariant === 'full' &&
           !editing && (
             <CommentActionsDropdown
               onDelete={onDelete}
@@ -95,6 +95,84 @@ export function ActivityLineNote({
     </ActivityLineRow>
   );
 }
+
+function ActivityLineNoteHeadline({
+  title,
+  timestamp,
+  actions,
+  variant,
+}: {
+  timestamp: React.ReactNode;
+  title: React.ReactNode;
+  variant: ActivityLineVariant;
+  actions?: React.ReactNode;
+}) {
+  return (
+    <ActivityLineNoteHeadlineLayout
+      column={3}
+      row={1}
+      columns="minmax(0, max-content) auto"
+      minWidth={0}
+      minHeight="22px"
+      align="center"
+      gap="xs"
+    >
+      <ActivityLineNoteSentence data-compact={variant === 'compact' ? true : undefined}>
+        <ActivityLineNoteTitle
+          as="span"
+          bold
+          density="comfortable"
+          wordBreak="break-word"
+        >
+          {title}
+        </ActivityLineNoteTitle>{' '}
+        <ActivityLineNoteMeta>
+          <Text as="span" variant="muted" density="comfortable">
+            &bull;
+          </Text>
+          <Text as="span" variant="muted" density="comfortable" wrap="nowrap">
+            {timestamp}
+          </Text>
+        </ActivityLineNoteMeta>
+      </ActivityLineNoteSentence>
+      {actions ? <ActivityLineNoteActions>{actions}</ActivityLineNoteActions> : null}
+    </ActivityLineNoteHeadlineLayout>
+  );
+}
+
+const ActivityLineNoteHeadlineLayout = styled(Grid)`
+  justify-self: start;
+  max-width: 100%;
+`;
+
+const ActivityLineNoteSentence = styled('span')`
+  align-self: start;
+  min-width: 0;
+  overflow-wrap: anywhere;
+
+  &[data-compact='true'] {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+`;
+
+const ActivityLineNoteTitle = styled(Text)`
+  overflow-wrap: anywhere;
+`;
+
+const ActivityLineNoteMeta = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  flex-shrink: 0;
+`;
+
+const ActivityLineNoteActions = styled('span')`
+  display: inline-grid;
+  place-items: center;
+`;
 
 const ActivityNoteBubble = styled('div')`
   display: block;
