@@ -12,9 +12,7 @@ from typing import Any
 
 from django.conf import settings
 from django.db import router, transaction
-from django.http.request import HttpRequest
 from django.utils import timezone
-from rest_framework.request import Request
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.seer.models.agent_write_grant import DEFAULT_EXPIRATION, SeerAgentWriteGrant
@@ -30,8 +28,7 @@ AGENT_TOKEN_AUDIENCE = "sentry-agent-api"
 # TTL is the only bound on a leaked token, so keep it short.
 DEFAULT_TOKEN_TTL = timedelta(minutes=5)
 
-# Set when an agent token authenticates; read by the cross-org binding guard.
-_REQUEST_CLAIMS_ATTR = "_agent_token_claims"
+AGENT_TOKEN_KIND = "agent_token"
 
 
 def _signing_key() -> str:
@@ -112,23 +109,20 @@ def decode_agent_token(token_str: str) -> dict[str, Any]:
     )
 
 
+def is_agent_auth(auth: Any) -> bool:
+    """Whether an authenticated credential is a Seer agent capability token."""
+    return getattr(auth, "kind", None) == AGENT_TOKEN_KIND
+
+
 def build_authenticated_token(claims: dict[str, Any]) -> AuthenticatedToken:
-    # kind="api_token" routes the token through the ordinary token-scope path (scope
-    # intersection with the member's role).
+    # A first-class non-user actor: user_id records who the agent acts on behalf of;
+    # access is derived from that member (access.from_agent_auth), capped by these scopes.
     return AuthenticatedToken(
-        kind="api_token",
+        kind=AGENT_TOKEN_KIND,
         scopes=list(claims.get("scopes", [])),
         user_id=int(claims["sub"]),
         organization_id=int(claims["org"]),
     )
-
-
-def mark_agent_request(request: HttpRequest | Request, claims: dict[str, Any]) -> None:
-    setattr(request, _REQUEST_CLAIMS_ATTR, claims)
-
-
-def get_agent_claims(request: HttpRequest | Request) -> dict[str, Any] | None:
-    return getattr(request, _REQUEST_CLAIMS_ATTR, None)
 
 
 def create_write_grant(

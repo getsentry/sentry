@@ -102,6 +102,22 @@ class OrganizationAgentTokenTest(APITestCase):
         claims = agent_token.decode_agent_token(resp.data["token"])
         assert "org:write" not in claims["scopes"]
 
+    def test_agent_token_cannot_mint(self) -> None:
+        # Minting is user-initiated; an agent token is a non-user actor and must be rejected
+        # cleanly (not 500 on the anonymous request user).
+        self.login_as(self.owner)
+        with self.feature(FLAG):
+            minted = self._mint(sessionId="s1")
+        agent_bearer = minted.data["token"]
+        with self.feature(FLAG):
+            resp = self.client.post(
+                f"/api/0/organizations/{self.org.slug}/agent/token/",
+                data={"sessionId": "s2"},
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {agent_bearer}",
+            )
+        assert resp.status_code == 403, resp.content
+
     def test_end_to_end_approved_write_succeeds(self) -> None:
         # The core happy path: an approved grant produces a token whose write passes
         # end-to-end against a real org endpoint.

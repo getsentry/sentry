@@ -1206,8 +1206,15 @@ def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
 def from_rpc_auth(
     auth: AuthenticatedToken, rpc_user_org_context: RpcUserOrganizationContext
 ) -> Access:
+    from sentry.seer.agent_token import is_agent_auth
+
     if is_system_auth(auth):
         return SystemAccess()
+    if is_agent_auth(auth):
+        # Agents are non-user actors with member-derived, capped authority -- never the
+        # org-global access an org token gets. Dispatched here so the cap holds at the
+        # shared userless-auth choke, not only in determine_access.
+        return from_agent_auth(auth, rpc_user_org_context)
     if auth.organization_id == rpc_user_org_context.organization.id:
         return ApiBackedOrganizationGlobalAccess(
             rpc_user_organization_context=rpc_user_org_context,
@@ -1222,6 +1229,25 @@ def from_rpc_auth(
         )
     else:
         return DEFAULT
+
+
+def from_agent_auth(
+    auth: AuthenticatedToken, rpc_user_org_context: RpcUserOrganizationContext
+) -> Access:
+    """Access for a Seer agent capability token: a non-user actor acting on behalf of a
+    member. Unlike an org token, the agent is not org-global — its authority is the
+    delegating member's, capped by the token's scopes, so project access follows the
+    member's teams. The context MUST be resolved for the delegating user_id."""
+    # Bound to the org it was minted for; never honored elsewhere, even if the
+    # delegating user is also a member of the requested org.
+    if auth.organization_id != rpc_user_org_context.organization.id:
+        return DEFAULT
+    # No membership (never a member, or revoked since mint) -> no access. Required
+    # explicitly because RpcBackedAccess would otherwise hand back the full token
+    # scopes uncapped when member is None.
+    if rpc_user_org_context.member is None:
+        return DEFAULT
+    return from_rpc_member(rpc_user_org_context, scopes=auth.get_scopes())
 
 
 DEFAULT = NoAccess()

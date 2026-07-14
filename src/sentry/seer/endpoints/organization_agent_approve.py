@@ -33,14 +33,10 @@ class OrganizationAgentApproveEndpoint(OrganizationEndpoint):
     permission_classes = (AgentApprovalPermission,)
 
     def _require_user_session(self, request: Request) -> None:
-        # The agent acts under the user's identity (X-Viewer-Context or an agent token), so
-        # approval must come from a genuine first-party session or the agent could approve
-        # its own writes.
-        if (
-            request.auth is not None
-            or is_user_from_viewer_context(request)
-            or agent_token.get_agent_claims(request) is not None
-        ):
+        # Approval must come from a genuine first-party session, or the agent could approve
+        # its own writes. Any token credential (agent tokens included) sets request.auth;
+        # a viewer-context service call is caught separately.
+        if request.auth is not None or is_user_from_viewer_context(request):
             raise PermissionDenied("Approval must be performed from a user session.")
 
     def post(self, request: Request, organization: Organization) -> Response:

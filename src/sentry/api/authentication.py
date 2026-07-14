@@ -609,9 +609,12 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
 @AuthenticationSiloLimit(SiloMode.CELL, SiloMode.CONTROL)
 class AgentTokenAuthentication(StandardAuthentication):
-    """Authenticates the Seer agent's short-lived capability token: a Sentry-signed JWT
-    (see ``sentry.seer.agent_token``) carrying the ``sntryag_`` prefix, not a stored
-    ``ApiToken``."""
+    """Authenticates the Seer agent's ``sntryag_`` capability token (a Sentry-signed JWT,
+    see ``sentry.seer.agent_token``).
+
+    Authenticates as a non-user actor -- the request stays anonymous -- so user-only web
+    views fail closed; API access is derived from the delegating member in
+    ``access.from_agent_auth``."""
 
     token_name = b"bearer"
 
@@ -619,14 +622,6 @@ class AgentTokenAuthentication(StandardAuthentication):
         if not super().accepts_auth(auth) or len(auth) != 2:
             return False
         return force_str(auth[1]).startswith(SENTRY_AGENT_TOKEN_PREFIX)
-
-    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
-        # API-only credential: the token's de-escalated scopes are enforced by the DRF
-        # permission layer, so it must never act as a session on web views that gate
-        # solely on is_authenticated.
-        if not request.path.startswith("/api/"):
-            return None
-        return super().authenticate(request)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         from sentry.seer import agent_token
@@ -640,12 +635,12 @@ class AgentTokenAuthentication(StandardAuthentication):
         except (PyJWTError, KeyError, ValueError, TypeError):
             raise AuthenticationFailed("Invalid agent token")
 
+        # The delegating user must still be valid even though they are not the request user.
         user = user_service.get_user(user_id=user_id)
         if user is None or not user.is_active or getattr(user, "is_suspended", False):
             raise AuthenticationFailed("Invalid agent token")
 
-        agent_token.mark_agent_request(request, claims)
-        return self.transform_auth(user, auth_token, "api_token", api_token_type=self.token_name)
+        return self.transform_auth(None, auth_token)
 
 
 @AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)

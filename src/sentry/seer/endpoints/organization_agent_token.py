@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -41,6 +42,12 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
         if not features.has(agent_token.FEATURE_FLAG, organization, actor=request.user):
             raise ResourceDoesNotExist
 
+        # Minting is a user-initiated action (direct session or Seer's X-Viewer-Context on
+        # the user's behalf). A non-user actor -- including an agent token itself -- must not
+        # mint, so identity is always a real user, never anonymous.
+        if not request.user.is_authenticated:
+            raise PermissionDenied("Minting requires a user session.")
+
         session_id = request.data.get("sessionId")
         if not session_id or not isinstance(session_id, str):
             return Response({"detail": "sessionId is required."}, status=400)
@@ -58,7 +65,7 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
             return Response({"detail": "requestedScopes must be a list of strings."}, status=400)
 
         user_id = request.user.id
-        assert user_id is not None  # an authenticated caller is guaranteed by the permission
+        assert user_id is not None  # guaranteed by the user-session requirement above
 
         # request.access.scopes is already the caller's role scopes intersected with any
         # OAuth token scopes, so it is the correct upper bound for de-escalation. Identity

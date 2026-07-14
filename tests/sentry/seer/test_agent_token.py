@@ -11,6 +11,7 @@ from rest_framework.views import APIView
 
 from sentry.api.authentication import AgentTokenAuthentication
 from sentry.api.bases.organization import OrganizationPermission
+from sentry.models.organizationmember import OrganizationMember
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.testutils.cases import TestCase
@@ -64,12 +65,15 @@ class AgentTokenAuthAndGateTest(TestCase):
 
     # ----- authentication -----
 
-    def test_valid_token_authenticates_as_user_with_token_scopes(self) -> None:
+    def test_valid_token_authenticates_as_non_user_actor(self) -> None:
+        # The agent is a non-user actor: the request user is anonymous and the credential
+        # records the delegating user it acts on behalf of.
         request = self._agent_request(self.owner, ["org:read"], method="GET")
-        assert request.user.id == self.owner.id
+        assert request.user.is_anonymous
         assert request.auth is not None
+        assert request.auth.kind == agent_token.AGENT_TOKEN_KIND
+        assert request.auth.user_id == self.owner.id
         assert request.auth.get_scopes() == ["org:read"]
-        assert agent_token.get_agent_claims(request) is not None
 
     def _auth(self, bearer: str):
         request = RequestFactory().get("/api/0/organizations/")
@@ -131,6 +135,48 @@ class AgentTokenAuthAndGateTest(TestCase):
         # intersection in the access layer removes it -> denied at the object level.
         request = self._agent_request(self.member, ["org:read", "org:write"], method="PUT")
         assert self._has_object_perm(request) is False
+
+    def _access_for(self, request):
+        OrganizationPermission().has_object_permission(request, APIView(), self.org)
+        return request.access
+
+    def test_agent_access_mirrors_member_projects(self) -> None:
+        # Access derives from the delegating member: a plain (non-global) member sees only
+        # the projects on teams they belong to, never all org projects.
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+        team = self.create_team(organization=self.org)
+        self.create_team_membership(user=self.member, team=team)
+        member_project = self.create_project(organization=self.org, teams=[team])
+        other_project = self.create_project(
+            organization=self.org, teams=[self.create_team(organization=self.org)]
+        )
+
+        request = self._agent_request(self.member, ["org:read", "project:read"], method="GET")
+        access = self._access_for(request)
+
+        assert access.has_project_access(member_project)
+        assert not access.has_project_access(other_project)
+
+    def test_agent_denied_after_member_is_removed(self) -> None:
+        # Ephemeral tokens re-derive authority from live membership on each request, so
+        # removing the member denies a still-unexpired token mid-flight.
+        request = self._agent_request(self.member, ["org:read"], method="GET")
+        assert self._has_object_perm(request) is True
+
+        OrganizationMember.objects.get(user_id=self.member.id, organization=self.org).delete()
+        assert self._has_object_perm(request) is False
+
+    def test_token_bound_to_minted_org_even_when_member_of_other(self) -> None:
+        # The token is minted for self.org; the delegating user is also a member of another
+        # org, but the token must never be honored there.
+        other_org = self.create_organization()
+        self.create_member(user=self.member, organization=other_org, role="owner")
+
+        request = self._agent_request(self.member, ["org:read"], method="GET")
+        assert (
+            OrganizationPermission().has_object_permission(request, APIView(), other_org) is False
+        )
 
     # ----- scope computation (de-escalation rule) -----
 

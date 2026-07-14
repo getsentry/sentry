@@ -4,7 +4,6 @@ import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated  # noqa: S012
 from rest_framework.request import Request
 
@@ -167,9 +166,21 @@ class SentryPermission(ScopedPermission):
         from sentry.api.base import logger
 
         user_id = request.user.id if request.user else None
+
+        # An agent token is a non-user actor acting on behalf of a member. Resolve the org
+        # context for that member (not the anonymous request user) so access derives from
+        # their real membership -- scopes and project/team access.
+        agent_auth = request.auth if agent_token.is_agent_auth(request.auth) else None
+        if agent_auth is not None:
+            user_id = agent_auth.user_id
+
         org_context: RpcUserOrganizationContext | None
         if isinstance(organization, RpcUserOrganizationContext):
             org_context = organization
+            if agent_auth is not None and org_context.user_id != user_id:
+                org_context = organization_service.get_organization_by_id(
+                    id=org_context.organization.id, user_id=user_id
+                )
         else:
             org_context = organization_service.get_organization_by_id(
                 id=extract_id_from(organization), user_id=user_id
@@ -181,14 +192,6 @@ class SentryPermission(ScopedPermission):
         organization = org_context.organization
         extra = {"organization_id": organization.id, "user_id": user_id}
 
-        agent_claims = agent_token.get_agent_claims(request)
-        if agent_claims is not None and int(agent_claims["org"]) != organization.id:
-            # An agent token is bound to the org it was minted for: its scopes (including
-            # any user-granted write) were de-escalated for *that* org only. Never honor it
-            # against a different org. This is the single access-assembly chokepoint, so the
-            # binding holds for every permission class that derives access here.
-            raise PermissionDenied
-
         if request.auth:
             if request.user and request.user.is_authenticated:
                 request.access = access.from_request_org_and_scopes(
@@ -197,6 +200,8 @@ class SentryPermission(ScopedPermission):
                     scopes=request.auth.get_scopes(),
                 )
             else:
+                # Userless credential (org token, or agent token acting on behalf of a
+                # member). from_rpc_auth dispatches the agent to member-derived access.
                 request.access = access.from_rpc_auth(
                     auth=request.auth, rpc_user_org_context=org_context
                 )
