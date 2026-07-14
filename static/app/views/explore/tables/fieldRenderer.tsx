@@ -281,7 +281,7 @@ function BaseExploreFieldRenderer({
           </Tooltip>
         </ScrapsContainer>
       );
-    } else {
+    } else if (data.trace) {
       const target = generateLinkToEventInTraceView({
         traceSlug: data.trace,
         timestamp: data.timestamp,
