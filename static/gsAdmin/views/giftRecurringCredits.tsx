@@ -139,6 +139,7 @@ export function GiftRecurringCredits() {
   const [orgTokens, setOrgTokens] = useState('');
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvFileName, setCsvFileName] = useState<string | null>(null);
+  const [dryRun, setDryRun] = useState(true);
   const [results, setResults] = useState<ResultRow[] | null>(null);
   // The region and per-period amount the last results were submitted with,
   // captured at submit time so the callout and the "new gift" column stay
@@ -280,6 +281,7 @@ export function GiftRecurringCredits() {
     mutationFn: async () => {
       const region = cell?.name ?? null;
       const submittedAmount = amount ?? 0;
+      const submittedDryRun = dryRun;
       const formData = new FormData();
       if (csvFile) {
         formData.append('file', csvFile);
@@ -290,6 +292,7 @@ export function GiftRecurringCredits() {
       formData.append('dataCategory', dataCategory);
       formData.append('amount', String(Math.round((amount ?? 0) * multiplier)));
       formData.append('billingPeriods', String(billingPeriods));
+      formData.append('dryRun', String(dryRun));
       const response: {results: ResultRow[]} = await api.requestPromise(
         `/_admin/cells/${cell?.name}/gift-recurring-credits/`,
         {
@@ -303,6 +306,7 @@ export function GiftRecurringCredits() {
         region,
         submittedAmount,
         category: dataCategory,
+        dryRun: submittedDryRun,
       };
     },
     onSuccess: response => {
@@ -313,10 +317,14 @@ export function GiftRecurringCredits() {
       const errors = response.results.filter(row => row.status === 'error').length;
       if (errors > 0) {
         addErrorMessage(
-          `Gifting finished: ${errors} of ${response.results.length} orgs failed.`
+          `${response.dryRun ? 'Dry run' : 'Gifting'} finished: ${errors} of ${response.results.length} orgs failed.`
         );
       } else {
-        addSuccessMessage(`Gifted recurring credits to ${response.results.length} orgs.`);
+        addSuccessMessage(
+          response.dryRun
+            ? `Dry run passed for ${response.results.length} orgs.`
+            : `Gifted recurring credits to ${response.results.length} orgs.`
+        );
       }
     },
     onError: (error: unknown) => {
@@ -514,13 +522,25 @@ export function GiftRecurringCredits() {
             </UploadHint>
           )}
         </UploadRow>
+        <CheckboxRow>
+          <input
+            type="checkbox"
+            id="dryRun"
+            name="dryRun"
+            checked={dryRun}
+            onChange={e => setDryRun(e.target.checked)}
+          />
+          <label htmlFor="dryRun">
+            Dry run (validate and preview per-org results without creating credits)
+          </label>
+        </CheckboxRow>
         <Button
           variant="primary"
           type="submit"
           disabled={!canSubmit}
           data-test-id="gift-submit"
         >
-          Gift Credits
+          {dryRun ? 'Run Dry Run' : 'Gift Credits'}
         </Button>
       </Column>
       {results && (
@@ -699,6 +719,12 @@ const UploadRow = styled('div')`
 
 const UploadHint = styled('span')`
   font-size: ${p => p.theme.font.size.sm};
+`;
+
+const CheckboxRow = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
 `;
 
 const ResultsSection = styled('div')`

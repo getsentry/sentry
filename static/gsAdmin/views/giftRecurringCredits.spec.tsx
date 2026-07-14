@@ -8,7 +8,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {GiftRecurringCredits} from 'admin/views/giftRecurringCredits';
@@ -362,6 +362,68 @@ describe('GiftRecurringCredits', () => {
     // only accepts whole periods, so we never let it be POSTed.
     expect(screen.queryByTestId('schedule-preview')).not.toBeInTheDocument();
     expect(screen.getByTestId('gift-submit')).toBeDisabled();
+  });
+
+  it('defaults to a dry run and previews without creating credits', async () => {
+    const postMock = MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/gift-recurring-credits/',
+      method: 'POST',
+      body: {
+        results: [{id: 1, slug: 'acme', status: 'dry-run-ok', code: null, plan: null}],
+      },
+    });
+
+    render(<GiftRecurringCredits />);
+    await fillRequiredFields();
+    await userEvent.type(screen.getByLabelText(/Target organizations/), 'acme');
+
+    // The checkbox defaults on, so the submit button offers a dry run.
+    expect(screen.getByTestId('gift-submit')).toHaveTextContent('Run Dry Run');
+    await userEvent.click(screen.getByTestId('gift-submit'));
+
+    await waitFor(() => expect(postMock).toHaveBeenCalled());
+    const formData = postMock.mock.calls[0][1].data as FormData;
+    expect(formData.get('dryRun')).toBe('true');
+  });
+
+  it('reports the dry-run mode the request was sent with, not the live checkbox', async () => {
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/gift-recurring-credits/',
+      method: 'POST',
+      body: {
+        results: [
+          {
+            id: 1,
+            slug: 'acme',
+            status: 'dry-run-ok',
+            code: null,
+            plan: 'am3_business',
+            existingGift: null,
+            periodStart: '2025-07-01',
+            periodEnd: '2025-10-01',
+            creditId: null,
+          },
+        ],
+      },
+      // Hold the response so the checkbox can be toggled while it's in flight.
+      asyncDelay: 50,
+    });
+
+    render(<GiftRecurringCredits />);
+    await fillRequiredFields();
+    await userEvent.type(screen.getByLabelText(/Target organizations/), 'acme');
+
+    // Submit as a dry run, then flip to a real gift before the response lands.
+    await userEvent.click(screen.getByTestId('gift-submit'));
+    await userEvent.click(screen.getByLabelText(/Dry run/));
+
+    // The toast reflects the dry run that was actually sent, not the new state.
+    await waitFor(() =>
+      expect(addSuccessMessage).toHaveBeenCalledWith('Dry run passed for 1 orgs.')
+    );
+    expect(addSuccessMessage).not.toHaveBeenCalledWith(
+      'Gifted recurring credits to 1 orgs.'
+    );
   });
 
   it('shows a single-period gift as just the current period', async () => {
