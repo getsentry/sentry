@@ -15,7 +15,6 @@ from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
-
 HYBRID_SDK_PARENT_PACKAGES = {
     "sentry.cocoa.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
     "sentry.java.android.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
