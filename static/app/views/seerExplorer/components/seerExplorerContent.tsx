@@ -538,10 +538,9 @@ export function SeerExplorerContent({
   );
 
   return (
-    <Flex
+    <Stack
       ref={rootRef}
       data-seer-explorer-root=""
-      direction="column"
       width="100%"
       height="100%"
       background="primary"
@@ -666,7 +665,7 @@ export function SeerExplorerContent({
             : undefined
         }
       />
-    </Flex>
+    </Stack>
   );
 }
 
