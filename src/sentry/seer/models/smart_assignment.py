@@ -29,6 +29,18 @@ class SmartAssignmentStatus(models.TextChoices):
     ERROR = "error"
 
 
+class SmartAssignmentScore(models.TextChoices):
+    """How a delivered prediction scored against the recorded ground truth.
+
+    Coarse live signal with partial credit for landing on the right team;
+    authoritative accuracy is computed offline from the table.
+    """
+
+    EXACT = "exact"  # predicted user is the actual assignee
+    TEAM = "team"  # predicted user isn't the assignee but is on the correct team
+    MISS = "miss"  # neither
+
+
 @cell_silo_model
 class SeerSmartAssignmentResult(DefaultFieldsModel):
     """One smart-assignment prediction for a single issue, plus the eventual
@@ -90,7 +102,14 @@ class SeerSmartAssignmentResult(DefaultFieldsModel):
     )
     ground_truth_at = models.DateTimeField(null=True)
 
-    extras = models.JSONField(db_default={}, default=dict)
+    # Set when delivery fails (status ERROR): the Seer-provided error, or a marker
+    # like "no_artifact" / "invalid_artifact". Null otherwise.
+    error_message = models.TextField(null=True)
+
+    # Outcome of scoring the prediction against ground truth (see
+    # `SmartAssignmentScore`). Null until both the prediction and the ground truth
+    # exist; doubles as a one-shot marker so `smart_assignment.scored` fires once.
+    score = models.CharField(max_length=32, null=True, choices=SmartAssignmentScore.choices)
 
     class Meta:
         app_label = "seer"

@@ -61,7 +61,8 @@ class Migration(CheckedMigration):
                 ),
                 ("ground_truth_source", models.CharField(max_length=64, null=True)),
                 ("ground_truth_at", models.DateTimeField(null=True)),
-                ("extras", models.JSONField(db_default={}, default=dict)),
+                ("error_message", models.TextField(null=True)),
+                ("score", models.CharField(max_length=32, null=True)),
                 (
                     "actual_assignee_team",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
