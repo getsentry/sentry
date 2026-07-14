@@ -3,10 +3,14 @@ from typing import Never
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
-    TraceItemAttributeValuesRequest,
-)
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType as ProtoTraceItemType
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeAggregation,
+    AttributeValue,
+    Function,
+)
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -36,38 +40,71 @@ from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.utils import snuba_rpc
 
 # Metrics are trace items keyed by the value of the `metric.name` attribute, so
-# metric context is stored as context for that attribute value.
+# metric context is stored as context for that attribute value. A metric name
+# can carry more than one type (e.g. both a counter and a gauge named "foo").
 METRIC_NAME_ALIAS = "metric.name"
+METRIC_TYPE_ALIAS = "metric.type"
+
+_TYPE_COLUMN_LABEL = "metric.type"
 
 
 class OrganizationTraceItemMetricContextPutSerializer(serializers.Serializer[Never]):
-    metricType = serializers.ChoiceField(ALLOWED_METRIC_TYPES, source="metric_type")
+    # Optional: when omitted we infer the type from storage, and only require it
+    # when the metric name is ambiguous (stored under more than one type).
+    metricType = serializers.ChoiceField(ALLOWED_METRIC_TYPES, source="metric_type", required=False)
     brief = serializers.CharField(max_length=280)
     additionalContext = serializers.CharField(
         source="additional_context", required=False, allow_null=True, allow_blank=True
     )
 
 
-def metric_name_exists_in_storage(resolver: SearchResolver, metric_name: str) -> bool:
-    """Whether a trace metric with the given name exists in storage for the resolver's params."""
-    resolved_attribute, _ = resolver.resolve_attribute(METRIC_NAME_ALIAS)
+def get_metric_types_in_storage(resolver: SearchResolver, metric_name: str) -> list[str]:
+    """
+    The distinct metric types stored under ``metric_name`` for the resolver's
+    params. An empty list means the metric name was never seen.
+    """
+    name_attribute, _ = resolver.resolve_attribute(METRIC_NAME_ALIAS)
+    type_attribute, _ = resolver.resolve_attribute(METRIC_TYPE_ALIAS)
+    type_key = type_attribute.proto_definition
+
     meta = resolver.resolve_meta(
         referrer=resolve_attribute_values_referrer(SupportedTraceItemType.TRACEMETRICS.value).value
     )
     meta.trace_item_type = ProtoTraceItemType.TRACE_ITEM_TYPE_METRIC
 
-    # The values RPC only substring-matches, so pass the name to narrow the page
-    # then check for an exact hit — a shared prefix can't cause a false positive.
-    rpc_request = TraceItemAttributeValuesRequest(
+    # Exact-match on the name (no substring), grouped by type — this both proves
+    # the metric exists and enumerates its types in a single query.
+    rpc_request = TraceItemTableRequest(
         meta=meta,
-        key=resolved_attribute.proto_definition,
-        value_substring_match=metric_name,
-        limit=10000,
+        filter=TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=name_attribute.proto_definition,
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str=metric_name),
+            )
+        ),
+        columns=[
+            Column(label=_TYPE_COLUMN_LABEL, key=type_key),
+            Column(
+                label="count",
+                aggregation=AttributeAggregation(
+                    aggregate=Function.FUNCTION_COUNT, key=type_key, label="count"
+                ),
+            ),
+        ],
+        group_by=[type_key],
+        limit=len(ALLOWED_METRIC_TYPES) + 1,
     )
     with handle_query_errors():
-        rpc_response = snuba_rpc.attribute_values_rpc(rpc_request)
+        responses = snuba_rpc.table_rpc([rpc_request])
 
-    return metric_name in rpc_response.values
+    column_values = responses[0].column_values
+    type_column = next(
+        (cv for cv in column_values if cv.attribute_name == _TYPE_COLUMN_LABEL), None
+    )
+    if type_column is None:
+        return []
+    return [value.val_str for value in type_column.results if value.val_str]
 
 
 @cell_silo_endpoint
@@ -92,8 +129,6 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
-
-        metric_type = data["metric_type"]
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -127,10 +162,27 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
             definitions=get_column_definitions(SupportedTraceItemType.TRACEMETRICS),
         )
 
-        # Confirm the metric has actually been seen in storage before authoring context.
-        if not metric_name_exists_in_storage(resolver, metric):
+        # Confirm the metric exists and resolve which type this context is for.
+        stored_types = get_metric_types_in_storage(resolver, metric)
+        if not stored_types:
+            return Response({"detail": f"Metric `{metric}` was not found."}, status=400)
+
+        requested_type = data.get("metric_type")
+        if requested_type is not None:
+            if requested_type not in stored_types:
+                return Response(
+                    {"detail": f"Metric `{metric}` was not found for type `{requested_type}`."},
+                    status=400,
+                )
+            metric_type = requested_type
+        elif len(stored_types) == 1:
+            metric_type = stored_types[0]
+        else:
             return Response(
-                {"detail": f"Metric `{metric}` was not found."},
+                {
+                    "detail": f"Metric `{metric}` has multiple types "
+                    f"({', '.join(sorted(stored_types))}); pass `metricType` to specify which."
+                },
                 status=400,
             )
 

@@ -133,9 +133,10 @@ class OrganizationTraceItemMetricContextEndpointTest(
         assert response.status_code == 400, response.data
         assert "brief" in response.data
 
-    def test_requires_metric_type(self) -> None:
-        self.store_metric("checkout.requests")
+    def test_infers_type_when_single(self) -> None:
+        self.store_metric("checkout.requests", "counter")
 
+        # metricType is optional: with a single stored type it is inferred.
         response = self.do_request(
             "checkout.requests",
             {
@@ -143,8 +144,56 @@ class OrganizationTraceItemMetricContextEndpointTest(
             },
         )
 
+        assert response.status_code == 201, response.data
+        assert response.data["attributeType"] == "counter"
+
+    def test_requires_type_when_multiple(self) -> None:
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    "checkout.requests", 1, "counter", timestamp=before_now(minutes=10)
+                ),
+                self.create_trace_metric(
+                    "checkout.requests", 1, "gauge", timestamp=before_now(minutes=10)
+                ),
+            ]
+        )
+
+        # Ambiguous: the name exists under two types, so metricType is required.
+        ambiguous = self.do_request(
+            "checkout.requests",
+            {
+                "brief": "Checkout requests",
+            },
+        )
+        assert ambiguous.status_code == 400, ambiguous.data
+        assert "multiple types" in ambiguous.data["detail"]
+
+        # Passing the type disambiguates.
+        resolved = self.do_request(
+            "checkout.requests",
+            {
+                "metricType": "gauge",
+                "brief": "Checkout requests",
+            },
+        )
+        assert resolved.status_code == 201, resolved.data
+        assert resolved.data["attributeType"] == "gauge"
+
+    def test_rejects_type_not_in_storage(self) -> None:
+        self.store_metric("checkout.requests", "counter")
+
+        # The name exists, but not under the requested type.
+        response = self.do_request(
+            "checkout.requests",
+            {
+                "metricType": "gauge",
+                "brief": "Checkout requests",
+            },
+        )
+
         assert response.status_code == 400, response.data
-        assert "metricType" in response.data
+        assert "not found" in response.data["detail"]
 
     def test_rejects_invalid_metric_type(self) -> None:
         self.store_metric("checkout.requests")
@@ -224,12 +273,8 @@ class OrganizationTraceItemMetricContextEndpointTest(
         assert response.status_code == 404
 
     def test_invalid_payload(self) -> None:
-        response = self.do_request(
-            "checkout.requests",
-            {
-                "brief": "Checkout requests",
-            },
-        )
+        # `brief` is required, so an empty body is rejected.
+        response = self.do_request("checkout.requests", {})
 
         assert response.status_code == 400, response.data
-        assert "metricType" in response.data
+        assert "brief" in response.data
