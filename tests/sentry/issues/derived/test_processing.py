@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from django.db import router, transaction
@@ -43,6 +43,7 @@ from sentry.issues.derived.framework import (
 )
 from sentry.issues.derived.processing import (
     PIPELINE,
+    GroupLogTimeout,
     invalidate_group_derived_data,
     process_group_log,
 )
@@ -665,3 +666,24 @@ class DerivedDataTransactionTest(TestCase):
         assert GroupDerivedData.objects.filter(group_id=group.id).exists()
         derived = GroupDerivedData.objects.get(group_id=group.id)
         assert derived.view_count == 1
+
+
+@with_feature("projects:issue-action-log-write-to-db")
+class ProcessGroupLogTimeoutTest(TestCase):
+    def test_raises_when_timeout_exceeded(self) -> None:
+        group = self.create_group()
+        for _ in range(5):
+            _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        GroupDerivedData.objects.filter(group_id=group.id).delete()
+
+        with pytest.raises(GroupLogTimeout):
+            process_group_log(group.id, batch_size=1, timeout=timedelta(0))
+
+    def test_completes_with_generous_timeout(self) -> None:
+        group = self.create_group()
+        for _ in range(3):
+            _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        GroupDerivedData.objects.filter(group_id=group.id).delete()
+
+        derived = process_group_log(group.id, timeout=timedelta(minutes=5))
+        assert derived.view_count == 3
