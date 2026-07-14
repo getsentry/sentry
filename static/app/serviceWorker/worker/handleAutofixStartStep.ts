@@ -1,7 +1,9 @@
-import type {AutofixExplorerStep} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {workerFetch} from 'sentry/serviceWorker/worker/fetch';
 import {showNotification} from 'sentry/serviceWorker/worker/showNotification';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+
+// Clone of sentry/components/events/autofix/useExplorerAutofix
+type AutofixExplorerStep = 'root_cause' | 'solution' | 'code_changes' | 'pr_iteration';
 
 export interface AutofixStartStepData {
   issueId: string;
