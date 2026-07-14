@@ -760,8 +760,8 @@ function IssueRow({
             </Text>
           </Link>
           <Stack gap="xs" align="end">
-            {issue.pullRequests.length > 0 ? (
-              issue.pullRequests.map(pullRequest => (
+            {(issue.pullRequests ?? []).length > 0 ? (
+              (issue.pullRequests ?? []).map(pullRequest => (
                 <IssuePullRequestChip
                   key={`${pullRequest.repository.id}:${pullRequest.id}`}
                   pullRequest={pullRequest}

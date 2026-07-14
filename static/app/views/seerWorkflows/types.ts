@@ -11,7 +11,7 @@ export type SeerNightShiftRunIssue = {
   groupShortId: string | null;
   groupTitle: string | null;
   id: string;
-  pullRequests: SeerNightShiftRunPullRequest[];
+  pullRequests?: SeerNightShiftRunPullRequest[];
   reason: string | null;
   seerRunId: string | null;
 };
