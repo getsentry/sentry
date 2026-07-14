@@ -623,29 +623,13 @@ describe('MetricsTabContent', () => {
     expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
   });
 
-  it('does not show the Add Equation button when the feature flag is disabled', async () => {
+  it('shows the Add Equation button', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
       {
         organization,
-      }
-    );
-    expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
-    expect(screen.queryByText('Add Equation')).not.toBeInTheDocument();
-  });
-
-  it('shows the Add Equation button', async () => {
-    const orgWithFeature = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        organization: orgWithFeature,
       }
     );
     expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
