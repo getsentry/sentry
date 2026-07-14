@@ -31,20 +31,12 @@ import type {CompactGroupActivityItem} from './compactActivityItem/types';
 
 export type {CompactGroupActivityItem} from './compactActivityItem/types';
 
-function getAuthorName(item: GroupActivity) {
+function getNoteAuthorName(item: GroupActivity) {
   if (item.sentry_app) {
     return item.sentry_app.name;
   }
   if (item.user) {
     return item.user.name;
-  }
-  if (
-    (item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST ||
-      item.type === GroupActivityType.PULL_REQUEST_CLOSED) &&
-    item.data.pullRequest?.author?.name &&
-    !item.data.pullRequest.author.email?.endsWith('@localhost')
-  ) {
-    return item.data.pullRequest.author.name;
   }
   return 'Sentry';
 }
@@ -84,29 +76,33 @@ function getIgnoredDetails(
   }
 
   if (data.ignoreCount && data.ignoreWindow) {
-    return tct('until it happens [count] time(s) in [duration]', {
-      count: data.ignoreCount,
+    return tct('until [threshold] within [duration]', {
+      threshold: tn('%s event occurs', '%s events occur', data.ignoreCount),
       duration: <Duration seconds={data.ignoreWindow * 60} />,
     });
   }
 
   if (data.ignoreCount) {
-    return tct('until it happens [count] time(s)', {
-      count: data.ignoreCount,
-    });
+    return tn(
+      'until %s more event occurs',
+      'until %s more events occur',
+      data.ignoreCount
+    );
   }
 
   if (data.ignoreUserCount && data.ignoreUserWindow) {
-    return tct('until it affects [count] user(s) in [duration]', {
-      count: data.ignoreUserCount,
+    return tct('until [threshold] within [duration]', {
+      threshold: tn('%s user is affected', '%s users are affected', data.ignoreUserCount),
       duration: <Duration seconds={data.ignoreUserWindow * 60} />,
     });
   }
 
   if (data.ignoreUserCount) {
-    return tct('until it affects [count] user(s)', {
-      count: data.ignoreUserCount,
-    });
+    return tn(
+      'until %s more user is affected',
+      'until %s more users are affected',
+      data.ignoreUserCount
+    );
   }
 
   if (data.ignoreUntil) {
@@ -124,14 +120,14 @@ function getIgnoredDetails(
 
 function getEscalatingDetails(data: GroupActivitySetEscalating['data']) {
   if (data.forecast) {
-    return tct('because over [forecast] [event] happened in an hour', {
+    return tct('after more than [forecast] [event] in an hour', {
       forecast: data.forecast,
       event: data.forecast === 1 ? t('event') : t('events'),
     });
   }
 
   if (data.expired_snooze?.count && data.expired_snooze.window) {
-    return tct('because [count] [event] happened in [duration]', {
+    return tct('after reaching [count] [event] within [duration]', {
       count: data.expired_snooze.count,
       event: data.expired_snooze.count === 1 ? t('event') : t('events'),
       duration: <Duration seconds={data.expired_snooze.window * 60} />,
@@ -139,29 +135,27 @@ function getEscalatingDetails(data: GroupActivitySetEscalating['data']) {
   }
 
   if (data.expired_snooze?.count) {
-    return tct('because [count] [event] happened', {
-      count: data.expired_snooze.count,
-      event: data.expired_snooze.count === 1 ? t('event') : t('events'),
-    });
+    return tn('after %s more event', 'after %s more events', data.expired_snooze.count);
   }
 
   if (data.expired_snooze?.user_count && data.expired_snooze.user_window) {
-    return tct('because [count] [user] affected in [duration]', {
+    return tct('after affecting [count] [user] within [duration]', {
       count: data.expired_snooze.user_count,
-      user: data.expired_snooze.user_count === 1 ? t('user was') : t('users were'),
+      user: data.expired_snooze.user_count === 1 ? t('user') : t('users'),
       duration: <Duration seconds={data.expired_snooze.user_window * 60} />,
     });
   }
 
   if (data.expired_snooze?.user_count) {
-    return tct('because [count] [user] affected', {
-      count: data.expired_snooze.user_count,
-      user: data.expired_snooze.user_count === 1 ? t('user was') : t('users were'),
-    });
+    return tn(
+      'after affecting %s more user',
+      'after affecting %s more users',
+      data.expired_snooze.user_count
+    );
   }
 
   if (data.expired_snooze?.until) {
-    return tct('because [date] passed', {
+    return tct('after the archive expired on [date]', {
       date: <DateTime date={data.expired_snooze.until} />,
     });
   }
@@ -176,9 +170,9 @@ function getPriorityDetails(
 
   switch (data.reason) {
     case 'escalating':
-      return tct('to [priority] after it escalated', {priority});
+      return tct('to [priority] when it escalated', {priority});
     case 'ongoing':
-      return tct('to [priority] after it was marked as ongoing', {priority});
+      return tct('to [priority] after becoming ongoing', {priority});
     default:
       return tct('to [priority]', {priority});
   }
@@ -197,18 +191,17 @@ export function getCompactGroupActivityItem({
   project,
   issueCategory,
 }: GetCompactGroupActivityItemParams): CompactGroupActivityItem {
-  const author = getAuthorName(activity);
   const issuesLink = `/organizations/${organization.slug}/issues/`;
 
   switch (activity.type) {
     case GroupActivityType.NOTE:
       return {
-        title: author,
+        title: getNoteAuthorName(activity),
       };
     case GroupActivityType.SET_RESOLVED: {
       const integrationLink = getIntegrationLink({data: activity.data, organization});
       return {
-        title: t('Issue resolved'),
+        title: t('Resolved'),
         details: integrationLink
           ? tct('via [integration]', {integration: integrationLink})
           : undefined,
@@ -217,7 +210,7 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.SET_RESOLVED_BY_AGE: {
       const duration = formatAutoResolveAge(activity.data.age);
       return {
-        title: t('Issue resolved'),
+        title: t('Resolved'),
         details: duration
           ? tct('after [duration] of inactivity', {duration})
           : t('due to inactivity'),
@@ -225,13 +218,13 @@ export function getCompactGroupActivityItem({
     }
     case GroupActivityType.SET_RESOLVED_IN_RELEASE: {
       return {
-        title: t('Issue resolved'),
+        title: t('Resolved'),
         details: getResolvedInReleaseDetails(activity, organization, project),
       };
     }
     case GroupActivityType.SET_RESOLVED_IN_COMMIT:
       return {
-        title: t('Issue resolved'),
+        title: t('Resolved'),
         details: getResolvedInCommitDetails(activity, organization, project),
       };
     case GroupActivityType.REFERENCED_IN_COMMIT: {
@@ -241,10 +234,10 @@ export function getCompactGroupActivityItem({
       }
 
       return {
-        title: t('Referenced in commit'),
+        title: t('Referenced in'),
         details: (
           <Fragment>
-            {tct('on [provider] [commit]', {
+            {tct('[commit] on [provider]', {
               commit: <CommitChip commit={commit} />,
               provider: getProviderName(
                 commit.repository?.provider?.name ?? commit.repository?.provider?.id
@@ -261,9 +254,9 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
       const pullRequest = activity.data.pullRequest;
       return {
-        title: t('Pull request created'),
+        title: t('Referenced in pull request'),
         details: pullRequest
-          ? tct('on [provider] [pullRequest]', {
+          ? tct('[pullRequest] on [provider]', {
               provider: getPullRequestProvider(pullRequest),
               pullRequest: <PullRequestChip pullRequest={pullRequest} />,
             })
@@ -273,21 +266,23 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.PULL_REQUEST_CLOSED: {
       const pullRequest = activity.data.pullRequest;
       return {
-        title: t('Pull request closed'),
-        details: pullRequest
-          ? tct('by [author] on [provider] [pullRequest]', {
-              author,
-              provider: getPullRequestProvider(pullRequest),
+        title: pullRequest
+          ? tct('Pull request [pullRequest] closed', {
               pullRequest: <PullRequestChip pullRequest={pullRequest} />,
             })
-          : tct('by [author]', {author}),
+          : t('Pull request closed'),
+        details: pullRequest
+          ? tct('on [provider]', {
+              provider: getPullRequestProvider(pullRequest),
+            })
+          : null,
       };
     }
     case GroupActivityType.SET_UNRESOLVED: {
       if ('forecast' in activity.data && activity.data.forecast) {
         return {
-          title: t('Issue escalated'),
-          details: tct('because over [forecast] [event] happened in an hour', {
+          title: t('Escalated'),
+          details: tct('after more than [forecast] [event] in an hour', {
             forecast: activity.data.forecast,
             event: activity.data.forecast === 1 ? t('event') : t('events'),
           }),
@@ -296,7 +291,7 @@ export function getCompactGroupActivityItem({
 
       const integrationLink = getIntegrationLink({data: activity.data, organization});
       return {
-        title: t('Issue unresolved'),
+        title: t('Marked as unresolved'),
         details: integrationLink
           ? tct('via [integration]', {integration: integrationLink})
           : null,
@@ -307,29 +302,22 @@ export function getCompactGroupActivityItem({
         title:
           issueCategory === IssueCategoryEnum.FEEDBACK
             ? t('Marked as spam')
-            : t('Issue archived'),
+            : t('Archived'),
         details: getIgnoredDetails(activity.data, issueCategory),
       };
     case GroupActivityType.SET_PUBLIC:
       return {
-        title: t('Issue made public'),
+        title: t('Made public'),
       };
     case GroupActivityType.SET_PRIVATE:
       return {
-        title: t('Issue made private'),
+        title: t('Made private'),
       };
     case GroupActivityType.SET_REGRESSION: {
       const {data} = activity;
       const comparison =
         data.version && data.resolved_in_version && 'follows_semver' in data
-          ? tct('[regressionVersion] compared to [resolvedVersion] via [comparison]', {
-              regressionVersion: (
-                <ActivityRelease
-                  organization={organization}
-                  project={project}
-                  version={data.version}
-                />
-              ),
+          ? tct('Compared with resolved version [resolvedVersion] using [comparison]', {
               resolvedVersion: (
                 <ActivityRelease
                   organization={organization}
@@ -337,12 +325,12 @@ export function getCompactGroupActivityItem({
                   version={data.resolved_in_version}
                 />
               ),
-              comparison: data.follows_semver ? t('semver') : t('release date'),
+              comparison: data.follows_semver ? t('SemVer') : t('release order'),
             })
           : null;
 
       return {
-        title: t('Issue regressed'),
+        title: t('Regressed'),
         details: data.version
           ? tct('in [version]', {
               version: (
@@ -361,27 +349,20 @@ export function getCompactGroupActivityItem({
       return {
         title:
           activity.data.new === false
-            ? t('External issue linked')
-            : t('External issue created'),
-        details: tct('on [provider] [title]', {
-          provider: activity.data.provider,
-          title: (
-            <ExternalIssueChip
-              label={activity.data.label ?? activity.data.title}
-              location={activity.data.location}
-              provider={activity.data.provider}
-            />
-          ),
-        }),
+            ? t('Linked %s issue', activity.data.provider)
+            : t('Created %s issue', activity.data.provider),
+        details: (
+          <ExternalIssueChip
+            label={activity.data.label ?? activity.data.title}
+            location={activity.data.location}
+            provider={activity.data.provider}
+          />
+        ),
       };
     case GroupActivityType.MERGE:
       return {
         title: t('Merged'),
-        details: tn(
-          '%s issue into this issue',
-          '%s issues into this issue',
-          activity.data.issues.length
-        ),
+        details: tn('%s other issue', '%s other issues', activity.data.issues.length),
       };
     case GroupActivityType.UNMERGE_SOURCE:
       return {
@@ -421,7 +402,7 @@ export function getCompactGroupActivityItem({
       };
     case GroupActivityType.FIRST_SEEN:
       return {
-        title: t('Issue first seen'),
+        title: t('First seen'),
         details: activity.data.priority
           ? tct('with [priority] priority', {
               priority: <ActivityPriorityChip priority={activity.data.priority} />,
@@ -432,33 +413,33 @@ export function getCompactGroupActivityItem({
       return getAssignedActivityItem({activity});
     case GroupActivityType.UNASSIGNED:
       return {
-        title: t('Issue unassigned'),
+        title: t('Unassigned'),
       };
     case GroupActivityType.REPROCESS:
       return {
-        title: t('Events reprocessed'),
+        title: t('Reprocessed'),
         details: (
           <Link
             to={`/organizations/${organization.slug}/issues/?query=reprocessing.original_issue_id:${activity.data.oldGroupId}&referrer=group-activity-reprocesses`}
           >
-            {tn('See %s new event', 'See %s new events', activity.data.eventCount)}
+            {tn('into %s new event', 'into %s new events', activity.data.eventCount)}
           </Link>
         ),
       };
     case GroupActivityType.MARK_REVIEWED:
       return {
-        title: t('Issue reviewed'),
+        title: t('Reviewed'),
       };
     case GroupActivityType.AUTO_SET_ONGOING:
       return {
-        title: t('Issue ongoing'),
+        title: t('Became ongoing'),
         details: activity.data.after_days
           ? tct('after [days] days', {days: activity.data.after_days})
           : null,
       };
     case GroupActivityType.SET_ESCALATING:
       return {
-        title: t('Issue escalated'),
+        title: t('Escalated'),
         details: getEscalatingDetails(activity.data),
       };
     case GroupActivityType.SET_PRIORITY:
@@ -497,11 +478,14 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.SEER_PR_CREATED: {
       const pullRequest = activity.data.pull_requests?.[0];
       return {
-        title: t('Pull request created'),
-        details: pullRequest
-          ? tct('on [provider] [pullRequest]', {
-              provider: getProviderName(pullRequest.provider),
+        title: pullRequest
+          ? tct('Pull request [pullRequest] created', {
               pullRequest: <SeerPullRequestChip pullRequest={pullRequest} />,
+            })
+          : t('Pull request created'),
+        details: pullRequest
+          ? tct('on [provider]', {
+              provider: getProviderName(pullRequest.provider),
             })
           : null,
       };
@@ -513,11 +497,14 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.SEER_ITERATION_COMPLETED: {
       const pullRequest = activity.data.pull_requests?.[0];
       return {
-        title: t('Pull request updated'),
-        details: pullRequest
-          ? tct('on [provider] [pullRequest]', {
-              provider: getProviderName(pullRequest.provider),
+        title: pullRequest
+          ? tct('Pull request [pullRequest] updated', {
               pullRequest: <SeerPullRequestChip pullRequest={pullRequest} />,
+            })
+          : t('Pull request updated'),
+        details: pullRequest
+          ? tct('on [provider]', {
+              provider: getProviderName(pullRequest.provider),
             })
           : null,
       };
