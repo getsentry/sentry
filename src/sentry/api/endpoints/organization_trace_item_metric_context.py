@@ -49,8 +49,10 @@ class OrganizationTraceItemMetricContextPutSerializer(serializers.Serializer[Nev
 
 def get_metric_types_in_storage(snuba_params: SnubaParams, metric_name: str) -> list[str]:
     """
-    The distinct metric types stored under ``metric_name`` for the given params.
-    An empty list means the metric name was never seen.
+    The distinct known metric types stored under ``metric_name`` for the given
+    params. An empty list means the metric name was never seen. Stored types
+    outside the known set are ignored so an unexpected value can't later resolve
+    to a null ``attribute_type``.
     """
     # Exact-match the name and group by type via count(); the distinct
     # `metric.type` rows both prove the metric exists and enumerate its types.
@@ -69,7 +71,11 @@ def get_metric_types_in_storage(snuba_params: SnubaParams, metric_name: str) -> 
             config=SearchResolverConfig(),
         )
 
-    return [row[METRIC_TYPE_ALIAS] for row in results["data"] if row.get(METRIC_TYPE_ALIAS)]
+    return [
+        row[METRIC_TYPE_ALIAS]
+        for row in results["data"]
+        if row.get(METRIC_TYPE_ALIAS) in ALLOWED_METRIC_TYPES
+    ]
 
 
 @cell_silo_endpoint

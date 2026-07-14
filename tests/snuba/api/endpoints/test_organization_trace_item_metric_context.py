@@ -258,6 +258,30 @@ class OrganizationTraceItemMetricContextEndpointTest(
         assert response.status_code == 400, response.data
         assert "not found" in response.data["detail"]
 
+    def test_ignores_unknown_stored_type(self) -> None:
+        # A stored type outside counter/gauge/distribution must not resolve to a
+        # null attribute_type — the metric is treated as not found instead.
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    "weird.metric",
+                    1,
+                    "histogram",  # type: ignore[arg-type]
+                    timestamp=before_now(minutes=10),
+                )
+            ]
+        )
+
+        response = self.do_request(
+            "weird.metric",
+            {
+                "brief": "Weird metric",
+            },
+        )
+
+        assert response.status_code == 400, response.data
+        assert "not found" in response.data["detail"]
+
     def test_requires_feature_flag(self) -> None:
         self.store_metric("checkout.requests")
 
