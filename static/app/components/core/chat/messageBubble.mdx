@@ -7,7 +7,7 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/messageBubble.tsx
 ---
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {MessageBubble} from '@sentry/scraps/chat';
 
 import * as Storybook from 'sentry/stories';
@@ -42,14 +42,14 @@ never spans the full conversation width. Override `maxWidth` for narrower or
 wider surfaces.
 
 <Storybook.Demo>
-  <Flex direction="column" gap="md" width="100%">
+  <Stack gap="md" width="100%">
     <Flex justify="end" width="100%">
       <MessageBubble maxWidth="60%">
         A longer question that wraps onto multiple lines once it reaches the max width of
         the bubble.
       </MessageBubble>
     </Flex>
-  </Flex>
+  </Stack>
 </Storybook.Demo>
 
 ```jsx
