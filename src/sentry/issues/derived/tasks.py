@@ -5,11 +5,13 @@ from datetime import timedelta
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
 BATCH_PROCESSING_DEADLINE = timedelta(seconds=30)  # taskworker hard kill timeout
 BATCH_RETRIGGER_TIMEOUT = timedelta(seconds=20)  # self-reschedule before the hard kill
+_BATCH_TASK_KEY = "process_project_derived_data_batch"
 
 
 @instrumented_task(
@@ -106,8 +108,21 @@ def process_project_derived_data_batch(
 
     Reschedules itself with the remaining range if the timeout is reached.
     """
+    from taskbroker_client.state import current_task
+
     from sentry.issues.derived.processing import GroupLogTimeout, process_group_log
     from sentry.models.group import Group
+    from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
+
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(_BATCH_TASK_KEY, activation_id):
+        logger.info(
+            "process_project_derived_data_batch.duplicate_skipped",
+            extra={"project_id": project_id, "activation_id": activation_id},
+        )
+        metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _BATCH_TASK_KEY})
+        return
 
     timeout_seconds = BATCH_RETRIGGER_TIMEOUT.total_seconds()
     start = time.monotonic()
@@ -122,27 +137,65 @@ def process_project_derived_data_batch(
         .values_list("id", flat=True)
     )
 
+    processed = 0
+    rescheduled = False
+
     for group_id in group_ids:
         remaining = timedelta(seconds=timeout_seconds - (time.monotonic() - start))
         try:
             process_group_log(group_id, timeout=remaining)
+            processed += 1
         except Group.DoesNotExist:
             logger.info(
                 "process_project_derived_data_batch.group_not_found",
                 extra={"group_id": group_id, "project_id": project_id},
             )
         except GroupLogTimeout:
+            rescheduled = True
+            metrics.incr(
+                "issues.derived.batch_rescheduled",
+                sample_rate=1.0,
+                tags={"reason": "group_timeout"},
+            )
             process_project_derived_data_batch.delay(
                 project_id=project_id,
                 group_id_start=group_id,
                 group_id_end=group_id_end,
             )
-            return
+            if activation_id:
+                mark_spawned(_BATCH_TASK_KEY, activation_id)
+            break
 
         if time.monotonic() - start >= timeout_seconds:
+            rescheduled = True
+            metrics.incr(
+                "issues.derived.batch_rescheduled",
+                sample_rate=1.0,
+                tags={"reason": "batch_timeout"},
+            )
             process_project_derived_data_batch.delay(
                 project_id=project_id,
                 group_id_start=group_id + 1,
                 group_id_end=group_id_end,
             )
-            return
+            if activation_id:
+                mark_spawned(_BATCH_TASK_KEY, activation_id)
+            break
+
+    metrics.incr(
+        "issues.derived.project_groups_processed",
+        amount=processed,
+        sample_rate=1.0,
+    )
+    logger.info(
+        "process_project_derived_data_batch.complete",
+        extra={
+            "project_id": project_id,
+            "group_id_start": group_id_start,
+            "group_id_end": group_id_end,
+            "processed": processed,
+            "total": len(group_ids),
+            "rescheduled": rescheduled,
+            "elapsed": time.monotonic() - start,
+        },
+    )

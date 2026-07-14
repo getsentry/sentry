@@ -133,7 +133,7 @@ class ProcessProjectDerivedDataBatchTest(DerivedDataTaskTestBase):
             patch.object(process_project_derived_data_batch, "delay") as mock_delay,
         ):
             expired = BATCH_RETRIGGER_TIMEOUT.total_seconds() + 1
-            mock_time.monotonic.side_effect = [0.0, 0.0, expired]
+            mock_time.monotonic.side_effect = [0.0, 0.0, expired, expired]
 
             process_project_derived_data_batch(
                 project_id=self.project.id,
