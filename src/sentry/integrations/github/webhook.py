@@ -124,6 +124,17 @@ def get_github_external_id(event: Mapping[str, Any], host: str | None = None) ->
     return f"{host}:{external_id}" if host else external_id
 
 
+def get_scm_stream_extra(
+    event: Mapping[str, Any],
+) -> dict[str, str | None | bool | int | float]:
+    """Identifiers an SCM-stream listener needs to resolve org/integration/repo context,
+    surfaced so listeners don't have to re-parse the raw event body."""
+    return {
+        "installation_id": event.get("installation", {}).get("id"),
+        "repository_id": event.get("repository", {}).get("id"),
+    }
+
+
 def get_file_language(filename: str) -> str | None:
     extension = filename.split(".")[-1]
     language = None
@@ -1463,7 +1474,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             {
                 "event_type_hint": request.headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY),
                 "event": request.body.decode("utf-8"),
-                "extra": {},
+                "extra": get_scm_stream_extra(event),
                 "received_at": int(time.time()),
                 "sentry_meta": None,
                 "type": IntegrationProviderSlug.GITHUB.value,
