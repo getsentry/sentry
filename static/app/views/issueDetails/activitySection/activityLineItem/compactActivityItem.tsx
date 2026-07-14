@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {Link} from '@sentry/scraps/link';
 
@@ -192,6 +193,7 @@ export function getCompactGroupActivityItem({
   issueCategory,
 }: GetCompactGroupActivityItemParams): CompactGroupActivityItem {
   const issuesLink = `/organizations/${organization.slug}/issues/`;
+  const activityContext = {id: activity.id, type: activity.type};
 
   switch (activity.type) {
     case GroupActivityType.NOTE:
@@ -271,6 +273,51 @@ export function getCompactGroupActivityItem({
               pullRequest: <PullRequestChip pullRequest={pullRequest} />,
             })
           : t('Pull request closed'),
+        details: pullRequest
+          ? tct('on [provider]', {
+              provider: getPullRequestProvider(pullRequest),
+            })
+          : null,
+      };
+    }
+    case GroupActivityType.PULL_REQUEST_REOPENED: {
+      const pullRequest = activity.data.pullRequest;
+      return {
+        title: pullRequest
+          ? tct('Pull request [pullRequest] reopened', {
+              pullRequest: <PullRequestChip pullRequest={pullRequest} />,
+            })
+          : t('Pull request reopened'),
+        details: pullRequest
+          ? tct('on [provider]', {
+              provider: getPullRequestProvider(pullRequest),
+            })
+          : null,
+      };
+    }
+    case GroupActivityType.PULL_REQUEST_MERGED: {
+      const pullRequest = activity.data.pullRequest;
+      return {
+        title: pullRequest
+          ? tct('Pull request [pullRequest] merged', {
+              pullRequest: <PullRequestChip pullRequest={pullRequest} />,
+            })
+          : t('Pull request merged'),
+        details: pullRequest
+          ? tct('on [provider]', {
+              provider: getPullRequestProvider(pullRequest),
+            })
+          : null,
+      };
+    }
+    case GroupActivityType.PULL_REQUEST_UNLINKED: {
+      const pullRequest = activity.data.pullRequest;
+      return {
+        title: pullRequest
+          ? tct('Pull request [pullRequest] unlinked', {
+              pullRequest: <PullRequestChip pullRequest={pullRequest} />,
+            })
+          : t('Pull request unlinked'),
         details: pullRequest
           ? tct('on [provider]', {
               provider: getPullRequestProvider(pullRequest),
@@ -510,6 +557,10 @@ export function getCompactGroupActivityItem({
       };
     }
   }
+
+  Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {
+    contexts: {activity: activityContext},
+  });
 
   return {
     title: t('Activity'),
