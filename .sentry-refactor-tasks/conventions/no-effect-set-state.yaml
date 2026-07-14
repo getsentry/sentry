@@ -92,8 +92,4 @@ examples:
         }, []);
       }
 
-include:
-  - 'static/app/**/*.tsx'
-  - 'static/app/**/*.ts'
-
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'use(Layout)?Effect\\(' {repo_path}/static/app/"
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} EffectSetState EffectDerivationsOfState no-derived-state.detect.sh'
