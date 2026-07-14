@@ -667,7 +667,7 @@ def get_native_symbolication_function(
 def get_required_attachment_types(data) -> set[str]:
     if is_minidump_event(data):
         return {MINIDUMP_ATTACHMENT_TYPE}
-    if is_applecrashreport_event(data):
+    elif is_applecrashreport_event(data):
         return {APPLECRASHREPORT_ATTACHMENT_TYPE}
     else:
         return set()
