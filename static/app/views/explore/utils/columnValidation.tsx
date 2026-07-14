@@ -6,7 +6,7 @@ import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateFie
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
-interface AttributeCollections {
+export interface AttributeCollections {
   boolean: TagCollection;
   number: TagCollection;
   string: TagCollection;

@@ -1,4 +1,4 @@
-import {memo, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
@@ -43,7 +43,6 @@ import {
   useLogsPageData,
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
@@ -76,11 +75,10 @@ import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsS
 import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
+import {useValidatedLogsTabColumns} from 'sentry/views/explore/logs/useValidatedLogsTabColumns';
 import {useValidateLogsTab} from 'sentry/views/explore/logs/useValidateLogsTab';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
-import {serializeAggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
-  useQueryParamsAggregateFields,
   useQueryParamsAggregateSortBys,
   useQueryParamsFields,
   useQueryParamsGroupBys,
@@ -89,15 +87,11 @@ import {
   useQueryParamsSortBys,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
-  useSetQueryParams,
-  useSetQueryParamsFields,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
-import {getValidatedColumnData} from 'sentry/views/explore/utils/columnValidation';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -225,15 +219,11 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const fields = useQueryParamsFields();
   const mode = useQueryParamsMode();
   const groupBys = useQueryParamsGroupBys();
-  const aggregateFields = useQueryParamsAggregateFields();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const queryClient = useQueryClient();
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
-  const setFields = useSetQueryParamsFields();
-  const setQueryParams = useSetQueryParams();
-  const lastValidatedFieldsCleanupRef = useRef<string | null>(null);
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const searchQuery = useQueryParamsSearch().formatString();
@@ -255,7 +245,6 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState(
     getMaxIngestDelayTimestamp()
   );
-  const [_, setPersistentParams] = usePersistedLogsPageParams();
   usePersistentLogsPageParameters(); // persist the columns you chose last time
 
   // always use the smallest interval possible (the most bars)
@@ -286,54 +275,17 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     limit: 50,
   });
 
-  const {attributes: stringAttributes} = useLogItemAttributes(
-    {},
-    'string',
-    HiddenLogSearchFields
-  );
-  const {attributes: numberAttributes} = useLogItemAttributes(
-    {},
-    'number',
-    HiddenLogSearchFields
-  );
-  const {attributes: booleanAttributes} = useLogItemAttributes(
-    {},
-    'boolean',
-    HiddenLogSearchFields
-  );
-  const {data: validatedColumnsData, isFetching: isValidatingColumns} =
-    useValidateLogsTab();
-  const validatedColumnData = useMemo(
-    () =>
-      getValidatedColumnData({
-        aggregateFields,
-        attributes: {
-          boolean: booleanAttributes,
-          number: numberAttributes,
-          string: stringAttributes,
-        },
-        fields,
-        validationData: validatedColumnsData,
-      }),
-    [
-      aggregateFields,
-      booleanAttributes,
-      fields,
-      numberAttributes,
-      stringAttributes,
-      validatedColumnsData,
-    ]
-  );
   const {
-    aggregateFields: validatedAggregateFields,
+    attributes: {
+      boolean: validatedBooleanAttributes,
+      number: validatedNumberAttributes,
+      string: validatedStringAttributes,
+    },
     fieldTypes: validatedFieldTypes,
     fields: validatedFields,
-  } = validatedColumnData;
-  const {
-    boolean: validatedBooleanAttributes,
-    number: validatedNumberAttributes,
-    string: validatedStringAttributes,
-  } = validatedColumnData.attributes;
+    isValidatingColumns,
+    onColumnsChange,
+  } = useValidatedLogsTabColumns();
 
   const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 
@@ -364,95 +316,6 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     });
     await tableData.refetch();
   };
-
-  const onColumnsChange = useCallback(
-    (newFields: string[]) => {
-      setPersistentParams(prev => ({
-        ...prev,
-        fields: newFields,
-      }));
-      setFields(newFields);
-    },
-    [setFields, setPersistentParams]
-  );
-
-  useEffect(() => {
-    if (isValidatingColumns) {
-      return;
-    }
-
-    const fieldsChanged =
-      validatedFields.length !== fields.length ||
-      validatedFields.some((field, index) => field !== fields[index]);
-
-    if (fieldsChanged) {
-      const nextFields = [...validatedFields];
-      const nextSortBys = sortBys.filter(sortBy => nextFields.includes(sortBy.field));
-      const cleanupKey = JSON.stringify([fields, nextFields, sortBys, nextSortBys]);
-
-      if (lastValidatedFieldsCleanupRef.current !== cleanupKey) {
-        lastValidatedFieldsCleanupRef.current = cleanupKey;
-        setQueryParams({fields: nextFields, sortBys: nextSortBys});
-        setPersistentParams(prev => ({
-          ...prev,
-          fields: nextFields,
-          sortBys: nextSortBys,
-        }));
-      }
-    } else {
-      lastValidatedFieldsCleanupRef.current = null;
-    }
-  }, [
-    fields,
-    isValidatingColumns,
-    setPersistentParams,
-    setQueryParams,
-    sortBys,
-    validatedFields,
-  ]);
-
-  useEffect(() => {
-    if (mode !== Mode.AGGREGATE || isValidatingColumns) {
-      return;
-    }
-
-    const aggregateFieldsChanged =
-      validatedAggregateFields.length !== aggregateFields.length ||
-      validatedAggregateFields.some((aggregateField, index) => {
-        const currentAggregateField = aggregateFields[index];
-        if (!currentAggregateField) {
-          return true;
-        }
-        if (isGroupBy(aggregateField) && isGroupBy(currentAggregateField)) {
-          return aggregateField.groupBy !== currentAggregateField.groupBy;
-        }
-        if (!isGroupBy(aggregateField) && !isGroupBy(currentAggregateField)) {
-          return aggregateField.yAxis !== currentAggregateField.yAxis;
-        }
-        return true;
-      });
-
-    if (aggregateFieldsChanged) {
-      const validAggregateFields = new Set(
-        validatedAggregateFields.map(aggregateField =>
-          isGroupBy(aggregateField) ? aggregateField.groupBy : aggregateField.yAxis
-        )
-      );
-      setQueryParams({
-        aggregateFields: validatedAggregateFields.map(serializeAggregateField),
-        aggregateSortBys: aggregateSortBys.filter(sortBy =>
-          validAggregateFields.has(sortBy.field)
-        ),
-      });
-    }
-  }, [
-    aggregateFields,
-    aggregateSortBys,
-    isValidatingColumns,
-    mode,
-    setQueryParams,
-    validatedAggregateFields,
-  ]);
 
   const openColumnEditor = () => {
     openModal(

@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -15,23 +15,17 @@ import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreA
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
-import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
-import {serializeAggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {
-  useQueryParamsAggregateFields,
   useQueryParamsCrossEvents,
-  useQueryParamsFields,
   useSetQueryParamsAggregateFields,
   useSetQueryParamsFields,
 } from 'sentry/views/explore/queryParams/context';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
+import {useValidatedSpansTabColumns} from 'sentry/views/explore/spans/hooks/useValidatedSpansTabColumns';
 import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
 import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
 import {SpansTable} from 'sentry/views/explore/tables/spansTable';
 import {TracesTable} from 'sentry/views/explore/tables/tracesTable/index';
-import {getValidatedColumnData} from 'sentry/views/explore/utils/columnValidation';
 
 interface BaseExploreTablesProps {
   setTab: (tab: Mode | Tab, reason: 'click' | 'effect') => void;
@@ -50,90 +44,20 @@ export function ExploreTables(props: ExploreTablesProps) {
   const {setTab, tab} = props;
   const crossEvents = useQueryParamsCrossEvents();
   const hasCrossEvents = !!crossEvents?.length;
-
-  const aggregateFields = useQueryParamsAggregateFields();
   const setAggregateFields = useSetQueryParamsAggregateFields();
-
-  const fields = useQueryParamsFields();
   const setFields = useSetQueryParamsFields();
 
-  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
-  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
-  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
-  const {data: validatedColumnsData, isFetching: isValidatingColumns} =
-    useValidateSpansTab({
-      enabled: tab === Tab.SPAN || tab === Mode.AGGREGATE,
-    });
-  const validatedColumnData = useMemo(
-    () =>
-      getValidatedColumnData({
-        aggregateFields,
-        attributes: {
-          boolean: booleanTags,
-          number: numberTags,
-          string: stringTags,
-        },
-        fields,
-        validationData: validatedColumnsData,
-      }),
-    [aggregateFields, booleanTags, fields, numberTags, stringTags, validatedColumnsData]
-  );
   const {
     aggregateFields: validatedAggregateFields,
+    attributes: {
+      boolean: validatedBooleanTags,
+      number: validatedNumberTags,
+      string: validatedStringTags,
+    },
     fieldTypes: validatedFieldTypes,
     fields: validatedFields,
-  } = validatedColumnData;
-  const {
-    boolean: validatedBooleanTags,
-    number: validatedNumberTags,
-    string: validatedStringTags,
-  } = validatedColumnData.attributes;
-
-  useEffect(() => {
-    if (tab !== Tab.SPAN || isValidatingColumns) {
-      return;
-    }
-
-    const fieldsChanged =
-      validatedFields.length !== fields.length ||
-      validatedFields.some((field, index) => field !== fields[index]);
-
-    if (fieldsChanged) {
-      setFields([...validatedFields]);
-    }
-  }, [fields, isValidatingColumns, setFields, tab, validatedFields]);
-
-  useEffect(() => {
-    if (tab !== Mode.AGGREGATE || isValidatingColumns) {
-      return;
-    }
-
-    const aggregateFieldsChanged =
-      validatedAggregateFields.length !== aggregateFields.length ||
-      validatedAggregateFields.some((aggregateField, index) => {
-        const currentAggregateField = aggregateFields[index];
-        if (!currentAggregateField) {
-          return true;
-        }
-        if (isGroupBy(aggregateField) && isGroupBy(currentAggregateField)) {
-          return aggregateField.groupBy !== currentAggregateField.groupBy;
-        }
-        if (!isGroupBy(aggregateField) && !isGroupBy(currentAggregateField)) {
-          return aggregateField.yAxis !== currentAggregateField.yAxis;
-        }
-        return true;
-      });
-
-    if (aggregateFieldsChanged) {
-      setAggregateFields(validatedAggregateFields.map(serializeAggregateField));
-    }
-  }, [
-    aggregateFields,
     isValidatingColumns,
-    setAggregateFields,
-    tab,
-    validatedAggregateFields,
-  ]);
+  } = useValidatedSpansTabColumns(tab);
 
   const openColumnEditor = () => {
     openModal(
