@@ -516,24 +516,27 @@ def derived_metrics_from_doc(doc: ActivityDoc) -> dict[str, Any]:
 
 
 def commit_shas_from_doc(doc: ActivityDoc, head_sha: str | None) -> set[str]:
-    """Post-open commit SHAs, by chain-following synchronized entries from the head.
+    """Post-open commit SHAs, by chain-following ``sync_chain`` backward from the head.
 
-    Order-independent, unlike the legacy reverse-arrival walker: it reassembles the
-    ``before_sha`` → ``after_sha`` linked list from the synchronized entries and
-    walks it backward from the PR's current head, so out-of-order sync deliveries no
-    longer read as a force push. A genuine force push — a head that doesn't chain
-    back — surfaces as the walk terminating early, dropping the abandoned commits.
+    Reassembles the ``before_sha`` → ``after_sha`` linked list from the reducer's
+    ``sync_chain`` — not from the ``events`` entries — and walks it backward from the
+    PR's current head. The chain map is fed by the reducer independently of the
+    entries cap, so the walk stays anchored at the head even under cap pressure that
+    drops the newest synchronize entries; scanning ``events`` instead would lose the
+    head the moment the latest synchronize was capped, emptying the result. Being
+    order-independent, out-of-order sync deliveries no longer read as a force push; a
+    genuine force push — a head that doesn't chain back — surfaces as the walk
+    terminating early, dropping the abandoned commits. Eviction of the oldest links
+    once ``sync_chain`` fills degrades identically: the walk stops at the horizon.
     Returns an empty set when the head isn't reachable from any push (e.g. no pushes
     after open).
     """
     before_by_after: dict[str, str | None] = {}
-    for event in doc.get("events", []):
-        if event["event_type"] != PullRequestActivityType.SYNCHRONIZED:
+    for pair in doc.get("sync_chain") or []:
+        after = pair[0]
+        if not after:
             continue
-        payload = event.get("payload") or {}
-        after = payload.get("after_sha") or ""
-        if after:
-            before_by_after[after] = payload.get("before_sha") or None
+        before_by_after[after] = pair[1]
 
     shas: set[str] = set()
     current = head_sha or ""

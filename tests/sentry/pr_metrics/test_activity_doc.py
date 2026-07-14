@@ -920,6 +920,25 @@ def test_commit_shas_from_doc_no_syncs_or_unreachable_head() -> None:
     assert commit_shas_from_doc(doc, "unrelated") == set()
 
 
+def test_commit_shas_from_doc_survives_events_cap() -> None:
+    # The events cap drops the NEWEST entries, so a walker scanning ``events`` for
+    # synchronizes loses the head once the latest sync is capped and returns nothing.
+    # The walk follows ``sync_chain`` instead — fed by the reducer independently of the
+    # entries cap — so the head stays reachable even when its synchronize entry was
+    # dropped, and every commit-linked issue resolution on a cap-pressured PR survives.
+    doc = new_document()
+    with patch(f"{MODULE}.metrics"), patch(f"{MODULE}.logger"):
+        for i in range(MAX_EVENTS):
+            _entry(doc, event_type=PullRequestActivityType.LABELED, webhook_id=f"d{i}")
+        _sync(doc, before="A0", after="A1", webhook_id="s1")
+        _sync(doc, before="A1", after="A2", webhook_id="s2")
+    # Both synchronize entries were dropped by the events cap...
+    assert all(e["event_type"] != PullRequestActivityType.SYNCHRONIZED for e in doc["events"])
+    assert doc["events_dropped"] == 2
+    # ...but their before/after links survived in sync_chain, so the head chain-walks.
+    assert commit_shas_from_doc(doc, "A2") == {"A1", "A2"}
+
+
 def test_timeline_projects_entries_and_synthesized_suite() -> None:
     doc = new_document()
     _entry(

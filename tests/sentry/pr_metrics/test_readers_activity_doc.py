@@ -41,6 +41,7 @@ def _doc(**overrides: Any) -> dict[str, Any]:
         "participants": {},
         "counts": {},
         "events_dropped": 0,
+        "sync_chain": [],
     }
     base.update(overrides)
     return base
@@ -164,7 +165,10 @@ class ActivityDocumentReadersTest(TestCase):
             linked_id=commit.id,
         )
         self._write_doc(
-            _doc(events=[_entry("synchronized", "s1", before_sha="old", after_sha=HEAD_SHA)])
+            _doc(
+                events=[_entry("synchronized", "s1", before_sha="old", after_sha=HEAD_SHA)],
+                sync_chain=[[HEAD_SHA, "old"]],
+            )
         )
         assert resolved_group_ids(self.pr) == [group.id]
 
