@@ -36,7 +36,6 @@ _TASK_KEY = "merge_groups"
     at_most_once=True,
     silo_mode=SiloMode.CELL,
 )
-@track_group_async_operation
 def start_merge_groups(
     from_object_ids: list[int] | None = None,
     to_object_id: int | str | None = None,
