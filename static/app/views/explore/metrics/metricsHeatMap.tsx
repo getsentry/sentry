@@ -143,7 +143,7 @@ export function MetricsHeatMap({
           plottables={[new HeatMap(heatMapSeries)]}
           onZoom={handleZoom}
         />
-        {isFetchingMore ? <TransparentLoadingMask /> : null}
+        {isFetchingMore ? <LoadingOverlay /> : null}
       </Container>
     );
   }
@@ -171,7 +171,7 @@ export function MetricsHeatMap({
   );
 }
 
-function TransparentLoadingMask() {
+function LoadingOverlay() {
   return (
     <Flex position="absolute" inset="0" align="center" justify="center">
       <Container
