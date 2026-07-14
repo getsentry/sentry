@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useRef} from 'react';
 import {css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -28,6 +29,7 @@ import {
   MIN_PCT_DURATION_DIFFERENCE,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/durationComparison';
 import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
+import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {
   getAIInputMessages,
@@ -40,6 +42,7 @@ import {
 import {AttributesContent} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
 
 export type DetailTab = 'input' | 'output' | 'attributes';
 
@@ -88,6 +91,7 @@ export function ConversationSpanDetail({
   scrollResetKey,
 }: ConversationSpanDetailProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const organization = useOrganization();
 
   useEffect(() => {
     scrollContainerRef.current?.scrollTo({top: 0});
@@ -160,6 +164,16 @@ export function ConversationSpanDetail({
           <SpanMetadata node={node} attributes={attributes} />
         )}
       </Stack>
+
+      {/* IssueList renders nothing when the span has no linked issues. */}
+      <IssueListWrapper>
+        <IssueList
+          node={node}
+          issues={node.uniqueIssues}
+          organization={organization}
+          traceSlug={traceId}
+        />
+      </IssueListWrapper>
 
       {/*
        * The per-span fetch backs both the metadata and the tab content, and it
@@ -390,6 +404,14 @@ function AttributesTab({
     />
   );
 }
+
+// IssueList colors its severity icons from the trace grid CSS variables, which
+// the trace waterfall normally provides via an ancestor. This panel isn't nested
+// under the waterfall, so scope those variables here.
+const IssueListWrapper = styled('div')`
+  ${traceGridCssVariables}
+  flex-shrink: 0;
+`;
 
 function EmptyTab({message}: {message: string}) {
   return (
