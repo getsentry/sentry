@@ -1096,7 +1096,9 @@ def resolve_progress_signal(
     scope has the ``projects:issue-stream-derived-progress`` flag enabled, progress is read
     from the materialized GroupDerivedData.progress column; otherwise it's derived from the
     same Activity records as the ``issue.progress`` filter. Every group gets a rank."""
-    if all(features.has("projects:issue-stream-derived-progress", project) for project in projects):
+    if projects and all(
+        features.has("projects:issue-stream-derived-progress", project) for project in projects
+    ):
         states = _get_group_progress_states_from_derived_data(group_ids)
     else:
         states = get_group_progress_states(group_ids)
