@@ -55,7 +55,6 @@ class Breadcrumb(BaseModel):
     level: str | None = None
     message: str | None = None
     data: dict[str, Any] | None = None
-    timestamp: str | None = None
 
 
 class RequestDetails(BaseModel):
