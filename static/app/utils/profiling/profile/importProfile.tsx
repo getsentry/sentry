@@ -345,13 +345,14 @@ export function importAndroidContinuousProfileChunk(
   traceID: string,
   options: ImportOptions
 ): ProfileGroup {
+  const sharedFrames = input.shared?.frames ?? [];
   const frameIndex = createAndroidContinuousProfileFrameIndex(
-    input.shared.frames,
+    sharedFrames,
     input.metadata.platform
   );
 
   const frames: Profiling.SentrySampledProfileFrame[] = [];
-  for (const frame of input.shared.frames) {
+  for (const frame of sharedFrames) {
     frames.push({
       in_app: frame.is_application ?? false,
       filename: frame.file,
