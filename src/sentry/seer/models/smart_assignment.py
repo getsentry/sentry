@@ -96,19 +96,9 @@ class SeerSmartAssignmentResult(DefaultFieldsModel):
         app_label = "seer"
         db_table = "seer_smartassignmentresult"
         constraints = [
-            # Partial unique index: at most one *in-flight* (PENDING) prediction per
-            # issue. This enforces integrity only -- concurrent triggers can't race
-            # two runs for the same group (the second INSERT trips this, and we treat
-            # the IntegrityError as a dedup no-op in trigger._dispatch). It does NOT
-            # enforce "predict once per issue, ever": once a run finishes
-            # (COMPLETED/ERROR) it no longer blocks a new row, so re-runs and full
-            # attempt history are possible.
-            #
-            # The current predict-once-ever behavior is a *policy* enforced in app
-            # code (see maybe_trigger_smart_assignment's existence check), kept out of
-            # the DB on purpose. To enable re-runs later, relax that guard (e.g. skip
-            # only when a PENDING row exists, or add a cooldown on the latest row) --
-            # no migration needed, since this constraint already permits extra rows.
+            # Only allow one pending prediction per issue.
+            # Code currently disables running smart assignment again, but we might
+            # want to re-run if the user rejects our first attempt, etc.
             models.UniqueConstraint(
                 fields=["group"],
                 condition=models.Q(status=SmartAssignmentStatus.PENDING),
