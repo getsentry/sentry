@@ -21,6 +21,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.custominboundfilter import CustomInboundFilter
@@ -378,6 +379,11 @@ class Fixtures:
         if group is None:
             group = self.group
         return Factories.create_group_action_log_entry(group, *args, **kwargs)
+
+    def create_group_derived_data(self, group=None, **kwargs) -> GroupDerivedData:
+        if group is None:
+            group = self.group
+        return Factories.create_group_derived_data(group, **kwargs)
 
     def create_n_groups_with_hashes(
         self, number_of_groups: int, project: Project, group_type: int | None = None
