@@ -154,8 +154,6 @@ def _build_activity_data(activity: Activity) -> ActivityData:
             iteration_index = activity.data.get("iteration_index")
             if iteration_index is not None:
                 details["iteration_index"] = iteration_index
-        case _:
-            pass
     return ActivityData(type=activity_alert_type, details=details)
 
 
