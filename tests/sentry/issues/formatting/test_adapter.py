@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Any
 
 from sentry.issues.formatting.adapter import event_response_to_model
@@ -176,6 +177,26 @@ def test_no_truncation_in_adapter() -> None:
     # note: later entry of same type wins, so this replaces the earlier breadcrumbs entry
     m = event_response_to_model(data)
     assert len(m.breadcrumbs) == 50
+
+
+def test_breadcrumb_datetime_timestamp_does_not_crash() -> None:
+    # the mixin passes the in-memory serialized event, where breadcrumb timestamps are
+    # datetime objects (not yet JSON strings) -- parsing must not choke on them
+    data = {
+        "title": "t",
+        "entries": [
+            {
+                "type": "breadcrumbs",
+                "data": {
+                    "values": [
+                        {"message": "hi", "timestamp": datetime(2024, 1, 1, tzinfo=timezone.utc)}
+                    ]
+                },
+            }
+        ],
+    }
+    m = event_response_to_model(data)
+    assert m.breadcrumbs[0].message == "hi"
 
 
 def test_minimal_event() -> None:
