@@ -734,8 +734,8 @@ def render_template_context(
             ),
         }
 
-    def key_errors():
-        def all_key_errors():
+    def top_issues():
+        def all_issues():
             for project_ctx in user_projects:
                 for group, count in project_ctx.key_errors_by_group:
                     display = get_group_display(group)
@@ -757,11 +757,6 @@ def render_template_context(
                         "group_substatus_text_color": substatus_text_color,
                     }
 
-        return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
-
-    def key_performance_issues():
-        def all_key_performance_issues():
-            for project_ctx in user_projects:
                 for group, group_history, count in project_ctx.key_performance_issues:
                     display = get_group_display(group)
                     (
@@ -787,7 +782,7 @@ def render_template_context(
                         "group_substatus_text_color": substatus_text_color,
                     }
 
-        return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
+        return heapq.nlargest(5, all_issues(), lambda d: d["count"])
 
     def past_issues():
         def all_past_issues():
@@ -847,8 +842,7 @@ def render_template_context(
         "start": date_format(local_start),
         "end": date_format(local_end),
         "trends": trends(),
-        "key_errors": key_errors(),
-        "key_performance_issues": key_performance_issues(),
+        "top_issues": top_issues(),
         "past_issues": past_issues() if show_past_issues else [],
         "show_past_issues": show_past_issues,
         "issue_summary": issue_summary(),
