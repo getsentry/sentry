@@ -99,7 +99,6 @@ def evaluate_condition_group_results(
                 if condition_result.outcome.triggered
             ]
 
-    # TODO - Should error be `errors` and potentially 1 or many errors?
     return DataConditionGroupEvaluation(
         result=group_condition_results,
         triggered=logic_result.triggered,
