@@ -1,7 +1,5 @@
 import logging
 from collections.abc import Mapping
-from dataclasses import asdict
-from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -120,13 +118,7 @@ def record_consumer_health(unhealthy_services: Mapping[str, UnhealthyReasons]) -
         for name, unhealthy_reasons in unhealthy_services.items():
             pipeline.set(_service_key(name), "false" if unhealthy_reasons else "true", ex=key_ttl)
 
-            extra: dict[str, Any] = {}
             if unhealthy_reasons:
-                if isinstance(unhealthy_reasons, Exception):
-                    extra = {"exception": unhealthy_reasons}
-                else:
-                    extra = {"memory": [asdict(memory) for memory in unhealthy_reasons]}
-
                 metrics.incr("backpressure.monitor.service.unhealthy", tags={"service": name})
                 metrics.event(
                     "backpressure.monitor.service.unhealthy",
@@ -137,7 +129,6 @@ def record_consumer_health(unhealthy_services: Mapping[str, UnhealthyReasons]) -
                 with sentry_sdk.isolation_scope():
                     sentry_sdk.set_tag("service", name)
                     sentry_sdk.set_attribute("service", name)
-                    logger.error("Service `%s` marked as unhealthy", name, extra=extra)
 
         for name, dependencies in CONSUMERS.items():
             unhealthy_dependencies = []
