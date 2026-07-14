@@ -211,9 +211,9 @@ export function useCreateNotificationAction({
       const integrationList = matchedProviderKey
         ? (providersToIntegrations[matchedProviderKey] ?? [])
         : [];
-      const matchedIntegration =
-        (integrationId ? integrationList.find(i => i.id === integrationId) : undefined) ??
-        integrationList[0];
+      const matchedIntegration = integrationId
+        ? integrationList.find(i => i.id === integrationId)
+        : integrationList[0];
 
       // Integration action whose integration hasn't loaded yet: show the setup CTA
       // and wait for a refetch to deliver it. Don't latch or half-apply the
