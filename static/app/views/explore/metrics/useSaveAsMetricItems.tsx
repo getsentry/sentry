@@ -34,7 +34,6 @@ import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 import {
   canUseMetricsAlertsUI,
   canUseMetricsEquationsInAlerts,
-  canUseMetricsEquationsInDashboards,
   canUseMetricsSavedQueriesUI,
 } from './metricsFlags';
 
@@ -53,9 +52,6 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
 
   const metricQueries = useMultiMetricsQueryParams();
   const {addToDashboard} = useAddMetricToDashboard();
-
-  const metricsEquationsInDashboardsEnabled =
-    canUseMetricsEquationsInDashboards(organization);
 
   const project =
     projects.length === 1
@@ -193,23 +189,13 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
                   label: t('All Application Metrics'),
                   textValue: t('All Application Metrics'),
                   onAction: () => {
-                    addToDashboard(
-                      metricQueries.filter(
-                        metricQuery =>
-                          // Allow all charts if you have the flag, otherwise only allow non-equation charts without the flag
-                          metricsEquationsInDashboardsEnabled ||
-                          (!metricsEquationsInDashboardsEnabled &&
-                            !isVisualizeEquation(metricQuery.queryParams.visualizes[0]!))
-                      )
-                    );
+                    addToDashboard(metricQueries);
                   },
                 },
               ]
             : []),
           ...metricQueries.map((metricQuery, index) => {
             const visualize = metricQuery.queryParams.visualizes[0]!;
-            const isUnsupported =
-              !metricsEquationsInDashboardsEnabled && isVisualizeEquation(visualize);
             const label = isVisualizeFunction(visualize)
               ? `${metricQuery.label ?? getVisualizeLabel(index, isVisualizeEquation(visualize))}: ${
                   formatTraceMetricsFunction(
@@ -223,22 +209,14 @@ export function useSaveAsMetricItems(options: UseSaveAsMetricItemsOptions) {
               key: `add-to-dashboard-${index}`,
               label,
               onAction: () => {
-                if (isUnsupported) {
-                  return;
-                }
                 addToDashboard(metricQuery);
               },
-              disabled: isUnsupported,
-              tooltip:
-                !metricsEquationsInDashboardsEnabled && isVisualizeEquation(visualize)
-                  ? t('Equations cannot currently be added to a dashboard')
-                  : undefined,
             };
           }),
         ],
       },
     ];
-  }, [addToDashboard, metricQueries, metricsEquationsInDashboardsEnabled]);
+  }, [addToDashboard, metricQueries]);
 
   return useMemo(() => {
     return [...saveAsItems, ...saveAsAlertItems, ...addToDashboardItems];

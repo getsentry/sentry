@@ -216,66 +216,7 @@ describe('useSaveAsMetricItems', () => {
     );
   });
 
-  it('disables equations in add-to-dashboard without the feature flag', () => {
-    const equation =
-      'equation|sum(value,metric.a,counter,none) + avg(value,metric.a,counter,none)';
-    const encodedMetricQuery = encodeMetricQueryParams({
-      metric: {name: 'metric.a', type: 'counter'},
-      queryParams: new ReadableQueryParams({
-        extrapolate: true,
-        mode: Mode.AGGREGATE,
-        query: 'release:1.2.3',
-        aggregateCursor: '',
-        aggregateFields: [new VisualizeEquation(equation)],
-        aggregateSortBys: [{field: equation, kind: 'desc'}],
-        cursor: '',
-        fields: [],
-        sortBys: [],
-      }),
-      label: 'ƒ1',
-    });
-
-    mockedUseLocation.mockReturnValue(
-      LocationFixture({
-        query: {
-          interval: '5m',
-          metric: [encodedMetricQuery],
-        },
-      })
-    );
-
-    const {result} = renderHook(useSaveAsMetricItems, {
-      wrapper: createWrapper(),
-      initialProps: {interval: '5m'},
-    });
-
-    const addToDashboardItem = result.current.find(
-      item => item.key === 'add-to-dashboard'
-    ) as
-      | {children?: Array<{disabled: boolean; key: string; tooltip: string}>}
-      | undefined;
-
-    const equationChild = addToDashboardItem?.children?.find(
-      item => item.key === 'add-to-dashboard-0'
-    );
-
-    expect(equationChild?.disabled).toBe(true);
-    expect(equationChild?.tooltip).toBe(
-      'Equations cannot currently be added to a dashboard'
-    );
-  });
-
-  it('enables equations in add-to-dashboard with the feature flag', () => {
-    const orgWithEquationsInDashboards = OrganizationFixture({
-      features: [
-        'tracemetrics-enabled',
-        'tracemetrics-equations-in-alerts',
-        'tracemetrics-equations-in-dashboards',
-      ],
-    });
-
-    // Break the equation into its components to match how metric queries are encoded:
-    // sum, avg, and the final equation combining them.
+  it('enables equations in add-to-dashboard', () => {
     const function1 = new VisualizeFunction('sum(value,metric.a,counter,none)');
     const function2 = new VisualizeFunction('avg(value,metric.a,counter,none)');
     const equation = `equation|${function1.yAxis} + ${function2.yAxis}`;
@@ -308,20 +249,8 @@ describe('useSaveAsMetricItems', () => {
       })
     );
 
-    function createWrapperWithEquationFlags() {
-      return function ({children}: {children?: React.ReactNode}) {
-        return (
-          <OrganizationContext.Provider value={orgWithEquationsInDashboards}>
-            <QueryClientProvider client={queryClient}>
-              <MockMetricQueryParamsContext>{children}</MockMetricQueryParamsContext>
-            </QueryClientProvider>
-          </OrganizationContext.Provider>
-        );
-      };
-    }
-
     const {result} = renderHook(useSaveAsMetricItems, {
-      wrapper: createWrapperWithEquationFlags(),
+      wrapper: createWrapper(),
       initialProps: {
         interval: '5m',
       },
@@ -332,11 +261,9 @@ describe('useSaveAsMetricItems', () => {
     ) as
       | {
           children?: Array<{
-            disabled: boolean;
             key: string;
             label: string;
             onAction: () => void;
-            tooltip: string | undefined;
           }>;
         }
       | undefined;
@@ -346,8 +273,6 @@ describe('useSaveAsMetricItems', () => {
     );
 
     expect(equationChild?.label).toBe('ƒ1');
-    expect(equationChild?.disabled).toBe(false);
-    expect(equationChild?.tooltip).toBeUndefined();
 
     equationChild?.onAction?.();
 
