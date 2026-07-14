@@ -43,15 +43,54 @@ fix: |
 examples:
   bad:
     - |
-      useEffect(() => {
-        setSelected(items[0] ?? null);
-      }, [items]);
-  good:
-    - 'const selected = items[0] ?? null;'
+      function Component({data}) {
+        const [items, setItems] = useState([]);
+
+        useEffect(() => {
+          setItems(data); // Extra render, use initial state instead
+        }, [data]);
+      }
     - |
-      useEffect(() => {
-        return store.subscribe(() => setSnapshot(store.getSnapshot()));
-      }, [store]);
+      function Component() {
+        const [loading, setLoading] = useState(false);
+
+        useEffect(() => {
+          setLoading(true); // Synchronous, causes extra render
+          fetchData().then(() => setLoading(false));
+        }, []);
+      }
+    - |
+      function Component({rawData}) {
+        const [processed, setProcessed] = useState([]);
+
+        useEffect(() => {
+          setProcessed(rawData.map(transform)); // Should derive in render
+        }, [rawData]);
+      }
+    - |
+      function Component({selectedId, items}) {
+        const [selected, setSelected] = useState(null);
+
+        useEffect(() => {
+          setSelected(items.find(i => i.id === selectedId));
+        }, [selectedId, items]);
+      }
+  good:
+    - |
+      function Component({selectedId, items}) {
+        const selected = items.find(i => i.id === selectedId);
+        return <div>{selected?.name}</div>;
+      }
+    - |
+      function Tooltip() {
+        const ref = useRef(null);
+        const [tooltipHeight, setTooltipHeight] = useState(0);
+
+        useLayoutEffect(() => {
+          const { height } = ref.current.getBoundingClientRect();
+          setTooltipHeight(height);
+        }, []);
+      }
 
 include:
   - 'static/app/**/*.tsx'
