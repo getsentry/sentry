@@ -94,6 +94,10 @@ class SafeRolloutComparator:
     # logger (which logs only to Sentry). Useful for situations where mismatch logs might include
     # customer data. Defaults to False (meaning the Python logger is used).
     internal_logs_only: bool = False
+    # Custom serializer to use when logging control and experimental data in cases where they don't
+    # match. Can also be passed directly to `compare`, `check_and_choose`, and
+    # `check_and_choose_with_timings` for callsite-specific serialization.
+    data_serializer: Callable[[TData], Any] | None = None
 
     @classmethod
     def _should_run_experiment_option(cls) -> str:
@@ -235,6 +239,7 @@ class SafeRolloutComparator:
 
         serialize = (
             data_serializer
+            or cls.data_serializer
             # For comparators using internal logs only, `_default_serialize_for_log` is a
             # pass-through, since our SDK logging wrapper (which internal-only comparators use for
             # logging) handles serialization itself. For comparators using the Python logger, it
