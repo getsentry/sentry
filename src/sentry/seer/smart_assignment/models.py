@@ -26,13 +26,15 @@ class SmartAssignmentTrigger(models.TextChoices):
     """What caused us to dispatch a prediction for this issue.
 
     Used to tag metrics (so evaluation can separate predictions made from a clean
-    pre-outcome signal (`PR_CREATED`) from ones triggered by the very action they're
-    scored against (`ASSIGNMENT`, `RESOLUTION`), which can be biased toward the
-    actor) and stored in the run mirror's `extras`. Not tied to `ActivityType`:
+    pre-outcome signal (`SEER_STARTED`) from ones triggered by the very action
+    they're scored against (`ASSIGNMENT`, `RESOLUTION`), which can be biased toward
+    the actor) and stored in the run mirror's `extras`. Not tied to `ActivityType`:
     predictions may be triggered from other sources in the future.
     """
 
-    PR_CREATED = "pr_created"
+    # A Seer autofix step (RCA / solution / coding) began -- i.e. something that
+    # produces an AI response, dispatched before any human acts on the issue.
+    SEER_STARTED = "seer_started"
     ASSIGNMENT = "assignment"
     RESOLUTION = "resolution"
 

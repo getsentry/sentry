@@ -36,7 +36,9 @@ class SmartAssignmentActivityHandlerTest(TestCase):
         from sentry.seer.smart_assignment.models import SmartAssignmentTrigger
 
         cases = [
-            (ActivityType.SEER_PR_CREATED, SmartAssignmentTrigger.PR_CREATED, None),
+            (ActivityType.SEER_RCA_STARTED, SmartAssignmentTrigger.SEER_STARTED, None),
+            (ActivityType.SEER_SOLUTION_STARTED, SmartAssignmentTrigger.SEER_STARTED, None),
+            (ActivityType.SEER_CODING_STARTED, SmartAssignmentTrigger.SEER_STARTED, None),
             (
                 ActivityType.ASSIGNED,
                 SmartAssignmentTrigger.ASSIGNMENT,
@@ -56,7 +58,12 @@ class SmartAssignmentActivityHandlerTest(TestCase):
     @mock.patch(TRIGGER)
     def test_skips_unrelated_activities(self, mock_trigger: MagicMock) -> None:
         for activity_type in (
+            # We trigger on Seer AI-step *starts*, not completions or PR creation...
             ActivityType.SEER_SOLUTION_COMPLETED,
+            ActivityType.SEER_PR_CREATED,
+            # ...and an iteration is a re-run of an already-started autofix, so it's
+            # deliberately not a trigger (dedup would make it redundant anyway).
+            ActivityType.SEER_ITERATION_STARTED,
             ActivityType.SET_RESOLVED_BY_AGE,
             ActivityType.NOTE,
         ):

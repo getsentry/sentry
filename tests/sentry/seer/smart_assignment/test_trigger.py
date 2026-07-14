@@ -61,37 +61,39 @@ class MaybeTriggerSmartAssignmentTest(TestCase):
     def test_dispatch_creates_run_mirror(self, mock_client_cls: MagicMock) -> None:
         self._wire_client(mock_client_cls)
         with self.feature("organizations:seer-smart-assignment-run"):
-            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.PR_CREATED)
+            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.SEER_STARTED)
 
         mirrors = self._mirrors()
         assert len(mirrors) == 1
         # The dispatch trigger is seeded on the mirror's extras for scoring.
-        assert mirrors[0].extras["trigger"] == SmartAssignmentTrigger.PR_CREATED
-        # PR creation carries no ground truth (and no activity was passed to stamp).
+        assert mirrors[0].extras["trigger"] == SmartAssignmentTrigger.SEER_STARTED
+        # A Seer AI-step start carries no ground truth (and no activity was passed to stamp).
         assert "actual_assignee_user_id" not in mirrors[0].extras
         assert "triggering_activity_id" not in mirrors[0].extras
 
     @patch(CLIENT_PATH)
     def test_flag_disabled_is_noop(self, mock_client_cls: MagicMock) -> None:
-        maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.PR_CREATED)
+        maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.SEER_STARTED)
         assert self._mirrors() == []
         mock_client_cls.return_value.start_feature_run.assert_not_called()
 
     @patch(CLIENT_PATH)
     def test_dedup_skips_second_dispatch(self, mock_client_cls: MagicMock) -> None:
-        self._mirror(trigger=SmartAssignmentTrigger.PR_CREATED)
+        self._mirror(trigger=SmartAssignmentTrigger.SEER_STARTED)
         with self.feature("organizations:seer-smart-assignment-run"):
-            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.PR_CREATED)
+            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.SEER_STARTED)
         mock_client_cls.return_value.start_feature_run.assert_not_called()
 
     @patch(CLIENT_PATH)
     def test_dispatch_stamps_triggering_activity(self, mock_client_cls: MagicMock) -> None:
         self._wire_client(mock_client_cls)
         activity = self.create_group_activity(
-            group=self.group, type=ActivityType.SEER_PR_CREATED.value
+            group=self.group, type=ActivityType.SEER_RCA_STARTED.value
         )
         with self.feature("organizations:seer-smart-assignment-run"):
-            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.PR_CREATED, activity)
+            maybe_trigger_smart_assignment(
+                self.group, SmartAssignmentTrigger.SEER_STARTED, activity
+            )
 
         mirror = self._mirrors()[0]
         assert mirror.extras["triggering_activity_id"] == activity.id
@@ -108,7 +110,7 @@ class MaybeTriggerSmartAssignmentTest(TestCase):
             self.feature("organizations:seer-smart-assignment-run"),
             self.options({"seer.smart_assignment.max_dispatches_per_org_per_day": 0}),
         ):
-            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.PR_CREATED)
+            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.SEER_STARTED)
 
         assert self._mirrors() == []
         mock_client_cls.return_value.start_feature_run.assert_not_called()
@@ -121,7 +123,7 @@ class MaybeTriggerSmartAssignmentTest(TestCase):
             self.feature("organizations:seer-smart-assignment-run"),
             self.options({"seer.smart_assignment.max_dispatches_per_day": 0}),
         ):
-            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.PR_CREATED)
+            maybe_trigger_smart_assignment(self.group, SmartAssignmentTrigger.SEER_STARTED)
 
         assert self._mirrors() == []
         mock_client_cls.return_value.start_feature_run.assert_not_called()

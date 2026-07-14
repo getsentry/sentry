@@ -34,14 +34,26 @@ SUPPORTED_ACTIVITIES = [
     # When it fires, it means the issue was referenced in a pull request, not resolved.
 ]
 
-# Activities the smart assignment feature reacts to: Seer opening a PR, an
-# assignment, or a resolution. Each triggers a prediction (deduped to one per
-# group) and records ground truth; gating lives in maybe_trigger_smart_assignment.
+# Seer autofix steps that kick off an AI response. The first one to fire triggers a
+# prediction (deduped to one per group), so this is a clean pre-outcome signal before
+# any human acts. SEER_ITERATION_STARTED is intentionally excluded: it's a re-run of
+# an already-started autofix, so dedup would only ever make it redundant with the
+# initial start below.
+_SEER_STARTED_ACTIVITIES = frozenset(
+    {
+        ActivityType.SEER_RCA_STARTED,
+        ActivityType.SEER_SOLUTION_STARTED,
+        ActivityType.SEER_CODING_STARTED,
+    }
+)
+
+# Activities the smart assignment feature reacts to: a Seer AI step starting, an
+# assignment, or a resolution. Each triggers a prediction (deduped to one per group)
+# and records ground truth; gating lives in maybe_trigger_smart_assignment.
 # SET_RESOLVED_BY_AGE is intentionally excluded: it's always the auto-resolve cron
 # (no acting user), so it carries no signal and would only ever be filtered out.
-_SMART_ASSIGNMENT_ACTIVITIES = frozenset(
+_SMART_ASSIGNMENT_ACTIVITIES = _SEER_STARTED_ACTIVITIES | frozenset(
     {
-        ActivityType.SEER_PR_CREATED,
         ActivityType.ASSIGNED,
         ActivityType.SET_RESOLVED,
         ActivityType.SET_RESOLVED_IN_RELEASE,
@@ -109,7 +121,8 @@ def smart_assignment_activity_handler(
     activity: Activity,
     detector_id: DetectorId | None = None,
 ) -> None:
-    """Trigger the smart assignment feature off Seer PRs, assignment, and resolution.
+    """Trigger the smart assignment feature off Seer AI-step starts, assignment, and
+    resolution.
 
     Invoked unconditionally for every group activity (via
     invoke_workflow_activity_handlers), so it self-filters to the activities we care
@@ -127,8 +140,8 @@ def smart_assignment_activity_handler(
     from sentry.seer.smart_assignment.models import SmartAssignmentTrigger
     from sentry.seer.smart_assignment.trigger import maybe_trigger_smart_assignment
 
-    if activity_type == ActivityType.SEER_PR_CREATED:
-        trigger = SmartAssignmentTrigger.PR_CREATED
+    if activity_type in _SEER_STARTED_ACTIVITIES:
+        trigger = SmartAssignmentTrigger.SEER_STARTED
     elif activity_type == ActivityType.ASSIGNED:
         trigger = SmartAssignmentTrigger.ASSIGNMENT
     else:
