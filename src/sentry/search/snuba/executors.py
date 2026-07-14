@@ -97,11 +97,11 @@ class PostgresSortStrategy:
     postgres_fields: dict[str, str]
     snuba_aggregations: list[str] = dataclass_field(default_factory=list)
     # Computed signals that aren't a single Group column (e.g. assignment affinity).
-    # Each resolver is called once in bulk with (actor, organization, group_ids) and
-    # returns {group_id: value}; the value is merged into the score_fn dict under its key.
-    signal_resolvers: dict[str, Callable[[Any, Organization, list[int]], dict[int, Any]]] = (
-        dataclass_field(default_factory=dict)
-    )
+    # Each resolver is called once in bulk with (actor, organization, projects, group_ids)
+    # and returns {group_id: value}; the value is merged into the score_fn dict under its key.
+    signal_resolvers: dict[
+        str, Callable[[Any, Organization, Sequence[Project], list[int]], dict[int, Any]]
+    ] = dataclass_field(default_factory=dict)
     score_fn: Callable[[dict[str, Any]], float] = lambda data: 0.0
     # Score to use when score_fn raises on a row. Dropping the row would make the issue
     # vanish from the stream entirely; instead we keep it with a base score (e.g. the
@@ -913,7 +913,7 @@ ISSUE_AGENT_STAGE_SIGNALS: dict[int, float] = {
 
 
 def resolve_assignment_signal(
-    actor: Any | None, organization: Organization, group_ids: list[int]
+    actor: Any | None, organization: Organization, projects: Sequence[Project], group_ids: list[int]
 ) -> dict[int, float]:
     """Assignment affinity for the viewer: 1.0 for groups assigned directly to them,
     0.5 for groups assigned to one of their teams, absent otherwise."""
@@ -937,7 +937,7 @@ def resolve_assignment_signal(
 
 
 def resolve_suspect_commit_signal(
-    actor: Any | None, organization: Organization, group_ids: list[int]
+    actor: Any | None, organization: Organization, projects: Sequence[Project], group_ids: list[int]
 ) -> dict[int, float]:
     """1.0 for groups where the viewer authored the suspect commit. Unlike assignment,
     suspect-commit ownership isn't auto-assigned by default, so this surfaces issues the
@@ -953,7 +953,7 @@ def resolve_suspect_commit_signal(
 
 
 def resolve_issue_agent_signal(
-    actor: Any | None, organization: Organization, group_ids: list[int]
+    actor: Any | None, organization: Organization, projects: Sequence[Project], group_ids: list[int]
 ) -> dict[int, float]:
     """Furthest Seer agent stage reached per group, normalized to [0, 1].
 
@@ -1020,6 +1020,18 @@ def recommended_v2_strategy() -> PostgresSortStrategy:
             + newness_weight * newness
         )
 
+    # A signal whose weight is zeroed via options can't affect the score, so don't
+    # register its resolver and its query never runs. assignment_weight scales both
+    # viewer-relevance signals.
+    signal_resolvers: dict[
+        str, Callable[[Any, Organization, Sequence[Project], list[int]], dict[int, Any]]
+    ] = {}
+    if assignment_weight:
+        signal_resolvers["assignment"] = resolve_assignment_signal
+        signal_resolvers["suspect_commit"] = resolve_suspect_commit_signal
+    if agent_weight:
+        signal_resolvers["agent"] = resolve_issue_agent_signal
+
     return PostgresSortStrategy(
         postgres_fields={
             "fixability": "seer_fixability_score",
@@ -1027,11 +1039,7 @@ def recommended_v2_strategy() -> PostgresSortStrategy:
             "first_seen": "first_seen",
         },
         snuba_aggregations=["recommended"],
-        signal_resolvers={
-            "assignment": resolve_assignment_signal,
-            "suspect_commit": resolve_suspect_commit_signal,
-            "agent": resolve_issue_agent_signal,
-        },
+        signal_resolvers=signal_resolvers,
         score_fn=score_fn,
         # If a boost calculation ever fails, keep the issue in the stream ranked by its
         # base Snuba recommended score rather than dropping it.
@@ -1060,7 +1068,7 @@ LAST_SEEN_TIEBREAK_DIVISOR = 10**13
 
 
 def resolve_progress_signal(
-    actor: Any | None, organization: Organization, group_ids: list[int]
+    actor: Any | None, organization: Organization, projects: Sequence[Project], group_ids: list[int]
 ) -> dict[int, int]:
     """Progress-cycle rank per group (identified=1 .. fix_applied=5), derived from the same
     Activity records as the ``issue.progress`` filter. Every group gets a rank."""
@@ -1271,7 +1279,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             with start_span(
                 op=f"search.postgres_sort.signal.{name}", name=f"search.postgres_sort.signal.{name}"
             ):
-                signal_data[name] = resolver(actor, organization, candidate_ids)
+                signal_data[name] = resolver(actor, organization, projects, candidate_ids)
 
         with start_span(op="search.postgres_sort.scoring", name="search.postgres_sort.scoring"):
             scored_groups: list[tuple[Any, int]] = []
@@ -1421,6 +1429,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             pg_overflow_fallback = True
             # Surface the silent ranking degradation on the trace, next to `search.sort`.
             sentry_sdk.set_tag("search.sort_fallback", sort_by)
+            sentry_sdk.set_attribute("search.sort_fallback", sort_by)
             # Keep the original sort only if it maps to a real Snuba aggregation for the
             # chunked path. Keys absent from sort_strategies, or mapped to "" (Postgres-only
             # sorts like "inbox"), have no aggregation and must fall back to `date` instead

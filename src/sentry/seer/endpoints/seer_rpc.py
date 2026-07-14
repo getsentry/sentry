@@ -40,6 +40,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
+from sentry.api.endpoints.internal.llm_proxy_key import make_llm_proxy_key
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
 from sentry.auth.exceptions import IdentityNotValid
@@ -99,10 +100,12 @@ from sentry.seer.agent.tools import (
     get_issue_and_event_details_v2,
     get_issue_committers,
     get_issue_details,
+    get_issue_ownership,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
     get_replay_metadata,
     get_repository_definition,
+    get_team_members,
     get_trace_item_attributes,
     rpc_get_profile_flamegraph,
     rpc_get_trace_waterfall,
@@ -122,6 +125,7 @@ from sentry.seer.assisted_query.traces_tools import (
     get_attribute_names,
     get_attribute_values_with_substring,
 )
+from sentry.seer.auth import SeerRpcViewerContextAuthentication
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
 from sentry.seer.autofix.utils import (
     bulk_read_preferences_from_sentry_db,
@@ -170,11 +174,14 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.users.services.user.service import user_service
-from sentry.utils import snuba_rpc
+from sentry.utils import metrics, snuba_rpc
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
-from sentry.utils.tracing import start_span
-from sentry.viewer_context import get_viewer_context, observe_viewer_context_propagation
+from sentry.utils.tracing import start_span, trace
+from sentry.viewer_context import (
+    get_viewer_context,
+    observe_viewer_context_propagation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -201,6 +208,9 @@ def compare_signature(url: str, body: bytes, signature: str) -> bool:
 
     Once a key has been able to validate the signature other keys will
     not be attempted. We should only have multiple keys during key rotations.
+
+    DEPRECATED: part of the HMAC RPC auth mechanism being retired in favor of
+    signed ``X-Viewer-Context`` (see ``SeerRpcSignatureAuthentication``).
     """
     if not settings.SEER_RPC_SHARED_SECRET:
         raise RpcAuthenticationSetupException(
@@ -240,6 +250,14 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
     """
     Authentication for seer RPC requests.
     Requests are sent with an HMAC signed by a shared private key.
+
+    DEPRECATED: this HMAC mechanism (backed by ``SEER_RPC_SHARED_SECRET``) is
+    slated for removal. Seer<->Sentry auth is consolidating onto the signed
+    ``X-Viewer-Context`` header (see ``SeerRpcViewerContextAuthentication``).
+    Removal order: (1) this endpoint accepts viewer context [done],
+    (2) Seer stops sending ``Rpcsignature``, (3) delete this class +
+    ``compare_signature``, (4) retire ``SEER_RPC_SHARED_SECRET`` (only after
+    step 2 --- an inbound signature with the secret unset raises).
     """
 
     token_name = b"rpcsignature"
@@ -254,6 +272,7 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
             raise AuthenticationFailed("Invalid signature")
 
         sentry_sdk.get_isolation_scope().set_tag("seer_rpc_auth", True)
+        sentry_sdk.get_isolation_scope().set_attribute("seer_rpc_auth", True)
 
         return (AnonymousUser(), token)
 
@@ -269,19 +288,57 @@ class SeerRpcServiceEndpoint(Endpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
-    authentication_classes = (SeerRpcSignatureAuthentication,)
+    # HMAC is listed first so it wins when a caller sends both credentials
+    # (Seer sends both today), keeping this a no-op at rollout. The viewer
+    # context authenticator only engages when there is no valid Rpcsignature.
+    authentication_classes = (
+        SeerRpcSignatureAuthentication,
+        SeerRpcViewerContextAuthentication,
+    )
     permission_classes = ()
     enforce_rate_limit = False
 
-    @sentry_sdk.trace
+    @trace
     def _is_authorized(self, request: Request) -> bool:
-        if request.auth and isinstance(
-            request.successful_authenticator, SeerRpcSignatureAuthentication
-        ):
-            return True
-        return False
+        return bool(request.auth) and isinstance(
+            request.successful_authenticator,
+            (SeerRpcSignatureAuthentication, SeerRpcViewerContextAuthentication),
+        )
 
-    @sentry_sdk.trace
+    def _enforce_viewer_context_org_binding(
+        self, request: Request, arguments: dict[str, Any]
+    ) -> None:
+        """Bind a viewer-context-authenticated call to the signed context's org.
+
+        This endpoint has no per-org access control — ``org_id`` is a trusted
+        argument. That is safe for HMAC callers (only Seer holds the secret), but
+        as viewer-context auth generalizes to any caller, an unforgeable VC for
+        org A must not be usable to read org B. HMAC calls keep god-mode.
+        """
+        if not isinstance(request.successful_authenticator, SeerRpcViewerContextAuthentication):
+            return
+
+        arg_org_id = arguments.get("org_id", arguments.get("organization_id"))
+        if arg_org_id is None:
+            return
+
+        # ``arg_org_id`` is caller-supplied and only validated to live under a
+        # dict; coerce defensively so malformed input is a 400, not a 500.
+        try:
+            arg_org_id = int(arg_org_id)
+        except (TypeError, ValueError):
+            raise ParseError("Invalid organization id")
+
+        vc = getattr(request, "_seer_rpc_viewer_context", None)
+        vc_org_id = vc.organization_id if vc is not None else None
+        if vc_org_id is None or arg_org_id != int(vc_org_id):
+            metrics.incr(
+                "seer.rpc.viewer_context_org_binding",
+                tags={"outcome": "mismatch"},
+            )
+            raise PermissionDenied("Viewer context organization does not match request")
+
+    @trace
     def _dispatch_to_local_method(self, method_name: str, arguments: dict[str, Any]) -> Any:
         if method_name not in seer_method_registry:
             raise RpcResolutionException(f"Unknown method {method_name}")
@@ -293,7 +350,7 @@ class SeerRpcServiceEndpoint(Endpoint):
             return result.dict()
         return result
 
-    @sentry_sdk.trace
+    @trace
     def post(self, request: Request, method_name: str) -> Response:
         sentry_sdk.set_tag("rpc.method", method_name)
         sentry_sdk.set_attribute("rpc.method", method_name)
@@ -323,6 +380,8 @@ class SeerRpcServiceEndpoint(Endpoint):
             raise ParseError from e
         if not isinstance(arguments, dict):
             raise ParseError
+
+        self._enforce_viewer_context_org_binding(request, arguments)
 
         try:
             result = self._dispatch_to_local_method(method_name, arguments)
@@ -1019,13 +1078,18 @@ def refresh_monitoring_provider_token(
 
     try:
         provider.refresh_identity(identity)
-    except IdentityNotValid:
+    except IdentityNotValid as exc:
+        upstream_error = ""
+        cause = exc.__cause__
+        if cause is not None and hasattr(cause, "response") and cause.response is not None:
+            upstream_error = cause.response.text[:512]
         logger.exception(
             "monitoring_provider.refresh.identity_not_valid",
             extra={
                 "identity_id": identity_id,
                 "provider": idp.type,
                 "has_refresh_token": "refresh_token" in identity.data,
+                "upstream_error": upstream_error,
             },
         )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
@@ -1134,14 +1198,6 @@ def record_pr_attribution(
     return PrAttributionResponse(attribution_id=attribution.id)
 
 
-class ValidateLlmProxyKeyResponse(BaseModel):
-    valid: bool
-
-
-def validate_llm_proxy_key(api_key: str) -> ValidateLlmProxyKeyResponse:
-    return ValidateLlmProxyKeyResponse(valid=True)
-
-
 # Every value below MUST be a function returning a `pydantic.BaseModel` (or
 # a union of `BaseModel` subclasses, optionally with `None`). Two complementary
 # guards enforce this:
@@ -1202,6 +1258,8 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_issue_and_event_details_v2": seer_rpc(get_issue_and_event_details_v2),
     "get_issue_details": seer_rpc(get_issue_details),
     "get_issue_committers": seer_rpc(get_issue_committers),
+    "get_issue_ownership": seer_rpc(get_issue_ownership),
+    "get_team_members": seer_rpc(get_team_members),
     "get_event_details": seer_rpc(get_event_details),
     "get_profile_flamegraph": seer_rpc(rpc_get_profile_flamegraph),
     "execute_table_query": seer_rpc(execute_table_query),
@@ -1236,7 +1294,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "refresh_monitoring_provider_token": seer_rpc(refresh_monitoring_provider_token),
     #
     # LLM Proxy
-    "validate_llm_proxy_key": seer_rpc(validate_llm_proxy_key),
+    "make_llm_proxy_key": seer_rpc(make_llm_proxy_key),
 }
 
 

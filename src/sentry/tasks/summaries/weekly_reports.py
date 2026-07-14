@@ -9,13 +9,13 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import partial
 from typing import Any, Final
+from urllib.parse import urlencode
 
 import sentry_sdk
 from django.conf import settings
 from django.db.models import F
 from django.utils import dateformat, timezone
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
-from sentry_sdk import set_tag
 from taskbroker_client.retry import Retry
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
@@ -48,7 +48,7 @@ from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.sanitize import sanitize_outbound_name
 from sentry.utils.query import RangeQuerySetWrapper
-from sentry.utils.tracing import start_span
+from sentry.utils.tracing import set_span_tag, start_span
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
@@ -183,73 +183,82 @@ def prepare_organization_report(
     target_user: int | None = None,
     email_override: str | None = None,
 ):
-    batch_id = str(batch_id)
-    if email_override and not isinstance(target_user, int):
-        logger.error(
-            "Target user must have an ID",
-            extra={
-                "batch_id": str(batch_id),
-                "organization": organization_id,
-                "target_user": target_user,
-                "email_override": email_override,
-            },
-        )
-        return
-    organization = Organization.objects.get(id=organization_id)
-    set_tag("org.slug", organization.slug)
-    sentry_sdk.set_attribute("org.slug", organization.slug)
-    set_tag("org.id", organization_id)
-    sentry_sdk.set_attribute("org.id", organization_id)
-    with WeeklyReportSLO(
-        operation_type=WeeklyReportOperationType.PREPARE_ORGANIZATION_REPORT, dry_run=dry_run
-    ).capture() as lifecycle:
-        lifecycle.add_extras(
-            {
-                "batch_id": batch_id,
-                "organization_id": organization_id,
-                "timestamp": timestamp,
-                "duration": duration,
-            }
-        )
-        ctx = OrganizationReportContextFactory(
-            timestamp=timestamp, duration=duration, organization=organization
-        ).create_context()
-
-        with start_span(
-            op="weekly_reports.check_if_ctx_is_empty", name="weekly_reports.check_if_ctx_is_empty"
-        ):
-            report_is_available = not ctx.is_empty()
-        set_tag("report.available", report_is_available)
-        sentry_sdk.set_attribute("report.available", report_is_available)
-
-        if not report_is_available:
-            lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)
+    with start_span(
+        name="weekly_reports.prepare_organization_report",
+        op="weekly_reports.prepare_organization_report",
+        transaction=True,
+        custom_sampling_context={"sample_rate": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING},
+    ) as span:
+        batch_id = str(batch_id)
+        if email_override and not isinstance(target_user, int):
+            logger.error(
+                "Target user must have an ID",
+                extra={
+                    "batch_id": str(batch_id),
+                    "organization": organization_id,
+                    "target_user": target_user,
+                    "email_override": email_override,
+                },
+            )
             return
-
-    # Deliver the reports
-    batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
-    with start_span(op="weekly_reports.deliver_reports", name="weekly_reports.deliver_reports"):
-        logger.info(
-            "weekly_reports.deliver_reports",
-            extra={"batch_id": str(batch_id), "organization": organization_id},
-        )
-        with metrics.timer("weekly_report.deliver_reports.duration"):
-            batch.deliver_reports()
-
-    # Cache after delivery so a failed attempt doesn't poison the
-    # previous-week lookup on retry.
-    if not dry_run:
-        try:
-            project_metrics: dict[int, dict[str, int]] = {}
-            for project_id, project_ctx in ctx.projects_context_map.items():
-                project_metrics[project_id] = {
-                    "e": project_ctx.accepted_error_count,
-                    "t": project_ctx.accepted_transaction_count,
+        organization = Organization.objects.get(id=organization_id)
+        set_span_tag(span, "org.slug", organization.slug)
+        sentry_sdk.set_attribute("org.slug", organization.slug)
+        set_span_tag(span, "org.id", organization_id)
+        sentry_sdk.set_attribute("org.id", organization_id)
+        with WeeklyReportSLO(
+            operation_type=WeeklyReportOperationType.PREPARE_ORGANIZATION_REPORT, dry_run=dry_run
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "batch_id": batch_id,
+                    "organization_id": organization_id,
+                    "timestamp": timestamp,
+                    "duration": duration,
                 }
-            if project_metrics:
-                cache_project_metrics(organization_id, project_metrics)
-        except Exception:
-            sentry_sdk.capture_exception()
+            )
+            ctx = OrganizationReportContextFactory(
+                timestamp=timestamp, duration=duration, organization=organization
+            ).create_context()
+
+            with start_span(
+                op="weekly_reports.check_if_ctx_is_empty",
+                name="weekly_reports.check_if_ctx_is_empty",
+            ):
+                report_is_available = not ctx.is_empty()
+            set_span_tag(span, "report.available", report_is_available)
+            sentry_sdk.set_attribute("report.available", report_is_available)
+
+            if not report_is_available:
+                lifecycle.record_halt(WeeklyReportHaltReason.EMPTY_REPORT)
+                return
+
+        # Deliver the reports
+        batch = OrganizationReportBatch(ctx, batch_id, dry_run, target_user, email_override)
+        with start_span(op="weekly_reports.deliver_reports", name="weekly_reports.deliver_reports"):
+            logger.info(
+                "weekly_reports.deliver_reports",
+                extra={"batch_id": str(batch_id), "organization": organization_id},
+            )
+            with metrics.timer("weekly_report.deliver_reports.duration"):
+                batch.deliver_reports()
+
+        # Cache after delivery so a failed attempt doesn't poison the
+        # previous-week lookup on retry.
+        if not dry_run and features.has(
+            "organizations:weekly-report-week-over-week-metric", ctx.organization
+        ):
+            try:
+                project_metrics: dict[int, dict[str, int]] = {}
+                for project_id, project_ctx in ctx.projects_context_map.items():
+                    project_metrics[project_id] = {
+                        "e": project_ctx.accepted_error_count,
+                        "i": project_ctx.total_substatus_count,
+                    }
+                if project_metrics:
+                    cache_project_metrics(organization_id, project_metrics)
+            except Exception:
+                sentry_sdk.capture_exception()
 
 
 @dataclass(frozen=True)
@@ -469,7 +478,7 @@ class _DuplicateDeliveryCheck:
         return is_duplicate_detected
 
 
-project_breakdown_colors = ["#7553FF", "#7C2282", "#F0369A", "#FF9838", "#FFD00E"]
+project_breakdown_colors = ["#7553FF", "#3A1873", "#F0369A", "#FF9838", "#FFD00E"]
 total_color = """
 linear-gradient(
     -45deg,
@@ -509,16 +518,16 @@ group_status_to_color = {
 }
 
 
-def _pct_change(current: int, previous: int) -> str | None:
-    """Returns a formatted string like '▲ 50%' or '▼ 25%', or None if not meaningful."""
+def _pct_change(current: int, previous: int) -> dict[str, str] | None:
     if previous == 0:
         return None
     change = (current - previous) / previous
     pct = round(change * 100)
     if pct == 0:
         return None
-    arrow = "▲" if change > 0 else "▼"
-    return f"{arrow} {abs(pct)}%"
+    if change > 0:
+        return {"arrow": "↑", "pct": f"{abs(pct)}%", "bg_color": "#F9F0D2", "text_color": "#A45200"}
+    return {"arrow": "↓", "pct": f"{abs(pct)}%", "bg_color": "#E3F7E3", "text_color": "#008900"}
 
 
 def get_group_status_badge(group: Group) -> tuple[str, str, str]:
@@ -606,33 +615,25 @@ def render_template_context(
     # number of accepted errors/transactions for each project.
     def trends():
         # Given an iterator of event counts, sum up their accepted errors/transaction counts.
-        def sum_event_counts(project_ctxs):
-            event_counts = [
-                (
-                    project_ctx.accepted_error_count,
-                    project_ctx.accepted_transaction_count,
-                )
-                for project_ctx in project_ctxs
-            ]
-            return tuple(sum(event[i] for event in event_counts) for i in range(2))
+        def sum_error_counts(project_ctxs):
+            return sum(project_ctx.accepted_error_count for project_ctx in project_ctxs)
 
         # Highest volume projects go first
         projects_associated_with_user = sorted(
             user_projects,
             reverse=True,
-            key=lambda item: item.accepted_error_count + (item.accepted_transaction_count / 10),
+            key=lambda item: item.accepted_error_count,
         )
         # Calculate total
-        (
-            total_error,
-            total_transaction,
-        ) = sum_event_counts(projects_associated_with_user)
+        total_error = sum_error_counts(projects_associated_with_user)
 
         # The number of reports to keep is the same as the number of colors
         # available to use in the legend.
         projects_taken = projects_associated_with_user[: len(project_breakdown_colors)]
         # All other items are merged to "Others"
         projects_not_taken = projects_associated_with_user[len(project_breakdown_colors) :]
+
+        total_issue = sum(p.total_substatus_count for p in projects_associated_with_user)
 
         # Calculate legend
         legend: list[dict[str, Any]] = [
@@ -643,22 +644,27 @@ def render_template_context(
                 ),
                 "color": project_breakdown_colors[i],
                 "accepted_error_count": project_ctx.accepted_error_count,
-                "accepted_transaction_count": project_ctx.accepted_transaction_count,
+                "new_substatus_count": project_ctx.new_substatus_count,
+                "escalating_substatus_count": project_ctx.escalating_substatus_count,
+                "regression_substatus_count": project_ctx.regression_substatus_count,
             }
             for i, project_ctx in enumerate(projects_taken)
         ]
 
         if len(projects_not_taken) > 0:
-            (
-                others_error,
-                others_transaction,
-            ) = sum_event_counts(projects_not_taken)
+            others_error = sum_error_counts(projects_not_taken)
             legend.append(
                 {
                     "slug": f"Other ({len(projects_not_taken)})",
                     "color": other_color,
                     "accepted_error_count": others_error,
-                    "accepted_transaction_count": others_transaction,
+                    "new_substatus_count": sum(p.new_substatus_count for p in projects_not_taken),
+                    "escalating_substatus_count": sum(
+                        p.escalating_substatus_count for p in projects_not_taken
+                    ),
+                    "regression_substatus_count": sum(
+                        p.regression_substatus_count for p in projects_not_taken
+                    ),
                 }
             )
         if len(projects_taken) > 1:
@@ -667,7 +673,15 @@ def render_template_context(
                     "slug": f"Total ({len(projects_associated_with_user)})",
                     "color": total_color,
                     "accepted_error_count": total_error,
-                    "accepted_transaction_count": total_transaction,
+                    "new_substatus_count": sum(
+                        p.new_substatus_count for p in projects_associated_with_user
+                    ),
+                    "escalating_substatus_count": sum(
+                        p.escalating_substatus_count for p in projects_associated_with_user
+                    ),
+                    "regression_substatus_count": sum(
+                        p.regression_substatus_count for p in projects_associated_with_user
+                    ),
                 }
             )
 
@@ -679,7 +693,7 @@ def render_template_context(
                 {
                     "color": project_breakdown_colors[i],
                     "error_count": project_ctx.error_count_by_day.get(t, 0),
-                    "transaction_count": project_ctx.transaction_count_by_day.get(t, 0),
+                    "issue_count": project_ctx.issue_count_by_day.get(t, 0),
                 }
                 for i, project_ctx in enumerate(projects_taken)
             ]
@@ -691,8 +705,8 @@ def render_template_context(
                             project_ctx.error_count_by_day.get(t, 0)
                             for project_ctx in projects_not_taken
                         ),
-                        "transaction_count": sum(
-                            project_ctx.transaction_count_by_day.get(t, 0)
+                        "issue_count": sum(
+                            project_ctx.issue_count_by_day.get(t, 0)
                             for project_ctx in projects_not_taken
                         ),
                     }
@@ -701,22 +715,22 @@ def render_template_context(
         prev_week_error = sum(
             p.prev_week_accepted_error_count for p in projects_associated_with_user
         )
-        prev_week_transaction = sum(
-            p.prev_week_accepted_transaction_count for p in projects_associated_with_user
+        prev_week_issue = sum(
+            p.prev_week_total_substatus_count for p in projects_associated_with_user
         )
 
         return {
             "legend": legend,
             "series": series,
             "total_error_count": total_error,
-            "total_transaction_count": total_transaction,
+            "total_issue_count": total_issue,
             "error_pct_change": _pct_change(total_error, prev_week_error),
-            "transaction_pct_change": _pct_change(total_transaction, prev_week_transaction),
+            "issue_pct_change": _pct_change(total_issue, prev_week_issue),
             "error_maximum": max(  # The max error count on any single day
                 sum(value["error_count"] for value in values) for timestamp, values in series
             ),
-            "transaction_maximum": max(  # The max transaction count on any single day
-                sum(value["transaction_count"] for value in values) for timestamp, values in series
+            "issue_maximum": max(  # The max issue count on any single day
+                sum(value["issue_count"] for value in values) for timestamp, values in series
             ),
         }
 
@@ -814,6 +828,20 @@ def render_template_context(
 
     show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
 
+    errors_discover_query = urlencode(
+        [
+            ("field", "title"),
+            ("field", "event.type"),
+            ("field", "project"),
+            ("field", "user.display"),
+            ("field", "timestamp"),
+            ("dataset", "errors"),
+            ("sort", "-timestamp"),
+            ("referrer", "weekly_report"),
+            ("notification_uuid", notification_uuid),
+        ]
+    )
+
     return {
         "organization": ctx.organization,
         "start": date_format(local_start),
@@ -826,10 +854,12 @@ def render_template_context(
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
+        "errors_discover_query": errors_discover_query,
         "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
         "show_week_over_week_metric": features.has(
             "organizations:weekly-report-week-over-week-metric", ctx.organization
         ),
+        "notification_settings_link": "/settings/account/notifications/reports/",
     }
 
 

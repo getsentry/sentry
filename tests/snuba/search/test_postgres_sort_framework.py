@@ -287,7 +287,7 @@ class TestExecutePostgresSort(PostgresSortTestBase):
     def test_signal_resolver_influences_score(self):
         boosted = self.groups[0].id
         strategy = _ts_strategy(
-            signal_resolvers={"boost": lambda actor, org, gids: {boosted: 1}},
+            signal_resolvers={"boost": lambda actor, org, projects, gids: {boosted: 1}},
             score_fn=lambda data: data.get("boost", 0) * 10**15 + data["ts"].timestamp(),
         )
         with _patch_pg_strategies({"test_sort": strategy}):
@@ -579,6 +579,13 @@ class TestDefaultPostgresSortStrategies(TestCase):
         assert strategy.snuba_aggregations == ["recommended"]
         assert strategy.exclude_null_postgres is False
         assert set(strategy.signal_resolvers) == {"assignment", "suspect_commit", "agent"}
+
+    def test_recommended_v2_zero_weight_drops_signal_resolver(self):
+        # A zeroed weight can't affect the score, so the strategy must not pay for that
+        # signal's query.
+        with self.options({"snuba.search.recommended.agent-weight": 0.0}):
+            strategy = PostgresSnubaQueryExecutor().postgres_sort_strategies["recommended_v2"]
+        assert set(strategy.signal_resolvers) == {"assignment", "suspect_commit"}
 
     def test_progress_registered(self):
         strategies = PostgresSnubaQueryExecutor().postgres_sort_strategies

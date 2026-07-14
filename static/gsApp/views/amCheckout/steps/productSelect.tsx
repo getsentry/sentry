@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Badge, Tag} from '@sentry/scraps/badge';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconCheckmark, IconSeer, IconWarning} from 'sentry/icons';
@@ -114,7 +114,7 @@ export function ProductSelect({
             },
           };
           return (
-            <Flex direction="column" gap="xl" key={apiName}>
+            <Stack gap="xl" key={apiName}>
               <CheckoutOption
                 ariaLabel={ariaLabel}
                 dataTestId={`product-option-${apiName}`}
@@ -159,7 +159,7 @@ export function ProductSelect({
                   </Flex>
                 }
                 optionDescription={
-                  <Flex direction="column" gap="xl" paddingTop="xl">
+                  <Stack gap="xl" paddingTop="xl">
                     {Object.entries(SUBCATEGORY_TEXT).map(([category, info]) => {
                       const pricingInfo =
                         activePlan.planCategories[category as DataCategory];
@@ -184,7 +184,7 @@ export function ProductSelect({
                           <Flex align="center" marginTop="2xs">
                             <IconCheckmark variant="success" />
                           </Flex>
-                          <Flex direction="column" gap="xs">
+                          <Stack gap="xs">
                             <Text size="md">
                               {getSingularCategoryName({
                                 plan: activePlan,
@@ -198,22 +198,22 @@ export function ProductSelect({
                             <Text size="md" variant="muted">
                               {info.description}
                             </Text>
-                          </Flex>
+                          </Stack>
                         </FeatureItem>
                       );
                     })}
-                  </Flex>
+                  </Stack>
                 }
                 withDivider
               />
-            </Flex>
+            </Stack>
           );
         }
 
         if (apiName === AddOnCategory.SEER) {
           const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
           return (
-            <Flex direction="column" gap="xl" key={apiName}>
+            <Stack gap="xl" key={apiName}>
               <Flex gap="sm" align="start">
                 <Badge variant="new">{t('New')}</Badge>
                 <Heading as="h2" textWrap="pretty">
@@ -252,11 +252,7 @@ export function ProductSelect({
                   </Flex>
                 }
                 optionDescription={
-                  <Flex
-                    direction="column"
-                    gap="lg"
-                    data-test-id="product-option-description"
-                  >
+                  <Stack gap="lg" data-test-id="product-option-description">
                     <Text variant="muted">
                       {hasGitLabSupport
                         ? t(
@@ -266,7 +262,7 @@ export function ProductSelect({
                             'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
                           )}
                     </Text>
-                    <Flex direction="column" gap="xs">
+                    <Stack gap="xs">
                       <Text variant="muted">
                         {t(
                           'Setup required: connect repositories after adding to your plan.'
@@ -275,12 +271,12 @@ export function ProductSelect({
                       <Text variant="muted">
                         {t('Billed at month-end and varies with active contributors.')}
                       </Text>
-                    </Flex>
-                  </Flex>
+                    </Stack>
+                  </Stack>
                 }
                 withDivider
               />
-            </Flex>
+            </Stack>
           );
         }
         return null;

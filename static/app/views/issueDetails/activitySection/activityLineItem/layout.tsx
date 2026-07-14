@@ -2,6 +2,7 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 export type ActivityLineVariant = 'compact' | 'full';
 
@@ -13,6 +14,7 @@ interface ActivityLineRowProps {
 interface ActivityLineHeadlineProps {
   timestamp: React.ReactNode;
   title: React.ReactNode;
+  variant: ActivityLineVariant;
   actions?: React.ReactNode;
   details?: React.ReactNode;
 }
@@ -30,22 +32,35 @@ export function ActivityLineHeadline({
   details,
   timestamp,
   actions,
+  variant,
 }: ActivityLineHeadlineProps) {
   return (
     <Flex
       column={3}
       row={1}
       minWidth={0}
-      minHeight={22}
+      minHeight="22px"
       align="center"
       wrap="wrap"
       gap="xs"
     >
-      <ActivityLineTitle>{title}</ActivityLineTitle>
+      <ActivityLineTitleText
+        as="span"
+        bold
+        data-compact={variant === 'compact' ? true : undefined}
+        density="comfortable"
+        wordBreak="break-word"
+      >
+        {title}
+      </ActivityLineTitleText>
       {details && <ActivityLineDetails>{details}</ActivityLineDetails>}
       <ActivityLineMeta>
-        <ActivityLineMutedText>&bull;</ActivityLineMutedText>
-        <ActivityLineTimestamp>{timestamp}</ActivityLineTimestamp>
+        <Text as="span" variant="muted" density="comfortable">
+          &bull;
+        </Text>
+        <Text as="span" variant="muted" density="comfortable" wrap="nowrap">
+          {timestamp}
+        </Text>
         {actions}
       </ActivityLineMeta>
     </Flex>
@@ -87,35 +102,27 @@ const CompactActivityLineRow = styled('div')`
   column-gap: ${p => p.theme.space.sm};
 `;
 
+const ActivityLineTitleText = styled(Text)`
+  min-width: 0;
+  overflow-wrap: anywhere;
+
+  &[data-compact='true'] {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+`;
+
 const ActivityLineDetails = styled('span')`
-  display: contents;
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.md};
   line-height: 1.4;
   overflow-wrap: anywhere;
   word-break: break-word;
-`;
-
-const ActivityLineTitle = styled('span')`
-  color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  line-height: 1.6;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-`;
-
-const ActivityLineMutedText = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.md};
-  line-height: 1.4;
-`;
-
-const ActivityLineTimestamp = styled('span')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  line-height: 1.4;
-  white-space: nowrap;
+  /* Trim the line box so the text lines up with the title and timestamp. */
+  text-box-edge: text text;
+  text-box-trim: trim-both;
 `;
 
 const ActivityLineMeta = styled('span')`

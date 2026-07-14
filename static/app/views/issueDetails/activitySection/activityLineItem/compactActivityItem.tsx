@@ -16,7 +16,6 @@ import type {PullRequest} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
-import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
 import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
@@ -25,6 +24,9 @@ import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
 import {getAssignedActivityItem} from './compactActivityItem/assignment';
 import {getResolvedInCommitDetails} from './compactActivityItem/commitDetails';
+import {getIntegrationLink} from './compactActivityItem/integrationLink';
+import {getProviderName} from './compactActivityItem/provider';
+import {getResolvedInReleaseDetails} from './compactActivityItem/releaseDetails';
 import type {CompactGroupActivityItem} from './compactActivityItem/types';
 
 export type {CompactGroupActivityItem} from './compactActivityItem/types';
@@ -47,24 +49,6 @@ function getAuthorName(item: GroupActivity) {
   return 'Sentry';
 }
 
-function getProviderName(provider: null | string | undefined) {
-  const normalized = provider?.toLowerCase();
-
-  if (!normalized) {
-    return t('Git provider');
-  }
-  if (normalized.includes('github')) {
-    return t('GitHub');
-  }
-  if (normalized.includes('gitlab')) {
-    return t('GitLab');
-  }
-  if (normalized.includes('bitbucket')) {
-    return t('Bitbucket');
-  }
-  return provider;
-}
-
 function getPullRequestProvider(pullRequest: PullRequest) {
   return getProviderName(
     pullRequest.repository.provider?.name ?? pullRequest.repository.provider?.id
@@ -85,34 +69,6 @@ function formatAutoResolveAge(age: number | string | undefined) {
   return precision === 'day'
     ? tn('%s day', '%s days', count)
     : tn('%s hour', '%s hours', count);
-}
-
-function getIntegrationLink({
-  data,
-  organization,
-}: {
-  data: Record<PropertyKey, unknown>;
-  organization: Organization;
-}) {
-  const integrationId = data.integration_id;
-  const providerKey = data.provider_key;
-  const provider = data.provider;
-
-  if (
-    (typeof integrationId !== 'string' && typeof integrationId !== 'number') ||
-    typeof providerKey !== 'string' ||
-    typeof provider !== 'string'
-  ) {
-    return null;
-  }
-
-  return (
-    <Link
-      to={`/settings/${organization.slug}/integrations/${providerKey}/${integrationId}/`}
-    >
-      {provider}
-    </Link>
-  );
 }
 
 function getIgnoredDetails(
@@ -254,11 +210,8 @@ export function getCompactGroupActivityItem({
       return {
         title: t('Issue resolved'),
         details: integrationLink
-          ? tct('by [author] via [integration]', {
-              author,
-              integration: integrationLink,
-            })
-          : tct('by [author]', {author}),
+          ? tct('via [integration]', {integration: integrationLink})
+          : undefined,
       };
     }
     case GroupActivityType.SET_RESOLVED_BY_AGE: {
@@ -271,66 +224,9 @@ export function getCompactGroupActivityItem({
       };
     }
     case GroupActivityType.SET_RESOLVED_IN_RELEASE: {
-      const integrationLink = getIntegrationLink({data: activity.data, organization});
-      const integrationDetails = integrationLink
-        ? tct(' via [integration]', {integration: integrationLink})
-        : null;
-
-      if ('current_release_version' in activity.data) {
-        const currentVersion = activity.data.current_release_version;
-        return {
-          title: t('Issue resolved'),
-          details: (
-            <Fragment>
-              {tct('in releases greater than [version] [semver]', {
-                version: (
-                  <ActivityRelease
-                    organization={organization}
-                    project={project}
-                    version={currentVersion}
-                  />
-                ),
-                semver: isSemverRelease(currentVersion)
-                  ? t('(semver)')
-                  : t('(non-semver)'),
-              })}
-              {integrationDetails}
-            </Fragment>
-          ),
-        };
-      }
-
-      if (activity.data.version) {
-        return {
-          title: t('Issue resolved'),
-          details: (
-            <Fragment>
-              {tct('in [version] [semver]', {
-                version: (
-                  <ActivityRelease
-                    organization={organization}
-                    project={project}
-                    version={activity.data.version}
-                  />
-                ),
-                semver: isSemverRelease(activity.data.version)
-                  ? t('(semver)')
-                  : t('(non-semver)'),
-              })}
-              {integrationDetails}
-            </Fragment>
-          ),
-        };
-      }
-
       return {
         title: t('Issue resolved'),
-        details: (
-          <Fragment>
-            {t('in the upcoming release')}
-            {integrationDetails}
-          </Fragment>
-        ),
+        details: getResolvedInReleaseDetails(activity, organization, project),
       };
     }
     case GroupActivityType.SET_RESOLVED_IN_COMMIT:
@@ -338,19 +234,30 @@ export function getCompactGroupActivityItem({
         title: t('Issue resolved'),
         details: getResolvedInCommitDetails(activity, organization, project),
       };
-    case GroupActivityType.REFERENCED_IN_COMMIT:
+    case GroupActivityType.REFERENCED_IN_COMMIT: {
+      const commit = activity.data.commit;
+      if (!commit) {
+        return {title: t('Referenced in commit')};
+      }
+
       return {
-        title: t('Commit created'),
-        details: activity.data.commit
-          ? tct('on [provider] [commit]', {
-              commit: <CommitChip commit={activity.data.commit} />,
+        title: t('Referenced in commit'),
+        details: (
+          <Fragment>
+            {tct('on [provider] [commit]', {
+              commit: <CommitChip commit={commit} />,
               provider: getProviderName(
-                activity.data.commit.repository?.provider?.name ??
-                  activity.data.commit.repository?.provider?.id
+                commit.repository?.provider?.name ?? commit.repository?.provider?.id
               ),
-            })
-          : t('in a commit'),
+            })}
+            {commit.pullRequest &&
+              tct(' via [pullRequest]', {
+                pullRequest: <PullRequestChip pullRequest={commit.pullRequest} />,
+              })}
+          </Fragment>
+        ),
       };
+    }
     case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST: {
       const pullRequest = activity.data.pullRequest;
       return {
@@ -360,23 +267,20 @@ export function getCompactGroupActivityItem({
               provider: getPullRequestProvider(pullRequest),
               pullRequest: <PullRequestChip pullRequest={pullRequest} />,
             })
-          : t('in a pull request'),
+          : null,
       };
     }
     case GroupActivityType.PULL_REQUEST_CLOSED: {
       const pullRequest = activity.data.pullRequest;
       return {
-        title: t('Pull Request closed'),
+        title: t('Pull request closed'),
         details: pullRequest
           ? tct('by [author] on [provider] [pullRequest]', {
               author,
               provider: getPullRequestProvider(pullRequest),
               pullRequest: <PullRequestChip pullRequest={pullRequest} />,
             })
-          : tct('by [author]. [pullRequest]', {
-              author,
-              pullRequest: t('PR not available'),
-            }),
+          : tct('by [author]', {author}),
       };
     }
     case GroupActivityType.SET_UNRESOLVED: {
@@ -392,12 +296,9 @@ export function getCompactGroupActivityItem({
 
       const integrationLink = getIntegrationLink({data: activity.data, organization});
       return {
-        title: t('Unresolved'),
+        title: t('Issue unresolved'),
         details: integrationLink
-          ? tct('by [author] via [integration]', {
-              author,
-              integration: integrationLink,
-            })
+          ? tct('via [integration]', {integration: integrationLink})
           : null,
       };
     }
@@ -411,13 +312,11 @@ export function getCompactGroupActivityItem({
       };
     case GroupActivityType.SET_PUBLIC:
       return {
-        title: t('Made public'),
-        details: tct('by [author]', {author}),
+        title: t('Issue made public'),
       };
     case GroupActivityType.SET_PRIVATE:
       return {
-        title: t('Made private'),
-        details: tct('by [author]', {author}),
+        title: t('Issue made private'),
       };
     case GroupActivityType.SET_REGRESSION: {
       const {data} = activity;
@@ -454,13 +353,16 @@ export function getCompactGroupActivityItem({
                 />
               ),
             })
-          : tct('by [author]', {author}),
+          : undefined,
         subtext: comparison,
       };
     }
     case GroupActivityType.CREATE_ISSUE:
       return {
-        title: activity.data.new === false ? t('Linked Issue') : t('Created Issue'),
+        title:
+          activity.data.new === false
+            ? t('External issue linked')
+            : t('External issue created'),
         details: tct('on [provider] [title]', {
           provider: activity.data.provider,
           title: (
@@ -476,20 +378,18 @@ export function getCompactGroupActivityItem({
       return {
         title: t('Merged'),
         details: tn(
-          '%1$s issue into this issue by %2$s',
-          '%1$s issues into this issue by %2$s',
-          activity.data.issues.length,
-          author
+          '%s issue into this issue',
+          '%s issues into this issue',
+          activity.data.issues.length
         ),
       };
     case GroupActivityType.UNMERGE_SOURCE:
       return {
         title: t('Unmerged'),
         details: tn(
-          '%1$s fingerprint to %3$s by %2$s',
-          '%1$s fingerprints to %3$s by %2$s',
+          '%1$s fingerprint to %2$s',
+          '%1$s fingerprints to %2$s',
           activity.data.fingerprints.length,
-          author,
           activity.data.destination ? (
             <Link
               to={`${issuesLink}${activity.data.destination.id}?referrer=group-activity-unmerged-source`}
@@ -505,10 +405,9 @@ export function getCompactGroupActivityItem({
       return {
         title: t('Unmerged'),
         details: tn(
-          '%1$s fingerprint from %3$s by %2$s',
-          '%1$s fingerprints from %3$s by %2$s',
+          '%1$s fingerprint from %2$s',
+          '%1$s fingerprints from %2$s',
           activity.data.fingerprints.length,
-          author,
           activity.data.source ? (
             <Link
               to={`${issuesLink}${activity.data.source.id}?referrer=group-activity-unmerged-destination`}
@@ -530,30 +429,25 @@ export function getCompactGroupActivityItem({
           : null,
       };
     case GroupActivityType.ASSIGNED:
-      return getAssignedActivityItem({activity, author});
+      return getAssignedActivityItem({activity});
     case GroupActivityType.UNASSIGNED:
       return {
-        title: t('Unassigned'),
-        details: tct('by [author]', {author}),
+        title: t('Issue unassigned'),
       };
     case GroupActivityType.REPROCESS:
       return {
-        title: t('Reprocessed events'),
-        details: tct('by [author]. [newEvents]', {
-          author,
-          newEvents: (
-            <Link
-              to={`/organizations/${organization.slug}/issues/?query=reprocessing.original_issue_id:${activity.data.oldGroupId}&referrer=group-activity-reprocesses`}
-            >
-              {tn('See %s new event', 'See %s new events', activity.data.eventCount)}
-            </Link>
-          ),
-        }),
+        title: t('Events reprocessed'),
+        details: (
+          <Link
+            to={`/organizations/${organization.slug}/issues/?query=reprocessing.original_issue_id:${activity.data.oldGroupId}&referrer=group-activity-reprocesses`}
+          >
+            {tn('See %s new event', 'See %s new events', activity.data.eventCount)}
+          </Link>
+        ),
       };
     case GroupActivityType.MARK_REVIEWED:
       return {
         title: t('Issue reviewed'),
-        details: tct('by [author]', {author}),
       };
     case GroupActivityType.AUTO_SET_ONGOING:
       return {
@@ -575,7 +469,6 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.DELETED_ATTACHMENT:
       return {
         title: t('Attachment deleted'),
-        details: tct('by [author]', {author}),
       };
     case GroupActivityType.SEER_RCA_STARTED:
       return {
@@ -615,12 +508,12 @@ export function getCompactGroupActivityItem({
     }
     case GroupActivityType.SEER_ITERATION_STARTED:
       return {
-        title: t('PR iteration started'),
+        title: t('Pull request iteration started'),
       };
     case GroupActivityType.SEER_ITERATION_COMPLETED: {
       const pullRequest = activity.data.pull_requests?.[0];
       return {
-        title: t('Pull Request updated'),
+        title: t('Pull request updated'),
         details: pullRequest
           ? tct('on [provider] [pullRequest]', {
               provider: getProviderName(pullRequest.provider),

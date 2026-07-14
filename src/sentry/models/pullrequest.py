@@ -65,6 +65,13 @@ class PullRequestVerdict(models.TextChoices):
     # event won't forward twice; Seer's callback overwrites it with a real verdict.
     # Never a judge *result* — the callback rejects it coming back from Seer.
     JUDGE_IN_PROGRESS = "judge_in_progress"
+    # Transient, internal: a terminal event has been claimed at the close/merge
+    # webhook and an emission task scheduled, but the cooldown window (during which
+    # late attribution and activity settle) hasn't elapsed yet. Reuses the verdict
+    # column as the redelivery guard so a redelivered terminal event won't schedule
+    # a second task; the cooldown task overwrites it with a real verdict (or the
+    # JUDGE_IN_PROGRESS sentinel). Never a judge *result*.
+    WAITING_EVENT_COOLDOWN = "waiting_event_cooldown"
 
 
 # SCM providers that can legitimately back a Repository. A reporting source (Seer, a
@@ -387,6 +394,7 @@ class PullRequestActivityType(models.TextChoices):
     AUTO_MERGE_ENABLED = "auto_merge_enabled"
     CHECK_RUN_COMPLETED = "check_run_completed"
     CHECK_SUITE_COMPLETED = "check_suite_completed"
+    CLOSED = "closed"
     COMMENT_CREATED = "comment_created"
     COMMENT_DELETED = "comment_deleted"
     COMMENT_EDITED = "comment_edited"
@@ -395,6 +403,7 @@ class PullRequestActivityType(models.TextChoices):
     ENQUEUED = "enqueued"
     LABELED = "labeled"
     LOCKED = "locked"
+    MERGED = "merged"
     OPENED = "opened"
     READY_FOR_REVIEW = "ready_for_review"
     REVIEW_DISMISSED = "review_dismissed"
@@ -453,13 +462,12 @@ class PullRequestAttribution(DefaultFieldsModel):
 
 @cell_silo_model
 class PullRequestMetrics(DefaultFieldsModel):
-    """One row per PR holding the webhook-sourced activity counters.
+    """One row per PR holding its metrics — the size/activity counters plus the
+    terminal ``verdict``.
 
     Kept current by the metrics pipeline on each ``pull_request`` webhook and read
-    by the emit/judge path (which, on the Seer callback, has no payload — hence
-    the counts are stored rather than re-derived). ``verdict`` and the Seer-only
-    counters (``participants_count``, ``reviews_count``) are populated later by
-    the judge path, not the webhook.
+    by the emit/judge path — which, on the Seer callback, has no payload, so the
+    values are stored here rather than re-derived at read time.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -477,6 +485,22 @@ class PullRequestMetrics(DefaultFieldsModel):
     participants_count = BoundedPositiveIntegerField(default=0)
     reviews_count = BoundedPositiveIntegerField(default=0)
     is_assigned = models.BooleanField(default=False)
+    # Human-involvement splits derived from the activity log at the terminal event
+    # (see ``pr_metrics.emit``). ``reviews_count`` = reviews_bot_count +
+    # reviews_human_count. Pushes count push events (opened + synchronize), not
+    # individual commits, split by the pusher's account class. All 0 when activity
+    # isn't tracked.
+    reviews_bot_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    reviews_human_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    pushes_bot_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    pushes_human_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    # Who opened / closed the PR, by account class: True = Bot, False = human, null
+    # = the event was never recorded (activity not tracked, or a missed webhook).
+    # ``opened_and_closed_by_same_actor`` compares the opener's and closer's logins;
+    # null when either side is unknown.
+    opened_by_bot = models.BooleanField(null=True)
+    closed_by_bot = models.BooleanField(null=True)
+    opened_and_closed_by_same_actor = models.BooleanField(null=True)
 
     class Meta:
         app_label = "sentry"

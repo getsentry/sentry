@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
@@ -50,7 +50,7 @@ export function ScmMessagingIntegrationAlertRule(props: IssueAlertNotificationPr
   }
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       {providerDetails[provider as keyof typeof providerDetails]?.makeSentence({
         providerName: (
           <FullWidthSelect
@@ -94,7 +94,7 @@ export function ScmMessagingIntegrationAlertRule(props: IssueAlertNotificationPr
           </ChannelField>
         ),
       })}
-    </Flex>
+    </Stack>
   );
 }
 

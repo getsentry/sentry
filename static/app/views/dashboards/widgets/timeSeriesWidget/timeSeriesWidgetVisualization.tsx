@@ -10,7 +10,7 @@ import type {
 import sum from 'lodash/sum';
 import unescape from 'lodash/unescape';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
@@ -32,6 +32,7 @@ import type {
   ReactEchartsRef,
 } from 'sentry/types/echarts';
 import {escape} from 'sentry/utils';
+import {getUserTimezone} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -54,6 +55,7 @@ import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
 import type {Plottable} from './plottables/plottable';
 import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
+import {generateTimezoneAlignedTicks} from './generateTimezoneAlignedTicks';
 import {ReleaseSeries} from './releaseSeries';
 import {FALLBACK_TYPE} from './settings';
 import {TimeSeriesWidgetYAxis} from './timeSeriesWidgetYAxis';
@@ -87,11 +89,6 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
    */
   legendSelection?: LegendSelection;
-
-  /**
-   * Whether new options fully replace previous chart options.
-   */
-  notMerge?: boolean;
 
   /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
@@ -356,6 +353,16 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     .toSorted((a, b) => a - b);
   const earliestTimeStamp = allBoundaries.at(0);
   const latestTimeStamp = allBoundaries.at(-1);
+  const bubbleReleases = useMemo(
+    () =>
+      hasReleaseBubbles
+        ? props.releases?.map(({timestamp, version}) => ({
+            date: timestamp,
+            version,
+          }))
+        : [],
+    [hasReleaseBubbles, props.releases]
+  );
 
   const {
     connectReleaseBubbleChartRef,
@@ -367,9 +374,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     chartId: props.id,
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
-    releases: hasReleaseBubbles
-      ? props.releases?.map(({timestamp, version}) => ({date: timestamp, version}))
-      : [],
+    releases: bubbleReleases,
+    legendSelected:
+      props.legendSelection === undefined
+        ? undefined
+        : props.legendSelection.Releases !== false,
     yAxisIndex: yAxes.length,
   });
 
@@ -432,17 +441,46 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const showXAxisProp = props.showXAxis ?? 'auto';
   const showXAxis = showXAxisProp === 'auto';
 
+  const timezone = utc ? 'UTC' : getUserTimezone();
+  const customTicks = useMemo(() => {
+    if (earliestTimeStamp === undefined || latestTimeStamp === undefined) {
+      return;
+    }
+    return generateTimezoneAlignedTicks(
+      earliestTimeStamp,
+      latestTimeStamp,
+      X_AXIS_SPLIT_NUMBER,
+      timezone
+    );
+  }, [earliestTimeStamp, latestTimeStamp, timezone]);
+
+  const hasCustomTicks = customTicks && customTicks.length > 0;
+
   const xAxis = showXAxis
     ? {
         animation: false,
+        type: 'value' as const,
+        min: 'dataMin' as const,
+        max: 'dataMax' as const,
         axisLabel: {
           padding: [0, 10, 0, 10],
-          width: 60,
           formatter: (value: number) => {
-            return formatXAxisTimestamp(value, {utc: utc ?? undefined});
+            return formatXAxisTimestamp(value, timezone);
           },
+          ...(hasCustomTicks
+            ? // With `customValues`, `showMinLabel`/`showMaxLabel` govern the
+              // first and last custom tick. ECharts auto-hides them when it
+              // thinks they'd clip at the axis edge, so force both on.
+              {customValues: customTicks, showMinLabel: true, showMaxLabel: true}
+            : {}),
         },
-        splitNumber: 5,
+        axisTick: {
+          show: true,
+          ...(hasCustomTicks ? {customValues: customTicks} : {}),
+        },
+        // When customValues are provided, suppress auto-tick generation
+        // so ECharts only renders our timezone-aligned ticks.
+        splitNumber: hasCustomTicks ? 0 : X_AXIS_SPLIT_NUMBER,
         ...releaseBubbleXAxis,
       }
     : HIDDEN_AXIS;
@@ -511,6 +549,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     Record<string, boolean>
   >({});
   const legendSelection = props.legendSelection ?? localLegendSelection;
+  const normalizedLegendSelection = hasReleaseBubblesSeries
+    ? {...legendSelection, Releases: legendSelection.Releases !== false}
+    : legendSelection;
   const {onLegendSelectionChange} = props;
   const handleLegendSelectionChange = useCallback(
     (selection: Record<string, boolean>) => {
@@ -602,12 +643,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   return (
-    <Flex direction="column" height="100%">
+    <Stack height="100%">
       {ActionMenu}
       {showLegend && (
         <ChartLegend
           items={chartLegendItems}
-          selected={legendSelection}
+          selected={normalizedLegendSelection}
           onSelectionChange={handleLegendSelectionChange}
         />
       )}
@@ -615,8 +656,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         <BaseChart
           ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
           autoHeightResize
-          notMerge={props.notMerge}
-          replaceMerge={['series', 'xAxis', 'yAxis']}
           series={allSeries}
           grid={{
             // NOTE: Adding a few pixels of left padding prevents ECharts from
@@ -634,7 +673,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             showLegend
               ? {
                   show: false,
-                  selected: legendSelection,
+                  selected: normalizedLegendSelection,
                 }
               : undefined
           }
@@ -669,7 +708,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           onClick={handleClick}
         />
       </Container>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -703,6 +742,8 @@ function getPlottableEventDataIndex(
 }
 
 // Hide every part of the axis so ECharts will remove those elements and also
+const X_AXIS_SPLIT_NUMBER = 10;
+
 // remove the visual space they would take up if they were there.
 const HIDDEN_AXIS = {
   show: false,

@@ -121,6 +121,13 @@ function startExternalIssueFormSpan({
     scope.setTag('projectID', group.project.id);
     scope.setTag('integrationSlug', integration.provider.slug);
     scope.setTag('integrationType', 'firstParty');
+    scope.setAttributes({
+      issueAction: action,
+      groupID: group.id,
+      projectID: group.project.id,
+      integrationSlug: integration.provider.slug,
+      integrationType: 'firstParty',
+    });
     return Sentry.startInactiveSpan({
       name: `externalIssueForm.${type}`,
       forceTransaction: true,
@@ -369,7 +376,7 @@ export function ExternalIssueForm({
         gap="0 md"
         borderBottom="primary"
       >
-        <Flex area="content" direction="column" align="stretch" gap="lg" minWidth={0}>
+        <Stack area="content" align="stretch" gap="lg" minWidth={0}>
           <Heading as="h2">{title}</Heading>
           <Tabs value={action} onChange={handleClick} disableOverflow>
             <TabList>
@@ -377,7 +384,7 @@ export function ExternalIssueForm({
               <TabList.Item key="link">{t('Link')}</TabList.Item>
             </TabList>
           </Tabs>
-        </Flex>
+        </Stack>
         <Container area="close" justifySelf="center">
           <CloseButton />
         </Container>

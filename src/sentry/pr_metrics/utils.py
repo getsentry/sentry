@@ -20,6 +20,7 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestLifecycleState,
     PullRequestMetrics,
+    PullRequestVerdict,
 )
 
 _PR_ACTIVITY_ATTRIBUTION_BUFFER = timedelta(hours=30)
@@ -33,13 +34,18 @@ def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | N
 
     When ``pr`` is supplied, two additional per-PR checks apply in order:
 
-    1. If the PR's ``state`` is already terminal (``CLOSED``, ``MERGED``, or
-       ``SUPERSEDED``), no further activity is needed — this short-circuits
-       without any extra DB queries.
+    1. If the PR's ``state`` is ``SUPERSEDED``, no further activity is needed —
+       this short-circuits without any extra DB queries. ``CLOSED``/``MERGED`` are
+       deliberately *not* short-circuited: the close/merge webhook stamps the
+       terminal state before tracking runs, so the row that records *who* closed
+       the PR must still be written. The trade-off is that a stray event on an
+       already-terminal PR may also be recorded until the verdict is claimed —
+       an accepted cost for capturing the closer.
 
-    2. A verdict check runs next: if ``PullRequestMetrics`` exists with a
-       non-null verdict (terminal emit or ``JUDGE_IN_PROGRESS`` claim), no
-       further activity is needed.
+    2. A verdict check runs next: activity remains enabled while the verdict is
+       null or ``WAITING_EVENT_COOLDOWN`` so late check events can be captured.
+       All other non-null verdicts (including terminal verdicts and
+       ``JUDGE_IN_PROGRESS``) stop further activity.
 
     3. A time-based buffer gate applies last:
        - Within ``_PR_ACTIVITY_ATTRIBUTION_BUFFER`` (30 h) of ``pr.date_added``,
@@ -51,17 +57,14 @@ def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | N
         return False
 
     if pr is not None:
-        if pr.state in (
-            PullRequestLifecycleState.CLOSED,
-            PullRequestLifecycleState.MERGED,
-            PullRequestLifecycleState.SUPERSEDED,
-        ):
+        if pr.state == PullRequestLifecycleState.SUPERSEDED:
             return False
-        verdict_claimed = PullRequestMetrics.objects.filter(
-            pull_request=pr,
-            verdict__isnull=False,
-        ).exists()
-        if verdict_claimed:
+        verdict = (
+            PullRequestMetrics.objects.filter(pull_request=pr)
+            .values_list("verdict", flat=True)
+            .first()
+        )
+        if verdict is not None and verdict != PullRequestVerdict.WAITING_EVENT_COOLDOWN:
             return False
         if timezone.now() - pr.date_added <= _PR_ACTIVITY_ATTRIBUTION_BUFFER:
             return True

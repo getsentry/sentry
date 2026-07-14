@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -379,7 +379,7 @@ const TableRow = memo(function TableRow({
           )}
         </SubContent>
       </Cell>
-      <Flex direction="column" padding="xl xl md xl" gap="xs" style={{minWidth: 0}}>
+      <Stack padding="xl xl md xl" gap="xs" style={{minWidth: 0}}>
         <FirstCellLine align="center" height="32px">
           <Tooltip disabled={!permissionTooltip} title={permissionTooltip}>
             <PercentInput
@@ -401,7 +401,7 @@ const TableRow = memo(function TableRow({
             {t('previous: %s%%', initialSampleRate)}
           </Text>
         )}
-      </Flex>
+      </Stack>
     </TableRowWrapper>
   );
 });

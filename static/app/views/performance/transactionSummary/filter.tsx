@@ -2,7 +2,6 @@ import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import {SpanOpBreakdown} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import {decodeHistogramZoom} from './transactionOverview/latencyChart/utils';
@@ -16,16 +15,6 @@ export enum SpanOperationBreakdownFilter {
   RESOURCE = 'resource',
   UI = 'ui',
 }
-
-export const SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD: Partial<
-  Record<SpanOperationBreakdownFilter, string>
-> = {
-  [SpanOperationBreakdownFilter.HTTP]: SpanOpBreakdown.SPANS_HTTP,
-  [SpanOperationBreakdownFilter.DB]: SpanOpBreakdown.SPANS_DB,
-  [SpanOperationBreakdownFilter.BROWSER]: SpanOpBreakdown.SPANS_BROWSER,
-  [SpanOperationBreakdownFilter.RESOURCE]: SpanOpBreakdown.SPANS_RESOURCE,
-  [SpanOperationBreakdownFilter.UI]: SpanOpBreakdown.SPANS_UI,
-};
 
 export function filterToField(option: SpanOperationBreakdownFilter) {
   switch (option) {

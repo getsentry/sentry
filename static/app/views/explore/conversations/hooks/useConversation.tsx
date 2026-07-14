@@ -9,10 +9,12 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {hasGenAiConversationsRedesignFeature} from 'sentry/views/explore/conversations/utils/features';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {EAPSpanNodeDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span';
+import {AiSpanDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/aiSpanDetails';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
@@ -49,8 +51,10 @@ interface ConversationApiSpan {
   'gen_ai.response.object'?: string;
   'gen_ai.response.text'?: string;
   'gen_ai.tool.call.arguments'?: string;
+  'gen_ai.tool.call.result'?: string;
   'gen_ai.tool.input'?: string;
   'gen_ai.tool.name'?: string;
+  'gen_ai.tool.output'?: string;
   'gen_ai.usage.total_tokens'?: number;
   occurrences?: TraceTree.EAPOccurrence[];
   'span.description'?: string;
@@ -122,7 +126,9 @@ function createNodeFromApiSpan(
       [SpanFields.GEN_AI_AGENT_NAME]: apiSpan['gen_ai.agent.name'] ?? '',
       [SpanFields.GEN_AI_TOOL_NAME]: apiSpan['gen_ai.tool.name'] ?? '',
       'gen_ai.tool.call.arguments': apiSpan['gen_ai.tool.call.arguments'] ?? '',
+      'gen_ai.tool.call.result': apiSpan['gen_ai.tool.call.result'] ?? '',
       'gen_ai.tool.input': apiSpan['gen_ai.tool.input'] ?? '',
+      'gen_ai.tool.output': apiSpan['gen_ai.tool.output'] ?? '',
       [SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: apiSpan['gen_ai.usage.total_tokens'] ?? 0,
       [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: apiSpan['gen_ai.cost.total_tokens'] ?? 0,
       [SpanFields.SPAN_STATUS]: apiSpan['span.status'],
@@ -192,6 +198,9 @@ function createNodeFromApiSpan(
     findParentEapTransaction: () => null,
 
     renderDetails(props: TraceTreeNodeDetailsProps<AITraceSpanNode>) {
+      if (hasGenAiConversationsRedesignFeature(props.organization)) {
+        return <AiSpanDetails node={props.node} traceId={props.traceId} />;
+      }
       return <EAPSpanNodeDetails {...props} node={this as unknown as EapSpanNode} />;
     },
   };

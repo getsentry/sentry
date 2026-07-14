@@ -16,6 +16,7 @@ from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.constants import LOG_LEVELS
+from sentry.eventtypes import EventTypeStr
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import GroupCategory
@@ -123,7 +124,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     culprit: str | None
     permalink: str
     logger: str | None
-    level: str
+    level: GroupLevelStr
     status: GroupStatusStr
     statusDetails: GroupStatusDetailsResponseOptional
     substatus: GroupSubStatusStr | None
@@ -135,7 +136,7 @@ class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     seerAutofixLastTriggered: datetime | None
     seerExplorerAutofixLastTriggered: datetime | None
     project: GroupProjectResponse
-    type: str
+    type: EventTypeStr
     issueType: str
     issueCategory: str
     metadata: dict[str, Any]
@@ -229,7 +230,18 @@ def _get_substatus_label(group: Group) -> GroupSubStatusStr | None:
     return SUBSTATUS_TO_STR[group.substatus] if group.substatus else None
 
 
-def _get_level_label(group: Group):
+GroupLevelStr = Literal[
+    "sample",
+    "debug",
+    "info",
+    "warning",
+    "error",
+    "fatal",
+    "unknown",
+]
+
+
+def _get_level_label(group: Group) -> GroupLevelStr:
     return LOG_LEVELS.get(group.level, "unknown")
 
 
@@ -1185,12 +1197,12 @@ class SimpleGroupSerializerResponse(TypedDict):
     title: str
     culprit: str | None
     shortId: str | None
-    level: str
+    level: GroupLevelStr
     status: GroupStatusStr
     substatus: GroupSubStatusStr | None
     platform: str | None
     project: GroupProjectResponse
-    type: str
+    type: EventTypeStr
     issueType: str
     issueCategory: str
     metadata: dict[str, Any]

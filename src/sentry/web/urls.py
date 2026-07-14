@@ -52,7 +52,7 @@ from sentry.web.frontend.reactivate_account import ReactivateAccountView
 from sentry.web.frontend.release_webhook import ReleaseWebhookView
 from sentry.web.frontend.setup_wizard import SetupWizardView
 from sentry.web.frontend.shared_group_details import SharedGroupDetailsView
-from sentry.web.frontend.signup_email_verification import SignupEmailVerificationView
+from sentry.web.frontend.signup_verification_pending import SignupVerificationPendingView
 from sentry.web.frontend.sudo import SudoView
 from sentry.web.frontend.team_avatar import TeamAvatarPhotoView
 from sentry.web.frontend.twofactor import TwoFactorAuthView, u2f_appid
@@ -316,9 +316,9 @@ urlpatterns += [
                     name="sentry-register",
                 ),
                 re_path(
-                    r"^signup/verify-email/(?P<signed_data>[-A-Za-z0-9_]+)/$",
-                    SignupEmailVerificationView.as_view(),
-                    name="sentry-signup-verify-email",
+                    r"^signup/verify-email/$",
+                    SignupVerificationPendingView.as_view(),
+                    name="sentry-signup-verify-email-pending",
                 ),
                 re_path(
                     r"^close/$",
@@ -1235,12 +1235,6 @@ urlpatterns += [
         r"^organization-avatar/(?P<organization_slug>[^/]+)/(?P<avatar_id>[^/]+)/$",
         OrganizationAvatarPhotoView.as_view(),
         name="sentry-organization-avatar-url",
-    ),
-    # Deprecated because it lacks an organization slug
-    re_path(
-        r"^organization-avatar/(?P<avatar_id>[^/]+)/$",
-        OrganizationAvatarPhotoView.as_view(),
-        name="sentry-organization-avatar-url-deprecated",
     ),
     re_path(
         r"^team-avatar/(?P<organization_slug>[^/]+)/(?P<avatar_id>[^/]+)/$",

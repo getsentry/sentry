@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Collection
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Final
 
@@ -119,6 +120,40 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[SentryAppEventType]]] = 
 # per-event-type (issue.created, project.deleted, etc.). These are valid
 # resources a Sentry App may subscribe to.
 VALID_EVENT_RESOURCES = EVENT_EXPANSION.keys()
+EVENT_TO_RESOURCE: Final[dict[str, SentryAppResourceType]] = {
+    event: resource for resource, events in EVENT_EXPANSION.items() for event in events
+}
+
+# Renamed events were never migrated in stored subscriptions, so old and new
+# names are equivalent when matching an exact subscription.
+_LEGACY_EVENT_ALIASES: Final[dict[str, str]] = {
+    SentryAppEventType.ISSUE_IGNORED: SentryAppEventType.ISSUE_ARCHIVED,
+}
+
+
+def resource_of(event: str) -> SentryAppResourceType | None:
+    """The resource a subscribable event belongs to ("issue.resolved" -> ISSUE), else None."""
+    return EVENT_TO_RESOURCE.get(event)
+
+
+def has_granular_events(events: Collection[str] | None) -> bool:
+    """Whether any entry is an individual event rather than a whole resource."""
+    return any(event in EVENT_TO_RESOURCE for event in events or ())
+
+
+def is_subscribed(stored_events: Collection[str], event: str) -> bool:
+    """
+    Whether a stored subscription covers a fired event.
+
+    Only the exact event matches (plus its legacy alias, for installs that
+    stored the pre-rename name). Subscribing to a whole resource stores every
+    event it expands to, so resource-level subscriptions match all of that
+    resource's events by construction.
+    """
+    if resource_of(event) is None:
+        return False
+    alias = _LEGACY_EVENT_ALIASES.get(event)
+    return event in stored_events or (alias is not None and alias in stored_events)
 
 
 def find_alert_rule_action_ui_component(
