@@ -16,7 +16,6 @@ export function getActivityMarkerState(item: GroupActivity): ActivityMarkerState
     case GroupActivityType.SET_RESOLVED_BY_AGE:
     case GroupActivityType.SET_RESOLVED_IN_RELEASE:
     case GroupActivityType.SET_RESOLVED_IN_COMMIT:
-    case GroupActivityType.MARK_REVIEWED:
     case GroupActivityType.PULL_REQUEST_MERGED:
       return ProgressState.FIX_APPLIED;
     case GroupActivityType.SET_ESCALATING:
@@ -35,6 +34,7 @@ export function getActivityMarkerState(item: GroupActivity): ActivityMarkerState
     case GroupActivityType.SET_PRIORITY:
       return 'activity';
     case GroupActivityType.SET_REGRESSION:
+    case GroupActivityType.MARK_REVIEWED:
       return ProgressState.IDENTIFIED;
     case GroupActivityType.SET_IGNORED:
       return ProgressState.ASSIGNED;
