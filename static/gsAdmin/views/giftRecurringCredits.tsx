@@ -88,9 +88,18 @@ interface BillingConfig {
   category_info: Record<string, CategoryInfo>;
 }
 
+interface ExistingGift {
+  // Raw (storage-unit) amount, as stored on the credit; converted for display.
+  amount: number;
+  periodEnd: string;
+  periodStart: string;
+}
+
 interface ResultRow {
   code: string | null;
   creditId: number | null;
+  // The gift this one would overwrite, or null when there's nothing to replace.
+  existingGift: ExistingGift | null;
   id: number | null;
   periodEnd: string | null;
   periodStart: string | null;
@@ -108,6 +117,7 @@ function downloadResultsCsv(results: ResultRow[]) {
       plan: row.plan ?? '',
       status: row.status,
       code: row.code ?? '',
+      existing_gift: row.existingGift ? 'yes' : 'no',
       period_start: row.periodStart ?? '',
       period_end: row.periodEnd ?? '',
       credit_id: row.creditId ?? '',
@@ -129,6 +139,10 @@ export function GiftRecurringCredits() {
   const [orgTokens, setOrgTokens] = useState('');
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvFileName, setCsvFileName] = useState<string | null>(null);
+  const [ticketUrl, setTicketUrl] = useState('');
+  const [notes, setNotes] = useState('');
+  const [dryRun, setDryRun] = useState(true);
+  const [skipCurrentPeriod, setSkipCurrentPeriod] = useState(false);
   const [results, setResults] = useState<ResultRow[] | null>(null);
   // The region and per-period amount the last results were submitted with,
   // captured at submit time so the callout and the "new gift" column stay
@@ -210,18 +224,23 @@ export function GiftRecurringCredits() {
     ) {
       return null;
     }
+    // When the current period is skipped, every gifted period sits one month
+    // further out (the first gift is the next period, not this one).
     const row = (index: number) => {
+      const monthsOut = skipCurrentPeriod ? index + 1 : index;
       return {
         key: index,
         when:
-          index === 0
+          monthsOut === 0
             ? 'This billing period'
-            : index === 1
+            : monthsOut === 1
               ? 'Next billing period'
-              : `About ${index} months from now`,
+              : `About ${monthsOut} months from now`,
         detail:
           index === 0
-            ? 'starts now, applied immediately'
+            ? skipCurrentPeriod
+              ? 'the first gifted period'
+              : 'starts now, applied immediately'
             : index === billingPeriods - 1
               ? 'the last gifted period'
               : '',
@@ -241,7 +260,7 @@ export function GiftRecurringCredits() {
       hiddenCount: billingPeriods - 4,
       tailRow: row(billingPeriods - 1),
     };
-  }, [billingPeriods]);
+  }, [billingPeriods, skipCurrentPeriod]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -270,6 +289,7 @@ export function GiftRecurringCredits() {
     mutationFn: async () => {
       const region = cell?.name ?? null;
       const submittedAmount = amount ?? 0;
+      const submittedDryRun = dryRun;
       const formData = new FormData();
       if (csvFile) {
         formData.append('file', csvFile);
@@ -280,6 +300,10 @@ export function GiftRecurringCredits() {
       formData.append('dataCategory', dataCategory);
       formData.append('amount', String(Math.round((amount ?? 0) * multiplier)));
       formData.append('billingPeriods', String(billingPeriods));
+      formData.append('skipCurrentPeriod', String(skipCurrentPeriod));
+      formData.append('ticketUrl', ticketUrl);
+      formData.append('notes', notes);
+      formData.append('dryRun', String(dryRun));
       const response: {results: ResultRow[]} = await api.requestPromise(
         `/_admin/cells/${cell?.name}/gift-recurring-credits/`,
         {
@@ -293,6 +317,7 @@ export function GiftRecurringCredits() {
         region,
         submittedAmount,
         category: dataCategory,
+        dryRun: submittedDryRun,
       };
     },
     onSuccess: response => {
@@ -303,10 +328,14 @@ export function GiftRecurringCredits() {
       const errors = response.results.filter(row => row.status === 'error').length;
       if (errors > 0) {
         addErrorMessage(
-          `Gifting finished: ${errors} of ${response.results.length} orgs failed.`
+          `${response.dryRun ? 'Dry run' : 'Gifting'} finished: ${errors} of ${response.results.length} orgs failed.`
         );
       } else {
-        addSuccessMessage(`Gifted recurring credits to ${response.results.length} orgs.`);
+        addSuccessMessage(
+          response.dryRun
+            ? `Dry run passed for ${response.results.length} orgs.`
+            : `Gifted recurring credits to ${response.results.length} orgs.`
+        );
       }
     },
     onError: (error: unknown) => {
@@ -340,7 +369,8 @@ export function GiftRecurringCredits() {
     billingPeriods !== null &&
     Number.isInteger(billingPeriods) &&
     billingPeriods >= 1 &&
-    billingPeriods <= MAX_BILLING_PERIODS;
+    billingPeriods <= MAX_BILLING_PERIODS &&
+    notes.trim().length > 0;
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -411,6 +441,18 @@ export function GiftRecurringCredits() {
             setBillingPeriods(e.target.value === '' ? null : Number(e.target.value))
           }
         />
+        <CheckboxRow>
+          <input
+            type="checkbox"
+            id="skipCurrentPeriod"
+            name="skipCurrentPeriod"
+            checked={skipCurrentPeriod}
+            onChange={e => setSkipCurrentPeriod(e.target.checked)}
+          />
+          <label htmlFor="skipCurrentPeriod">
+            Skip the current billing period (start at the next period instead of now)
+          </label>
+        </CheckboxRow>
         {schedule && (
           <PreviewBox data-test-id="schedule-preview">
             <PreviewSummary>
@@ -418,9 +460,9 @@ export function GiftRecurringCredits() {
               {billingPeriods === 1 ? '' : 's'}.
             </PreviewSummary>
             <PreviewNote>
-              The current billing period is already in progress — the organization gets
-              the full amount for it right away, then again when each of the periods below
-              begins.
+              {skipCurrentPeriod
+                ? 'The current billing period is skipped — the first grant lands when the next billing period begins, then again at the start of each period below.'
+                : 'The current billing period is already in progress — the organization gets the full amount for it right away, then again when each of the periods below begins.'}
             </PreviewNote>
             <PreviewList>
               {schedule.rows.map(row => (
@@ -504,18 +546,62 @@ export function GiftRecurringCredits() {
             </UploadHint>
           )}
         </UploadRow>
+        <label htmlFor="ticketUrl">Ticket URL (optional):</label>
+        <Input
+          type="url"
+          id="ticketUrl"
+          name="ticketUrl"
+          value={ticketUrl}
+          onChange={e => setTicketUrl(e.target.value)}
+          placeholder="https://linear.app/getsentry/issue/…"
+        />
+        <label htmlFor="notes">Notes:</label>
+        <OrgTextarea
+          id="notes"
+          name="notes"
+          rows={2}
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          placeholder="Why these orgs are being gifted"
+        />
+        <CheckboxRow>
+          <input
+            type="checkbox"
+            id="dryRun"
+            name="dryRun"
+            checked={dryRun}
+            onChange={e => setDryRun(e.target.checked)}
+          />
+          <label htmlFor="dryRun">
+            Dry run (validate and preview per-org results without creating credits)
+          </label>
+        </CheckboxRow>
         <Button
           variant="primary"
           type="submit"
           disabled={!canSubmit}
           data-test-id="gift-submit"
         >
-          Gift Credits
+          {dryRun ? 'Run Dry Run' : 'Gift Credits'}
         </Button>
       </Column>
       {results && (
         <ResultsSection data-test-id="results">
           <h4>Results</h4>
+          {results.some(row => row.existingGift) && (
+            <Alert.Container>
+              <Alert
+                variant="warning"
+                showIcon={false}
+                data-test-id="existing-gift-warning"
+              >
+                {results.filter(row => row.existingGift).length} of {results.length} orgs
+                already have an active recurring gift for this category. Gifting will
+                overwrite the existing gift's amount and schedule rather than add a second
+                one.
+              </Alert>
+            </Alert.Container>
+          )}
           {notInRegionOrgs.length > 0 && (
             <Alert.Container>
               <Alert
@@ -541,6 +627,7 @@ export function GiftRecurringCredits() {
                 <th>Plan</th>
                 <th>Status</th>
                 <th>Code</th>
+                <th>Current gift</th>
                 <th>New gift</th>
                 <th>Credit ID</th>
               </tr>
@@ -560,6 +647,17 @@ export function GiftRecurringCredits() {
                     <td>{row.plan ?? '—'}</td>
                     <td>{row.status}</td>
                     <td>{row.code ?? '—'}</td>
+                    <td>
+                      {row.existingGift
+                        ? formatGiftSummary(
+                            row.existingGift.amount / resultsFormatting.multiplier,
+                            row.existingGift.periodStart,
+                            row.existingGift.periodEnd,
+                            resultsFormatting.isCount,
+                            resultsFormatting.unitLabel
+                          )
+                        : '—'}
+                    </td>
                     <td>
                       {row.status === 'error' || !row.periodStart || !row.periodEnd
                         ? '—'
@@ -663,6 +761,12 @@ const UploadRow = styled('div')`
 
 const UploadHint = styled('span')`
   font-size: ${p => p.theme.font.size.sm};
+`;
+
+const CheckboxRow = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
 `;
 
 const ResultsSection = styled('div')`

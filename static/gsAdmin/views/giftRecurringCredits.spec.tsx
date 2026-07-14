@@ -8,7 +8,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {GiftRecurringCredits} from 'admin/views/giftRecurringCredits';
@@ -86,6 +86,8 @@ describe('GiftRecurringCredits', () => {
 
   async function fillRequiredFields() {
     await userEvent.type(screen.getByLabelText(/Amount per billing period/), '5000');
+    await userEvent.type(screen.getByLabelText(/Ticket URL/), 'http://t/1');
+    await userEvent.type(screen.getByLabelText('Notes:'), 'note');
   }
 
   it('submits the raw textarea tokens as multipart, without parsing them', async () => {
@@ -100,6 +102,11 @@ describe('GiftRecurringCredits', () => {
             status: 'created',
             code: null,
             plan: 'am3_team',
+            existingGift: {
+              amount: 2000,
+              periodStart: '2025-06-01',
+              periodEnd: '2025-08-01',
+            },
             periodStart: '2025-07-01',
             periodEnd: '2025-10-01',
             creditId: null,
@@ -110,6 +117,7 @@ describe('GiftRecurringCredits', () => {
             status: 'error',
             code: 'unknown-org',
             plan: null,
+            existingGift: null,
             periodStart: null,
             periodEnd: null,
             creditId: null,
@@ -151,7 +159,14 @@ describe('GiftRecurringCredits', () => {
     expect(results).toHaveTextContent('unknown-org');
     expect(results).toHaveTextContent('beta-org');
 
-    // The gift just created is summarized per org.
+    // The org with an existing gift is flagged, and a summary warns that
+    // gifting overwrites rather than stacks.
+    expect(screen.getByTestId('existing-gift-warning')).toHaveTextContent(
+      '1 of 2 orgs already have an active recurring gift'
+    );
+
+    // The override shows the current gift (before) next to the new one (after).
+    expect(results).toHaveTextContent('2,000/mo ×2');
     expect(results).toHaveTextContent('5,000/mo ×3');
 
     // The org's plan shows, and its slug links to the admin customer page.
@@ -181,6 +196,7 @@ describe('GiftRecurringCredits', () => {
             status: 'created',
             code: null,
             plan: 'am3_business',
+            existingGift: null,
             periodStart: '2025-07-01',
             periodEnd: '2025-10-01',
             creditId: 42,
@@ -252,6 +268,8 @@ describe('GiftRecurringCredits', () => {
 
     expect(screen.getByText('Amount per billing period (GB):')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText(/Amount per billing period/), '5');
+    await userEvent.type(screen.getByLabelText(/Ticket URL/), 'http://t/1');
+    await userEvent.type(screen.getByLabelText('Notes:'), 'note');
     await userEvent.type(screen.getByLabelText(/Target organizations/), 'acme');
 
     await userEvent.click(screen.getByTestId('gift-submit'));
@@ -287,6 +305,25 @@ describe('GiftRecurringCredits', () => {
     expect(screen.getByTestId('gift-submit')).toBeEnabled();
   });
 
+  it('allows submitting without a ticket URL', async () => {
+    const postMock = MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/gift-recurring-credits/',
+      method: 'POST',
+      body: {results: []},
+    });
+
+    render(<GiftRecurringCredits />);
+    await userEvent.type(screen.getByLabelText(/Amount per billing period/), '5000');
+    await userEvent.type(screen.getByLabelText('Notes:'), 'note');
+    await userEvent.type(screen.getByLabelText(/Target organizations/), 'acme');
+
+    await userEvent.click(screen.getByTestId('gift-submit'));
+
+    await waitFor(() => expect(postMock).toHaveBeenCalled());
+    const formData = postMock.mock.calls[0][1].data as FormData;
+    expect(formData.get('ticketUrl')).toBe('');
+  });
+
   it('disables submission without billing.admin', async () => {
     ConfigStore.set('user', UserFixture({isSuperuser: true, permissions: new Set()}));
 
@@ -314,6 +351,42 @@ describe('GiftRecurringCredits', () => {
     expect(screen.getByTestId('no-rollover-note')).toHaveTextContent(
       "Unused credits don't roll over"
     );
+  });
+
+  it('shifts the schedule to the next period when the current one is skipped', async () => {
+    render(<GiftRecurringCredits />);
+
+    await userEvent.click(screen.getByLabelText(/Skip the current billing period/));
+
+    const preview = screen.getByTestId('schedule-preview');
+    // The first gifted period is the next one, not the current in-progress one.
+    expect(preview).toHaveTextContent('Next billing period');
+    expect(preview).toHaveTextContent('the first gifted period');
+    expect(preview).toHaveTextContent('The current billing period is skipped');
+    // Nothing is applied to the current period.
+    expect(preview).not.toHaveTextContent('This billing period');
+    expect(preview).not.toHaveTextContent('starts now, applied immediately');
+    // 3 periods, shifted out one month each: next, +2, +3.
+    expect(preview).toHaveTextContent('About 3 months from now');
+  });
+
+  it('sends skipCurrentPeriod when the box is checked', async () => {
+    const postMock = MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/gift-recurring-credits/',
+      method: 'POST',
+      body: {results: []},
+    });
+
+    render(<GiftRecurringCredits />);
+    await fillRequiredFields();
+    await userEvent.type(screen.getByLabelText(/Target organizations/), 'acme');
+    await userEvent.click(screen.getByLabelText(/Skip the current billing period/));
+
+    await userEvent.click(screen.getByTestId('gift-submit'));
+
+    await waitFor(() => expect(postMock).toHaveBeenCalled());
+    const formData = postMock.mock.calls[0][1].data as FormData;
+    expect(formData.get('skipCurrentPeriod')).toBe('true');
   });
 
   it('lets the billing period field be cleared without inserting a leading zero', async () => {
@@ -348,6 +421,68 @@ describe('GiftRecurringCredits', () => {
     // only accepts whole periods, so we never let it be POSTed.
     expect(screen.queryByTestId('schedule-preview')).not.toBeInTheDocument();
     expect(screen.getByTestId('gift-submit')).toBeDisabled();
+  });
+
+  it('defaults to a dry run and previews without creating credits', async () => {
+    const postMock = MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/gift-recurring-credits/',
+      method: 'POST',
+      body: {
+        results: [{id: 1, slug: 'acme', status: 'dry-run-ok', code: null, plan: null}],
+      },
+    });
+
+    render(<GiftRecurringCredits />);
+    await fillRequiredFields();
+    await userEvent.type(screen.getByLabelText(/Target organizations/), 'acme');
+
+    // The checkbox defaults on, so the submit button offers a dry run.
+    expect(screen.getByTestId('gift-submit')).toHaveTextContent('Run Dry Run');
+    await userEvent.click(screen.getByTestId('gift-submit'));
+
+    await waitFor(() => expect(postMock).toHaveBeenCalled());
+    const formData = postMock.mock.calls[0][1].data as FormData;
+    expect(formData.get('dryRun')).toBe('true');
+  });
+
+  it('reports the dry-run mode the request was sent with, not the live checkbox', async () => {
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/gift-recurring-credits/',
+      method: 'POST',
+      body: {
+        results: [
+          {
+            id: 1,
+            slug: 'acme',
+            status: 'dry-run-ok',
+            code: null,
+            plan: 'am3_business',
+            existingGift: null,
+            periodStart: '2025-07-01',
+            periodEnd: '2025-10-01',
+            creditId: null,
+          },
+        ],
+      },
+      // Hold the response so the checkbox can be toggled while it's in flight.
+      asyncDelay: 50,
+    });
+
+    render(<GiftRecurringCredits />);
+    await fillRequiredFields();
+    await userEvent.type(screen.getByLabelText(/Target organizations/), 'acme');
+
+    // Submit as a dry run, then flip to a real gift before the response lands.
+    await userEvent.click(screen.getByTestId('gift-submit'));
+    await userEvent.click(screen.getByLabelText(/Dry run/));
+
+    // The toast reflects the dry run that was actually sent, not the new state.
+    await waitFor(() =>
+      expect(addSuccessMessage).toHaveBeenCalledWith('Dry run passed for 1 orgs.')
+    );
+    expect(addSuccessMessage).not.toHaveBeenCalledWith(
+      'Gifted recurring credits to 1 orgs.'
+    );
   });
 
   it('shows a single-period gift as just the current period', async () => {
@@ -420,6 +555,7 @@ describe('GiftRecurringCredits', () => {
   it('blocks submission of a fractional count amount', async () => {
     render(<GiftRecurringCredits />);
     await userEvent.type(screen.getByLabelText(/Target organizations/), 'acme');
+    await userEvent.type(screen.getByLabelText('Notes:'), 'note');
 
     const amountInput = screen.getByLabelText(/Amount per billing period/);
     await userEvent.type(amountInput, '5000.5');

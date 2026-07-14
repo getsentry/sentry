@@ -384,6 +384,8 @@ export type Subscription = {
    */
   companyName?: string | null;
   countryCode?: string | null;
+  // Gifted recurring credits (active + upcoming), staff-only (gsAdmin).
+  giftCredits?: RecurringCredit[];
 
   // Refetch usage data if Subscription is updated
   isDeleted?: boolean;

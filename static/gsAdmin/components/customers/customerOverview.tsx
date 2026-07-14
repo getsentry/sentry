@@ -31,6 +31,7 @@ import {getLogQuery} from 'admin/utils';
 import {BILLED_DATA_CATEGORY_INFO, UNLIMITED} from 'getsentry/constants';
 import type {
   Plan,
+  RecurringCredit,
   ReservedBudget,
   ReservedBudgetMetricHistory,
   Subscription,
@@ -46,6 +47,7 @@ import {
   RETENTION_SETTINGS_CATEGORIES,
 } from 'getsentry/utils/billing';
 import {
+  getCreditDataCategory,
   getPlanCategoryName,
   getReservedBudgetDisplayName,
   sortCategories,
@@ -254,6 +256,61 @@ function ReservedBudgetsData({customer}: ReservedDataProps) {
           </Fragment>
         );
       })}
+    </Fragment>
+  );
+}
+
+function giftCreditIsUpcoming(credit: RecurringCredit) {
+  return moment(credit.periodStart).utc().startOf('day') > moment().utc().startOf('day');
+}
+
+function RecurringGiftCredits({customer}: ReservedDataProps) {
+  const giftCredits = customer.giftCredits ?? [];
+
+  // Always render the section — an explicit "None" tells an admin the org has
+  // no active or upcoming gift, which a disappearing section would not.
+  return (
+    <Fragment>
+      <h6>Recurring Credit Gifts</h6>
+      <DetailList>
+        {giftCredits.length === 0 && (
+          <DetailLabel title="Active or upcoming">None</DetailLabel>
+        )}
+        {giftCredits.map(credit => {
+          const category = getCreditDataCategory(credit);
+          const categoryName = category
+            ? getPlanCategoryName({
+                plan: customer.planDetails,
+                category,
+                capitalize: false,
+              })
+            : credit.type;
+          const amount = category
+            ? formatReservedWithUnits(credit.amount, category, {
+                isAbbreviated: true,
+                useUnitScaling: true,
+              })
+            : credit.amount;
+          const upcoming = giftCreditIsUpcoming(credit);
+          // The window spans exactly this many monthly billing periods
+          // (period_end = period_start + N months).
+          const billingPeriods = Math.round(
+            moment(credit.periodEnd).diff(moment(credit.periodStart), 'months', true)
+          );
+          return (
+            <DetailLabel key={credit.id} title={upperFirst(categoryName)}>
+              {`+${amount}/mo · ${billingPeriods} billing period${
+                billingPeriods === 1 ? '' : 's'
+              } · ${moment(credit.periodStart).format('ll')} → ${moment(
+                credit.periodEnd
+              ).format('ll')} `}
+              <Tag variant={upcoming ? 'info' : 'success'}>
+                {upcoming ? 'Upcoming' : 'Active'}
+              </Tag>
+            </DetailLabel>
+          );
+        })}
+      </DetailList>
     </Fragment>
   );
 }
@@ -678,6 +735,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
         <SubscriptionSummary customer={customer} onAction={onAction} />
         <ReservedData customer={customer} />
         <ReservedBudgetsData customer={customer} />
+        <RecurringGiftCredits customer={customer} />
         <h6>PCSS</h6>
         <DetailList>
           <DetailLabel title="Custom Price PCSS">
