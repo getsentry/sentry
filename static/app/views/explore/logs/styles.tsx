@@ -89,7 +89,8 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
       }
     `}
 
-  &[data-row-hover-linked='true']:not(thead > &) {
+  &[data-row-hover-linked='true']:not(thead > &),
+  &[data-row-linked='true']:not(thead > &) {
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.active};
 
