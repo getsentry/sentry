@@ -1,3 +1,4 @@
+from sentry.models.pullrequest import PullRequestLifecycleState
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunResult,
@@ -29,7 +30,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             kind="agentic_triage",
             group=group,
             seer_run_id="seer-123",
-            extras={"action": "autofix_triggered"},
+            extras={"action": "autofix_triggered", "reason": "Null pointer in the checkout flow"},
         )
 
         with self.feature("organizations:seer-night-shift"):
@@ -46,7 +47,10 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert result_data["kind"] == "agentic_triage"
         assert result_data["groupId"] == str(group.id)
         assert result_data["seerRunId"] == "seer-123"
-        assert result_data["extras"] == {"action": "autofix_triggered"}
+        assert result_data["extras"] == {
+            "action": "autofix_triggered",
+            "reason": "Null pointer in the checkout flow",
+        }
 
         # Transitional aliases for the existing frontend.
         assert response.data[0]["triageStrategy"] == "agentic_triage"
@@ -56,16 +60,13 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert legacy["groupTitle"] == group.title
         assert legacy["groupShortId"] == group.qualified_short_id
         assert legacy["action"] == "autofix_triggered"
-        # The legacy seer_run_id here ("seer-123") is non-numeric, so it can't
-        # resolve to a SeerRun -- no pull requests should be attached.
+        assert legacy["reason"] == "Null pointer in the checkout flow"
+        # "seer-123" is a non-numeric legacy id, so it can't resolve to a SeerRun.
         assert legacy["pullRequests"] == []
 
     def test_issue_with_missing_group_has_null_title(self) -> None:
-        # The group FK has db_constraint=False (see SeerNightShiftRunResult),
-        # so a stale group_id pointing at a deleted group is a real
-        # possibility in prod, not just a hypothetical -- simulate it
-        # directly rather than via create+delete, which would cascade-delete
-        # this row too (the FK is CASCADE at the Django ORM level).
+        # group FK is db_constraint=False, so a stale group_id is possible in
+        # prod; can't use create+delete since Django still cascades that.
         run = SeerNightShiftRun.objects.create(organization=self.organization)
         SeerNightShiftRunResult.objects.create(
             run=run,
@@ -107,6 +108,33 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert len(legacy["pullRequests"]) == 1
         assert legacy["pullRequests"][0]["id"] == pull_request.key
         assert legacy["pullRequests"][0]["title"] == pull_request.title
+        # No webhook event observed for this PR, so status is unknown.
+        assert legacy["pullRequests"][0]["status"] is None
+
+    def test_issue_pull_request_status_reflects_merged_state(self) -> None:
+        group = self.create_group()
+        repo = self.create_repo()
+        pull_request = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.organization.id
+        )
+        pull_request.update(state=PullRequestLifecycleState.MERGED)
+        issue_seer_run = self.create_seer_run(organization=self.organization)
+        SeerRunPullRequest.objects.create(seer_run=issue_seer_run, pull_request=pull_request)
+
+        run = SeerNightShiftRun.objects.create(organization=self.organization)
+        SeerNightShiftRunResult.objects.create(
+            run=run,
+            kind="agentic_triage",
+            group=group,
+            result_seer_run=issue_seer_run,
+            extras={"action": "autofix_triggered"},
+        )
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        legacy = response.data[0]["issues"][0]
+        assert legacy["pullRequests"][0]["status"] == "merged"
 
     def test_issue_includes_pull_requests_via_legacy_seer_run_id(self) -> None:
         group = self.create_group()
