@@ -496,10 +496,5 @@
 {% block footer %}
   <a href="{% absolute_uri %}" style="float:right">Home</a>
 
-  {% if notification_settings_link %}
   <a href="{% absolute_uri notification_settings_link %}">Notification Settings</a>
-  {% else %}
-  {% url 'sentry-account-settings-notifications' as settings_link %}
-  <a href="{% absolute_uri notification_settings_link  %}">Notification Settings</a>
-  {% endif %}
 {% endblock %}
