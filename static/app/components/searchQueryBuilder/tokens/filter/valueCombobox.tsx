@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {isMac} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
@@ -8,6 +9,7 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {HighlightText, type SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DeviceName} from 'sentry/components/deviceName';
 import {
@@ -29,7 +31,6 @@ import {
   type CustomComboboxMenuProps,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
-import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
 import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {useFrozenSuggestionSectionItems} from 'sentry/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems';
 import {
@@ -74,6 +75,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -125,6 +127,44 @@ function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
   return items.join(',') + ',';
 }
 
+// Inserts an edited chip back at its original position, or appends it when not
+// editing (or when the index no longer fits the committed values).
+function insertMultiSelectValue(texts: string[], value: string, index?: number) {
+  if (index === undefined || index < 0 || index >= texts.length) {
+    return [...texts, value];
+  }
+  const next = [...texts];
+  next.splice(index, 0, value);
+  return next;
+}
+
+// Splits `text` on commas that aren't inside quotes (a comma inside `"a,b"` is
+// part of the value, not a delimiter). The final segment is whatever is still
+// being typed; earlier segments are completed values (possibly empty, e.g. from
+// consecutive commas — callers drop those).
+function splitUnquotedCommas(text: string) {
+  const segments: string[] = [];
+  let start = 0;
+  let insideQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (char === '\\') {
+      i++;
+      continue;
+    }
+    if (char === '"') {
+      insideQuotes = !insideQuotes;
+      continue;
+    }
+    if (char === ',' && !insideQuotes) {
+      segments.push(text.slice(start, i));
+      start = i + 1;
+    }
+  }
+  segments.push(text.slice(start));
+  return segments;
+}
+
 export function prepareInputValueForSaving(
   valueType: FieldValueType,
   inputValue: string
@@ -174,24 +214,6 @@ export function getSelectedValuesFromText(text: string) {
 
       return {value, text: valueText, selected};
     });
-}
-
-function getValueAtCursorPosition(text: string, cursorPosition: number | null) {
-  if (cursorPosition === null) {
-    return '';
-  }
-
-  const items = text.split(',');
-
-  let characterCount = 0;
-  for (const item of items) {
-    characterCount += item.length + 1;
-    if (characterCount > cursorPosition) {
-      return item.trim();
-    }
-  }
-
-  return '';
 }
 
 function getSuggestionDescription(group: SearchGroup | SearchItem) {
@@ -312,32 +334,6 @@ function keySupportsWildcard(
   valueType: FieldValueType
 ) {
   return valueType === FieldValueType.STRING && fieldDefinition?.allowWildcard !== false;
-}
-
-function useSelectionIndex({
-  inputRef,
-  initialLength,
-}: {
-  initialLength: number;
-  inputRef: React.RefObject<HTMLInputElement | null>;
-}) {
-  const [selectionIndex, setSelectionIndex] = useState<number | null>(
-    () => initialLength
-  );
-
-  const updateSelectionIndex = useCallback(() => {
-    if (inputRef.current?.selectionStart === inputRef.current?.selectionEnd) {
-      setSelectionIndex(inputRef.current?.selectionStart ?? null);
-    } else {
-      setSelectionIndex(null);
-    }
-  }, [inputRef]);
-
-  return {
-    selectionIndex,
-    setSelectionIndex,
-    updateSelectionIndex,
-  };
 }
 
 function sortSuggestionsByFzf(
@@ -650,6 +646,11 @@ function ValueComboboxCustomMenu(
   return (
     <ValueListBox
       {...props}
+      portalTarget={
+        canSelectMultipleValues
+          ? (props.portalTarget ?? wrapperRef.current)
+          : props.portalTarget
+      }
       hiddenOptions={hiddenOptions}
       wrapperRef={wrapperRef}
       isMultiSelect={canSelectMultipleValues}
@@ -685,6 +686,11 @@ export function SearchQueryBuilderValueCombobox({
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Caret position to apply after the next controlled value update (used to keep
+  // the caret at the split boundary when a comma splits the input). Tagged with
+  // the value it belongs to so a change that never renders (setInputValue to the
+  // same value) can't leave it to misfire on a later, unrelated update.
+  const pendingCaretRef = useRef<{pos: number; value: string} | null>(null);
   const organization = useOrganization();
   const {dispatch} = useSearchQueryBuilderState();
   const {
@@ -707,13 +713,22 @@ export function SearchQueryBuilderValueCombobox({
   const canUseWildcard = disallowWildcard
     ? false
     : keySupportsWildcard(fieldDefinition, valueType);
+  // Multi-select renders committed values as chips, so the input starts empty
+  // and only holds the value being typed.
   const [inputValue, setInputValue] = useState(() =>
-    getInitialInputValue(token, canSelectMultipleValues)
+    canSelectMultipleValues ? '' : getInitialInputValue(token, canSelectMultipleValues)
   );
-  const {selectionIndex, setSelectionIndex, updateSelectionIndex} = useSelectionIndex({
-    inputRef,
-    initialLength: inputValue.length,
-  });
+  // Tracks where the input sits within the chip row. `value` is the lifted chip's
+  // text (so it can be restored on Escape and reinserted where it was rather than
+  // at the end), or null for a bare insertion point — a mid-row position the input
+  // keeps after a comma split so the remaining text isn't shoved to the end. A bare
+  // point instead carries `after`, the value it sits behind, so it can re-anchor
+  // when the token shifts underneath it.
+  const [editingChip, setEditingChip] = useState<{
+    index: number;
+    value: string | null;
+    after?: string;
+  } | null>(null);
 
   const [showDatePicker, setShowDatePicker] = useState(() => {
     if (isDateToken(token)) {
@@ -722,16 +737,91 @@ export function SearchQueryBuilderValueCombobox({
     return false;
   });
 
-  const filterValue = unescapeAsteriskSearchValue(
-    canSelectMultipleValues
-      ? getValueAtCursorPosition(inputValue, selectionIndex)
-      : inputValue
-  );
+  const filterValue = unescapeAsteriskSearchValue(inputValue);
 
   const selectedValues = useMemo(
-    () => (canSelectMultipleValues ? getSelectedValuesFromText(inputValue) : []),
-    [canSelectMultipleValues, inputValue]
+    () =>
+      canSelectMultipleValues
+        ? getSelectedValuesFromText(getMultiSelectInputValue(token))
+        : [],
+    [canSelectMultipleValues, token]
   );
+
+  // A chip being edited is lifted into the input but left in the token until the
+  // edit is committed, so it is hidden from the rendered chips and excluded when
+  // rebuilding the value. Canceling simply clears the edit and it reappears.
+  // Excluding by index (not value) keeps duplicate values distinct.
+  const committedValues = useMemo(
+    () =>
+      selectedValues
+        .map((v, index) => ({...v, index}))
+        // Only a lifted chip (value !== null) is hidden; a bare insertion point
+        // leaves every committed chip visible.
+        .filter(
+          v =>
+            !(editingChip && editingChip.value !== null && v.index === editingChip.index)
+        ),
+    [selectedValues, editingChip]
+  );
+
+  // Keep an in-progress edit anchored to the token as it changes underneath the
+  // input (dropdown checkbox toggles, undo, etc. shift indices without going
+  // through removeValue). A lifted chip tracks its own value; a bare insertion
+  // point tracks the value it sits behind.
+  useEffect(() => {
+    if (editingChip === null) {
+      return;
+    }
+    const oldIndex = editingChip.index;
+    // A value can appear more than once, so re-anchor to the occurrence nearest
+    // the previous index — an external change shifts the edited position by a
+    // small offset rather than moving it to the first match.
+    const nearestOccurrence = (needle: string, target: number) => {
+      let nearest = -1;
+      selectedValues.forEach((v, i) => {
+        if (v.value !== needle) {
+          return;
+        }
+        if (nearest === -1 || Math.abs(i - target) < Math.abs(nearest - target)) {
+          nearest = i;
+        }
+      });
+      return nearest;
+    };
+
+    const liftedValue = editingChip.value;
+    if (liftedValue !== null) {
+      // Re-point the lifted chip to its value's current slot so a commit updates
+      // the right chip; cancel the edit if the value is gone so stale input isn't
+      // re-added on blur.
+      if (selectedValues[oldIndex]?.value === liftedValue) {
+        return;
+      }
+      const newIndex = nearestOccurrence(liftedValue, oldIndex);
+      if (newIndex === -1) {
+        setEditingChip(null);
+        setInputValue('');
+      } else {
+        setEditingChip(prev => (prev ? {...prev, index: newIndex} : prev));
+      }
+      return;
+    }
+
+    // A bare insertion point has no value of its own, so keep it just past the
+    // value it sits behind. Without this, toggling an earlier value off (or an
+    // undo) leaves the raw index stale and the trailing partial commits at the
+    // end of the row instead of staying adjacent.
+    const {after} = editingChip;
+    if (after === undefined) {
+      return;
+    }
+    const anchorIndex = nearestOccurrence(after, oldIndex - 1);
+    const newIndex =
+      anchorIndex === -1 ? Math.min(oldIndex, selectedValues.length) : anchorIndex + 1;
+    if (newIndex !== oldIndex) {
+      setEditingChip(prev => (prev ? {...prev, index: newIndex} : prev));
+    }
+  }, [editingChip, selectedValues]);
 
   const ctrlKeyPressed = useKeyPress(
     isMac() ? 'Meta' : 'Control',
@@ -742,30 +832,69 @@ export function SearchQueryBuilderValueCombobox({
     [selectedValues]
   );
 
-  useEffect(() => {
-    if (canSelectMultipleValues) {
-      const newInputValue = getMultiSelectInputValue(token);
-      // Batch both updates to avoid an intermediate render where
-      // selectionIndex is stale, which would cause filterValue to
-      // temporarily change and trigger item filtering flicker.
-      setInputValue(newInputValue);
-      setSelectionIndex(newInputValue.length);
+  // Keep the active input in view within the horizontally-scrolling chip row.
+  const scrollInputIntoView = useCallback(() => {
+    const input = inputRef.current;
+    const container = ref.current;
+    if (!input) {
+      return;
     }
-    // We want to avoid resetting the input value if the token text doesn't actually change
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [canSelectMultipleValues, token.text]);
-
-  // On mount, scroll to the end of the input
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.scrollLeft = inputRef.current.scrollWidth;
+    // Show the tail (and caret) of a long value inside the input itself.
+    input.scrollLeft = input.scrollWidth;
+    if (!container) {
+      return;
+    }
+    // Scroll the row just enough to bring the input into view wherever it sits —
+    // at the end when adding a value, or in a chip's slot when editing one — so
+    // a long neighbouring chip can't keep it off-screen.
+    const containerRect = container.getBoundingClientRect();
+    const inputRect = input.getBoundingClientRect();
+    if (inputRect.right > containerRect.right) {
+      container.scrollLeft += inputRect.right - containerRect.right;
+    } else if (inputRect.left < containerRect.left) {
+      container.scrollLeft -= containerRect.left - inputRect.left;
     }
   }, []);
+
+  // Re-run as the value changes (typing, or lifting a chip into the input).
+  useEffect(() => {
+    scrollInputIntoView();
+    const pendingCaret = pendingCaretRef.current;
+    if (pendingCaret === null) {
+      return;
+    }
+    pendingCaretRef.current = null;
+    const input = inputRef.current;
+    if (!input) {
+      return;
+    }
+    if (input.value !== pendingCaret.value) {
+      return;
+    }
+    input.setSelectionRange(pendingCaret.pos, pendingCaret.pos);
+    // scrollInputIntoView pins the tail of a long value into view, but a caret
+    // just placed at the start (after a mid-value comma split) has to win, or
+    // the remaining text keeps scrolling off-screen as the user types.
+    if (pendingCaret.pos === 0) {
+      input.scrollLeft = 0;
+    }
+  }, [inputValue, scrollInputIntoView]);
+
+  // While typing, surface the typed text as a custom option so results rank by
+  // relevance; committed chips are pinned to the top only at rest. Checkbox
+  // checked-state comes from `selectedValueMap`, not this list.
+  const suggestionSelectedValues = useMemo(
+    () =>
+      canSelectMultipleValues && filterValue
+        ? [{value: filterValue, selected: false}]
+        : selectedValues,
+    [canSelectMultipleValues, filterValue, selectedValues]
+  );
 
   const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
     token,
     filterValue,
-    selectedValues,
+    selectedValues: suggestionSelectedValues,
   });
 
   const analyticsData = useMemo(
@@ -889,42 +1018,37 @@ export function SearchQueryBuilderValueCombobox({
       }
 
       if (canSelectMultipleValues) {
-        if (selectedValues.map(v => v.value).includes(value)) {
-          const newValue = prepareInputValueForSaving(
-            getFilterValueType(token, fieldDefinition),
-            selectedValues
-              .filter(v => (v.selected ? v.value !== value : true))
+        // UPDATE_TOKEN_VALUE (rather than TOGGLE_FILTER_VALUE) so the operator
+        // switch (e.g. contains -> is) can ride along via `op`.
+        //
+        // Clicking an already-selected value toggles it off — but only when not
+        // mid-edit. While editing, selecting a value commits the lifted chip to
+        // it; if it matches another chip they merge (deduped on save) rather
+        // than that other chip being toggled off.
+        const deselecting =
+          editingChip === null && committedValues.some(v => v.value === value);
+        const newCommaSeparatedValue = deselecting
+          ? committedValues
+              .filter(v => v.value !== value)
               .map(v => v.text)
               .join(',')
-          );
-
-          dispatch({
-            type: 'UPDATE_TOKEN_VALUE',
-            token,
-            value: newValue,
-            op,
-          });
-
-          if (newValue && newValue !== '""' && !ctrlKeyPressed) {
-            onCommit();
-          }
-
-          return true;
-        }
+          : insertMultiSelectValue(
+              committedValues.map(v => v.text),
+              valueForSaving,
+              editingChip?.index
+            ).join(',');
 
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
           token,
           value: prepareInputValueForSaving(
             getFilterValueType(token, fieldDefinition),
-            replaceCommaSeparatedValue(
-              inputValue,
-              selectionIndex,
-              escapeSearchValue ? escapeTagValueForSearch(value) : value
-            )
+            newCommaSeparatedValue
           ),
           op,
         });
+        setInputValue('');
+        setEditingChip(null);
 
         if (!ctrlKeyPressed) {
           onCommit();
@@ -950,10 +1074,9 @@ export function SearchQueryBuilderValueCombobox({
       items,
       canSelectMultipleValues,
       analyticsData,
-      selectedValues,
+      committedValues,
+      editingChip,
       dispatch,
-      inputValue,
-      selectionIndex,
       ctrlKeyPressed,
       onCommit,
     ]
@@ -998,8 +1121,102 @@ export function SearchQueryBuilderValueCombobox({
     [analyticsData, token, updateFilterValue]
   );
 
+  const addTypedValue = useCallback(
+    (rawValue: string) => {
+      const value = rawValue.trim();
+      if (!value) {
+        return;
+      }
+      // The raw input is left unescaped: prepareInputValueForSaving splits on
+      // unquoted commas and quotes any value containing spaces/special chars, so
+      // both pasted multi-values (`foo,bar`) and edited chips lifted in their
+      // unescaped form (`foo bar`) round-trip correctly without escaping here.
+      dispatch({
+        type: 'UPDATE_TOKEN_VALUE',
+        token,
+        value: prepareInputValueForSaving(
+          getFilterValueType(token, fieldDefinition),
+          insertMultiSelectValue(
+            committedValues.map(v => v.text),
+            value,
+            editingChip?.index
+          ).join(',')
+        ),
+      });
+      setInputValue('');
+      setEditingChip(null);
+    },
+    [committedValues, dispatch, editingChip, fieldDefinition, token]
+  );
+
+  // Splitting on unquoted commas happens on input change (rather than on the
+  // comma keypress) so it also covers a comma typed in the middle of a value and
+  // a pasted multi-value string. Completed (non-empty) segments commit as chips —
+  // empty ones are dropped so consecutive commas don't create blank chips — and
+  // the trailing partial stays in the input. While editing, an insertion point
+  // keeps the input where the edit was so the remaining text isn't shoved to the
+  // end of the row.
+  const handleMultiSelectInputChange = (value: string) => {
+    const segments = splitUnquotedCommas(value);
+    if (segments.length === 1) {
+      setInputValue(value);
+      return;
+    }
+    const partial = segments.pop() ?? '';
+    // Canonicalize each completed segment the way committed values are stored
+    // (parsed + unescaped), so a duplicate of an existing chip — even one that is
+    // quoted or contains special characters — is recognized and dropped rather
+    // than counted. Empty segments (consecutive commas) parse to nothing and drop
+    // out here too. All of these collapse away on save via uniq, so counting them
+    // would push the tracked insertion index (and the trailing partial) past
+    // where the chips actually land.
+    const seen = new Set(committedValues.map(v => v.value));
+    const completed: string[] = [];
+    let lastCanonical: string | undefined;
+    for (const segment of segments) {
+      const canonical = getSelectedValuesFromText(`${segment},`)[0]?.value;
+      if (canonical === undefined || seen.has(canonical)) {
+        continue;
+      }
+      seen.add(canonical);
+      completed.push(segment);
+      lastCanonical = canonical;
+    }
+    const editIndex = editingChip?.index;
+    if (completed.length) {
+      addTypedValue(completed.join(','));
+      if (editIndex !== undefined) {
+        // The partial now sits just after the last value committed above; anchor
+        // the bare insertion point to that value (canonical, to match the token)
+        // so it survives later index shifts.
+        setEditingChip({
+          index: editIndex + completed.length,
+          value: null,
+          after: lastCanonical,
+        });
+      }
+    }
+    pendingCaretRef.current = {pos: 0, value: partial};
+    setInputValue(partial);
+  };
+
   const handleInputValueConfirmed = useCallback(
     (value: string) => {
+      if (canSelectMultipleValues) {
+        if (value.trim()) {
+          addTypedValue(value);
+          trackAnalytics('search.value_manual_submitted', {
+            ...analyticsData,
+            filter_value: value,
+            invalid: false,
+          });
+        } else {
+          setEditingChip(null);
+        }
+        onCommit();
+        return;
+      }
+
       const isUnchanged = value === getInitialInputValue(token, canSelectMultipleValues);
 
       // If there's no user input and the token has no value, set a default one
@@ -1018,26 +1235,6 @@ export function SearchQueryBuilderValueCombobox({
         return;
       }
 
-      if (canSelectMultipleValues) {
-        dispatch({
-          type: 'UPDATE_TOKEN_VALUE',
-          token,
-          value: prepareInputValueForSaving(
-            getFilterValueType(token, fieldDefinition),
-            value
-          ),
-        });
-        onCommit();
-        if (!isUnchanged) {
-          trackAnalytics('search.value_manual_submitted', {
-            ...analyticsData,
-            filter_value: value,
-            invalid: false,
-          });
-        }
-        return;
-      }
-
       const invalid = updateFilterValue(value);
       trackAnalytics('search.value_manual_submitted', {
         ...analyticsData,
@@ -1047,6 +1244,7 @@ export function SearchQueryBuilderValueCombobox({
     },
     [
       analyticsData,
+      addTypedValue,
       canSelectMultipleValues,
       dispatch,
       fieldDefinition,
@@ -1055,6 +1253,50 @@ export function SearchQueryBuilderValueCombobox({
       updateFilterValue,
     ]
   );
+
+  const removeValue = useCallback(
+    (index: number) => {
+      const next = selectedValues
+        .filter((_, i) => i !== index)
+        .map(v => v.text)
+        .join(',');
+      dispatch({
+        type: 'UPDATE_TOKEN_VALUE',
+        token,
+        value: prepareInputValueForSaving(
+          getFilterValueType(token, fieldDefinition),
+          next
+        ),
+      });
+      // Removing a chip before the lifted one shifts its position down, so keep
+      // editingChip.index aligned with the rebuilt token. Otherwise committedValues
+      // hides the wrong chip and the commit reinserts at a stale index, dropping
+      // remaining values. A bare insertion point re-anchors via its `after` value
+      // in the effect above, so leave it untouched here to avoid a double shift.
+      setEditingChip(prev =>
+        prev && prev.value !== null && index < prev.index
+          ? {...prev, index: prev.index - 1}
+          : prev
+      );
+      inputRef.current?.focus();
+    },
+    [dispatch, fieldDefinition, selectedValues, token]
+  );
+
+  const editValue = (index: number) => {
+    const target = selectedValues[index];
+    if (!target) {
+      return;
+    }
+
+    if (inputValue.trim()) {
+      addTypedValue(inputValue);
+    }
+
+    setInputValue(target.value);
+    setEditingChip({index, value: target.value});
+    inputRef.current?.focus();
+  };
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -1065,12 +1307,23 @@ export function SearchQueryBuilderValueCombobox({
         e.continuePropagation();
       }
 
-      // If there's nothing in the input and we hit a delete key, we should focus the filter
-      if ((e.key === 'Backspace' || e.key === 'Delete') && !inputRef.current?.value) {
+      const currentValue = inputRef.current?.value ?? '';
+
+      if ((e.key === 'Backspace' || e.key === 'Delete') && !currentValue) {
+        // Mid-edit (or at an insertion point) with an emptied input: don't remove
+        // an unrelated chip.
+        if (canSelectMultipleValues && editingChip !== null) {
+          return;
+        }
+        const lastValue = committedValues.at(-1);
+        if (canSelectMultipleValues && lastValue) {
+          removeValue(lastValue.index);
+          return;
+        }
         onDelete();
       }
     },
-    [onDelete]
+    [canSelectMultipleValues, committedValues, editingChip, onDelete, removeValue]
   );
 
   // Ensure that the menu stays open when clicking on the selected items
@@ -1105,56 +1358,171 @@ export function SearchQueryBuilderValueCombobox({
               valueType,
             });
 
+  const chips = committedValues.map(({value, index}) => (
+    <ValueChip key={`${index}-${value}`}>
+      <Tooltip title={value} showOnlyOnOverflow skipWrapper>
+        <ValueChipLabel
+          type="button"
+          aria-label={t('Edit value: %s', value)}
+          onClick={() => editValue(index)}
+        >
+          {value}
+        </ValueChipLabel>
+      </Tooltip>
+      <ValueChipRemove
+        type="button"
+        aria-label={t('Remove value: %s', value)}
+        onClick={() => removeValue(index)}
+      >
+        <IconClose legacySize="8px" />
+      </ValueChipRemove>
+    </ValueChip>
+  ));
+
+  const valueInput = (
+    <ValueInputContainer key="value-input">
+      <SearchQueryBuilderCombobox
+        ref={inputRef}
+        items={items}
+        onOptionSelected={handleOptionSelected}
+        onCustomValueBlurred={handleInputValueConfirmed}
+        onCustomValueCommitted={handleInputValueConfirmed}
+        onExit={() => {
+          setEditingChip(null);
+          setInputValue('');
+          onCommit();
+        }}
+        inputValue={inputValue}
+        filterValue={filterValue}
+        placeholder={placeholder}
+        token={token}
+        inputLabel={t('Edit filter value')}
+        keepVisibleRef={ref}
+        onFocus={scrollInputIntoView}
+        onInputChange={e =>
+          canSelectMultipleValues
+            ? handleMultiSelectInputChange(e.target.value)
+            : setInputValue(e.target.value)
+        }
+        onKeyDown={onKeyDown}
+        autoFocus
+        maxOptions={50}
+        openOnFocus
+        customMenu={customMenu}
+        shouldFilterResults={!shouldUseDefaultNumericSuggestions(filterValue, valueType)}
+        shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
+      >
+        {suggestionSectionItems.map(section => (
+          <Section key={section.sectionText} title={section.sectionText}>
+            {section.items.map(item => (
+              <Item {...item} key={item.key}>
+                {item.label}
+              </Item>
+            ))}
+          </Section>
+        ))}
+      </SearchQueryBuilderCombobox>
+    </ValueInputContainer>
+  );
+
+  // Render the input where the edited chip was, so the value stays in place
+  // instead of jumping to the end of the row. committedValues keep their
+  // ascending index order, so the slot is the count of chips before the edited
+  // index; with no edit in progress the input stays at the end. The input keeps
+  // a stable key so React repositions the same node (preserving focus and the
+  // open popover) rather than remounting it.
+  const inputSlot = editingChip
+    ? committedValues.filter(v => v.index < editingChip.index).length
+    : chips.length;
+  const chipRow = [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
+
   return (
     <ValueComboboxContext.Provider value={valueComboboxContextValue}>
       <ValueComboboxMenuContext.Provider value={menuContextValue}>
-        <Flex
+        <ValueEditingChips
           align="center"
-          maxWidth="400px"
+          gap="2xs"
+          minWidth="0"
           height="100%"
           ref={ref}
           data-test-id="filter-value-editing"
         >
-          <SearchQueryBuilderCombobox
-            ref={inputRef}
-            items={items}
-            onOptionSelected={handleOptionSelected}
-            onCustomValueBlurred={handleInputValueConfirmed}
-            onCustomValueCommitted={handleInputValueConfirmed}
-            onExit={onCommit}
-            inputValue={inputValue}
-            filterValue={filterValue}
-            placeholder={placeholder}
-            token={token}
-            inputLabel={t('Edit filter value')}
-            onInputChange={e => setInputValue(e.target.value)}
-            onKeyDown={onKeyDown}
-            onKeyUp={updateSelectionIndex}
-            onClick={updateSelectionIndex}
-            autoFocus
-            maxOptions={50}
-            openOnFocus
-            customMenu={customMenu}
-            shouldFilterResults={
-              !shouldUseDefaultNumericSuggestions(filterValue, valueType)
-            }
-            shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
-          >
-            {suggestionSectionItems.map(section => (
-              <Section key={section.sectionText} title={section.sectionText}>
-                {section.items.map(item => (
-                  <Item {...item} key={item.key}>
-                    {item.label}
-                  </Item>
-                ))}
-              </Section>
-            ))}
-          </SearchQueryBuilderCombobox>
-        </Flex>
+          {chipRow}
+        </ValueEditingChips>
       </ValueComboboxMenuContext.Provider>
     </ValueComboboxContext.Provider>
   );
 }
+
+const ValueEditingChips = styled(Flex)`
+  max-width: 100%;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+// Wraps the single combobox input. It sizes to its content while editing a chip
+// in place (so it doesn't push later chips around), but grows to fill the
+// trailing space when it sits at the end of the row (the add-a-value state). The
+// base min-width keeps a mid-row insertion point visible and clickable even when
+// its input is momentarily empty (e.g. right after a comma split).
+const ValueInputContainer = styled('div')`
+  display: flex;
+  width: auto;
+  min-width: ${p => p.theme.space.lg};
+  flex: 0 0 auto;
+
+  &:last-child {
+    flex: 1 1 0%;
+  }
+`;
+
+const ValueChip = styled('span')`
+  display: inline-flex;
+  align-items: center;
+  gap: ${p => p.theme.space['2xs']};
+  border-radius: ${p => p.theme.radius['2xs']};
+  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+  color: ${p => p.theme.tokens.content.accent};
+  padding: 0 ${p => p.theme.space['2xs']};
+  white-space: nowrap;
+`;
+
+const chipButton = (p: {theme: Theme}) => css`
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  outline: none;
+
+  &:focus-visible {
+    border-radius: ${p.theme.radius['2xs']};
+    box-shadow: 0 0 0 1px ${p.theme.tokens.focus.default};
+  }
+`;
+
+const ValueChipLabel = styled('button')`
+  display: block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: inherit;
+  font: inherit;
+  ${chipButton}
+`;
+
+const ValueChipRemove = styled('button')`
+  display: flex;
+  align-items: center;
+  color: ${p => p.theme.tokens.content.secondary};
+  ${chipButton}
+`;
 
 const TrailingWrap = styled('div')`
   display: grid;

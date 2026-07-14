@@ -50,6 +50,17 @@ function constrainAndAlignListBox({
     popoverRef.current.style.left = `${newX}px`;
   } else {
     popoverRef.current.style.left = 'auto';
+
+    // Defer horizontal position to the popper, then pull the menu back inside
+    // the viewport if a far-right anchor (e.g. a long, scrolled list of chips)
+    // pushed it off the right edge.
+    const viewportMargin = 8;
+    const rect = popoverRef.current.getBoundingClientRect();
+    const rightOverflow =
+      rect.right - (document.documentElement.clientWidth - viewportMargin);
+    if (rightOverflow > 0) {
+      popoverRef.current.style.left = `-${rightOverflow}px`;
+    }
   }
 }
 
