@@ -185,6 +185,79 @@ class DashboardFavoriteUserTest(TestCase):
         assert dashboard is not None
         assert dashboard.position == 0
 
+    def create_prebuilt_dashboard(self, title: str, prebuilt_id: int) -> Dashboard:
+        # Prebuilt dashboards must have created_by_id NULL (db check constraint), which
+        # the create_dashboard factory can't produce, so build the row directly.
+        return Dashboard.objects.create(
+            title=title,
+            organization=self.organization,
+            created_by_id=None,
+            prebuilt_id=prebuilt_id,
+        )
+
+    def test_insert_alphabetically_shifts_later_prebuilts(self) -> None:
+        web_vitals = self.create_prebuilt_dashboard("Web Vitals", 6)
+        backend = self.create_prebuilt_dashboard("Backend Overview", 12)
+
+        # Insert the later-sorting title first, then the earlier one, so the earlier
+        # one has to be slotted in before it (shifting the later one down).
+        DashboardFavoriteUser.objects.insert_favorite_dashboard_alphabetically(
+            self.organization, self.user.id, web_vitals
+        )
+        DashboardFavoriteUser.objects.insert_favorite_dashboard_alphabetically(
+            self.organization, self.user.id, backend
+        )
+
+        favorites = list(
+            DashboardFavoriteUser.objects.get_favorite_dashboards(self.organization, self.user.id)
+        )
+        assert [f.dashboard_id for f in favorites] == [backend.id, web_vitals.id]
+        assert favorites[0].position < favorites[1].position
+
+    def test_insert_alphabetically_appends_when_nothing_sorts_later(self) -> None:
+        backend = self.create_prebuilt_dashboard("Backend Overview", 12)
+        web_vitals = self.create_prebuilt_dashboard("Web Vitals", 6)
+
+        DashboardFavoriteUser.objects.insert_favorite_dashboard_alphabetically(
+            self.organization, self.user.id, backend
+        )
+        DashboardFavoriteUser.objects.insert_favorite_dashboard_alphabetically(
+            self.organization, self.user.id, web_vitals
+        )
+
+        favorites = list(
+            DashboardFavoriteUser.objects.get_favorite_dashboards(self.organization, self.user.id)
+        )
+        assert [f.dashboard_id for f in favorites] == [backend.id, web_vitals.id]
+        assert favorites[0].position < favorites[1].position
+
+    def test_insert_alphabetically_is_noop_when_already_favorited(self) -> None:
+        web_vitals = self.create_prebuilt_dashboard("Web Vitals", 6)
+
+        assert (
+            DashboardFavoriteUser.objects.insert_favorite_dashboard_alphabetically(
+                self.organization, self.user.id, web_vitals
+            )
+            is True
+        )
+        first_position = DashboardFavoriteUser.objects.get_favorite_dashboard(
+            self.organization, self.user.id, web_vitals
+        ).position
+
+        assert (
+            DashboardFavoriteUser.objects.insert_favorite_dashboard_alphabetically(
+                self.organization, self.user.id, web_vitals
+            )
+            is False
+        )
+        assert DashboardFavoriteUser.objects.filter(favorited=True).count() == 1
+        assert (
+            DashboardFavoriteUser.objects.get_favorite_dashboard(
+                self.organization, self.user.id, web_vitals
+            ).position
+            == first_position
+        )
+
 
 class DashboardRevisionTest(TestCase):
     def setUp(self) -> None:
