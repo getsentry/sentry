@@ -37,6 +37,7 @@ from sentry.models.eventattachment import EventAttachment
 from sentry.models.userreport import UserReport
 from sentry.objectstore import get_attachments_session
 from sentry.services import eventstore
+from sentry.services.eventstore.processing import event_processing_store
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
@@ -437,11 +438,17 @@ def test_feedbacks_spawn_save_event_feedback(
         )
     assert not len(preprocess_event)
     assert save_event_feedback.delay.call_args[0] == ()
+    # Feedback data is passed inline; nothing is stored in the processing store,
+    # so no cache_key is threaded through.
+    assert save_event_feedback.delay.call_args[1]["cache_key"] is None
     assert (
         save_event_feedback.delay.call_args[1]["data"]["contexts"]["feedback"]
         == event["contexts"]["feedback"]
     )
     assert save_event_feedback.delay.call_args[1]["data"]["type"] == "feedback"
+
+    # The feedback payload must not be left orphaned in the processing store.
+    assert event_processing_store.get(f"e:{event_id}:{project_id}") is None
 
 
 @django_db_all

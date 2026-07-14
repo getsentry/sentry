@@ -190,8 +190,14 @@ def process_event(
         if attachment_objects:
             store_attachments_for_event(project, data, attachment_objects, timeout=CACHE_TIMEOUT)
 
-        with metrics.timer("ingest_consumer._store_event"):
-            cache_key = processing_store.store(data)
+        # Feedback events pass their payload inline to `save_event_feedback` and
+        # never read it back from the processing store, so skip the Redis write
+        # for them. Storing would orphan the payload in Redis until its TTL
+        # expires, since nothing on the feedback path deletes it.
+        cache_key = None
+        if data.get("type") != "feedback":
+            with metrics.timer("ingest_consumer._store_event"):
+                cache_key = processing_store.store(data)
         if consumer_type == ConsumerType.Transactions:
             track_sampled_event(
                 data["event_id"], ConsumerType.Transactions, TransactionStageStatus.REDIS_PUT
@@ -249,7 +255,7 @@ def process_event(
         elif data.get("type") == "feedback":
             if not is_in_feedback_denylist(project.organization):
                 save_event_feedback.delay(
-                    cache_key=None,  # no need to cache as volume is low
+                    cache_key=None,  # data is passed inline; not stored in Redis
                     data=data,
                     start_time=start_time,
                     event_id=event_id,
