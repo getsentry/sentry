@@ -10,6 +10,7 @@ import {
   INPUT_STORAGE_KEY_PREFIX,
   SeerExplorerContent,
 } from 'sentry/views/seerExplorer/components/seerExplorerContent';
+import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import * as useSeerExplorerModule from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
@@ -860,22 +861,30 @@ describe('SeerExplorerContent', () => {
 
     it('shows the context engine toggle in the debug menu when the flag is enabled', async () => {
       render(
-        <PictureInPictureProvider>
-          <SeerExplorerSessionsProvider>
-            <SeerExplorerContent
-              getPageReferrer={mockGetPageReferrer}
-              onClose={() => {}}
-            />
-          </SeerExplorerSessionsProvider>
-        </PictureInPictureProvider>,
+        <SeerExplorerSessionsProvider>
+          <SeerExplorerHeader
+            onNewChatClick={() => {}}
+            onChangeSession={() => {}}
+            onCopySessionClick={undefined}
+            onCopyLinkClick={undefined}
+            overrideCtxEngEnable
+            onOverrideCtxEngEnableToggle={() => {}}
+            showThinking={false}
+            onShowThinkingToggle={() => {}}
+            isPipSupported={false}
+            isPoppedOut={false}
+            onTogglePictureInPicture={() => {}}
+          />
+        </SeerExplorerSessionsProvider>,
         {
           organization: orgWithFlag,
         }
       );
 
+      await screen.findByText('Seer Agent');
       await userEvent.click(await screen.findByRole('button', {name: 'Debug'}));
       expect(
-        screen.getByRole('menuitemradio', {name: /Context Engine/})
+        await screen.findByRole('menuitemradio', {name: /Context Engine/})
       ).toBeInTheDocument();
     });
   });
