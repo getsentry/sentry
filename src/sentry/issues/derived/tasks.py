@@ -1,5 +1,6 @@
 import logging
-from datetime import UTC, datetime, timedelta
+import time
+from datetime import timedelta
 
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -8,7 +9,7 @@ from sentry.taskworker.namespaces import issues_tasks
 logger = logging.getLogger(__name__)
 
 BATCH_PROCESSING_DEADLINE = timedelta(seconds=30)
-BATCH_RETRIGGER_DEADLINE = timedelta(seconds=20)
+BATCH_RETRIGGER_TIMEOUT = timedelta(seconds=20)
 
 
 @instrumented_task(
@@ -73,6 +74,15 @@ def process_project_derived_data(project_id: int, **kwargs: object) -> None:
             group_id_end=end,
         )
 
+    logger.info(
+        "process_project_derived_data.scheduled",
+        extra={
+            "project_id": project_id,
+            "group_count": len(group_ids),
+            "task_count": len(ranges),
+        },
+    )
+
 
 @instrumented_task(
     name="sentry.issues.derived.tasks.process_project_derived_data_batch",
@@ -86,10 +96,11 @@ def process_project_derived_data_batch(
     group_id_end: int,
     **kwargs: object,
 ) -> None:
-    from sentry.issues.derived.processing import GroupLogDeadlineExceeded, process_group_log
+    from sentry.issues.derived.processing import GroupLogTimeout, process_group_log
     from sentry.models.group import Group
 
-    deadline = datetime.now(UTC) + BATCH_RETRIGGER_DEADLINE
+    timeout_seconds = BATCH_RETRIGGER_TIMEOUT.total_seconds()
+    start = time.monotonic()
 
     group_ids = list(
         Group.objects.filter(
@@ -102,7 +113,7 @@ def process_project_derived_data_batch(
     )
 
     for group_id in group_ids:
-        remaining = deadline - datetime.now(UTC)
+        remaining = timedelta(seconds=timeout_seconds - (time.monotonic() - start))
         try:
             process_group_log(group_id, timeout=remaining)
         except Group.DoesNotExist:
@@ -110,7 +121,7 @@ def process_project_derived_data_batch(
                 "process_project_derived_data_batch.group_not_found",
                 extra={"group_id": group_id, "project_id": project_id},
             )
-        except GroupLogDeadlineExceeded:
+        except GroupLogTimeout:
             process_project_derived_data_batch.delay(
                 project_id=project_id,
                 group_id_start=group_id,
@@ -118,7 +129,7 @@ def process_project_derived_data_batch(
             )
             return
 
-        if datetime.now(UTC) >= deadline:
+        if time.monotonic() - start >= timeout_seconds:
             process_project_derived_data_batch.delay(
                 project_id=project_id,
                 group_id_start=group_id + 1,

@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
 
@@ -12,7 +12,7 @@ from sentry.issues.action_log.types import (
     GroupActionActor,
     ViewAction,
 )
-from sentry.issues.derived.processing import GroupLogDeadlineExceeded
+from sentry.issues.derived.processing import GroupLogTimeout
 from sentry.issues.derived.tasks import (
     process_project_derived_data,
     process_project_derived_data_batch,
@@ -155,18 +155,19 @@ class ProcessProjectDerivedDataBatchTest(TestCase):
             call_count += 1
             result = original_process(group_id, **kwargs)
             if call_count == 1:
-                mock_now.return_value = deadline_future
+                # Jump time past the timeout after the first group
+                mock_monotonic.return_value = start_time + 100
             return result
 
-        deadline_future = datetime.now(UTC) + timedelta(seconds=60)
+        start_time = 1000.0
 
         with (
-            patch("sentry.issues.derived.tasks.datetime") as mock_datetime,
+            patch("sentry.issues.derived.tasks.time") as mock_time,
             patch.object(processing, "process_group_log", side_effect=process_then_expire),
             patch.object(process_project_derived_data_batch, "delay") as mock_delay,
         ):
-            mock_now = mock_datetime.now
-            mock_now.return_value = datetime.now(UTC)
+            mock_monotonic = mock_time.monotonic
+            mock_monotonic.return_value = start_time
 
             process_project_derived_data_batch(
                 project_id=self.project.id,
@@ -180,7 +181,7 @@ class ProcessProjectDerivedDataBatchTest(TestCase):
         assert reschedule_kwargs["group_id_start"] == group_ids[1]
         assert reschedule_kwargs["group_id_end"] == group_ids[-1] + 1
 
-    def test_reschedules_on_group_log_deadline_exceeded(self) -> None:
+    def test_reschedules_on_group_log_timeout(self) -> None:
         from sentry.issues.derived import processing
 
         groups = _create_groups_with_entries(self, 3)
@@ -192,7 +193,7 @@ class ProcessProjectDerivedDataBatchTest(TestCase):
             nonlocal call_count
             call_count += 1
             if call_count == 1:
-                raise GroupLogDeadlineExceeded(group_id)
+                raise GroupLogTimeout(group_id)
 
         with (
             patch.object(processing, "process_group_log", side_effect=raise_on_first),
@@ -207,7 +208,7 @@ class ProcessProjectDerivedDataBatchTest(TestCase):
         assert call_count == 1
         assert mock_delay.call_count == 1
         reschedule_kwargs = mock_delay.call_args[1]
-        # On GroupLogDeadlineExceeded, reschedule starts from the SAME group
+        # On GroupLogTimeout, reschedule starts from the SAME group
         assert reschedule_kwargs["group_id_start"] == group_ids[0]
         assert reschedule_kwargs["group_id_end"] == group_ids[-1] + 1
 
@@ -222,7 +223,7 @@ class ProcessGroupLogTimeoutTest(TestCase):
             _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         GroupDerivedData.objects.filter(group_id=group.id).delete()
 
-        with pytest.raises(GroupLogDeadlineExceeded):
+        with pytest.raises(GroupLogTimeout):
             process_group_log(group.id, batch_size=1, timeout=timedelta(0))
 
     def test_completes_without_timeout(self) -> None:

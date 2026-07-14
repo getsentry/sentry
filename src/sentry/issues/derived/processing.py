@@ -1,6 +1,7 @@
 import enum
 import logging
-from datetime import UTC, datetime, timedelta
+import time
+from datetime import datetime, timedelta
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, router, transaction
@@ -146,8 +147,8 @@ def _process_batch(
         return bool(_entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, 1))
 
 
-class GroupLogDeadlineExceeded(Exception):
-    """Raised when process_group_log cannot finish before its deadline."""
+class GroupLogTimeout(Exception):
+    """Raised when process_group_log cannot finish within its timeout."""
 
 
 def process_group_log(
@@ -159,19 +160,20 @@ def process_group_log(
     """Fully drain all pending entries for a group, processing in batches.
 
     Raises Group.DoesNotExist if the group has been deleted.
-    Raises GroupLogDeadlineExceeded if *timeout* elapses before all
+    Raises GroupLogTimeout if *timeout* elapses before all
     entries are processed.
     """
     p = target_pipeline or PIPELINE
-    deadline = datetime.now(UTC) + timeout if timeout is not None else None
+    timeout_seconds = timeout.total_seconds() if timeout is not None else None
+    start = time.monotonic()
 
     with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
         derived = _ensure_derived(group_id)
 
     has_more = _process_batch(p, derived, group_id, batch_size)
     while has_more:
-        if deadline is not None and datetime.now(UTC) >= deadline:
-            raise GroupLogDeadlineExceeded(group_id)
+        if timeout_seconds is not None and time.monotonic() - start >= timeout_seconds:
+            raise GroupLogTimeout(group_id)
         has_more = _process_batch(p, derived, group_id, batch_size)
 
     return derived
