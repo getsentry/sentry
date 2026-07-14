@@ -523,7 +523,7 @@ describe('ProjectFilters', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
     expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Filter name'}),
+      screen.getByRole('textbox', {name: 'Name'}),
       'Block spam messages'
     );
     await userEvent.type(screen.getByRole('textbox', {name: 'Condition value'}), 'spam');
@@ -563,10 +563,7 @@ describe('ProjectFilters', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Filter name'}),
-      'Bad filter'
-    );
+    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Bad filter');
     await userEvent.type(screen.getByRole('textbox', {name: 'Condition value'}), 'x');
     await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
 
@@ -593,7 +590,7 @@ describe('ProjectFilters', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Edit filter'}));
     expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
 
-    const nameInput = screen.getByRole('textbox', {name: 'Filter name'});
+    const nameInput = screen.getByRole('textbox', {name: 'Name'});
     await userEvent.clear(nameInput);
     await userEvent.type(nameInput, 'Updated name');
 
@@ -644,6 +641,103 @@ describe('ProjectFilters', () => {
       )
     );
     await waitFor(() => expect(screen.queryByText('Delete me')).not.toBeInTheDocument());
+  });
+
+  it('gates log and metric condition options behind ingestion features', async () => {
+    renderInboundFilters([]);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Rule'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Error Message'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Release'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Log Message'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Metric Name'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers log and metric options when the ingestion features are enabled', async () => {
+    MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      body: [],
+    });
+    render(<ProjectFilters />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: ['inbound-filters-v2', 'ourlogs-ingestion', 'tracemetrics-ingestion'],
+      }),
+      outletContext: {project},
+      initialRouterConfig: inboundFiltersRouterConfig,
+    });
+    renderGlobalModal();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Rule'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+
+    expect(screen.getByRole('menuitemradio', {name: 'Log Message'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Metric Name'})).toBeInTheDocument();
+  });
+
+  it('drops conflicting category options from other conditions', async () => {
+    MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      body: [],
+    });
+    render(<ProjectFilters />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: ['inbound-filters-v2', 'ourlogs-ingestion', 'tracemetrics-ingestion'],
+      }),
+      outletContext: {project},
+      initialRouterConfig: inboundFiltersRouterConfig,
+    });
+    renderGlobalModal();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Rule'}));
+    // First condition defaults to Error Message; add a second condition and
+    // open its property dropdown.
+    await userEvent.click(screen.getByRole('button', {name: 'Add Condition'}));
+    await userEvent.click(
+      screen.getAllByRole('textbox', {name: 'Condition property'})[1]!
+    );
+
+    expect(
+      screen.getByRole('menuitemradio', {name: 'Error Message'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Release'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Metric Name'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Log Message'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('disables custom filter controls without project:write access', async () => {
+    MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      body: [CustomInboundFilterFixture({id: '1', name: 'A filter'})],
+    });
+    render(<ProjectFilters />, {
+      organization: OrganizationFixture({
+        ...organization,
+        access: [],
+        features: ['inbound-filters-v2'],
+      }),
+      outletContext: {project},
+      initialRouterConfig: inboundFiltersRouterConfig,
+    });
+    renderGlobalModal();
+
+    expect(await screen.findByRole('checkbox', {name: 'Disable filter'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Add Rule'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Edit filter'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Delete filter'})).toBeDisabled();
   });
 
   it('disables configuration for non project:write users', async () => {

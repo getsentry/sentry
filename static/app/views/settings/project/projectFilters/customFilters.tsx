@@ -1,29 +1,30 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {z} from 'zod';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Input, InputGroup} from '@sentry/scraps/input';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {Select} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
+import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconAdd, IconDelete, IconEdit, IconSearch, IconWarning} from 'sentry/icons';
+import {IconAdd, IconDelete, IconEdit, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {uniqueId} from 'sentry/utils/guid';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -47,29 +48,45 @@ type CustomInboundFilter = {
   name: string | null;
 };
 
+type PropertyOption = {label: string; value: ConditionType};
+
 // A single editable condition row in the modal. The API stores a list of
 // values per condition, but the UI edits one glob per row, so each row maps to
 // a single-element value list.
-type DraftCondition = {
-  id: string;
+type ConditionFormValue = {
   property: ConditionType;
   value: string;
 };
 
-type FilterDraft = {
-  conditions: DraftCondition[];
+type FilterFormValues = {
+  conditions: ConditionFormValue[];
   name: string;
 };
 
 // Mirrors the custom data filters available on the legacy inbound filters
 // page (error messages, metric names, log messages, releases). Conditions
 // are glob patterns matched against the selected property.
-const PROPERTY_OPTIONS: Array<{label: string; value: ConditionType}> = [
+const ALL_PROPERTY_OPTIONS: PropertyOption[] = [
   {value: 'error_message', label: t('Error Message')},
   {value: 'metric_name', label: t('Metric Name')},
   {value: 'log_message', label: t('Log Message')},
   {value: 'release', label: t('Release')},
 ];
+
+// Some condition types require the same org ingestion features the legacy data
+// filters UI gates them behind. Offering them without the feature lets the user
+// build a filter the API rejects on save, so mirror that gating here.
+const PROPERTY_FEATURE_FLAGS: Partial<Record<ConditionType, string>> = {
+  log_message: 'ourlogs-ingestion',
+  metric_name: 'tracemetrics-ingestion',
+};
+
+function getAvailablePropertyOptions(organization: Organization): PropertyOption[] {
+  return ALL_PROPERTY_OPTIONS.filter(option => {
+    const requiredFeature = PROPERTY_FEATURE_FLAGS[option.value];
+    return !requiredFeature || organization.features.includes(requiredFeature);
+  });
+}
 
 // A filter can only target a single data category, so these properties are
 // mutually exclusive within one filter — you can't mix error, metric, and log
@@ -86,18 +103,30 @@ function isExclusiveProperty(property: ConditionType) {
   return EXCLUSIVE_PROPERTIES.has(property);
 }
 
-function getActiveExclusiveProperty(conditions: DraftCondition[]) {
+function getActiveExclusiveProperty(conditions: ConditionFormValue[]) {
   return conditions.find(condition => isExclusiveProperty(condition.property))?.property;
 }
 
-function emptyCondition(property: ConditionType = 'error_message'): DraftCondition {
-  return {id: uniqueId(), property, value: ''};
+function emptyCondition(property: ConditionType = 'error_message'): ConditionFormValue {
+  return {property, value: ''};
 }
 
+const filterSchema = z.object({
+  name: z.string().trim().min(1, t('Give the filter a name')),
+  conditions: z
+    .array(
+      z.object({
+        property: z.enum(['error_message', 'metric_name', 'log_message', 'release']),
+        value: z.string().trim().min(1, t('Enter a value to match')),
+      })
+    )
+    .min(1),
+});
+
 // Expand the API's per-condition value lists into one editable row per value.
-function filterToDraft(filter: CustomInboundFilter): FilterDraft {
+function filterToFormValues(filter: CustomInboundFilter): FilterFormValues {
   const conditions = filter.conditions.flatMap(condition =>
-    condition.value.map(value => ({id: uniqueId(), property: condition.type, value}))
+    condition.value.map(value => ({property: condition.type, value}))
   );
   return {
     name: filter.name ?? '',
@@ -107,8 +136,10 @@ function filterToDraft(filter: CustomInboundFilter): FilterDraft {
 
 // Collapse the editable rows back into the API shape, one single-value
 // condition per row.
-function draftToConditions(draft: FilterDraft): CustomInboundFilterCondition[] {
-  return draft.conditions.map(condition => ({
+function formValuesToConditions(
+  values: FilterFormValues
+): CustomInboundFilterCondition[] {
+  return values.conditions.map(condition => ({
     type: condition.property,
     value: [condition.value.trim()],
   }));
@@ -125,7 +156,7 @@ function getErrorDetail(error: unknown, fallback: string): string {
 }
 
 function getPropertyLabel(value: string) {
-  return PROPERTY_OPTIONS.find(option => option.value === value)?.label ?? value;
+  return ALL_PROPERTY_OPTIONS.find(option => option.value === value)?.label ?? value;
 }
 
 function getValuePlaceholder(property: ConditionType) {
@@ -141,6 +172,31 @@ function getValuePlaceholder(property: ConditionType) {
     default:
       return t('Glob pattern');
   }
+}
+
+// For a given condition, drop any exclusive property already claimed by a
+// different condition, so the dropdown only offers valid categories. Two
+// conditions sharing the same exclusive property is fine, and `release` is
+// never exclusive so it always stays available. The condition's own current
+// property is always kept so the select can display the active value.
+function getConditionPropertyOptions(
+  propertyOptions: PropertyOption[],
+  conditions: ConditionFormValue[],
+  index: number
+) {
+  const currentProperty = conditions[index]?.property;
+  return propertyOptions.filter(option => {
+    if (option.value === currentProperty || !isExclusiveProperty(option.value)) {
+      return true;
+    }
+    const conflicts = conditions.some(
+      (other, otherIndex) =>
+        otherIndex !== index &&
+        isExclusiveProperty(other.property) &&
+        other.property !== option.value
+    );
+    return !conflicts;
+  });
 }
 
 function ConditionTag({type, value}: {type: ConditionType; value: string}) {
@@ -159,70 +215,24 @@ function CustomFilterModal({
   Footer,
   closeModal,
   filter,
+  propertyOptions,
   onSave,
 }: ModalRenderProps & {
-  onSave: (draft: FilterDraft) => Promise<unknown>;
+  onSave: (values: FilterFormValues) => Promise<unknown>;
+  propertyOptions: PropertyOption[];
   filter?: CustomInboundFilter;
 }) {
-  const [draft, setDraft] = useState<FilterDraft>(() =>
-    filter ? filterToDraft(filter) : {name: '', conditions: [emptyCondition()]}
-  );
-  const [isSaving, setIsSaving] = useState(false);
-
-  const isValid =
-    draft.name.trim() !== '' &&
-    draft.conditions.length > 0 &&
-    draft.conditions.every(condition => condition.value.trim() !== '');
-
-  const updateCondition = (id: string, updates: Partial<DraftCondition>) => {
-    setDraft(current => ({
-      ...current,
-      conditions: current.conditions.map(condition =>
-        condition.id === id ? {...condition, ...updates} : condition
-      ),
-    }));
-  };
-
-  // For a given condition, disable any exclusive property already claimed by a
-  // different condition. Two conditions sharing the same exclusive property is
-  // fine, and `release` is never exclusive so it stays enabled.
-  const getPropertyOptions = (condition: DraftCondition) =>
-    PROPERTY_OPTIONS.map(option => {
-      if (!isExclusiveProperty(option.value)) {
-        return option;
-      }
-      const conflicts = draft.conditions.some(
-        other =>
-          other.id !== condition.id &&
-          isExclusiveProperty(other.property) &&
-          other.property !== option.value
-      );
-      return conflicts
-        ? {
-            ...option,
-            disabled: true,
-            trailingItems: (
-              <Tooltip
-                title={t(
-                  'A filter can only target one of error, metric, or log data. Remove the existing condition to switch.'
-                )}
-              >
-                <IconWarning size="sm" variant="warning" />
-              </Tooltip>
-            ),
-          }
-        : option;
-    });
-
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      await onSave(draft);
-      closeModal();
-    } catch {
-      setIsSaving(false);
-    }
-  };
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: filter
+      ? filterToFormValues(filter)
+      : {name: '', conditions: [emptyCondition()]},
+    validators: {onDynamic: filterSchema},
+    onSubmit: ({value}) =>
+      onSave(value)
+        .then(() => closeModal())
+        .catch(() => {}),
+  });
 
   return (
     <Fragment>
@@ -232,94 +242,107 @@ function CustomFilterModal({
         </Heading>
       </Header>
       <Body>
-        <Flex direction="column" gap="xl">
-          <Flex direction="column" gap="sm">
-            <Text bold size="sm">
-              {t('Name')}
-            </Text>
-            <Input
-              aria-label={t('Filter name')}
-              placeholder={t('e.g. Ignore flaky connection errors')}
-              value={draft.name}
-              onChange={e => setDraft(current => ({...current, name: e.target.value}))}
-            />
-          </Flex>
+        <form.AppForm form={form}>
+          <Flex direction="column" gap="xl">
+            <form.AppField name="name">
+              {field => (
+                <field.Layout.Stack label={t('Name')} required>
+                  <field.Input
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder={t('e.g. Ignore flaky connection errors')}
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
 
-          <Flex direction="column" gap="sm">
-            <Flex justify="between" align="center" gap="md">
-              <Text variant="muted" size="sm">
-                {t(
-                  'Events must match all conditions (combined with AND) to be filtered. Each condition is a glob pattern matched against the selected field.'
-                )}
-              </Text>
-              <Button
-                size="sm"
-                icon={<IconAdd />}
-                onClick={() =>
-                  setDraft(current => ({
-                    ...current,
-                    conditions: [
-                      ...current.conditions,
-                      emptyCondition(getActiveExclusiveProperty(current.conditions)),
-                    ],
-                  }))
-                }
-              >
-                {t('Add Condition')}
-              </Button>
-            </Flex>
-            {draft.conditions.map(condition => (
-              <Flex key={condition.id} gap="md" align="center">
-                <Container width="160px">
-                  <Select
-                    aria-label={t('Condition property')}
-                    name={`condition-property-${condition.id}`}
-                    clearable={false}
-                    options={getPropertyOptions(condition)}
-                    value={condition.property}
-                    onChange={(option: {value: ConditionType}) =>
-                      updateCondition(condition.id, {property: option.value})
-                    }
-                  />
-                </Container>
-                <Text variant="muted">{t('matches')}</Text>
-                <Flex flex={1}>
-                  <Input
-                    aria-label={t('Condition value')}
-                    placeholder={getValuePlaceholder(condition.property)}
-                    value={condition.value}
-                    onChange={e => updateCondition(condition.id, {value: e.target.value})}
-                  />
-                </Flex>
-                <Button
-                  size="sm"
-                  variant="transparent"
-                  icon={<IconDelete />}
-                  aria-label={t('Remove condition')}
-                  disabled={draft.conditions.length === 1}
-                  onClick={() =>
-                    setDraft(current => ({
-                      ...current,
-                      conditions: current.conditions.filter(c => c.id !== condition.id),
-                    }))
-                  }
-                />
-              </Flex>
-            ))}
+            <form.AppField name="conditions">
+              {conditionsField => {
+                const conditions = conditionsField.state.value;
+                const activeExclusiveProperty = getActiveExclusiveProperty(conditions);
+                return (
+                  <Flex direction="column" gap="sm">
+                    <Flex justify="between" align="center" gap="md">
+                      <Text variant="muted" size="sm">
+                        {t(
+                          'Events must match all conditions (combined with AND) to be filtered. Each condition is a glob pattern matched against the selected field.'
+                        )}
+                      </Text>
+                      <Button
+                        size="sm"
+                        icon={<IconAdd />}
+                        onClick={() =>
+                          conditionsField.pushValue(
+                            emptyCondition(activeExclusiveProperty)
+                          )
+                        }
+                      >
+                        {t('Add Condition')}
+                      </Button>
+                    </Flex>
+                    {conditions.map((condition, index) => (
+                      <Flex key={index} gap="md" align="center">
+                        <Container width="160px">
+                          <form.AppField name={`conditions[${index}].property`}>
+                            {propertyField => (
+                              <propertyField.Select
+                                aria-label={t('Condition property')}
+                                clearable={false}
+                                options={getConditionPropertyOptions(
+                                  propertyOptions,
+                                  conditions,
+                                  index
+                                )}
+                                value={propertyField.state.value}
+                                onChange={value => propertyField.handleChange(value)}
+                              />
+                            )}
+                          </form.AppField>
+                        </Container>
+                        <Text variant="muted">{t('matches')}</Text>
+                        <Flex flex={1}>
+                          <form.AppField name={`conditions[${index}].value`}>
+                            {valueField => (
+                              <valueField.Input
+                                aria-label={t('Condition value')}
+                                placeholder={getValuePlaceholder(condition.property)}
+                                value={valueField.state.value}
+                                onChange={valueField.handleChange}
+                              />
+                            )}
+                          </form.AppField>
+                        </Flex>
+                        <Button
+                          size="sm"
+                          variant="transparent"
+                          icon={<IconDelete />}
+                          aria-label={t('Remove condition')}
+                          disabled={conditions.length === 1}
+                          onClick={() => conditionsField.removeValue(index)}
+                        />
+                      </Flex>
+                    ))}
+                  </Flex>
+                );
+              }}
+            </form.AppField>
           </Flex>
-        </Flex>
+        </form.AppForm>
       </Body>
       <Footer>
         <Flex gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button
-            variant="primary"
-            disabled={!isValid || isSaving}
-            busy={isSaving}
-            onClick={handleSave}
-          >
-            {filter ? t('Save Changes') : t('Create Filter')}
-          </Button>
+          <form.Subscribe selector={state => state.isSubmitting}>
+            {isSubmitting => (
+              <Button
+                variant="primary"
+                busy={isSubmitting}
+                onClick={() => form.handleSubmit()}
+              >
+                {filter ? t('Save Changes') : t('Create Filter')}
+              </Button>
+            )}
+          </form.Subscribe>
         </Flex>
       </Footer>
     </Fragment>
@@ -349,6 +372,9 @@ export function CustomFilters({project}: {project: Project}) {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
 
+  const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
+  const propertyOptions = getAvailablePropertyOptions(organization);
+
   const queryOptions = apiOptions.as<CustomInboundFilter[]>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/',
     {
@@ -365,11 +391,11 @@ export function CustomFilters({project}: {project: Project}) {
   const invalidate = () => queryClient.invalidateQueries({queryKey});
 
   const createMutation = useMutation({
-    mutationFn: (draft: FilterDraft) =>
+    mutationFn: (values: FilterFormValues) =>
       fetchMutation<CustomInboundFilter>({
         method: 'POST',
         url: listUrl,
-        data: {name: draft.name.trim(), conditions: draftToConditions(draft)},
+        data: {name: values.name.trim(), conditions: formValuesToConditions(values)},
       }),
     onSuccess: () => {
       addSuccessMessage(t('Filter created'));
@@ -414,12 +440,12 @@ export function CustomFilters({project}: {project: Project}) {
     },
   });
 
-  const handleCreate = (draft: FilterDraft) => createMutation.mutateAsync(draft);
+  const handleCreate = (values: FilterFormValues) => createMutation.mutateAsync(values);
 
-  const handleEdit = (id: string, draft: FilterDraft) =>
+  const handleEdit = (id: string, values: FilterFormValues) =>
     updateMutation.mutateAsync({
       id,
-      data: {name: draft.name.trim(), conditions: draftToConditions(draft)},
+      data: {name: values.name.trim(), conditions: formValuesToConditions(values)},
     });
 
   const handleToggleActive = (filter: CustomInboundFilter) =>
@@ -450,8 +476,20 @@ export function CustomFilters({project}: {project: Project}) {
           size="sm"
           variant="primary"
           icon={<IconAdd />}
+          disabled={!hasWriteAccess}
+          tooltipProps={
+            hasWriteAccess
+              ? undefined
+              : {title: t('You need project write access to add filters.')}
+          }
           onClick={() =>
-            openModal(deps => <CustomFilterModal {...deps} onSave={handleCreate} />)
+            openModal(deps => (
+              <CustomFilterModal
+                {...deps}
+                propertyOptions={propertyOptions}
+                onSave={handleCreate}
+              />
+            ))
           }
         >
           {t('Add Rule')}
@@ -492,13 +530,12 @@ export function CustomFilters({project}: {project: Project}) {
                 <Switch
                   aria-label={filter.active ? t('Disable filter') : t('Enable filter')}
                   checked={filter.active}
+                  disabled={!hasWriteAccess}
                   onChange={() => handleToggleActive(filter)}
                 />
               </SimpleTable.RowCell>
               <SimpleTable.RowCell>
-                <Tooltip title={filter.name} showOnlyOnOverflow skipWrapper>
-                  <Text ellipsis>{filter.name}</Text>
-                </Tooltip>
+                <Text ellipsis>{filter.name}</Text>
               </SimpleTable.RowCell>
               <SimpleTable.RowCell>
                 <Flex direction="column" align="start" gap="xs">
@@ -526,18 +563,21 @@ export function CustomFilters({project}: {project: Project}) {
                     variant="transparent"
                     icon={<IconEdit />}
                     aria-label={t('Edit filter')}
+                    disabled={!hasWriteAccess}
                     onClick={() =>
                       openModal(deps => (
                         <CustomFilterModal
                           {...deps}
                           filter={filter}
-                          onSave={draft => handleEdit(filter.id, draft)}
+                          propertyOptions={propertyOptions}
+                          onSave={values => handleEdit(filter.id, values)}
                         />
                       ))
                     }
                   />
                   <Confirm
                     priority="danger"
+                    disabled={!hasWriteAccess}
                     message={t('Are you sure you want to delete this filter?')}
                     onConfirm={() => handleDelete(filter.id)}
                   >
