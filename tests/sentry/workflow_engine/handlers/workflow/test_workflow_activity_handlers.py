@@ -10,6 +10,7 @@ from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import 
     SUPPORTED_ACTIVITIES,
     activity_handler,
     seer_activity_handler,
+    smart_assignment_activity_handler,
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.registry import workflow_activity_registry
@@ -20,7 +21,48 @@ class WorkflowActivityRegistryTest(TestCase):
     def test_registrants(self) -> None:
         assert "seer_activity" in workflow_activity_registry.registrations
         assert "generic_activity" in workflow_activity_registry.registrations
-        assert len(workflow_activity_registry.registrations) == 2
+        assert "smart_assignment" in workflow_activity_registry.registrations
+        assert len(workflow_activity_registry.registrations) == 3
+
+
+class SmartAssignmentActivityHandlerTest(TestCase):
+    TRIGGER = "sentry.seer.smart_assignment.trigger.maybe_trigger_smart_assignment"
+
+    def setUp(self) -> None:
+        self.group = self.create_group()
+
+    @mock.patch(TRIGGER)
+    def test_delegates_for_relevant_activities(self, mock_trigger: MagicMock) -> None:
+        from sentry.seer.models.smart_assignment import SmartAssignmentTrigger
+
+        cases = [
+            (ActivityType.SEER_PR_CREATED, SmartAssignmentTrigger.PR_CREATED, None),
+            (
+                ActivityType.ASSIGNED,
+                SmartAssignmentTrigger.ASSIGNMENT,
+                {"assignee": "1", "assigneeType": "user"},
+            ),
+            (ActivityType.SET_RESOLVED, SmartAssignmentTrigger.RESOLUTION, None),
+            (ActivityType.SET_RESOLVED_IN_COMMIT, SmartAssignmentTrigger.RESOLUTION, None),
+        ]
+        for activity_type, expected_trigger, data in cases:
+            mock_trigger.reset_mock()
+            activity = self.create_group_activity(
+                group=self.group, type=activity_type.value, data=data
+            )
+            smart_assignment_activity_handler(self.group, activity, None)
+            mock_trigger.assert_called_once_with(self.group, expected_trigger, activity)
+
+    @mock.patch(TRIGGER)
+    def test_skips_unrelated_activities(self, mock_trigger: MagicMock) -> None:
+        for activity_type in (
+            ActivityType.SEER_SOLUTION_COMPLETED,
+            ActivityType.SET_RESOLVED_BY_AGE,
+            ActivityType.NOTE,
+        ):
+            activity = self.create_group_activity(group=self.group, type=activity_type.value)
+            smart_assignment_activity_handler(self.group, activity, None)
+        mock_trigger.assert_not_called()
 
 
 class SeerActivityHandlerTest(TestCase):

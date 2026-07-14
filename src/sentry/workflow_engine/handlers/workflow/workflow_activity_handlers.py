@@ -34,6 +34,22 @@ SUPPORTED_ACTIVITIES = [
     # When it fires, it means the issue was referenced in a pull request, not resolved.
 ]
 
+# Activities the smart assignment feature reacts to: Seer opening a PR, an
+# assignment, or a resolution. Each triggers a prediction (deduped to one per
+# group) and records ground truth; gating lives in maybe_trigger_smart_assignment.
+# SET_RESOLVED_BY_AGE is intentionally excluded: it's always the auto-resolve cron
+# (no acting user), so it carries no signal and would only ever be filtered out.
+_SMART_ASSIGNMENT_ACTIVITIES = frozenset(
+    {
+        ActivityType.SEER_PR_CREATED,
+        ActivityType.ASSIGNED,
+        ActivityType.SET_RESOLVED,
+        ActivityType.SET_RESOLVED_IN_RELEASE,
+        ActivityType.SET_RESOLVED_IN_COMMIT,
+        ActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+    }
+)
+
 
 @workflow_activity_registry.register("seer_activity")
 def seer_activity_handler(
@@ -85,6 +101,40 @@ def seer_activity_handler(
         tags={"activity_name": activity_type.name},
     )
     logger.info("workflow_engine.seer_activity_handler.complete", extra=logging_ctx)
+
+
+@workflow_activity_registry.register("smart_assignment")
+def smart_assignment_activity_handler(
+    group: Group,
+    activity: Activity,
+    detector_id: DetectorId | None = None,
+) -> None:
+    """Trigger the smart assignment feature off Seer PRs, assignment, and resolution.
+
+    Invoked unconditionally for every group activity (via
+    invoke_workflow_activity_handlers), so it self-filters to the activities we care
+    about and delegates gating, dispatch (deduped to one run per group), and
+    ground-truth capture to maybe_trigger_smart_assignment.
+    """
+    try:
+        activity_type = ActivityType(activity.type)
+    except ValueError:
+        return
+
+    if activity_type not in _SMART_ASSIGNMENT_ACTIVITIES:
+        return
+
+    from sentry.seer.models.smart_assignment import SmartAssignmentTrigger
+    from sentry.seer.smart_assignment.trigger import maybe_trigger_smart_assignment
+
+    if activity_type == ActivityType.SEER_PR_CREATED:
+        trigger = SmartAssignmentTrigger.PR_CREATED
+    elif activity_type == ActivityType.ASSIGNED:
+        trigger = SmartAssignmentTrigger.ASSIGNMENT
+    else:
+        trigger = SmartAssignmentTrigger.RESOLUTION
+
+    maybe_trigger_smart_assignment(group, trigger, activity)
 
 
 @workflow_activity_registry.register("generic_activity")
