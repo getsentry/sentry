@@ -3,6 +3,7 @@ from sentry.seer.models.night_shift import (
     SeerNightShiftRunResult,
     SeerNightShiftRunShard,
 )
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.testutils.cases import APITestCase
 
 
@@ -52,7 +53,116 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert len(response.data[0]["issues"]) == 1
         legacy = response.data[0]["issues"][0]
         assert legacy["groupId"] == str(group.id)
+        assert legacy["groupTitle"] == group.title
         assert legacy["action"] == "autofix_triggered"
+        # The legacy seer_run_id here ("seer-123") is non-numeric, so it can't
+        # resolve to a SeerRun -- no pull requests should be attached.
+        assert legacy["pullRequests"] == []
+
+    def test_issue_with_missing_group_has_null_title(self) -> None:
+        # The group FK has db_constraint=False (see SeerNightShiftRunResult),
+        # so a stale group_id pointing at a deleted group is a real
+        # possibility in prod, not just a hypothetical -- simulate it
+        # directly rather than via create+delete, which would cascade-delete
+        # this row too (the FK is CASCADE at the Django ORM level).
+        run = SeerNightShiftRun.objects.create(organization=self.organization)
+        SeerNightShiftRunResult.objects.create(
+            run=run,
+            kind="agentic_triage",
+            group_id=999999999,
+            extras={"action": "skip"},
+        )
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        legacy = response.data[0]["issues"][0]
+        assert legacy["groupTitle"] is None
+        assert legacy["pullRequests"] == []
+
+    def test_issue_includes_pull_requests_via_result_seer_run_fk(self) -> None:
+        group = self.create_group()
+        repo = self.create_repo()
+        pull_request = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.organization.id
+        )
+        issue_seer_run = self.create_seer_run(organization=self.organization)
+        SeerRunPullRequest.objects.create(seer_run=issue_seer_run, pull_request=pull_request)
+
+        run = SeerNightShiftRun.objects.create(organization=self.organization)
+        SeerNightShiftRunResult.objects.create(
+            run=run,
+            kind="agentic_triage",
+            group=group,
+            result_seer_run=issue_seer_run,
+            extras={"action": "autofix_triggered"},
+        )
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        legacy = response.data[0]["issues"][0]
+        assert len(legacy["pullRequests"]) == 1
+        assert legacy["pullRequests"][0]["id"] == pull_request.key
+        assert legacy["pullRequests"][0]["title"] == pull_request.title
+
+    def test_issue_includes_pull_requests_via_legacy_seer_run_id(self) -> None:
+        group = self.create_group()
+        repo = self.create_repo()
+        pull_request = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.organization.id
+        )
+        issue_seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=999)
+        SeerRunPullRequest.objects.create(seer_run=issue_seer_run, pull_request=pull_request)
+
+        run = SeerNightShiftRun.objects.create(organization=self.organization)
+        SeerNightShiftRunResult.objects.create(
+            run=run,
+            kind="agentic_triage",
+            group=group,
+            seer_run_id="999",
+            extras={"action": "autofix_triggered"},
+        )
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        legacy = response.data[0]["issues"][0]
+        assert len(legacy["pullRequests"]) == 1
+        assert legacy["pullRequests"][0]["id"] == pull_request.key
+
+    def test_pull_requests_not_leaked_across_runs(self) -> None:
+        group_a = self.create_group()
+        group_b = self.create_group()
+        repo = self.create_repo()
+        pull_request = self.create_pull_request(
+            repository_id=repo.id, organization_id=self.organization.id
+        )
+        seer_run_a = self.create_seer_run(organization=self.organization)
+        SeerRunPullRequest.objects.create(seer_run=seer_run_a, pull_request=pull_request)
+
+        run_a = SeerNightShiftRun.objects.create(organization=self.organization)
+        SeerNightShiftRunResult.objects.create(
+            run=run_a,
+            kind="agentic_triage",
+            group=group_a,
+            result_seer_run=seer_run_a,
+            extras={"action": "autofix_triggered"},
+        )
+        run_b = SeerNightShiftRun.objects.create(organization=self.organization)
+        SeerNightShiftRunResult.objects.create(
+            run=run_b,
+            kind="agentic_triage",
+            group=group_b,
+            extras={"action": "skip"},
+        )
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        by_run_id = {r["id"]: r for r in response.data}
+        assert len(by_run_id[str(run_a.id)]["issues"][0]["pullRequests"]) == 1
+        assert by_run_id[str(run_b.id)]["issues"][0]["pullRequests"] == []
 
     def test_surfaces_shard_seer_run_ids(self) -> None:
         run = SeerNightShiftRun.objects.create(organization=self.organization)

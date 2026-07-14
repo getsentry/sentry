@@ -1,16 +1,24 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 
 from django.db.models import Prefetch, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.pullrequest import (
+    PullRequestSerializer,
+    PullRequestSerializerResponse,
+)
+from sentry.models.group import Group
+from sentry.models.pullrequest import PullRequest
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunResult,
     SeerNightShiftRunShard,
 )
+from sentry.seer.models.run import SeerRun, SeerRunPullRequest
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 
 
@@ -29,8 +37,10 @@ class SeerNightShiftRunResultResponse(TypedDict):
 class SeerNightShiftRunIssueResponse(TypedDict):
     id: str
     groupId: str
+    groupTitle: str | None
     action: str | None
     seerRunId: str | None
+    pullRequests: list[PullRequestSerializerResponse]
     dateAdded: str
 
 
@@ -70,7 +80,82 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
                 queryset=SeerNightShiftRunShard.objects.order_by("id").select_related("seer_run"),
             ),
         )
-        return {}
+
+        triage_results = [
+            r
+            for run in item_list
+            for r in run.results.all()
+            if r.kind == SeerWorkflowStrategy.AGENTIC_TRIAGE
+        ]
+
+        group_ids = {r.group_id for r in triage_results if r.group_id is not None}
+        group_titles_by_id: dict[int, str | None] = {
+            group_id: group.title for group_id, group in Group.objects.in_bulk(group_ids).items()
+        }
+
+        # Resolve each result's per-issue SeerRun pk: prefer the FK, else fall
+        # back to matching the legacy text `seer_run_id` against
+        # SeerRun.seer_run_state_id (Seer's own run id, not our SeerRun pk).
+        seer_run_pk_by_result_id: dict[int, int] = {}
+        legacy_state_id_by_result_id: dict[int, int] = {}
+        for r in triage_results:
+            if r.result_seer_run_id is not None:
+                seer_run_pk_by_result_id[r.id] = r.result_seer_run_id
+            elif r.seer_run_id is not None and r.seer_run_id.isdigit():
+                legacy_state_id_by_result_id[r.id] = int(r.seer_run_id)
+
+        seer_run_pk_by_state_id: dict[int, int] = {
+            state_id: pk
+            for state_id, pk in SeerRun.objects.filter(
+                seer_run_state_id__in=set(legacy_state_id_by_result_id.values())
+            ).values_list("seer_run_state_id", "id")
+            if state_id is not None
+        }
+        for result_id, state_id in legacy_state_id_by_result_id.items():
+            pk = seer_run_pk_by_state_id.get(state_id)
+            if pk is not None:
+                seer_run_pk_by_result_id[result_id] = pk
+
+        # Bulk-fetch every SeerRunPullRequest link for the resolved SeerRun
+        # pks in one query, then bulk-serialize each PullRequest exactly once,
+        # keyed by Django pk (not `.key` -- that's the PR number and collides
+        # across repos).
+        pr_ids_by_seer_run_pk: dict[int, list[int]] = defaultdict(list)
+        pull_requests_by_pk: dict[int, PullRequest] = {}
+        for link in SeerRunPullRequest.objects.filter(
+            seer_run_id__in=set(seer_run_pk_by_result_id.values())
+        ).select_related("pull_request"):
+            pr_ids_by_seer_run_pk[link.seer_run_id].append(link.pull_request_id)
+            pull_requests_by_pk[link.pull_request_id] = link.pull_request
+
+        serialized_pr_by_pk: dict[int, PullRequestSerializerResponse] = {}
+        if pull_requests_by_pk:
+            prs = list(pull_requests_by_pk.values())
+            serialized_pr_by_pk = dict(
+                zip(
+                    (pr.id for pr in prs),
+                    serialize(prs, user, PullRequestSerializer()),
+                )
+            )
+
+        pull_requests_by_result_id: dict[int, list[PullRequestSerializerResponse]] = {}
+        for r in triage_results:
+            seer_run_pk = seer_run_pk_by_result_id.get(r.id)
+            pull_requests_by_result_id[r.id] = (
+                [
+                    serialized_pr_by_pk[pk]
+                    for pk in pr_ids_by_seer_run_pk.get(seer_run_pk, [])
+                    if pk in serialized_pr_by_pk
+                ]
+                if seer_run_pk is not None
+                else []
+            )
+
+        shared = {
+            "group_titles_by_id": group_titles_by_id,
+            "pull_requests_by_result_id": pull_requests_by_result_id,
+        }
+        return {run: shared for run in item_list}
 
     def serialize(
         self,
@@ -92,13 +177,18 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
             ),
             None,
         )
+        group_titles_by_id = attrs.get("group_titles_by_id", {})
+        pull_requests_by_result_id = attrs.get("pull_requests_by_result_id", {})
         return {
             "id": str(obj.id),
             "dateAdded": obj.date_added.isoformat(),
             "extras": extras,
             "errorMessage": extras.get("error_message") or shard_error,
             "results": [_serialize_result(r) for r in all_results],
-            "issues": [_serialize_legacy_issue(r) for r in triage_results],
+            "issues": [
+                _serialize_legacy_issue(r, group_titles_by_id, pull_requests_by_result_id)
+                for r in triage_results
+            ],
             "seerRuns": serialize(list(obj.shards.all()), user, SeerNightShiftShardSerializer()),
             # Match the pre-migration column behavior: always "agentic_triage"
             # in this PR. The multi-kind feature PR will refine this once
@@ -118,12 +208,20 @@ def _serialize_result(result: SeerNightShiftRunResult) -> SeerNightShiftRunResul
     }
 
 
-def _serialize_legacy_issue(result: SeerNightShiftRunResult) -> SeerNightShiftRunIssueResponse:
+def _serialize_legacy_issue(
+    result: SeerNightShiftRunResult,
+    group_titles_by_id: Mapping[int, str | None],
+    pull_requests_by_result_id: Mapping[int, list[PullRequestSerializerResponse]],
+) -> SeerNightShiftRunIssueResponse:
     extras = result.extras or {}
     return {
         "id": str(result.id),
         "groupId": str(result.group_id) if result.group_id is not None else "",
+        "groupTitle": (
+            group_titles_by_id.get(result.group_id) if result.group_id is not None else None
+        ),
         "action": extras.get("action"),
         "seerRunId": result.seer_run_id,
+        "pullRequests": pull_requests_by_result_id.get(result.id, []),
         "dateAdded": result.date_added.isoformat(),
     }
