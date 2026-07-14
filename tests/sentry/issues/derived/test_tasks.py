@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -141,15 +142,15 @@ class ProcessProjectDerivedDataBatchTest(TestCase):
         assert not GroupDerivedData.objects.filter(group_id=deleted_id).exists()
 
     def test_reschedules_on_timeout(self) -> None:
+        from sentry.issues.derived import processing
+
         groups = _create_groups_with_entries(self, 3)
         group_ids = sorted(g.id for g in groups)
 
         call_count = 0
-        original_process = __import__(
-            "sentry.issues.derived.processing", fromlist=["process_group_log"]
-        ).process_group_log
+        original_process = processing.process_group_log
 
-        def process_then_expire(group_id: int, **kwargs: object) -> object:
+        def process_then_expire(group_id: int, **kwargs: Any) -> object:
             nonlocal call_count
             call_count += 1
             result = original_process(group_id, **kwargs)
@@ -161,10 +162,7 @@ class ProcessProjectDerivedDataBatchTest(TestCase):
 
         with (
             patch("sentry.issues.derived.tasks.datetime") as mock_datetime,
-            patch(
-                "sentry.issues.derived.processing.process_group_log",
-                side_effect=process_then_expire,
-            ),
+            patch.object(processing, "process_group_log", side_effect=process_then_expire),
             patch.object(process_project_derived_data_batch, "delay") as mock_delay,
         ):
             mock_now = mock_datetime.now
@@ -183,6 +181,8 @@ class ProcessProjectDerivedDataBatchTest(TestCase):
         assert reschedule_kwargs["group_id_end"] == group_ids[-1] + 1
 
     def test_reschedules_on_group_log_deadline_exceeded(self) -> None:
+        from sentry.issues.derived import processing
+
         groups = _create_groups_with_entries(self, 3)
         group_ids = sorted(g.id for g in groups)
 
@@ -195,10 +195,7 @@ class ProcessProjectDerivedDataBatchTest(TestCase):
                 raise GroupLogDeadlineExceeded(group_id)
 
         with (
-            patch(
-                "sentry.issues.derived.processing.process_group_log",
-                side_effect=raise_on_first,
-            ),
+            patch.object(processing, "process_group_log", side_effect=raise_on_first),
             patch.object(process_project_derived_data_batch, "delay") as mock_delay,
         ):
             process_project_derived_data_batch(
@@ -216,8 +213,8 @@ class ProcessProjectDerivedDataBatchTest(TestCase):
 
 
 @with_feature("projects:issue-action-log-write-to-db")
-class ProcessGroupLogDeadlineTest(TestCase):
-    def test_raises_when_deadline_exceeded(self) -> None:
+class ProcessGroupLogTimeoutTest(TestCase):
+    def test_raises_when_timeout_exceeded(self) -> None:
         from sentry.issues.derived.processing import process_group_log
 
         group = self.create_group()
@@ -225,11 +222,10 @@ class ProcessGroupLogDeadlineTest(TestCase):
             _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         GroupDerivedData.objects.filter(group_id=group.id).delete()
 
-        past = datetime.now(UTC) - timedelta(seconds=1)
         with pytest.raises(GroupLogDeadlineExceeded):
-            process_group_log(group.id, batch_size=1, deadline=past)
+            process_group_log(group.id, batch_size=1, timeout=timedelta(0))
 
-    def test_completes_without_deadline(self) -> None:
+    def test_completes_without_timeout(self) -> None:
         from sentry.issues.derived.processing import process_group_log
 
         group = self.create_group()
@@ -240,7 +236,7 @@ class ProcessGroupLogDeadlineTest(TestCase):
         derived = process_group_log(group.id)
         assert derived.view_count == 3
 
-    def test_completes_with_generous_deadline(self) -> None:
+    def test_completes_with_generous_timeout(self) -> None:
         from sentry.issues.derived.processing import process_group_log
 
         group = self.create_group()
@@ -248,6 +244,5 @@ class ProcessGroupLogDeadlineTest(TestCase):
             _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         GroupDerivedData.objects.filter(group_id=group.id).delete()
 
-        future = datetime.now(UTC) + timedelta(minutes=5)
-        derived = process_group_log(group.id, deadline=future)
+        derived = process_group_log(group.id, timeout=timedelta(minutes=5))
         assert derived.view_count == 3

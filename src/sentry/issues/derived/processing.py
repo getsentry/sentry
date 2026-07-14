@@ -1,6 +1,6 @@
 import enum
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, router, transaction
@@ -154,15 +154,16 @@ def process_group_log(
     group_id: int,
     batch_size: int = DEFAULT_BATCH_SIZE,
     target_pipeline: Pipeline[GroupActionLogEntry] | None = None,
-    deadline: datetime | None = None,
+    timeout: timedelta | None = None,
 ) -> GroupDerivedData:
     """Fully drain all pending entries for a group, processing in batches.
 
     Raises Group.DoesNotExist if the group has been deleted.
-    Raises GroupLogDeadlineExceeded if *deadline* is reached before all
+    Raises GroupLogDeadlineExceeded if *timeout* elapses before all
     entries are processed.
     """
     p = target_pipeline or PIPELINE
+    deadline = datetime.now(UTC) + timeout if timeout is not None else None
 
     with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
         derived = _ensure_derived(group_id)

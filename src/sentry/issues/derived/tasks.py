@@ -102,8 +102,9 @@ def process_project_derived_data_batch(
     )
 
     for group_id in group_ids:
+        remaining = deadline - datetime.now(UTC)
         try:
-            process_group_log(group_id, deadline=deadline)
+            process_group_log(group_id, timeout=remaining)
         except Group.DoesNotExist:
             logger.info(
                 "process_project_derived_data_batch.group_not_found",
