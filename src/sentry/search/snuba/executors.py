@@ -1097,7 +1097,8 @@ def resolve_progress_signal(
     from the materialized GroupDerivedData.progress column; otherwise it's derived from the
     same Activity records as the ``issue.progress`` filter. Every group gets a rank."""
     if projects and all(
-        features.has("projects:issue-stream-derived-progress", project) for project in projects
+        features.has("projects:issue-stream-derived-progress", project, actor=actor)
+        for project in projects
     ):
         states = _get_group_progress_states_from_derived_data(group_ids)
     else:
@@ -1115,7 +1116,8 @@ def _resolve_last_progressed_at(
     GroupDerivedData.last_progressed_at. Groups without a value are omitted; score_fn
     falls through to last_seen for them."""
     if not all(
-        features.has("projects:issue-stream-derived-progress", project) for project in projects
+        features.has("projects:issue-stream-derived-progress", project, actor=actor)
+        for project in projects
     ):
         return {}
     rows = GroupDerivedData.objects.filter(
