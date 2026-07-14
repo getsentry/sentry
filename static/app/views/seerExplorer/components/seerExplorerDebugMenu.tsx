@@ -1,6 +1,5 @@
-import styled from '@emotion/styled';
-
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {Container} from '@sentry/scraps/layout';
 
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconBug} from 'sentry/icons';
@@ -69,7 +68,11 @@ export function SeerExplorerDebugMenu({
       items={items}
       size="xs"
       position="bottom-end"
-      triggerLabel={<TriggerLabel>{t('Debug')}</TriggerLabel>}
+      triggerLabel={
+        <Container as="span" display={{'2xs': 'none', xs: 'inline'}}>
+          {t('Debug')}
+        </Container>
+      }
       triggerProps={{
         'aria-label': t('Debug'),
         icon: <IconBug />,
@@ -79,9 +82,3 @@ export function SeerExplorerDebugMenu({
     />
   );
 }
-
-const TriggerLabel = styled('span')`
-  @container (max-width: 460px) {
-    display: none;
-  }
-`;

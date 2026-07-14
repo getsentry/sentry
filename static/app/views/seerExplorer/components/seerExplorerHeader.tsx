@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {TimeSince} from 'sentry/components/timeSince';
@@ -28,7 +28,7 @@ import type {
  * `<header>` wrapper and the close affordance via a slot.
  *
  * The action cluster reshapes across three sizes of its nearest query container
- * (the Seer content pane): large shows everything expanded, medium (`≤ 460px`)
+ * (the Seer content pane): large shows everything expanded, medium (`≤ 500px`)
  * drops text labels, and small (`≤ 380px`) folds the middle actions into an
  * overflow menu.
  */
@@ -144,7 +144,7 @@ export function SeerExplorerHeader({
         <OverflowActions>
           <SeerExplorerHeaderActionsMenu {...actionsProps} />
         </OverflowActions>
-        <NewChatFull>
+        <Container display={{'2xs': 'none', xs: 'contents'}}>
           <Button
             icon={<IconAdd />}
             onClick={onNewChatClick}
@@ -155,8 +155,8 @@ export function SeerExplorerHeader({
           >
             {t('New chat')}
           </Button>
-        </NewChatFull>
-        <NewChatCompact>
+        </Container>
+        <Container display={{'2xs': 'contents', xs: 'none'}}>
           <Button
             icon={<IconAdd />}
             onClick={onNewChatClick}
@@ -166,27 +166,11 @@ export function SeerExplorerHeader({
             aria-label={t('Start a new chat (/new)')}
             tooltipProps={{title: t('Start a new chat (/new)')}}
           />
-        </NewChatCompact>
+        </Container>
       </Flex>
     </Fragment>
   );
 }
-
-const NewChatFull = styled('div')`
-  display: contents;
-
-  @container (max-width: 460px) {
-    display: none;
-  }
-`;
-
-const NewChatCompact = styled('div')`
-  display: none;
-
-  @container (max-width: 460px) {
-    display: contents;
-  }
-`;
 
 const InlineActions = styled(Flex)`
   align-items: center;
