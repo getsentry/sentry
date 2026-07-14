@@ -36,7 +36,7 @@ export function ScmFeatureSelectionCards({
           </Heading>
           {availableFeatures.length > 1 ? (
             <Container>
-              <Text size="sm" variant="secondary">
+              <Text size="sm" variant="secondary" wrap="nowrap">
                 {t('Choose one or more')}
               </Text>
             </Container>
