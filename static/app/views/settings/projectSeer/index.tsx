@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState, type ReactNode} from 'react';
+import {Fragment, useCallback, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {
   infiniteQueryOptions,
@@ -88,6 +88,12 @@ type StoppingPointFieldValue =
   | 'open_pr'
   | 'cursor_handoff'
   | 'claude_handoff';
+
+type StoppingPointOption = {
+  details: string;
+  label: ReactNode;
+  value: StoppingPointFieldValue;
+};
 
 const stoppingPointSchema = z.object({
   automated_run_stopping_point: z.enum([
@@ -248,13 +254,10 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
 
   const claudeIntegration = claudeIntegrations[0];
 
-  // Local state drives cross-field visibility (legacy read these via the form model).
-  const [scannerAutomation, setScannerAutomation] = useState(
-    project.seerScannerAutomation ?? false
-  );
-  const [automationTuning, setAutomationTuning] = useState(
-    project.autofixAutomationTuning ?? 'off'
-  );
+  // Cross-field visibility derives from the saved project; these refresh once a
+  // field's save round-trips and updates the project via the query cache.
+  const scannerAutomation = project.seerScannerAutomation ?? false;
+  const automationTuning = project.autofixAutomationTuning ?? 'off';
 
   const handleSubmitSuccess = useCallback(
     (resp: DetailedProject) => {
@@ -377,40 +380,36 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
         : 'cursor_handoff'
       : automatedRunStoppingPoint;
 
-  const stoppingPointOptions: Array<{
-    details: string;
-    label: ReactNode;
-    value: StoppingPointFieldValue;
-  }> = [
+  const cursorHandoffOption: StoppingPointOption[] = hasCursorIntegration
+    ? [
+        {
+          value: 'cursor_handoff',
+          label: <SeerSelectLabel>{t('Hand off to Cursor Cloud Agent')}</SeerSelectLabel>,
+          details: t(
+            "Seer will identify the root cause and hand off the fix to Cursor's cloud agent."
+          ),
+        },
+      ]
+    : [];
+
+  const claudeHandoffOption: StoppingPointOption[] = hasClaudeIntegration
+    ? [
+        {
+          value: 'claude_handoff',
+          label: <SeerSelectLabel>{t('Hand off to Claude Agent')}</SeerSelectLabel>,
+          details: t('Seer will identify the root cause and hand off the fix to Claude.'),
+        },
+      ]
+    : [];
+
+  const stoppingPointOptions: StoppingPointOption[] = [
     {
       value: 'root_cause',
       label: <SeerSelectLabel>{t('Root Cause (default)')}</SeerSelectLabel>,
       details: t('Seer will stop after identifying the root cause.'),
     },
-    ...(hasCursorIntegration
-      ? [
-          {
-            value: 'cursor_handoff',
-            label: (
-              <SeerSelectLabel>{t('Hand off to Cursor Cloud Agent')}</SeerSelectLabel>
-            ),
-            details: t(
-              "Seer will identify the root cause and hand off the fix to Cursor's cloud agent."
-            ),
-          },
-        ]
-      : []),
-    ...(hasClaudeIntegration
-      ? [
-          {
-            value: 'claude_handoff',
-            label: <SeerSelectLabel>{t('Hand off to Claude Agent')}</SeerSelectLabel>,
-            details: t(
-              'Seer will identify the root cause and hand off the fix to Claude.'
-            ),
-          },
-        ]
-      : []),
+    ...cursorHandoffOption,
+    ...claudeHandoffOption,
     {
       value: 'solution',
       label: <SeerSelectLabel>{t('Solution')}</SeerSelectLabel>,
@@ -477,10 +476,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
             >
               <field.Switch
                 checked={field.state.value}
-                onChange={value => {
-                  field.handleChange(value);
-                  setScannerAutomation(value);
-                }}
+                onChange={field.handleChange}
                 disabled={!canWriteProject}
               />
             </field.Layout.Row>
@@ -509,10 +505,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
               >
                 <field.Select
                   value={field.state.value}
-                  onChange={value => {
-                    field.handleChange(value);
-                    setAutomationTuning(value);
-                  }}
+                  onChange={field.handleChange}
                   options={tuningOptions}
                   disabled={!canWriteProject}
                 />
