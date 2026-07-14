@@ -151,6 +151,52 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert query_param_dict["foo"] == resp_json["foo"][0]
         assert query_param_dict["numlist"] == resp_json["numlist"]
 
+    def test_async_query_string_forwarded_verbatim(self) -> None:
+        captured: dict[str, str] = {}
+
+        def capture(request: httpx.Request) -> tuple[int, dict[str, str], bytes]:
+            captured["raw_query"] = str(request.url).split("?", 1)[1]
+            return (200, {}, b"{}")
+
+        self.httpx_router.add_callback("GET", f"{self.CELL.address}/echo-verbatim", capture)
+
+        # The ``:`` and ``+`` would be percent-encoded by ``dict(request.GET)``.
+        query = (
+            "os_kid=sentry&os_timestamp=2026-07-13T13:19:24+00:00&os_duration=300&os_sig=ab_c-D9z"
+        )
+        request = RequestFactory().get(f"http://sentry.io/echo-verbatim?{query}")
+
+        resp = proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+
+        assert captured["raw_query"] == query
+
+    @responses.activate
+    def test_sync_query_string_forwarded_verbatim(self) -> None:
+        captured: dict[str, str] = {}
+
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            assert request.url is not None
+            captured["url"] = request.url
+            return 200, {"Content-Type": "application/json"}, json.dumps({"proxy": True})
+
+        responses.add_callback(
+            responses.GET,
+            "http://us.internal.sentry.io/echo-verbatim",
+            callback=request_callback,
+        )
+
+        # The ``:`` and ``+`` would be percent-encoded by ``dict(request.GET)``.
+        query = (
+            "os_kid=sentry&os_timestamp=2026-07-13T13:19:24+00:00&os_duration=300&os_sig=ab_c-D9z"
+        )
+        request = RequestFactory().get(f"http://sentry.io/echo-verbatim?{query}")
+
+        resp = sync_proxy.proxy_request(request, self.organization.slug, url_name)
+        close_streaming_response(resp)
+
+        assert captured["url"].split("?", 1)[1] == query
+
     def test_bad_org(self) -> None:
         request = RequestFactory().get("http://sentry.io/get")
         resp = proxy_request(request, "doesnotexist", url_name)

@@ -690,8 +690,7 @@ class APITestCaseMixin:
                     ret += chunk
                 return ret
 
-            def build_request(self, method, url, headers, params, content, timeout):
-                assert not params
+            def build_request(self, method, url, *, headers, content, timeout, **kwargs):
                 target = getattr(self.client, method.lower())
                 content_type = headers.pop("Content-Type", "application/octet-stream")
                 extra: Mapping[str, Any] = {
