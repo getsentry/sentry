@@ -38,6 +38,7 @@ class SeerNightShiftRunIssueResponse(TypedDict):
     id: str
     groupId: str
     groupTitle: str | None
+    groupShortId: str | None
     action: str | None
     seerRunId: str | None
     pullRequests: list[PullRequestSerializerResponse]
@@ -89,8 +90,13 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
         ]
 
         group_ids = {r.group_id for r in triage_results if r.group_id is not None}
+        # qualified_short_id needs group.project.slug, hence select_related.
+        groups_by_id = Group.objects.filter(id__in=group_ids).select_related("project").in_bulk()
         group_titles_by_id: dict[int, str | None] = {
-            group_id: group.title for group_id, group in Group.objects.in_bulk(group_ids).items()
+            group_id: group.title for group_id, group in groups_by_id.items()
+        }
+        group_short_ids_by_id: dict[int, str | None] = {
+            group_id: group.qualified_short_id for group_id, group in groups_by_id.items()
         }
 
         # Resolve each result's per-issue SeerRun pk: prefer the FK, else fall
@@ -153,6 +159,7 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
 
         shared = {
             "group_titles_by_id": group_titles_by_id,
+            "group_short_ids_by_id": group_short_ids_by_id,
             "pull_requests_by_result_id": pull_requests_by_result_id,
         }
         return {run: shared for run in item_list}
@@ -178,6 +185,7 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
             None,
         )
         group_titles_by_id = attrs.get("group_titles_by_id", {})
+        group_short_ids_by_id = attrs.get("group_short_ids_by_id", {})
         pull_requests_by_result_id = attrs.get("pull_requests_by_result_id", {})
         return {
             "id": str(obj.id),
@@ -186,7 +194,9 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
             "errorMessage": extras.get("error_message") or shard_error,
             "results": [_serialize_result(r) for r in all_results],
             "issues": [
-                _serialize_legacy_issue(r, group_titles_by_id, pull_requests_by_result_id)
+                _serialize_legacy_issue(
+                    r, group_titles_by_id, group_short_ids_by_id, pull_requests_by_result_id
+                )
                 for r in triage_results
             ],
             "seerRuns": serialize(list(obj.shards.all()), user, SeerNightShiftShardSerializer()),
@@ -211,6 +221,7 @@ def _serialize_result(result: SeerNightShiftRunResult) -> SeerNightShiftRunResul
 def _serialize_legacy_issue(
     result: SeerNightShiftRunResult,
     group_titles_by_id: Mapping[int, str | None],
+    group_short_ids_by_id: Mapping[int, str | None],
     pull_requests_by_result_id: Mapping[int, list[PullRequestSerializerResponse]],
 ) -> SeerNightShiftRunIssueResponse:
     extras = result.extras or {}
@@ -219,6 +230,9 @@ def _serialize_legacy_issue(
         "groupId": str(result.group_id) if result.group_id is not None else "",
         "groupTitle": (
             group_titles_by_id.get(result.group_id) if result.group_id is not None else None
+        ),
+        "groupShortId": (
+            group_short_ids_by_id.get(result.group_id) if result.group_id is not None else None
         ),
         "action": extras.get("action"),
         "seerRunId": result.seer_run_id,

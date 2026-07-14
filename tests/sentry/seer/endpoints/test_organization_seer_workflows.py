@@ -54,6 +54,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         legacy = response.data[0]["issues"][0]
         assert legacy["groupId"] == str(group.id)
         assert legacy["groupTitle"] == group.title
+        assert legacy["groupShortId"] == group.qualified_short_id
         assert legacy["action"] == "autofix_triggered"
         # The legacy seer_run_id here ("seer-123") is non-numeric, so it can't
         # resolve to a SeerRun -- no pull requests should be attached.
@@ -78,6 +79,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
 
         legacy = response.data[0]["issues"][0]
         assert legacy["groupTitle"] is None
+        assert legacy["groupShortId"] is None
         assert legacy["pullRequests"] == []
 
     def test_issue_includes_pull_requests_via_result_seer_run_fk(self) -> None:
