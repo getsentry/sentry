@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
-import {LinkButton} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -13,6 +13,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {
   OnboardingCopyMarkdownButton,
   useCopySetupInstructionsEnabled,
@@ -37,6 +38,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
+import {IconCopy} from 'sentry/icons/iconCopy';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -46,8 +48,10 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ExploreBodySearch,
   ExploreFilterSection,
@@ -62,6 +66,25 @@ type OnboardingProps = {
   organization: Organization;
   project: Project;
 };
+
+const AI_SETUP_PROMPT =
+  'Use curl to download and read the instructions at https://raw.githubusercontent.com/getsentry/sentry-for-ai/refs/heads/main/skills-legacy/sentry-instrument-logging/SKILL.md.\n\nFollow those instructions to configure logging for this project. Afterward, suggest several useful example log statements that follow the practices described in the skill.';
+
+function CopyPromptButton({prompt, onCopy}: {onCopy: () => void; prompt: string}) {
+  const {copy} = useCopyToClipboard();
+  return (
+    <Button
+      size="xs"
+      icon={<IconCopy />}
+      onClick={() => {
+        copy(prompt, {successMessage: t('Prompt copied to clipboard')});
+        onCopy();
+      }}
+    >
+      {t('Copy Prompt')}
+    </Button>
+  );
+}
 
 const LOG_DRAIN_PLATFORM_DOCS: Record<string, {name: string; url: string}> = {
   'node-cloudflare-pages': {
@@ -120,6 +143,16 @@ function OnboardingPanel({
   children: React.ReactNode;
   project: Project;
 }) {
+  const organization = useOrganization();
+
+  const trackPromptCopied = (source: 'copy_button' | 'code_snippet') => {
+    trackAnalytics('logs.onboarding_ai_prompt_copied', {
+      organization,
+      platform: project.platform ?? 'unknown',
+      source,
+    });
+  };
+
   return (
     <Panel>
       <PanelBody>
@@ -149,12 +182,31 @@ function OnboardingPanel({
                   <LogDrainsLink project={project} />
                 </Setup>
                 <Preview>
-                  <BodyTitle>{t('Preview a Sentry Log')}</BodyTitle>
-                  <Arcade
-                    src="https://demo.arcade.software/dLjHGrPJITrt7JKpmX5V?embed"
-                    loading="lazy"
-                    allowFullScreen
-                  />
+                  <PreviewHeader>
+                    <BodyTitle>{t('AI-Assisted Setup')}</BodyTitle>
+                    <CopyPromptButton
+                      prompt={AI_SETUP_PROMPT}
+                      onCopy={() => trackPromptCopied('copy_button')}
+                    />
+                  </PreviewHeader>
+                  <SubTitle>
+                    {tct(
+                      'Run this prompt in your favorite coding agent. It uses your own API tokens to configure Sentry logging and generate example logs that follow [link:logging best practices].',
+                      {
+                        link: (
+                          <ExternalLink href="https://blog.sentry.io/logging-best-practices/" />
+                        ),
+                      }
+                    )}
+                  </SubTitle>
+                  <PromptSnippet>
+                    <OnboardingCodeSnippet
+                      language="text"
+                      onCopy={() => trackPromptCopied('code_snippet')}
+                    >
+                      {AI_SETUP_PROMPT}
+                    </OnboardingCodeSnippet>
+                  </PromptSnippet>
                 </Preview>
               </Body>
             </div>
@@ -480,12 +532,17 @@ const Divider = styled('hr')`
   margin-bottom: 0;
 `;
 
-const Arcade = styled('iframe')`
-  width: 750px;
-  max-width: 100%;
-  margin-top: ${p => p.theme.space['2xl']};
-  height: 522px;
-  border: 0;
+const PreviewHeader = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${p => p.theme.space.md};
+`;
+
+// Wrapper keeps the code block sized to its content instead of stretching to
+// fill the (tall) preview column.
+const PromptSnippet = styled('div')`
+  margin-top: ${p => p.theme.space.md};
 `;
 
 const OnboardingContainer = styled('div')`
