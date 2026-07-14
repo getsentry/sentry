@@ -163,7 +163,7 @@ export function SeerExplorerHeaderActions({
   ];
 
   return (
-    <Flex gap="0" align="center">
+    <Flex align="center">
       <Button
         icon={<IconCopy />}
         onClick={onCopySessionClick}
@@ -195,9 +195,6 @@ export function SeerExplorerHeaderActions({
           tooltipProps={{title: t('Open in a separate window')}}
         />
       )}
-      {/* Sidebar-only (an `onSidebarPositionChange` handler is supplied), and
-          meaningless for the floating popped-out window — which is dismissed
-          via its close/dock button or Escape. */}
       {!isPoppedOut && onSidebarPositionChange && (
         <DropdownMenu
           items={positionMenuItems}
@@ -317,7 +314,7 @@ export function SeerExplorerHeaderActionsMenu({
   ];
 
   return (
-    <Flex gap="0" align="center">
+    <Flex align="center">
       <DropdownMenu
         items={items}
         size="xs"
