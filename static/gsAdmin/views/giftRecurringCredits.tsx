@@ -140,6 +140,7 @@ export function GiftRecurringCredits() {
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvFileName, setCsvFileName] = useState<string | null>(null);
   const [dryRun, setDryRun] = useState(true);
+  const [skipCurrentPeriod, setSkipCurrentPeriod] = useState(false);
   const [results, setResults] = useState<ResultRow[] | null>(null);
   // The region and per-period amount the last results were submitted with,
   // captured at submit time so the callout and the "new gift" column stay
@@ -221,18 +222,23 @@ export function GiftRecurringCredits() {
     ) {
       return null;
     }
+    // When the current period is skipped, every gifted period sits one month
+    // further out (the first gift is the next period, not this one).
     const row = (index: number) => {
+      const monthsOut = skipCurrentPeriod ? index + 1 : index;
       return {
         key: index,
         when:
-          index === 0
+          monthsOut === 0
             ? 'This billing period'
-            : index === 1
+            : monthsOut === 1
               ? 'Next billing period'
-              : `About ${index} months from now`,
+              : `About ${monthsOut} months from now`,
         detail:
           index === 0
-            ? 'starts now, applied immediately'
+            ? skipCurrentPeriod
+              ? 'the first gifted period'
+              : 'starts now, applied immediately'
             : index === billingPeriods - 1
               ? 'the last gifted period'
               : '',
@@ -252,7 +258,7 @@ export function GiftRecurringCredits() {
       hiddenCount: billingPeriods - 4,
       tailRow: row(billingPeriods - 1),
     };
-  }, [billingPeriods]);
+  }, [billingPeriods, skipCurrentPeriod]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -292,6 +298,7 @@ export function GiftRecurringCredits() {
       formData.append('dataCategory', dataCategory);
       formData.append('amount', String(Math.round((amount ?? 0) * multiplier)));
       formData.append('billingPeriods', String(billingPeriods));
+      formData.append('skipCurrentPeriod', String(skipCurrentPeriod));
       formData.append('dryRun', String(dryRun));
       const response: {results: ResultRow[]} = await api.requestPromise(
         `/_admin/cells/${cell?.name}/gift-recurring-credits/`,
@@ -429,6 +436,18 @@ export function GiftRecurringCredits() {
             setBillingPeriods(e.target.value === '' ? null : Number(e.target.value))
           }
         />
+        <CheckboxRow>
+          <input
+            type="checkbox"
+            id="skipCurrentPeriod"
+            name="skipCurrentPeriod"
+            checked={skipCurrentPeriod}
+            onChange={e => setSkipCurrentPeriod(e.target.checked)}
+          />
+          <label htmlFor="skipCurrentPeriod">
+            Skip the current billing period (start at the next period instead of now)
+          </label>
+        </CheckboxRow>
         {schedule && (
           <PreviewBox data-test-id="schedule-preview">
             <PreviewSummary>
@@ -436,9 +455,9 @@ export function GiftRecurringCredits() {
               {billingPeriods === 1 ? '' : 's'}.
             </PreviewSummary>
             <PreviewNote>
-              The current billing period is already in progress — the organization gets
-              the full amount for it right away, then again when each of the periods below
-              begins.
+              {skipCurrentPeriod
+                ? 'The current billing period is skipped — the first grant lands when the next billing period begins, then again at the start of each period below.'
+                : 'The current billing period is already in progress — the organization gets the full amount for it right away, then again when each of the periods below begins.'}
             </PreviewNote>
             <PreviewList>
               {schedule.rows.map(row => (

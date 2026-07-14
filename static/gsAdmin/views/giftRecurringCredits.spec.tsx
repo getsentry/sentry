@@ -330,6 +330,42 @@ describe('GiftRecurringCredits', () => {
     );
   });
 
+  it('shifts the schedule to the next period when the current one is skipped', async () => {
+    render(<GiftRecurringCredits />);
+
+    await userEvent.click(screen.getByLabelText(/Skip the current billing period/));
+
+    const preview = screen.getByTestId('schedule-preview');
+    // The first gifted period is the next one, not the current in-progress one.
+    expect(preview).toHaveTextContent('Next billing period');
+    expect(preview).toHaveTextContent('the first gifted period');
+    expect(preview).toHaveTextContent('The current billing period is skipped');
+    // Nothing is applied to the current period.
+    expect(preview).not.toHaveTextContent('This billing period');
+    expect(preview).not.toHaveTextContent('starts now, applied immediately');
+    // 3 periods, shifted out one month each: next, +2, +3.
+    expect(preview).toHaveTextContent('About 3 months from now');
+  });
+
+  it('sends skipCurrentPeriod when the box is checked', async () => {
+    const postMock = MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/gift-recurring-credits/',
+      method: 'POST',
+      body: {results: []},
+    });
+
+    render(<GiftRecurringCredits />);
+    await fillRequiredFields();
+    await userEvent.type(screen.getByLabelText(/Target organizations/), 'acme');
+    await userEvent.click(screen.getByLabelText(/Skip the current billing period/));
+
+    await userEvent.click(screen.getByTestId('gift-submit'));
+
+    await waitFor(() => expect(postMock).toHaveBeenCalled());
+    const formData = postMock.mock.calls[0][1].data as FormData;
+    expect(formData.get('skipCurrentPeriod')).toBe('true');
+  });
+
   it('lets the billing period field be cleared without inserting a leading zero', async () => {
     render(<GiftRecurringCredits />);
 
