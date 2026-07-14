@@ -199,7 +199,17 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
         back to appending at the end when nothing sorts later.
         """
         with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
-            if self.get_favorite_dashboard(organization, user_id, dashboard):
+            existing = (
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    dashboard=dashboard,
+                )
+                .select_for_update()
+                .first()
+            )
+
+            if existing and existing.favorited:
                 return False
 
             next_prebuilt = (
@@ -226,12 +236,17 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
                     position__gte=position,
                 ).update(position=models.F("position") + 1)
 
-            self.create(
-                organization=organization,
-                user_id=user_id,
-                dashboard=dashboard,
-                position=position,
-            )
+            if existing:
+                existing.favorited = True
+                existing.position = position
+                existing.save(update_fields=["favorited", "position"])
+            else:
+                self.create(
+                    organization=organization,
+                    user_id=user_id,
+                    dashboard=dashboard,
+                    position=position,
+                )
             return True
 
     def unfavorite_dashboard(

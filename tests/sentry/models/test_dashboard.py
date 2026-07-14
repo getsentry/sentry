@@ -208,6 +208,8 @@ class DashboardFavoriteUserTest(TestCase):
             DashboardFavoriteUser.objects.get_favorite_dashboards(self.organization, self.user.id)
         )
         assert [f.dashboard_id for f in favorites] == [backend.id, web_vitals.id]
+        assert favorites[0].position is not None
+        assert favorites[1].position is not None
         assert favorites[0].position < favorites[1].position
 
     def test_insert_alphabetically_appends_when_nothing_sorts_later(self) -> None:
@@ -225,6 +227,8 @@ class DashboardFavoriteUserTest(TestCase):
             DashboardFavoriteUser.objects.get_favorite_dashboards(self.organization, self.user.id)
         )
         assert [f.dashboard_id for f in favorites] == [backend.id, web_vitals.id]
+        assert favorites[0].position is not None
+        assert favorites[1].position is not None
         assert favorites[0].position < favorites[1].position
 
     def test_insert_alphabetically_is_noop_when_already_favorited(self) -> None:
@@ -236,9 +240,11 @@ class DashboardFavoriteUserTest(TestCase):
             )
             is True
         )
-        first_position = DashboardFavoriteUser.objects.get_favorite_dashboard(
+        first_favorite = DashboardFavoriteUser.objects.get_favorite_dashboard(
             self.organization, self.user.id, web_vitals
-        ).position
+        )
+        assert first_favorite is not None
+        first_position = first_favorite.position
 
         assert (
             DashboardFavoriteUser.objects.insert_favorite_dashboard_alphabetically(
@@ -247,12 +253,11 @@ class DashboardFavoriteUserTest(TestCase):
             is False
         )
         assert DashboardFavoriteUser.objects.filter(favorited=True).count() == 1
-        assert (
-            DashboardFavoriteUser.objects.get_favorite_dashboard(
-                self.organization, self.user.id, web_vitals
-            ).position
-            == first_position
+        second_favorite = DashboardFavoriteUser.objects.get_favorite_dashboard(
+            self.organization, self.user.id, web_vitals
         )
+        assert second_favorite is not None
+        assert second_favorite.position == first_position
 
 
 class DashboardRevisionTest(TestCase):
