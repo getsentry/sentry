@@ -13,6 +13,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
+import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -24,10 +25,10 @@ import {
   IconChevron,
   IconClose,
   IconFilter,
+  IconMerge,
   IconOpen,
   IconPullRequest,
   IconPullRequestClosed,
-  IconPullRequestDraft,
   IconRefresh,
   IconUser,
   IconWarning,
@@ -761,7 +762,10 @@ function IssueRow({
           <Stack gap="xs" align="end">
             {issue.pullRequests.length > 0 ? (
               issue.pullRequests.map(pullRequest => (
-                <IssuePullRequestChip key={pullRequest.id} pullRequest={pullRequest} />
+                <IssuePullRequestChip
+                  key={`${pullRequest.repository.id}:${pullRequest.id}`}
+                  pullRequest={pullRequest}
+                />
               ))
             ) : (
               <IssueStatusTag issue={issue} />
@@ -801,17 +805,15 @@ function IssueStatusTag({issue}: {issue: SeerNightShiftRunIssue}) {
   );
 }
 
+// Matches the icon choices in pullRequestStatusBadge.tsx -- draft, open, and
+// unknown fall back to the default IconPullRequest there too.
 const PR_STATUS_ICON: Partial<Record<PullRequestStatus, typeof IconPullRequest>> = {
-  merged: IconCheckmark,
+  merged: IconMerge,
   closed: IconPullRequestClosed,
-  draft: IconPullRequestDraft,
 };
 
-const PR_STATUS_PREFIX: Partial<Record<PullRequestStatus, string>> = {
-  merged: t('Merged'),
-  closed: t('Closed'),
-  draft: t('Draft'),
-};
+// Only call out the status when it deviates from an ordinary open PR.
+const PR_STATUS_PREFIXED = new Set<PullRequestStatus>(['merged', 'closed', 'draft']);
 
 function IssuePullRequestChip({
   pullRequest,
@@ -819,10 +821,18 @@ function IssuePullRequestChip({
   pullRequest: SeerNightShiftRunPullRequest;
 }) {
   const title = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
-  const status = pullRequest.status;
-  const Icon = (status && PR_STATUS_ICON[status]) || IconPullRequest;
-  const prefix = status ? PR_STATUS_PREFIX[status] : undefined;
-  const label = prefix ? `${prefix}: ${title}` : title;
+  const status = pullRequest.status ?? 'unknown';
+  const Icon = PR_STATUS_ICON[status] ?? IconPullRequest;
+  const label = PR_STATUS_PREFIXED.has(status)
+    ? `${getPullRequestStatusLabel(status)}: ${title}`
+    : title;
+  if (!pullRequest.externalUrl) {
+    return (
+      <Tag variant="muted" icon={<Icon />}>
+        {label}
+      </Tag>
+    );
+  }
   return (
     <LinkButton size="xs" icon={<Icon />} href={pullRequest.externalUrl} external>
       <Text ellipsis>{label}</Text>

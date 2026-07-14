@@ -336,6 +336,62 @@ describe('SeerWorkflows', () => {
     expect(screen.queryByText('Autofix queued')).not.toBeInTheDocument();
   });
 
+  it('does not render a link when the PR has no resolved external URL', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {},
+          issues: [
+            {
+              id: '10',
+              groupId: '100',
+              groupTitle: 'ValueError: something broke',
+              action: 'autofix_triggered',
+              seerRunId: 'seer-1',
+              pullRequests: [
+                {
+                  id: '42',
+                  title: 'Fix the ValueError',
+                  message: null,
+                  dateCreated: '2026-04-20T00:00:01Z',
+                  repository: {
+                    id: '1',
+                    name: 'sentry',
+                    url: 'https://github.com/getsentry/sentry',
+                    provider: {id: 'github', name: 'GitHub'},
+                    status: 'active',
+                    externalSlug: 'getsentry/sentry',
+                    dateCreated: '2026-04-20T00:00:00Z',
+                  },
+                  externalUrl: '',
+                  status: 'merged',
+                },
+              ],
+              dateAdded: '2026-04-20T00:00:01Z',
+            },
+          ],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
+
+    expect(screen.getByText('Merged: Fix the ValueError')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Merged: Fix the ValueError'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', {name: 'Merged: Fix the ValueError'})
+    ).not.toBeInTheDocument();
+  });
+
   it('shows the plain PR title with no status prefix when status is unobserved', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
