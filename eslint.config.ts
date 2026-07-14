@@ -492,6 +492,7 @@ export default typescript.config([
       '@sentry/scraps/no-double-dollar-interpolation': 'error',
       '@sentry/scraps/no-token-import': 'error',
       '@sentry/scraps/prefer-info-text': 'error',
+      '@sentry/scraps/prefer-stack-for-column-flex': 'error',
       '@sentry/scraps/use-semantic-token': [
         'error',
         {enabledCategories: ['background', 'border', 'content']},
@@ -1183,6 +1184,14 @@ export default typescript.config([
     extends: [mdx.flat],
     rules: {
       'import/no-webpack-loader-syntax': 'off', // type loader requires webpack syntax
+    },
+  },
+  {
+    // Flex's own documentation intentionally demonstrates `direction="column"`.
+    name: 'files/mdx/flex-docs',
+    files: ['static/app/components/core/layout/flex.mdx'],
+    rules: {
+      '@sentry/scraps/prefer-stack-for-column-flex': 'off',
     },
   },
   {

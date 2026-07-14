@@ -9,7 +9,7 @@ resources:
 
 import {Fragment} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import * as Storybook from 'sentry/stories';
@@ -136,10 +136,10 @@ const {teams, isLoading} = useUserTeams();
         return <Placeholder />
     }
 
-    return <Flex direction="column" align="center" gap="md">
+    return <Stack align="center" gap="md">
         <AvatarList users={members} />
         <AvatarList teams={teams} />
-    </Flex>
+    </Stack>
 
 }
 
