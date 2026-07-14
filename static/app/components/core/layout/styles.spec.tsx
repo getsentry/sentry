@@ -530,10 +530,6 @@ describe('useContainerBreakpoint', () => {
   }
 
   let originalResizeObserver: typeof window.ResizeObserver;
-  const originalClientWidth = Object.getOwnPropertyDescriptor(
-    HTMLElement.prototype,
-    'clientWidth'
-  );
 
   beforeEach(() => {
     originalResizeObserver = window.ResizeObserver;
@@ -542,16 +538,13 @@ describe('useContainerBreakpoint', () => {
 
   afterEach(() => {
     window.ResizeObserver = originalResizeObserver;
-    if (originalClientWidth) {
-      Object.defineProperty(HTMLElement.prototype, 'clientWidth', originalClientWidth);
-    }
+    jest.restoreAllMocks();
   });
 
+  // `clientWidth` is an accessor on Element.prototype (not HTMLElement); spy
+  // there so the fake is actually hit and restoreAllMocks cleans it up.
   const setClientWidth = (width: number) => {
-    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
-      configurable: true,
-      get: () => width,
-    });
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(width);
   };
 
   // The hook reads the nearest query container's size from context, so render

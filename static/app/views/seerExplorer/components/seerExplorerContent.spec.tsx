@@ -48,6 +48,13 @@ describe('SeerExplorerContent', () => {
     sessionStorage.clear();
     jest.clearAllMocks();
 
+    // The header collapses its actions into an overflow menu on narrow
+    // containers (resolved via `useContainerBreakpoint`, which measures
+    // `clientWidth` — an accessor on Element.prototype). Fake a wide container
+    // so the expanded header — with its inline pop-out/dock buttons — renders
+    // for these tests. The spy is undone by `jest.restoreAllMocks()` below.
+    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(800);
+
     jest
       .spyOn(useSeerExplorerModule, 'useSeerExplorer')
       .mockReturnValue(defaultHookReturn);
@@ -825,10 +832,15 @@ describe('SeerExplorerContent', () => {
   describe('Context Engine Toggle', () => {
     const orgWithFlag = OrganizationFixture({
       openMembership: true,
-      features: ['seer-explorer', 'seer-explorer-context-engine-fe-override-ui-flag'],
+      hideAiFeatures: false,
+      features: [
+        'seer-explorer',
+        'gen-ai-features',
+        'seer-explorer-context-engine-fe-override-ui-flag',
+      ],
     });
 
-    it('does not show toggle without the feature flag', async () => {
+    it('does not show the debug menu without any debug feature flag', async () => {
       render(
         <PictureInPictureProvider>
           <SeerExplorerSessionsProvider>
@@ -843,12 +855,10 @@ describe('SeerExplorerContent', () => {
         }
       );
       await screen.findByTestId('seer-explorer-input');
-      expect(
-        screen.queryByRole('checkbox', {name: 'Toggle context engine'})
-      ).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Debug'})).not.toBeInTheDocument();
     });
 
-    it('shows toggle when feature flag is enabled', async () => {
+    it('shows the context engine toggle in the debug menu when the flag is enabled', async () => {
       render(
         <PictureInPictureProvider>
           <SeerExplorerSessionsProvider>
@@ -862,8 +872,10 @@ describe('SeerExplorerContent', () => {
           organization: orgWithFlag,
         }
       );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Debug'}));
       expect(
-        await screen.findByRole('checkbox', {name: 'Toggle context engine'})
+        screen.getByRole('menuitemradio', {name: /Context Engine/})
       ).toBeInTheDocument();
     });
   });
