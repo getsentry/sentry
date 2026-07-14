@@ -543,6 +543,7 @@ export function SeerExplorerContent({
       data-seer-explorer-root=""
       width="100%"
       height="100%"
+      position="relative"
       background="primary"
       overflow="hidden"
       containerType="inline-size"
