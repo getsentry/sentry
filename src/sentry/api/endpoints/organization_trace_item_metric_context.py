@@ -3,14 +3,6 @@ from typing import Never
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
-from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType as ProtoTraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
-    AttributeAggregation,
-    AttributeValue,
-    Function,
-)
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -20,7 +12,6 @@ from sentry.api.bases import NoProjects
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpointBase,
     adjust_start_end_window,
-    get_column_definitions,
     resolve_attribute_values_referrer,
 )
 from sentry.api.serializers import serialize
@@ -34,18 +25,16 @@ from sentry.explore.models import (
     TraceMetricTypes,
 )
 from sentry.models.organization import Organization
-from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.trace_metrics.config import ALLOWED_METRIC_TYPES
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
-from sentry.utils import snuba_rpc
+from sentry.search.events.types import SnubaParams
+from sentry.snuba.trace_metrics import TraceMetrics
 
 # Metrics are trace items keyed by the value of the `metric.name` attribute, so
 # metric context is stored as context for that attribute value. A metric name
 # can carry more than one type (e.g. both a counter and a gauge named "foo").
 METRIC_NAME_ALIAS = "metric.name"
 METRIC_TYPE_ALIAS = "metric.type"
-
-_TYPE_COLUMN_LABEL = "metric.type"
 
 
 class OrganizationTraceItemMetricContextPutSerializer(serializers.Serializer[Never]):
@@ -58,53 +47,29 @@ class OrganizationTraceItemMetricContextPutSerializer(serializers.Serializer[Nev
     )
 
 
-def get_metric_types_in_storage(resolver: SearchResolver, metric_name: str) -> list[str]:
+def get_metric_types_in_storage(snuba_params: SnubaParams, metric_name: str) -> list[str]:
     """
-    The distinct metric types stored under ``metric_name`` for the resolver's
-    params. An empty list means the metric name was never seen.
+    The distinct metric types stored under ``metric_name`` for the given params.
+    An empty list means the metric name was never seen.
     """
-    name_attribute, _ = resolver.resolve_attribute(METRIC_NAME_ALIAS)
-    type_attribute, _ = resolver.resolve_attribute(METRIC_TYPE_ALIAS)
-    type_key = type_attribute.proto_definition
-
-    meta = resolver.resolve_meta(
-        referrer=resolve_attribute_values_referrer(SupportedTraceItemType.TRACEMETRICS.value).value
-    )
-    meta.trace_item_type = ProtoTraceItemType.TRACE_ITEM_TYPE_METRIC
-
-    # Exact-match on the name (no substring), grouped by type — this both proves
-    # the metric exists and enumerates its types in a single query.
-    rpc_request = TraceItemTableRequest(
-        meta=meta,
-        filter=TraceItemFilter(
-            comparison_filter=ComparisonFilter(
-                key=name_attribute.proto_definition,
-                op=ComparisonFilter.OP_EQUALS,
-                value=AttributeValue(val_str=metric_name),
-            )
-        ),
-        columns=[
-            Column(label=_TYPE_COLUMN_LABEL, key=type_key),
-            Column(
-                label="count",
-                aggregation=AttributeAggregation(
-                    aggregate=Function.FUNCTION_COUNT, key=type_key, label="count"
-                ),
-            ),
-        ],
-        group_by=[type_key],
-        limit=len(ALLOWED_METRIC_TYPES) + 1,
-    )
+    # Exact-match the name and group by type via count(); the distinct
+    # `metric.type` rows both prove the metric exists and enumerate its types.
+    escaped_name = metric_name.replace("\\", "\\\\").replace('"', '\\"')
     with handle_query_errors():
-        responses = snuba_rpc.table_rpc([rpc_request])
+        results = TraceMetrics.run_table_query(
+            params=snuba_params,
+            query_string=f'{METRIC_NAME_ALIAS}:"{escaped_name}"',
+            selected_columns=[METRIC_TYPE_ALIAS, "count(value)"],
+            orderby=None,
+            offset=0,
+            limit=len(ALLOWED_METRIC_TYPES) + 1,
+            referrer=resolve_attribute_values_referrer(
+                SupportedTraceItemType.TRACEMETRICS.value
+            ).value,
+            config=SearchResolverConfig(),
+        )
 
-    column_values = responses[0].column_values
-    type_column = next(
-        (cv for cv in column_values if cv.attribute_name == _TYPE_COLUMN_LABEL), None
-    )
-    if type_column is None:
-        return []
-    return [value.val_str for value in type_column.results if value.val_str]
+    return [row[METRIC_TYPE_ALIAS] for row in results["data"] if row.get(METRIC_TYPE_ALIAS)]
 
 
 @cell_silo_endpoint
@@ -156,14 +121,8 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
         snuba_params.start = adjusted_start
         snuba_params.end = adjusted_end
 
-        resolver = SearchResolver(
-            params=snuba_params,
-            config=SearchResolverConfig(),
-            definitions=get_column_definitions(SupportedTraceItemType.TRACEMETRICS),
-        )
-
         # Confirm the metric exists and resolve which type this context is for.
-        stored_types = get_metric_types_in_storage(resolver, metric)
+        stored_types = get_metric_types_in_storage(snuba_params, metric)
         if not stored_types:
             return Response({"detail": f"Metric `{metric}` was not found."}, status=400)
 
