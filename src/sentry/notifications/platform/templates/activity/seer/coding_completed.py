@@ -1,9 +1,9 @@
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.templates.workflow_engine.activity.base import (
+from sentry.notifications.platform.templates.activity.base import (
     ActivityAlertActionData,
     create_activity_alert_example,
 )
-from sentry.notifications.platform.templates.workflow_engine.activity.seer.base import (
+from sentry.notifications.platform.templates.activity.seer.base import (
     build_template,
     get_issue_description,
     get_subject,
@@ -17,14 +17,14 @@ from sentry.notifications.platform.types import (
 from sentry.types.activity import ActivityType
 
 
-@template_registry.register(NotificationSource.ACTIVITY_SEER_CODING_STARTED)
-class SeerCodingStartedActivityTemplate(NotificationTemplate[ActivityAlertActionData]):
-    category = NotificationCategory.ALERTS
-    example_data = create_activity_alert_example(ActivityType.SEER_CODING_STARTED)
+@template_registry.register(NotificationSource.ACTIVITY_SEER_CODING_COMPLETED)
+class SeerCodingCompletedActivityTemplate(NotificationTemplate[ActivityAlertActionData]):
+    category = NotificationCategory.ACTIVITY
+    example_data = create_activity_alert_example(ActivityType.SEER_CODING_COMPLETED)
 
     def render(self, data: ActivityAlertActionData) -> NotificationRenderedTemplate:
         return build_template(
             data=data,
-            subject=get_subject("Coding Started", data),
+            subject=get_subject("Coding Completed", data),
             body=get_issue_description(data),
         )

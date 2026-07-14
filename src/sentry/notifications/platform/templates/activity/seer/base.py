@@ -1,6 +1,6 @@
 from django.conf import settings
 
-from sentry.notifications.platform.templates.workflow_engine.activity.base import (
+from sentry.notifications.platform.templates.activity.base import (
     ActivityAlertActionData,
     build_alert_footer,
 )
@@ -17,13 +17,9 @@ from sentry.notifications.platform.types import (
 
 
 def get_issue_description(data: ActivityAlertActionData) -> list[NotificationSection]:
-    blocks: list[NotificationTextBlock] = []
-    if data.issue_title:
-        blocks.append(LinkTextBlock(text=data.issue_title, url=data.issue_url))
+    blocks: list[NotificationTextBlock] = [LinkTextBlock(text=data.issue_title, url=data.issue_url)]
     if data.issue_culprit:
-        if blocks:
-            blocks.append(PlainTextBlock(text="—"))
-        blocks.append(CodeTextBlock(text=data.issue_culprit))
+        blocks.extend([PlainTextBlock(text="—"), CodeTextBlock(text=data.issue_culprit)])
     return [ParagraphSection(blocks=blocks)]
 
 

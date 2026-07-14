@@ -9,7 +9,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notifications.notification_action.registry import activity_handler_registry
 from sentry.notifications.platform.service import NotificationService
-from sentry.notifications.platform.templates.workflow_engine import (
+from sentry.notifications.platform.templates.activity import (
     ACTIVITY_TYPE_TO_SOURCE,
     ActivityAlertActionData,
     SetResolvedInCommitActionData,

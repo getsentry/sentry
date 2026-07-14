@@ -13,7 +13,7 @@ from sentry.notifications.platform.strategies.issue_owners import (
     IssueOwnersActivityAlertStrategy,
 )
 from sentry.notifications.platform.target import GenericNotificationTarget
-from sentry.notifications.platform.templates.workflow_engine import (
+from sentry.notifications.platform.templates.activity import (
     ActivityAlertActionData,
 )
 from sentry.notifications.platform.types import (

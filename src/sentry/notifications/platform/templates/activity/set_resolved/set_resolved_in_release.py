@@ -2,13 +2,13 @@ import orjson
 from sentry_relay.processing import parse_release
 
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.templates.workflow_engine.activity.base import (
+from sentry.notifications.platform.templates.activity.base import (
     SetResolvedInReleaseActionData,
     build_alert_footer,
     build_issue_link,
     create_activity_alert_example,
 )
-from sentry.notifications.platform.templates.workflow_engine.activity.set_resolved.base import (
+from sentry.notifications.platform.templates.activity.set_resolved.base import (
     get_resolution_subject,
 )
 from sentry.notifications.platform.types import (
@@ -37,7 +37,7 @@ def create_set_resolved_in_release_example() -> SetResolvedInReleaseActionData:
 
 @template_registry.register(NotificationSource.ACTIVITY_SET_RESOLVED_IN_RELEASE)
 class SetResolvedInReleaseActivityTemplate(NotificationTemplate[SetResolvedInReleaseActionData]):
-    category = NotificationCategory.ALERTS
+    category = NotificationCategory.ACTIVITY
     example_data = create_set_resolved_in_release_example()
 
     def render(self, data: SetResolvedInReleaseActionData) -> NotificationRenderedTemplate:

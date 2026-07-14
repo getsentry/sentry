@@ -14,7 +14,7 @@ from sentry.notifications.notification_action.activity_registry.msteams import (
 )
 from sentry.notifications.notification_action.activity_registry.slack import SlackActivityHandler
 from sentry.notifications.platform.target import IntegrationNotificationTarget
-from sentry.notifications.platform.templates.workflow_engine import (
+from sentry.notifications.platform.templates.activity import (
     ActivityAlertActionData,
 )
 from sentry.notifications.platform.types import (

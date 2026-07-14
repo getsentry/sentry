@@ -13,5 +13,5 @@ __all__ = (
 # All templates should be imported here so they are registered in the notifications Django app.
 # See sentry/notifications/apps.py
 
+from .activity import *  # noqa: F401,F403
 from .sample import *  # noqa: F401,F403
-from .workflow_engine import *  # noqa: F401,F403

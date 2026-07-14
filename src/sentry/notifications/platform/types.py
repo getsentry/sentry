@@ -26,9 +26,7 @@ class NotificationCategory(StrEnum):
     ISSUE = "issue"
     METRIC_ALERT = "metric-alert"
     SENTRY_APP = "sentry-app"
-
-    # Refers to net-new alerts built on the workflow engine (not metric/issue alerts)
-    ALERTS = "alerts"
+    ACTIVITY = "activity"
 
     def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -75,7 +73,7 @@ class NotificationSource(StrEnum):
     # SENTRY_APP
     SENTRY_APP_WEBHOOK_DISABLED = "sentry-app-webhook-disabled"
 
-    # WORKFLOW_ENGINE
+    # ACTIVITY
     ACTIVITY_SEER_RCA_STARTED = "activity-seer-rca-started"
     ACTIVITY_SEER_RCA_COMPLETED = "activity-seer-rca-completed"
     ACTIVITY_SEER_SOLUTION_STARTED = "activity-seer-solution-started"
@@ -127,7 +125,7 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
     NotificationCategory.SENTRY_APP: [
         NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,
     ],
-    NotificationCategory.ALERTS: [
+    NotificationCategory.ACTIVITY: [
         NotificationSource.ACTIVITY_SEER_RCA_STARTED,
         NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
         NotificationSource.ACTIVITY_SEER_SOLUTION_STARTED,

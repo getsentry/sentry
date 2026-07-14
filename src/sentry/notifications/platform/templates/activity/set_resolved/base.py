@@ -1,4 +1,4 @@
-from sentry.notifications.platform.templates.workflow_engine.activity.base import (
+from sentry.notifications.platform.templates.activity.base import (
     ActivityAlertActionData,
 )
 from sentry.notifications.platform.types import (

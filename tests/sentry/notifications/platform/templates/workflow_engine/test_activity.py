@@ -1,19 +1,19 @@
-from sentry.notifications.platform.templates.workflow_engine.activity import (
+from sentry.notifications.platform.templates.activity import (
     ACTIVITY_TYPE_TO_SOURCE,
 )
-from sentry.notifications.platform.templates.workflow_engine.activity.base import (
+from sentry.notifications.platform.templates.activity.base import (
     EXAMPLE_ALERT_URL,
     EXAMPLE_ISSUE_URL,
     build_alert_footer,
     build_issue_link,
     create_activity_alert_example,
 )
-from sentry.notifications.platform.templates.workflow_engine.activity.seer.base import (
+from sentry.notifications.platform.templates.activity.seer.base import (
     get_issue_description,
     get_subject,
     get_view_autofix_button,
 )
-from sentry.notifications.platform.templates.workflow_engine.activity.set_resolved.base import (
+from sentry.notifications.platform.templates.activity.set_resolved.base import (
     get_resolution_subject,
 )
 from sentry.notifications.platform.types import (
