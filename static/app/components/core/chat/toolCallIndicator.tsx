@@ -1,4 +1,3 @@
-import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
@@ -58,23 +57,11 @@ function ToolCallStatusGlyph({status, label}: {label: string; status: ToolCallSt
     case 'pending':
       return <Spinner role="status" aria-label={label} />;
     case 'failure':
-      return (
-        <Text variant="danger">
-          <IconClose size="xs" aria-label={label} />
-        </Text>
-      );
+      return <IconClose size="xs" variant="danger" aria-label={label} />;
     case 'mixed':
-      return (
-        <Text variant="warning">
-          <IconWarning size="xs" aria-label={label} />
-        </Text>
-      );
+      return <IconWarning size="xs" variant="warning" aria-label={label} />;
     case 'success':
-      return (
-        <Text variant="success">
-          <IconCheckmark size="xs" aria-label={label} />
-        </Text>
-      );
+      return <IconCheckmark size="xs" variant="success" aria-label={label} />;
     case 'content':
       return null;
     default:
