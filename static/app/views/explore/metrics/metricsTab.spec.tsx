@@ -636,9 +636,9 @@ describe('MetricsTabContent', () => {
     expect(screen.queryByText('Add Equation')).not.toBeInTheDocument();
   });
 
-  it('shows the Add Equation button when the feature flag is enabled', async () => {
+  it('shows the Add Equation button', async () => {
     const orgWithFeature = OrganizationFixture({
-      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+      features: ['tracemetrics-enabled'],
     });
     render(
       <ProviderWrapper>
@@ -654,7 +654,7 @@ describe('MetricsTabContent', () => {
 
   it('renders aggregate and equation panels in separate sections', async () => {
     const orgWithFeatures = OrganizationFixture({
-      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+      features: ['tracemetrics-enabled'],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${orgWithFeatures.slug}/events/`,
@@ -719,7 +719,7 @@ describe('MetricsTabContent', () => {
       mode: 'aggregate',
     });
     const orgWithFeature = OrganizationFixture({
-      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+      features: ['tracemetrics-enabled'],
     });
     render(
       <ProviderWrapper>
@@ -768,7 +768,7 @@ describe('MetricsTabContent', () => {
 
   it('disables delete button for metrics referenced by an equation', async () => {
     const orgWithEquations = OrganizationFixture({
-      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+      features: ['tracemetrics-enabled'],
     });
 
     const metricA = JSON.stringify({
