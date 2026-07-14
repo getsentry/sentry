@@ -201,6 +201,7 @@ def _make_rpc_requests(
                 "rpc_rows": rpc_rows,
                 "referrer": request.meta.referrer,
                 "organization_id": request.meta.organization_id,
+                "trace_item_type": request.meta.trace_item_type,
                 "page_token": table_response.page_token,
                 "meta": table_response.meta,
                 "debug": debug is not False,
@@ -225,6 +226,7 @@ def _make_rpc_requests(
                 "rpc_rows": rpc_rows,
                 "referrer": request.meta.referrer,
                 "organization_id": request.meta.organization_id,
+                "trace_item_type": request.meta.trace_item_type,
                 "meta": timeseries_response.meta,
                 "debug": debug is not False,
             }
@@ -494,4 +496,5 @@ def create_subscription(req: CreateSubscriptionRequest) -> CreateSubscriptionRes
     http_resp = _make_rpc_request(endpoint_name, class_version, None, req)
     resp = CreateSubscriptionResponse()
     resp.ParseFromString(http_resp.data)
+    _log_rpc_response(endpoint_name, req.time_series_request, None)
     return resp

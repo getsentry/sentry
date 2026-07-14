@@ -2,12 +2,17 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import (
+    CreateSubscriptionRequest,
+    CreateSubscriptionResponse,
+)
 from sentry_protos.snuba.v1.endpoint_delete_trace_items_pb2 import (
     DeleteTraceItemsRequest,
     DeleteTraceItemsResponse,
 )
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest, GetTraceResponse
 from sentry_protos.snuba.v1.endpoint_get_traces_pb2 import GetTracesRequest, GetTracesResponse
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest, TimeSeriesResponse
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeNamesResponse,
@@ -22,7 +27,10 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     TraceItemStatsRequest,
     TraceItemStatsResponse,
 )
-from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import TraceItemTableRequest
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
+    TraceItemTableRequest,
+    TraceItemTableResponse,
+)
 from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
     ExportTraceItemsRequest,
     ExportTraceItemsResponse,
@@ -226,3 +234,75 @@ def test_single_request_helper_logs_response_row_count(
     assert mock_distribution.call_args == mock.call(
         "snuba_rpc.response.length", expected_rows, tags={"endpoint": expected_endpoint}
     )
+
+
+def _table_response() -> TraceItemTableResponse:
+    response = TraceItemTableResponse()
+    column = response.column_values.add()
+    column.results.add()
+    column.results.add()
+    return response
+
+
+def _timeseries_response() -> TimeSeriesResponse:
+    response = TimeSeriesResponse()
+    response.result_timeseries.add().data_points.add()
+    return response
+
+
+def test_table_rpc_logs_trace_item_type_and_row_count() -> None:
+    http_response = mock.Mock()
+    http_response.data = _table_response().SerializeToString()
+
+    with (
+        mock.patch.object(snuba_rpc, "_make_rpc_request", return_value=http_response),
+        mock.patch.object(snuba_rpc.logger, "info") as mock_info,
+        mock.patch("sentry.utils.snuba_rpc.metrics.distribution") as mock_distribution,
+    ):
+        snuba_rpc.table_rpc([TraceItemTableRequest(meta=_meta())])
+
+    extra = mock_info.call_args.kwargs["extra"]
+
+    assert mock_info.call_args.args[0] == "Table RPC query response"
+    assert extra["rpc_rows"] == 2
+    assert extra["trace_item_type"] == TraceItemType.TRACE_ITEM_TYPE_LOG
+    assert mock_distribution.call_args == mock.call("snuba_rpc.table_response.length", 2)
+
+
+def test_timeseries_rpc_logs_trace_item_type_and_row_count() -> None:
+    http_response = mock.Mock()
+    http_response.data = _timeseries_response().SerializeToString()
+
+    with (
+        mock.patch.object(snuba_rpc, "_make_rpc_request", return_value=http_response),
+        mock.patch.object(snuba_rpc.logger, "info") as mock_info,
+        mock.patch("sentry.utils.snuba_rpc.metrics.distribution") as mock_distribution,
+    ):
+        snuba_rpc.timeseries_rpc([TimeSeriesRequest(meta=_meta())])
+
+    extra = mock_info.call_args.kwargs["extra"]
+
+    assert mock_info.call_args.args[0] == "Timeseries RPC query response"
+    assert extra["rpc_rows"] == 1
+    assert extra["trace_item_type"] == TraceItemType.TRACE_ITEM_TYPE_LOG
+    assert mock_distribution.call_args == mock.call("snuba_rpc.timeseries_response.length", 1)
+
+
+def test_create_subscription_logs_response() -> None:
+    http_response = mock.Mock()
+    http_response.data = CreateSubscriptionResponse(subscription_id="sub-1").SerializeToString()
+    request = CreateSubscriptionRequest(time_series_request=TimeSeriesRequest(meta=_meta()))
+
+    with (
+        mock.patch.object(snuba_rpc, "_make_rpc_request", return_value=http_response),
+        mock.patch.object(snuba_rpc.logger, "info") as mock_info,
+        mock.patch("sentry.utils.snuba_rpc.metrics.distribution") as mock_distribution,
+    ):
+        snuba_rpc.create_subscription(request)
+
+    extra = mock_info.call_args.kwargs["extra"]
+
+    assert mock_info.call_args.args[1] == "CreateSubscriptionRequest"
+    assert extra["rpc_rows"] is None
+    assert extra["referrer"] == "test.referrer"
+    assert mock_distribution.call_count == 0
