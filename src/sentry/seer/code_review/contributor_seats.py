@@ -101,20 +101,6 @@ def track_contributor_seat(
     logs_extra: Mapping[str, Any] | None = None,
 ) -> None:
     """Informational logging for the legacy seat-charging path."""
-    try:
-        hostname = instance_hostname(integration)
-    except Exception:
-        logger.warning(
-            "scm.webhook.organization_contributor.hostname_error",
-            extra={
-                "provider": integration.provider,
-                "organization_id": organization.id,
-                "integration_id": integration.id,
-            },
-            exc_info=True,
-        )
-        hostname = None
-
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
         integration_id=integration.id,
@@ -122,7 +108,7 @@ def track_contributor_seat(
         defaults={
             "alias": user_username,
             "provider": integration.provider,
-            "hostname": hostname,
+            "hostname": instance_hostname(integration),
         },
     )
     if not should_increment_contributor_seat(organization, repo, contributor):
@@ -160,20 +146,6 @@ def record_contributor_action(
     tags: Mapping[str, Any] | None = None,
 ) -> None:
     """Seed a contributor and record the contributor's PR-opened action."""
-    try:
-        hostname = instance_hostname(integration)
-    except Exception:
-        logger.warning(
-            "scm.webhook.organization_contributor.hostname_error",
-            extra={
-                "provider": integration.provider,
-                "organization_id": organization.id,
-                "integration_id": integration.id,
-            },
-            exc_info=True,
-        )
-        hostname = None
-
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
         integration_id=integration.id,
@@ -181,7 +153,7 @@ def record_contributor_action(
         defaults={
             "alias": user_username,
             "provider": integration.provider,
-            "hostname": hostname,
+            "hostname": instance_hostname(integration),
         },
     )
 

@@ -49,9 +49,9 @@ class OrganizationContributors(DefaultFieldsModel):
     integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="DO_NOTHING")
 
     external_identifier = models.CharField(max_length=255, db_index=True)
-    provider = models.CharField(max_length=64, null=True)
+    provider = models.CharField(max_length=64)
     # Disambiguate external identifiers for self-hosted instances.
-    hostname = models.CharField(max_length=255, null=True)
+    hostname = models.CharField(max_length=255)
 
     alias = models.CharField(max_length=255, null=True, blank=True)
     num_actions = BoundedIntegerField(default=0)
@@ -69,6 +69,10 @@ class OrganizationContributors(DefaultFieldsModel):
             models.Index(
                 fields=["organization_id", "date_updated"],
                 name="sentry_oc_org_date_upd_idx",
+            ),
+            models.Index(
+                fields=["organization_id", "provider", "hostname", "external_identifier"],
+                name="sentry_orgcont_lookup_idx",
             ),
         ]
 
