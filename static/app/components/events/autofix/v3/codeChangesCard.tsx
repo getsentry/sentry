@@ -105,7 +105,7 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
       return {
         ...base,
         sourceType: 'other',
-        source: (parsed.source as {type?: string} | undefined)?.type ?? 'unknown',
+        source: parsed.source?.type ?? 'unknown',
       };
   }
 }
