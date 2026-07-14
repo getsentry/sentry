@@ -4,7 +4,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -189,14 +189,14 @@ export function KeySettings({
         {({hasAccess}) => (
           <FieldGroup title={t('Revoke Key')}>
             <Flex direction="row" gap="xl" align="center" justify="between">
-              <Flex direction="column" gap="xs" flex="1">
+              <Stack gap="xs" flex="1">
                 <Text bold>{t('Revoke Key')}</Text>
                 <Text size="sm" variant="muted">
                   {t(
                     'Revoking this key will immediately remove and suspend the credentials. This action is irreversible.'
                   )}
                 </Text>
-              </Flex>
+              </Stack>
               <Confirm
                 priority="danger"
                 message={t(

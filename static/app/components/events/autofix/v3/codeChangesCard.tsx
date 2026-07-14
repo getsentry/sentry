@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Prose, Text} from '@sentry/scraps/text';
@@ -387,10 +387,10 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
     content = (
       <ArtifactDetails gap="lg">
-        <Flex direction="column" gap="md">
+        <Stack gap="md">
           <Text bold>{t("Seer proposed a fix but couldn't apply it automatically")}</Text>
           <Markdown raw={explanation} />
-        </Flex>
+        </Stack>
         {resetSection}
       </ArtifactDetails>
     );

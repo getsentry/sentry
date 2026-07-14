@@ -52,15 +52,18 @@ ERROR_LIMIT = 10_000
 
 
 class SerializedEvent(TypedDict):
+    """Fields shared by every item in a trace. Entries in `children` are full
+    spans at runtime; only the shared fields are documented here."""
+
     description: str
     event_id: str
-    event_type: str
     project_id: int
     project_slug: str
     transaction: str
 
 
 class SerializedIssue(SerializedEvent):
+    event_type: Literal["error", "occurrence"]
     issue_id: int
     level: str
     start_timestamp: float
@@ -71,30 +74,32 @@ class SerializedIssue(SerializedEvent):
 
 
 class SerializedSpan(SerializedEvent):
-    children: list["SerializedEvent"]
-    errors: list["SerializedIssue"]
-    occurrences: list["SerializedIssue"]
+    event_type: Literal["span"]
+    children: list[SerializedEvent]
+    errors: list[SerializedIssue]
+    occurrences: list[SerializedIssue]
     duration: float
-    end_timestamp: datetime
-    measurements: dict[str, Any]
-    browser_web_vital: dict[str, Any]
-    mobile_app_vital: dict[str, Any]
+    end_timestamp: float
+    measurements: dict[str, float]
+    browser_web_vital: dict[str, float]
+    mobile_app_vital: dict[str, float]
     op: str
     name: str
     parent_span_id: str | None
     profile_id: str
     profiler_id: str
     sdk_name: str
-    start_timestamp: datetime
+    start_timestamp: float
     is_transaction: bool
     transaction_id: str
     additional_attributes: NotRequired[dict[str, Any]]
 
 
 class SerializedUptimeCheck(SerializedEvent):
-    children: list["SerializedEvent"]
-    errors: list["SerializedIssue"]
-    occurrences: list["SerializedIssue"]
+    event_type: Literal["uptime_check"]
+    children: list[SerializedEvent]
+    errors: list[SerializedIssue]
+    occurrences: list[SerializedIssue]
     transaction_id: str
     op: str
     start_timestamp: float
@@ -103,6 +108,9 @@ class SerializedUptimeCheck(SerializedEvent):
     name: str
     region_name: str
     additional_attributes: dict[str, Any]
+
+
+SerializedTraceItem = SerializedSpan | SerializedIssue | SerializedUptimeCheck
 
 
 class TraceIssueOccurrenceData(TypedDict):
@@ -210,7 +218,7 @@ def _serialize_rpc_event(
     event: dict[str, Any],
     group_cache: dict[int, Group],
     additional_attributes: list[str] | None = None,
-) -> SerializedEvent | SerializedIssue | SerializedUptimeCheck | None:
+) -> SerializedTraceItem | None:
     if event.get("event_type") not in ("span", "uptime_check"):
         return _serialize_rpc_issue(event, group_cache)
 
@@ -219,7 +227,7 @@ def _serialize_rpc_event(
         for attribute in additional_attributes or []
         if attribute in event
     }
-    children = [
+    children: list[SerializedEvent] = [
         child
         for child in [
             _serialize_rpc_event(child, group_cache, additional_attributes)
@@ -718,7 +726,7 @@ def query_trace_data(
     additional_attributes: list[str] | None = None,
     include_uptime: bool = False,
     organization: Organization | None = None,
-) -> list[SerializedEvent]:
+) -> list[SerializedTraceItem]:
     """Queries span/error data for a given trace"""
     # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
     # currently. But we want to move performance data off the old tables immediately. To keep the code simpler I'm

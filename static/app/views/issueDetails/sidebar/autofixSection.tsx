@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -201,7 +201,7 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
   if (organization.features.includes('seat-based-seer-enabled')) {
     if (needOrgSetup || needProjSetup) {
       return (
-        <Flex direction="column" border="muted" radius="md" padding="lg" gap="lg">
+        <Stack border="muted" radius="md" padding="lg" gap="lg">
           <Text bold>{t('Finish Configuring Seer')}</Text>
           <Text>
             {t(
@@ -237,7 +237,7 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
               </LinkButton>
             ) : null}
           </Flex>
-        </Flex>
+        </Stack>
       );
     }
   }
@@ -334,7 +334,7 @@ function AutofixPreviews({group, project, sections, referrer}: AutofixPreviewsPr
   });
 
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       {sections.map(section => {
         // there should only be 1 section of each type
         if (isRootCauseSection(section)) {
@@ -383,6 +383,6 @@ function AutofixPreviews({group, project, sections, referrer}: AutofixPreviewsPr
       >
         {t('Open Autofix')}
       </Button>
-    </Flex>
+    </Stack>
   );
 }

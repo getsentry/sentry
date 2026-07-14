@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Hovercard} from 'sentry/components/hovercard';
@@ -1063,14 +1063,14 @@ export default Storybook.story('StackTrace', story => {
     };
 
     return (
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         <StoryStackTraceProvider event={event} stacktrace={singleFrameStacktrace}>
           <StackTraceFrames
             frameContextComponent={FrameContent}
             frameActionsComponent={StoryFrameActions}
           />
         </StoryStackTraceProvider>
-      </Flex>
+      </Stack>
     );
   });
 

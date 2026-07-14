@@ -9,6 +9,7 @@ MOCK_SEER_WEBHOOKS = {
         "root_cause": {
             "description": "Test description",
             "steps": [{"title": "Step 1"}, {"title": "Step 2"}],
+            "five_whys": ["First reason", "Second reason"],
         },
     },
     SentryAppEventType.SEER_SOLUTION_COMPLETED: {
