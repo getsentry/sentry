@@ -1,6 +1,6 @@
 import enum
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, router, transaction
@@ -146,14 +146,21 @@ def _process_batch(
         return bool(_entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, 1))
 
 
+class GroupLogDeadlineExceeded(Exception):
+    """Raised when process_group_log cannot finish before its deadline."""
+
+
 def process_group_log(
     group_id: int,
     batch_size: int = DEFAULT_BATCH_SIZE,
     target_pipeline: Pipeline[GroupActionLogEntry] | None = None,
+    deadline: datetime | None = None,
 ) -> GroupDerivedData:
     """Fully drain all pending entries for a group, processing in batches.
 
     Raises Group.DoesNotExist if the group has been deleted.
+    Raises GroupLogDeadlineExceeded if *deadline* is reached before all
+    entries are processed.
     """
     p = target_pipeline or PIPELINE
 
@@ -162,6 +169,8 @@ def process_group_log(
 
     has_more = _process_batch(p, derived, group_id, batch_size)
     while has_more:
+        if deadline is not None and datetime.now(UTC) >= deadline:
+            raise GroupLogDeadlineExceeded(group_id)
         has_more = _process_batch(p, derived, group_id, batch_size)
 
     return derived
