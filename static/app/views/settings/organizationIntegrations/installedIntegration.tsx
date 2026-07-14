@@ -142,9 +142,9 @@ export class InstalledIntegration extends Component<Props> {
       <Access access={['org:integrations']}>
         {({hasAccess}) => {
           const superuser = isActiveSuperuser();
-          const canConfigure =
-            (hasAccess || superuser) && this.integrationStatus === 'active';
-          const disableAction = !(hasAccess && this.integrationStatus === 'active');
+          const canUpdate = hasAccess || superuser;
+          const canConfigure = canUpdate && this.integrationStatus === 'active';
+          const disableAction = !canConfigure;
           const isPendingDeletion = this.integrationStatus === 'pending_deletion';
           return (
             <Fragment>
@@ -157,7 +157,7 @@ export class InstalledIntegration extends Component<Props> {
               <div>
                 {requiresUpgrade && (
                   <Tooltip
-                    disabled={!disableAction}
+                    disabled={canUpdate}
                     position="left"
                     title={t(
                       'You must be an organization owner, manager or admin to update'
