@@ -182,9 +182,17 @@ export function useCreateNotificationAction({
     if (!messagingIntegrationsQuery.isSuccess || hasInitializedSelection.current) {
       return;
     }
-    hasInitializedSelection.current = true;
     const providerKeys = Object.keys(providersToIntegrations);
     const firstProvider = providerKeys[0];
+
+    // If the first fetch returned no integrations, don't mark as initialized yet.
+    // A subsequent refetch (e.g. after connecting via SetupMessagingIntegrationButton)
+    // may deliver integrations and must be allowed to auto-select provider/integration.
+    if (!firstProvider) {
+      return;
+    }
+
+    hasInitializedSelection.current = true;
     const firstIntegration = providersToIntegrations[String(firstProvider)]?.[0];
     setProvider(firstProvider);
     setIntegration(firstIntegration);
