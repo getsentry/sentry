@@ -57,7 +57,6 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 
 const AiSetupDataConsent = OverrideOrDefault({
   overrideName: 'component:ai-setup-data-consent',
-  defaultComponent: () => <div />,
 });
 
 export const SEER_THRESHOLD_MAP = [
