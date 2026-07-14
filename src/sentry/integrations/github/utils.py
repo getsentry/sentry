@@ -3,7 +3,7 @@ from __future__ import annotations
 import calendar
 import datetime
 import time
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from rest_framework.response import Response
 
@@ -50,6 +50,36 @@ def get_next_link(response: Response) -> str | None:
             start = link.find("<") + 1
             end = link.find(">")
             return link[start:end]
+
+    return None
+
+
+def get_last_page_number(response: Response) -> int | None:
+    """Return the page number advertised by Github's `rel="last"` link.
+
+    For offset-paginated endpoints Github includes a `rel="last"` relation in
+    the `link` header, so the total number of pages is known from the first
+    response. This lets us fetch the remaining pages in parallel instead of
+    walking the `next` links one round-trip at a time.
+
+    Returns None when the header is absent (a single page) or does not
+    advertise a last page (for example, cursor-based pagination), in which
+    case the caller should fall back to following the `next` links serially.
+    """
+    link_option: str | None = response.headers.get("link")
+    if link_option is None:
+        return None
+
+    for link in link_option.split(","):
+        if 'rel="last"' in link:
+            start = link.find("<") + 1
+            end = link.find(">")
+            page = parse_qs(urlparse(link[start:end]).query).get("page")
+            if page:
+                try:
+                    return int(page[0])
+                except ValueError:
+                    return None
 
     return None
 
