@@ -21,6 +21,9 @@ from sentry.issues.grouptype import (
     GroupCategory,
     InvalidGroupTypeError,
 )
+from sentry.issues.grouptype import (
+    registry as grouptype_registry,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
@@ -248,11 +251,16 @@ def _query_top_perf_issues(
     if not group_ids:
         return {}
 
+    perf_type_ids: set[int] = set()
+    for cat in (GroupCategory.PERFORMANCE, *PERFORMANCE_ISSUE_CATEGORIES):
+        perf_type_ids |= grouptype_registry.get_by_category(cat.value)
+
     unresolved_groups = {
         g.id: g
         for g in Group.objects.filter(
             id__in=group_ids,
             status=GroupStatus.UNRESOLVED,
+            type__in=perf_type_ids,
         )
     }
 

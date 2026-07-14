@@ -182,7 +182,7 @@ class OrganizationReportContextFactory:
             projects = [
                 p for p in organization.project_set.all() if p.id in ctx.projects_context_map
             ]
-            eligible_projects = [p for p in projects if p.first_event]
+            eligible_projects = [p for p in projects if p.first_event or p.flags.has_transactions]
             if not eligible_projects:
                 return
 
