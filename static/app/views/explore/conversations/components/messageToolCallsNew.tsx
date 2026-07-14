@@ -19,7 +19,12 @@ import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/typ
 interface MessageToolCallsNewProps {
   nodeMap: Map<string, AITraceSpanNode>;
   onSelectNode: (node: AITraceSpanNode) => void;
-  selectedNodeId: string | null;
+  /**
+   * The selected node id when it matches one of these tool calls, otherwise
+   * null — scoped by the parent turn so the prop is stable when the selection
+   * lands elsewhere.
+   */
+  selectedToolCallId: string | null;
   toolCalls: ToolCall[];
 }
 
@@ -30,7 +35,7 @@ interface MessageToolCallsNewProps {
  */
 export function MessageToolCallsNew({
   toolCalls,
-  selectedNodeId,
+  selectedToolCallId,
   nodeMap,
   onSelectNode,
 }: MessageToolCallsNewProps) {
@@ -52,7 +57,7 @@ export function MessageToolCallsNew({
     <Stack gap="xs" width="100%">
       {toolCalls.map(tool => {
         const toolNode = nodeMap.get(tool.nodeId);
-        const isToolSelected = tool.nodeId === selectedNodeId;
+        const isToolSelected = tool.nodeId === selectedToolCallId;
         const selectTool = () => {
           trackAnalytics('conversations.message.click-tool-call', {
             organization,
