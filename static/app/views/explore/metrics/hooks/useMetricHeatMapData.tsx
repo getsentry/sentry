@@ -142,7 +142,9 @@ export function useMetricHeatMapData({
     error,
     isPartial,
     isFetchingMore,
-    isPending: !series && !error,
+    // Only "pending" while actually loading — a disabled hook has nothing in
+    // flight, so it must not report loading (would spin forever in the UI).
+    isPending: enabled && !series && !error,
   };
 }
 

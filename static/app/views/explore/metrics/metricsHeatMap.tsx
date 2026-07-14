@@ -129,9 +129,9 @@ export function MetricsHeatMap({
   let visualization: React.ReactNode;
   if (error) {
     visualization = <Widget.WidgetError error={error} />;
-  } else if (isPending || !heatMapSeries) {
+  } else if (isPending) {
     visualization = <WidgetLoadingPanel />;
-  } else if (heatMapSeries.values.length === 0) {
+  } else if (!heatMapSeries || heatMapSeries.values.length === 0) {
     visualization = <Widget.WidgetError error={t('No data')} />;
   } else {
     // Show a loading spinner over the existing data while chunks are loading.
