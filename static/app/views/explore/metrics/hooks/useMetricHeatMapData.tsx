@@ -58,14 +58,7 @@ export function useMetricHeatMapData({
   const {windows, timeDomain} = useMemo(
     () =>
       partitionDateTimeIntoHeatMapWindows(selection.datetime, interval, 'progressive'),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      interval,
-      selection.datetime.start,
-      selection.datetime.end,
-      selection.datetime.period,
-      selection.datetime.utc,
-    ]
+    [interval, selection.datetime]
   );
 
   const isChunked = windows.length > 1;
