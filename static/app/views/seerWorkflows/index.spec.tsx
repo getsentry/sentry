@@ -107,6 +107,7 @@ describe('SeerWorkflows', () => {
               id: '10',
               groupId: '100',
               groupTitle: 'ValueError: something broke',
+              groupShortId: 'SEER-ABC',
               action: 'autofix_triggered',
               seerRunId: 'seer-1',
               pullRequests: [],
@@ -125,9 +126,10 @@ describe('SeerWorkflows', () => {
     // User-facing view shows the friendly action label, not the raw enum.
     expect(screen.getByText('Autofix queued')).toBeInTheDocument();
 
-    // The issue links via its real title, not the bare numeric group id.
+    // The issue links via its short id and real title, not the bare numeric
+    // group id.
     expect(
-      screen.getByRole('link', {name: 'ValueError: something broke'})
+      screen.getByRole('link', {name: 'SEER-ABC ValueError: something broke'})
     ).toHaveAttribute('href', `/organizations/${organization.slug}/issues/100/`);
     expect(screen.queryByRole('link', {name: '100'})).not.toBeInTheDocument();
 
@@ -192,6 +194,7 @@ describe('SeerWorkflows', () => {
               id: '10',
               groupId: '100',
               groupTitle: null,
+              groupShortId: null,
               action: 'skip',
               seerRunId: null,
               pullRequests: [],
@@ -263,7 +266,7 @@ describe('SeerWorkflows', () => {
     expect(prChip).toHaveAttribute('target', '_blank');
   });
 
-  it('shows one labeled pill per triage dispatch in the expanded panel', async () => {
+  it('shows one labeled pill per triage batch in the expanded panel', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
       body: [
@@ -300,15 +303,15 @@ describe('SeerWorkflows', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Expand run'}));
 
-    expect(screen.getByText('Triage dispatches (2)')).toBeInTheDocument();
+    expect(screen.getByText('Triage batches (2)')).toBeInTheDocument();
     // getRelativeExplorerUrl reads window.location, which in this test
     // environment doesn't reflect the router's memory-history location --
     // only the explorerRunId query param is meaningful to assert on here.
-    expect(screen.getByRole('button', {name: 'Shard 1'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Batch 1'})).toHaveAttribute(
       'href',
       expect.stringContaining('explorerRunId=42')
     );
-    expect(screen.getByRole('button', {name: 'Shard 2'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Batch 2'})).toHaveAttribute(
       'href',
       expect.stringContaining('explorerRunId=43')
     );
@@ -334,13 +337,13 @@ describe('SeerWorkflows', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
 
-    expect(screen.getByRole('button', {name: 'Shard 1'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Batch 1'})).toHaveAttribute(
       'href',
       expect.stringContaining('explorerRunId=42')
     );
   });
 
-  it('shows no triage dispatches recorded when a run has no shards', async () => {
+  it('shows no triage batches recorded when a run has no shards', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
       body: [
@@ -371,7 +374,7 @@ describe('SeerWorkflows', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
 
     expect(
-      screen.getByText('No triage dispatches recorded for this run.')
+      screen.getByText('No triage batches recorded for this run.')
     ).toBeInTheDocument();
   });
 

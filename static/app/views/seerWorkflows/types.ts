@@ -4,6 +4,7 @@ export type SeerNightShiftRunIssue = {
   action: string;
   dateAdded: string;
   groupId: string;
+  groupShortId: string | null;
   groupTitle: string | null;
   id: string;
   pullRequests: PullRequest[];

@@ -605,11 +605,11 @@ function TriageDispatchesPanel({row}: {row: WorkflowRow}) {
   return (
     <Stack gap="sm">
       <Text bold size="xs" variant="muted" uppercase>
-        {t('Triage dispatches (%s)', explorerRunIds.length)}
+        {t('Triage batches (%s)', explorerRunIds.length)}
       </Text>
       {explorerRunIds.length === 0 ? (
         <Text variant="muted" size="sm">
-          {t('No triage dispatches recorded for this run.')}
+          {t('No triage batches recorded for this run.')}
         </Text>
       ) : (
         <Flex gap="sm" wrap="wrap">
@@ -620,7 +620,7 @@ function TriageDispatchesPanel({row}: {row: WorkflowRow}) {
               icon={<IconOpen />}
               to={getRelativeExplorerUrl(runId)}
             >
-              {t('Shard %s', index + 1)}
+              {t('Batch %s', index + 1)}
             </LinkButton>
           ))}
         </Flex>
@@ -743,23 +743,24 @@ function IssueRow({
   const title = issue.groupTitle ?? issue.groupId;
   return (
     <Container background="primary" border="muted" radius="md" padding="sm md">
-      <Stack gap="xs">
-        <Flex justify="between" align="center" gap="md" wrap="wrap">
-          <Link to={`/organizations/${organizationSlug}/issues/${issue.groupId}/`}>
-            <Text size="sm" ellipsis>
-              {title}
-            </Text>
-          </Link>
+      <Flex justify="between" align="center" gap="md" wrap="wrap">
+        <Link to={`/organizations/${organizationSlug}/issues/${issue.groupId}/`}>
+          <Text size="sm" ellipsis>
+            {issue.groupShortId ? (
+              <Text bold as="span">
+                {issue.groupShortId}{' '}
+              </Text>
+            ) : null}
+            {title}
+          </Text>
+        </Link>
+        <Stack gap="xs" align="end">
           <ActionTag action={issue.action} seerRunId={issue.seerRunId} />
-        </Flex>
-        {issue.pullRequests.length > 0 ? (
-          <Flex align="center" gap="sm" wrap="wrap">
-            {issue.pullRequests.map(pullRequest => (
-              <IssuePullRequestChip key={pullRequest.id} pullRequest={pullRequest} />
-            ))}
-          </Flex>
-        ) : null}
-      </Stack>
+          {issue.pullRequests.map(pullRequest => (
+            <IssuePullRequestChip key={pullRequest.id} pullRequest={pullRequest} />
+          ))}
+        </Stack>
+      </Flex>
     </Container>
   );
 }
@@ -772,30 +773,34 @@ const ACTION_TAG_VARIANT: Record<string, TagVariant> = {
 };
 
 function ActionTag({action, seerRunId}: {action: string; seerRunId: string | null}) {
-  const tag = (
-    <Tag variant={ACTION_TAG_VARIANT[action] ?? 'muted'}>{getActionLabel(action)}</Tag>
-  );
   // Only autofix-triggered issues have a conversation to link to -- skipped
-  // and root-cause-only issues never invoke an agent run.
+  // and root-cause-only issues never invoke an agent run. The icon signals
+  // which tags are actually clickable, since most aren't.
   if (!seerRunId) {
-    return tag;
+    return (
+      <Tag variant={ACTION_TAG_VARIANT[action] ?? 'muted'}>{getActionLabel(action)}</Tag>
+    );
   }
-  return <Link to={getRelativeExplorerUrl(seerRunId)}>{tag}</Link>;
+  return (
+    <Link to={getRelativeExplorerUrl(seerRunId)}>
+      <Tag variant={ACTION_TAG_VARIANT[action] ?? 'muted'} icon={<IconOpen />}>
+        {getActionLabel(action)}
+      </Tag>
+    </Link>
+  );
 }
 
 function IssuePullRequestChip({pullRequest}: {pullRequest: PullRequest}) {
   const title = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
   return (
-    <Tooltip title={title} skipWrapper>
-      <LinkButton
-        size="xs"
-        icon={<IconPullRequest />}
-        href={pullRequest.externalUrl}
-        external
-      >
-        <Text ellipsis>{title}</Text>
-      </LinkButton>
-    </Tooltip>
+    <LinkButton
+      size="xs"
+      icon={<IconPullRequest />}
+      href={pullRequest.externalUrl}
+      external
+    >
+      <Text ellipsis>{title}</Text>
+    </LinkButton>
   );
 }
 
