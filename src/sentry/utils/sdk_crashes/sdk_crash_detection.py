@@ -5,6 +5,8 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from uuid import uuid4
 
+from packaging.version import InvalidVersion, Version
+
 from sentry.issues.grouptype import GroupCategory
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
@@ -12,6 +14,41 @@ from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
+
+
+HYBRID_SDK_PARENT_PACKAGES = {
+    "sentry.cocoa.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
+    "sentry.java.android.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
+}
+
+
+def get_hybrid_sdk_parent(sdk_name: str, event_data: Mapping[str, Any]) -> tuple[str, str] | None:
+    parent_sdk = HYBRID_SDK_PARENT_PACKAGES.get(sdk_name)
+    if parent_sdk is None:
+        return None
+
+    parent_sdk_name, parent_package_name = parent_sdk
+    packages = get_path(event_data, "sdk", "packages")
+    if not isinstance(packages, Sequence) or isinstance(packages, (str, bytes)):
+        return None
+
+    versions = {
+        package.get("version")
+        for package in packages
+        if isinstance(package, Mapping)
+        and package.get("name") == parent_package_name
+        and isinstance(package.get("version"), str)
+    }
+    if len(versions) != 1:
+        return None
+
+    parent_sdk_version = versions.pop()
+    try:
+        Version(parent_sdk_version)
+    except InvalidVersion:
+        return None
+
+    return parent_sdk_name, parent_sdk_version
 
 
 class SDKCrashReporter:
@@ -65,6 +102,8 @@ class SDKCrashDetection:
 
         if not sdk_name or not sdk_version:
             return None
+
+        hybrid_sdk_parent = get_hybrid_sdk_parent(sdk_name, event.data)
 
         mechanism = get_path(event.data, "exception", "values", -1, "mechanism", "type")
         metric_tags = {
@@ -155,6 +194,19 @@ class SDKCrashDetection:
 
             sdk_version = get_path(sdk_crash_event_data, "sdk", "version")
             set_path(sdk_crash_event_data, "release", value=sdk_version)
+
+            if hybrid_sdk_parent is not None:
+                parent_sdk_name, parent_sdk_version = hybrid_sdk_parent
+                set_path(
+                    sdk_crash_event_data,
+                    "tags",
+                    value={
+                        "sdk_crash.native_version": sdk_version,
+                        "sdk_crash.parent_name": parent_sdk_name,
+                        "sdk_crash.parent_version": parent_sdk_version,
+                        "sdk_crash.attribution_version": parent_sdk_version,
+                    },
+                )
 
             # So Sentry can tell how many projects are impacted by this SDK crash
             set_path(sdk_crash_event_data, "user", "id", value=event.project.id)

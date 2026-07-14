@@ -13,7 +13,10 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.store_transaction import store_transaction
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
-from sentry.utils.sdk_crashes.sdk_crash_detection import sdk_crash_detection
+from sentry.utils.sdk_crashes.sdk_crash_detection import (
+    get_hybrid_sdk_parent,
+    sdk_crash_detection,
+)
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
     SDKCrashDetectionConfig,
     build_sdk_crash_detection_configs,
@@ -29,6 +32,38 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
 )
 def build_sdk_configs() -> Sequence[SDKCrashDetectionConfig]:
     return build_sdk_crash_detection_configs()
+
+
+@pytest.mark.parametrize("sdk_name", ["sentry.cocoa.flutter", "sentry.java.android.flutter"])
+def test_get_hybrid_sdk_parent(sdk_name: str) -> None:
+    event_data = {
+        "sdk": {
+            "packages": [
+                {"name": "cocoapods:Sentry", "version": "8.2.0"},
+                {"name": "pub:sentry_flutter", "version": "9.24.0"},
+            ]
+        }
+    }
+
+    assert get_hybrid_sdk_parent(sdk_name, event_data) == ("sentry.dart.flutter", "9.24.0")
+
+
+@pytest.mark.parametrize(
+    "packages",
+    [
+        None,
+        [],
+        [{"name": "pub:sentry_flutter", "version": "not-a-version"}],
+        [
+            {"name": "pub:sentry_flutter", "version": "9.23.0"},
+            {"name": "pub:sentry_flutter", "version": "9.24.0"},
+        ],
+    ],
+)
+def test_get_hybrid_sdk_parent_rejects_untrusted_versions(packages: object) -> None:
+    event_data = {"sdk": {"packages": packages}}
+
+    assert get_hybrid_sdk_parent("sentry.cocoa.flutter", event_data) is None
 
 
 class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
@@ -140,6 +175,40 @@ def test_sdks_detected(
         assert mock_sdk_crash_reporter.report.call_count == 1
     else:
         assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@django_db_all
+@pytest.mark.snuba
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+def test_flutter_sdk_version_attributed_without_replacing_native_version(
+    mock_sdk_crash_reporter: MagicMock,
+    store_event: Callable[[dict[str, Collection[str]]], Event],
+) -> None:
+    event_data = get_crash_event()
+    set_path(event_data, "sdk", "name", value="sentry.cocoa.flutter")
+    set_path(
+        event_data,
+        "sdk",
+        "packages",
+        value=[
+            {"name": "cocoapods:Sentry", "version": "8.2.0"},
+            {"name": "pub:sentry_flutter", "version": "9.24.0"},
+            {"name": "untrusted-package", "version": "1.0.0"},
+        ],
+    )
+    event = store_event(event_data)
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=build_sdk_configs())
+
+    reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
+    assert reported_event_data["sdk"] == {"name": "sentry.cocoa.flutter", "version": "8.2.0"}
+    assert reported_event_data["release"] == "8.2.0"
+    assert reported_event_data["tags"] == {
+        "sdk_crash.native_version": "8.2.0",
+        "sdk_crash.parent_name": "sentry.dart.flutter",
+        "sdk_crash.parent_version": "9.24.0",
+        "sdk_crash.attribution_version": "9.24.0",
+    }
 
 
 class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
