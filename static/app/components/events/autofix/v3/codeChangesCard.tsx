@@ -80,19 +80,25 @@ type IterationFeedback = ParsedFeedback & {
 };
 
 function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
-  const base = {text: parsed.text, timestamp: parsed.timestamp};
-  switch (parsed.source?.type) {
+  // `ui_text` is the short display label the backend derives per source; fall
+  // back to the raw prompt `text` for feedback serialized before it existed.
+  const base = {
+    text: parsed.ui_text ?? parsed.text,
+    timestamp: parsed.timestamp,
+  };
+  const source = parsed.source;
+  switch (source?.type) {
     case 'user-ui':
-      return {...base, sourceType: 'user-ui', user: parsed.source?.user};
+      return {...base, sourceType: 'user-ui', user: source.user};
     case 'github-pr-comment': {
-      const commentUrl = parsed.source?.comment?.html_url;
+      const commentUrl = source.comment?.html_url;
       if (!commentUrl) {
         return null;
       }
       return {
         ...base,
         sourceType: 'github-pr-comment',
-        githubUsername: parsed.source?.comment?.user?.login,
+        githubUsername: source.comment?.user?.login,
         commentUrl,
       };
     }
