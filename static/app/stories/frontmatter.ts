@@ -11,7 +11,7 @@ type ComponentCategory =
   | 'utilities'
   | 'shared';
 
-export interface StoryResources {
+interface StoryResources {
   a11y?: Record<string, string>;
   figma?: string;
   js?: string;
