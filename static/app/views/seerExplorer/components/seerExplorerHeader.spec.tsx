@@ -148,7 +148,7 @@ describe('SeerExplorerHeader', () => {
       await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
 
       expect(
-        await screen.findByRole('menuitemradio', {name: /Link to chat/})
+        screen.getByRole('menuitemradio', {name: /Link to chat/})
       ).toBeInTheDocument();
       expect(
         screen.getByRole('menuitemradio', {name: /Copy conversation to clipboard/})
