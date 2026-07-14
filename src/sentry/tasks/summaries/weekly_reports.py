@@ -872,22 +872,22 @@ def render_template_context(
 
     show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
 
-    errors_discover_query = urlencode(
-        [
-            ("field", "title"),
-            ("field", "event.type"),
-            ("field", "project"),
-            ("field", "user.display"),
-            ("field", "timestamp"),
-            ("dataset", "errors"),
-            ("sort", "-timestamp"),
-            ("referrer", "weekly_report"),
-            ("notification_uuid", notification_uuid),
-        ]
-    )
+    errors_discover_params: list[tuple[str, str | int]] = [
+        ("field", "title"),
+        ("field", "event.type"),
+        ("field", "project"),
+        ("field", "user.display"),
+        ("field", "timestamp"),
+        ("dataset", "errors"),
+        ("sort", "-timestamp"),
+        ("referrer", "weekly_report"),
+        ("notification_uuid", notification_uuid),
+    ]
+    for pc in user_projects:
+        errors_discover_params.append(("project", pc.project.id))
+    errors_discover_query = urlencode(errors_discover_params)
 
     view_all_issues_url = _multi_project_substatus_url(user_projects, "is:unresolved")
-    view_all_errors_url = _multi_project_substatus_url(user_projects, "is:unresolved")
 
     return {
         "organization": ctx.organization,
@@ -903,7 +903,6 @@ def render_template_context(
         "notification_uuid": notification_uuid,
         "errors_discover_query": errors_discover_query,
         "view_all_issues_url": view_all_issues_url,
-        "view_all_errors_url": view_all_errors_url,
         "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
         "show_week_over_week_metric": features.has(
             "organizations:weekly-report-week-over-week-metric", ctx.organization
