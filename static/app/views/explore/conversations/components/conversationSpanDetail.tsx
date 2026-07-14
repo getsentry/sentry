@@ -44,6 +44,10 @@ import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/tr
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
 import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
 
+const AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH = 3;
+const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;
+const AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT = 100_000;
+
 export type DetailTab = 'input' | 'output' | 'attributes';
 
 export const CONVERSATION_SPAN_DETAIL_TABS: readonly DetailTab[] = [
@@ -165,15 +169,12 @@ export function ConversationSpanDetail({
         )}
       </Stack>
 
-      {/* IssueList renders nothing when the span has no linked issues. */}
-      <IssueListWrapper>
-        <IssueList
-          node={node}
-          issues={node.uniqueIssues}
-          organization={organization}
-          traceSlug={traceId}
-        />
-      </IssueListWrapper>
+      <StyledIssueList
+        node={node}
+        issues={node.uniqueIssues}
+        organization={organization}
+        traceSlug={traceId}
+      />
 
       {/*
        * The per-span fetch backs both the metadata and the tab content, and it
@@ -301,11 +302,20 @@ function InputTab({
             {capitalize(message.role)}
           </TraceDrawerComponents.MultilineTextLabel>
           {/* System prompts are usually long, repetitive, and sit on top, so keep them clipped */}
-          <MessageContent content={message.content} clip={message.role === 'system'} />
+          <InputMessageContent
+            key={`${node.id}:message:${index}`}
+            content={message.content}
+            clip={message.role === 'system'}
+          />
         </Fragment>
       ))}
       {toolArgs ? (
-        <TraceDrawerComponents.MultilineJSON value={toolArgs} maxDefaultDepth={1} />
+        <TraceDrawerComponents.MultilineJSON
+          key={`${node.id}:tool-input`}
+          value={toolArgs}
+          maxDefaultDepth={AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH}
+          autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+        />
       ) : null}
       {embeddingsInput ? (
         <TraceDrawerComponents.MultilineText clip={false}>
@@ -337,7 +347,13 @@ function OutputTab({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <AIContentRenderer text={responseText} clip={false} />
+          <AIContentRenderer
+            key={`${node.id}:response-text`}
+            text={responseText}
+            maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
+            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            clip={false}
+          />
         </Fragment>
       ) : null}
       {responseObject ? (
@@ -345,7 +361,13 @@ function OutputTab({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response Object')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <AIContentRenderer text={responseObject} clip={false} />
+          <AIContentRenderer
+            key={`${node.id}:response-object`}
+            text={responseObject}
+            maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
+            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            clip={false}
+          />
         </Fragment>
       ) : null}
       {toolCalls ? (
@@ -353,23 +375,45 @@ function OutputTab({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Tool Calls')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <TraceDrawerComponents.MultilineJSON value={toolCalls} maxDefaultDepth={2} />
+          <TraceDrawerComponents.MultilineJSON
+            key={`${node.id}:tool-calls`}
+            value={toolCalls}
+            maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
+            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+          />
         </Fragment>
       ) : null}
       {toolOutput ? (
-        <TraceDrawerComponents.MultilineJSON value={toolOutput} maxDefaultDepth={1} />
+        <TraceDrawerComponents.MultilineJSON
+          key={`${node.id}:tool-output`}
+          value={toolOutput}
+          maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
+          autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+        />
       ) : null}
     </Fragment>
   );
 }
 
-function MessageContent({content, clip = false}: {content: unknown; clip?: boolean}) {
+function InputMessageContent({
+  content,
+  clip = false,
+}: {
+  content: unknown;
+  clip?: boolean;
+}) {
   return typeof content === 'string' ? (
-    <AIContentRenderer text={content} clip={clip} />
+    <AIContentRenderer
+      text={content}
+      maxJsonDepth={AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH}
+      autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+      clip={clip}
+    />
   ) : (
     <TraceDrawerComponents.MultilineJSON
       value={content}
-      maxDefaultDepth={2}
+      maxDefaultDepth={AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH}
+      autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
       clip={clip}
     />
   );
@@ -408,7 +452,7 @@ function AttributesTab({
 // IssueList colors its severity icons from the trace grid CSS variables, which
 // the trace waterfall normally provides via an ancestor. This panel isn't nested
 // under the waterfall, so scope those variables here.
-const IssueListWrapper = styled('div')`
+const StyledIssueList = styled(IssueList)`
   ${traceGridCssVariables}
   flex-shrink: 0;
 `;
