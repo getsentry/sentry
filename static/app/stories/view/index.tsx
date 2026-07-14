@@ -1,4 +1,4 @@
-import {Fragment, type PropsWithChildren} from 'react';
+import {Fragment, type PropsWithChildren, useEffect} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -140,7 +140,25 @@ function StoryDetail() {
   );
 }
 
+function useStoriesFavicon() {
+  useEffect(() => {
+    const faviconNode = document.querySelector<HTMLLinkElement>(
+      'link[rel="icon"][type="image/png"]'
+    );
+    if (!faviconNode) {
+      return () => {};
+    }
+    const originalHref = faviconNode.href;
+    const path = originalHref.split('/sentry/')[0];
+    faviconNode.href = `${path}/sentry/images/favicon-stories.png`;
+    return () => {
+      faviconNode.href = originalHref;
+    };
+  }, []);
+}
+
 function StoriesLayout(props: PropsWithChildren) {
+  useStoriesFavicon();
   return (
     <Fragment>
       <GlobalStoryStyles key="global-story-styles" />
