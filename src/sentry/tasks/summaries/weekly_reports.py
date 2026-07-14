@@ -245,8 +245,10 @@ def prepare_organization_report(
 
         # Cache after delivery so a failed attempt doesn't poison the
         # previous-week lookup on retry.
-        if not dry_run and features.has(
-            "organizations:weekly-report-week-over-week-metric", ctx.organization
+        if (
+            not dry_run
+            and not email_override
+            and features.has("organizations:weekly-report-week-over-week-metric", ctx.organization)
         ):
             try:
                 project_metrics: dict[int, dict[str, int]] = {}
@@ -344,16 +346,21 @@ class OrganizationReportBatch:
             lifecycle.add_extra("user_id", user_id)
 
             if template_context and user_id:
-                dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
-                if not dupe_check.check_for_duplicate_delivery():
-                    was_sent = self.send_email(template_ctx=template_context, user_id=user_id)
-
-                    # Record delivery if email was sent successfully
-                    if was_sent:
-                        dupe_check.record_delivery()
+                # Admin sends (email_override) bypass duplicate detection so
+                # support/debugging re-sends always go through.
+                if self.email_override:
+                    self.send_email(template_ctx=template_context, user_id=user_id)
                 else:
-                    lifecycle.record_halt(WeeklyReportHaltReason.DUPLICATE_DELIVERY)
-                    metrics.incr("weekly_report.email.skipped", tags={"reason": "duplicate"})
+                    dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
+                    if not dupe_check.check_for_duplicate_delivery():
+                        was_sent = self.send_email(template_ctx=template_context, user_id=user_id)
+
+                        # Record delivery if email was sent successfully
+                        if was_sent:
+                            dupe_check.record_delivery()
+                    else:
+                        lifecycle.record_halt(WeeklyReportHaltReason.DUPLICATE_DELIVERY)
+                        metrics.incr("weekly_report.email.skipped", tags={"reason": "duplicate"})
 
     def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> bool:
         local_start, local_end = get_local_dates(self.ctx, user_id)
@@ -366,7 +373,10 @@ class OrganizationReportBatch:
             context=template_ctx,
             headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},
         )
-        if self.dry_run:
+        # Admin sends (email_override) always deliver the email regardless of
+        # dry_run so the admin tool is useful for debugging.  The dry_run
+        # script (schedule_organizations) never sets email_override.
+        if self.dry_run and not self.email_override:
             metrics.incr("weekly_report.email.skipped", tags={"reason": "dry_run"})
             return False
 
