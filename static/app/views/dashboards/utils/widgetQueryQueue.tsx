@@ -25,13 +25,9 @@ type Context = {
 const WidgetQueueContext = createContext<Context | undefined>(undefined);
 
 export function useWidgetQueryQueue() {
-  const organization = useOrganization();
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
   const queueContext = useContext(WidgetQueueContext);
 
-  return hasQueueFeature && queueContext ? queueContext : {queue: undefined};
+  return queueContext ? queueContext : {queue: undefined};
 }
 
 // Lowest known safe value for customers — used when the org option is unset so we
