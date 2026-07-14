@@ -125,12 +125,10 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   const organization = useOrganization();
   const hasPrIterationFeature = organization.features.includes('autofix-pr-iteration');
 
-  const hasQueuedFeedback = (autofix.runState?.queued_feedback ?? []).length > 0;
-
   const isIterating =
     hasPrIterationFeature &&
-    (hasQueuedFeedback ||
-      (section.status === 'processing' && section.blocks.some(isPrIterationBlock)));
+    section.status === 'processing' &&
+    section.blocks.some(isPrIterationBlock);
 
   const currentStepStart = useMemo(
     () => section.blocks.findLastIndex(block => defined(block.message.metadata?.step)),
@@ -274,7 +272,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
   }, [patchesByRepo]);
 
-  const isProcessing = section.status === 'processing' || hasQueuedFeedback;
+  const isProcessing = section.status === 'processing';
 
   const showPrIterationForm = hasPRs && prIterationEnabled;
   const prIterationForm = (
