@@ -1,3 +1,5 @@
+import sentry_sdk
+
 from sentry import features
 from sentry.constants import DataCategory
 from sentry.models.organization import Organization
@@ -184,11 +186,16 @@ class OrganizationReportContextFactory:
             ]
 
             eligible_project_ids = [p.id for p in projects if p.first_event]
-            key_errors_by_project = org_key_errors(
-                ctx,
-                project_ids=eligible_project_ids,
-                referrer=Referrer.REPORTS_KEY_ERRORS_BATCHED.value,
-            )
+            try:
+                key_errors_by_project = org_key_errors(
+                    ctx,
+                    project_ids=eligible_project_ids,
+                    referrer=Referrer.REPORTS_KEY_ERRORS_BATCHED.value,
+                )
+            except Exception:
+                sentry_sdk.capture_exception()
+                key_errors_by_project = {}
+
             for project_id, key_errors in key_errors_by_project.items():
                 project_ctx = ctx.projects_context_map[project_id]
                 assert isinstance(project_ctx, ProjectContext), (
