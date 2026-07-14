@@ -96,7 +96,7 @@ export function MetricsEquationVisualize({
   });
 
   return (
-    <LocalMultiMetricsQueryParamsProvider initialQueries={initialQueries} hasEquations>
+    <LocalMultiMetricsQueryParamsProvider initialQueries={initialQueries}>
       <MetricQueryRows
         selectedLabel={selectedLabel}
         setSelectedLabel={setSelectedLabel}

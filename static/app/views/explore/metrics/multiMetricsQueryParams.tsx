@@ -50,13 +50,11 @@ function useMultiMetricsQueryParamsContext(): MetricQueriesControllerValue {
 interface MultiMetricsQueryParamsProviderProps {
   children: ReactNode;
   allowUpTo?: number;
-  hasEquations?: boolean;
 }
 
 export function MultiMetricsQueryParamsProvider({
   children,
   allowUpTo,
-  hasEquations,
 }: MultiMetricsQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -75,7 +73,7 @@ export function MultiMetricsQueryParamsProvider({
     [location, navigate]
   );
 
-  const value = useMetricQueriesController({queries, setQueries, hasEquations});
+  const value = useMetricQueriesController({queries, setQueries});
 
   return (
     <MultiMetricsQueryParamsContext value={value}>
@@ -108,10 +106,6 @@ interface LocalMultiMetricsQueryParamsProviderProps {
    * provider's behavior on an empty URL).
    */
   initialQueries: BaseMetricQuery[];
-  /**
-   * Gates insert-before-equation behavior in `addMetricQuery`.
-   */
-  hasEquations?: boolean;
 }
 
 /**
@@ -130,13 +124,12 @@ interface LocalMultiMetricsQueryParamsProviderProps {
 export function LocalMultiMetricsQueryParamsProvider({
   children,
   initialQueries,
-  hasEquations,
 }: LocalMultiMetricsQueryParamsProviderProps) {
   const [queries, setQueries] = useState<BaseMetricQuery[]>(() =>
     initialQueries.length > 0 ? initialQueries : [defaultMetricQuery()]
   );
 
-  const value = useMetricQueriesController({queries, setQueries, hasEquations});
+  const value = useMetricQueriesController({queries, setQueries});
 
   return (
     <MultiMetricsQueryParamsContext value={value}>

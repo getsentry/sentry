@@ -18,7 +18,6 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
 import {MetricsTabOnboarding} from 'sentry/views/explore/metrics/metricsOnboarding';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
@@ -36,8 +35,6 @@ export default function MetricsContent() {
     dataCategories: [DataCategory.TRACE_METRICS],
   });
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
-  const hasEquations = canUseMetricsEquations(organization);
-
   return (
     <SentryDocumentTitle title={METRICS_TITLE} orgSlug={organization?.slug}>
       <PageFiltersContainer
@@ -57,7 +54,7 @@ export default function MetricsContent() {
       >
         <AnalyticsArea name="explore.metrics">
           <Stack flex={1}>
-            <MultiMetricsQueryParamsProvider hasEquations={hasEquations}>
+            <MultiMetricsQueryParamsProvider>
               <MetricsHeader />
               {defined(onboardingProject) ? (
                 <MetricsTabOnboarding
