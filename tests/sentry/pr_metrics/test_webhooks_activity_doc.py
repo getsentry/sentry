@@ -9,6 +9,9 @@ option off every webhook keeps writing legacy ``PullRequestActivity`` rows
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import patch
+
+import pytest
 
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.models.pullrequest import (
@@ -292,6 +295,20 @@ class ActivityDocumentWritePathTest(TestCase):
         doc = self._doc()
         assert doc is not None
         assert len(doc["events"]) == 1  # the synchronize folded into the document
+
+    def test_fold_failure_leaves_no_orphan_document_row(self) -> None:
+        # The row creation and the fold share one transaction, so a fold that raises
+        # rolls the creation back too — no empty {} row is left behind to route later
+        # events onto an all-zeros document. (Matches the legacy row insert, which
+        # also leaves nothing on failure.)
+        with override_options(DOC_ON):
+            with patch(
+                "sentry.pr_metrics.webhooks.apply_activity", side_effect=RuntimeError("boom")
+            ):
+                with pytest.raises(RuntimeError):
+                    self._activity(action="opened")
+        assert not PullRequestActivityLog.objects.filter(pull_request=self.pr).exists()
+        assert self._rows() == 0
 
     # --- entry writes -----------------------------------------------------
 

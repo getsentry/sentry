@@ -1367,9 +1367,16 @@ def _fold_into_activity_doc(
     serialize on the document. The reducer can't be expressed as an atomic JSONB
     update, so the lock is required. ``date_updated`` is bumped on every fold so
     retention keys off last-write, not creation.
+
+    Creation and fold share one transaction. The webhook processor loop swallows a
+    failed fold (logs it, no GitHub retry), so a ``get_or_create`` committed outside
+    the atomic would strand the row at its empty ``{}`` default — and routing then
+    sends every later event for that PR down the document path onto a doc that reads
+    as all-zeros. Rolling the creation back with the fold keeps a failed fold a true
+    no-op, exactly like the legacy row insert it replaces.
     """
-    PullRequestActivityLog.objects.get_or_create(pull_request=pr)
     with transaction.atomic(using=router.db_for_write(PullRequestActivityLog)):
+        PullRequestActivityLog.objects.get_or_create(pull_request=pr)
         log = PullRequestActivityLog.objects.select_for_update().get(pull_request=pr)
         doc = log.data if log.data.get("version") else new_document()
         apply_activity(
