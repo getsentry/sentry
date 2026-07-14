@@ -8,8 +8,10 @@ import sentry_sdk
 
 from sentry import search
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.issues.search import group_types_from
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
+from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.seer.autofix.utils import is_issue_category_eligible
 from sentry.snuba.referrer import Referrer
@@ -69,6 +71,8 @@ def _fetch_and_score(
     fixability), then backfilled with unscored issues in their original recommended
     sort order.
     """
+    # Default types + LowValueSpan
+    type_ids = sorted(group_types_from([]) | {LowValueSpanConfigurationType.type_id})
     result = search.backend.query(
         projects=projects,
         sort_by="recommended",
@@ -76,6 +80,7 @@ def _fetch_and_score(
         search_filters=[
             SearchFilter(SearchKey("status"), "=", SearchValue([GroupStatus.UNRESOLVED])),
             SearchFilter(SearchKey("issue.seer_last_run"), "=", SearchValue("")),
+            SearchFilter(SearchKey("issue.type"), "=", SearchValue(type_ids)),
         ],
         referrer=Referrer.SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY.value,
     )

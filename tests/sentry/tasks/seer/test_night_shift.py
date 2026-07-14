@@ -2,8 +2,10 @@ from unittest.mock import Mock, patch
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.issues.search import group_types_from
 from sentry.models.group import Group
 from sentry.models.organization import OrganizationStatus
+from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
 from sentry.seer.models.night_shift import (
@@ -997,6 +999,31 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
         assert null.id in result_ids
         # Low-scored issue (below threshold) is excluded entirely
         assert len(result) == 3
+
+    def test_includes_low_value_span_issues_in_search(self) -> None:
+        project = self.create_project()
+        error_group = self.create_group(project=project)
+        lvs_group = self.create_group(project=project, type=LowValueSpanConfigurationType.type_id)
+
+        with patch(
+            "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
+        ) as mock_query:
+            mock_query.return_value = Mock(results=[error_group, lvs_group])
+            result = fixability_score_strategy([project], max_candidates=10)
+
+        assert {c.group.id for c in result} == {error_group.id, lvs_group.id}
+
+        mock_query.assert_called_once()
+        type_filters = [
+            sf
+            for sf in mock_query.call_args.kwargs["search_filters"]
+            if sf.key.name == "issue.type"
+        ]
+        assert len(type_filters) == 1
+        # The default type set is widened to include low-value-span, not replaced by it.
+        assert set(type_filters[0].value.raw_value) == group_types_from([]) | {
+            LowValueSpanConfigurationType.type_id
+        }
 
     def test_per_project_fetch_limit_scales_with_max_candidates(self) -> None:
         project = self.create_project()
