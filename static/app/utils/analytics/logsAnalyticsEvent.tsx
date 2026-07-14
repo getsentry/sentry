@@ -69,7 +69,7 @@ export type LogsAnalyticsEventParameters = {
   'logs.onboarding_ai_prompt_copied': {
     organization: Organization;
     platform: PlatformKey | 'unknown';
-    source: 'copy_button' | 'code_snippet';
+    source: 'install_command' | 'prompt';
   };
   'logs.onboarding_platform_docs_viewed': {
     organization: Organization;

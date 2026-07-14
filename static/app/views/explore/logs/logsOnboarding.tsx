@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -38,7 +38,6 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
-import {IconCopy} from 'sentry/icons/iconCopy';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -48,7 +47,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
-import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -67,24 +65,11 @@ type OnboardingProps = {
   project: Project;
 };
 
-const AI_SETUP_PROMPT =
-  'Use curl to download and read the instructions at https://raw.githubusercontent.com/getsentry/sentry-for-ai/refs/heads/main/skills-legacy/sentry-instrument-logging/SKILL.md.\n\nFollow those instructions to configure logging for this project. Afterward, suggest several useful example log statements that follow the practices described in the skill.';
+const INSTALL_PLUGIN_COMMAND =
+  'npx @sentry/ai install "Please instrument Sentry logging. Include some examples following best practices."';
 
-function CopyPromptButton({prompt, onCopy}: {onCopy: () => void; prompt: string}) {
-  const {copy} = useCopyToClipboard();
-  return (
-    <Button
-      size="xs"
-      icon={<IconCopy />}
-      onClick={() => {
-        copy(prompt, {successMessage: t('Prompt copied to clipboard')});
-        onCopy();
-      }}
-    >
-      {t('Copy Prompt')}
-    </Button>
-  );
-}
+const AI_SETUP_PROMPT =
+  'Please instrument Sentry logging. Include some examples following best practices.';
 
 const LOG_DRAIN_PLATFORM_DOCS: Record<string, {name: string; url: string}> = {
   'node-cloudflare-pages': {
@@ -145,7 +130,7 @@ function OnboardingPanel({
 }) {
   const organization = useOrganization();
 
-  const trackPromptCopied = (source: 'copy_button' | 'code_snippet') => {
+  const trackPromptCopied = (source: 'install_command' | 'prompt') => {
     trackAnalytics('logs.onboarding_ai_prompt_copied', {
       organization,
       platform: project.platform ?? 'unknown',
@@ -182,32 +167,29 @@ function OnboardingPanel({
                   <LogDrainsLink project={project} />
                 </Setup>
                 <Preview>
-                  <PreviewHeader>
-                    <BodyTitle>{t('AI-Assisted Setup')}</BodyTitle>
-                    <CopyPromptButton
-                      prompt={AI_SETUP_PROMPT}
-                      onCopy={() => trackPromptCopied('copy_button')}
-                    />
-                  </PreviewHeader>
+                  <BodyTitle>{t('AI-Assisted Setup')}</BodyTitle>
                   <SubTitle>
-                    {tct(
-                      'Run this prompt in your favorite coding agent. It uses your own API tokens to configure Sentry logging and generate example logs that follow [link:logging best practices].',
-                      {
-                        link: (
-                          <ExternalLink href="https://blog.sentry.io/logging-best-practices/" />
-                        ),
-                      }
-                    )}
+                    {t('First, run this command to install the Sentry plugin')}
                   </SubTitle>
                   <PromptSnippet>
                     <OnboardingCodeSnippet
+                      language="bash"
+                      onCopy={() => trackPromptCopied('install_command')}
+                    >
+                      {INSTALL_PLUGIN_COMMAND}
+                    </OnboardingCodeSnippet>
+                  </PromptSnippet>
+                  <SubTitle>{t('Then paste this in your agent of choice')}</SubTitle>
+                  <PromptSnippet>
+                    <OnboardingCodeSnippet
                       language="text"
-                      onCopy={() => trackPromptCopied('code_snippet')}
+                      onCopy={() => trackPromptCopied('prompt')}
                     >
                       {AI_SETUP_PROMPT}
                     </OnboardingCodeSnippet>
                   </PromptSnippet>
                 </Preview>
+                <OrDivider aria-hidden>{t('OR')}</OrDivider>
               </Body>
             </div>
           </TabSelectionScope>
@@ -500,6 +482,22 @@ const Preview = styled('div')`
   padding: ${p => p.theme.space['3xl']};
 `;
 
+// Sits on top of the vertical divider (Setup's :after) at the horizontal center
+// of Body, with a panel-colored background to break the line.
+const OrDivider = styled('div')`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  padding: ${p => p.theme.space.sm} 0;
+  background: ${p => p.theme.tokens.background.primary};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  letter-spacing: 0.05em;
+`;
+
 const Body = styled('div')`
   display: grid;
   position: relative;
@@ -532,17 +530,11 @@ const Divider = styled('hr')`
   margin-bottom: 0;
 `;
 
-const PreviewHeader = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-`;
-
 // Wrapper keeps the code block sized to its content instead of stretching to
 // fill the (tall) preview column.
 const PromptSnippet = styled('div')`
   margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['2xl']};
 `;
 
 const OnboardingContainer = styled('div')`
