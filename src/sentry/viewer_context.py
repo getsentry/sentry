@@ -185,17 +185,14 @@ def set_viewer_context_organization(organization_id: int) -> None:
 def set_viewer_context_project(project_id: int) -> None:
     """Update the current ``ViewerContext`` with a resolved project id.
 
-    Creates a new ViewerContext if none exists, so this is safe to call
-    from system-originated tasks that don't go through middleware.
+    No-op when no ViewerContext exists — use ``set_system_viewer_context``
+    for system-originated tasks without middleware.
     """
     ctx = get_viewer_context()
-    if ctx is not None and ctx.project_id == project_id:
+    if ctx is None or ctx.project_id == project_id:
         return
 
-    if ctx is None:
-        _viewer_context_var.set(ViewerContext(project_id=project_id))
-    else:
-        _viewer_context_var.set(dataclasses.replace(ctx, project_id=project_id))
+    _viewer_context_var.set(dataclasses.replace(ctx, project_id=project_id))
 
 
 # ---------------------------------------------------------------------------
