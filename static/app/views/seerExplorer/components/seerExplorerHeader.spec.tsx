@@ -161,7 +161,9 @@ describe('SeerExplorerHeader', () => {
       // Both the inline and overflow variants mount a chat history trigger.
       const [chatHistory] = screen.getAllByRole('button', {name: 'Chat history'});
       await userEvent.click(chatHistory!);
-      expect(await screen.findByPlaceholderText('Search chats…')).toBeInTheDocument();
+      expect(
+        await screen.findByPlaceholderText('Search chats\u2026')
+      ).toBeInTheDocument();
     });
   });
 });

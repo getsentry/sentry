@@ -83,7 +83,7 @@ function ChatHistorySelect({
       search={{
         filter: false,
         onChange: onSearchChange,
-        placeholder: t('Search chats…'),
+        placeholder: t('Search chats\u2026'),
       }}
       menuTitle={t('Chat history')}
       // Seer's panel is a right-docked pane with `overflow: hidden` ancestors,
