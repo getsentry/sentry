@@ -178,14 +178,10 @@ def test_symbolicate_minidump_and_native_stacktrace(
         ],
     }
 
-    # The native payload request contains both exception stacktraces, but the
-    # first one only has frames that were already symbolicated by the minidump
-    # processing, so no frames are submitted (or returned) for it.
     payload_response = {
         "status": "completed",
         "modules": [],
         "stacktraces": [
-            {"frames": []},
             {
                 "frames": [
                     {
