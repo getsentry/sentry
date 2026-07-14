@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {
   infiniteQueryOptions,
@@ -11,8 +11,9 @@ import {z} from 'zod';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -56,7 +57,7 @@ import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSet
 
 const AiSetupDataConsent = OverrideOrDefault({
   overrideName: 'component:ai-setup-data-consent',
-  defaultComponent: () => <div data-test-id="ai-setup-data-consent" />,
+  defaultComponent: () => <div />,
 });
 
 export const SEER_THRESHOLD_MAP = [
@@ -376,16 +377,20 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
         : 'cursor_handoff'
       : automatedRunStoppingPoint;
 
-  const stoppingPointOptions = [
+  const stoppingPointOptions: Array<{
+    details: string;
+    label: ReactNode;
+    value: StoppingPointFieldValue;
+  }> = [
     {
-      value: 'root_cause' as const,
+      value: 'root_cause',
       label: <SeerSelectLabel>{t('Root Cause (default)')}</SeerSelectLabel>,
       details: t('Seer will stop after identifying the root cause.'),
     },
     ...(hasCursorIntegration
       ? [
           {
-            value: 'cursor_handoff' as const,
+            value: 'cursor_handoff',
             label: (
               <SeerSelectLabel>{t('Hand off to Cursor Cloud Agent')}</SeerSelectLabel>
             ),
@@ -398,7 +403,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
     ...(hasClaudeIntegration
       ? [
           {
-            value: 'claude_handoff' as const,
+            value: 'claude_handoff',
             label: <SeerSelectLabel>{t('Hand off to Claude Agent')}</SeerSelectLabel>,
             details: t(
               'Seer will identify the root cause and hand off the fix to Claude.'
@@ -407,17 +412,17 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
         ]
       : []),
     {
-      value: 'solution' as const,
+      value: 'solution',
       label: <SeerSelectLabel>{t('Solution')}</SeerSelectLabel>,
       details: t('Seer will stop after planning out a solution.'),
     },
     {
-      value: 'code_changes' as const,
+      value: 'code_changes',
       label: <SeerSelectLabel>{t('Code Changes')}</SeerSelectLabel>,
       details: t('Seer will stop after writing the code changes.'),
     },
     {
-      value: 'open_pr' as const,
+      value: 'open_pr',
       label: <SeerSelectLabel>{t('Pull Request')}</SeerSelectLabel>,
       details: t('Seer will go all the way and open a pull request automatically.'),
     },
@@ -434,9 +439,9 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
       {!canWriteProject && <ProjectPermissionAlert project={project} system />}
       <FieldGroup
         title={
-          <div>
+          <Stack gap="md">
             {t('Automation')}
-            <Subheading>
+            <Text size="sm" variant="muted" density="comfortable">
               {tct(
                 "Choose how Seer automatically triages and diagnoses incoming issues, before you even notice them. This analysis is billed at the [link:standard rates] for Seer's Issue Scan and Issue Fix. See [spendlink:docs] on how to manage your Seer spend.",
                 {
@@ -453,8 +458,8 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
                   bulklink: <Link to={`/settings/${organization.slug}/seer/`} />,
                 }
               )}
-            </Subheading>
-          </div>
+            </Text>
+          </Stack>
         }
       >
         <AutoSaveForm
@@ -644,12 +649,3 @@ export function ProjectSeerContainer() {
 
   return <ProjectSeer organization={organization} project={project} />;
 }
-
-const Subheading = styled('div')`
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  text-transform: none;
-  margin-top: ${p => p.theme.space.md};
-  line-height: 1.4;
-`;
