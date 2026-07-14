@@ -1125,15 +1125,17 @@ def _resolve_last_progressed_at(
 
 
 def progress_strategy() -> PostgresSortStrategy:
-    """Progress sort: primary by fix-cycle rank (fix_applied > fix_proposed > diagnosed >
-    assigned > identified), secondary by last_seen. The secondary key stands in for
-    ``issue.last_progressed_at`` until that field exists; for now most-recently-active issues
-    rank highest within a tier."""
+    """
+    Progress sort: primary by fix-cycle rank (fix_applied > fix_proposed > diagnosed >
+    assigned > identified), secondary by last_progressed_at (falling back to last_seen
+    when last_progressed_at is absent).
+    """
 
     def score_fn(data: dict[str, Any]) -> float:
         rank = data.get("progress_rank") or 0
         last_progressed = data.get("last_progressed_at") or 0
         if last_progressed:
+            # divisor used here as it happens to share units
             return rank + last_progressed / LAST_SEEN_TIEBREAK_DIVISOR
 
         last_seen = data.get("last_seen") or 0
