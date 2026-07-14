@@ -15,6 +15,9 @@ from sentry.scm.types import (
     PullRequestReviewEvent,
     SubscriptionEvent,
 )
+from sentry.seer.autofix.pr_iteration.review import (  # noqa: F401
+    handle_pull_request_review_for_autofix_iteration,
+)
 
 # DEFAULT LISTENERS
 #
