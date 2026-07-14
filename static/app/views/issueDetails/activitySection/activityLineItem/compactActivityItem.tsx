@@ -193,6 +193,7 @@ export function getCompactGroupActivityItem({
   issueCategory,
 }: GetCompactGroupActivityItemParams): CompactGroupActivityItem {
   const issuesLink = `/organizations/${organization.slug}/issues/`;
+  const activityContext = {id: activity.id, type: activity.type};
 
   switch (activity.type) {
     case GroupActivityType.NOTE:
@@ -557,8 +558,8 @@ export function getCompactGroupActivityItem({
     }
   }
 
-  Sentry.captureMessage('Unknown group activity type', {
-    contexts: {activity},
+  Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {
+    contexts: {activity: activityContext},
   });
 
   return {

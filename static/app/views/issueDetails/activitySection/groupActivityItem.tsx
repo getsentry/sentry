@@ -60,6 +60,7 @@ export function getGroupActivityItem(
   teams: Team[]
 ) {
   const author = <strong>{getAuthorName(activity)}</strong>;
+  const activityContext = {id: activity.id, type: activity.type};
   const issuesLink = `/organizations/${organization.slug}/issues/`;
   const isFeedback = issueCategory === IssueCategoryEnum.FEEDBACK;
 
@@ -879,8 +880,8 @@ export function getGroupActivityItem(
         };
       }
       default:
-        Sentry.captureMessage('Unknown group activity type', {
-          contexts: {activity},
+        Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {
+          contexts: {activity: activityContext},
         });
         return {title: '', message: ''}; // should never hit (?)
     }
