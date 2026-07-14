@@ -319,6 +319,8 @@ def sync_prebuilt_dashboards_favorited(organization: Organization, user_id: int)
         return
 
     with transaction.atomic(router.db_for_write(DashboardFavoriteUser)):
+        # Exclude any dashboard the user has already starred or that has unfavorited. We don't
+        # exclude by favorited=False so we never re-star something the user chose to unstar.
         prebuilt_dashboards_without_favorite = (
             Dashboard.objects.filter(
                 organization=organization,
