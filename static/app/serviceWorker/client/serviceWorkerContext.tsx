@@ -11,7 +11,7 @@ function log(message: string, options?: Sentry.metrics.MetricOptions) {
   Sentry.metrics.count(`service-worker.register.${message}`, 1, options);
   if (DEBUG_LOGGING) {
     // eslint-disable-next-line no-console
-    console.log(`service-worker.register.${message}`);
+    console.log(`service-worker.register.${message}`, options);
   }
 }
 
@@ -57,6 +57,7 @@ function useRegisterServiceWorker() {
       return;
     }
 
+    log('is-supported');
     navigator.serviceWorker
       // https://rspack.rs/guide/features/web-workers
       .register(getWorkerUrl(), {scope: '/'})

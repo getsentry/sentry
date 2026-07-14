@@ -1,15 +1,24 @@
 import type {AutofixStartStepData} from 'sentry/serviceWorker/worker/handleAutofixStartStep';
 
-export type EventMessage =
-  | {
-      name: 'ping';
-      type: 'event';
-    }
-  | {
-      data: AutofixStartStepData;
-      name: 'autofix.startStep';
-      type: 'event';
-    };
+/**
+ * The base type for all Event* types.
+ *
+ * This includes the `type` field, which is required for narrowing.
+ */
+interface EventMessageBase {
+  name: string;
+  type: 'event';
+}
+
+interface PingEventMessage extends EventMessageBase {
+  name: 'ping';
+}
+interface AutofixStartStepEventMessage extends EventMessageBase {
+  data: AutofixStartStepData;
+  name: 'autofix.startStep';
+}
+
+export type EventMessage = PingEventMessage | AutofixStartStepEventMessage;
 
 /**
  * The web `NotificationOptions` type only covers the widely-supported fields.
@@ -25,14 +34,27 @@ export type AllNotificationOptions = NotificationOptions & {
   renotify?: boolean;
 };
 
-export type RequestMessage = {
+/**
+ * The base type for all Request* types.
+ *
+ * This includes the `type` field, which is required for narrowing, and the
+ * `timeoutMs` field, which is an optional wait time for a response.
+ */
+interface RequestMessageBase {
+  name: string;
+  type: 'request';
+  timeoutMs?: number; // How long to wait for a response, default 10 seconds
+}
+
+interface TriggerTestNotificationRequestMessage extends RequestMessageBase {
   data: {
     options: AllNotificationOptions;
     title: string;
   };
   name: 'trigger.test-notification';
-  type: 'request';
-};
+}
+
+export type RequestMessage = TriggerTestNotificationRequestMessage;
 
 export type ResponseMessage =
   | {

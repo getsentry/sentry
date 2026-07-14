@@ -7,18 +7,28 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {usePrompts} from 'sentry/actionCreators/prompts';
 import {IconSubscribed} from 'sentry/icons/iconSubscribed';
 import {t} from 'sentry/locale';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
 import type {RequestMessage} from 'sentry/serviceWorker/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const SUCCESS_VISIBLE_DURATION_MS = 25_000;
+const PROMPT_FEATURE = 'autofix-sw-notification';
+
 export function NotificationPrompt() {
+  const organization = useOrganization();
   const [isSuccessVisible, setIsSuccessVisible] = useState(false);
   const {isServiceWorkerSupported, controller} = useServiceWorker();
   const {permission, supportsNotifications, askNotificationPermission} =
     useNotificationPermission();
+
+  const {isPromptDismissed, snoozePrompt} = usePrompts({
+    features: [PROMPT_FEATURE],
+    organization,
+  });
 
   useEffect(() => {
     if (isSuccessVisible && permission === 'granted') {
@@ -31,7 +41,7 @@ export function NotificationPrompt() {
     return () => {};
   }, [isSuccessVisible, permission]);
 
-  if (!isServiceWorkerSupported || !supportsNotifications) {
+  if (!isServiceWorkerSupported || !supportsNotifications || isPromptDismissed) {
     return null;
   }
 
@@ -97,7 +107,11 @@ export function NotificationPrompt() {
             </Button>
           </Flex>
           <Flex>
-            <Button variant="transparent" size="md">
+            <Button
+              variant="transparent"
+              size="md"
+              onClick={() => snoozePrompt(PROMPT_FEATURE)}
+            >
               {t("Don't ask again")}
             </Button>
           </Flex>

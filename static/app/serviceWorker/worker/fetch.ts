@@ -1,8 +1,6 @@
 import {controlsiloUrlPatterns} from 'sentry/data/controlsiloUrlPatterns';
-import {
-  getClientConfigFromCache,
-  type Config,
-} from 'sentry/serviceWorker/worker/client-config';
+import {getClientConfigFromCache} from 'sentry/serviceWorker/worker/client-config';
+import {type Config} from 'sentry/serviceWorker/worker/client-config';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 type ApiUrl = ReturnType<typeof getApiUrl>;
@@ -45,7 +43,7 @@ function resolveHost(config: Config, path: ApiUrl): [string, string] {
     }
   }
 
-  if (systemFeatures.has('system:multi-region')) {
+  if (systemFeatures.includes('system:multi-region')) {
     // We're in a multi-region env, we'll either use the control silo, or the
     // region URL.
     // Fallback to use the current hostname if the config is not set.

@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/browser';
 import type {ResponseMessage} from 'sentry/serviceWorker/types';
 import {fetchClientConfig} from 'sentry/serviceWorker/worker/client-config';
 import {DEBUG_LOGGING, log} from 'sentry/serviceWorker/worker/constants';
-import {getUnhandledRejectionError} from 'sentry/serviceWorker/worker/getUnhandledRejectionError';
 import {handleInboundEvent} from 'sentry/serviceWorker/worker/handleInboundEvent';
 import {handleInboundRequest} from 'sentry/serviceWorker/worker/handleInboundRequest';
 import {initializeSentry} from 'sentry/serviceWorker/worker/initializeSentry';
@@ -11,7 +10,6 @@ import {initializeSentry} from 'sentry/serviceWorker/worker/initializeSentry';
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
 sw.addEventListener('install', event => {
-  log('onInstall');
   event.waitUntil(
     Promise.all([
       // Force activation to happen without waiting for the current worker to
@@ -31,10 +29,13 @@ sw.addEventListener('activate', event => {
   event.waitUntil(sw.clients.claim());
 });
 
-sw.addEventListener('unhandledrejection', (event: unknown) => {
+sw.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
   log('onUnhandledRejection');
-  const reason = getUnhandledRejectionError(event);
-  Sentry.captureException(reason);
+  fetchClientConfig()
+    .then(initializeSentry)
+    .then(() => {
+      Sentry.captureException(event.reason);
+    });
 });
 
 sw.addEventListener('message', event => {
@@ -107,7 +108,11 @@ sw.addEventListener('notificationclick', (event: NotificationEvent) => {
       async () => {
         event.notification.close();
 
-        log('[notificationclick] event.notification.data', event.notification.data);
+        if (!('data' in event.notification)) {
+          log('onMessage', {attributes: {data: 'isUndefined'}});
+          return;
+        }
+
         if ('navigateTo' in event.notification.data) {
           const {pathname, query = {}} = event.notification.data.navigateTo as {
             pathname: string;
@@ -117,7 +122,9 @@ sw.addEventListener('notificationclick', (event: NotificationEvent) => {
           for (const windowClient of windowClients) {
             const windowUrl = new URL(windowClient.url);
             if (windowUrl.pathname === pathname && 'focus' in windowClient) {
-              log('[notificationclick] focusing window', windowClient.url);
+              log('onMessage.navigateTo', {
+                attributes: {client: 'focus', url: windowClient.url},
+              });
               return windowClient.focus();
             }
           }
@@ -127,7 +134,9 @@ sw.addEventListener('notificationclick', (event: NotificationEvent) => {
             targetUrl.searchParams.set(key, value);
           });
 
-          log('[notificationclick] opening window', targetUrl.toString());
+          log('onMessage.navigateTo', {
+            attributes: {client: 'openWindow', url: targetUrl.toString()},
+          });
           return sw.clients.openWindow(targetUrl);
         }
         return;

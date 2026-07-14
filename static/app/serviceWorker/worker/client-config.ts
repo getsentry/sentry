@@ -10,7 +10,7 @@ export interface Config {
     subdomain: string;
   } | null;
   dsn: string;
-  features: Set<string>;
+  features: string[];
   links: {
     organizationUrl: string;
     regionUrl: string;
