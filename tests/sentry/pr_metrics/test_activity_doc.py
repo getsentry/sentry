@@ -17,7 +17,9 @@ from sentry.pr_metrics.activity_doc import (
     MAX_CHECK_GROUPS,
     MAX_EVENTS,
     MAX_RUNS_PER_GROUP,
+    MAX_SYNC_CHAIN,
     ActivityDoc,
+    _fold_sync_chain,
     apply_activity,
     extract_event_at,
     is_failing_conclusion,
@@ -127,6 +129,7 @@ def test_new_document_shape() -> None:
         "participants": {},
         "counts": {},
         "events_dropped": 0,
+        "sync_chain": [],
     }
 
 
@@ -281,6 +284,122 @@ def test_events_cap_drops_and_counts_dropped() -> None:
     assert doc["counts"] == {PullRequestActivityType.SYNCHRONIZED: MAX_EVENTS + 3}
     mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.events_capped")
     assert mock_logger.warning.call_count == 3
+
+
+# --- sync_chain: commit-chain survival ------------------------------------
+
+
+def test_synchronize_entry_populates_sync_chain() -> None:
+    doc = new_document()
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="d1",
+        after_sha="head1",
+        before_sha="base1",
+    )
+    assert doc["sync_chain"] == [["head1", "base1"]]
+
+
+def test_non_synchronize_entry_does_not_touch_sync_chain() -> None:
+    # before/after shas on a non-synchronize payload are ignored: only the
+    # synchronize family folds the commit link.
+    doc = new_document()
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.OPENED,
+        webhook_id="d1",
+        after_sha="head1",
+        before_sha="base1",
+    )
+    assert doc["sync_chain"] == []
+
+
+def test_sync_chain_dedupes_redelivery_and_reapplied_after_sha() -> None:
+    doc = new_document()
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="d1",
+        after_sha="head1",
+        before_sha="base1",
+    )
+    # Redelivery (same webhook_id) is dropped at the entry dedup, before the fold.
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="d1",
+        after_sha="head1",
+        before_sha="base1",
+    )
+    # A distinct delivery re-reporting the same after_sha is deduped in the chain.
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="d2",
+        after_sha="head1",
+        before_sha="base1",
+    )
+    assert doc["sync_chain"] == [["head1", "base1"]]
+
+
+def test_synchronize_past_events_cap_still_folds_sync_chain() -> None:
+    # The bug this fixes: at the events cap the newest synchronize entry is dropped,
+    # but a head-anchored chain walk needs exactly that newest link. The link must
+    # survive in sync_chain even though the entry itself does not.
+    doc = new_document()
+    with patch(f"{MODULE}.metrics"), patch(f"{MODULE}.logger"):
+        for i in range(MAX_EVENTS):
+            _entry(doc, event_type=PullRequestActivityType.LABELED, webhook_id=f"d{i}")
+        assert len(doc["events"]) == MAX_EVENTS
+        _entry(
+            doc,
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            webhook_id="sync-final",
+            after_sha="head-final",
+            before_sha="base-final",
+        )
+    # The synchronize entry itself was dropped by the events cap...
+    assert doc["events_dropped"] == 1
+    assert len(doc["events"]) == MAX_EVENTS
+    # ...but its before/after link survived for the chain walk.
+    assert doc["sync_chain"] == [["head-final", "base-final"]]
+
+
+def test_sync_chain_evicts_oldest_past_cap() -> None:
+    doc = new_document()
+    # Seed the chain full directly (cheaper than folding MAX_SYNC_CHAIN entries
+    # through the events cap); after_shas are distinct and in arrival order.
+    doc["sync_chain"] = [
+        [f"sha{i:04d}", f"sha{i - 1:04d}" if i else None] for i in range(MAX_SYNC_CHAIN)
+    ]
+    with patch(f"{MODULE}.metrics") as mock_metrics, patch(f"{MODULE}.logger") as mock_logger:
+        _fold_sync_chain(doc, {"after_sha": "sha-new", "before_sha": "sha-prev"})
+    chain = doc["sync_chain"]
+    assert len(chain) == MAX_SYNC_CHAIN  # stays at the cap
+    assert ["sha0000", None] not in chain  # oldest link evicted
+    assert chain[-1] == ["sha-new", "sha-prev"]  # newest link retained
+    mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.sync_chain_capped")
+    assert mock_logger.warning.call_count == 1
+
+
+def test_sync_chain_ignores_blank_or_missing_after_sha() -> None:
+    doc = new_document()
+    # Missing after_sha entirely...
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="d1",
+        before_sha="base1",
+    )
+    # ...and an explicitly blank after_sha both contribute nothing.
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="d2",
+        after_sha="",
+    )
+    assert doc["sync_chain"] == []
 
 
 # --- comments: participants only ------------------------------------------

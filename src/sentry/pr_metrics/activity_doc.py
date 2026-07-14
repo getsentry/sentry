@@ -14,7 +14,9 @@ reduce differently:
 - **entries** (stored under the ``events`` key) — low-volume lifecycle events
   (opened, synchronized, reviews, labels, the close itself, ...). Appended to
   ``events`` in arrival order, deduped by ``webhook_id`` containment, and counted
-  once per delivery in ``counts``.
+  once per delivery in ``counts``. Synchronize entries additionally fold their
+  before/after link into the bounded ``sync_chain`` list, so the commit-chain walk
+  survives the entries cap.
 - **checks** — every ``check_run_completed`` / ``check_suite_completed`` collapses
   into a per-``(head_sha, app_slug)`` rollup. A pure monotone reducer: latest-wins
   on provider timestamps, ``min()`` for ``first_failure_at``, ``max()`` for counts,
@@ -42,6 +44,10 @@ DOC_VERSION = 1
 # here), so 500 sits far above what a normal PR produces; reaching it is a
 # pathology backstop, surfaced via ``events_dropped`` + a log/metric.
 MAX_EVENTS = 500
+# The synchronize before/after chain gets its own bounded reduction so it survives
+# the events cap: below MAX_SYNC_CHAIN the chain is complete; past it the NEWEST
+# links — the ones the head-anchored commit-chain walk starts from — are retained.
+MAX_SYNC_CHAIN = 500
 # Check-rollup bounds: distinct ``(head_sha, app_slug)`` groups per PR, and
 # ever-failing runs tracked per group. Both are pathology backstops.
 MAX_CHECK_GROUPS = 100
@@ -103,6 +109,11 @@ class ActivityDoc(TypedDict):
     participants: dict[str, str]
     counts: dict[str, int]
     events_dropped: int
+    # A list of ``[after_sha, before_sha_or_null]`` pairs in arrival order, NOT an
+    # object keyed by after_sha: Postgres jsonb does not preserve object key order,
+    # and eviction at the cap must drop the OLDEST link, which needs insertion
+    # order. jsonb preserves array order, so a list keeps eviction correct.
+    sync_chain: list[list[str | None]]
 
 
 def is_failing_conclusion(conclusion: str | None) -> bool:
@@ -126,6 +137,7 @@ def new_document() -> ActivityDoc:
         "participants": {},
         "counts": {},
         "events_dropped": 0,
+        "sync_chain": [],
     }
 
 
@@ -223,7 +235,9 @@ def _apply_entry(
     Dedup replaces the old table's unique constraint with a containment check over
     the (bounded) ``events`` list — the caller holds the row lock. Counts increment
     once per non-duplicate delivery, before the events cap, so ``select_verdict`` /
-    ``reviews_count`` stay exact even when entries are dropped by the cap.
+    ``reviews_count`` stay exact even when entries are dropped by the cap. A
+    synchronize entry also folds its before/after link into ``sync_chain`` before
+    the cap, so the commit-chain walk survives even if the entry itself is dropped.
 
     The one exactness gap is a pathology-on-a-pathology: once the cap is reached a
     dropped entry keeps no stored ``webhook_id``, so a later redelivery of that same
@@ -233,6 +247,9 @@ def _apply_entry(
     """
     if webhook_id and _is_duplicate(doc, webhook_id):
         return
+
+    if event_type == PullRequestActivityType.SYNCHRONIZED:
+        _fold_sync_chain(doc, payload)
 
     doc["counts"][event_type] = doc["counts"].get(event_type, 0) + 1
     _fold_participant(doc, payload)
@@ -261,6 +278,34 @@ def _apply_entry(
 
 def _is_duplicate(doc: ActivityDoc, webhook_id: str) -> bool:
     return any(entry.get("webhook_id") == webhook_id for entry in doc["events"])
+
+
+def _fold_sync_chain(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
+    """Record a synchronize's ``before_sha`` → ``after_sha`` link in ``sync_chain``.
+
+    A reader chain-follows these links backward from the PR's current head to
+    recover the pushed commits, so the chain has its own bounded reduction,
+    independent of the events cap: the newest links — the ones the head-anchored
+    walk starts from — must survive even when the synchronize entry is dropped from
+    ``events`` (an auto-rebase bot is exactly the synchronize-heavy pathology that
+    fills the cap). Idempotent: a redelivery or a re-reported ``after_sha`` already
+    present is a no-op. At the cap the oldest pair is evicted (logged + metered,
+    like every cap in this module).
+    """
+    after = payload.get("after_sha") or ""
+    if not after:
+        return
+    chain = doc["sync_chain"]
+    if any(pair[0] == after for pair in chain):
+        return
+    if len(chain) >= MAX_SYNC_CHAIN:
+        chain.pop(0)
+        logger.warning(
+            "pr_metrics.activity_doc.sync_chain_capped",
+            extra={"after_sha": after},
+        )
+        metrics.incr("pr_metrics.activity_doc.sync_chain_capped")
+    chain.append([after, payload.get("before_sha") or None])
 
 
 def _apply_check_suite(
