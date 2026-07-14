@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import orjson
 from django.conf import settings
 from django.core.cache import cache
 
@@ -2149,9 +2150,10 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             repo=self.repo,
         )
 
-    def _mock_seer(self, status: int = 202) -> Any:
+    def _mock_seer(self, status: int = 202, body: dict[str, Any] | None = None) -> Any:
         mock_response = MagicMock()
         mock_response.status = status
+        mock_response.data = orjson.dumps(body) if body is not None else b""
         return patch(MATCH_RPC, return_value=mock_response)
 
     def _mock_org_check(self) -> Any:
@@ -2217,6 +2219,94 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             "outcome": "sent",
         }
 
+    # --- Synchronous match (200) ---
+
+    def test_sync_match_records_attribution_in_process(self) -> None:
+        body = {
+            "run_id": 123,
+            "agent_id": "agent-1",
+            "signal_type": PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE.value,
+            "match_path": "some/path",
+        }
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=200, body=body),
+            patch(f"{MODULE}.metrics.incr") as mock_incr,
+        ):
+            self._call(head_ref="claude/fix")
+
+        attribution = PullRequestAttribution.objects.get(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+            source=PullRequestAttributionSource.SEER_DATA,
+        )
+        assert attribution.signal_details == {
+            "agent_id": "agent-1",
+            "pr_url": "https://github.com/org/repo/pull/42",
+            "run_id": 123,
+        }
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "sync_matched",
+        }
+
+    def test_sync_match_bad_body_records_error_outcome(self) -> None:
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=200, body={"not": "a match"}),
+            patch(f"{MODULE}.metrics.incr") as mock_incr,
+        ):
+            self._call(head_ref="claude/fix")
+
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "seer_error_bad_body",
+        }
+        assert not PullRequestAttribution.objects.filter(
+            pull_request=self.pr, source=PullRequestAttributionSource.SEER_DATA
+        ).exists()
+
+    def test_sync_match_bad_signal_type_records_error_outcome(self) -> None:
+        body = {
+            "run_id": 123,
+            "agent_id": "agent-1",
+            "signal_type": "not_a_real_signal_type",
+            "match_path": "some/path",
+        }
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=200, body=body),
+            patch(f"{MODULE}.metrics.incr") as mock_incr,
+        ):
+            self._call(head_ref="claude/fix")
+
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "seer_error_bad_body",
+        }
+
+    def test_sync_match_idempotent_across_open_then_close(self) -> None:
+        # Re-checked on close, like the SENTRY_APP case — a PR matched on open
+        # must not gain a second attribution row when re-matched on close.
+        body = {
+            "run_id": 123,
+            "agent_id": "agent-1",
+            "signal_type": PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE.value,
+            "match_path": "some/path",
+        }
+        with self._mock_org_check(), self._mock_seer(status=200, body=body):
+            self._call(action="opened", head_ref="claude/fix")
+            self._call(action="closed", head_ref="claude/fix")
+
+        assert (
+            PullRequestAttribution.objects.filter(
+                pull_request=self.pr,
+                signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+                source=PullRequestAttributionSource.SEER_DATA,
+            ).count()
+            == 1
+        )
+
     # --- Error handling ---
 
     def test_seer_non_2xx_logs_warning_and_error_metric(self) -> None:
@@ -2257,11 +2347,20 @@ class HandleDelegatedAgentDetectionTest(TestCase):
 
         mock_rpc.assert_not_called()
 
-    def test_non_opened_action_does_not_call_seer(self) -> None:
-        for action in ("synchronize", "closed", "labeled", "assigned"):
+    def test_non_opened_or_closed_action_does_not_call_seer(self) -> None:
+        for action in ("synchronize", "labeled", "assigned"):
             with self._mock_seer() as mock_rpc:
                 self._call(action=action, head_ref="claude/fix")
                 mock_rpc.assert_not_called()
+
+    def test_closed_action_sends_to_seer(self) -> None:
+        # Re-checked on close, mirroring the SENTRY_APP author attribution — an
+        # out-of-order or missed "opened" webhook shouldn't lose the match.
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
+            self._call(action="closed", head_ref="claude/fix")
+
+        mock_rpc.assert_called_once()
+        assert mock_rpc.call_args.args[0].provider == "claude_code"
 
     # --- Gating ---
 
