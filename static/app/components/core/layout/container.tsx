@@ -18,10 +18,11 @@ import {
   getRadius,
   getSpacing,
   rc,
-  type Margin,
   type Responsive,
   type Shorthand,
 } from './styles';
+
+type Margin = SpaceSize | 'auto' | '0';
 
 /* eslint-disable typescript-sort-keys/interface */
 interface ContainerLayoutProps {
