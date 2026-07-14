@@ -253,8 +253,6 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
 
   const claudeIntegration = claudeIntegrations[0];
 
-  // Cross-field visibility derives from the saved project; these refresh once a
-  // field's save round-trips and updates the project via the query cache.
   const scannerAutomation = project.seerScannerAutomation ?? false;
   const automationTuning = project.autofixAutomationTuning ?? 'off';
 
