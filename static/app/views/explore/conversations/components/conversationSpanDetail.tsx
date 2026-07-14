@@ -169,15 +169,12 @@ export function ConversationSpanDetail({
         )}
       </Stack>
 
-      {/* IssueList renders nothing when the span has no linked issues. */}
-      <IssueListWrapper>
-        <IssueList
-          node={node}
-          issues={node.uniqueIssues}
-          organization={organization}
-          traceSlug={traceId}
-        />
-      </IssueListWrapper>
+      <StyledIssueList
+        node={node}
+        issues={node.uniqueIssues}
+        organization={organization}
+        traceSlug={traceId}
+      />
 
       {/*
        * The per-span fetch backs both the metadata and the tab content, and it
@@ -455,7 +452,7 @@ function AttributesTab({
 // IssueList colors its severity icons from the trace grid CSS variables, which
 // the trace waterfall normally provides via an ancestor. This panel isn't nested
 // under the waterfall, so scope those variables here.
-const IssueListWrapper = styled('div')`
+const StyledIssueList = styled(IssueList)`
   ${traceGridCssVariables}
   flex-shrink: 0;
 `;

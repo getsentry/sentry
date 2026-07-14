@@ -172,6 +172,7 @@ type IssueListProps = {
   issues: TraceTree.TraceIssue[];
   node: BaseNode;
   organization: Organization;
+  className?: string;
   /**
    * Overrides the trace slug used for the "Open N more in Issues" link. Pass
    * this when rendering outside the trace waterfall route (e.g. the
@@ -180,7 +181,13 @@ type IssueListProps = {
   traceSlug?: string;
 };
 
-export function IssueList({issues, node, organization, traceSlug}: IssueListProps) {
+export function IssueList({
+  issues,
+  node,
+  organization,
+  traceSlug,
+  className,
+}: IssueListProps) {
   const uniqueIssues = [
     ...node.uniqueErrorIssues.sort(sortIssuesByLevel),
     ...node.uniqueOccurrenceIssues,
@@ -191,7 +198,7 @@ export function IssueList({issues, node, organization, traceSlug}: IssueListProp
   }
 
   return (
-    <IssuesWrapper>
+    <IssuesWrapper className={className}>
       <StyledPanel>
         {uniqueIssues.slice(0, MAX_DISPLAYED_ISSUES_COUNT).map((issue, index) => (
           <Issue key={index} issue={issue} organization={organization} />
