@@ -97,8 +97,26 @@ describe('mergeHeatMapChunks', () => {
     expect(merged.meta.xAxis.end).toBe(3 * HOUR);
     expect(merged.values.find(v => v.xAxis === 2 * HOUR && v.yAxis === 0)?.zAxis).toBe(5);
 
-    // The oldest planned column (0) slid off the fixed-width window.
+    // Nothing loaded before 2h, so the empty oldest column slides off.
     expect(merged.values.some(v => v.xAxis === 0)).toBe(false);
+  });
+
+  it('keeps older loaded columns when the live edge extends past the planned end', () => {
+    // Planned range is [0, 2h). A newer chunk pushes the live edge to 2h while an
+    // older chunk holds real data at 0 — the slide must not trim that column.
+    const olderChunk = makeChunk([{x: 0, z: [1, 1]}]);
+    const newerChunk = makeChunk([{x: 2 * HOUR, z: [5, 5]}]);
+
+    const merged = mergeHeatMapChunks(
+      [newerChunk, olderChunk],
+      {start: 0, end: 2 * HOUR},
+      HOUR
+    );
+
+    expect(merged.meta.xAxis.start).toBe(0);
+    expect(merged.meta.xAxis.end).toBe(3 * HOUR);
+    expect(merged.values.find(v => v.xAxis === 0 && v.yAxis === 0)?.zAxis).toBe(1);
+    expect(merged.values.find(v => v.xAxis === 2 * HOUR && v.yAxis === 0)?.zAxis).toBe(5);
   });
 });
 

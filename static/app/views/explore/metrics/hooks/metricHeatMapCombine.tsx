@@ -81,12 +81,15 @@ export function mergeHeatMapChunks(
   // Keep track of known Y-axis values, so we can fill the final grid.
   const yValueSet = new Set<number>();
 
+  // The oldest and newest bucket any chunk covers, used to size the grid.
+  let minLoadedX = Infinity;
   let maxLoadedX = -Infinity;
 
   for (const chunk of chunks) {
     for (const {xAxis, yAxis, zAxis} of chunk.values) {
       yValueSet.add(yAxis);
 
+      minLoadedX = Math.min(minLoadedX, xAxis);
       maxLoadedX = Math.max(maxLoadedX, xAxis);
 
       if (zAxis === null) {
@@ -106,9 +109,13 @@ export function mergeHeatMapChunks(
 
   const yValues = Array.from(yValueSet).sort((a, b) => a - b);
 
+  // The grid ends at the newest loaded bucket — extending past the planned end
+  // for a relative live edge — and is at least the planned `width` wide. Its
+  // start is the planned offset, but never later than the oldest loaded bucket,
+  // so a later-arriving older chunk isn't trimmed off the left by the slide.
   const width = timeDomain.end - timeDomain.start;
   const gridEnd = Math.max(timeDomain.end, maxLoadedX + intervalMs);
-  const gridStart = gridEnd - width;
+  const gridStart = Math.min(gridEnd - width, minLoadedX);
 
   // Emit a dense grid, column-major (x outer, y inner) ascending — the shape the
   // heat map renders. Each cell is the loaded z or a `null` placeholder for a
