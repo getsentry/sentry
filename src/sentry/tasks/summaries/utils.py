@@ -213,7 +213,7 @@ def _project_key_errors_snuba(
         ],
         groupby=[Column("group_id", entity=events_entity)],
         orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limit=Limit(3),
+        limit=Limit(5),
     )
 
     request = Request(
@@ -233,7 +233,7 @@ def _org_key_errors_snuba(
     ctx: OrganizationReportContext,
     project_ids: Sequence[int],
     referrer: str,
-    per_project_limit: int = 3,
+    per_project_limit: int = 5,
 ) -> dict[int, list[dict[str, Any]]]:
     if not project_ids:
         return {}
@@ -396,7 +396,7 @@ def _project_key_errors_eap(
         {"events.group_id": row["group_id"], "count()": row["count()"]}
         for row in normalized_rows
         if row["group_id"] in unresolved_group_ids
-    ][:3]
+    ][:5]
 
     return filtered_rows
 
@@ -494,7 +494,7 @@ def _project_key_performance_issues_snuba(
         ],
         groupby=[Column("group_id")],
         orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limit=Limit(3),
+        limit=Limit(5),
     )
     request = Request(
         dataset=Dataset.IssuePlatform.value,
@@ -530,7 +530,7 @@ def _project_key_performance_issues_eap(
             selected_columns=["group_id", "count()"],
             orderby=["-count()"],
             offset=0,
-            limit=3,
+            limit=5,
             referrer=referrer,
             config=SearchResolverConfig(),
             occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,

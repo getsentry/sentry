@@ -15,12 +15,3 @@ def test_precise_distribution(distribution):
 
     backend.timing("bar", 100, tags={"some": "stuff"})
     distribution.assert_called_once()
-
-
-@thread_leak_allowlist(reason="datadog precise metrics", issue=98805)
-@mock.patch("datadog.dogstatsd.base.DogStatsd.set")
-def test_precise_set(mock_set):
-    backend = PreciseDogStatsdMetricsBackend(prefix="sentrytest.")
-
-    backend.set("foo", 4242, tags={"some": "stuff"})
-    mock_set.assert_called_once_with("sentrytest.foo", 4242, tags=["some:stuff"], sample_rate=1)

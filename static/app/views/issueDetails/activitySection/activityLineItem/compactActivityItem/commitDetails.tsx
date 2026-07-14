@@ -69,7 +69,7 @@ export function getResolvedInCommitDetails(
   const commitChip = <CommitChip commit={commit} />;
 
   if (!firstRelease) {
-    return tct('by commit [commit] on [provider]', {
+    return tct('by [commit] on [provider]', {
       commit: commitChip,
       provider,
     });
@@ -85,20 +85,17 @@ export function getResolvedInCommitDetails(
   const otherReleases = deployedReleases.slice(1);
 
   if (otherReleases.length === 0) {
-    return tct('by commit [commit] on [provider], released in [release]', {
+    return tct('by [commit] on [provider], released in [release]', {
       commit: commitChip,
       provider,
       release: releaseChip,
     });
   }
 
-  return tct(
-    'by commit [commit] on [provider], released in [release] and [otherReleases]',
-    {
-      commit: commitChip,
-      otherReleases: <ReleaseOverflow releases={otherReleases} />,
-      provider,
-      release: releaseChip,
-    }
-  );
+  return tct('by [commit] on [provider], released in [release] and [otherReleases]', {
+    commit: commitChip,
+    otherReleases: <ReleaseOverflow releases={otherReleases} />,
+    provider,
+    release: releaseChip,
+  });
 }

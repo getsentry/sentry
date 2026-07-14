@@ -88,7 +88,7 @@ export function getAssignedActivityItem({
   }
 
   return {
-    title: t('Issue assigned'),
+    title: t('Assigned'),
     details: <AssignedActivityDetails activity={activity} />,
     subtext,
   };

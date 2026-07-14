@@ -363,7 +363,8 @@ const DividerLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
 
   &[data-orientation='horizontal'] {
     width: 0;
-    height: 100%;
+    height: auto;
+    align-self: stretch;
     border-left: 1px solid ${p => p.theme.tokens.border.primary};
 
     &::before {
