@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {ToolCallIndicator} from '@sentry/scraps/chat';
+import {ToolCallIndicator, type ToolCallStatus} from '@sentry/scraps/chat';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -23,12 +23,7 @@ import {
 } from 'sentry/views/seerExplorer/utils';
 
 import type {ToolUseBlockProps} from './shared';
-import {
-  type BlockStatus,
-  MessagePlaceholder,
-  getBlockStatus,
-  hasValidContent,
-} from './shared';
+import {MessagePlaceholder, getBlockStatus, hasValidContent} from './shared';
 
 export function ToolUseBlock({
   block,
@@ -185,7 +180,7 @@ function ToolCallRow({
   onLinkClick,
   todos,
 }: {
-  blockStatus: BlockStatus | undefined;
+  blockStatus: ToolCallStatus | undefined;
   failureTooltip: string | null;
   todos: TodoItem[] | null;
   toolString: string;

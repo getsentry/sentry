@@ -1,6 +1,7 @@
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import type {ToolCallStatus} from '@sentry/scraps/chat';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
@@ -25,15 +26,7 @@ export interface ToolUseBlockProps extends BlockVariantProps {
   showThinking?: boolean;
 }
 
-export type BlockStatus =
-  | 'loading'
-  | 'content'
-  | 'success'
-  | 'failure'
-  | 'mixed'
-  | 'pending';
-
-export function getBlockStatus(block: Block): BlockStatus {
+export function getBlockStatus(block: Block): ToolCallStatus {
   if (block.loading) {
     return 'loading';
   }

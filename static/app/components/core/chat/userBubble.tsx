@@ -28,18 +28,16 @@ export function UserBubble({children, maxWidth = '80%', ...props}: UserBubblePro
       border="primary"
       radius="md"
       whiteSpace="pre-wrap"
-      css={wrapStyles}
+      // `overflow-wrap`/`word-wrap` are not layout props; they keep long
+      // unbroken tokens (URLs, stack frames) from overflowing the bubble.
+      css={theme => css`
+        color: ${theme.tokens.content.primary};
+        word-wrap: break-word;
+        overflow-wrap: anywhere;
+      `}
       {...props}
     >
       {children}
     </Container>
   );
 }
-
-// `overflow-wrap`/`word-wrap` are not layout props; they keep long unbroken
-// tokens (URLs, stack frames) from overflowing the bubble.
-const wrapStyles = (theme: import('@emotion/react').Theme) => css`
-  color: ${theme.tokens.content.primary};
-  word-wrap: break-word;
-  overflow-wrap: anywhere;
-`;
