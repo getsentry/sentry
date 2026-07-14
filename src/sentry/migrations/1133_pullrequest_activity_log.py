@@ -5,6 +5,7 @@ import sentry.db.models.fields.bounded
 from django.db import migrations, models
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.new_migrations.monkey.special import SafeRunSQL
 
 
 class Migration(CheckedMigration):
@@ -51,5 +52,15 @@ class Migration(CheckedMigration):
             options={
                 "db_table": "sentry_pullrequest_activity_log",
             },
+        ),
+        # The doc is re-read and re-written in full on every webhook fold
+        # (select_for_update → reduce → save), so decompression is on the hot path.
+        # lz4 keeps a TOAST compression ratio on par with the pglz default but
+        # decompresses much faster. Catalog-only change (no table rewrite), instant
+        # on this new empty table.
+        SafeRunSQL(
+            sql='ALTER TABLE "sentry_pullrequest_activity_log" ALTER COLUMN "data" SET COMPRESSION lz4;',
+            reverse_sql='ALTER TABLE "sentry_pullrequest_activity_log" ALTER COLUMN "data" SET COMPRESSION pglz;',
+            hints={"tables": ["sentry_pullrequest_activity_log"]},
         ),
     ]

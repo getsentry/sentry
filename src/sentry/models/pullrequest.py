@@ -462,6 +462,7 @@ class PullRequestActivityLog(DefaultFieldsModel):
     pull_request = models.OneToOneField(
         "sentry.PullRequest", on_delete=models.CASCADE, related_name="activity_log"
     )
+    # Column is TOAST-compressed with lz4 (set in migration 1133).
     data = models.JSONField(default=dict)
 
     class Meta:
