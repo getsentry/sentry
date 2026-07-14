@@ -16,7 +16,6 @@ from sentry import features, quotas
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
-from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.issues.progress import PROGRESS_RESET_ACTIVITY_TYPES, IssueProgressState
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
@@ -278,7 +277,7 @@ def issue_progress_filter(progress_values: list[str], projects: Sequence[Project
 
       identified -> assigned -> diagnosed -> fix_proposed -> fix_applied
 
-    When every project in scope has the ``projects:issue-action-log-write-to-db``
+    When every project in scope has the ``projects:issue-stream-derived-progress``
     flag enabled, AND the backfill has been run for all groups in the project(s),
     progress is read from the materialized GroupDerivedData.progress column.
     Otherwise it's reconstructed from Activity records.
@@ -299,25 +298,11 @@ def _issue_progress_filter_from_derived_data(
     null column (closed issues) counts as fix_applied, and a group without a derived-data
     row counts as identified.
     """
-    project_ids = [p.id for p in projects]
-    q = Q(
-        id__in=GroupDerivedData.objects.filter(
-            progress__in=progress_values,
-            group__project_id__in=project_ids,
-        ).values_list("group_id", flat=True)
-    )
+    q = Q(groupderiveddata__progress__in=progress_values)
     if IssueProgressState.FIX_APPLIED.value in progress_values:
-        q |= Q(
-            id__in=GroupDerivedData.objects.filter(
-                progress__isnull=True,
-                group__project_id__in=project_ids,
-            ).values_list("group_id", flat=True)
-        )
+        q |= Q(groupderiveddata__isnull=False, groupderiveddata__progress__isnull=True)
     if IssueProgressState.IDENTIFIED.value in progress_values:
-        derived_data_group_ids = GroupDerivedData.objects.filter(
-            group__project_id__in=project_ids,
-        ).values_list("group_id", flat=True)
-        q |= Q(project_id__in=project_ids) & ~Q(id__in=derived_data_group_ids)
+        q |= Q(groupderiveddata__isnull=True)
     return q
 
 
