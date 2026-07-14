@@ -490,7 +490,7 @@ const OrDivider = styled('div')`
   top: 50%;
   transform: translate(-50%, -50%);
   z-index: 1;
-  padding: ${p => p.theme.space.sm} 0;
+  padding: ${p => p.theme.space.sm};
   background: ${p => p.theme.tokens.background.primary};
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
