@@ -320,7 +320,7 @@ class BackfillGroupActionLogForProjectTest(TestCase):
         mock_apply.assert_called_once()
         call_kwargs = mock_apply.call_args.kwargs["kwargs"]
         assert call_kwargs["project_id"] == self.project.id
-        assert call_kwargs["last_activity_id"] > 0
+        assert call_kwargs["cursor_datetime"] is not None
 
     def test_completes_when_no_activities(self) -> None:
         with (
@@ -361,18 +361,18 @@ class BackfillGroupActionLogForProjectTest(TestCase):
         assert entry.date_added == activity.datetime
 
     def test_resumes_from_cursor(self) -> None:
-        a1 = self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
         self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
+        a2 = self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
 
         with self._options(), patch.object(backfill_group_action_log_for_project, "apply_async"):
             backfill_group_action_log_for_project(
                 self.project.id,
-                last_activity_id=a1.id,
+                cursor_datetime=a2.datetime.isoformat(),
             )
 
-        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
-        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
-        assert entry.idempotency_key != f"activity:{a1.id}"
+        entries = GroupActionLogEntry.objects.filter(group_id=self.group.id)
+        assert entries.count() == 1
+        assert entries[0].idempotency_key == f"activity:{a2.id}"
 
     def test_handles_validation_errors(self) -> None:
         self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
