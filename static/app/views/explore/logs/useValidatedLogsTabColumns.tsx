@@ -47,10 +47,10 @@ export function useValidatedLogsTabColumns() {
       number: numberAttributes,
       string: stringAttributes,
     },
-    cleanupAggregateFields: mode === Mode.AGGREGATE,
-    cleanupFields: true,
     isValidating: isValidatingColumns,
     onFieldsCleanup: persistCleanedFields,
+    shouldCleanupAggregateColumns: mode === Mode.AGGREGATE,
+    shouldCleanupColumns: true,
     validationData,
   });
 

@@ -16,18 +16,18 @@ import type {EventValidationData} from 'sentry/views/explore/utils/validateEvent
 
 interface UseValidatedExploreColumnsOptions {
   attributes: AttributeCollections;
-  cleanupAggregateFields: boolean;
-  cleanupFields: boolean;
   isValidating: boolean;
+  shouldCleanupAggregateColumns: boolean;
+  shouldCleanupColumns: boolean;
   validationData: EventValidationData | undefined;
   onFieldsCleanup?: (fields: string[], sortBys: Sort[]) => void;
 }
 
 export function useValidatedExploreColumns({
   attributes,
-  cleanupAggregateFields,
-  cleanupFields,
   isValidating,
+  shouldCleanupAggregateColumns,
+  shouldCleanupColumns,
   validationData,
   onFieldsCleanup,
 }: UseValidatedExploreColumnsOptions) {
@@ -36,7 +36,8 @@ export function useValidatedExploreColumns({
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const setQueryParams = useSetQueryParams();
-  const lastFieldsCleanupRef = useRef<string | null>(null);
+  const lastAggregateCleanupRef = useRef<string | null>(null);
+  const lastColumnsCleanupRef = useRef<string | null>(null);
   const {
     boolean: booleanAttributes,
     number: numberAttributes,
@@ -68,7 +69,7 @@ export function useValidatedExploreColumns({
     validatedColumnData;
 
   useEffect(() => {
-    if (!cleanupFields || isValidating) {
+    if (!shouldCleanupColumns || isValidating) {
       return;
     }
 
@@ -81,26 +82,26 @@ export function useValidatedExploreColumns({
       const nextSortBys = sortBys.filter(sortBy => nextFields.includes(sortBy.field));
       const cleanupKey = JSON.stringify([fields, nextFields, sortBys, nextSortBys]);
 
-      if (lastFieldsCleanupRef.current !== cleanupKey) {
-        lastFieldsCleanupRef.current = cleanupKey;
+      if (lastColumnsCleanupRef.current !== cleanupKey) {
+        lastColumnsCleanupRef.current = cleanupKey;
         setQueryParams({fields: nextFields, sortBys: nextSortBys});
         onFieldsCleanup?.(nextFields, nextSortBys);
       }
     } else {
-      lastFieldsCleanupRef.current = null;
+      lastColumnsCleanupRef.current = null;
     }
   }, [
-    cleanupFields,
     fields,
     isValidating,
     onFieldsCleanup,
     setQueryParams,
+    shouldCleanupColumns,
     sortBys,
     validatedFields,
   ]);
 
   useEffect(() => {
-    if (!cleanupAggregateFields || isValidating) {
+    if (!shouldCleanupAggregateColumns || isValidating) {
       return;
     }
 
@@ -126,19 +127,33 @@ export function useValidatedExploreColumns({
           isGroupBy(aggregateField) ? aggregateField.groupBy : aggregateField.yAxis
         )
       );
-      setQueryParams({
-        aggregateFields: validatedAggregateFields.map(serializeAggregateField),
-        aggregateSortBys: aggregateSortBys.filter(sortBy =>
-          validAggregateFields.has(sortBy.field)
-        ),
-      });
+      const nextAggregateFields = validatedAggregateFields.map(serializeAggregateField);
+      const nextAggregateSortBys = aggregateSortBys.filter(sortBy =>
+        validAggregateFields.has(sortBy.field)
+      );
+      const cleanupKey = JSON.stringify([
+        aggregateFields.map(serializeAggregateField),
+        nextAggregateFields,
+        aggregateSortBys,
+        nextAggregateSortBys,
+      ]);
+
+      if (lastAggregateCleanupRef.current !== cleanupKey) {
+        lastAggregateCleanupRef.current = cleanupKey;
+        setQueryParams({
+          aggregateFields: nextAggregateFields,
+          aggregateSortBys: nextAggregateSortBys,
+        });
+      }
+    } else {
+      lastAggregateCleanupRef.current = null;
     }
   }, [
     aggregateFields,
     aggregateSortBys,
-    cleanupAggregateFields,
     isValidating,
     setQueryParams,
+    shouldCleanupAggregateColumns,
     validatedAggregateFields,
   ]);
 

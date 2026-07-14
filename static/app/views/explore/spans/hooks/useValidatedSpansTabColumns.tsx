@@ -17,9 +17,9 @@ export function useValidatedSpansTabColumns(tab: Mode | Tab) {
       number: numberAttributes,
       string: stringAttributes,
     },
-    cleanupAggregateFields: tab === Mode.AGGREGATE,
-    cleanupFields: tab === Tab.SPAN,
     isValidating: isValidatingColumns,
+    shouldCleanupAggregateColumns: tab === Mode.AGGREGATE,
+    shouldCleanupColumns: tab === Tab.SPAN,
     validationData,
   });
 
