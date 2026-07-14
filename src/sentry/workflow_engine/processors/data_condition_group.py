@@ -66,11 +66,17 @@ def evaluate_condition_group_results(
     condition_results: list[DataConditionEvaluation],
     logic_type: DataConditionGroup.Type,
 ) -> DataConditionGroupEvaluation:
+    logic_result = TriggerResult.FALSE
     group_condition_results: list[DataConditionEvaluation] = []
 
-    # The logic_type DataConditionGroup.Type.NONE is handled by the sentinel value on group_condition_results
+    if logic_type == DataConditionGroup.Type.NONE:
+        # if we get to this point, no conditions were met
+        # because we would have short-circuited
+        logic_result = TriggerResult.none(
+            condition_result.outcome for condition_result in condition_results
+        )
 
-    if logic_type == DataConditionGroup.Type.ANY:
+    elif logic_type == DataConditionGroup.Type.ANY:
         logic_result = TriggerResult.any(
             condition_result.outcome for condition_result in condition_results
         )
@@ -96,6 +102,8 @@ def evaluate_condition_group_results(
     # TODO - Should error be `errors` and potentially 1 or many errors?
     return DataConditionGroupEvaluation(
         result=group_condition_results,
+        triggered=logic_result.triggered,
+        error=logic_result.error,
     )
 
 
@@ -112,7 +120,7 @@ def evaluate_data_conditions(
 
     if len(conditions_to_evaluate) == 0:
         # if we don't have any conditions, always return True
-        return DataConditionGroupEvaluation(result=[])
+        return DataConditionGroupEvaluation(result=[], triggered=True)
 
     for condition, value in conditions_to_evaluate:
         condition_evaluation = condition.evaluate_value(value)
@@ -120,7 +128,11 @@ def evaluate_data_conditions(
         # Check for short-circuiting evaluations
         if condition_evaluation.outcome.triggered:
             if logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
-                return DataConditionGroupEvaluation(result=[condition_evaluation])
+                return DataConditionGroupEvaluation(
+                    result=[condition_evaluation],
+                    triggered=True,
+                    error=condition_evaluation.outcome.error,
+                )
 
             if logic_type == DataConditionGroup.Type.NONE:
                 return DataConditionGroupEvaluation(
