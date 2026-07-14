@@ -33,6 +33,7 @@ from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import json
+from sentry.viewer_context import set_viewer_context_project
 
 logger = logging.getLogger("sentry.tasks.llm_issue_detection")
 
@@ -358,6 +359,7 @@ def detect_llm_issues_for_org(org_id: int, plan_tier: str = "business") -> None:
         plan_tier=plan_tier,
     )
 
+    set_viewer_context_project(project_id)
     viewer_context = SeerViewerContext(organization_id=org_id)
     response = make_issue_detection_request(
         seer_request,

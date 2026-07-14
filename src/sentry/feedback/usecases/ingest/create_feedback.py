@@ -34,6 +34,7 @@ from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path
+from sentry.viewer_context import set_viewer_context_project
 
 logger = logging.getLogger(__name__)
 
@@ -271,6 +272,7 @@ def create_feedback_issue(
 
     feedback_message = event["contexts"]["feedback"]["message"]
 
+    set_viewer_context_project(project.id)
     viewer_context = SeerViewerContext(organization_id=project.organization_id)
 
     # Spam detection.
