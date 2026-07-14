@@ -9,8 +9,10 @@ from sentry import audit_log, buffer, tsdb
 from sentry.analytics.events.issue_viewed import IssueViewedEvent
 from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.issues.action_log.types import ReconcileStatusAction
 from sentry.issues.constants import cache_key_for_issue_view
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
@@ -28,8 +30,10 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -330,6 +334,65 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
                 ),
             )
             assert cache.get(cache_key_for_issue_view(group.id, "mcp")) is None
+
+
+class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def _get(self, group: Group) -> None:
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+
+    @with_feature("projects:issue-status-reconciliation")
+    def test_diverged_closed_emits_reconcile_action(self) -> None:
+        group = self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
+        GroupDerivedData.objects.create(group=group, data={"status": "open"})
+
+        with capture_action_log() as log:
+            self._get(group)
+
+        log.assert_logged(ReconcileStatusAction, group_id=group.id, status="closed")
+
+    @with_feature("projects:issue-status-reconciliation")
+    def test_diverged_open_emits_reconcile_action(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        GroupDerivedData.objects.create(group=group, data={"status": "closed"})
+
+        with capture_action_log() as log:
+            self._get(group)
+
+        log.assert_logged(ReconcileStatusAction, group_id=group.id, status="open")
+
+    @with_feature("projects:issue-status-reconciliation")
+    def test_aligned_status_skips(self) -> None:
+        group = self.create_group(status=GroupStatus.RESOLVED, substatus=None)
+        GroupDerivedData.objects.create(group=group, data={"status": "closed"})
+
+        with capture_action_log() as log:
+            self._get(group)
+
+        log.assert_not_logged(ReconcileStatusAction)
+
+    @with_feature("projects:issue-status-reconciliation")
+    def test_no_derived_data_skips(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+
+        with capture_action_log() as log:
+            self._get(group)
+
+        log.assert_not_logged(ReconcileStatusAction)
+
+    def test_feature_flag_off_skips(self) -> None:
+        group = self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
+        GroupDerivedData.objects.create(group=group, data={"status": "open"})
+
+        with capture_action_log() as log:
+            self._get(group)
+
+        log.assert_not_logged(ReconcileStatusAction)
 
 
 class GroupUpdateTest(APITestCase):
