@@ -145,7 +145,7 @@ def _do_symbolicate_event(
     symbolication_function_name = (
         None
         if symbolication_function is None
-        else (symbolication_function.function(), "__name__", "none")
+        else getattr(symbolication_function.function(), "__name__", "none")
     )
 
     if symbolication_function is None or killswitch_matches_context(
