@@ -133,7 +133,7 @@ class DeliverSmartAssignmentResultTest(TestCase):
         )
         self.row.refresh_from_db()
         assert self.row.status == SmartAssignmentStatus.ERROR
-        assert self.row.extras.get("error") == "boom"
+        assert self.row.error_message == "boom"
         self._assert_outcome(mock_metrics, "error")
 
     @patch("sentry.seer.smart_assignment.scoring.metrics")

@@ -97,7 +97,7 @@ def deliver_smart_assignment_result(
     if status == "error" or result is None:
         row.update(
             status=SmartAssignmentStatus.ERROR,
-            extras={**(row.extras or {}), "error": error or "no_artifact"},
+            error_message=error or "no_artifact",
         )
         metrics.incr("smart_assignment.delivery", tags={"outcome": "error"})
         logger.warning("smart_assignment.delivery.no_result", extra={**log_extra, "status": status})
@@ -108,7 +108,7 @@ def deliver_smart_assignment_result(
     except Exception:
         row.update(
             status=SmartAssignmentStatus.ERROR,
-            extras={**(row.extras or {}), "error": "invalid_artifact"},
+            error_message="invalid_artifact",
         )
         metrics.incr("smart_assignment.delivery", tags={"outcome": "error"})
         logger.warning("smart_assignment.delivery.invalid_result", extra=log_extra)

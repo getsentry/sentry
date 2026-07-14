@@ -9,8 +9,8 @@ Correctness can't be scored at delivery: the ground-truth assignee usually lands
 later (and occasionally earlier, if someone assigns before Seer finishes). So both
 `record_ground_truth` and the delivery handler call `score_prediction` after they
 write, and whichever completes the (prediction, ground truth) pair second emits
-the metric. The chosen outcome is also stored on the row (in `extras`), which
-doubles as a one-shot marker so we emit exactly once.
+the metric. The chosen outcome is also stored on the row (in the `score` column),
+which doubles as a one-shot marker so we emit exactly once.
 
 Outcomes give partial credit for landing on the right team:
   - `exact` -- predicted user is the actual assignee
@@ -32,10 +32,12 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.seer.models.smart_assignment import SeerSmartAssignmentResult, SmartAssignmentTrigger
+from sentry.seer.models.smart_assignment import (
+    SeerSmartAssignmentResult,
+    SmartAssignmentScore,
+    SmartAssignmentTrigger,
+)
 from sentry.utils import metrics
-
-_SCORE_KEY = "score"
 
 # Marker the acting code stamps into the ASSIGNED activity's data (via the assign()
 # `extra` dict) when it auto-assigns based on a prediction. Lets ground-truth
@@ -135,8 +137,7 @@ def score_prediction(row: SeerSmartAssignmentResult) -> None:
     """Emit `smart_assignment.scored` (exact/team/miss) once per row.
 
     No-op until the row has both a resolved predicted user and some ground truth (a
-    user and/or team assignee), and only fires once (guarded by the stored outcome
-    in `extras`).
+    user and/or team assignee), and only fires once (guarded by the stored `score`).
     """
     predicted_user_id = row.predicted_assignee_user_id
     has_ground_truth = (
@@ -144,15 +145,15 @@ def score_prediction(row: SeerSmartAssignmentResult) -> None:
     )
     if predicted_user_id is None or not has_ground_truth:
         return
-    if (row.extras or {}).get(_SCORE_KEY) is not None:
+    if row.score is not None:
         return
 
     if predicted_user_id == row.actual_assignee_user_id:
-        outcome = "exact"
+        outcome = SmartAssignmentScore.EXACT
     elif _is_team_match(row):
-        outcome = "team"
+        outcome = SmartAssignmentScore.TEAM
     else:
-        outcome = "miss"
+        outcome = SmartAssignmentScore.MISS
 
     metrics.incr("smart_assignment.scored", tags={"result": outcome, "trigger": row.trigger})
-    row.update(extras={**(row.extras or {}), _SCORE_KEY: outcome})
+    row.update(score=outcome)

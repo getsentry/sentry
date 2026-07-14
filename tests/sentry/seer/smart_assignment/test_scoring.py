@@ -47,7 +47,7 @@ class ScorePredictionTest(TestCase):
 
         self._assert_result(mock_metrics, "exact")
         row.refresh_from_db()
-        assert row.extras.get("score") == "exact"
+        assert row.score == "exact"
 
     @patch(METRICS_PATH)
     def test_team_when_predicted_user_on_assigned_team(self, mock_metrics: MagicMock) -> None:
