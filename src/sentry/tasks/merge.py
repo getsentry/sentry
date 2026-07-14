@@ -18,7 +18,7 @@ from sentry.models.group import Group
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.tasks.post_process import fetch_buffered_group_stats
-from sentry.taskworker.namespaces import issues_merge_tasks, issues_tasks
+from sentry.taskworker.namespaces import issues_merge_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
@@ -70,7 +70,6 @@ def start_merge_groups(
 @instrumented_task(
     name="sentry.tasks.merge.merge_groups",
     namespace=issues_merge_tasks,
-    alias_namespace=issues_tasks,
     retry=Retry(delay=60 * 5),
     silo_mode=SiloMode.CELL,
 )

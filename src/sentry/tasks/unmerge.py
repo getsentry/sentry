@@ -30,7 +30,7 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import issues_merge_tasks, issues_tasks
+from sentry.taskworker.namespaces import issues_merge_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
@@ -535,7 +535,6 @@ def start_unmerge(
 @instrumented_task(
     name="sentry.tasks.unmerge",
     namespace=issues_merge_tasks,
-    alias_namespace=issues_tasks,
     processing_deadline_duration=300,
     silo_mode=SiloMode.CELL,
 )
