@@ -139,6 +139,7 @@ export function GiftRecurringCredits() {
   const [orgTokens, setOrgTokens] = useState('');
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvFileName, setCsvFileName] = useState<string | null>(null);
+  const [ticketUrl, setTicketUrl] = useState('');
   const [notes, setNotes] = useState('');
   const [dryRun, setDryRun] = useState(true);
   const [skipCurrentPeriod, setSkipCurrentPeriod] = useState(false);
@@ -300,6 +301,7 @@ export function GiftRecurringCredits() {
       formData.append('amount', String(Math.round((amount ?? 0) * multiplier)));
       formData.append('billingPeriods', String(billingPeriods));
       formData.append('skipCurrentPeriod', String(skipCurrentPeriod));
+      formData.append('ticketUrl', ticketUrl);
       formData.append('notes', notes);
       formData.append('dryRun', String(dryRun));
       const response: {results: ResultRow[]} = await api.requestPromise(
@@ -544,6 +546,15 @@ export function GiftRecurringCredits() {
             </UploadHint>
           )}
         </UploadRow>
+        <label htmlFor="ticketUrl">Ticket URL (optional):</label>
+        <Input
+          type="url"
+          id="ticketUrl"
+          name="ticketUrl"
+          value={ticketUrl}
+          onChange={e => setTicketUrl(e.target.value)}
+          placeholder="https://linear.app/getsentry/issue/…"
+        />
         <label htmlFor="notes">Notes:</label>
         <OrgTextarea
           id="notes"

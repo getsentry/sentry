@@ -86,6 +86,7 @@ describe('GiftRecurringCredits', () => {
 
   async function fillRequiredFields() {
     await userEvent.type(screen.getByLabelText(/Amount per billing period/), '5000');
+    await userEvent.type(screen.getByLabelText(/Ticket URL/), 'http://t/1');
     await userEvent.type(screen.getByLabelText('Notes:'), 'note');
   }
 
@@ -267,6 +268,7 @@ describe('GiftRecurringCredits', () => {
 
     expect(screen.getByText('Amount per billing period (GB):')).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText(/Amount per billing period/), '5');
+    await userEvent.type(screen.getByLabelText(/Ticket URL/), 'http://t/1');
     await userEvent.type(screen.getByLabelText('Notes:'), 'note');
     await userEvent.type(screen.getByLabelText(/Target organizations/), 'acme');
 
@@ -301,6 +303,25 @@ describe('GiftRecurringCredits', () => {
 
     await userEvent.type(screen.getByLabelText(/Target organizations/), 'acme');
     expect(screen.getByTestId('gift-submit')).toBeEnabled();
+  });
+
+  it('allows submitting without a ticket URL', async () => {
+    const postMock = MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/gift-recurring-credits/',
+      method: 'POST',
+      body: {results: []},
+    });
+
+    render(<GiftRecurringCredits />);
+    await userEvent.type(screen.getByLabelText(/Amount per billing period/), '5000');
+    await userEvent.type(screen.getByLabelText('Notes:'), 'note');
+    await userEvent.type(screen.getByLabelText(/Target organizations/), 'acme');
+
+    await userEvent.click(screen.getByTestId('gift-submit'));
+
+    await waitFor(() => expect(postMock).toHaveBeenCalled());
+    const formData = postMock.mock.calls[0][1].data as FormData;
+    expect(formData.get('ticketUrl')).toBe('');
   });
 
   it('disables submission without billing.admin', async () => {
