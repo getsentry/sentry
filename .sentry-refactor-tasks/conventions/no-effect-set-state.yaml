@@ -1,0 +1,60 @@
+name: no-effect-set-state
+severity: warning
+tags: [react, react-compiler, effects, performance]
+
+why: |
+  Synchronously calling a state setter inside an Effect forces React to render
+  once with the old value and immediately render again with the new value. In
+  many cases the value can be calculated during render, reset with a key, or
+  updated at the event boundary instead. Effects should primarily synchronize
+  React with external systems.
+
+  This convention corresponds to the React Compiler `EffectSetState`
+  diagnostic: "Avoid calling setState() directly within an effect."
+
+  See: https://react.dev/reference/eslint-plugin-react-hooks/lints/set-state-in-effect
+  See also: https://react.dev/learn/you-might-not-need-an-effect
+
+detect: |
+  Flag an unconditional or synchronously reachable call to a React state setter
+  in a `useEffect` or `useLayoutEffect` body.
+
+  Include setters returned by `useState` and dispatches that synchronously update
+  local React state. Flag a setter hidden behind a local helper when the helper
+  is called synchronously by the Effect.
+
+  Do NOT flag state updates that occur later in a genuine external-system
+  callback, such as a subscription handler, observer, timer, or resolved network
+  request. Do not flag cleanup updates without first checking whether they are
+  guarding an external lifecycle that cannot be represented another way. When
+  an Effect only copies or derives local state from props/other state, report it
+  under `no-derived-state` instead so the same code is not reported twice.
+
+fix: |
+  Choose the fix that matches the reason for the state:
+    - Derive values directly during render; use `useMemo` only when expensive.
+    - Reset an entire component subtree by changing its `key`.
+    - Update related state in the event handler that caused the change.
+    - Subscribe to an external store with `useSyncExternalStore`.
+    - Keep the Effect when an external callback causes the later update.
+
+  Do not silence the finding by deferring the setter with a zero-delay timer.
+
+examples:
+  bad:
+    - |
+      useEffect(() => {
+        setSelected(items[0] ?? null);
+      }, [items]);
+  good:
+    - 'const selected = items[0] ?? null;'
+    - |
+      useEffect(() => {
+        return store.subscribe(() => setSnapshot(store.getSnapshot()));
+      }, [store]);
+
+include:
+  - 'static/app/**/*.tsx'
+  - 'static/app/**/*.ts'
+
+prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'use(Layout)?Effect\\(' {repo_path}/static/app/"

@@ -8,7 +8,11 @@ why: |
   the Effect fires and triggers a second render with the correct values. This
   is wasteful, harder to follow, and error-prone.
 
+  This convention also covers the React Compiler
+  `EffectDerivationsOfState` diagnostic from the Oxlint audit.
+
   See: https://react.dev/learn/you-might-not-need-an-effect
+  See also: https://react.dev/reference/eslint-plugin-react-hooks/lints/set-state-in-effect
 
 detect: |
   Detected by eslint rule: react-you-might-not-need-an-effect/no-derived-state.
