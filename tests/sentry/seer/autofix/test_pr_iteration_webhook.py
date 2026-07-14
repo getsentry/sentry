@@ -18,7 +18,7 @@ from sentry.seer.autofix.pr_iteration.mention import (
     handle_pull_request_review_comment_for_autofix_iteration,
 )
 from sentry.tasks.seer.pr_iteration import (
-    _add_comment_eyes_reaction,
+    _add_comment_reaction,
     trigger_pr_iteration_from_comment,
 )
 from sentry.testutils.cases import TestCase
@@ -230,7 +230,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             feedback=Feedback(source=source).json(),
         )
 
-    @patch(f"{TASK_PATH}._add_comment_eyes_reaction")
+    @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
@@ -273,6 +273,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
+            reaction="eyes",
         )
 
     @patch(f"{TASK_PATH}.make_scm")
@@ -321,7 +322,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue.assert_not_called()
         mock_consume.assert_not_called()
 
-    @patch(f"{TASK_PATH}._add_comment_eyes_reaction")
+    @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
@@ -362,6 +363,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             source_type="github-pr-review-comment",
             pr_number=7,
             comment_id=999,
+            reaction="eyes",
         )
 
 
@@ -369,8 +371,8 @@ class AddCommentEyesReactionTest(TestCase):
     @patch(f"{TASK_PATH}.scm_actions")
     def test_pr_comment_uses_pull_request_comment_reaction(self, mock_actions: MagicMock) -> None:
         scm = MagicMock(spec=CreatePullRequestCommentReactionProtocol)
-        _add_comment_eyes_reaction(
-            scm, source_type="github-pr-comment", pr_number=7, comment_id=999
+        _add_comment_reaction(
+            scm, source_type="github-pr-comment", pr_number=7, comment_id=999, reaction="eyes"
         )
 
         mock_actions.create_pull_request_comment_reaction.assert_called_once_with(
@@ -381,8 +383,12 @@ class AddCommentEyesReactionTest(TestCase):
     @patch(f"{TASK_PATH}.scm_actions")
     def test_review_comment_uses_review_comment_reaction(self, mock_actions: MagicMock) -> None:
         scm = MagicMock(spec=CreateReviewCommentReactionProtocol)
-        _add_comment_eyes_reaction(
-            scm, source_type="github-pr-review-comment", pr_number=7, comment_id=999
+        _add_comment_reaction(
+            scm,
+            source_type="github-pr-review-comment",
+            pr_number=7,
+            comment_id=999,
+            reaction="eyes",
         )
 
         mock_actions.create_review_comment_reaction.assert_called_once_with(scm, "7", "999", "eyes")
@@ -391,8 +397,12 @@ class AddCommentEyesReactionTest(TestCase):
     @patch(f"{TASK_PATH}.scm_actions")
     def test_noop_when_provider_unsupported(self, mock_actions: MagicMock) -> None:
         # A provider that doesn't implement the reaction protocol is skipped.
-        _add_comment_eyes_reaction(
-            MagicMock(spec=object), source_type="github-pr-comment", pr_number=7, comment_id=999
+        _add_comment_reaction(
+            MagicMock(spec=object),
+            source_type="github-pr-comment",
+            pr_number=7,
+            comment_id=999,
+            reaction="eyes",
         )
 
         mock_actions.create_pull_request_comment_reaction.assert_not_called()
@@ -403,9 +413,10 @@ class AddCommentEyesReactionTest(TestCase):
         mock_actions.create_pull_request_comment_reaction.side_effect = Exception("boom")
 
         # Should not raise.
-        _add_comment_eyes_reaction(
+        _add_comment_reaction(
             MagicMock(spec=CreatePullRequestCommentReactionProtocol),
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
+            reaction="eyes",
         )

@@ -17,6 +17,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeed
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.models import SeerApiError
 from sentry.tasks.seer.pr_iteration import (
+    _ineligible_pr_iteration_comment_body,
     consume_queued_autofix_feedback,
     trigger_consume_pr_iteration_feedback,
     trigger_pr_iteration_from_comment,
@@ -69,7 +70,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             feedback=self.feedback.json(),
         )
 
-    @patch(f"{TASK_PATH}._add_comment_eyes_reaction")
+    @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
@@ -122,6 +123,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
+            reaction="eyes",
         )
 
     @patch(f"{TASK_PATH}.make_scm")
@@ -148,6 +150,9 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
 
+    @patch(f"{TASK_PATH}._add_comment_reaction")
+    @patch(f"{TASK_PATH}.make_scm")
+    @patch(f"{TASK_PATH}.default_cache")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
@@ -160,17 +165,73 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
         mock_has_access: MagicMock,
+        mock_cache: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_reaction: MagicMock,
     ) -> None:
-        mock_get_integration.return_value = self._mock_integration()
+        mock_integration = self._mock_integration()
+        mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = None
+        mock_cache.get.return_value = None
 
         self._call()
 
         mock_has_access.assert_not_called()
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
+        mock_reaction.assert_called_once_with(
+            mock_make_scm.return_value,
+            source_type="github-pr-comment",
+            pr_number=7,
+            comment_id=999,
+            reaction="confused",
+        )
+        mock_integration.get_installation.return_value.get_client.return_value.create_comment.assert_called_once_with(
+            self.repo.name,
+            "7",
+            {"body": _ineligible_pr_iteration_comment_body("octocat")},
+        )
+        mock_cache.set.assert_called_once()
 
-    @patch(f"{TASK_PATH}._add_comment_eyes_reaction")
+    @patch(f"{TASK_PATH}._add_comment_reaction")
+    @patch(f"{TASK_PATH}.make_scm")
+    @patch(f"{TASK_PATH}.default_cache")
+    @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
+    @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
+    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
+    def test_skips_ineligible_comment_when_already_posted(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+        mock_has_access: MagicMock,
+        mock_cache: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_reaction: MagicMock,
+    ) -> None:
+        mock_integration = self._mock_integration()
+        mock_get_integration.return_value = mock_integration
+        mock_get_state.return_value = None
+        mock_cache.get.return_value = True
+
+        self._call()
+
+        mock_reaction.assert_called_once_with(
+            mock_make_scm.return_value,
+            source_type="github-pr-comment",
+            pr_number=7,
+            comment_id=999,
+            reaction="confused",
+        )
+        mock_integration.get_installation.return_value.get_client.return_value.create_comment.assert_not_called()
+        mock_cache.set.assert_not_called()
+        mock_enqueue.assert_not_called()
+        mock_trigger_consume.assert_not_called()
+
+    @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
     @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
@@ -199,6 +260,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
             source_type="github-pr-comment",
             pr_number=7,
             comment_id=999,
+            reaction="eyes",
         )
 
 
