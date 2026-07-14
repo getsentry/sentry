@@ -6,6 +6,7 @@ from typing import Any, Protocol
 
 from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.night_shift.delivery import deliver_night_shift_result
+from sentry.seer.smart_assignment.delivery import deliver_smart_assignment_result
 
 __all__ = ["DELIVERY_HANDLERS", "FeatureDeliveryFn", "FeatureRunStatus"]
 
@@ -23,4 +24,5 @@ class FeatureDeliveryFn(Protocol):
 
 DELIVERY_HANDLERS: dict[str, FeatureDeliveryFn] = {
     "night_shift": deliver_night_shift_result,
+    "smart_assignment": deliver_smart_assignment_result,
 }

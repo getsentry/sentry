@@ -2,9 +2,10 @@
 
 `maybe_trigger_smart_assignment` is the single gated entrypoint: it checks the
 feature flag, dedups to one prediction per issue (so a run is only dispatched the
-first time), and enforces per-org and global daily dispatch caps. It takes a
-`SmartAssignmentTrigger` (not an `ActivityType`) so callers that aren't driven by
-an activity can trigger too.
+first time), enforces per-org and global daily dispatch caps, and records the
+observed ground truth (via `scoring.record_ground_truth`) whether or not a new run
+was dispatched. It takes a `SmartAssignmentTrigger` (not an `ActivityType`) so
+callers that aren't driven by an activity can trigger too.
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ from sentry.seer.models.smart_assignment import (
     SmartAssignmentTrigger,
 )
 from sentry.seer.smart_assignment.models import SmartAssignmentPayload
+from sentry.seer.smart_assignment.scoring import record_ground_truth
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -43,14 +45,17 @@ def maybe_trigger_smart_assignment(
     trigger: SmartAssignmentTrigger,
     activity: Activity | None = None,
 ) -> None:
-    """Gate + dispatch a prediction for `group`.
+    """Gate + dispatch a prediction for `group`, and record ground truth.
 
     Dispatches a Seer run the first time (deduped to one row per group, and subject
-    to per-org / global daily caps). `activity` is only used to tell whether a
-    `RESOLUTION` had an acting user. No-op unless the org is flagged. Automatic
-    resolutions (no acting user, e.g. resolved by age) are skipped entirely -- we
-    only treat a resolution as signal when a human resolved the issue, since then
-    they probably should have been the assignee.
+    to per-org / global daily caps); records the observed ground truth for
+    `ASSIGNMENT` / `RESOLUTION` triggers either way. Note the caps only gate new
+    dispatches -- ground truth is still recorded for already-predicted issues.
+    `activity` is only needed to capture the resolving user for a `RESOLUTION`.
+    No-op unless the org is flagged. Automatic resolutions (no acting user, e.g.
+    resolved by age) are skipped entirely -- we only treat a resolution as signal
+    when a human resolved the issue, since then they probably should have been the
+    assignee.
     """
     organization = group.organization
 
@@ -72,6 +77,8 @@ def maybe_trigger_smart_assignment(
     if not SeerSmartAssignmentResult.objects.filter(group_id=group.id).exists():
         if not _dispatch_rate_limited(organization):
             _dispatch(group, trigger)
+
+    record_ground_truth(group, trigger, activity)
 
 
 def _dispatch_rate_limited(organization: Organization) -> bool:
