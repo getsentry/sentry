@@ -12,8 +12,10 @@ export function useGetTraceItemAttributeTagKeys({
   extraTags,
   query,
   hiddenKeys,
+  datetime,
 }: {
   itemType: TraceItemDataset;
+  datetime?: PageFilters['datetime'];
   extraTags?: TagCollection;
   hiddenKeys?: string[];
   projects?: PageFilters['projects'];
@@ -23,6 +25,7 @@ export function useGetTraceItemAttributeTagKeys({
     traceItemType: itemType,
     projectIds: projects,
     query,
+    datetime,
   });
 
   return useCallback(

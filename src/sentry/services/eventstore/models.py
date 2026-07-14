@@ -10,7 +10,6 @@ from hashlib import md5
 from typing import TYPE_CHECKING, Any, Literal, Optional, cast, overload
 
 import orjson
-import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils.encoding import force_str
@@ -28,6 +27,7 @@ from sentry.snuba.events import Columns
 from sentry.spans.grouping.api import load_span_grouping_config
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
+from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -219,7 +219,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         return self.get_interface("user")
 
-    def get_event_type(self) -> str:
+    def get_event_type(self) -> eventtypes.EventTypeStr:
         """
         Return the type of this event.
 
@@ -227,8 +227,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
         """
         column = self._get_column_name(Columns.TYPE)
         if column in self._snuba_data:
-            return cast(str, self._snuba_data[column])
-        return cast(str, self.data.get("type", "default"))
+            return cast(eventtypes.EventTypeStr, self._snuba_data[column])
+        return cast(eventtypes.EventTypeStr, self.data.get("type", "default"))
 
     @property
     def ip_address(self) -> str | None:
@@ -439,14 +439,19 @@ class BaseEvent(metaclass=abc.ABCMeta):
             loaded_grouping_config = load_grouping_config(grouping_config)
 
         if normalize_stacktraces:
-            with sentry_sdk.start_span(op="grouping.normalize_stacktraces_for_grouping") as span:
-                span.set_tag("project", self.project_id)
-                span.set_tag("event_id", self.event_id)
+            with start_span(
+                op="grouping.normalize_stacktraces_for_grouping",
+                name="grouping.normalize_stacktraces_for_grouping",
+            ) as span:
+                set_span_tag(span, "project", self.project_id)
+                set_span_tag(span, "event_id", self.event_id)
                 self.normalize_stacktraces_for_grouping(loaded_grouping_config)
 
-        with sentry_sdk.start_span(op="grouping.get_grouping_variants") as span:
-            span.set_tag("project", self.project_id)
-            span.set_tag("event_id", self.event_id)
+        with start_span(
+            op="grouping.get_grouping_variants", name="grouping.get_grouping_variants"
+        ) as span:
+            set_span_tag(span, "project", self.project_id)
+            set_span_tag(span, "event_id", self.event_id)
 
             return get_grouping_variants_for_event(self, loaded_grouping_config)
 

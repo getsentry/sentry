@@ -3,7 +3,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
-import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {
   DisableDetectorAction,
@@ -14,37 +13,24 @@ import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/deta
 import {DetectorExtraDetails} from 'sentry/views/detectors/components/details/common/extraDetails';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type FallbackDetectorDetailsProps = {
   detector: Detector;
-  project: Project;
 };
 
-export function FallbackDetectorDetails({
-  detector,
-  project,
-}: FallbackDetectorDetailsProps) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
-
+export function FallbackDetectorDetails({detector}: FallbackDetectorDetailsProps) {
   return (
     <DetailLayout>
-      <DetectorDetailsHeader
-        detector={detector}
-        project={project}
-        useLocalDetailActions={hasPageFrameFeature}
-      />
+      <DetectorDetailsHeader detector={detector} useLocalDetailActions />
       <DetailLayout.Body>
         <DetailLayout.Main>
-          {hasPageFrameFeature ? (
-            <Flex align="center" justify="between" gap="md">
-              <DatePageFilter />
-              <Flex flex={1} justify="end" gap="md">
-                <DisableDetectorAction detector={detector} />
-                <EditDetectorAction detector={detector} />
-              </Flex>
+          <Flex align="center" justify="between" gap="md">
+            <DatePageFilter />
+            <Flex flex={1} justify="end" gap="md">
+              <DisableDetectorAction detector={detector} />
+              <EditDetectorAction detector={detector} />
             </Flex>
-          ) : null}
+          </Flex>
           <ErrorBoundary mini>
             <DetectorDetailsOpenPeriodIssues detector={detector} />
           </ErrorBoundary>

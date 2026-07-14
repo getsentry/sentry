@@ -15,10 +15,6 @@ from sentry.integrations.services.integration import RpcIntegration, integration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.models.project import Project
-from sentry.plugins.base import plugins
-from sentry.plugins.bases.notify import NotificationPlugin
-from sentry.rules.actions.services import PluginService
 from sentry.utils import metrics
 from sentry.workflow_engine.models import (
     Action,
@@ -342,27 +338,6 @@ def get_available_action_integrations_for_org(organization: Organization) -> lis
         organization_id=organization.id,
         providers=providers,
     )
-
-
-def get_notification_plugins_for_org(organization: Organization) -> list[PluginService]:
-    """
-    Get all plugins for an organization.
-    This method returns a deduplicated list of plugins that are enabled for an organization.
-    """
-
-    projects = Project.objects.filter(organization_id=organization.id)
-
-    # Need to use a map to deduplicate plugins by slug because the same plugin can be enabled for multiple projects
-    plugin_map = {}
-
-    for project in projects:
-        for plugin in plugins.for_project(project, version=1):
-            if not isinstance(plugin, NotificationPlugin):
-                continue
-
-            plugin_map[plugin.slug] = PluginService(plugin)
-
-    return list(plugin_map.values())
 
 
 def get_integration_services(organization_id: int) -> dict[int, list[tuple[int, str]]]:

@@ -156,7 +156,7 @@ function CronEmptyState() {
     <OnboardingPanel image={<img src={onboardingImg} />}>
       <Stack gap="2xl">
         <Stack gap="md">
-          <Heading as="h1">{t('Monitor Your Cron Jobs')}</Heading>
+          <Heading as="h2">{t('Monitor Your Cron Jobs')}</Heading>
           <Text as="p">
             {t(
               "We'll tell you if your recurring jobs are running on schedule, failing, or succeeding."
@@ -167,7 +167,7 @@ function CronEmptyState() {
           {platformGuides
             .filter(({platform}) => !['cli', 'http'].includes(platform))
             .map(({platform, label}) => (
-              <Flex key={platform} direction="column" gap="xs" align="center">
+              <Stack key={platform} gap="xs" align="center">
                 <PlatformLinkButton
                   variant="secondary"
                   to={makeCreateUrl(platform)}
@@ -176,7 +176,7 @@ function CronEmptyState() {
                   <PlatformIcon platform={platform} format="lg" size="100%" />
                 </PlatformLinkButton>
                 <Text variant="muted">{label}</Text>
-              </Flex>
+              </Stack>
             ))}
         </Flex>
         <Flex gap="md">
@@ -244,7 +244,7 @@ export default function CronDetectorsList() {
     <MonitorViewContext.Provider value={contextValue}>
       <SentryDocumentTitle title={TITLE}>
         <WorkflowEngineListLayout
-          actions={<DetectorListActions detectorType="monitor_check_in_failure" />}
+          actions={<DetectorListActions />}
           title={TITLE}
           description={DESCRIPTION}
           docsUrl={DOCS_URL}

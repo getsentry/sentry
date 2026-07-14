@@ -4,8 +4,6 @@ from sentry.models.featureadoption import FeatureAdoption
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.rule import Rule
-from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
-from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.signals import (
     advanced_search,
     alert_rule_created,
@@ -16,7 +14,6 @@ from sentry.signals import (
     issue_assigned,
     issue_resolved,
     member_joined,
-    plugin_enabled,
     project_created,
     save_search_created,
     sso_enabled,
@@ -542,30 +539,6 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         )
         feature_complete = FeatureAdoption.objects.get_by_slug(
             organization=self.organization, slug="alert_rules"
-        )
-        assert feature_complete
-
-    def test_issue_tracker_plugin(self) -> None:
-        plugin_enabled.send(
-            plugin=IssueTrackingPlugin2(),
-            project=self.project,
-            user=self.owner,
-            sender=type(self.project),
-        )
-        feature_complete = FeatureAdoption.objects.get_by_slug(
-            organization=self.organization, slug="issue_tracker_integration"
-        )
-        assert feature_complete
-
-    def test_notification_plugin(self) -> None:
-        plugin_enabled.send(
-            plugin=NotificationPlugin(),
-            project=self.project,
-            user=self.owner,
-            sender=type(self.project),
-        )
-        feature_complete = FeatureAdoption.objects.get_by_slug(
-            organization=self.organization, slug="notification_integration"
         )
         assert feature_complete
 

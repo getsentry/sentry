@@ -397,7 +397,7 @@ function SubtotalSummary({
                 budgetTerm: displayBudgetName(activePlan, {title: true}),
               })}
             </Text>
-            <Flex direction="column" gap="sm" align="end">
+            <Stack gap="sm" align="end">
               <Text align="right" variant="muted">
                 {tct('up to [pricePerMonth]', {
                   pricePerMonth: `${utils.displayPrice({
@@ -423,7 +423,7 @@ function SubtotalSummary({
                   </motion.div>
                 )}
               </AnimatePresence>
-            </Flex>
+            </Stack>
           </Flex>
         )}
       {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.PER_CATEGORY && (
@@ -532,7 +532,7 @@ function TotalSummary({
         'These changes will take effect at the end of your current [partnerName] sponsored plan on [newPeriodStart]. If you want these changes to apply immediately, select Migrate Now.',
         {
           partnerName: subscription.partner?.partnership.displayName,
-          newPeriodStart: moment(subscription.contractPeriodEnd)
+          newPeriodStart: moment(subscription.billingPeriodEnd)
             .add(1, 'days')
             .format('ll'),
         }
@@ -822,7 +822,7 @@ export function Cart({
               data;
             const planItem = invoiceItems.find(item => item.type === 'subscription');
             const renewalDate = moment(
-              planItem?.period_end ?? subscription.contractPeriodEnd
+              planItem?.period_end ?? subscription.billingPeriodEnd
             )
               .add(1, 'day')
               .toDate();
@@ -853,7 +853,7 @@ export function Cart({
       api,
       formDataForPreview,
       organization,
-      subscription.contractPeriodEnd,
+      subscription.billingPeriodEnd,
       shouldDisableCheckout,
       billingDetails,
     ]
@@ -950,14 +950,14 @@ export function Cart({
             />
           </Stack>
           {summaryIsOpen && (
-            <Flex direction="column" gap="lg" data-test-id="plan-summary" width="100%">
+            <Stack gap="lg" data-test-id="plan-summary" width="100%">
               {errorMessage && (
                 <Container>
                   <Alert variant="danger">{errorMessage}</Alert>
                 </Container>
               )}
               <ItemsSummary activePlan={activePlan} formData={formData} />
-            </Flex>
+            </Stack>
           )}
           <SubtotalSummary
             activePlan={activePlan}

@@ -216,7 +216,10 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
         | string
         | undefined)
     : undefined;
-  const focusedKey = focusedItem ? filterKeys[focusedItem] : null;
+  const focusedKey =
+    focusedItem && Object.hasOwn(filterKeys, focusedItem)
+      ? filterKeys[focusedItem]
+      : null;
   const showRecentFilters = recentFilters.length > 0;
   const showDetailsPane = fullWidth && selectedSection !== RECENT_SEARCH_CATEGORY_VALUE;
 

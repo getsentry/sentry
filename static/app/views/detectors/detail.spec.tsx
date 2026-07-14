@@ -124,6 +124,7 @@ describe('DetectorDetails', () => {
   describe('metric detectors', () => {
     const snubaQueryDetector = MetricDetectorFixture({
       id: '1',
+      name: 'detector1',
       projectId: project.id,
       dataSources: [dataSource],
       owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
@@ -149,9 +150,7 @@ describe('DetectorDetails', () => {
         initialRouterConfig,
       });
 
-      expect(
-        await screen.findByRole('heading', {name: snubaQueryDetector.name})
-      ).toBeInTheDocument();
+      expect(await screen.findByRole('heading', {name: /detector1/})).toBeInTheDocument();
       // Displays the snuba query
       expect(screen.getByLabelText('event.type:error test')).toBeInTheDocument();
       // Displays the environment
@@ -225,6 +224,7 @@ describe('DetectorDetails', () => {
   describe('uptime detectors', () => {
     const uptimeDetector = UptimeDetectorFixture({
       id: '1',
+      name: 'detector1',
       projectId: project.id,
       owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
       workflowIds: ['1', '2'], // Add workflow IDs for connected automations
@@ -276,9 +276,7 @@ describe('DetectorDetails', () => {
         initialRouterConfig,
       });
 
-      expect(
-        await screen.findByRole('heading', {name: uptimeDetector.name})
-      ).toBeInTheDocument();
+      expect(await screen.findByRole('heading', {name: /detector1/})).toBeInTheDocument();
 
       expect(screen.getByText('3 consecutive failed checks.')).toBeInTheDocument();
       expect(screen.getByText('1 successful check.')).toBeInTheDocument();
@@ -332,6 +330,7 @@ describe('DetectorDetails', () => {
     });
     const cronDetector = CronDetectorFixture({
       id: '1',
+      name: 'detector1',
       projectId: project.id,
       owner: ActorFixture({id: ownerTeam.id, name: ownerTeam.slug, type: 'team'}),
       workflowIds: ['1', '2'],
@@ -359,9 +358,7 @@ describe('DetectorDetails', () => {
         initialRouterConfig,
       });
 
-      expect(
-        await screen.findByRole('heading', {name: cronDetector.name})
-      ).toBeInTheDocument();
+      expect(await screen.findByRole('heading', {name: /detector1/})).toBeInTheDocument();
 
       // Failure threshold: 1
       expect(screen.getByText('One failed check-in.')).toBeInTheDocument();
@@ -380,6 +377,7 @@ describe('DetectorDetails', () => {
     it('uses serverOnly extrapolation mode when detector has it configured', async () => {
       const spanDetectorWithExtrapolation = MetricDetectorFixture({
         id: '1',
+        name: 'detector1',
         projectId: project.id,
         dataSources: [
           SnubaQueryDataSourceFixture({
@@ -423,9 +421,7 @@ describe('DetectorDetails', () => {
         initialRouterConfig,
       });
 
-      expect(
-        await screen.findByRole('heading', {name: spanDetectorWithExtrapolation.name})
-      ).toBeInTheDocument();
+      expect(await screen.findByRole('heading', {name: /detector1/})).toBeInTheDocument();
 
       await waitFor(() => {
         expect(eventsStatsRequest).toHaveBeenCalledWith(

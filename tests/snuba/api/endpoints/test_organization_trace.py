@@ -345,6 +345,37 @@ class OrganizationEventsTraceEndpointTest(
         }
         assert "browser.web_vital.lcp.value" not in span["measurements"]
 
+    def test_with_mobile_app_vitals(self) -> None:
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+
+        root = response.data[0]
+        span = next(child for child in root["children"] if child["description"] == "GET gen1-0")
+        assert span["mobile_app_vital"] == {
+            "app.vitals.start.cold.value": 1600.0,
+            "app.vitals.start.warm.value": 400.0,
+            "app.vitals.ttid.value": 1200.0,
+            "app.vitals.ttfd.value": 2400.0,
+        }
+        assert span["measurements"]["measurements.app_start_cold"] == 0.0
+
+    def test_with_mobile_frames_rate_vitals(self) -> None:
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={"timestamp": self.day_ago},
+            )
+        assert response.status_code == 200, response.content
+
+        root = response.data[0]
+        span = next(child for child in root["children"] if child["description"] == "GET gen1-0")
+        assert span["measurements"]["measurements.frames_slow_rate"] == 0.0
+        assert span["measurements"]["measurements.frames_frozen_rate"] == 0.0
+
     def test_with_errors_data(self) -> None:
         self.load_trace()
         _, start = self.get_start_end_from_day_ago(123)
@@ -541,6 +572,25 @@ class OrganizationEventsTraceEndpointTest(
 
         assert data[0]["children"][0]["additional_attributes"]["gen_ai.request.model"] == "gpt-4o"
         assert data[0]["children"][0]["additional_attributes"]["gen_ai.usage.total_tokens"] == 100
+
+    def test_with_span_description_in_additional_attrs(self) -> None:
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={
+                    "timestamp": self.day_ago,
+                    "additional_attributes": [
+                        "span.description",
+                    ],
+                },
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+
+        assert data[0]["additional_attributes"]["span.description"] == "root"
+
+        assert data[0]["children"][0]["additional_attributes"]["span.description"] == "GET gen1-0"
 
     def test_with_target_error(self) -> None:
         start, _ = self.get_start_end_from_day_ago(1000)

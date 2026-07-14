@@ -19,7 +19,7 @@ interface FileChangeApprovalData {
 
 interface FileChangeApprovalBlockProps {
   currentIndex: number;
-  pendingInput: PendingUserInput;
+  pendingInput: PendingUserInput | null;
   isFocused?: boolean;
   onClick?: () => void;
   onMouseEnter?: () => void;

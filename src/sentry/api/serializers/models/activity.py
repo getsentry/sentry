@@ -1,4 +1,5 @@
-from typing import TypedDict
+from datetime import datetime
+from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
@@ -24,9 +25,37 @@ class _ActivitySentryAppEmbed(TypedDict):
     avatars: list[SentryAppAvatarSerializerResponse]
 
 
+class ActivitySerializerResponse(TypedDict):
+    # Byte-identical envelope of ActivitySerializer.serialize() — always these six keys.
+    id: str
+    # The serialized acting user (a user serializer response), or null for
+    # system/integration activity. Left loose: the full user shape is out of scope.
+    user: dict[str, Any] | None
+    sentry_app: _ActivitySentryAppEmbed | None
+    type: str
+    # Polymorphic by activity type (note text, commit, pull request, unmerge
+    # fingerprints + source/destination, ...). Loose by design — describing every
+    # variant is out of scope.
+    data: dict[str, Any]
+    dateCreated: datetime
+
+
 COMMIT_ACTIVITY_TYPES = {
     ActivityType.SET_RESOLVED_IN_COMMIT.value,
     ActivityType.REFERENCED_IN_COMMIT.value,
+}
+
+ACTIVITY_TYPES_WITH_COMMIT_DATA = {
+    *COMMIT_ACTIVITY_TYPES,
+    ActivityType.SET_RESOLVED_IN_RELEASE.value,
+}
+
+PULL_REQUEST_ACTIVITY_TYPES = {
+    ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
+    ActivityType.PULL_REQUEST_CLOSED.value,
+    ActivityType.PULL_REQUEST_REOPENED.value,
+    ActivityType.PULL_REQUEST_MERGED.value,
+    ActivityType.PULL_REQUEST_UNLINKED.value,
 }
 
 
@@ -63,7 +92,11 @@ class ActivitySerializer(Serializer):
             if app.proxy_user_id
         }
 
-        commit_ids = {i.data["commit"] for i in item_list if i.type in COMMIT_ACTIVITY_TYPES}
+        commit_ids = {
+            i.data["commit"]
+            for i in item_list
+            if i.type in ACTIVITY_TYPES_WITH_COMMIT_DATA and i.data and i.data.get("commit")
+        }
         if commit_ids:
             commit_list = list(Commit.objects.filter(id__in=commit_ids))
             commits_by_id = {
@@ -76,15 +109,13 @@ class ActivitySerializer(Serializer):
             commits = {
                 i: commits_by_id.get(i.data["commit"])
                 for i in item_list
-                if i.type in COMMIT_ACTIVITY_TYPES
+                if i.type in ACTIVITY_TYPES_WITH_COMMIT_DATA and i.data and i.data.get("commit")
             }
         else:
             commits = {}
 
         pull_request_ids = {
-            i.data["pull_request"]
-            for i in item_list
-            if i.type == ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value
+            i.data["pull_request"] for i in item_list if i.type in PULL_REQUEST_ACTIVITY_TYPES
         }
         if pull_request_ids:
             pull_request_list = list(PullRequest.objects.filter(id__in=pull_request_ids))
@@ -94,7 +125,7 @@ class ActivitySerializer(Serializer):
             pull_requests = {
                 i: pull_requests_by_id.get(i.data["pull_request"])
                 for i in item_list
-                if i.type == ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value
+                if i.type in PULL_REQUEST_ACTIVITY_TYPES
             }
         else:
             pull_requests = {}
@@ -136,9 +167,15 @@ class ActivitySerializer(Serializer):
         }
 
     def serialize(self, obj: Activity, attrs, user, **kwargs):
-        if obj.type in COMMIT_ACTIVITY_TYPES:
+        if (
+            obj.type == ActivityType.SET_RESOLVED_IN_RELEASE.value
+            and obj.data
+            and obj.data.get("commit")
+        ):
+            data = {**obj.data, "commit": attrs["commit"]}
+        elif obj.type in COMMIT_ACTIVITY_TYPES:
             data = {"commit": attrs["commit"]}
-        elif obj.type == ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value:
+        elif obj.type in PULL_REQUEST_ACTIVITY_TYPES:
             data = {"pullRequest": attrs["pull_request"]}
         elif obj.type == ActivityType.UNMERGE_DESTINATION.value:
             data = {"fingerprints": obj.data["fingerprints"], "source": attrs["source"]}

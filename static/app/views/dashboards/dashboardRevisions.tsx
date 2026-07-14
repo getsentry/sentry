@@ -4,7 +4,7 @@ import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -110,12 +110,11 @@ function DashboardRevisionsModal({
         ) : isError ? (
           <Alert variant="danger">{t('Failed to load dashboard revisions.')}</Alert>
         ) : (
-          <Flex direction="column" gap="md">
+          <Stack gap="md">
             {isRestoreError && (
               <Alert variant="danger">{t('Failed to restore this revision.')}</Alert>
             )}
-            <Flex
-              direction="column"
+            <Stack
               style={{maxHeight: 'min(560px, calc(100vh - 350px))'}}
               overflowY="auto"
             >
@@ -145,8 +144,8 @@ function DashboardRevisionsModal({
                   baseRevisionId={revisions?.[index + 1]?.id ?? null}
                 />
               ))}
-            </Flex>
-          </Flex>
+            </Stack>
+          </Stack>
         )}
       </Body>
       {displayedRevisions.length ? (

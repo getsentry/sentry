@@ -59,6 +59,8 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detailsWidget/detailsWidgetVisualization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
+import {HeatMapWidgetVisualization} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
+import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
 import {RageAndDeadClicksWidgetVisualization} from 'sentry/views/dashboards/widgets/rageAndDeadClicksWidget/rageAndDeadClicksVisualization';
 import {ServerTreeWidgetVisualization} from 'sentry/views/dashboards/widgets/serverTreeWidget/serverTreeWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
@@ -68,17 +70,18 @@ import {
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
 import {TextWidgetVisualization} from 'sentry/views/dashboards/widgets/textWidget/textWidgetVisualization';
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
+import {Widget as WidgetComponent} from 'sentry/views/dashboards/widgets/widget/widget';
 import {WidgetError} from 'sentry/views/dashboards/widgets/widget/widgetError';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
-import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
+import {type GenericWidgetQueriesResult} from './genericWidgetQueries';
 
 type TableComponentProps = Pick<
   GenericWidgetQueriesResult,
-  'errorMessage' | 'loading' | 'tableResults'
+  'errorMessage' | 'loading' | 'tableResults' | 'heatmapResults'
 > & {
   selection: PageFilters;
   widget: Widget;
@@ -182,6 +185,14 @@ function WidgetCardChart(props: WidgetCardChartProps) {
       <TransitionChart loading={loading} reloading={loading}>
         <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
         <CategoricalSeriesComponent tableResults={tableResults} {...props} />
+      </TransitionChart>
+    );
+  }
+
+  if (widget.displayType === DisplayType.HEATMAP) {
+    return (
+      <TransitionChart loading={loading} reloading={loading}>
+        <HeatmapSeriesComponent {...props} />
       </TransitionChart>
     );
   }
@@ -446,6 +457,29 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
   return (
     <ChartWrapper autoHeightResize>
       <CategoricalSeriesWidgetVisualization plottables={plottables} {...props} />
+    </ChartWrapper>
+  );
+}
+
+function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
+  const {heatmapResults, loading} = props;
+
+  if (loading || !heatmapResults) {
+    return <HeatMapWidgetVisualization.LoadingPlaceholder />;
+  }
+
+  if (heatmapResults.values.length === 0) {
+    return <WidgetComponent.WidgetError error={MISSING_DATA_MESSAGE} />;
+  }
+
+  return (
+    <ChartWrapper autoHeightResize>
+      {/* Drag-to-zoom not implemented in Dashboards because we haven't come up
+      with a sensible behaviour here. The X-axis selection can update the
+      selected date range, but what about the Y-axis? It might update the global
+      filter, but that affects other widgets, is that okay? Or, it might affect
+      just the current widget, but how does the UI react? */}
+      <HeatMapWidgetVisualization plottables={[new HeatMap(heatmapResults)]} />
     </ChartWrapper>
   );
 }

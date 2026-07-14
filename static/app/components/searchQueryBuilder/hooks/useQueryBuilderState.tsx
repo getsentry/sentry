@@ -26,6 +26,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName, stringifyToken} from 'sentry/components/searchSyntax/utils';
+import {defined} from 'sentry/utils/defined';
 
 type QueryBuilderState = {
   /**
@@ -703,6 +704,37 @@ function canonicalizeSearchValue(value: string) {
   return escapeTagValueForSearch(unescapeAsteriskSearchValue(unquotedValue));
 }
 
+function getCanonicalSelectedValues(token: TokenResult<Token.FILTER>): Set<string> {
+  const tokenValue = token.value;
+
+  switch (tokenValue.type) {
+    case Token.VALUE_TEXT_LIST:
+    case Token.VALUE_NUMBER_LIST:
+      return new Set(
+        tokenValue.items
+          .map(item => item.value?.value)
+          .filter(defined)
+          .map(canonicalizeSearchValue)
+      );
+    default:
+      return tokenValue.value
+        ? new Set([canonicalizeSearchValue(tokenValue.value)])
+        : new Set();
+  }
+}
+
+export function getMultiSelectValueState(
+  token: TokenResult<Token.FILTER>,
+  value: string
+): {selected: boolean; selectedCount: number} {
+  const canonicalSelectedValues = getCanonicalSelectedValues(token);
+
+  return {
+    selected: canonicalSelectedValues.has(canonicalizeSearchValue(value)),
+    selectedCount: canonicalSelectedValues.size,
+  };
+}
+
 export function multiSelectTokenValue(
   state: QueryBuilderState,
   action: MultiSelectFilterValueAction
@@ -867,6 +899,8 @@ export function replaceFreeTextTokens(
 
   const primarySearchKey = replaceRawSearchKeys[0] ?? '';
   const replacedQuery: string[] = [];
+  const freeTextTokens: string[] = [];
+
   for (const token of currentQueryTokens) {
     if (token.type === Token.L_PAREN) {
       replacedQuery.push('(');
@@ -891,28 +925,7 @@ export function replaceFreeTextTokens(
     }
 
     const value = escapeTagValue(token.text.trim());
-
-    // We're doing an experiment here to see if we can detect natural language queries
-    // and attempt to track them.
-    if (value.includes(' ')) {
-      const valueWithNoQuotes = value.slice(1, -1);
-      const wordCount = countWords(valueWithNoQuotes);
-
-      Sentry.logger.info(Sentry.logger.fmt`Found potential natural language query`, {
-        source: searchSource,
-        wordCount,
-      });
-
-      Sentry.metrics.count('search_query_builder.potential_natural_language_query', 1, {
-        attributes: {source: searchSource},
-      });
-
-      Sentry.metrics.gauge(
-        'search_query_builder.potential_natural_language_query_word_count',
-        wordCount,
-        {attributes: {source: searchSource}}
-      );
-    }
+    freeTextTokens.push(token.text.trim());
 
     // We don't want to break user flows, so if they include an asterisk in their free
     // text value, leave it as an `is` filter.
@@ -933,6 +946,27 @@ export function replaceFreeTextTokens(
     } else {
       replacedQuery.push(`${primarySearchKey}:${WildcardOperators.CONTAINS}${value}`);
     }
+  }
+
+  // We're doing an experiment here to see if we can detect natural language queries
+  // and attempt to track them.
+  if (freeTextTokens.length > 0) {
+    const wordCount = freeTextTokens.reduce((acc, value) => acc + countWords(value), 0);
+
+    Sentry.logger.info(Sentry.logger.fmt`Found potential natural language query`, {
+      source: searchSource,
+      wordCount,
+    });
+
+    Sentry.metrics.count('search_query_builder.potential_natural_language_query', 1, {
+      attributes: {source: searchSource},
+    });
+
+    Sentry.metrics.gauge(
+      'search_query_builder.potential_natural_language_query_word_count',
+      wordCount,
+      {attributes: {source: searchSource}}
+    );
   }
 
   const finalQuery = replacedQuery.join(' ').trim();

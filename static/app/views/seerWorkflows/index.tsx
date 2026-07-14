@@ -5,7 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -221,20 +221,20 @@ function SeerWorkflows() {
 
   return (
     <SentryDocumentTitle title={t('Sentry Workflows')} orgSlug={organization.slug}>
-      <Flex direction="column" gap="lg" padding="xl">
-        <Flex direction="column" gap="2xs">
+      <Stack gap="lg" padding="xl">
+        <Stack gap="2xs">
           <Heading as="h1">{t('Sentry Workflows')}</Heading>
           <Text as="p" variant="muted">
             {t('Historical runs of Sentry workflows for this organization.')}
           </Text>
-        </Flex>
+        </Stack>
 
         {isError ? (
           <LoadingError onRetry={refetch} />
         ) : isPending ? (
           <LoadingIndicator />
         ) : (
-          <Container width={{md: '100%', lg: '70%'}}>
+          <Container width={{'screen:md': '100%', 'screen:lg': '70%'}}>
             <Container
               background="secondary"
               border="muted"
@@ -342,7 +342,7 @@ function SeerWorkflows() {
               ) : (
                 sortedRows.map(row => {
                   const isExpanded = expanded.has(row.id);
-                  const explorerRunId = getExplorerRunId(row);
+                  const explorerRunIds = getExplorerRunIds(row);
                   return (
                     <Fragment key={row.id}>
                       <SimpleTable.Row
@@ -354,14 +354,14 @@ function SeerWorkflows() {
                           <StatusIcon status={row.status} />
                         </SimpleTable.RowCell>
                         <SimpleTable.RowCell>
-                          <Flex direction="column" gap="2xs">
+                          <Stack gap="2xs">
                             <Text size="sm">
                               <DateTime date={row.dateAdded} />
                             </Text>
                             <Text size="xs" variant="muted">
                               <TimeSince date={row.dateAdded} />
                             </Text>
-                          </Flex>
+                          </Stack>
                         </SimpleTable.RowCell>
                         <SimpleTable.RowCell>
                           <Flex gap="sm" align="center" wrap="wrap">
@@ -384,7 +384,7 @@ function SeerWorkflows() {
                         <SimpleTable.RowCell>
                           <ResultCell
                             row={row}
-                            explorerRunId={explorerRunId}
+                            explorerRunIds={explorerRunIds}
                             organizationSlug={organization.slug}
                           />
                         </SimpleTable.RowCell>
@@ -422,7 +422,7 @@ function SeerWorkflows() {
             </RunsTable>
           </Container>
         )}
-      </Flex>
+      </Stack>
     </SentryDocumentTitle>
   );
 }
@@ -514,32 +514,40 @@ function StatusIcon({status}: {status: RunStatus}) {
 
 function ResultCell({
   row,
-  explorerRunId,
+  explorerRunIds,
   organizationSlug,
 }: {
-  explorerRunId: number | string | null;
+  explorerRunIds: Array<number | string>;
   organizationSlug: string;
   row: WorkflowRow;
 }) {
   const content = getResultContent(row);
-  // A failed run shows "Run failed" — don't turn that into a Seer Explorer link
-  // even if the run happens to carry an agent_run_id.
-  if (explorerRunId === null || row.status === 'failed') {
+  // A failed run shows "Run failed" — don't turn that into Seer Explorer links
+  // even if its shards happen to carry run ids.
+  if (explorerRunIds.length === 0 || row.status === 'failed') {
     return content;
   }
+  // Result text once, then one Explorer link per shard.
   return (
-    <Link
-      to={{
-        pathname: `/organizations/${organizationSlug}/issues/autofix/`,
-        query: {explorerRunId},
-      }}
-      onClick={e => e.stopPropagation()}
-    >
-      <Flex gap="sm" align="center">
-        <IconOpen size="xs" variant="accent" aria-hidden />
-        {content}
-      </Flex>
-    </Link>
+    <Flex gap="sm" align="center" wrap="wrap">
+      {content}
+      {explorerRunIds.map((explorerRunId, index) => (
+        <Link
+          key={`${explorerRunId}-${index}`}
+          to={{
+            pathname: `/organizations/${organizationSlug}/issues/autofix/`,
+            query: {explorerRunId},
+          }}
+          onClick={e => e.stopPropagation()}
+        >
+          <IconOpen
+            size="xs"
+            variant="accent"
+            aria-label={t('Open run in Seer Explorer')}
+          />
+        </Link>
+      ))}
+    </Flex>
   );
 }
 
@@ -584,7 +592,7 @@ function RunDetail({
 }) {
   const isSentryEmployee = useIsSentryEmployee();
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <UserSection row={row} organizationSlug={organizationSlug} />
       {isSentryEmployee ? (
         <Disclosure>
@@ -608,7 +616,7 @@ function RunDetail({
           </Disclosure.Content>
         </Disclosure>
       ) : null}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -620,14 +628,14 @@ function UserSection({
   row: WorkflowRow;
 }) {
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       {row.summary ? (
         <Text as="p" size="md">
           {row.summary}
         </Text>
       ) : null}
       <TriageIssuesUserPanel row={row} organizationSlug={organizationSlug} />
-    </Flex>
+    </Stack>
   );
 }
 
@@ -651,7 +659,7 @@ function DebugSection({
     max_candidates !== undefined;
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <Grid columns="max-content 1fr" gap="sm xl" align="start">
         <Text bold size="xs" variant="muted">
           {t('Run ID')}
@@ -703,7 +711,7 @@ function DebugSection({
         </Text>
       ) : null}
       <TriageIssuesDebugAddendum row={row} organizationSlug={organizationSlug} />
-    </Flex>
+    </Stack>
   );
 }
 
@@ -716,7 +724,7 @@ function TriageIssuesUserPanel({
 }) {
   const issues = row.triage?.issues ?? [];
   return (
-    <Flex direction="column" gap="sm">
+    <Stack gap="sm">
       <Text bold size="xs" variant="muted" uppercase>
         {t('Issues (%s)', issues.length)}
       </Text>
@@ -758,7 +766,7 @@ function TriageIssuesUserPanel({
           ])}
         </Grid>
       )}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -774,7 +782,7 @@ function TriageIssuesDebugAddendum({
     return null;
   }
   return (
-    <Flex direction="column" gap="sm">
+    <Stack gap="sm">
       <Text bold size="xs" variant="muted" uppercase>
         {t('Per-issue internals')}
       </Text>
@@ -820,7 +828,7 @@ function TriageIssuesDebugAddendum({
           ),
         ])}
       </Grid>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -844,6 +852,7 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
       maxCandidates: run.extras.options?.max_candidates,
       dryRun: run.extras.options?.dry_run,
       issues: run.issues,
+      seerRuns: run.seerRuns ?? [],
       agentRunId:
         typeof agentRunId === 'number' || typeof agentRunId === 'string'
           ? agentRunId
@@ -852,12 +861,19 @@ function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
   };
 }
 
-function getExplorerRunId(row: WorkflowRow): number | string | null {
+function getExplorerRunIds(row: WorkflowRow): Array<number | string> {
+  const seerRunIds = (row.triage?.seerRuns ?? [])
+    .map(seerRun => seerRun.seerRunId)
+    .filter((id): id is string => id !== null);
+  if (seerRunIds.length > 0) {
+    return seerRunIds;
+  }
+  // Fallback for pre-shard runs, which recorded a single id on the run extras.
   const agentRunId = row.triage?.agentRunId;
   if (typeof agentRunId === 'number' || typeof agentRunId === 'string') {
-    return agentRunId;
+    return [agentRunId];
   }
-  return null;
+  return [];
 }
 
 export default SeerWorkflows;

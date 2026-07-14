@@ -138,21 +138,6 @@ describe('GSBanner', () => {
     expect(screen.getByText('Contact Support')).toBeInTheDocument();
   });
 
-  it('renders usage exceeded modal', async () => {
-    const organization = OrganizationFixture({slug: 'exceeded'});
-    SubscriptionStore.set(
-      organization.slug,
-      SubscriptionFixture({organization, usageExceeded: true})
-    );
-
-    render(<GSBanner organization={organization} />, {
-      organization,
-    });
-    renderGlobalModal();
-
-    expect(await screen.findByTestId('modal-usage-exceeded')).toBeInTheDocument();
-  });
-
   it('opens the trialEndingModal within 3 days of ending', async () => {
     const now = moment();
     const organization = OrganizationFixture({
@@ -272,7 +257,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(30, 'day').toISOString(),
+        billingPeriodEnd: now.add(30, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -305,7 +290,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(7, 'day').toISOString(),
+        billingPeriodEnd: now.add(7, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -338,7 +323,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(2, 'days').toISOString(),
+        billingPeriodEnd: now.add(2, 'days').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -371,7 +356,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.toISOString(),
+        billingPeriodEnd: now.toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -403,7 +388,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(7, 'day').toISOString(),
+        billingPeriodEnd: now.add(7, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -436,7 +421,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(7, 'day').toISOString(),
+        billingPeriodEnd: now.add(7, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -453,7 +438,7 @@ describe('GSBanner', () => {
           plan: 'am3_business',
           planDetails: PlanFixture({
             name: 'Business',
-            price: 100,
+            totalPrice: 100,
           }),
         }),
       })
@@ -476,7 +461,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(7, 'day').toISOString(),
+        billingPeriodEnd: now.add(7, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -493,7 +478,6 @@ describe('GSBanner', () => {
           plan: 'am3_f',
           planDetails: PlanFixture({
             name: 'Developer',
-            price: 0,
           }),
         }),
       })
@@ -516,7 +500,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(31, 'day').toISOString(),
+        billingPeriodEnd: now.add(31, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -559,7 +543,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(20, 'day').toISOString(),
+        billingPeriodEnd: now.add(20, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -601,7 +585,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(1, 'day').toISOString(),
+        billingPeriodEnd: now.add(1, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -643,7 +627,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.toISOString(),
+        billingPeriodEnd: now.toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {
@@ -685,7 +669,7 @@ describe('GSBanner', () => {
       organization.slug,
       SubscriptionFixture({
         organization,
-        contractPeriodEnd: now.add(1, 'day').toISOString(),
+        billingPeriodEnd: now.add(1, 'day').toISOString(),
         isTrial: true,
         plan: 'am2_sponsored_team_auf',
         partner: {

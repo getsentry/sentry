@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from enum import StrEnum
 from typing import Any
 
+import sentry_sdk
 from django.db import router, transaction
 from google.api_core.exceptions import DeadlineExceeded
 from sentry_sdk import set_tag, set_user
@@ -60,9 +61,11 @@ def process_event(
     project = Project.objects.get(id=project_id)
     org = Organization.objects.get(id=project.organization_id)
     set_tag("organization.slug", org.slug)
+    sentry_sdk.set_attribute("organization.slug", org.slug)
     # When you look at the performance page the user is a default column
     set_user({"username": org.slug})
     set_tag("project.slug", project.slug)
+    sentry_sdk.set_attribute("project.slug", project.slug)
     extra = {
         "organization.slug": org.slug,
         "project_id": project_id,
@@ -77,6 +80,7 @@ def process_event(
     platform = event.platform
     assert platform is not None
     set_tag("platform", platform)
+    sentry_sdk.set_attribute("platform", platform)
 
     platform_config = PlatformConfig(platform)
     if not platform_config.is_supported():

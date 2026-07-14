@@ -12,10 +12,12 @@ import {
   generateFieldAsString,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {WidgetType} from 'sentry/views/dashboards/types';
-import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
+import {
+  dispatchYAxisUpdate,
+  prepareQueriesForEquationMode,
+} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
@@ -26,7 +28,6 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {assignSequentialLabels} from 'sentry/views/explore/metrics/hooks/useStableLabels';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsEquationsInDashboards} from 'sentry/views/explore/metrics/metricsFlags';
 import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {
   isVisualizeEquation,
@@ -62,13 +63,10 @@ export interface TraceMetricsVisualizeModeState {
  * the returned equationSnapshot ref.
  */
 export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeState {
-  const organization = useOrganization();
   const {state, dispatch} = useWidgetBuilderContext();
 
-  const hasEquations = canUseMetricsEquationsInDashboards(organization);
-
   const [isEquationMode, setIsEquationMode] = useState(() => {
-    if (state.dataset !== WidgetType.TRACEMETRICS || !hasEquations) {
+    if (state.dataset !== WidgetType.TRACEMETRICS) {
       return false;
     }
     const aggregateSource = getTraceMetricAggregateSource(
@@ -146,13 +144,15 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         state.fields
       );
 
-      const queries = (aggregateSource ?? [])
-        .filter(f => f.kind === FieldValueKind.FUNCTION)
-        .map(f => {
-          const parsed = parseAggregateExpression(generateFieldAsString(f));
-          return parsed.metricQueries[0] ?? defaultMetricQuery();
-        })
-        .filter(Boolean);
+      const queries = prepareQueriesForEquationMode(
+        (aggregateSource ?? [])
+          .filter(f => f.kind === FieldValueKind.FUNCTION)
+          .map(f => {
+            const parsed = parseAggregateExpression(generateFieldAsString(f));
+            return parsed.metricQueries[0] ?? defaultMetricQuery();
+          })
+          .filter(Boolean)
+      );
       if (queries.length === 0) {
         queries.push(defaultMetricQuery());
       }
@@ -224,12 +224,12 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
   // Auto-restore the previous visualize mode when the dataset returns
   // to TRACEMETRICS.
   useEffect(() => {
-    if (state.dataset !== WidgetType.TRACEMETRICS || !hasEquations) {
+    if (state.dataset !== WidgetType.TRACEMETRICS) {
       setIsEquationMode(false);
       return;
     }
     onChangeDatasetToTraceMetrics();
-  }, [state.dataset, hasEquations]);
+  }, [state.dataset]);
 
   const handleModeToggle = useCallback(
     (nextIsEquation: boolean) => {

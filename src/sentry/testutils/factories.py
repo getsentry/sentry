@@ -76,8 +76,8 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.types import ExternalProviders
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
-from sentry.issues.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.grouptype import get_group_type_by_type_id
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -88,6 +88,7 @@ from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.commitfilechange import CommitFileChange
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -102,6 +103,7 @@ from sentry.models.group import Group
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
@@ -124,9 +126,9 @@ from sentry.models.repository import Repository
 from sentry.models.repositorysettings import RepositorySettings
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.models.savedsearch import SavedSearch
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
+from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
 from sentry.notifications.models.notificationaction import (
     ActionService,
     ActionTarget,
@@ -147,7 +149,7 @@ from sentry.preprod.models import (
     PreprodSnapshotMetrics,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
-from sentry.seer.models.run import SeerRun, SeerRunType
+from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -180,7 +182,12 @@ from sentry.uptime.models import (
     UptimeSubscription,
     UptimeSubscriptionRegion,
 )
-from sentry.users.models.identity import Identity, IdentityProvider, IdentityStatus
+from sentry.users.models.identity import (
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    OrganizationIdentity,
+)
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.user_option import UserOption
@@ -625,10 +632,6 @@ class Factories:
         if not allow_no_action_data:
             action_data = action_data or [
                 {
-                    "id": "sentry.rules.actions.notify_event.NotifyEventAction",
-                    "name": "Send a notification (for all legacy integrations)",
-                },
-                {
                     "id": "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
                     "service": "webhooks",
                     "name": "Send a notification via webhooks",
@@ -689,6 +692,24 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_project_key(project):
         return project.key_set.get_or_create()[0]
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_project_custom_inbound_filter(
+        project: Project,
+        name: str = "Custom inbound filter",
+        active: bool = True,
+        conditions: list[dict[str, object]] | None = None,
+    ) -> CustomInboundFilter:
+        if conditions is None:
+            conditions = [{"type": "release", "value": ["1.*"]}]
+
+        return CustomInboundFilter.objects.create(
+            project=project,
+            name=name,
+            active=active,
+            conditions=conditions,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -1269,6 +1290,25 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CELL)
     def create_group_activity(group, *args, **kwargs):
         return Activity.objects.create(group=group, project=group.project, *args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_owner(
+        group,
+        type=GroupOwnerType.OWNERSHIP_RULE.value,
+        user_id=None,
+        team=None,
+        **kwargs,
+    ) -> GroupOwner:
+        return GroupOwner.objects.create(
+            group=group,
+            project=group.project,
+            organization=group.project.organization,
+            type=type,
+            user_id=user_id,
+            team=team,
+            **kwargs,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -2064,6 +2104,17 @@ class Factories:
         )
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_organization_identity(
+        organization: Organization,
+        identity: Identity,
+    ) -> OrganizationIdentity:
+        return OrganizationIdentity.objects.create(
+            organization_id=organization.id,
+            identity=identity,
+        )
+
+    @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
     def create_group_history(
         group: Group,
@@ -2103,14 +2154,6 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_saved_search(name: str, **kwargs):
-        if "owner" in kwargs:
-            owner = kwargs.pop("owner")
-            kwargs["owner_id"] = owner.id if not isinstance(owner, int) else owner
-        return SavedSearch.objects.create(name=name, **kwargs)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
     def create_notification_action(
         organization: Organization | None = None,
         projects: list[Project] | None = None,
@@ -2142,6 +2185,11 @@ class Factories:
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_notification_settings_provider(*args, **kwargs) -> NotificationSettingProvider:
         return NotificationSettingProvider.objects.create(*args, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_weekly_report_project_exclusion(**kwargs):
+        return WeeklyReportProjectExclusion.objects.create(**kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
@@ -2937,3 +2985,9 @@ class Factories:
     def create_seer_run(organization, type: str = SeerRunType.EXPLORER, **kwargs) -> SeerRun:
         kwargs.setdefault("last_triggered_at", timezone.now())
         return SeerRun.objects.create(organization=organization, type=type, **kwargs)
+
+    @staticmethod
+    def create_seer_agent_run(
+        run: SeerRun, title: str = "Test run", source: str = "chat", **kwargs
+    ) -> SeerAgentRun:
+        return SeerAgentRun.objects.create(run=run, title=title, source=source, **kwargs)

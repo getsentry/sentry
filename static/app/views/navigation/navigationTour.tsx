@@ -1,22 +1,12 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {createContext, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
 
 import NavigationTourSvg from 'sentry-images/spot/stacked-nav-tour.svg';
 
 import {useModal} from '@sentry/scraps/modal';
 
 import {
-  TourAction,
   TourContextProvider,
   TourElement,
-  TourGuide,
   type TourElementProps,
 } from 'sentry/components/tours/components';
 import {StartTourModal, startTourModalCss} from 'sentry/components/tours/startTour';
@@ -30,6 +20,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
+import {DashboardFilter} from 'sentry/views/dashboards/types';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 
@@ -130,7 +122,6 @@ function useNavigationTourCompleted() {
 }
 
 export function NavigationTourProvider({children}: {children: React.ReactNode}) {
-  const {setShowTourReminder} = useNavigationTourReminderContext();
   const organization = useOrganization();
   const isNavigationTourCompleted = useNavigationTourCompleted();
   const initialUrlRef = useRef<string | null>(null);
@@ -148,8 +139,6 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   }, [location.hash, location.pathname, location.search]);
 
   const onEndTour = useCallback(() => {
-    setShowTourReminder(true);
-
     // Restore the initial URL when the tour ends.
     if (initialUrlRef.current) {
       navigate(initialUrlRef.current, {replace: true});
@@ -158,7 +147,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
 
     // Unlock scrolling when the tour ends.
     document.documentElement.style.overflow = '';
-  }, [navigate, setShowTourReminder]);
+  }, [navigate]);
 
   const onStepChange = useCallback(
     (stepId: NavigationTour) => {
@@ -182,24 +171,34 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
             navigate(target, {replace: true});
           }
           break;
-        case NavigationTour.DASHBOARDS:
-          if (activeGroup !== 'dashboards') {
-            const target = normalizeUrl({
-              pathname: `/${prefix}/dashboards/`,
-              query: {referrer: NAVIGATION_TOUR_REFERRER},
-            });
-            navigate(target, {replace: true});
-          }
+        case NavigationTour.DASHBOARDS: {
+          const target = normalizeUrl({
+            pathname: `/${prefix}/dashboards/`,
+            query: {referrer: NAVIGATION_TOUR_REFERRER},
+          });
+          navigate(target, {replace: true});
           break;
-        case NavigationTour.INSIGHTS:
-          if (activeGroup !== 'insights') {
-            const target = normalizeUrl({
-              pathname: `/${prefix}/insights/frontend/`,
-              query: {referrer: NAVIGATION_TOUR_REFERRER},
-            });
-            navigate(target, {replace: true});
-          }
+        }
+        case NavigationTour.INSIGHTS: {
+          const hasPrebuiltDashboards = organization.features.includes(
+            'dashboards-prebuilt-insights-dashboards'
+          );
+          const target = hasPrebuiltDashboards
+            ? normalizeUrl({
+                pathname: `/${prefix}/dashboards/`,
+                query: {
+                  filter: DashboardFilter.ONLY_PREBUILT,
+                  sort: DEFAULT_PREBUILT_SORT,
+                  referrer: NAVIGATION_TOUR_REFERRER,
+                },
+              })
+            : normalizeUrl({
+                pathname: `/${prefix}/insights/frontend/`,
+                query: {referrer: NAVIGATION_TOUR_REFERRER},
+              });
+          navigate(target, {replace: true});
           break;
+        }
         case NavigationTour.SETTINGS:
           if (activeGroup !== 'settings') {
             const target = normalizeUrl({
@@ -229,74 +228,6 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
     >
       {children}
     </TourContextProvider>
-  );
-}
-
-interface NavigationTourReminderContext {
-  setShowTourReminder: (value: boolean) => void;
-  showTourReminder: boolean;
-}
-
-const NavigationTourReminderContext = createContext<NavigationTourReminderContext>({
-  showTourReminder: false,
-  setShowTourReminder: () => {},
-});
-
-function useNavigationTourReminderContext(): NavigationTourReminderContext {
-  const context = useContext(NavigationTourReminderContext);
-  if (!context) {
-    throw new Error('Must be used within a NavigationTourReminderContextProvider');
-  }
-  return context;
-}
-
-interface NavigationTourReminderContextProviderProps {
-  children: React.ReactNode;
-}
-
-export function NavigationTourReminderContextProvider(
-  props: NavigationTourReminderContextProviderProps
-) {
-  const [showTourReminder, setShowTourReminder] = useState(false);
-
-  const contextValue = useMemo(
-    () => ({showTourReminder, setShowTourReminder}),
-    [showTourReminder, setShowTourReminder]
-  );
-
-  return (
-    <NavigationTourReminderContext.Provider value={contextValue}>
-      {props.children}
-    </NavigationTourReminderContext.Provider>
-  );
-}
-
-interface NavigationTourReminderProps {
-  children: React.ReactNode;
-}
-
-export function NavigationTourReminder(props: NavigationTourReminderProps) {
-  const {showTourReminder, setShowTourReminder} = useNavigationTourReminderContext();
-
-  if (!showTourReminder) {
-    return props.children;
-  }
-
-  return (
-    <TourGuide
-      title={t('Come back anytime')}
-      description={t(
-        'You can always use the help menu to take this tour again or share feedback with the team.'
-      )}
-      actions={
-        <TourAction size="xs" onClick={() => setShowTourReminder(false)}>
-          {t('Got it')}
-        </TourAction>
-      }
-      isOpen={showTourReminder}
-    >
-      {tourProps => <div {...tourProps}>{props.children}</div>}
-    </TourGuide>
   );
 }
 

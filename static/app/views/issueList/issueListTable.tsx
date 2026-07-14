@@ -41,7 +41,6 @@ interface IssueListTableProps {
   query: string;
   queryCount: number;
   refetchGroups: (fetchAllCounts?: boolean) => void;
-  selectedProjectIds: number[];
   selection: PageFilters;
   statsLoading: boolean;
   statsPeriod: string;
@@ -100,7 +99,7 @@ export function IssueListTable({
       >
         {tourProps => (
           <div {...tourProps}>
-            <ContainerPanel>
+            <ContainerPanel data-test-id="issue-list">
               <IssueListBulkCommandPaletteActions
                 query={query}
                 queryCount={queryCount}

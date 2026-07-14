@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import compassImage from 'sentry-images/spot/onboarding-compass.svg';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
@@ -80,7 +80,7 @@ export function EventMissingBanner() {
     <Flex align="center" justify="center">
       <Flex align="center" gap="3xl">
         <img src={compassImage} alt="Compass illustration" height={122} />
-        <Flex justify="center" direction="column" gap="md">
+        <Stack justify="center" gap="md">
           <MainText>
             {tct("We couldn't track down [prep] event", {
               prep: isReservedEventId ? 'an' : 'that',
@@ -97,7 +97,7 @@ export function EventMissingBanner() {
               ))}
             </ul>
           </SubText>
-        </Flex>
+        </Stack>
       </Flex>
     </Flex>
   );

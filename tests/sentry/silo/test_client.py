@@ -22,7 +22,6 @@ from sentry.silo.client import (
 from sentry.silo.util import PROXY_DIRECT_LOCATION_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import override_allowed_cell_silo_ip_addresses
 from sentry.types.cell import Cell, CellResolutionError
 from sentry.utils import json
@@ -351,7 +350,6 @@ class SiloClientTest(TestCase):
         assert err.args == ("Disallowed Cell Silo IP address: 172.31.255.31",)
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_options({"apigateway.proxy.use_gateway_address": 1.0})
     @responses.activate
     def test_cell_gateway_address_is_allowed(self) -> None:
         cell = Cell(

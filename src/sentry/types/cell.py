@@ -42,6 +42,9 @@ class Locality:
     visible: bool = True
     """Whether the locality is visible in API responses."""
 
+    signup_visible: bool = True
+    """Whether or not a locality should be visible for org signup/relocation."""
+
     def to_url(self, path: str) -> str:
         """Resolve a path into a customer facing URL on this locality.
 
@@ -174,18 +177,11 @@ class CellDirectory:
     def get_locality_by_name(self, locality_name: str) -> Locality | None:
         return self._localities_by_name.get(locality_name)
 
-    def get_cells(self, category: RegionCategory | None = None) -> Iterable[Cell]:
-        if category is None:
-            return iter(self._cells)
+    def get_cells(self) -> Iterable[Cell]:
+        return iter(self._cells)
 
-        return (
-            r
-            for r in self._cells
-            if (loc := self._cell_to_locality.get(r.name)) is not None and loc.category == category
-        )
-
-    def get_cell_names(self, category: RegionCategory | None = None) -> Iterable[str]:
-        return (r.name for r in self.get_cells(category))
+    def get_cell_names(self) -> Iterable[str]:
+        return (r.name for r in self.get_cells())
 
     def get_locality_for_cell(self, cell_name: str) -> Locality | None:
         return self._cell_to_locality.get(cell_name)
@@ -281,6 +277,7 @@ def _parse_locality_config(
             cells=frozenset(config_value["cells"]),
             new_org_cell=config_value["new_org_cell"],
             visible=bool(config_value.get("visible", True)),
+            signup_visible=bool(config_value.get("signup_visible", True)),
         )
 
 
@@ -331,10 +328,7 @@ def get_cell_by_name(name: str) -> Cell:
     if cell is not None:
         return cell
     else:
-        cell_names = list(cell_regions.get_cell_names(RegionCategory.MULTI_TENANT))
-        raise CellResolutionError(
-            f"No cell with name: {name!r} (expected one of {cell_names!r} or a single-tenant name)"
-        )
+        raise CellResolutionError(f"No cell with name: {name!r}")
 
 
 def get_new_org_cell_for_locality(name: str) -> Cell:
@@ -505,4 +499,15 @@ def find_all_multitenant_locality_names() -> list[str]:
         loc.name
         for loc in get_global_directory().localities
         if loc.category == RegionCategory.MULTI_TENANT and loc.visible
+    ]
+
+
+def find_all_signup_locality_names() -> list[str]:
+    """
+    Return all locality names that are visible to org signup.
+    """
+    return [
+        loc.name
+        for loc in get_global_directory().localities
+        if loc.category == RegionCategory.MULTI_TENANT and loc.visible and loc.signup_visible
     ]

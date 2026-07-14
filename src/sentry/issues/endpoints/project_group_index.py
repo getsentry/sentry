@@ -14,7 +14,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.helpers.environments import get_environment_func
 from sentry.api.helpers.group_index import (
-    get_by_short_id,
+    get_by_short_ids,
     prep_search,
     schedule_tasks_to_delete_groups,
     track_slo_response,
@@ -162,26 +162,26 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             return Response(serialized_groups)
 
         if query:
-            matching_group = None
+            matching_groups: list[Group] = []
             matching_event = None
             event_id = normalize_event_id(query)
             if event_id:
                 # check to see if we've got an event ID
                 try:
-                    matching_group = Group.objects.from_event_id(project, event_id)
+                    matching_groups = [Group.objects.from_event_id(project, event_id)]
                 except Group.DoesNotExist:
                     pass
                 else:
                     matching_event = eventstore.backend.get_event_by_id(project.id, event_id)
-            elif matching_group is None:
-                matching_group = get_by_short_id(
+            else:
+                matching_groups = get_by_short_ids(
                     project.organization_id,
                     request.GET.get("shortIdLookup", "0"),
                     query,
                     project_ids=[project.id],
                 )
 
-            if matching_group is not None:
+            if matching_groups:
                 matching_event_environment = None
 
                 try:
@@ -191,18 +191,16 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
                 except Environment.DoesNotExist:
                     pass
 
-                serialized_groups = serialize([matching_group], request.user, serializer)
+                serialized_groups = serialize(matching_groups, request.user, serializer)
                 matching_event_id = getattr(matching_event, "event_id", None)
                 if matching_event_id:
-                    serialized_groups[0]["matchingEventId"] = getattr(
-                        matching_event, "event_id", None
-                    )
+                    serialized_groups[0]["matchingEventId"] = matching_event_id
                 if matching_event_environment:
                     serialized_groups[0]["matchingEventEnvironment"] = matching_event_environment
 
                 response = Response(serialized_groups)
-
-                response["X-Sentry-Direct-Hit"] = "1"
+                if len(matching_groups) == 1:
+                    response["X-Sentry-Direct-Hit"] = "1"
                 return response
 
         try:

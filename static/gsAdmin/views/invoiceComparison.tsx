@@ -8,7 +8,7 @@ import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -27,9 +27,9 @@ type RowStatus = 'match' | 'mismatch' | 'legacy_only' | 'platform_only';
 type Row = {
   delta_cents: number;
   delta_pct: number | null;
-  legacy_amount: number | null;
   // guid is present only when the side has exactly one invoice in the window
   // (otherwise there's no single invoice to deep-link to).
+  legacy_amount: number | null;
   legacy_invoice_count: number;
   legacy_invoice_guid: string | null;
   organization_id: number;
@@ -43,17 +43,15 @@ type Row = {
 type Summary = {
   end: string;
   legacy_count: number;
-  legacy_total_cents: number;
+  over_threshold_count: number;
+  over_threshold_pct: number;
   platform_count: number;
-  platform_total_cents: number;
   queried_at: string;
   row_count: number;
   rows_page: number;
   rows_page_size: number;
   rows_total_pages: number;
   start: string;
-  unmatched_invoice_count: number;
-  unmatched_invoice_pct: number;
   unmatched_org_count: number;
   unmatched_page: number;
   unmatched_page_size: number;
@@ -93,14 +91,6 @@ function formatDollars(cents: number | null) {
   return `$${dollars.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 }
 
-function formatPercent(pct: number | null) {
-  if (pct === null) {
-    // No legacy baseline — sorts to top of the list.
-    return <em>∞</em>;
-  }
-  return `${(pct * 100).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}%`;
-}
-
 // Render a dollar amount, deep-linking to the org-scoped invoice detail page
 // when we have both the org slug and a single invoice's guid. The receipts
 // page (CustomerInvoiceDetailsEndpoint) resolves legacy and platform invoices
@@ -121,6 +111,40 @@ function InvoiceAmount({
     return amount;
   }
   return <a href={`/settings/${orgSlug}/billing/receipts/${guid}/`}>{amount}</a>;
+}
+
+function formatPercent(pct: number | null) {
+  if (pct === null) {
+    // No legacy baseline — sorts to top of the list.
+    return <em>∞</em>;
+  }
+  return `${(pct * 100).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}%`;
+}
+
+// `formatPercent` renders ``null`` as ``∞`` because for ``delta_pct`` rows
+// a missing percentage means "undefined drift" (legacy=$0 with non-zero
+// platform — sorts to the top of the list). That semantic doesn't apply
+// to summary ratios like ``over_threshold_pct``, where a runtime
+// ``null``/``undefined`` would just mean the backend didn't populate the
+// field (deploy-window race, response-shape drift). Render those as
+// ``N/A`` instead of pretending the metric blew up.
+function formatPercentOrNA(pct: number | null | undefined) {
+  if (pct === null || pct === undefined) {
+    return <em>N/A</em>;
+  }
+  return `${(pct * 100).toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})}%`;
+}
+
+// Same deploy-window-race rationale as `formatPercentOrNA`: the type
+// declares these as `number` but a stale-cached response or any future
+// shape drift could leave them runtime-`undefined`, which would render
+// the literal string "undefined" in the UI. Falling back to an em dash
+// matches the missing-value affordance `formatDollars` already uses.
+function formatCountOrNA(n: number | null | undefined) {
+  if (n === null || n === undefined || Number.isNaN(n)) {
+    return <em>—</em>;
+  }
+  return n.toLocaleString();
 }
 
 // `datetime-local` inputs use the user's local timezone with no offset
@@ -349,19 +373,23 @@ export function InvoiceComparison() {
         Per-org totals comparing legacy <code>Invoice</code> and shadow{' '}
         <code>PlatformInvoice</code> records <strong>generated</strong> in the selected
         window (filtered on <code>date_added</code>, your local time — converted to UTC on
-        submit). The <strong>Unmatched</strong> summary stat is the percent of invoices in
-        the window that belong to one-sided orgs (legacy-only + platform-only / total) —
-        zero means perfect parity. The first table compares orgs with invoices on{' '}
-        <strong>both</strong> sides, sorted by absolute % delta (relative to legacy),
-        largest first. The second table lists one-sided orgs by absolute amount so you can
-        spot-check the worst missing invoices.
+        submit). <strong>Legacy invoices</strong> (count and dollar total) are scoped to
+        orgs that have invoices on both sides — legacy-only orgs haven't been onboarded to
+        the platform yet, so counting them would inflate the parity tallies with orgs that
+        can't be expected to match. <strong>Platform invoices</strong> reflect every{' '}
+        <code>PlatformInvoice</code> in the window; in production milestone-1 those are
+        equivalent to both-sided since <code>InvoicerService</code> only generates
+        platform invoices for orgs with a <code>Contract</code> (which already have a
+        legacy counterpart). The first table compares the both-sided orgs, sorted by
+        absolute % delta (relative to legacy), largest first. The second table lists
+        one-sided orgs by absolute amount so you can see who hasn't been onboarded yet.
       </p>
 
       <Panel>
         <PanelHeader>Query</PanelHeader>
         <PanelBody withPadding>
           <Flex gap="md" align="end" wrap="wrap">
-            <Flex direction="column" gap="xs">
+            <Stack gap="xs">
               <FieldLabel>Region</FieldLabel>
               <CompactSelect
                 trigger={triggerProps => (
@@ -373,8 +401,8 @@ export function InvoiceComparison() {
                   setCell(cells.find(c => c.locality_url === opt.value) ?? null);
                 }}
               />
-            </Flex>
-            <Flex direction="column" gap="xs">
+            </Stack>
+            <Stack gap="xs">
               <FieldLabel htmlFor="start">Generated since (local)</FieldLabel>
               <Input
                 id="start"
@@ -382,8 +410,8 @@ export function InvoiceComparison() {
                 value={startInput}
                 onChange={e => setStartInput(e.target.value)}
               />
-            </Flex>
-            <Flex direction="column" gap="xs">
+            </Stack>
+            <Stack gap="xs">
               <FieldLabel htmlFor="end">Generated until (local)</FieldLabel>
               <Input
                 id="end"
@@ -391,8 +419,8 @@ export function InvoiceComparison() {
                 value={endInput}
                 onChange={e => setEndInput(e.target.value)}
               />
-            </Flex>
-            <Flex direction="column" gap="xs">
+            </Stack>
+            <Stack gap="xs">
               <FieldLabel>Results per page</FieldLabel>
               <CompactSelect
                 trigger={triggerProps => (
@@ -405,7 +433,7 @@ export function InvoiceComparison() {
                 }))}
                 onChange={opt => setPageSize(Number(opt.value))}
               />
-            </Flex>
+            </Stack>
             <Button variant="primary" onClick={onSubmit} disabled={!cell}>
               Run comparison
             </Button>
@@ -433,76 +461,42 @@ export function InvoiceComparison() {
             <PanelHeader>Summary</PanelHeader>
             <PanelBody withPadding>
               <Grid
-                columns="repeat(7, 1fr)"
+                columns="repeat(3, 1fr)"
                 gap="xl"
                 css={css`
                   @media (max-width: 900px) {
-                    grid-template-columns: repeat(3, 1fr);
+                    grid-template-columns: repeat(2, 1fr);
                   }
                 `}
               >
-                <Flex direction="column">
+                <Stack>
                   <Text size="sm" variant="muted">
                     Legacy invoices
                   </Text>
                   <Text size="lg" bold>
-                    {data.summary.legacy_count}
+                    {formatCountOrNA(data.summary.legacy_count)}
                   </Text>
-                </Flex>
-                <Flex direction="column">
+                </Stack>
+                <Stack>
                   <Text size="sm" variant="muted">
                     Platform invoices
                   </Text>
                   <Text size="lg" bold>
-                    {data.summary.platform_count}
+                    {formatCountOrNA(data.summary.platform_count)}
                   </Text>
-                </Flex>
-                <Flex direction="column">
+                </Stack>
+                <Stack>
                   <Text size="sm" variant="muted">
-                    Legacy total
+                    {'>1% diff'}
                   </Text>
                   <Text size="lg" bold>
-                    {formatDollars(data.summary.legacy_total_cents)}
-                  </Text>
-                </Flex>
-                <Flex direction="column">
-                  <Text size="sm" variant="muted">
-                    Platform total
-                  </Text>
-                  <Text size="lg" bold>
-                    {formatDollars(data.summary.platform_total_cents)}
-                  </Text>
-                </Flex>
-                <Flex direction="column">
-                  <Text size="sm" variant="muted">
-                    Total delta
-                  </Text>
-                  <Text size="lg" bold>
-                    {formatDollars(
-                      data.summary.legacy_total_cents - data.summary.platform_total_cents
-                    )}
-                  </Text>
-                </Flex>
-                <Flex direction="column">
-                  <Text size="sm" variant="muted">
-                    Rows
-                  </Text>
-                  <Text size="lg" bold>
-                    {data.summary.row_count}
-                  </Text>
-                </Flex>
-                <Flex direction="column">
-                  <Text size="sm" variant="muted">
-                    Unmatched
-                  </Text>
-                  <Text size="lg" bold>
-                    {formatPercent(data.summary.unmatched_invoice_pct)}
+                    {formatPercentOrNA(data.summary.over_threshold_pct)}
                     <TruncatedNote size="sm" variant="muted">
-                      ({data.summary.unmatched_invoice_count} of{' '}
-                      {data.summary.legacy_count + data.summary.platform_count})
+                      ({formatCountOrNA(data.summary.over_threshold_count)} of{' '}
+                      {formatCountOrNA(data.summary.row_count)})
                     </TruncatedNote>
                   </Text>
-                </Flex>
+                </Stack>
               </Grid>
             </PanelBody>
           </Panel>

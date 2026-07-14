@@ -204,6 +204,9 @@ describe('Incident Rules Form', () => {
       });
 
       // Clear field
+      await waitFor(() =>
+        expect(screen.getByPlaceholderText('Enter Alert Name')).toBeEnabled()
+      );
       await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
       // Enter in name so we can submit
@@ -238,6 +241,9 @@ describe('Incident Rules Form', () => {
       });
 
       // Clear field
+      await waitFor(() =>
+        expect(screen.getByPlaceholderText('Enter Alert Name')).toBeEnabled()
+      );
       await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
       // Enter in name so we can submit
@@ -515,6 +521,9 @@ describe('Incident Rules Form', () => {
       });
 
       // Clear field
+      await waitFor(() =>
+        expect(screen.getByPlaceholderText('Enter Alert Name')).toBeEnabled()
+      );
       await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
       // Enter in name so we can submit
@@ -630,7 +639,6 @@ describe('Incident Rules Form', () => {
         'performance-view',
         'tracemetrics-enabled',
         'tracemetrics-equations-in-explore',
-        'tracemetrics-equations-in-alerts',
       ];
       location = {
         ...location,
@@ -696,6 +704,9 @@ describe('Incident Rules Form', () => {
       });
 
       // Clear field
+      await waitFor(() =>
+        expect(screen.getByPlaceholderText('Enter Alert Name')).toBeEnabled()
+      );
       await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
       await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'new name');

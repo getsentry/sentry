@@ -24,10 +24,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = True
 
-    replaces = [
-        ("insights", "0001_add_starred_transactions_model"),
-    ]
-
     initial = True
 
     checked = False  # This is an initial migration and can take locks

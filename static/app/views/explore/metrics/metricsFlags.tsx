@@ -37,17 +37,7 @@ export const canUseMetricsEquations = (organization: Organization) => {
 };
 
 export const canUseMetricsEquationsInAlerts = (organization: Organization) => {
-  return (
-    canUseMetricsAlertsUI(organization) &&
-    organization.features.includes('tracemetrics-equations-in-alerts')
-  );
-};
-
-export const canUseMetricsEquationsInDashboards = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-equations-in-dashboards')
-  );
+  return canUseMetricsAlertsUI(organization);
 };
 
 export const canUseMetricsPiiScrubbingUI = (organization: Organization) => {

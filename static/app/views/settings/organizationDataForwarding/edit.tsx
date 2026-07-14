@@ -4,7 +4,7 @@ import {useMemo} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -15,8 +15,8 @@ import {NotFound} from 'sentry/components/errors/notFound';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons/iconArrow';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -71,11 +71,11 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
       <SentryDocumentTitle
         title={t('Edit your %s forwarder', ProviderLabels[provider])}
       />
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Flex align="center" justify="between" gap="2xl">
-          <Flex direction="column" gap="sm">
+          <Stack gap="sm">
             <Flex align="center" gap="lg">
-              <Heading as="h1">{t('Edit your forwarder')}</Heading>
+              <Heading as="h2">{t('Edit your forwarder')}</Heading>
             </Flex>
             <Text variant="muted">
               {t(
@@ -83,7 +83,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                 ProviderLabels[provider]
               )}
             </Text>
-          </Flex>
+          </Stack>
           <LinkButton
             size="sm"
             to={`/settings/${organization.slug}/data-forwarding/`}
@@ -203,7 +203,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
             </Fragment>
           )}
         </Feature>
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }

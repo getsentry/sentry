@@ -2,15 +2,14 @@ import {type RefObject, useMemo, useState} from 'react';
 
 import {defined} from 'sentry/utils/defined';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {MetricQueryRows} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricQueryRows';
+import {prepareQueriesForEquationMode} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {assignSequentialLabels} from 'sentry/views/explore/metrics/hooks/useStableLabels';
 import {defaultMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsEquationsInDashboards} from 'sentry/views/explore/metrics/metricsFlags';
 import {LocalMultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 
@@ -32,8 +31,6 @@ interface MetricsEquationVisualizeProps {
 export function MetricsEquationVisualize({
   equationSnapshot,
 }: MetricsEquationVisualizeProps) {
-  const organization = useOrganization();
-  const hasEquations = canUseMetricsEquationsInDashboards(organization);
   const {state} = useWidgetBuilderContext();
 
   const aggregateSource = getTraceMetricAggregateSource(
@@ -70,13 +67,15 @@ export function MetricsEquationVisualize({
 
     // Otherwise, we parse each function to get the available metric queries and
     // add a default equation row
-    const metricQueries = (aggregateSource ?? [])
-      .filter(f => f.kind === FieldValueKind.FUNCTION)
-      .map(f => {
-        const parsed = parseAggregateExpression(generateFieldAsString(f));
-        return parsed.metricQueries[0];
-      })
-      .filter(defined);
+    const metricQueries = prepareQueriesForEquationMode(
+      (aggregateSource ?? [])
+        .filter(f => f.kind === FieldValueKind.FUNCTION)
+        .map(f => {
+          const parsed = parseAggregateExpression(generateFieldAsString(f));
+          return parsed.metricQueries[0];
+        })
+        .filter(defined)
+    );
     if (metricQueries.length === 0) {
       metricQueries.push(defaultMetricQuery());
     }
@@ -97,10 +96,7 @@ export function MetricsEquationVisualize({
   });
 
   return (
-    <LocalMultiMetricsQueryParamsProvider
-      initialQueries={initialQueries}
-      hasEquations={hasEquations}
-    >
+    <LocalMultiMetricsQueryParamsProvider initialQueries={initialQueries} hasEquations>
       <MetricQueryRows
         selectedLabel={selectedLabel}
         setSelectedLabel={setSelectedLabel}

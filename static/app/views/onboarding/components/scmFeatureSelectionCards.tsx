@@ -1,4 +1,4 @@
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -12,10 +12,10 @@ interface ScmFeatureSelectionCardsProps {
   availableFeatures: ProductSolution[];
   disabledProducts: DisabledProducts;
   featureMeta: Record<ProductSolution, FeatureMeta>;
+  isOnboarding: boolean;
   onToggleFeature: (feature: ProductSolution) => void;
   selectedFeatures: ProductSolution[];
   isVolumeLoading?: boolean;
-  showVolume?: boolean;
 }
 
 export function ScmFeatureSelectionCards({
@@ -25,20 +25,25 @@ export function ScmFeatureSelectionCards({
   onToggleFeature,
   featureMeta,
   isVolumeLoading,
-  showVolume = true,
+  isOnboarding,
 }: ScmFeatureSelectionCardsProps) {
   return (
-    <Stack gap="xl" width="100%" justify="center">
-      <Flex justify="between" align="center">
-        <Heading as="h3" size="xl">
-          {t('What do you want to instrument?')}
-        </Heading>
-        {availableFeatures.length > 1 ? (
-          <Text size="sm" variant="secondary">
-            {t('Choose one or more')}
-          </Text>
-        ) : null}
-      </Flex>
+    <Stack gap="lg" width="100%" justify="center">
+      {isOnboarding ? (
+        <Flex justify="between" align="center" gap="md">
+          <Heading as="h4" ellipsis>
+            {t('What do you want to instrument?')}
+          </Heading>
+          {availableFeatures.length > 1 ? (
+            <Container>
+              <Text size="sm" variant="secondary" wrap="nowrap">
+                {t('Choose one or more')}
+              </Text>
+            </Container>
+          ) : null}
+        </Flex>
+      ) : null}
+
       <Stack gap="md">
         {availableFeatures.map(feature => {
           const meta = featureMeta[feature];
@@ -59,7 +64,7 @@ export function ScmFeatureSelectionCards({
               volume={meta.volume}
               volumeTooltip={meta.volumeTooltip}
               isVolumeLoading={isVolumeLoading}
-              showVolume={showVolume}
+              showVolume={isOnboarding}
             />
           );
         })}

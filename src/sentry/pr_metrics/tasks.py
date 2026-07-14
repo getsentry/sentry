@@ -7,7 +7,8 @@ import logging
 from taskbroker_client.retry import Retry
 from urllib3.exceptions import HTTPError
 
-from sentry.models.pullrequest import PullRequest
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest, PullRequestActivity
 from sentry.models.repository import Repository
 from sentry.pr_metrics.judge import forward_pr_to_seer_judge
 from sentry.silo.base import SiloMode
@@ -68,3 +69,71 @@ def forward_pr_to_seer_task(
         return
 
     forward_pr_to_seer_judge(pull_request, repository)
+
+
+@instrumented_task(
+    name="sentry.pr_metrics.tasks.emit_pr_metrics_cooldown",
+    namespace=seer_code_review_tasks,
+    silo_mode=SiloMode.CELL,
+)
+def emit_pr_metrics_cooldown_task(
+    *,
+    pull_request_id: int,
+    organization_id: int,
+    repository_id: int,
+) -> None:
+    """Settle and emit a PR's ``scm.pr.closed`` row after the post-close cooldown.
+
+    Scheduled by ``handle_emission`` when a close/merge webhook claims the
+    ``WAITING_EVENT_COOLDOWN`` sentinel. Deferring emission by the cooldown lets
+    late attribution and activity settle before the verdict is chosen and the row
+    read (see ``run_deferred_emission``). A PR or org that vanished between enqueue
+    and run is permanent and dropped.
+    """
+    log_extra = {
+        "pull_request_id": pull_request_id,
+        "organization_id": organization_id,
+        "repository_id": repository_id,
+    }
+    # Scope to the claimed org+repo, matching the rest of the pipeline.
+    try:
+        pull_request = PullRequest.objects.get(
+            id=pull_request_id,
+            organization_id=organization_id,
+            repository_id=repository_id,
+        )
+    except PullRequest.DoesNotExist:
+        logger.warning("pr_metrics.cooldown.pull_request_not_found", extra=log_extra)
+        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "pr_gone"})
+        return
+
+    try:
+        organization = Organization.objects.get(id=organization_id)
+    except Organization.DoesNotExist:
+        logger.warning("pr_metrics.cooldown.organization_not_found", extra=log_extra)
+        metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "org_gone"})
+        return
+
+    # Imported here to avoid a circular import: webhooks imports this module.
+    from sentry.pr_metrics.webhooks import run_deferred_emission
+
+    run_deferred_emission(pull_request, organization)
+
+
+@instrumented_task(
+    name="sentry.pr_metrics.tasks.cleanup_pr_activity",
+    namespace=seer_code_review_tasks,
+    silo_mode=SiloMode.CELL,
+)
+def cleanup_pr_activity_task(*, pull_request_id: int) -> None:
+    """Delete PullRequestActivity rows for a PR whose scm.pr.closed event has been emitted.
+
+    Enqueued by ``emit_pr_metrics_row`` once emission succeeds. The rows are no
+    longer needed: the judge path has consumed what it needed, and the activity
+    table is not reread after a terminal event. A failure here is safe to drop —
+    the existing 30-day age-based cleanup in the cleanup command will sweep any
+    rows that survive.
+    """
+    logger.info("pr_metrics.cleanup_activity", extra={"pull_request_id": pull_request_id})
+    deleted, _ = PullRequestActivity.objects.filter(pull_request_id=pull_request_id).delete()
+    metrics.incr("pr_metrics.cleanup_activity.deleted", amount=deleted)

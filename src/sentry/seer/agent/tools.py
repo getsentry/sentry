@@ -21,6 +21,7 @@ from sentry.api.event_search import parse_search_query
 from sentry.api.exceptions import BadRequest as SentryBadRequest
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.models.activity import ActivitySerializer
+from sentry.api.serializers.models.commit import CommitSerializer
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
@@ -29,11 +30,16 @@ from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
+from sentry.models.commit import Commit
+from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import EventOrdering, Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
+from sentry.models.projectownership import ProjectOwnership
+from sentry.models.release import Release
 from sentry.models.repository import Repository
+from sentry.models.team import Team, TeamStatus
 from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import (
@@ -57,6 +63,7 @@ from sentry.seer.agent.utils import (
     get_retention_boundary,
 )
 from sentry.seer.autofix.autofix import get_all_tags_overview
+from sentry.seer.autofix.utils import get_repo_url_path
 from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     BaselineTagDistributionEntry,
@@ -71,12 +78,16 @@ from sentry.seer.sentry_data_models import (
     ExecuteTimeseriesQuerySuccessResponse,
     GetDsnResponse,
     IssueAndEventDetailsResponse,
+    IssueCommittersResponse,
     IssueDetailsResponse,
+    IssueOwner,
+    IssueOwnershipResponse,
     ProfileFlamegraphErrorResponse,
     ProfileFlamegraphMetadata,
     ProfileFlamegraphSuccessResponse,
     ReplayMetadataResponse,
     RepositoryDefinitionResponse,
+    TeamMembersResponse,
     TraceItemAttributesResponse,
     TraceItemEventsResponse,
 )
@@ -89,6 +100,14 @@ from sentry.snuba.trace import query_trace_data
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import get_dataset
 from sentry.types.activity import ActivityType
+from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
+from sentry.utils.committers import (
+    get_event_file_committers,
+    get_frame_paths,
+    get_release_commit_candidates,
+    get_serialized_committers,
+)
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import raw_snql_query
 from sentry.utils.snuba_rpc import get_trace_rpc
@@ -143,6 +162,96 @@ def _get_full_trace_id(
     return None
 
 
+def _format_events_query_validation_errors(body: dict[str, Any]) -> str:
+    """Format an events/validate response body into an agent-readable error string."""
+    lines: list[str] = ["Query validation failed:"]
+
+    for section in ("dataset", "environment", "projects"):
+        for item in body.get(section) or []:
+            if item.get("valid") or not item.get("error"):
+                continue
+            name = item.get("name")
+            if name:
+                lines.append(f"- {section} '{name}': {item['error']}")
+            else:
+                lines.append(f"- {section}: {item['error']}")
+
+    for section in ("field", "orderby"):
+        for item in body.get(section) or []:
+            if item.get("valid") or not item.get("error"):
+                continue
+            name = item.get("name", "?")
+            lines.append(f"- {section} '{name}': {item['error']}")
+
+    query = body.get("query") or {}
+    if not query.get("valid") and query.get("error"):
+        lines.append(f"- query: {query['error']}")
+        for item in query.get("fields") or []:
+            if item.get("valid") or not item.get("error"):
+                continue
+            name = item.get("name", "?")
+            lines.append(f"  - field '{name}': {item['error']}")
+
+    if len(lines) == 1:
+        return f"Query validation failed: {body}"
+    return "\n".join(lines)
+
+
+def _validate_events_query_params(
+    *,
+    organization: Organization,
+    dataset: str,
+    fields: list[str],
+    query: str | None,
+    sort: str | None,
+    project_ids: list[int] | None,
+    project_slugs: list[str] | None,
+    stats_period: str | None,
+    start: str | None,
+    end: str | None,
+) -> ExecuteQueryErrorResponse | None:
+    """
+    Call events/validate and return an agent-readable error if the query is invalid.
+
+    Unexpected validate failures are logged and ignored so the events query can still run.
+    """
+    params: dict[str, Any] = {
+        "dataset": dataset,
+        "field": fields,
+        "query": query or None,
+        "project": project_ids,
+        "projectSlug": project_slugs,
+        "statsPeriod": stats_period,
+        "start": start,
+        "end": end,
+        "referrer": Referrer.SEER_EXPLORER_TOOLS,
+    }
+    if sort:
+        params["orderby"] = [sort]
+    params = {k: v for k, v in params.items() if v is not None}
+
+    try:
+        resp = client.get(
+            auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
+            user=None,
+            path=f"/organizations/{organization.slug}/events/validate/",
+            params=params,
+        )
+        if isinstance(resp.data, dict) and resp.data.get("valid") is False:
+            return ExecuteQueryErrorResponse(
+                error=_format_events_query_validation_errors(resp.data)
+            )
+        return None
+    except client.ApiError as e:
+        if e.status_code == 400 and isinstance(e.body, dict) and "valid" in e.body:
+            return ExecuteQueryErrorResponse(error=_format_events_query_validation_errors(e.body))
+        logger.exception(
+            "execute_table_query: validate request failed",
+            extra={"org_id": organization.id},
+        )
+        return None
+
+
 def execute_table_query(
     *,
     org_id: int,
@@ -161,6 +270,7 @@ def execute_table_query(
     span_query: list[str] | None = None,
     log_query: list[str] | None = None,
     metric_query: list[str] | None = None,
+    validate: bool = False,
 ) -> ExecuteQuerySuccessResponse | ExecuteQueryErrorResponse | None:
     """
     Execute a query to get table data by calling the events endpoint.
@@ -177,6 +287,9 @@ def execute_table_query(
 
         To prevent excessive queries and timeouts, either stats_period or *both* start and end must be provided.
         Start/end params take precedence over stats_period.
+
+        validate: When True, call events/validate first. Invalid queries return an
+        agent-readable error string instead of running the events query.
     """
     try:
         organization = Organization.objects.get(id=org_id)
@@ -196,6 +309,22 @@ def execute_table_query(
     elif "timestamp" in fields:
         # Default to -timestamp only if timestamp was selected.
         sort = "-timestamp"
+
+    if validate:
+        validation_error = _validate_events_query_params(
+            organization=organization,
+            dataset=dataset,
+            fields=fields,
+            query=query,
+            sort=sort,
+            project_ids=project_ids,
+            project_slugs=project_slugs,
+            stats_period=stats_period,
+            start=start,
+            end=end,
+        )
+        if validation_error is not None:
+            return validation_error
 
     params: dict[str, Any] = {
         "dataset": dataset,
@@ -938,7 +1067,9 @@ def get_repository_definition(
         return None
 
     # Use the actual repo name from the database, not the requested name.
-    repo_name_parts = repo.name.split("/")
+    # For GitLab, repo.name is the display name (name_with_namespace, may contain spaces);
+    # get_repo_url_path() returns the URL-safe path_with_namespace instead.
+    repo_name_parts = get_repo_url_path(repo).split("/")
     owner = repo_name_parts[0]
     name = "/".join(repo_name_parts[1:])
 
@@ -1357,6 +1488,57 @@ def get_issue_and_event_response(
     )
 
 
+def _resolve_seer_group(
+    *,
+    organization_id: int,
+    issue_id: str,
+    project_slug: str | None = None,
+) -> Group:
+    """
+    Resolve an ``issue_id`` to a :class:`Group`, scoped to ``organization_id`` (and to
+    ``project_slug`` when provided).
+
+    ``issue_id`` may be a numeric primary key or a qualified short id (e.g. ``PROJECT-123``):
+
+    - Numeric ids are looked up via ``get_from_cache``. The model cache only accepts a single
+      kwarg, so the org/project boundary cannot live in the query and is enforced with an
+      explicit post-fetch check instead. This also skips the ``project_ids`` query on the hot
+      numeric path.
+    - Short ids keep query-level project scoping via ``by_qualified_short_id`` to preserve the
+      in-org IDOR guard documented on that method; ``project_ids`` is only computed here.
+
+    Raises ``Group.DoesNotExist`` when no matching group is visible within the scope, so callers
+    can keep their existing ``except Group.DoesNotExist`` handling.
+    """
+    if issue_id.isdigit():
+        group = Group.objects.get_from_cache(id=int(issue_id))
+        # ``group.project`` is the org/project boundary the numeric query used to enforce.
+        # A hard-deleted project makes this FK access raise ``Project.DoesNotExist``; translate
+        # it so callers' ``except Group.DoesNotExist`` handling still applies.
+        try:
+            project = group.project
+        except Project.DoesNotExist:
+            raise Group.DoesNotExist() from None
+        if (
+            project.organization_id != organization_id
+            or project.status != ObjectStatus.ACTIVE
+            or (project_slug is not None and project.slug != project_slug)
+        ):
+            raise Group.DoesNotExist()
+        return group
+
+    project_ids = list(
+        Project.objects.filter(
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+            **({"slug": project_slug} if project_slug else {}),
+        ).values_list("id", flat=True)
+    )
+    if not project_ids:
+        raise Group.DoesNotExist()
+    return Group.objects.by_qualified_short_id(organization_id, issue_id, project_ids=project_ids)
+
+
 def get_issue_details(
     *,
     organization_id: int,
@@ -1378,27 +1560,18 @@ def get_issue_details(
     Returns:
         Dict with issue metadata, event_timeseries, tags_overview, and user_activity, or None if not found.
     """
+    # NOTE: start and end are interdependent. get_date_range_from_params raises InvalidParams
+    # unless both or neither are set, so passing only one will fail despite the optional signature.
     start_dt, end_dt = get_date_range_from_params({"start": start, "end": end}, optional=True)
 
     organization = Organization.objects.get(id=organization_id)
 
-    project_ids = list(
-        Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", flat=True)
-    )
-    if not project_ids:
-        return None
-
-    group: Group
-    if issue_id.isdigit():
-        group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
-    else:
-        group = Group.objects.by_qualified_short_id(
-            organization_id, issue_id, project_ids=project_ids
+    try:
+        group = _resolve_seer_group(
+            organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
         )
+    except Group.DoesNotExist:
+        return None
 
     # Get the issue metadata.
     serialized_group = dict(serialize(group, user=None, serializer=GroupSerializer()))
@@ -1461,6 +1634,424 @@ def get_issue_details(
     )
 
 
+def get_issue_committers(
+    *,
+    organization_id: int,
+    issue_id: str,
+    start: str | None = None,
+    end: str | None = None,
+) -> IssueCommittersResponse | None:
+    """
+    Get the likely code authors for an issue from Sentry's ingested commit data.
+
+    Combines three signals, all computed from ingested commits with NO SCM/GitHub call
+    (so it works without SCM credentials):
+
+    - ``stack_commits``: commit authors that touched the files in the issue's
+      stacktrace, scored by frame relevance. This is the *input* to Sentry's
+      suspect-commit feature (release-based blame of the failing frames) and is
+      available far more often than a single precomputed suspect commit.
+    - ``suspect_commits``: the precomputed suspect commit(s) from ``GroupOwner``, if
+      any (the same "Suspect Commit" shown in the Sentry UI).
+    - ``release_commits``: a broader pool of commits shipped around when the issue
+      first appeared, NOT limited to the stacktrace frames (catches regressions in
+      code that does not appear in the trace), each enriched with PR title/body,
+      file-change count, and a merge-commit flag so the caller can prune.
+
+    Default time windows differ by signal: ``release_commits`` covers ~6 weeks before
+    the issue first appeared (to surface what shipped just before it regressed), while
+    the sampled stacktrace event (for ``stack_commits``) is drawn from the issue's own
+    lifetime (``first_seen``..``last_seen``), since the issue has no events before it
+    first appeared. Pass ``start``/``end`` to override both.
+
+    Args:
+        organization_id: The ID of the organization.
+        issue_id: The issue ID (numeric) or qualified short ID (e.g. PROJECT-123). The
+            project is derived from the issue, so no project identifier is needed.
+        start: ISO timestamp for the start of the time range (optional).
+        end: ISO timestamp for the end of the time range (optional).
+
+    Returns:
+        An ``IssueCommittersResponse`` with ``stack_commits``, ``suspect_commits``,
+        ``release_commits``, ``project_id``, ``project_slug``. The commit lists may be
+        empty (e.g. no release/commit data linked to the issue) — callers can iterate
+        them without ``None`` checks. Returns ``None`` if the project/issue cannot be
+        resolved.
+    """
+    try:
+        committers = _IssueCommitters(
+            organization_id=organization_id,
+            issue_id=issue_id,
+            start=start,
+            end=end,
+        )
+    except Group.DoesNotExist:
+        return None
+    return committers.get()
+
+
+class _IssueCommitters:
+    """Computes the likely code authors for an issue from ingested commit data.
+
+    Backs :func:`get_issue_committers`. The shared inputs (resolved group,
+    organization, time window) are computed once in ``__init__`` and reused by the
+    per-signal helpers. Each signal is computed independently and its failures are
+    isolated, so a problem in one signal doesn't blank out the others.
+    """
+
+    def __init__(
+        self,
+        *,
+        organization_id: int,
+        issue_id: str,
+        start: str | None = None,
+        end: str | None = None,
+    ) -> None:
+        self.organization_id = organization_id
+        self.issue_id = issue_id
+        self.start_dt: datetime | None
+        self.end_dt: datetime | None
+        self.start_dt, self.end_dt = get_date_range_from_params(
+            {"start": start, "end": end}, optional=True
+        )
+        self.organization = Organization.objects.get(id=organization_id)
+        # Lets ``Group.DoesNotExist`` propagate so ``get_issue_committers`` can map it to
+        # ``None`` (the shared "issue not found" signal for the seer issue methods).
+        self.group = _resolve_seer_group(organization_id=organization_id, issue_id=issue_id)
+
+    def get(self) -> IssueCommittersResponse:
+        return IssueCommittersResponse(
+            stack_commits=self._get_stack_commits(),
+            suspect_commits=self._get_suspect_commits(),
+            release_commits=self._get_release_commits(),
+            project_id=self.group.project_id,
+            project_slug=self.group.project.slug,
+        )
+
+    @property
+    def _log_extra(self) -> dict[str, Any]:
+        return {"organization_id": self.organization_id, "issue_id": self.issue_id}
+
+    def _get_suspect_commits(self) -> list[dict[str, Any]]:
+        """Precomputed author+commit (one or none) from the suspect-commit feature."""
+        try:
+            suspect_commits = get_serialized_committers(self.group.project, self.group.id)
+        except Exception:
+            metrics.incr("seer.get_issue_committers.error", tags={"step": "suspect_commits"})
+            logger.exception(
+                "get_issue_committers: Failed to get suspect commits",
+                extra=self._log_extra,
+            )
+            return []
+        return [dict(committer) for committer in suspect_commits]
+
+    def _get_stack_commits(self) -> list[dict[str, Any]]:
+        """Frame-based blame: authors of the files in the stacktrace.
+
+        This is the input to the suspect-commit feature and is available far more often.
+        """
+        try:
+            event = _get_recommended_event(
+                self.group, self.organization, self.start_dt, self.end_dt
+            )
+            if event is None:
+                # Frame blame only needs a stacktrace, not a span/trace.
+                # _get_recommended_event requires a span-bearing event and returns None
+                # for issues without spans (the common case for error issues), which
+                # would silently drop frame blame. Fall back to the latest event so the
+                # failing frames are still available. Frame paths are stable across an
+                # issue's events, so this is a safe source for blame. Thread the window
+                # through so a caller-supplied start/end is still honored (no-op when empty).
+                event = self.group.get_latest_event(start=self.start_dt, end=self.end_dt)
+            if event is None:
+                return []
+            sdk_name = (event.data.get("sdk") or {}).get("name")
+            author_commits = get_event_file_committers(
+                self.group.project,
+                self.group.id,
+                get_frame_paths(event),
+                event.platform,
+                sdk_name=sdk_name,
+            )
+            # get_event_file_committers serializes the author but leaves commits as
+            # (Commit, score) tuples ordered weakest-first; serialize the commits and
+            # reverse so the strongest blame is first.
+            # Batch-serialize every commit in one call: CommitSerializer.get_attrs runs
+            # repository and pull request queries per invocation, so serializing one
+            # commit at a time would be an N+1.
+            commits_by_id = {
+                commit.id: commit
+                for entry in author_commits
+                for commit, _ in entry.get("commits", [])
+            }
+            serialized_by_id = {
+                commit_id: serialized
+                for commit_id, serialized in zip(
+                    commits_by_id,
+                    serialize(
+                        list(commits_by_id.values()),
+                        serializer=CommitSerializer(exclude=["author"]),
+                    ),
+                )
+            }
+            stack_commits = [
+                {
+                    "author": entry.get("author"),
+                    "commits": [
+                        {**serialized_by_id[commit.id], "score": score}
+                        for commit, score in entry.get("commits", [])
+                    ],
+                }
+                for entry in author_commits
+            ]
+            stack_commits.reverse()
+            return stack_commits
+        except (Release.DoesNotExist, Commit.DoesNotExist):
+            # No release/commit data linked to this issue; frame blame isn't available.
+            return []
+        except Exception:
+            metrics.incr("seer.get_issue_committers.error", tags={"step": "stack_commits"})
+            logger.exception(
+                "get_issue_committers: Failed to compute stack commits",
+                extra=self._log_extra,
+            )
+            return []
+
+    def _get_release_commits(self) -> list[dict[str, Any]]:
+        """Broader candidate pool: commits shipped around when the issue first appeared.
+
+        NOT limited to the stacktrace frames. Window defaults to ~6 weeks before
+        first_seen; an explicit start/end overrides it.
+        """
+        release_commits: list[dict[str, Any]] = []
+        try:
+            window_end = self.end_dt or self.group.first_seen
+            window_start = self.start_dt or (window_end - timedelta(weeks=6))
+            candidates = get_release_commit_candidates(
+                self.group.project, self.group.id, since=window_start, until=window_end
+            )
+            if candidates:
+                file_change_counts = dict(
+                    CommitFileChange.objects.filter(commit_id__in=[c.id for c in candidates])
+                    .values_list("commit_id")
+                    .annotate(n=models.Count("id"))
+                )
+                serialized_candidates = serialize(
+                    candidates, serializer=CommitSerializer(exclude=["repository"])
+                )
+                for commit, serialized in zip(candidates, serialized_candidates):
+                    message = (commit.message or "").strip()
+                    release_commits.append(
+                        {
+                            **serialized,
+                            "files_changed_count": file_change_counts.get(commit.id),
+                            "is_merge_commit": message.startswith("Merge "),
+                        }
+                    )
+        except Exception:
+            metrics.incr("seer.get_issue_committers.error", tags={"step": "release_commits"})
+            logger.exception(
+                "get_issue_committers: Failed to fetch release commits",
+                extra=self._log_extra,
+            )
+            return []
+        return release_commits
+
+
+def get_issue_ownership(
+    *,
+    organization_id: int,
+    issue_id: str,
+) -> IssueOwnershipResponse | None:
+    """
+    Get the configured code owners for an issue from Sentry's Ownership Rules / CODEOWNERS.
+
+    This answers "who is RESPONSIBLE for this area of code", which is independent of who
+    authored any commit (``get_issue_committers``). It matches the files in the issue's
+    stacktrace against the project's ownership schema and returns the resolved owners.
+
+    Use it when commit signals are weak or absent (e.g. infra/transient errors that still
+    fall inside an owned area), or to corroborate a commit-based suggestion. The
+    ``auto_assignment`` flag tells you whether Sentry already auto-assigns from these
+    rules: when it is False, the owners are configured but nothing acts on them, which is
+    exactly the gap a suggested assignee fills.
+
+    Args:
+        organization_id: The ID of the organization.
+        issue_id: The issue ID (numeric) or qualified short ID (e.g. PROJECT-123). The
+            project is derived from the issue, so no project identifier is needed.
+
+    Returns:
+        An ``IssueOwnershipResponse`` with ``owners`` (ordered users/teams), ``matched_rules``
+        (the rule patterns that matched), ``auto_assignment``, ``project_id``, and
+        ``project_slug``. ``owners`` may be empty when no rule covers the failing files.
+        Returns ``None`` if the project/issue cannot be resolved.
+    """
+    try:
+        ownership = _IssueOwnership(
+            organization_id=organization_id,
+            issue_id=issue_id,
+        )
+    except Group.DoesNotExist:
+        return None
+    return ownership.get()
+
+
+# ``ProjectOwnership.get_issue_owners`` defaults to 2 (suggested-assignee sizing); the
+# ownership tool wants the full set of responsible owners, so we cap higher.
+_OWNERSHIP_RULE_LIMIT = 25
+
+
+class _IssueOwnership:
+    """Resolves the configured code owners for an issue.
+
+    Backs :func:`get_issue_ownership`. Mirrors :class:`_IssueCommitters`: the shared
+    inputs (resolved group, organization) are computed once in ``__init__`` and reused by
+    the per-signal helpers, and each signal isolates its own failures so one failing
+    lookup doesn't blank out the others.
+    """
+
+    def __init__(
+        self,
+        *,
+        organization_id: int,
+        issue_id: str,
+    ) -> None:
+        self.organization_id = organization_id
+        self.issue_id = issue_id
+        self.organization = Organization.objects.get(id=organization_id)
+        # Lets ``Group.DoesNotExist`` propagate so ``get_issue_ownership`` can map it to
+        # ``None`` (the shared "issue not found" signal for the seer issue methods).
+        self.group = _resolve_seer_group(organization_id=organization_id, issue_id=issue_id)
+
+    def get(self) -> IssueOwnershipResponse:
+        owners, matched_rules = self._resolve_owners()
+        return IssueOwnershipResponse(
+            owners=owners,
+            matched_rules=matched_rules,
+            auto_assignment=self._auto_assignment_enabled(),
+            project_id=self.group.project_id,
+            project_slug=self.group.project.slug,
+        )
+
+    @property
+    def _log_extra(self) -> dict[str, Any]:
+        return {"organization_id": self.organization_id, "issue_id": self.issue_id}
+
+    def _resolve_owners(self) -> tuple[list[IssueOwner], list[str]]:
+        """Match the issue's stacktrace files against the project ownership schema.
+
+        Delegates to ``ProjectOwnership.get_issue_owners`` — the same resolution Sentry
+        runs in post-processing to populate ``GroupOwner`` — so owners come back already
+        resolved to teams/users (control-silo user lookups included) and grouped under the
+        rule that matched. ``get_issue_owners`` caps its result at ``limit`` rules that
+        resolved to at least one owner (default 2, tuned for suggested assignees); we raise
+        it so the agent gets a fuller picture of who's responsible.
+        """
+        try:
+            event = self.group.get_latest_event()
+            if event is None:
+                return [], []
+            issue_owners = ProjectOwnership.get_issue_owners(
+                self.group.project_id, event.data, limit=_OWNERSHIP_RULE_LIMIT
+            )
+        except Exception:
+            metrics.incr("seer.get_issue_ownership.error", tags={"step": "get_owners"})
+            logger.exception(
+                "get_issue_ownership: Failed to resolve owners",
+                extra=self._log_extra,
+            )
+            return [], []
+
+        owners: list[IssueOwner] = []
+        seen: set[tuple[str, int]] = set()  # the same owner can match multiple rules
+        matched_rules: set[str] = set()
+        for rule, rule_owners, _rule_type in issue_owners:
+            if rule.matcher:
+                matched_rules.add(str(rule.matcher.pattern))
+            for owner in rule_owners:
+                if isinstance(owner, Team):
+                    if ("team", owner.id) in seen:
+                        continue
+                    seen.add(("team", owner.id))
+                    owners.append(IssueOwner(type="team", slug=owner.slug, name=owner.name))
+                else:  # RpcUser
+                    if ("user", owner.id) in seen:
+                        continue
+                    seen.add(("user", owner.id))
+                    owners.append(
+                        IssueOwner(type="user", email=owner.email, name=owner.get_display_name())
+                    )
+
+        return owners, sorted(matched_rules)
+
+    def _auto_assignment_enabled(self) -> bool:
+        """Whether Sentry already auto-assigns issues from these ownership rules."""
+        try:
+            ownership = ProjectOwnership.get_ownership_cached(self.group.project_id)
+        except Exception:
+            metrics.incr("seer.get_issue_ownership.error", tags={"step": "auto_assignment"})
+            logger.exception(
+                "get_issue_ownership: Failed to read auto-assignment flag",
+                extra=self._log_extra,
+            )
+            return False
+        return bool(ownership and ownership.auto_assignment)
+
+
+def get_team_members(
+    *,
+    organization_id: int,
+    team_slug: str,
+) -> TeamMembersResponse | None:
+    """
+    Get the active users on a team.
+
+    Pairs with ``get_issue_ownership``: that tool may resolve an issue's owner to a
+    *team*, which on its own isn't an actionable assignee. Call this with the team's slug
+    to expand it into the individual users on it, so the agent can get down to a specific
+    person to suggest.
+
+    Args:
+        organization_id: The ID of the organization.
+        team_slug: The slug of the team (e.g. the ``slug`` of a ``team`` owner returned by
+            ``get_issue_ownership``).
+
+    Returns:
+        A ``TeamMembersResponse`` with ``team_id``/``team_slug``/``team_name`` and
+        ``members`` (each an ``IssueOwner`` with ``type="user"``, ``email``, ``name``).
+        ``members`` is empty when the team has no active members. Returns ``None`` if the
+        team cannot be found in the organization.
+    """
+    try:
+        team = Team.objects.get(
+            organization_id=organization_id,
+            slug=team_slug,
+            status=TeamStatus.ACTIVE,
+        )
+    except Team.DoesNotExist:
+        return None
+
+    # ``User`` lives in the control silo, so resolve the team's member ids (a region
+    # query) through the user service to get emails/display names from the region the RPC
+    # runs in.
+    user_ids = list(team.get_member_user_ids())
+    members = (
+        [
+            IssueOwner(type="user", email=user.email, name=user.get_display_name())
+            for user in user_service.get_many(filter={"user_ids": user_ids})
+        ]
+        if user_ids
+        else []
+    )
+    return TeamMembersResponse(
+        team_id=team.id,
+        team_slug=team.slug,
+        team_name=team.name,
+        members=members,
+    )
+
+
 def get_event_details(
     *,
     organization_id: int,
@@ -1490,16 +2081,6 @@ def get_event_details(
 
     organization = Organization.objects.get(id=organization_id)
 
-    project_ids = list(
-        Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", flat=True)
-    )
-    if not project_ids:
-        return None
-
     event: Event | GroupEvent | None
     group: Group | None
 
@@ -1508,16 +2089,26 @@ def get_event_details(
 
         # Fetch the group then get a sample event from the time range.
         assert issue_id is not None
-        if issue_id.isdigit():
-            group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
-        else:
-            group = Group.objects.by_qualified_short_id(
-                organization_id, issue_id, project_ids=project_ids
+        try:
+            group = _resolve_seer_group(
+                organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
             )
-        assert group is not None
+        except Group.DoesNotExist:
+            return None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
     else:
+        # The project boundary is only needed for the by-event-id lookup below.
+        project_ids = list(
+            Project.objects.filter(
+                organization=organization,
+                status=ObjectStatus.ACTIVE,
+                **({"slug": project_slug} if project_slug else {}),
+            ).values_list("id", flat=True)
+        )
+        if not project_ids:
+            return None
+
         # Fetch the event directly by ID.
         uuid.UUID(event_id)  # Raises ValueError if not valid UUID
         if len(project_ids) == 1:
@@ -1596,34 +2187,32 @@ def get_issue_and_event_details_v2(
 
     organization = Organization.objects.get(id=organization_id)
 
-    project_ids = list(
-        Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-            **({"slug": project_slug} if project_slug else {}),
-        ).values_list("id", flat=True)
-    )
-    if not project_ids:
-        return None
-
     event: Event | GroupEvent | None
     group: Group | None
 
     if event_id is None:
         # Fetch the group then get a sample event from the time range.
         assert issue_id is not None
-        if issue_id.isdigit():
-            group = Group.objects.get(project_id__in=project_ids, id=int(issue_id))
-        else:
-            # Scope the short id lookup to the same projects as the numeric branch so both
-            # paths enforce the same project boundary.
-            group = Group.objects.by_qualified_short_id(
-                organization_id, issue_id, project_ids=project_ids
+        try:
+            group = _resolve_seer_group(
+                organization_id=organization_id, issue_id=issue_id, project_slug=project_slug
             )
-        assert group is not None
+        except Group.DoesNotExist:
+            return None
         event = _get_recommended_event(group, organization, start_dt, end_dt)
 
     else:
+        # The project boundary is only needed for the by-event-id lookup below.
+        project_ids = list(
+            Project.objects.filter(
+                organization=organization,
+                status=ObjectStatus.ACTIVE,
+                **({"slug": project_slug} if project_slug else {}),
+            ).values_list("id", flat=True)
+        )
+        if not project_ids:
+            return None
+
         # Fetch the event then look up its group.
         uuid.UUID(event_id)  # Raises ValueError if not valid UUID
         if len(project_ids) == 1:
