@@ -369,7 +369,7 @@
     </table>
     {% endif %}
 
-    {% if notification_settings_link %}
+    {% if notification_settings_link and trends.legend|length > 5 %}
     <div style="padding: 16px 16px 12px; margin: 16px 0 16px; background-color: #f8f8f9; border-radius: 4px; font-size: 14px; color: #80708F;">
       Want to choose the projects you see in the weekly report? <a href="{% absolute_uri notification_settings_link %}">Customize your project preferences here!</a>
     </div>
