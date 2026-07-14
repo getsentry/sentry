@@ -38,7 +38,7 @@ export function useCommandPaletteAnalytics(filteredActionCount: number): {
   recordAction: (action: ActionLike, resultIndex: number, group: string) => void;
   recordGroupAction: (action: ActionLike, resultIndex: number) => void;
 } {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const state = useCommandPaletteState();
 
   const analyticsState = useRef({
