@@ -2,9 +2,10 @@
 
 `maybe_trigger_smart_assignment` is the single gated entrypoint: it checks the
 feature flag, dedups to one prediction per issue (so a run is only dispatched the
-first time), and enforces per-org and global daily dispatch caps. It takes a
-`SmartAssignmentTrigger` (not an `ActivityType`) so callers that aren't driven by an
-activity can trigger too.
+first time), and enforces per-org and global daily dispatch caps. It takes the
+triggering `ActivityType` directly (rather than condensing it into a bespoke enum)
+so we keep the exact provenance in metrics and the run mirror. Today every trigger
+is an activity; a future non-activity source would widen this parameter.
 
 There is no dedicated result table: Seer stores the run/verdict (queryable per issue
 via `category_value=<group_id>`) and the run's Sentry-side mirror (`SeerAgentRun`,
@@ -26,9 +27,10 @@ from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.smart_assignment.models import (
     FEATURE_ID,
+    RESOLUTION_ACTIVITIES,
     SmartAssignmentPayload,
-    SmartAssignmentTrigger,
 )
+from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -41,17 +43,18 @@ _RATE_LIMIT_WINDOW = 86400
 
 def maybe_trigger_smart_assignment(
     group: Group,
-    trigger: SmartAssignmentTrigger,
+    activity_type: ActivityType,
     activity: Activity | None = None,
 ) -> None:
     """Gate + dispatch a prediction for `group`.
 
     Dispatches a Seer run the first time (deduped to one run per group, and subject
-    to per-org / global daily caps). `activity` is the triggering activity: it's
-    stamped with a pointer to the run it kicked off. No-op unless the org is flagged.
-    Automatic resolutions (no acting user, e.g. resolved by age) are skipped entirely
-    -- we only treat a resolution as signal when a human resolved the issue, since
-    then they probably should have been the assignee.
+    to per-org / global daily caps). `activity_type` is what triggered us (a Seer AI
+    step starting, an assignment, or a resolution); `activity` is the triggering
+    activity, stamped with a pointer to the run it kicked off. No-op unless the org
+    is flagged. Automatic resolutions (no acting user, e.g. resolved by age) are
+    skipped entirely -- we only treat a resolution as signal when a human resolved
+    the issue, since then they probably should have been the assignee.
     """
     organization = group.organization
 
@@ -59,9 +62,7 @@ def maybe_trigger_smart_assignment(
         metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "flag_disabled"})
         return
 
-    if trigger == SmartAssignmentTrigger.RESOLUTION and (
-        activity is None or activity.user_id is None
-    ):
+    if activity_type in RESOLUTION_ACTIVITIES and (activity is None or activity.user_id is None):
         metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "automatic_resolution"})
         return
 
@@ -71,7 +72,7 @@ def maybe_trigger_smart_assignment(
     # is our durable record that a run was dispatched.
     if not _already_predicted(group):
         if not _dispatch_rate_limited(organization):
-            _dispatch(group, trigger, activity)
+            _dispatch(group, activity_type, activity)
 
 
 def _already_predicted(group: Group) -> bool:
@@ -111,7 +112,7 @@ def _dispatch_rate_limited(organization: Organization) -> bool:
     return False
 
 
-def _dispatch(group: Group, trigger: SmartAssignmentTrigger, activity: Activity | None) -> None:
+def _dispatch(group: Group, activity_type: ActivityType, activity: Activity | None) -> None:
     """Dispatch a Seer smart-assignment run and stamp the triggering activity.
 
     The run's Sentry-side mirror (`SeerAgentRun`) is created inside `start_feature_run`
@@ -127,7 +128,7 @@ def _dispatch(group: Group, trigger: SmartAssignmentTrigger, activity: Activity 
         metrics.incr("smart_assignment.trigger.skipped", tags={"reason": "no_seer_access"})
         return
 
-    extras: dict[str, object] = {"trigger": str(trigger)}
+    extras: dict[str, object] = {"trigger": activity_type.name}
     if activity is not None:
         extras["triggering_activity_id"] = activity.id
 
@@ -146,16 +147,20 @@ def _dispatch(group: Group, trigger: SmartAssignmentTrigger, activity: Activity 
         return
 
     if activity is not None:
-        _stamp_activity(activity, run, trigger)
+        _stamp_activity(activity, run, activity_type)
 
-    metrics.incr("smart_assignment.trigger.dispatched", tags={"trigger": trigger})
+    metrics.incr("smart_assignment.trigger.dispatched", tags={"trigger": activity_type.name})
     logger.info(
         "smart_assignment.trigger.dispatched",
-        extra={"group_id": group.id, "organization_id": organization.id, "trigger": trigger},
+        extra={
+            "group_id": group.id,
+            "organization_id": organization.id,
+            "trigger": activity_type.name,
+        },
     )
 
 
-def _stamp_activity(activity: Activity, run: SeerRun, trigger: SmartAssignmentTrigger) -> None:
+def _stamp_activity(activity: Activity, run: SeerRun, activity_type: ActivityType) -> None:
     """Record a pointer to the dispatched run on the activity that triggered it.
 
     Written under the `seer_smart_assignment` key so an action (assignment, PR,
@@ -168,7 +173,7 @@ def _stamp_activity(activity: Activity, run: SeerRun, trigger: SmartAssignmentTr
     data["seer_smart_assignment"] = {
         "run_id": run.id,
         "run_uuid": str(run.uuid),
-        "trigger": str(trigger),
+        "trigger": activity_type.name,
     }
     Activity.objects.filter(id=activity.id).update(data=data)
     activity.data = data

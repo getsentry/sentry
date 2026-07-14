@@ -33,27 +33,22 @@ class SmartAssignmentActivityHandlerTest(TestCase):
 
     @mock.patch(TRIGGER)
     def test_delegates_for_relevant_activities(self, mock_trigger: MagicMock) -> None:
-        from sentry.seer.smart_assignment.models import SmartAssignmentTrigger
-
+        # The handler forwards the raw ActivityType straight through -- no condensing.
         cases = [
-            (ActivityType.SEER_RCA_STARTED, SmartAssignmentTrigger.SEER_STARTED, None),
-            (ActivityType.SEER_SOLUTION_STARTED, SmartAssignmentTrigger.SEER_STARTED, None),
-            (ActivityType.SEER_CODING_STARTED, SmartAssignmentTrigger.SEER_STARTED, None),
-            (
-                ActivityType.ASSIGNED,
-                SmartAssignmentTrigger.ASSIGNMENT,
-                {"assignee": "1", "assigneeType": "user"},
-            ),
-            (ActivityType.SET_RESOLVED, SmartAssignmentTrigger.RESOLUTION, None),
-            (ActivityType.SET_RESOLVED_IN_COMMIT, SmartAssignmentTrigger.RESOLUTION, None),
+            (ActivityType.SEER_RCA_STARTED, None),
+            (ActivityType.SEER_SOLUTION_STARTED, None),
+            (ActivityType.SEER_CODING_STARTED, None),
+            (ActivityType.ASSIGNED, {"assignee": "1", "assigneeType": "user"}),
+            (ActivityType.SET_RESOLVED, None),
+            (ActivityType.SET_RESOLVED_IN_COMMIT, None),
         ]
-        for activity_type, expected_trigger, data in cases:
+        for activity_type, data in cases:
             mock_trigger.reset_mock()
             activity = self.create_group_activity(
                 group=self.group, type=activity_type.value, data=data
             )
             smart_assignment_activity_handler(self.group, activity, None)
-            mock_trigger.assert_called_once_with(self.group, expected_trigger, activity)
+            mock_trigger.assert_called_once_with(self.group, activity_type, activity)
 
     @mock.patch(TRIGGER)
     def test_skips_unrelated_activities(self, mock_trigger: MagicMock) -> None:
