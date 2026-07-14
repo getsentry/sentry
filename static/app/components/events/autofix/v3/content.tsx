@@ -18,9 +18,9 @@ import {
 import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
 import {CodingAgentsCard} from 'sentry/components/events/autofix/v3/codingAgentsCard';
 import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
-import {NotificationPrompt} from 'sentry/components/events/autofix/v3/notificationPrompt';
 import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
 import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
+import {SeerEnableNotifications} from 'sentry/components/events/autofix/v3/seerEnableNotifications';
 import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
@@ -136,7 +136,7 @@ function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsPr
       })}
 
       {sections.some(section => section.status === 'processing') && (
-        <NotificationPrompt />
+        <SeerEnableNotifications />
       )}
     </Fragment>
   );

@@ -1,4 +1,5 @@
 import type {AllNotificationOptions} from 'sentry/serviceWorker/types';
+import {log} from 'sentry/serviceWorker/worker/constants';
 
 export async function showNotification(
   sw: ServiceWorkerGlobalScope,
@@ -8,7 +9,17 @@ export async function showNotification(
   }
 ): Promise<unknown> {
   if (Notification.permission === 'granted') {
+    log('showNotification', {
+      attributes: {
+        title: data.title,
+        navigateTo: data.options.data?.navigateTo,
+        options: data.options,
+      },
+    });
     await sw.registration.showNotification(data.title, data.options);
+    log('showNotification.success', {
+      attributes: {title: data.title, options: data.options},
+    });
     return 'Notification Sent';
   }
   return 'Permission denied';

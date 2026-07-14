@@ -8,22 +8,26 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePrompts} from 'sentry/actionCreators/prompts';
+import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {IconSubscribed} from 'sentry/icons/iconSubscribed';
 import {t} from 'sentry/locale';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
 import type {RequestMessage} from 'sentry/serviceWorker/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const SUCCESS_VISIBLE_DURATION_MS = 25_000;
 const PROMPT_FEATURE = 'autofix-sw-notification';
 
-export function NotificationPrompt() {
+export function SeerEnableNotifications() {
   const organization = useOrganization();
   const [isSuccessVisible, setIsSuccessVisible] = useState(false);
   const {isServiceWorkerSupported, controller} = useServiceWorker();
   const {permission, supportsNotifications, askNotificationPermission} =
     useNotificationPermission();
+
+  const analyticsArea = useAnalyticsArea();
 
   const {isPromptDismissed, snoozePrompt} = usePrompts({
     features: [PROMPT_FEATURE],
@@ -41,6 +45,23 @@ export function NotificationPrompt() {
     return () => {};
   }, [isSuccessVisible, permission]);
 
+  useEffect(() => {
+    if (!isServiceWorkerSupported || !supportsNotifications || isPromptDismissed) {
+      return;
+    }
+    trackAnalytics('seer-enable-notifications.rendered', {
+      organization,
+      surface: analyticsArea,
+    });
+  }, [
+    analyticsArea,
+    controller,
+    isPromptDismissed,
+    isServiceWorkerSupported,
+    organization,
+    supportsNotifications,
+  ]);
+
   if (!isServiceWorkerSupported || !supportsNotifications || isPromptDismissed) {
     return null;
   }
@@ -52,6 +73,9 @@ export function NotificationPrompt() {
         trailingItems={
           <Flex align="center" gap="md">
             <Button
+              analyticsEventName="Seer Enable Notifications: Clicked Test Notification"
+              analyticsEventKey="seer-enable-notifications.test-notif.clicked"
+              analyticsParams={{surface: analyticsArea}}
               size="xs"
               onClick={async () => {
                 try {
@@ -94,6 +118,9 @@ export function NotificationPrompt() {
         <Flex gap="lg" align="center">
           <Flex align="center" gap="md">
             <Button
+              analyticsEventName="Seer Enable Notifications: Clicked Notify Me"
+              analyticsEventKey="seer-enable-notifications.notify-me.clicked"
+              analyticsParams={{surface: analyticsArea}}
               variant="primary"
               size="md"
               onClick={() => {
@@ -108,6 +135,9 @@ export function NotificationPrompt() {
           </Flex>
           <Flex>
             <Button
+              analyticsEventName="Seer Enable Notifications: Clicked Snooze Prompt"
+              analyticsEventKey="seer-enable-notifications.snooze.clicked"
+              analyticsParams={{surface: analyticsArea}}
               variant="transparent"
               size="md"
               onClick={() => snoozePrompt(PROMPT_FEATURE)}
