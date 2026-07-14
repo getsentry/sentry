@@ -12,6 +12,9 @@ interface SpinnerProps extends React.HTMLAttributes<HTMLSpanElement> {
  * A small, inline activity spinner for chat and agent surfaces — used next to a
  * message that is streaming or a tool call that is still running.
  *
+ * Internal to the chat primitives (not exported) — the general spinner/loading
+ * consolidation is tracked separately.
+ *
  * Decorative by default (`aria-hidden`). Pass an `aria-label` (and typically
  * `role="status"`) when the spinner is the only signal that work is in progress.
  */
