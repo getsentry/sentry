@@ -9,7 +9,6 @@ import {t, tct, tn} from 'sentry/locale';
 import type {
   GroupActivity,
   GroupActivitySetEscalating,
-  GroupActivitySetIgnored,
   IssueCategory,
 } from 'sentry/types/group';
 import {GroupActivityType, IssueCategory as IssueCategoryEnum} from 'sentry/types/group';
@@ -29,6 +28,7 @@ import {getIntegrationLink} from './compactActivityItem/integrationLink';
 import {getProviderName} from './compactActivityItem/provider';
 import {getResolvedInReleaseDetails} from './compactActivityItem/releaseDetails';
 import type {CompactGroupActivityItem} from './compactActivityItem/types';
+import {getArchiveDetails} from './archiveDetails';
 
 export type {CompactGroupActivityItem} from './compactActivityItem/types';
 
@@ -62,61 +62,6 @@ function formatAutoResolveAge(age: number | string | undefined) {
   return precision === 'day'
     ? tn('%s day', '%s days', count)
     : tn('%s hour', '%s hours', count);
-}
-
-function getIgnoredDetails(
-  data: GroupActivitySetIgnored['data'],
-  issueCategory: IssueCategory
-) {
-  const isFeedback = issueCategory === IssueCategoryEnum.FEEDBACK;
-
-  if (data.ignoreDuration) {
-    return tct('for [duration]', {
-      duration: <Duration seconds={data.ignoreDuration * 60} />,
-    });
-  }
-
-  if (data.ignoreCount && data.ignoreWindow) {
-    return tct('until [threshold] within [duration]', {
-      threshold: tn('%s event occurs', '%s events occur', data.ignoreCount),
-      duration: <Duration seconds={data.ignoreWindow * 60} />,
-    });
-  }
-
-  if (data.ignoreCount) {
-    return tn(
-      'until %s more event occurs',
-      'until %s more events occur',
-      data.ignoreCount
-    );
-  }
-
-  if (data.ignoreUserCount && data.ignoreUserWindow) {
-    return tct('until [threshold] within [duration]', {
-      threshold: tn('%s user is affected', '%s users are affected', data.ignoreUserCount),
-      duration: <Duration seconds={data.ignoreUserWindow * 60} />,
-    });
-  }
-
-  if (data.ignoreUserCount) {
-    return tn(
-      'until %s more user is affected',
-      'until %s more users are affected',
-      data.ignoreUserCount
-    );
-  }
-
-  if (data.ignoreUntil) {
-    return tct('until [date]', {
-      date: <DateTime date={data.ignoreUntil} />,
-    });
-  }
-
-  if (data.ignoreUntilEscalating) {
-    return t('until it escalates');
-  }
-
-  return isFeedback ? null : t('forever');
 }
 
 function getEscalatingDetails(data: GroupActivitySetEscalating['data']) {
@@ -350,7 +295,7 @@ export function getCompactGroupActivityItem({
           issueCategory === IssueCategoryEnum.FEEDBACK
             ? t('Marked as spam')
             : t('Archived'),
-        details: getIgnoredDetails(activity.data, issueCategory),
+        details: getArchiveDetails(activity.data, issueCategory),
       };
     case GroupActivityType.SET_PUBLIC:
       return {

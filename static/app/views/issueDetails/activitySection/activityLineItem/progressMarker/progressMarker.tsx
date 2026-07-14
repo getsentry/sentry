@@ -8,11 +8,16 @@ import {formatActivityMarkerState, type ActivityMarkerState} from './variant';
 
 interface ProgressMarkerProps {
   state: ActivityMarkerState;
+  label?: string;
   tooltipProps?: Omit<TooltipProps, 'children' | 'skipWrapper' | 'title'>;
 }
 
-export function ActivityProgressMarker({state, tooltipProps}: ProgressMarkerProps) {
-  const label = formatActivityMarkerState(state);
+export function ActivityProgressMarker({
+  label: labelOverride,
+  state,
+  tooltipProps,
+}: ProgressMarkerProps) {
+  const label = labelOverride ?? formatActivityMarkerState(state);
   const marker =
     state === 'activity' ? (
       <ProgressDotFrame aria-label={label} role="img">
