@@ -249,6 +249,11 @@ def test_symbolicate_event_with_legacy_symbolicate_platforms(
         "platform": "javascript",
         "project": default_project.id,
         "event_id": EVENT_ID,
+        "exception": {
+            "values": [
+                {"stacktrace": {"frames": [{"platform": "native", "instruction_addr": "0x2a2a3d"}]}}
+            ]
+        },
     }
     mock_event_processing_store.get.return_value = data
 

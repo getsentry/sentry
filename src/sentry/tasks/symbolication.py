@@ -142,7 +142,11 @@ def _do_symbolicate_event(
     else:
         # New behavior
         symbolication_function = task_kind.function
-    symbolication_function_name = getattr(symbolication_function.function(), "__name__", "none")
+    symbolication_function_name = (
+        None
+        if symbolication_function is None
+        else (symbolication_function.function(), "__name__", "none")
+    )
 
     if symbolication_function is None or killswitch_matches_context(
         "store.load-shed-symbolicate-event-projects",
@@ -406,20 +410,20 @@ symbolicate_applecrashreport_from_reprocessing = make_task_fn(
 symbolicate_event_legacy = make_task_fn(
     name="sentry.tasks.store.symbolicate_event_legacy",
     queue="events.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=False),
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorPlatform.native, is_reprocessing=False),
 )
 symbolicate_js_event_legacy = make_task_fn(
     name="sentry.tasks.symbolicate_js_event_legacy",
     queue="events.symbolicate_js_event",
-    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.js, is_reprocessing=False),
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorPlatform.js, is_reprocessing=False),
 )
 symbolicate_jvm_event_legacy = make_task_fn(
     name="sentry.tasks.symbolicate_jvm_event_legacy",
     queue="events.symbolicate_jvm_event",
-    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.jvm, is_reprocessing=False),
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorPlatform.jvm, is_reprocessing=False),
 )
 symbolicate_event_from_reprocessing_legacy = make_task_fn(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing_legacy",
     queue="events.reprocessing.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=True),
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorPlatform.native, is_reprocessing=True),
 )
