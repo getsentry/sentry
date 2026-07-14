@@ -260,7 +260,7 @@ def _forward_to_judge(
                 "pr_metrics.emit.skipped",
                 tags={"reason": "no_eligible_attribution_indeterminate"},
             )
-            logger.info(
+            logger.warning(
                 "pr_metrics.emit.needs_judge",
                 extra={
                     "organization_id": organization.id,
@@ -272,9 +272,9 @@ def _forward_to_judge(
             return
 
         verdict = select_fallback_verdict(pr)
-        metrics.incr("pr_metrics.judge.fallback_verdict", tags={"verdict": verdict})
+        metrics.incr("pr_metrics.emit.fallback_verdict", tags={"verdict": verdict})
         logger.info(
-            "pr_metrics.judge.fallback_verdict",
+            "pr_metrics.emit.fallback_verdict",
             extra={
                 "organization_id": organization.id,
                 "repository_id": pr.repository_id,
@@ -282,7 +282,7 @@ def _forward_to_judge(
                 "verdict": verdict,
             },
         )
-        _claim_and_emit(pr, verdict, "pr_metrics.judge.fallback_emitted")
+        _claim_and_emit(pr, verdict, "pr_metrics.emit.fallback_emitted")
         return
 
     if not has_seer_access(organization):
