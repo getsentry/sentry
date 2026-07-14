@@ -225,8 +225,10 @@ export function generateReleaseMarkLines(
 
   if (statsPeriod) {
     const parsedStatsPeriod = parseStatsPeriod(statsPeriod, null);
-    start = parsedStatsPeriod.start;
-    end = parsedStatsPeriod.end;
+    if (parsedStatsPeriod) {
+      start = parsedStatsPeriod.start;
+      end = parsedStatsPeriod.end;
+    }
   }
 
   const releaseCreated = moment(release.dateCreated).startOf('minute');

@@ -134,9 +134,13 @@ export function getRelativeSummary(
       return defaultRelativePeriodString;
     }
 
-    const {value, unit} = parseStatsPeriodString(relative);
+    const parsed = parseStatsPeriodString(relative);
 
-    return SUPPORTED_RELATIVE_PERIOD_UNITS[unit]!.label(value);
+    if (!parsed) {
+      return 'Invalid period';
+    }
+
+    return SUPPORTED_RELATIVE_PERIOD_UNITS[parsed.unit]!.label(parsed.value);
   } catch {
     return 'Invalid period';
   }
@@ -325,8 +329,9 @@ export function getArbitraryRelativePeriod(arbitraryPeriod?: string | null) {
   }
 
   // Get the custom period label ("8D" --> "8 Days")
-  const {value, unit} = parseStatsPeriodString(arbitraryPeriod);
-  return {[arbitraryPeriod]: SUPPORTED_RELATIVE_PERIOD_UNITS[unit]!.label(value)};
+  // parseStatsPeriodString is safe here because we already checked STATS_PERIOD_REGEX above
+  const parsed = parseStatsPeriodString(arbitraryPeriod)!;
+  return {[arbitraryPeriod]: SUPPORTED_RELATIVE_PERIOD_UNITS[parsed.unit]!.label(parsed.value)};
 }
 
 /**
@@ -345,8 +350,9 @@ export function getSortedRelativePeriods(
     const [periodA] = a;
     const [periodB] = b;
 
-    return moment(parseStatsPeriod(periodB).start).diff(
-      moment(parseStatsPeriod(periodA).start)
+    // These periods are pre-filtered by STATS_PERIOD_REGEX so parseStatsPeriod is non-null
+    return moment(parseStatsPeriod(periodB)!.start).diff(
+      moment(parseStatsPeriod(periodA)!.start)
     );
   });
   return Object.fromEntries(invalidPeriods.concat(sortedValidPeriods));

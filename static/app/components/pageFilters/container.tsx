@@ -156,7 +156,8 @@ export function PageFiltersContainer({
     if (start && end) {
       const periodStart = new Date(start);
       const periodEnd = new Date(end);
-      const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`);
+      // maxPickableDays is always a number so `${maxPickableDays}d` is always valid
+      const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`)!;
       const maxStart = new Date(maxPeriod.start);
 
       if (maxDateRange) {

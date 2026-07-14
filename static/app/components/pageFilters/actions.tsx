@@ -338,7 +338,8 @@ export function initializeUrlState({
     if (start && end) {
       const periodStart = new Date(start);
       const periodEnd = new Date(end);
-      const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`);
+      // maxPickableDays is always a number so `${maxPickableDays}d` is always valid
+      const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`)!;
       const maxTimeRange = (maxDateRange ?? maxPickableDays) * 24 * 60 * 60 * 1000;
       const maxStart = new Date(maxPeriod.start);
       if (maxDateRange) {

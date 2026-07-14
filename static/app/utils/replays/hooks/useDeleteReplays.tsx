@@ -65,9 +65,10 @@ export function useDeleteReplays({projectSlug}: Props) {
 
       // normalizeDateTimeParams will prefer statsPeriod, so if we find that
       // then we still need to parse out start & end
-      const {start, end} = normalizedQuery.statsPeriod
+      const parsedStatsPeriod = normalizedQuery.statsPeriod
         ? parseStatsPeriod(normalizedQuery.statsPeriod)
-        : normalizedQuery;
+        : null;
+      const {start, end} = parsedStatsPeriod ?? normalizedQuery;
 
       return {
         environments: environments.length === 0 ? project?.environments : environments,
