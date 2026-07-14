@@ -4,6 +4,7 @@ import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
+from django.conf import settings
 from rest_framework.permissions import SAFE_METHODS, BasePermission, IsAuthenticated  # noqa: S012
 from rest_framework.request import Request
 
@@ -35,6 +36,14 @@ if TYPE_CHECKING:
     from rest_framework.views import APIView
 
     from sentry.models.organization import Organization
+
+
+def _least_privileged_scope(allowed_scopes: set[str]) -> str:
+    for scope in sorted(allowed_scopes):
+        implied = set(settings.SENTRY_SCOPE_HIERARCHY_MAPPING.get(scope, ()))
+        if not implied.intersection(allowed_scopes - {scope}):
+            return scope
+    return min(allowed_scopes)
 
 
 class RelayPermission(BasePermission):
@@ -130,7 +139,10 @@ class ScopedPermission(BasePermission):
             # scopes so permission_denied can advertise them via RFC 6750 insufficient_scope;
             # has_permission itself stays a plain bool. (Skipped when no scope could satisfy
             # the method, e.g. an unset scope_map entry, to avoid an empty challenge.)
-            setattr(request, INSUFFICIENT_SCOPE_ATTR, allowed_scopes)
+            required_scopes: set[str] = allowed_scopes
+            if agent_token.is_agent_auth(request.auth):
+                required_scopes = {_least_privileged_scope(allowed_scopes)}
+            setattr(request, INSUFFICIENT_SCOPE_ATTR, required_scopes)
         return False
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:

@@ -167,8 +167,5 @@ class OrganizationAgentTokenTest(APITestCase):
             details_url, data={}, format="json", HTTP_AUTHORIZATION=f"Bearer {token}"
         )
         assert write.status_code == 403
-        assert (
-            write["WWW-Authenticate"]
-            == 'Bearer error="insufficient_scope", scope="org:admin org:write"'
-        )
+        assert write["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:write"'
         assert not SeerAgentWriteGrant.objects.filter(organization_id=self.org.id).exists()
