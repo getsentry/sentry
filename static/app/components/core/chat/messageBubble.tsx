@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 
 import {Container} from '@sentry/scraps/layout';
 
-interface ChatMessageBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
+interface MessageBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   /**
    * Caps how wide the bubble can grow relative to its container. Defaults to
@@ -18,11 +18,11 @@ interface ChatMessageBubbleProps extends React.HTMLAttributes<HTMLDivElement> {
  * Presentation only — alignment within the conversation is the caller's
  * responsibility (wrap it in a right-aligned row for user messages).
  */
-export function ChatMessageBubble({
+export function MessageBubble({
   children,
   maxWidth = '80%',
   ...props
-}: ChatMessageBubbleProps) {
+}: MessageBubbleProps) {
   return (
     <Container
       maxWidth={maxWidth}

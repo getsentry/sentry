@@ -1,2 +1,2 @@
-export {ChatMessageBubble} from './chatMessageBubble';
-export {ToolCallStatusIcon, type ToolCallStatus} from './toolCallStatusIcon';
+export {MessageBubble} from './messageBubble';
+export {ToolCallIndicator, type ToolCallStatus} from './toolCallIndicator';

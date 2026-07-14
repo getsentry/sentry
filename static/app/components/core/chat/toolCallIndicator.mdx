@@ -1,22 +1,22 @@
 ---
-title: ToolCallStatusIcon
+title: ToolCallIndicator
 description: A compact status icon for a group of agent tool calls.
 category: chat
 source: '@sentry/scraps/chat'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/toolCallStatusIcon.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/toolCallIndicator.tsx
 ---
 
 import {Flex, Grid} from '@sentry/scraps/layout';
-import {ToolCallStatusIcon} from '@sentry/scraps/chat';
+import {ToolCallIndicator} from '@sentry/scraps/chat';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
 export const documentation =
-  import('!!type-loader!@sentry/scraps/chat/toolCallStatusIcon');
+  import('!!type-loader!@sentry/scraps/chat/toolCallIndicator');
 
-The `ToolCallStatusIcon` communicates the aggregate status of a message's tool
+The `ToolCallIndicator` communicates the aggregate status of a message's tool
 calls in an agent conversation: a spinner while they run and a semantic icon
 once they settle.
 
@@ -24,30 +24,30 @@ once they settle.
 
 <Storybook.Demo>
   <Grid columns="16px 1fr" flow="row" gap="md" align="center">
-    <ToolCallStatusIcon status="loading" />
+    <ToolCallIndicator status="loading" />
     <Text>loading — work in progress</Text>
 
-    <ToolCallStatusIcon status="pending" />
+    <ToolCallIndicator status="pending" />
     <Text>pending — waiting for approval</Text>
 
-    <ToolCallStatusIcon status="success" />
+    <ToolCallIndicator status="success" />
     <Text>success — all tool calls succeeded</Text>
 
-    <ToolCallStatusIcon status="mixed" />
+    <ToolCallIndicator status="mixed" />
     <Text>mixed — some succeeded, some failed</Text>
 
-    <ToolCallStatusIcon status="failure" />
+    <ToolCallIndicator status="failure" />
     <Text>failure — all tool calls failed</Text>
 
   </Grid>
 </Storybook.Demo>
 
 ```jsx
-<ToolCallStatusIcon status="loading" />
-<ToolCallStatusIcon status="pending" />
-<ToolCallStatusIcon status="success" />
-<ToolCallStatusIcon status="mixed" />
-<ToolCallStatusIcon status="failure" />
+<ToolCallIndicator status="loading" />
+<ToolCallIndicator status="pending" />
+<ToolCallIndicator status="success" />
+<ToolCallIndicator status="mixed" />
+<ToolCallIndicator status="failure" />
 ```
 
 The `content` status (a message with no tool calls, only content) renders
@@ -60,11 +60,11 @@ Each status carries a default tooltip and accessible label. Override it with the
 
 <Storybook.Demo>
   <Flex align="center" gap="sm">
-    <ToolCallStatusIcon status="failure" label="Search returned no results" />
+    <ToolCallIndicator status="failure" label="Search returned no results" />
     <Text variant="muted">Custom label</Text>
   </Flex>
 </Storybook.Demo>
 
 ```jsx
-<ToolCallStatusIcon status="failure" label="Search returned no results" />
+<ToolCallIndicator status="failure" label="Search returned no results" />
 ```

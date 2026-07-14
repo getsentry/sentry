@@ -22,7 +22,7 @@ export type ToolCallStatus =
   | 'mixed'
   | 'content';
 
-interface ToolCallStatusIconProps {
+interface ToolCallIndicatorProps {
   status: ToolCallStatus;
   /**
    * Overrides the default tooltip / accessible label for the status.
@@ -31,12 +31,12 @@ interface ToolCallStatusIconProps {
 }
 
 /**
- * A compact status icon for a group of agent tool calls: a spinner while they
+ * A compact status indicator for a group of agent tool calls: a spinner while they
  * run and a semantic icon once they settle.
  *
  * Placement and sizing of the surrounding slot are the caller's responsibility.
  */
-export function ToolCallStatusIcon({status, label}: ToolCallStatusIconProps) {
+export function ToolCallIndicator({status, label}: ToolCallIndicatorProps) {
   const defaultLabel = getDefaultLabel(status);
 
   if (status === 'content') {

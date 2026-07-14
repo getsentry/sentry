@@ -1,21 +1,20 @@
 ---
-title: ChatMessageBubble
+title: MessageBubble
 description: A single message bubble for the sender's own messages in an agent conversation.
 category: chat
 source: '@sentry/scraps/chat'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/chatMessageBubble.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/messageBubble.tsx
 ---
 
 import {Flex} from '@sentry/scraps/layout';
-import {ChatMessageBubble} from '@sentry/scraps/chat';
+import {MessageBubble} from '@sentry/scraps/chat';
 
 import * as Storybook from 'sentry/stories';
 
-export const documentation =
-  import('!!type-loader!@sentry/scraps/chat/chatMessageBubble');
+export const documentation = import('!!type-loader!@sentry/scraps/chat/messageBubble');
 
-The `ChatMessageBubble` renders a single message bubble, styled for the
+The `MessageBubble` renders a single message bubble, styled for the
 sender's own messages in an agent conversation. It is presentation only —
 alignment within the conversation is the caller's responsibility.
 
@@ -26,13 +25,13 @@ agent's responses.
 
 <Storybook.Demo>
   <Flex justify="end" width="100%">
-    <ChatMessageBubble>How many errors happened in the last 24 hours?</ChatMessageBubble>
+    <MessageBubble>How many errors happened in the last 24 hours?</MessageBubble>
   </Flex>
 </Storybook.Demo>
 
 ```jsx
 <Flex justify="end" width="100%">
-  <ChatMessageBubble>How many errors happened in the last 24 hours?</ChatMessageBubble>
+  <MessageBubble>How many errors happened in the last 24 hours?</MessageBubble>
 </Flex>
 ```
 
@@ -45,16 +44,16 @@ wider surfaces.
 <Storybook.Demo>
   <Flex direction="column" gap="md" width="100%">
     <Flex justify="end" width="100%">
-      <ChatMessageBubble maxWidth="60%">
+      <MessageBubble maxWidth="60%">
         A longer question that wraps onto multiple lines once it reaches the max width of
         the bubble.
-      </ChatMessageBubble>
+      </MessageBubble>
     </Flex>
   </Flex>
 </Storybook.Demo>
 
 ```jsx
-<ChatMessageBubble maxWidth="60%">…</ChatMessageBubble>
+<MessageBubble maxWidth="60%">…</MessageBubble>
 ```
 
 Whitespace and long unbroken tokens are preserved and wrapped, so pasted URLs
