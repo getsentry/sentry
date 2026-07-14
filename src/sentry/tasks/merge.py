@@ -39,7 +39,7 @@ _TASK_KEY = "merge_groups"
 def start_merge_groups(
     from_object_ids: list[int] | None = None,
     to_object_id: int | str | None = None,
-    transaction_id: int | None = None,
+    transaction_id: str | None = None,
     eventstream_state: Mapping[str, Any] | None = None,
 ) -> bool:
     if not (from_object_ids and to_object_id):
@@ -76,7 +76,7 @@ def start_merge_groups(
 def merge_groups(
     from_object_ids: list[int] | None = None,
     to_object_id: int | str | None = None,
-    transaction_id: int | None = None,
+    transaction_id: str | None = None,
     eventstream_state: Mapping[str, Any] | None = None,
     recursed: bool = False,  # Deprecated: tolerated for in-flight tasks during rolling deploy
 ) -> bool:
@@ -296,7 +296,7 @@ def merge_objects(
     new_group: Group,
     limit: int = 1000,
     logger: logging.Logger | None = None,
-    transaction_id: int | None = None,
+    transaction_id: str | None = None,
 ) -> bool:
     has_more = False
     for model in models:
