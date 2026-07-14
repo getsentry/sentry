@@ -25,8 +25,11 @@ ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
     ActivityType.SET_RESOLVED_IN_COMMIT.value: NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT,
 }
 
-EXAMPLE_ISSUE_URL = "https://sentry.io/organizations/example/issues/1/"
-EXAMPLE_ALERT_URL = "https://sentry.io/organizations/example/monitors/alerts/1/"
+EXAMPLE_PROJECT_URL = "https://sentry.io/organizations/acme/issues/?project=123"
+EXAMPLE_ISSUE_URL = "https://sentry.io/organizations/acme/issues/1/"
+EXAMPLE_ALERT_URL = "https://sentry.io/organizations/acme/monitors/alerts/1/"
+EXAMPLE_USER_SETTINGS_URL = "https://sentry.io/settings/account/notifications/alerts/"
+FOOTER_DELIMITER = " · "
 
 
 class ActivityAlertActionData(NotificationData):
@@ -34,29 +37,40 @@ class ActivityAlertActionData(NotificationData):
     notification_uuid: str
     activity_type: int
     activity_data: dict[str, Any] | None = None
+    # The name of the user who is associated with an activity (Activity.user_id)
     activity_user_name: str | None = None
     issue_short_id: str | None = None
     issue_url: str
     issue_title: str
     issue_culprit: str | None = None
-    alert_url: str
+    project_slug: str
+    project_url: str
+    # If this notification was triggered by an alert (Workflow)...
+    alert_name: str | None = None
+    alert_url: str | None = None
+    # If the target recipient is a user, this link will direct them to their notification preferences.
+    user_settings_url: str | None = None
 
 
-def create_activity_alert_example(
+def create_activity_notification_example(
     activity_type: ActivityType,
     activity_data: dict[str, Any] | None = None,
 ) -> ActivityAlertActionData:
     return ActivityAlertActionData(
         notification_uuid="1234567890",
         activity_user_name="Jane Doe",
-        issue_short_id="EXAMPLE-1",
+        issue_short_id="JAVASCRIPT-1",
         issue_url=EXAMPLE_ISSUE_URL,
         issue_title="ExampleError: something went wrong",
-        issue_culprit="example.module.function",
+        issue_culprit="/api/v1/users/list/",
+        project_slug="javascript",
+        project_url=EXAMPLE_PROJECT_URL,
+        alert_name="Notify #feed-issues via Slack",
         alert_url=EXAMPLE_ALERT_URL,
         source=ACTIVITY_TYPE_TO_SOURCE[activity_type.value],
         activity_type=activity_type.value,
         activity_data=activity_data,
+        user_settings_url=EXAMPLE_USER_SETTINGS_URL,
     )
 
 
@@ -69,11 +83,19 @@ class SetResolvedInReleaseActionData(ActivityAlertActionData):
     release_url: str | None = None
 
 
-def build_alert_footer(alert_url: str) -> list[NotificationTextBlock]:
-    return [
-        PlainTextBlock(text="This notification was sent as part of"),
-        LinkTextBlock(text="an alert", url=alert_url),
+def build_footer(data: ActivityAlertActionData) -> list[NotificationTextBlock]:
+    blocks: list[NotificationTextBlock] = [
+        PlainTextBlock(text="Project:"),
+        LinkTextBlock(text=data.project_slug, url=data.project_url),
     ]
+    if data.alert_name and data.alert_url:
+        blocks.append(PlainTextBlock(text=FOOTER_DELIMITER))
+        blocks.append(PlainTextBlock(text="Alert:"))
+        blocks.append(LinkTextBlock(text=data.alert_name, url=data.alert_url))
+    if data.user_settings_url:
+        blocks.append(PlainTextBlock(text=FOOTER_DELIMITER))
+        blocks.append(LinkTextBlock(text="Manage Preferences", url=data.user_settings_url))
+    return blocks
 
 
 def build_issue_link(issue_short_id: str | None, issue_url: str) -> LinkTextBlock:

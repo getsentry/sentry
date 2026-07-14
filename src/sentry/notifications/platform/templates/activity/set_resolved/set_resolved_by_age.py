@@ -1,7 +1,7 @@
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.activity.base import (
     ActivityAlertActionData,
-    build_alert_footer,
+    build_footer,
     build_issue_link,
     create_activity_alert_example,
 )
@@ -46,5 +46,5 @@ class SetResolvedByAgeActivityTemplate(NotificationTemplate[ActivityAlertActionD
                     ]
                 )
             ],
-            footer=build_alert_footer(alert_url=data.alert_url),
+            footer=build_footer(data=data),
         )

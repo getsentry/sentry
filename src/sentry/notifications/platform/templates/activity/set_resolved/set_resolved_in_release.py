@@ -4,7 +4,7 @@ from sentry_relay.processing import parse_release
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.activity.base import (
     SetResolvedInReleaseActionData,
-    build_alert_footer,
+    build_footer,
     build_issue_link,
     create_activity_alert_example,
 )
@@ -66,5 +66,5 @@ class SetResolvedInReleaseActivityTemplate(NotificationTemplate[SetResolvedInRel
                     ],
                 )
             ],
-            footer=build_alert_footer(alert_url=data.alert_url),
+            footer=build_footer(data=data),
         )

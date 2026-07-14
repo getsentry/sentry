@@ -4,7 +4,7 @@ from sentry.notifications.platform.templates.activity import (
 from sentry.notifications.platform.templates.activity.base import (
     EXAMPLE_ALERT_URL,
     EXAMPLE_ISSUE_URL,
-    build_alert_footer,
+    build_footer,
     build_issue_link,
     create_activity_alert_example,
 )
@@ -52,7 +52,8 @@ class ActivityAlertBaseTest(TestCase):
             assert activity_type.value in ACTIVITY_TYPE_TO_SOURCE
 
     def test_build_alert_footer(self) -> None:
-        footer = build_alert_footer(alert_url=EXAMPLE_ALERT_URL)
+        footer = build_footer(data=create_activity_alert_example(ActivityType.SEER_RCA_STARTED))
+        # @claude update this test
         assert len(footer) == 2
         assert footer[0].type == NotificationTextBlockType.PLAIN_TEXT
         assert "sent as part of" in footer[0].text

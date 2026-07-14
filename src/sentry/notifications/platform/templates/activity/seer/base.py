@@ -1,8 +1,9 @@
 from django.conf import settings
 
 from sentry.notifications.platform.templates.activity.base import (
+    FOOTER_DELIMITER,
     ActivityAlertActionData,
-    build_alert_footer,
+    build_footer,
 )
 from sentry.notifications.platform.types import (
     CodeTextBlock,
@@ -40,9 +41,10 @@ def build_template(
     subject: list[NotificationTextBlock],
     body: list[NotificationSection],
 ) -> NotificationRenderedTemplate:
-    footer = build_alert_footer(alert_url=data.alert_url)
+    footer = build_footer(data=data)
     if settings.DEBUG and data.activity_data:
-        footer.append(PlainTextBlock(text=f"· Run ID: {data.activity_data.get('run_id')}"))
+        footer.append(PlainTextBlock(text=FOOTER_DELIMITER))
+        footer.append(PlainTextBlock(text=f"Run ID: {data.activity_data.get('run_id')}"))
 
     return NotificationRenderedTemplate(
         subject=subject, body=body, actions=[get_view_autofix_button(data)], footer=footer
