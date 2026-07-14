@@ -167,7 +167,12 @@ export function ConversationSpanDetail({
 
       {/* IssueList renders nothing when the span has no linked issues. */}
       <IssueListWrapper>
-        <IssueList node={node} issues={node.uniqueIssues} organization={organization} />
+        <IssueList
+          node={node}
+          issues={node.uniqueIssues}
+          organization={organization}
+          traceSlug={traceId}
+        />
       </IssueListWrapper>
 
       {/*
