@@ -801,21 +801,21 @@ export interface GroupActivityPullRequestClosed extends GroupActivityBase {
   type: GroupActivityType.PULL_REQUEST_CLOSED;
 }
 
-export interface GroupActivityPullRequestReopened extends GroupActivityBase {
+interface GroupActivityPullRequestReopened extends GroupActivityBase {
   data: {
     pullRequest?: PullRequest | null;
   };
   type: GroupActivityType.PULL_REQUEST_REOPENED;
 }
 
-export interface GroupActivityPullRequestMerged extends GroupActivityBase {
+interface GroupActivityPullRequestMerged extends GroupActivityBase {
   data: {
     pullRequest?: PullRequest | null;
   };
   type: GroupActivityType.PULL_REQUEST_MERGED;
 }
 
-export interface GroupActivityPullRequestUnlinked extends GroupActivityBase {
+interface GroupActivityPullRequestUnlinked extends GroupActivityBase {
   data: {
     pullRequest?: PullRequest | null;
   };
