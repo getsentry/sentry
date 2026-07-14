@@ -3876,3 +3876,19 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Issues derived data — process_project_derived_data task
+# Number of groups per batch task when fanning out project-wide processing.
+register(
+    "issues.derived.project-batch-size",
+    default=500,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of batch tasks to schedule; aborts if exceeded.
+register(
+    "issues.derived.project-max-tasks",
+    default=1000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
