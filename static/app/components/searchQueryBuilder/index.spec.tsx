@@ -6813,7 +6813,7 @@ describe('SearchQueryBuilder', () => {
   });
 
   describe('ask seer', () => {
-    it('renders ask seer button when user has given consent', async () => {
+    it('renders ask seer as an option without the UX rework', async () => {
       render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
         organization: {
           features: ['gen-ai-features'],
@@ -6822,10 +6822,43 @@ describe('SearchQueryBuilder', () => {
 
       await userEvent.click(getLastInput());
 
-      const askSeer = await screen.findByRole('option', {
-        name: /Ask AI to build your query/,
+      expect(
+        await screen.findByRole('option', {name: /Ask AI to build your query/})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /Ask AI to build your query/})
+      ).not.toBeInTheDocument();
+    });
+
+    it('moves ask seer to the footer with the UX rework', async () => {
+      render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
+        organization: {
+          features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+        },
       });
-      expect(askSeer).toBeInTheDocument();
+
+      await userEvent.click(getLastInput());
+
+      expect(
+        await screen.findByRole('button', {name: /Ask AI to build your query/})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('option', {name: /Ask AI to build your query/})
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not render ask seer in the footer when AI search is disabled', async () => {
+      render(<SearchQueryBuilder {...defaultProps} />, {
+        organization: {
+          features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+        },
+      });
+
+      await userEvent.click(getLastInput());
+
+      expect(
+        screen.queryByRole('button', {name: /Ask AI to build your query/})
+      ).not.toBeInTheDocument();
     });
 
     describe('user clicks on ask seer button', () => {
@@ -6916,25 +6949,29 @@ describe('SearchQueryBuilder', () => {
           );
         }
 
+        const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
         render(
           <AskSeerWrapper>
             <SearchQueryBuilder {...defaultProps} />
           </AskSeerWrapper>,
           {
             organization: {
-              features: ['gen-ai-features'],
+              features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
             },
           }
         );
 
         await userEvent.click(getLastInput());
 
-        const askSeer = await screen.findByRole('option', {
+        const askSeer = await screen.findByRole('button', {
           name: /Ask AI to build your query/,
         });
-        expect(askSeer).toBeInTheDocument();
-        await userEvent.hover(askSeer);
-        await userEvent.keyboard('{enter}');
+        await userEvent.click(askSeer);
+
+        expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+          'ai_query.interface',
+          expect.objectContaining({action: 'opened'})
+        );
 
         const input = await screen.findByRole('combobox', {
           name: 'Ask Seer with Natural Language',
@@ -6955,10 +6992,9 @@ describe('SearchQueryBuilder', () => {
         const yep = await screen.findByRole('button', {name: 'Yep, correct results'});
         await userEvent.click(yep);
 
-        const askSeer2 = await screen.findByRole('option', {
-          name: /Ask AI to build your query/,
-        });
-        expect(askSeer2).toBeInTheDocument();
+        expect(
+          await screen.findByRole('button', {name: /Ask AI to build your query/})
+        ).toBeInTheDocument();
       });
     });
 
