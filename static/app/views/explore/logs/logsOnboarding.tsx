@@ -47,6 +47,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
+import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -230,6 +231,13 @@ function Onboarding({organization, project}: OnboardingProps) {
     ? withoutLoggingSupport.has(project.platform)
     : false;
 
+  const receivedFirstLog = !!useEventWaiter({
+    eventType: 'log',
+    organization,
+    project,
+    disabled: doesNotSupportLogging,
+  });
+
   const analyticsPlatform = currentPlatform?.id ?? project.platform ?? 'unknown';
 
   useEffect(() => {
@@ -387,7 +395,11 @@ function Onboarding({organization, project}: OnboardingProps) {
               {index === steps.length - 1 ? (
                 <GuidedSteps.ButtonWrapper>
                   <GuidedSteps.BackButton size="md" />
-                  <EventWaitingIndicator />
+                  {receivedFirstLog ? (
+                    <EventReceivedIndicator />
+                  ) : (
+                    <EventWaitingIndicator />
+                  )}
                 </GuidedSteps.ButtonWrapper>
               ) : (
                 <GuidedSteps.ButtonWrapper>
@@ -424,6 +436,19 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
   font-size: ${p => p.theme.font.size.md};
   color: ${p => p.theme.colors.pink500};
   padding-right: ${p => p.theme.space['3xl']};
+`;
+
+const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
+  <div {...p}>
+    {'🎉 '}
+    {t("We've received this project's first log!")}
+  </div>
+))`
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.success};
 `;
 
 const SubTitle = styled('div')`
