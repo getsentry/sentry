@@ -9,7 +9,7 @@ from django.test import override_settings
 from requests import Request
 
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.msteams.client import MsTeamsClient
+from sentry.integrations.msteams.client import MsTeamsClient, get_token_data
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import (
@@ -20,6 +20,7 @@ from sentry.silo.util import (
     PROXY_SIGNATURE_HEADER,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
@@ -108,6 +109,37 @@ class MsTeamsClientTest(TestCase):
                 "expires_at": self.expires_at,
                 "service_url": "https://smba.trafficmanager.net/amer/",
             }
+
+    @responses.activate
+    def test_records_client_secret_expiry_gauge(self) -> None:
+        with (
+            patch("sentry.integrations.msteams.client.metrics") as mock_metrics,
+            self.options({"msteams.client-secret-expires-at": "2020-09-01T00:00:00Z"}),
+            freeze_time("2020-08-01T00:00:00Z"),
+        ):
+            get_token_data()
+
+            # 2020-08-01 -> 2020-09-01 is 31 days.
+            mock_metrics.gauge.assert_called_once_with(
+                "integrations.msteams.client_secret.seconds_until_expiry",
+                31 * 24 * 60 * 60,
+                sample_rate=0.01,
+            )
+
+    @responses.activate
+    def test_skips_client_secret_expiry_gauge_when_unset(self) -> None:
+        with patch("sentry.integrations.msteams.client.metrics") as mock_metrics:
+            get_token_data()
+            mock_metrics.gauge.assert_not_called()
+
+    @responses.activate
+    def test_skips_client_secret_expiry_gauge_when_invalid(self) -> None:
+        with (
+            patch("sentry.integrations.msteams.client.metrics") as mock_metrics,
+            self.options({"msteams.client-secret-expires-at": "not-a-date"}),
+        ):
+            get_token_data()
+            mock_metrics.gauge.assert_not_called()
 
     @responses.activate
     def test_simple(self) -> None:
