@@ -36,7 +36,6 @@ import {Csp} from 'sentry/components/events/interfaces/csp';
 import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import {DebugMetaSearchProvider} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {Exception} from 'sentry/components/events/interfaces/exception';
-import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {EventTraceView} from 'sentry/components/events/interfaces/performance/eventTraceView';
@@ -300,34 +299,9 @@ export function EventDetailsContent({
       </ErrorBoundary>
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
-      {defined(eventEntries[EntryType.HPKP]) && (
-        <EntryErrorBoundary type={EntryType.HPKP}>
-          <Generic
-            type={EntryType.HPKP}
-            data={eventEntries[EntryType.HPKP].data}
-            meta={event._meta?.hpkp ?? {}}
-          />
-        </EntryErrorBoundary>
-      )}
       {defined(eventEntries[EntryType.CSP]) && (
         <EntryErrorBoundary type={EntryType.CSP}>
           <Csp event={event} data={eventEntries[EntryType.CSP].data} />
-        </EntryErrorBoundary>
-      )}
-      {defined(eventEntries[EntryType.EXPECTCT]) && (
-        <EntryErrorBoundary type={EntryType.EXPECTCT}>
-          <Generic
-            type={EntryType.EXPECTCT}
-            data={eventEntries[EntryType.EXPECTCT].data}
-          />
-        </EntryErrorBoundary>
-      )}
-      {defined(eventEntries[EntryType.EXPECTSTAPLE]) && (
-        <EntryErrorBoundary type={EntryType.EXPECTSTAPLE}>
-          <Generic
-            type={EntryType.EXPECTSTAPLE}
-            data={eventEntries[EntryType.EXPECTSTAPLE].data}
-          />
         </EntryErrorBoundary>
       )}
       {defined(eventEntries[EntryType.TEMPLATE]) && (

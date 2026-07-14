@@ -43,10 +43,7 @@ export const enum SectionKey {
   HYDRATION_DIFF = 'hydration-diff',
   REPLAY = 'replay',
 
-  HPKP = 'hpkp',
   CSP = 'csp',
-  EXPECTCT = 'expectct',
-  EXPECTSTAPLE = 'expectstaple',
   TEMPLATE = 'template',
 
   BREADCRUMBS = 'breadcrumbs',
