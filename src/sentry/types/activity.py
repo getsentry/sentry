@@ -44,6 +44,12 @@ class ActivityType(Enum):
     SEER_ITERATION_STARTED = 36
     SEER_ITERATION_COMPLETED = 37
 
+    # Linked pull request lifecycle changes
+    PULL_REQUEST_CLOSED = 38
+    PULL_REQUEST_REOPENED = 39
+    PULL_REQUEST_MERGED = 40
+    PULL_REQUEST_UNLINKED = 41
+
 
 # Warning: This must remain in this EXACT order.
 CHOICES = tuple(
@@ -86,7 +92,23 @@ CHOICES = tuple(
         ActivityType.SEER_PR_CREATED,  # 35
         ActivityType.SEER_ITERATION_STARTED,  # 36
         ActivityType.SEER_ITERATION_COMPLETED,  # 37
+        ActivityType.PULL_REQUEST_CLOSED,  # 38
+        ActivityType.PULL_REQUEST_REOPENED,  # 39
+        ActivityType.PULL_REQUEST_MERGED,  # 40
+        ActivityType.PULL_REQUEST_UNLINKED,  # 41
     ]
+)
+
+SEER_ACTIVITY_TYPES = (
+    ActivityType.SEER_RCA_STARTED,
+    ActivityType.SEER_RCA_COMPLETED,
+    ActivityType.SEER_SOLUTION_STARTED,
+    ActivityType.SEER_SOLUTION_COMPLETED,
+    ActivityType.SEER_CODING_STARTED,
+    ActivityType.SEER_CODING_COMPLETED,
+    ActivityType.SEER_PR_CREATED,
+    ActivityType.SEER_ITERATION_STARTED,
+    ActivityType.SEER_ITERATION_COMPLETED,
 )
 
 

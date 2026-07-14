@@ -30,7 +30,7 @@ export function ApiForm({
   const api = useApi();
 
   const handleSubmit = useCallback(
-    (
+    async (
       data: Record<string, any>,
       onSuccess: (response: Record<string, any>) => void,
       onError: (error: any) => void
@@ -41,21 +41,20 @@ export function ApiForm({
       const requestOptions: RequestOptions = {
         method: apiMethod,
         data: transformed ?? data,
-        success: response => {
-          clearIndicators();
-          onSuccess(response);
-        },
-        error: error => {
-          clearIndicators();
-          onError(error);
-        },
       };
 
       if (hostOverride) {
         requestOptions.host = hostOverride;
       }
 
-      api.request(apiEndpoint, requestOptions);
+      try {
+        const response = await api.requestPromise(apiEndpoint, requestOptions);
+        clearIndicators();
+        onSuccess(response);
+      } catch (error) {
+        clearIndicators();
+        onError(error);
+      }
     },
     [api, onSubmit, apiMethod, apiEndpoint, hostOverride]
   );

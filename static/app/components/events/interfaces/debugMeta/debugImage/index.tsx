@@ -1,5 +1,5 @@
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -29,9 +29,9 @@ export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
   return (
     <Grid
       columns={{
-        '2xs': '0.6fr 1.5fr 0.6fr',
-        xs: '0.6fr 2fr 0.6fr',
-        sm: '0.6fr 2fr 1fr 0.4fr',
+        'screen:2xs': '0.6fr 1.5fr 0.6fr',
+        'screen:xs': '0.6fr 2fr 0.6fr',
+        'screen:sm': '0.6fr 2fr 1fr 0.4fr',
       }}
       borderBottom={isLast ? undefined : 'primary'}
       padding="sm md"
@@ -40,7 +40,7 @@ export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
         <Status status={status} />
       </Flex>
       <Flex align="center" minWidth="0" padding="sm 0">
-        <Flex direction="column" minWidth="0" overflow="hidden">
+        <Stack minWidth="0" overflow="hidden">
           <Text ellipsis>
             {codeFilename && <Tooltip title={code_file}>{codeFilename}</Tooltip>}
             {codeFilename !== debugFilename && debugFilename && (
@@ -52,12 +52,12 @@ export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
               {imageAddress}
             </Text>
           )}
-        </Flex>
+        </Stack>
       </Flex>
       <Flex
         align="center"
         minWidth="0"
-        display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
+        display={{'screen:2xs': 'none', 'screen:xs': 'none', 'screen:sm': 'flex'}}
         padding="sm md"
       >
         {unwind_status || debug_status ? (

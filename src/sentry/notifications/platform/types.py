@@ -26,7 +26,9 @@ class NotificationCategory(StrEnum):
     ISSUE = "issue"
     METRIC_ALERT = "metric-alert"
     SENTRY_APP = "sentry-app"
-    WORKFLOW_ENGINE = "workflow-engine"
+
+    # Refers to net-new alerts built on the workflow engine (not metric/issue alerts)
+    ALERTS = "alerts"
 
     def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -81,6 +83,12 @@ class NotificationSource(StrEnum):
     ACTIVITY_SEER_CODING_STARTED = "activity-seer-coding-started"
     ACTIVITY_SEER_CODING_COMPLETED = "activity-seer-coding-completed"
     ACTIVITY_SEER_PR_CREATED = "activity-seer-pr-created"
+    ACTIVITY_SEER_ITERATION_STARTED = "activity-seer-iteration-started"
+    ACTIVITY_SEER_ITERATION_COMPLETED = "activity-seer-iteration-completed"
+    ACTIVITY_SET_RESOLVED = "activity-set-resolved"
+    ACTIVITY_SET_RESOLVED_IN_RELEASE = "activity-set-resolved-in-release"
+    ACTIVITY_SET_RESOLVED_BY_AGE = "activity-set-resolved-by-age"
+    ACTIVITY_SET_RESOLVED_IN_COMMIT = "activity-set-resolved-in-commit"
 
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
@@ -119,7 +127,7 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
     NotificationCategory.SENTRY_APP: [
         NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,
     ],
-    NotificationCategory.WORKFLOW_ENGINE: [
+    NotificationCategory.ALERTS: [
         NotificationSource.ACTIVITY_SEER_RCA_STARTED,
         NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
         NotificationSource.ACTIVITY_SEER_SOLUTION_STARTED,
@@ -127,6 +135,12 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.ACTIVITY_SEER_CODING_STARTED,
         NotificationSource.ACTIVITY_SEER_CODING_COMPLETED,
         NotificationSource.ACTIVITY_SEER_PR_CREATED,
+        NotificationSource.ACTIVITY_SEER_ITERATION_STARTED,
+        NotificationSource.ACTIVITY_SEER_ITERATION_COMPLETED,
+        NotificationSource.ACTIVITY_SET_RESOLVED,
+        NotificationSource.ACTIVITY_SET_RESOLVED_IN_RELEASE,
+        NotificationSource.ACTIVITY_SET_RESOLVED_BY_AGE,
+        NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT,
     ],
 }
 
@@ -227,13 +241,34 @@ class NotificationRenderedImage:
 
 @dataclass(frozen=True)
 class NotificationRenderedTemplate:
-    subject: str
+    subject: str | list[NotificationTextBlock]
     """
     The subject or title of the notification. It's expected that the receiver understand the
     expected content of the notification based on this alone, and it will be the first thing
-    they see. This string should not contain any formatting, and will be displayed as is.
+    they see.
     """
-    body: list[NotificationBodyFormattingBlock]
+
+    @staticmethod
+    def render_text_blocks(blocks: list[NotificationTextBlock]) -> str:
+        text = []
+        for block in blocks:
+            if isinstance(block, LinkTextBlock):
+                text.append(f"{block.text} ({block.url})")
+            else:
+                text.append(block.text)
+        return " ".join(text)
+
+    @property
+    def subject_blocks(self) -> list[NotificationTextBlock]:
+        if isinstance(self.subject, list):
+            return self.subject
+        return [PlainTextBlock(text=self.subject)]
+
+    @property
+    def subject_text(self) -> str:
+        return self.render_text_blocks(self.subject_blocks)
+
+    body: list[NotificationSection]
     """
     The full contents of the notification. Put the details of the notification here, but consider
     keeping it concise and useful to the receiver.
@@ -246,12 +281,23 @@ class NotificationRenderedTemplate:
     """
     The image that will be displayed in the notification.
     """
-    footer: str | None = None
+    footer: str | list[NotificationTextBlock] | None = None
     """
     Extra notification content that will appear after any actions, separate from the body. Optional,
     and consider omitting if the extra data is not necessary for your notification to be useful.
-    This string should not contain any formatting, and will be displayed as is.
     """
+
+    @property
+    def footer_blocks(self) -> list[NotificationTextBlock]:
+        if self.footer is None:
+            return []
+        if isinstance(self.footer, list):
+            return self.footer
+        return [PlainTextBlock(text=self.footer)]
+
+    @property
+    def footer_text(self) -> str:
+        return self.render_text_blocks(self.footer_blocks)
 
     # The following are optional, as omitting them will use a default email template which expects
     # the required fields above to be present instead.
@@ -271,9 +317,9 @@ class NotificationRenderedTemplate:
     """
 
 
-class NotificationBodyTextBlockType(StrEnum):
+class NotificationTextBlockType(StrEnum):
     """
-    Represents a block of text to be rendered in the notification body.
+    Represents a block of text to be rendered in the notification.
     """
 
     PLAIN_TEXT = "plain_text"
@@ -284,13 +330,21 @@ class NotificationBodyTextBlockType(StrEnum):
     """
     A bolded section of text.
     """
+    ITALIC_TEXT = "italic_text"
+    """
+    An italicized section of text.
+    """
     CODE = "code"
     """
     Inline block of code.
     """
+    LINK = "link"
+    """
+    A hyperlink with display text.
+    """
 
 
-class NotificationBodyFormattingBlockType(StrEnum):
+class NotificationSectionType(StrEnum):
     """
     The type of formatting to be applied to the encapsulated blocks.
     """
@@ -303,72 +357,89 @@ class NotificationBodyFormattingBlockType(StrEnum):
     """
     A new section of code with a line break before.
     """
-
-
-class NotificationBodyFormattingBlock(Protocol):
+    BLOCK_QUOTE = "block_quote"
     """
-    A block that applies formatting such as a newline and encapsulates other text.
-    """
-
-    type: NotificationBodyFormattingBlockType
-    """
-    The type of the block, such as ParagraphBlock, BoldTextBlock, etc.
-    """
-    blocks: list[NotificationBodyTextBlock]
-    """
-    Some blocks may want to contain other blocks, such as a ParagraphBlock containing a BoldTextBlock.
+    A quoted block of text, rendered as a blockquote.
     """
 
 
-class NotificationBodyTextBlock(Protocol):
+class NotificationSection(Protocol):
     """
-    Represents a block of text to be rendered in the notification body.
+    A section of text that applies formatting such as a newline and encapsulates other text.
     """
 
-    type: NotificationBodyTextBlockType
+    type: NotificationSectionType
     """
-    The type of the block, such as BoldTextBlock, CodeBlock, etc.
+    The type of the section, such as ParagraphSection, CodeSection, etc.
+    """
+    blocks: list[NotificationTextBlock]
+    """
+    The text blocks contain actual content, such as BoldTextBlock, ItalicTextBlock, etc.
+    """
+
+
+class NotificationTextBlock(Protocol):
+    """
+    Represents a block of text to be rendered in the notification.
+    """
+
+    type: NotificationTextBlockType
+    """
+    The type of the block, such as BoldTextBlock, CodeTextBlock, etc.
     """
     text: str
     """
-    Text to be rendered in the body.
+    Text to be rendered in the notification.
     """
 
 
 @dataclass
-class ParagraphBlock(NotificationBodyFormattingBlock):
-    blocks: list[NotificationBodyTextBlock]
-    type: Literal[NotificationBodyFormattingBlockType.PARAGRAPH] = (
-        NotificationBodyFormattingBlockType.PARAGRAPH
-    )
+class ParagraphSection(NotificationSection):
+    blocks: list[NotificationTextBlock]
+    type: Literal[NotificationSectionType.PARAGRAPH] = NotificationSectionType.PARAGRAPH
 
 
 @dataclass
-class CodeBlock(NotificationBodyFormattingBlock):
-    blocks: list[NotificationBodyTextBlock]
-    type: Literal[NotificationBodyFormattingBlockType.CODE_BLOCK] = (
-        NotificationBodyFormattingBlockType.CODE_BLOCK
-    )
+class CodeSection(NotificationSection):
+    blocks: list[NotificationTextBlock]
+    type: Literal[NotificationSectionType.CODE_BLOCK] = NotificationSectionType.CODE_BLOCK
 
 
 @dataclass
-class BoldTextBlock(NotificationBodyTextBlock):
+class BlockQuoteSection(NotificationSection):
+    blocks: list[NotificationTextBlock]
+    type: Literal[NotificationSectionType.BLOCK_QUOTE] = NotificationSectionType.BLOCK_QUOTE
+
+
+@dataclass
+class BoldTextBlock(NotificationTextBlock):
     text: str
-    type: Literal[NotificationBodyTextBlockType.BOLD_TEXT] = NotificationBodyTextBlockType.BOLD_TEXT
+    type: Literal[NotificationTextBlockType.BOLD_TEXT] = NotificationTextBlockType.BOLD_TEXT
 
 
 @dataclass
-class CodeTextBlock(NotificationBodyTextBlock):
+class ItalicTextBlock(NotificationTextBlock):
     text: str
-    type: Literal[NotificationBodyTextBlockType.CODE] = NotificationBodyTextBlockType.CODE
+    type: Literal[NotificationTextBlockType.ITALIC_TEXT] = NotificationTextBlockType.ITALIC_TEXT
 
 
 @dataclass
-class PlainTextBlock(NotificationBodyTextBlock):
+class CodeTextBlock(NotificationTextBlock):
     text: str
-    type: Literal[NotificationBodyTextBlockType.PLAIN_TEXT] = (
-        NotificationBodyTextBlockType.PLAIN_TEXT
-    )
+    type: Literal[NotificationTextBlockType.CODE] = NotificationTextBlockType.CODE
+
+
+@dataclass
+class PlainTextBlock(NotificationTextBlock):
+    text: str
+    type: Literal[NotificationTextBlockType.PLAIN_TEXT] = NotificationTextBlockType.PLAIN_TEXT
+
+
+@dataclass
+class LinkTextBlock(NotificationTextBlock):
+    text: str
+    url: str
+    type: Literal[NotificationTextBlockType.LINK] = NotificationTextBlockType.LINK
 
 
 class NotificationTemplate[T: NotificationData](abc.ABC):

@@ -15,11 +15,15 @@ from sentry.models.pullrequest import (
     PullRequestMetrics,
     PullRequestVerdict,
 )
+from sentry.pr_metrics.contracts import PrConversationAnalysis
 from sentry.pr_metrics.emit import (
+    _activity_derived_metrics,
     active_attributions,
     build_pr_metrics_row,
+    ci_failing_at_close,
     emit_pr_metrics_row,
     is_pr_tracked,
+    resolve_autofix_referrers,
     select_verdict,
 )
 from sentry.pr_metrics.utils import _commit_shas_from_activity, resolved_group_ids
@@ -34,6 +38,28 @@ SENTRY_APP_ATTRIBUTION = {
     "source": "seer_data",
     "signal_details": None,
 }
+
+# A conversation judge result for the emission tests: the semantic
+# outputs promoted to columns plus the opaque metadata drill-down bundle.
+CONVERSATION_METADATA = {
+    "judge": "conversation.v1",
+    "sentiment_reasoning": "reviewer approved after the fix",
+    "comment_intents": [
+        {"comment_id": "IC_123", "author": "octocat", "author_class": "human", "intent": "praise"},
+    ],
+    "intent_counts": {"praise": 1},
+}
+CONVERSATION_ANALYSIS = PrConversationAnalysis(
+    sentiment="positive",
+    comments_bot=0,
+    comments_human=1,
+    comments_total=3,
+    comments_judged=2,
+    comments_truncated=1,
+    metadata=CONVERSATION_METADATA,
+)
+# Cross-judge close-reason labels, threaded independently of the conversation analysis.
+DIAGNOSIS_LABELS = ["trivial"]
 
 HEAD_SHA = "a" * 40
 MERGE_SHA = "b" * 40
@@ -114,6 +140,16 @@ class PrMetricsEmissionTest(TestCase):
             payload={},
         )
 
+    def _add_check_suite(
+        self, *, app_slug: str = "github-actions", conclusion: str = "success", webhook_id: str
+    ) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id=webhook_id,
+            event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED,
+            payload={"conclusion": conclusion, "app_slug": app_slug, "check_runs_count": 1},
+        )
+
     def test_select_verdict_merged_without_later_commits_is_unchanged(self) -> None:
         # Merged with no SYNCHRONIZED activity: merge head == opened head.
         assert (
@@ -150,6 +186,7 @@ class PrMetricsEmissionTest(TestCase):
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
                 "organization_id": self.organization.id,
+                "repository_id": self.pull_request.repository_id,
                 "pull_request_id": self.pull_request.id,
             },
         )
@@ -165,6 +202,7 @@ class PrMetricsEmissionTest(TestCase):
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
                 "organization_id": self.organization.id,
+                "repository_id": self.pull_request.repository_id,
                 "pull_request_id": self.pull_request.id,
             },
         )
@@ -184,6 +222,50 @@ class PrMetricsEmissionTest(TestCase):
             with patch("sentry.pr_metrics.emit.metrics") as mock_metrics:
                 assert select_verdict(self.pull_request, self.organization) is None
         mock_metrics.incr.assert_called_once_with("pr_metrics.select_verdict.activity_disabled")
+
+    def test_ci_failing_at_close_no_check_activity_is_false(self) -> None:
+        assert ci_failing_at_close(self.pull_request) is False
+
+    def test_ci_failing_at_close_all_success_is_false(self) -> None:
+        self._add_check_suite(conclusion="success", webhook_id="check-1")
+        assert ci_failing_at_close(self.pull_request) is False
+
+    def test_ci_failing_at_close_failure_is_true(self) -> None:
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        assert ci_failing_at_close(self.pull_request) is True
+
+    def test_ci_failing_at_close_timed_out_is_true(self) -> None:
+        self._add_check_suite(conclusion="timed_out", webhook_id="check-1")
+        assert ci_failing_at_close(self.pull_request) is True
+
+    def test_ci_failing_at_close_startup_failure_is_true(self) -> None:
+        self._add_check_suite(conclusion="startup_failure", webhook_id="check-1")
+        assert ci_failing_at_close(self.pull_request) is True
+
+    def test_ci_failing_at_close_non_failure_conclusions_are_false(self) -> None:
+        # neutral/cancelled/skipped/stale/action_required never ran to a failure
+        # verdict, so none of them should trip the label.
+        for conclusion in ("neutral", "cancelled", "skipped", "stale", "action_required"):
+            PullRequestActivity.objects.filter(pull_request=self.pull_request).delete()
+            self._add_check_suite(conclusion=conclusion, webhook_id="check-1")
+            assert ci_failing_at_close(self.pull_request) is False, conclusion
+
+    def test_ci_failing_at_close_one_app_failing_among_others_is_true(self) -> None:
+        self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-1")
+        self._add_check_suite(app_slug="codecov", conclusion="failure", webhook_id="check-2")
+        assert ci_failing_at_close(self.pull_request) is True
+
+    def test_ci_failing_at_close_rerun_success_after_failure_is_false(self) -> None:
+        # A rerun with no new push (no SYNCHRONIZED row) still writes another
+        # CHECK_SUITE_COMPLETED row for the same app; the latest one wins.
+        self._add_check_suite(app_slug="github-actions", conclusion="failure", webhook_id="check-1")
+        self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-2")
+        assert ci_failing_at_close(self.pull_request) is False
+
+    def test_ci_failing_at_close_rerun_failure_after_success_is_true(self) -> None:
+        self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-1")
+        self._add_check_suite(app_slug="github-actions", conclusion="failure", webhook_id="check-2")
+        assert ci_failing_at_close(self.pull_request) is True
 
     def test_build_row_for_merge(self) -> None:
         row = build_pr_metrics_row(
@@ -343,6 +425,75 @@ class PrMetricsEmissionTest(TestCase):
             },
         ]
 
+    def test_resolve_autofix_referrers_empty_without_run_id(self) -> None:
+        assert resolve_autofix_referrers(self.pull_request, [SENTRY_APP_ATTRIBUTION]) == []
+
+    def test_resolve_autofix_referrers_resolves_seer_run(self) -> None:
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=555, referrer="slack"
+        )
+        attributions = [
+            {
+                "signal_type": "sentry_app",
+                "source": "seer_data",
+                "signal_details": {"run_id": seer_run.seer_run_state_id},
+            }
+        ]
+        assert resolve_autofix_referrers(self.pull_request, attributions) == ["slack"]
+
+    def test_resolve_autofix_referrers_dedupes_repeated_run_ids(self) -> None:
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=556, referrer="night_shift"
+        )
+        details = {"run_id": seer_run.seer_run_state_id}
+        attributions = [
+            {"signal_type": "sentry_app", "source": "seer_data", "signal_details": details},
+            {
+                "signal_type": "seer_delegated:claude_code",
+                "source": "seer_data",
+                "signal_details": details,
+            },
+        ]
+        assert resolve_autofix_referrers(self.pull_request, attributions) == ["night_shift"]
+
+    def test_resolve_autofix_referrers_skips_run_ids_with_no_matching_seer_run(self) -> None:
+        attributions = [
+            {
+                "signal_type": "seer_delegated:cursor",
+                "source": "seer_data",
+                # Cursor's delegated-agent path doesn't record a run_id today.
+                "signal_details": {"run_id": None},
+            }
+        ]
+        assert resolve_autofix_referrers(self.pull_request, attributions) == []
+
+    def test_build_row_carries_autofix_referrers(self) -> None:
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=557, referrer="night_shift"
+        )
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[
+                {
+                    "signal_type": "sentry_app",
+                    "source": "seer_data",
+                    "signal_details": {"run_id": seer_run.seer_run_state_id},
+                }
+            ],
+            group_ids=[],
+        )
+        assert row.autofix_referrers == ["night_shift"]
+
+    def test_build_row_autofix_referrers_empty_by_default(self) -> None:
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.autofix_referrers == []
+
     def test_resolved_group_ids_returns_sorted_resolving_links(self) -> None:
         ids = sorted([self._link_group(), self._link_group()])
         assert resolved_group_ids(self.pull_request) == ids
@@ -363,6 +514,90 @@ class PrMetricsEmissionTest(TestCase):
             group_ids=[7, 9],
         )
         assert row.group_ids == [7, 9]
+
+    def test_build_row_carries_conversation_analysis(self) -> None:
+        # The conversation judge's semantic outputs land on their own prefixed
+        # columns; only the metadata bundle is JSON-encoded (as attributions is).
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+            conversation_analysis=CONVERSATION_ANALYSIS,
+        )
+        assert row.conversation_sentiment == "positive"
+        assert row.conversation_comments_bot == 0
+        assert row.conversation_comments_human == 1
+        assert row.conversation_comments_total == 3
+        assert row.conversation_comments_judged == 2
+        assert row.conversation_comments_truncated == 1
+        assert row.conversation_metadata is not None
+        assert json.loads(row.conversation_metadata) == CONVERSATION_METADATA
+
+    def test_build_row_carries_diagnosis_labels(self) -> None:
+        # The cross-judge close-reason "why" is threaded independently of the
+        # conversation analysis, onto its own unprefixed repeated column.
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="closed",
+            attributions=[],
+            group_ids=[],
+            diagnosis_labels=DIAGNOSIS_LABELS,
+        )
+        assert row.diagnosis_labels == ["trivial"]
+
+    def test_build_row_empty_diagnosis_labels_stays_empty(self) -> None:
+        # An empty list is a valid value (judge ran, no labels) and emits [], not null.
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="closed",
+            attributions=[],
+            group_ids=[],
+            diagnosis_labels=[],
+        )
+        assert row.diagnosis_labels == []
+
+    def test_build_row_without_judge_enrichment_leaves_fields_null(self) -> None:
+        # The no-judge path / old Seer pods supply nothing — every judge column
+        # stays null rather than emitting an empty placeholder.
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.conversation_sentiment is None
+        assert row.conversation_comments_bot is None
+        assert row.diagnosis_labels is None
+        assert row.conversation_metadata is None
+
+    def test_build_row_conversation_metadata_null_when_absent(self) -> None:
+        # An analysis without a metadata bundle emits a null conversation_metadata (not
+        # "null"-the-string); the semantic columns still populate.
+        conversation_analysis = PrConversationAnalysis(sentiment="neutral")
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+            conversation_analysis=conversation_analysis,
+        )
+        assert row.conversation_sentiment == "neutral"
+        assert row.conversation_metadata is None
+
+    @patch("sentry.analytics.record")
+    def test_emit_threads_judge_enrichment(self, mock_record: Any) -> None:
+        self._track()
+        emit_pr_metrics_row(
+            pull_request=self.pull_request,
+            conversation_analysis=CONVERSATION_ANALYSIS,
+            diagnosis_labels=DIAGNOSIS_LABELS,
+        )
+        row = mock_record.call_args[0][0]
+        assert row.conversation_sentiment == "positive"
+        assert row.conversation_comments_human == 1
+        assert row.diagnosis_labels == ["trivial"]
+        assert json.loads(row.conversation_metadata) == CONVERSATION_METADATA
 
     @patch("sentry.analytics.record")
     def test_emit_carries_resolved_group_ids(self, mock_record: Any) -> None:
@@ -407,6 +642,207 @@ class PrMetricsEmissionTest(TestCase):
         emitted = emit_pr_metrics_row(pull_request=self.pull_request)
         assert emitted is False
         assert mock_record.call_count == 0
+
+    # --- _activity_derived_metrics ---
+
+    def _activity(
+        self,
+        *,
+        webhook_id: str,
+        event_type: str = PullRequestActivityType.COMMENT_CREATED,
+        sender_login: str = "",
+        sender_type: str = "User",
+    ) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id=webhook_id,
+            event_type=event_type,
+            payload={"sender_login": sender_login, "sender_type": sender_type},
+        )
+
+    def test_activity_derived_metrics_zero_without_activity(self) -> None:
+        assert _activity_derived_metrics(self.pull_request) == {
+            "participants_count": 0,
+            "reviews_count": 0,
+            "reviews_bot_count": 0,
+            "reviews_human_count": 0,
+            "pushes_bot_count": 0,
+            "pushes_human_count": 0,
+            "opened_by_bot": None,
+            "closed_by_bot": None,
+            "opened_and_closed_by_same_actor": None,
+        }
+
+    def test_activity_derived_metrics_counts_reviews_and_distinct_participants(self) -> None:
+        self._activity(
+            webhook_id="a1", event_type=PullRequestActivityType.OPENED, sender_login="octocat"
+        )
+        self._activity(webhook_id="a2", sender_login="octocat")  # same participant again
+        self._activity(webhook_id="a3", sender_login="reviewer")
+        self._activity(
+            webhook_id="a4",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            sender_login="reviewer",
+        )
+        self._activity(
+            webhook_id="a5",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            sender_login="reviewer",
+        )
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["participants_count"] == 2  # distinct octocat, reviewer
+        assert result["reviews_count"] == 2  # two REVIEW_SUBMITTED rows, not distinct reviewers
+
+    def test_activity_derived_metrics_excludes_bots_and_blank_logins(self) -> None:
+        self._activity(webhook_id="b1", sender_login="human")
+        self._activity(webhook_id="b2", sender_login="dependabot", sender_type="Bot")
+        self._activity(
+            webhook_id="b3", event_type=PullRequestActivityType.SYNCHRONIZED, sender_login=""
+        )
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["participants_count"] == 1  # "human"; bot + blank login excluded
+        assert result["reviews_count"] == 0
+
+    def test_activity_derived_metrics_splits_reviews_by_account_class(self) -> None:
+        self._activity(
+            webhook_id="r1",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            sender_login="human",
+        )
+        self._activity(
+            webhook_id="r2",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            sender_login="seer",
+            sender_type="Bot",
+        )
+        self._activity(
+            webhook_id="r3",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            sender_login="seer",
+            sender_type="Bot",
+        )
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["reviews_count"] == 3
+        assert result["reviews_bot_count"] == 2
+        assert result["reviews_human_count"] == 1  # sums back to reviews_count
+
+    def test_activity_derived_metrics_splits_pushes_by_account_class(self) -> None:
+        # A push is an opened or synchronize event; the pusher's account class,
+        # not the commit count, is what's split (a bot batch push counts as one).
+        self._activity(
+            webhook_id="p1",
+            event_type=PullRequestActivityType.OPENED,
+            sender_login="human",
+        )
+        self._activity(
+            webhook_id="p2",
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            sender_login="seer",
+            sender_type="Bot",
+        )
+        self._activity(
+            webhook_id="p3",
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            sender_login="human",
+        )
+        # A review is not a push and must not be counted here.
+        self._activity(
+            webhook_id="p4",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            sender_login="human",
+        )
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["pushes_bot_count"] == 1
+        assert result["pushes_human_count"] == 2
+
+    def test_activity_derived_metrics_opener_and_closer_account_class(self) -> None:
+        self._activity(
+            webhook_id="o1",
+            event_type=PullRequestActivityType.OPENED,
+            sender_login="seer",
+            sender_type="Bot",
+        )
+        self._activity(
+            webhook_id="o2",
+            event_type=PullRequestActivityType.CLOSED,
+            sender_login="human",
+        )
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["opened_by_bot"] is True
+        assert result["closed_by_bot"] is False
+        assert result["opened_and_closed_by_same_actor"] is False
+
+    def test_activity_derived_metrics_same_actor_opened_and_merged(self) -> None:
+        self._activity(
+            webhook_id="s1", event_type=PullRequestActivityType.OPENED, sender_login="octocat"
+        )
+        self._activity(
+            webhook_id="s2", event_type=PullRequestActivityType.MERGED, sender_login="octocat"
+        )
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["opened_by_bot"] is False
+        assert result["closed_by_bot"] is False
+        assert result["opened_and_closed_by_same_actor"] is True
+
+    def test_activity_derived_metrics_closer_is_latest_terminal_row(self) -> None:
+        # A PR can be closed unmerged, reopened, then merged, leaving two terminal
+        # rows. The closer must be the latest (the merge), not an earlier close.
+        self._activity(
+            webhook_id="t1", event_type=PullRequestActivityType.OPENED, sender_login="author"
+        )
+        self._activity(
+            webhook_id="t2", event_type=PullRequestActivityType.CLOSED, sender_login="early-closer"
+        )
+        self._activity(
+            webhook_id="t3",
+            event_type=PullRequestActivityType.MERGED,
+            sender_login="merger",
+            sender_type="Bot",
+        )
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["closed_by_bot"] is True  # the merger (Bot), not early-closer (human)
+        assert result["opened_and_closed_by_same_actor"] is False
+
+    def test_activity_derived_metrics_same_actor_null_when_closer_missing(self) -> None:
+        self._activity(
+            webhook_id="m1", event_type=PullRequestActivityType.OPENED, sender_login="octocat"
+        )
+        result = _activity_derived_metrics(self.pull_request)
+        assert result["opened_by_bot"] is False
+        assert result["closed_by_bot"] is None
+        assert result["opened_and_closed_by_same_actor"] is None
+
+    @patch("sentry.analytics.record")
+    def test_emit_persists_and_carries_activity_derived_counts(self, mock_record: Any) -> None:
+        self._track()
+        self._activity(
+            webhook_id="c1", event_type=PullRequestActivityType.OPENED, sender_login="octocat"
+        )
+        self._activity(
+            webhook_id="c2",
+            event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+            sender_login="reviewer",
+        )
+        self._activity(
+            webhook_id="c3", event_type=PullRequestActivityType.MERGED, sender_login="octocat"
+        )
+        emit_pr_metrics_row(pull_request=self.pull_request)
+
+        # Persisted onto the metrics row so recovery re-reads them post-cleanup...
+        row = PullRequestMetrics.objects.get(pull_request=self.pull_request)
+        assert row.participants_count == 2
+        assert row.reviews_count == 1
+        assert row.reviews_human_count == 1
+        assert row.pushes_human_count == 1  # the opened event
+        assert row.opened_by_bot is False
+        assert row.closed_by_bot is False
+        assert row.opened_and_closed_by_same_actor is True
+        # ...and carried on the emitted analytics row.
+        emitted = mock_record.call_args[0][0]
+        assert emitted.participants_count == 2
+        assert emitted.reviews_count == 1
+        assert emitted.reviews_human_count == 1
+        assert emitted.opened_and_closed_by_same_actor is True
 
     # --- _commit_shas_from_activity ---
 
@@ -555,3 +991,20 @@ class PrMetricsEmissionTest(TestCase):
         self._sync_activity(after_sha="a" * 40, before_sha="b" * 40, webhook_id="s1")
         emit_pr_metrics_row(pull_request=self.pull_request)
         assert mock_record.call_args[0][0].group_ids == [group_id]
+
+    @patch("sentry.pr_metrics.tasks.cleanup_pr_activity_task")
+    @patch("sentry.analytics.record")
+    def test_emit_enqueues_cleanup_task(self, mock_record: Any, mock_cleanup: Any) -> None:
+        self._track()
+        emit_pr_metrics_row(pull_request=self.pull_request)
+        mock_cleanup.delay.assert_called_once_with(pull_request_id=self.pull_request.id)
+
+    @patch("sentry.pr_metrics.tasks.cleanup_pr_activity_task")
+    @patch("sentry.analytics.record")
+    def test_untracked_pr_does_not_enqueue_cleanup(
+        self, mock_record: Any, mock_cleanup: Any
+    ) -> None:
+        # No attribution → emit returns False and must not enqueue cleanup.
+        result = emit_pr_metrics_row(pull_request=self.pull_request)
+        assert result is False
+        mock_cleanup.delay.assert_not_called()

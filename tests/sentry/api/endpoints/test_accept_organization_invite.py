@@ -29,7 +29,7 @@ from sentry.types.cell import Cell
 class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def setUp(self) -> None:
         super().setUp()
-        with override_settings(SENTRY_LOCAL_CELL=settings.SENTRY_MONOLITH_REGION):
+        with override_settings(SENTRY_LOCAL_CELL=settings.SENTRY_FALLBACK_CELL):
             self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
         self.user = self.create_user("bar@example.com")
 
@@ -149,9 +149,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         ]
         with (
             override_cells(regions),
-            override_settings(
-                SENTRY_MONOLITH_REGION=org_region_name, SENTRY_FALLBACK_CELL=org_region_name
-            ),
+            override_settings(SENTRY_FALLBACK_CELL=org_region_name),
         ):
             with unguarded_write(using=router.db_for_write(OrganizationMapping)):
                 self.create_organization_mapping(

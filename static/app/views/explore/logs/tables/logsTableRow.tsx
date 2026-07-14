@@ -31,7 +31,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -92,6 +91,10 @@ import {
   TraceIconStyleWrapper,
 } from 'sentry/views/explore/logs/styles';
 import {
+  getMessageFilter,
+  type MessageFilter,
+} from 'sentry/views/explore/logs/tables/getMessageFilter';
+import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
@@ -104,7 +107,6 @@ import {
   getLogSeverityLevel,
   isPseudoLogResponseItem,
   isRegularLogResponseItem,
-  type LogTableRowItem,
   ourlogToJson,
 } from 'sentry/views/explore/logs/utils';
 import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/logsReplayUtils';
@@ -117,7 +119,7 @@ import {getExploreUrl} from 'sentry/views/explore/utils';
 import {TraceIcons} from 'sentry/views/performance/newTraceDetails/traceIcons';
 
 type LogsRowProps = {
-  dataRow: LogTableRowItem;
+  dataRow: OurLogsResponseItem;
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
   sharedHoverTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
@@ -496,7 +498,7 @@ export const LogRowContent = memo(function LogRowContent({
           const shouldRenderActions =
             (showCellActions ?? !embedded) && shouldRenderHoverElements;
 
-          const value = (dataRow as OurLogsResponseItem)[field];
+          const value = dataRow[field];
 
           const extraMenuItems =
             field === OurLogKnownFieldKey.MESSAGE
@@ -522,7 +524,7 @@ export const LogRowContent = memo(function LogRowContent({
 
           const renderedField = (
             <LogFieldRenderer
-              item={getLogRowItem(field, dataRow as unknown as OurLogsResponseItem, meta)}
+              item={getLogRowItem(field, dataRow, meta)}
               meta={meta}
               extra={{
                 ...rendererExtra,
@@ -532,7 +534,7 @@ export const LogRowContent = memo(function LogRowContent({
             />
           );
 
-          const discoverColumn: TableColumn<keyof TableDataRow> = {
+          const discoverColumn: TableColumn<keyof OurLogsResponseItem> = {
             column: {
               field,
               kind: 'field',
@@ -552,19 +554,20 @@ export const LogRowContent = memo(function LogRowContent({
               {shouldRenderActions ? (
                 <CellAction
                   column={discoverColumn}
-                  dataRow={dataRow as unknown as TableDataRow}
+                  dataRow={dataRow}
                   handleCellAction={(actions, cellValue) => {
+                    const filter = getMessageFilter(field, dataRow, cellValue);
                     switch (actions) {
                       case Actions.ADD:
                         addSearchFilter({
-                          key: field,
-                          value: cellValue,
+                          key: filter.key,
+                          value: filter.value,
                         });
                         break;
                       case Actions.EXCLUDE:
                         addSearchFilter({
-                          key: field,
-                          value: cellValue,
+                          key: filter.key,
+                          value: filter.value,
                           negated: true,
                         });
                         break;
@@ -626,7 +629,7 @@ function LogRowDetails({
   meta,
   ref,
 }: {
-  dataRow: LogTableRowItem;
+  dataRow: OurLogsResponseItem;
   embedded: boolean;
   highlightTerms: string[];
   meta: EventsMetaType | undefined;
@@ -783,7 +786,7 @@ function LogRowDetails({
   );
 }
 
-function LogRowDetailsFilterActions({message}: {message: string}) {
+function LogRowDetailsFilterActions({filter}: {filter: MessageFilter}) {
   const addSearchFilter = useAddSearchFilter();
   return (
     <LogDetailTableActionsButtonBar>
@@ -793,8 +796,8 @@ function LogRowDetailsFilterActions({message}: {message: string}) {
         icon={<IconAdd />}
         onClick={() => {
           addSearchFilter({
-            key: OurLogKnownFieldKey.MESSAGE,
-            value: message,
+            key: filter.key,
+            value: filter.value,
           });
         }}
       >
@@ -806,8 +809,8 @@ function LogRowDetailsFilterActions({message}: {message: string}) {
         icon={<IconSubtract />}
         onClick={() => {
           addSearchFilter({
-            key: OurLogKnownFieldKey.MESSAGE,
-            value: message,
+            key: filter.key,
+            value: filter.value,
             negated: true,
           });
         }}
@@ -825,7 +828,7 @@ function LogRowDetailsActions({
 }: {
   fullLogDataResult: UseQueryResult<TraceItemDetailsResponse>;
   projectSlug: string;
-  tableDataRow: LogTableRowItem;
+  tableDataRow: OurLogsResponseItem;
 }) {
   const {data, isPending, isError} = fullLogDataResult;
   const isFrozen = useLogsFrozenIsFrozen();
@@ -836,6 +839,11 @@ function LogRowDetailsActions({
     data?.attributes?.find(attr => attr.name === OurLogKnownFieldKey.MESSAGE)?.value ??
       tableDataRow[OurLogKnownFieldKey.MESSAGE] ??
       ''
+  );
+  const messageFilter = getMessageFilter(
+    OurLogKnownFieldKey.MESSAGE,
+    tableDataRow,
+    message
   );
 
   const {copy} = useCopyToClipboard();
@@ -888,7 +896,11 @@ function LogRowDetailsActions({
 
   return (
     <Fragment>
-      {showFilterButtons ? <LogRowDetailsFilterActions message={message} /> : <span />}
+      {showFilterButtons ? (
+        <LogRowDetailsFilterActions filter={messageFilter} />
+      ) : (
+        <span />
+      )}
       <LogDetailTableActionsButtonBar>
         <Button
           variant="transparent"

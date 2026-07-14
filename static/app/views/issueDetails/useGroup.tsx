@@ -27,6 +27,15 @@ export function groupApiOptions({
   });
 }
 
+type GroupQueryKeyParameters = Pick<
+  GroupApiOptionsParameters,
+  'groupId' | 'organizationSlug'
+>;
+
+export function groupQueryKey(params: GroupQueryKeyParameters) {
+  return [groupApiOptions({...params, environments: []}).queryKey[0]] as const;
+}
+
 interface UseGroupOptions {
   groupId: string;
   options?: {

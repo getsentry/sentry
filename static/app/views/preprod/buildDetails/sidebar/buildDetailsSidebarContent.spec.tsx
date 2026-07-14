@@ -27,6 +27,7 @@ const mockBuildDetailsData: BuildDetailsApiResponse = {
     is_installable: true,
     download_count: 5,
     release_notes: 'Release notes',
+    install_groups: null,
   },
   vcs_info: {
     head_sha: 'abc123',

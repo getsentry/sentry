@@ -1,5 +1,5 @@
 from collections.abc import Mapping, MutableMapping
-from typing import Any
+from typing import Any, ClassVar, Literal
 from warnings import warn
 
 from sentry.utils.safe import get_path
@@ -7,9 +7,22 @@ from sentry.utils.strings import strip, truncatechars
 
 # Note: Detecting eventtypes is implemented in the Relay Rust library.
 
+EventTypeStr = Literal[
+    "default",
+    "error",
+    "csp",
+    "nel",
+    "hpkp",
+    "expectct",
+    "expectstaple",
+    "transaction",
+    "generic",
+    "feedback",
+]
+
 
 class BaseEvent:
-    key: str  # abstract
+    key: ClassVar[EventTypeStr]  # abstract
 
     def get_metadata(self, data: MutableMapping[str, Any]) -> dict[str, str]:
         metadata = self.extract_metadata(data)
@@ -42,7 +55,7 @@ class BaseEvent:
 
 
 class DefaultEvent(BaseEvent):
-    key = "default"
+    key: ClassVar[EventTypeStr] = "default"
 
     def extract_metadata(self, data: MutableMapping[str, Any]) -> dict[str, str]:
         message = strip(

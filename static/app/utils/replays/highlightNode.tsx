@@ -43,15 +43,19 @@ export function removeHighlightedNode(replayer: Replayer, props: RemoveHighlight
   if ('nodeIds' in props) {
     for (const nodeId of props.nodeIds) {
       const highlightObj = highlightsByNodeIds.get(nodeId);
-      if (highlightObj && replayer.wrapper.contains(highlightObj.canvas)) {
-        replayer.wrapper.removeChild(highlightObj.canvas);
+      if (highlightObj) {
+        if (replayer.wrapper?.contains(highlightObj.canvas)) {
+          replayer.wrapper.removeChild(highlightObj.canvas);
+        }
         highlightsByNodeIds.delete(nodeId);
       }
     }
   } else {
     const highlightObj = highlightsBySelector.get(props.selector);
-    if (highlightObj && replayer.wrapper.contains(highlightObj.canvas)) {
-      replayer.wrapper.removeChild(highlightObj.canvas);
+    if (highlightObj) {
+      if (replayer.wrapper?.contains(highlightObj.canvas)) {
+        replayer.wrapper.removeChild(highlightObj.canvas);
+      }
       highlightsBySelector.delete(props.selector);
     }
   }

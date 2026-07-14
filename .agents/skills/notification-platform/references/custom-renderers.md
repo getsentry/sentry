@@ -4,7 +4,7 @@
 
 The default flow is: `NotificationData` → `NotificationTemplate.render()` → `NotificationRenderedTemplate` → `NotificationRenderer.render()` → provider-specific renderable.
 
-Custom renderers replace the last step. The provider's `get_renderer()` method dispatches to a custom renderer class based on category or data type, bypassing the default block-to-renderable conversion.
+Custom renderers replace the last step. The provider's `get_renderer()` method dispatches to a custom renderer class based on category or data type, bypassing the default section/block-to-renderable conversion.
 
 ```
 Template.render(data) → NotificationRenderedTemplate
@@ -27,7 +27,7 @@ Use a custom renderer when:
 
 Do NOT use a custom renderer when:
 
-- The default block types (`ParagraphBlock`, `CodeBlock`, `PlainTextBlock`, `BoldTextBlock`, `CodeTextBlock`) are sufficient
+- The default section and block types (`ParagraphSection`, `CodeSection`, `BlockQuoteSection`, `PlainTextBlock`, `BoldTextBlock`, `ItalicTextBlock`, `CodeTextBlock`, `LinkTextBlock`) are sufficient
 - You only need to tweak styling — the default renderers establish common styles that the majority of notifications should abide by.
 
 ## File Placement
@@ -139,6 +139,6 @@ class SeerAutofixUpdateTemplate(NotificationTemplate[SeerAutofixUpdate]):
     def render(self, data: SeerAutofixUpdate) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject="Seer Autofix Update",
-            body=[ParagraphBlock(blocks=[PlainTextBlock(text="Update")])],
+            body=[ParagraphSection(blocks=[PlainTextBlock(text="Update")])],
         )
 ```

@@ -44,6 +44,7 @@ from sentry.sentry_apps.installations import SentryAppInstallationNotifier
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
+from sentry.sentry_apps.utils.webhooks import has_granular_events
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry
@@ -78,7 +79,8 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     allow_disabled_sentry_app_for_methods = {"DELETE", "PUT", "GET"}
 
     @extend_schema(
-        operation_id="Retrieve a custom integration by ID or slug.",
+        operation_id="getSentryApp",
+        summary="Retrieve a custom integration by ID or slug.",
         parameters=[
             SentryAppParams.SENTRY_APP_ID_OR_SLUG,
         ],
@@ -103,7 +105,8 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         )
 
     @extend_schema(
-        operation_id="Update an existing custom integration.",
+        operation_id="updateSentryApp",
+        summary="Update an existing custom integration.",
         parameters=[
             SentryAppParams.SENTRY_APP_ID_OR_SLUG,
         ],
@@ -153,6 +156,24 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 status=403,
             )
 
+        if (
+            owner_context
+            and has_granular_events(request.data.get("events"))
+            and not features.has(
+                "organizations:sentry-apps-granular-events",
+                owner_context.organization,
+                actor=request.user,
+            )
+        ):
+            return Response(
+                {
+                    "non_field_errors": [
+                        "Your organization does not have access to per-event webhook subscriptions."
+                    ]
+                },
+                status=403,
+            )
+
         # isInternal is not field of our model but it is a field of the serializer
         data = request.data.copy()
         data["isInternal"] = sentry_app.status == SentryAppStatus.INTERNAL
@@ -186,6 +207,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 schema=result.get("schema"),
                 overview=result.get("overview"),
                 allowed_origins=result.get("allowedOrigins"),
+                webhook_headers=result.get("webhookHeaders"),
                 popularity=result.get("popularity"),
                 is_disabled=result.get("isDisabled"),
             ).run(user=request.user)
@@ -226,7 +248,8 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         return Response(as_validation_errors(serializer), status=400)
 
     @extend_schema(
-        operation_id="Delete a custom integration.",
+        operation_id="deleteSentryApp",
+        summary="Delete a custom integration.",
         parameters=[
             SentryAppParams.SENTRY_APP_ID_OR_SLUG,
         ],

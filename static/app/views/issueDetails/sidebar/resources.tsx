@@ -2,7 +2,6 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 
-import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {IssueTypeConfig, ResourceLink} from 'sentry/utils/issueTypeConfig/types';
@@ -10,17 +9,15 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Props = {
   configResources: NonNullable<IssueTypeConfig['resources']>;
-  eventPlatform: Event['platform'];
   group: Group;
+  platform: Group['platform'];
 };
 
-export function Resources({configResources, eventPlatform, group}: Props) {
+export function Resources({configResources, platform, group}: Props) {
   const organization = useOrganization();
   const links: ResourceLink[] = [
     ...configResources.links,
-    ...(configResources.linksByPlatform[
-      (eventPlatform ?? '') as keyof typeof configResources.linksByPlatform
-    ] ?? []),
+    ...(configResources.linksByPlatform[platform] ?? []),
   ];
 
   return (

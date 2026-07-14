@@ -414,8 +414,6 @@ class IssueParams:
             "inbox",
             "owners",
             "sessions",
-            "pluginActions",
-            "pluginIssues",
             "integrationIssues",
             "sentryAppIssues",
             "latestEventHasAttachments",

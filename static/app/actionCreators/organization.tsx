@@ -40,6 +40,7 @@ async function fetchOrg(api: Client, slug: string): Promise<Organization> {
   // XXX(dcramer): this is duplicated in sdk.py on the backend
   scope.setTag('organization', org.id);
   scope.setTag('organization.slug', org.slug);
+  scope.setAttributes({organization: org.id, 'organization.slug': org.slug});
   scope.setContext('organization', {id: org.id, slug: org.slug});
 
   return org;

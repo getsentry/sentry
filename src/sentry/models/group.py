@@ -37,7 +37,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.issues.action_log import publish_action_from_context
+from sentry.issues.action_log.publish import publish_action_from_context
 from sentry.issues.action_log.types import (
     ArchiveAction,
     GroupAction,

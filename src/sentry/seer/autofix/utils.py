@@ -231,6 +231,45 @@ def make_update_coding_agent_state_request(
     )
 
 
+class MatchDelegatedAgentPrRequest(BaseModel):
+    organization_id: int
+    pull_request_id: int
+    pr_url: str
+    repo: SeerRepoDefinition
+    head_branch: str
+    provider: str
+    group_ids: list[int]
+
+
+def make_match_coding_agent_pr_request(
+    body: MatchDelegatedAgentPrRequest,
+    connection_pool: HTTPConnectionPool | None = None,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    return make_signed_seer_api_request(
+        connection_pool or autofix_connection_pool,
+        "/v1/pr-metrics/delegated-agent-match",
+        body=orjson.dumps(body.dict(exclude_none=True)),
+        timeout=timeout,
+        viewer_context=viewer_context,
+    )
+
+
+class DelegatedAgentMatch(BaseModel):
+    """A match resolved synchronously by ``/v1/pr-metrics/delegated-agent-match``.
+
+    Returned as a ``200`` body instead of the async ``202`` + ``record_pr_attribution``
+    RPC callback. ``match_path`` isn't consumed on the Sentry side today; it's kept
+    here to mirror the full wire contract.
+    """
+
+    run_id: int
+    agent_id: str
+    signal_type: str
+    match_path: str
+
+
 def make_store_coding_agent_states_request(
     body: StoreCodingAgentStatesRequest,
     connection_pool: HTTPConnectionPool | None = None,
@@ -498,6 +537,32 @@ def clear_preference_automation_handoff(project: Project) -> None:
     ).delete()
 
 
+def get_repo_url_path(repo: Repository) -> str:
+    """Return the URL-safe owner/name path for a repository.
+
+    For GitLab, ``repo.name`` is ``name_with_namespace`` (the human-readable
+    display name, e.g. ``"My Group / My Project"`` — with spaces).  The
+    URL-safe equivalent is stored in ``repo.config["path"]``
+    (``path_with_namespace``, e.g. ``"my-group/my-project"``).
+
+    For GitHub and all other providers, ``repo.name`` is already the
+    URL-safe ``owner/repo`` string, so we return it unchanged.
+
+    Raises ``ValueError`` for a GitLab repo missing ``config["path"]``. This
+    should never happen in practice (every GitLab repo we store has the path
+    populated), so we fail loudly rather than silently falling back to the
+    space-containing display name, which would produce broken URLs / 404s.
+    """
+    if repo.provider == "integrations:gitlab":
+        path = repo.config.get("path")
+        if not path:
+            raise ValueError(
+                f"GitLab repository {repo.id} is missing config['path'] (path_with_namespace)"
+            )
+        return path
+    return repo.name
+
+
 def build_repo_definition_from_project_repo(
     seer_project_repo: SeerProjectRepository,
 ) -> SeerRepoDefinition | None:
@@ -505,7 +570,7 @@ def build_repo_definition_from_project_repo(
 
     Returns None if Repository name is invalid."""
     repo = seer_project_repo.project_repository.repository
-    repo_name_sections = repo.name.split("/")
+    repo_name_sections = get_repo_url_path(repo).split("/")
     if len(repo_name_sections) < 2:
         sentry_sdk.capture_exception(ValueError(f"Invalid repository name format: {repo.name}"))
         return None
@@ -839,7 +904,7 @@ def get_autofix_repos_from_project_code_mappings(
     repos: dict[tuple, dict] = {}
     for code_mapping in code_mappings:
         repo: Repository = code_mapping.project_repository.repository
-        repo_name_sections = repo.name.split("/")
+        repo_name_sections = get_repo_url_path(repo).split("/")
 
         if (
             # We expect a repository name to be in the format of "owner/name" for now.
@@ -944,6 +1009,7 @@ def is_issue_category_eligible(group: Group) -> bool:
         GroupCategory.FRONTEND,
         GroupCategory.DB_QUERY,
         GroupCategory.HTTP_CLIENT,
+        GroupCategory.CONFIGURATION,
     }
 
 

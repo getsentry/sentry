@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, cast
 
 from django.utils import timezone
 from pydantic import BaseModel, Field
 
-from sentry import features
 from sentry.preprod.api.models.snapshots.snapshot_status import (
     ApprovalStatusLiteral,
     ComparisonStateLiteral,
@@ -20,6 +19,7 @@ from sentry.preprod.build_distribution_utils import (
 from sentry.preprod.models import (
     Platform,
     PreprodArtifact,
+    PreprodArtifactMobileAppInfoExtras,
     PreprodArtifactSizeMetrics,
     PreprodComparisonApproval,
 )
@@ -44,6 +44,7 @@ class BuildDetailsAppInfo(BaseModel):
     name: str | None
     version: str | None
     build_number: int | None = None
+    build_number_raw: str | None = None
     date_added: str | None = None
     date_built: str | None = None
     artifact_type: PreprodArtifact.ArtifactType | None = None
@@ -69,6 +70,7 @@ class DistributionInfo(BaseModel):
     is_installable: bool
     download_count: int
     release_notes: str | None = None
+    install_groups: list[str] | None = None
     error_code: str | None = None
     error_message: str | None = None
 
@@ -210,6 +212,11 @@ def create_build_details_app_info(artifact: PreprodArtifact) -> BuildDetailsAppI
         name=mobile_app_info.app_name if mobile_app_info else None,
         version=(mobile_app_info.build_version if mobile_app_info else None),
         build_number=(mobile_app_info.build_number if mobile_app_info else None),
+        build_number_raw=(
+            cast(PreprodArtifactMobileAppInfoExtras, mobile_app_info.extras).get("build_number_raw")
+            if mobile_app_info and mobile_app_info.extras
+            else None
+        ),
         date_added=(artifact.date_added.isoformat() if artifact.date_added else None),
         date_built=(artifact.date_built.isoformat() if artifact.date_built else None),
         artifact_type=artifact.artifact_type,
@@ -321,10 +328,6 @@ def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotCompa
                     app_id=head_artifact.app_id,
                     artifact_type=head_artifact.artifact_type,
                     build_configuration=head_artifact.build_configuration,
-                    allow_selective=features.has(
-                        "organizations:preprod-selective-base-snapshots",
-                        head_artifact.project.organization,
-                    ),
                 )
                 is not None
             )
@@ -403,6 +406,7 @@ def transform_preprod_artifact_to_build_details(
         is_installable=is_installable,
         download_count=(get_download_count_for_artifact(artifact) if is_installable else 0),
         release_notes=(artifact.extras.get("release_notes") if artifact.extras else None),
+        install_groups=(artifact.extras.get("install_groups") if artifact.extras else None),
         error_code=error_code_str,
         error_message=artifact.installable_app_error_message,
     )

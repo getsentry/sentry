@@ -346,3 +346,42 @@ class OrganizationEventsStatsOurlogsEndpointTest(OrganizationEventsEndpointTestB
             },
         )
         assert response.status_code == 200, response.content
+
+    def test_count_with_latest_release_filter(self) -> None:
+        self.create_release(version="0.8")
+        self.create_release(version="0.9")
+        event_counts = [6, 0, 6, 3, 0, 3]
+        logs = []
+        for hour, count in enumerate(event_counts):
+            logs.extend(
+                [
+                    self.create_ourlog(
+                        attributes={"sentry.release": "0.9"},
+                        timestamp=self.start + timedelta(hours=hour, minutes=minute),
+                    )
+                    for minute in range(count)
+                ],
+            )
+        logs.append(
+            self.create_ourlog(
+                attributes={"sentry.release": "0.8"},
+                timestamp=self.start + timedelta(minutes=1),
+            )
+        )
+        self.store_eap_items(logs)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "count()",
+                "query": "release:latest",
+                "project": self.project.id,
+                "dataset": "logs",
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": count}] for count in event_counts
+        ]

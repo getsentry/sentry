@@ -1,13 +1,13 @@
 import logging
 from typing import Any, cast
 
-import sentry_sdk
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
     ExportTraceItemsRequest,
     ExportTraceItemsResponse,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry.api.utils import get_date_range_from_params
 from sentry.data_export.base import ExportError
@@ -31,6 +31,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.snuba_rpc import export_logs_rpc
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +91,7 @@ class ExploreProcessor:
 
         if self.scoped_dataset == OurLogs:
             self.config = SearchResolverConfig(
-                use_aggregate_conditions=False,
+                use_aggregate_conditions=use_aggregate_conditions,
             )
         else:
             self.config = SearchResolverConfig(
@@ -184,10 +185,24 @@ class TraceItemFullExportProcessor(ExploreProcessor):
     ):
         super().__init__(organization, explore_query, output_mode=output_mode)
         self.page_token = page_token
+        self._request_meta = self._create_export_rpc_meta()
+        self._trace_filter = self._create_trace_item_filter()
 
-    def _create_logs_export_rpc_meta(self) -> RequestMeta:
+    def _sync_page_token_from_snuba_response(self, http_resp: ExportTraceItemsResponse) -> None:
+        """Mirror Snuba's response page_token: continuation bytes or terminal (end_pagination)."""
+        if not http_resp.HasField("page_token"):
+            self.page_token = None
+            return
+        pt = http_resp.page_token
+        if pt.HasField("end_pagination") and pt.end_pagination:
+            self.page_token = None
+        else:
+            self.page_token = pt.SerializeToString()
+
+    def _create_export_rpc_meta(self) -> RequestMeta:
         if self.snuba_params.organization_id is None:
             raise ExportError("Organization ID must be provided")
+
         return RequestMeta(
             organization_id=self.snuba_params.organization_id,
             project_ids=self.snuba_params.project_ids,
@@ -201,31 +216,29 @@ class TraceItemFullExportProcessor(ExploreProcessor):
             ),
         )
 
-    def _sync_page_token_from_snuba_response(self, http_resp: ExportTraceItemsResponse) -> None:
-        """Mirror Snuba's response page_token: continuation bytes or terminal (end_pagination)."""
-        if not http_resp.HasField("page_token"):
-            self.page_token = None
-            return
-        pt = http_resp.page_token
-        if pt.HasField("end_pagination") and pt.end_pagination:
-            self.page_token = None
-        else:
-            self.page_token = pt.SerializeToString()
+    def _create_trace_item_filter(self) -> TraceItemFilter | None:
+        where, _, _ = self.search_resolver.resolve_query_with_columns(
+            querystring=self.explore_query.get("query", ""),
+            selected_columns=None,
+            equations=None,
+        )
+        return where
 
     def run_query(self, _offset: int, limit: int) -> list[dict[str, Any]]:
-        meta = self._create_logs_export_rpc_meta()
-        request = ExportTraceItemsRequest(meta=meta, limit=limit)
+        request = ExportTraceItemsRequest(
+            meta=self._request_meta, limit=limit, filter=self._trace_filter
+        )
         if self.page_token:
             token = PageToken()
             token.ParseFromString(self.page_token)
             request.page_token.CopyFrom(token)
-        with sentry_sdk.start_span(op="snuba.rpc", name="ExportTraceItems") as span:
-            span.set_data("dataset", self.explore_query["dataset"])
-            span.set_data("limit", limit)
-            span.set_data("has_page_token", self.page_token is not None)
+        with start_span(op="snuba.rpc", name="ExportTraceItems") as span:
+            set_span_data(span, "dataset", self.explore_query["dataset"])
+            set_span_data(span, "limit", limit)
+            set_span_data(span, "has_page_token", self.page_token is not None)
             http_resp = export_logs_rpc(request)
             self._sync_page_token_from_snuba_response(http_resp)
-            span.set_data("next_page_token", self.page_token is not None)
+            set_span_data(span, "next_page_token", self.page_token is not None)
 
         rows = list(iter_export_trace_items_rows(http_resp, self._supported_trace_item_type))
         return rows or []

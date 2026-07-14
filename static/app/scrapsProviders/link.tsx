@@ -7,10 +7,8 @@ import {preload} from 'sentry/router/preload';
 import {useRouteConfig} from 'sentry/router/routeConfigContext';
 import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocation} from 'sentry/utils/useLocation';
 
 export function SentryLinkBehaviorProvider({children}: {children: React.ReactNode}) {
-  const location = useLocation();
   const routeConfig = useRouteConfig();
 
   return (
@@ -19,7 +17,7 @@ export function SentryLinkBehaviorProvider({children}: {children: React.ReactNod
         () => ({
           component: RouterLink,
           behavior: ({to, onMouseEnter, onFocus, ...props}: LinkProps) => {
-            const normalizedTo = locationDescriptorToTo(normalizeUrl(to, location));
+            const normalizedTo = locationDescriptorToTo(normalizeUrl(to));
 
             return {
               to: normalizedTo,
@@ -39,7 +37,7 @@ export function SentryLinkBehaviorProvider({children}: {children: React.ReactNod
             };
           },
         }),
-        [routeConfig, location]
+        [routeConfig]
       )}
     >
       {children}

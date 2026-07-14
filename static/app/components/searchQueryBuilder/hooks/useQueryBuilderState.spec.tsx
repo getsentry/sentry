@@ -261,7 +261,8 @@ describe('replaceFreeTextTokens', () => {
             },
           }),
         input.rawSearchReplacement,
-        getFieldDefinition
+        getFieldDefinition,
+        'test'
       );
 
       expect(result?.newQuery).toBe(expected.query);

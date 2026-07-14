@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -22,8 +23,12 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.utils.groupreference import find_referenced_groups
+
+if TYPE_CHECKING:
+    from sentry.models.repository import RepoResolution
 
 
 class PullRequestLifecycleState(models.TextChoices):
@@ -60,6 +65,73 @@ class PullRequestVerdict(models.TextChoices):
     # event won't forward twice; Seer's callback overwrites it with a real verdict.
     # Never a judge *result* — the callback rejects it coming back from Seer.
     JUDGE_IN_PROGRESS = "judge_in_progress"
+    # Transient, internal: a terminal event has been claimed at the close/merge
+    # webhook and an emission task scheduled, but the cooldown window (during which
+    # late attribution and activity settle) hasn't elapsed yet. Reuses the verdict
+    # column as the redelivery guard so a redelivered terminal event won't schedule
+    # a second task; the cooldown task overwrites it with a real verdict (or the
+    # JUDGE_IN_PROGRESS sentinel). Never a judge *result*.
+    WAITING_EVENT_COOLDOWN = "waiting_event_cooldown"
+
+
+# SCM providers that can legitimately back a Repository. A reporting source (Seer, a
+# delegated coding agent, a future integration) normalizes its provider to one of these
+# (lowercased, no ``integrations:`` prefix); anything else is a value we don't understand
+# and should be fixed upstream.
+_KNOWN_SCM_PROVIDERS = frozenset(
+    {
+        IntegrationProviderSlug.GITHUB,
+        IntegrationProviderSlug.GITHUB_ENTERPRISE,
+        IntegrationProviderSlug.GITLAB,
+        IntegrationProviderSlug.BITBUCKET,
+        IntegrationProviderSlug.BITBUCKET_SERVER,
+        IntegrationProviderSlug.AZURE_DEVOPS,
+        IntegrationProviderSlug.PERFORCE,
+    }
+)
+
+
+class ResolvedPullRequest(NamedTuple):
+    """Result of resolving an externally-reported PR to its canonical ``PullRequest``.
+
+    ``pull_request`` is None when the reported ``(repo_name, provider)`` doesn't map to
+    exactly one active ``Repository``; ``repo_resolution`` says why, and
+    ``provider_unmappable`` flags a *present* provider string we don't map (an empty or
+    ``"unknown"`` provider is treated as absent, not unmappable). Callers decide how (and
+    whether) to log these under their own namespace.
+    """
+
+    pull_request: PullRequest | None
+    repo_resolution: RepoResolution
+    provider_unmappable: bool
+
+
+def parse_pull_request_number(url: str) -> int | None:
+    """Extract the PR/MR number from a pull-request URL, or None if there isn't one.
+
+    Matches the number after a ``/pull/`` (GitHub) or ``/merge_requests/`` (GitLab)
+    segment specifically — a source can report a branch/``tree`` URL as its result, and
+    we must not mistake a trailing branch-name segment for a PR number.
+    """
+    match = re.search(r"/(?:pull|pulls|merge_requests)/(\d+)", url)
+    return int(match.group(1)) if match else None
+
+
+def _normalize_scm_provider(provider: str | None) -> str | None:
+    """Normalize a reported SCM provider to Sentry's unprefixed form, or None if unusable.
+
+    Returns None for the ``"unknown"`` sentinel (the source couldn't resolve the repo) and
+    for empty values — neither can scope a provider filter. Lowercases before the sentinel
+    check so any casing (e.g. ``UNKNOWN``) is treated as unknown.
+    """
+    if not provider:
+        return None
+    provider = provider.lower()
+    if provider.startswith("integrations:"):
+        provider = provider.split(":", 1)[1]
+    if provider == "unknown":
+        return None
+    return provider
 
 
 class PullRequestManager(BaseManager["PullRequest"]):
@@ -93,6 +165,51 @@ class PullRequestManager(BaseManager["PullRequest"]):
             )
             post_save.send(sender=self.__class__, instance=instance, created=created)
         return affected, created
+
+    def get_or_create_from_reference(
+        self,
+        *,
+        organization_id: int,
+        repo_name: str,
+        provider: str | None,
+        key: int | str,
+    ) -> ResolvedPullRequest:
+        """Resolve an externally-reported ``(repo_name, provider, key)`` to its canonical PR.
+
+        Resolves the org-scoped active ``Repository`` (via ``RepositoryManager.resolve_active``),
+        then find-or-creates the ``PullRequest`` keyed on ``key`` (the PR number). The
+        find-or-create may run before the SCM ``opened`` webhook arrives, so the row can be
+        a shell (no title/body) the webhook fills in later — we never overwrite it here.
+
+        Returns a ``ResolvedPullRequest``; ``pull_request`` is None when the repo can't be
+        uniquely resolved. Does not log or swallow errors — callers own observability and
+        error handling. Shared by every path that learns of a PR by repo name + provider
+        rather than through an SCM installation (e.g. Seer-created and delegated-agent
+        attribution).
+        """
+        from sentry.models.repository import Repository
+
+        normalized_provider = _normalize_scm_provider(provider)
+        provider_unmappable = (
+            normalized_provider is not None and normalized_provider not in _KNOWN_SCM_PROVIDERS
+        )
+
+        repository, resolution = Repository.objects.resolve_active(
+            organization_id=organization_id,
+            name=repo_name,
+            normalized_provider=normalized_provider,
+        )
+        if repository is None:
+            return ResolvedPullRequest(None, resolution, provider_unmappable)
+
+        # get_or_create is race-safe via the unique constraint on (repository, key) —
+        # Django retries the get on IntegrityError.
+        pull_request, _ = self.get_or_create(
+            organization_id=organization_id,
+            repository_id=repository.id,
+            key=str(key),
+        )
+        return ResolvedPullRequest(pull_request, "resolved", provider_unmappable)
 
 
 @cell_silo_model
@@ -273,18 +390,23 @@ class PullRequestComment(Model):
 
 class PullRequestActivityType(models.TextChoices):
     ASSIGNED = "assigned"
+    AUTO_MERGE_DISABLED = "auto_merge_disabled"
+    AUTO_MERGE_ENABLED = "auto_merge_enabled"
+    CHECK_RUN_COMPLETED = "check_run_completed"
+    CHECK_SUITE_COMPLETED = "check_suite_completed"
     CLOSED = "closed"
     COMMENT_CREATED = "comment_created"
     COMMENT_DELETED = "comment_deleted"
     COMMENT_EDITED = "comment_edited"
     CONVERTED_TO_DRAFT = "converted_to_draft"
-    EDITED = "edited"
+    DEQUEUED = "dequeued"
+    ENQUEUED = "enqueued"
     LABELED = "labeled"
     LOCKED = "locked"
     MERGED = "merged"
     OPENED = "opened"
     READY_FOR_REVIEW = "ready_for_review"
-    REOPENED = "reopened"
+    REVIEW_DISMISSED = "review_dismissed"
     REVIEW_REQUESTED = "review_requested"
     REVIEW_REQUEST_REMOVED = "review_request_removed"
     REVIEW_SUBMITTED = "review_submitted"
@@ -340,13 +462,12 @@ class PullRequestAttribution(DefaultFieldsModel):
 
 @cell_silo_model
 class PullRequestMetrics(DefaultFieldsModel):
-    """One row per PR holding the webhook-sourced activity counters.
+    """One row per PR holding its metrics — the size/activity counters plus the
+    terminal ``verdict``.
 
     Kept current by the metrics pipeline on each ``pull_request`` webhook and read
-    by the emit/judge path (which, on the Seer callback, has no payload — hence
-    the counts are stored rather than re-derived). ``verdict`` and the Seer-only
-    counters (``participants_count``, ``reviews_count``) are populated later by
-    the judge path, not the webhook.
+    by the emit/judge path — which, on the Seer callback, has no payload, so the
+    values are stored here rather than re-derived at read time.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -364,6 +485,22 @@ class PullRequestMetrics(DefaultFieldsModel):
     participants_count = BoundedPositiveIntegerField(default=0)
     reviews_count = BoundedPositiveIntegerField(default=0)
     is_assigned = models.BooleanField(default=False)
+    # Human-involvement splits derived from the activity log at the terminal event
+    # (see ``pr_metrics.emit``). ``reviews_count`` = reviews_bot_count +
+    # reviews_human_count. Pushes count push events (opened + synchronize), not
+    # individual commits, split by the pusher's account class. All 0 when activity
+    # isn't tracked.
+    reviews_bot_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    reviews_human_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    pushes_bot_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    pushes_human_count = BoundedPositiveIntegerField(default=0, db_default=0)
+    # Who opened / closed the PR, by account class: True = Bot, False = human, null
+    # = the event was never recorded (activity not tracked, or a missed webhook).
+    # ``opened_and_closed_by_same_actor`` compares the opener's and closer's logins;
+    # null when either side is unknown.
+    opened_by_bot = models.BooleanField(null=True)
+    closed_by_bot = models.BooleanField(null=True)
+    opened_and_closed_by_same_actor = models.BooleanField(null=True)
 
     class Meta:
         app_label = "sentry"

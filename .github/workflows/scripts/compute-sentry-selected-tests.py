@@ -56,10 +56,25 @@ FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
     re.compile(r"(^|/)conftest\.py$"),
     "src/sentry/runner/initializer.py",
     "src/sentry/constants.py",
+    # column-alias enum evaluated at import time; used indirectly by every
+    # Snuba query builder so coverage never records per-test contexts for it
+    "src/sentry/snuba/events.py",
+    # pure constants/aliases consumed at module level by search field/function
+    # registries — same pattern as constants.py, coverage sees only startup context
+    "src/sentry/search/events/constants.py",
+    # EAP shared column/aggregate definitions; consumed at import time by every
+    # EAP dataset file via module-level list comprehensions — zero coverage data
+    "src/sentry/search/eap/common_columns.py",
+    "src/sentry/search/eap/common_aggregates.py",
     # option defaults registered at startup via initialize_app()
     re.compile(r"^src/sentry/options/"),
     # feature flags registered via manager.add() at import time
     re.compile(r"^src/sentry/features/"),
+    # audit log events registered via default_manager.add() at import time;
+    # 60+ test files consume this via `from sentry import audit_log` (parent-package
+    # import), which the static import scan can't detect — so targeted mapping is
+    # unsafe and the full suite is required
+    re.compile(r"^src/sentry/audit_log/"),
     # signal definitions created at module level; receivers depend on these
     "src/sentry/signals.py",
     # signal handlers registered globally via initialize_receivers()
@@ -94,17 +109,17 @@ EXTRA_FILE_TO_TEST_MAPPING: dict[str, list[str]] = {
     "fixtures/backup/user-with-minimum-privileges.json": ["tests/sentry/backup/test_rpc.py"],
     "fixtures/backup/single-integration.json": ["tests/sentry/backup/test_validate.py"],
     "fixtures/backup/single-option.json": ["tests/sentry/backup/test_validate.py"],
-    # YAML test-data files co-located with tests — only .py files are auto-selected
-    "tests/sentry/runner/commands/valid_patch.yaml": [
+    # JSON test-data files co-located with tests — only .py files are auto-selected
+    "tests/sentry/runner/commands/valid_patch.json": [
         "tests/sentry/runner/commands/test_configoptions.py"
     ],
-    "tests/sentry/runner/commands/badsync.yaml": [
+    "tests/sentry/runner/commands/badsync.json": [
         "tests/sentry/runner/commands/test_configoptions.py"
     ],
-    "tests/sentry/runner/commands/badpatch.yaml": [
+    "tests/sentry/runner/commands/badpatch.json": [
         "tests/sentry/runner/commands/test_configoptions.py"
     ],
-    "tests/sentry/runner/commands/unsetsync.yaml": [
+    "tests/sentry/runner/commands/unsetsync.json": [
         "tests/sentry/runner/commands/test_configoptions.py"
     ],
 }

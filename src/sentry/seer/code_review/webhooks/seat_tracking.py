@@ -2,30 +2,38 @@
 GitLab merge_request webhook processor that seeds OrganizationContributors so
 seat-based Seer billing works once an org is moved onto
 ``organizations:seat-based-seer-enabled``. Same goal as GitHub's
-``track_contributor_seat`` call in ``PullRequestEventWebhook._handle`` (see
-``sentry/integrations/github/webhook.py``), but uses different idempotency
-mechanics:
+``_track_contributor_action_processor`` call in ``PullRequestEventWebhook`` (see
+``sentry/integrations/github/webhook.py``).
 
-- GitHub guards the call with ``if created:`` from
-  ``PullRequest.objects.update_or_create``, so re-delivery of the same
-  ``pull_request opened`` event is a no-op once the PR row exists.
-- GitLab's ``MergeEventWebhook.__call__`` discards the ``created`` return and
-  calls ``_handle`` for every action, so the processor cannot rely on DB state.
-  Instead we (a) filter on ``object_attributes.action == "open"`` (the GitLab
-  analog of GitHub's "opened") and (b) record a short-lived Redis key per
-  ``(org, repo, MR iid)`` to drop re-deliveries within the TTL window. GitLab
-  redelivers merge_request hooks on response timeout and the endpoint also
-  dispatches each payload once per installed organization; both can otherwise
-  cause ``num_actions`` to be incremented multiple times for a single MR-open.
+``track_gitlab_contributor_action_processor`` calls ``record_contributor_action``,
+which seeds the contributor on every delivery and, for an eligible MR *open*,
+creates an ``OrganizationContributorAction`` row keyed by
+``(repository_id, pr_number)`` and increments ``num_actions``. The unique
+constraint absorbs GitLab's redeliveries without double-counting.
 
-Gated by ``organizations:seer-gitlab-support`` — the same cohort flag
-``handle_merge_request_event`` uses — so seeding only happens for orgs that
-are already opted in to GitLab code review. The downstream call to
-``should_increment_contributor_seat`` additionally requires
-``organizations:seat-based-seer-enabled`` before any row is actually written
-or a seat is assigned.
+``track_gitlab_contributor_seat_processor`` is the legacy seat-charging path,
+now informational logging only. GitLab's ``MergeEventWebhook.__call__`` discards the
+``created`` return and calls ``_handle`` for every action, so the processor cannot
+rely on DB state. Instead we (a) filter on ``object_attributes.action == "open"``
+(the GitLab analog of GitHub's "opened") and (b) record a short-lived Redis key per
+``(org, repo, MR iid)`` to drop re-deliveries within the TTL window. GitLab
+redelivers merge_request hooks on response timeout and the endpoint also
+dispatches each payload once per installed organization; both can otherwise
+cause actions to be logged multiple times for a single MR-open.
 
-``MergeEventWebhook.WEBHOOK_EVENT_PROCESSORS`` registers this processor
+Both processors are gated by ``organizations:seer-gitlab-support`` — the same
+cohort flag ``handle_merge_request_event`` uses — so seeding only happens for orgs
+that are already opted in to GitLab code review. The downstream
+``should_increment_contributor_seat`` check additionally requires
+``organizations:seat-based-seer-enabled``.
+
+Both processors skip seeding when the webhook actor (``event.user``) is not the
+MR author (``object_attributes.author_id``): the row is keyed by the author but
+its ``alias`` defaults to the actor's username, so on a mismatch (e.g. an MR
+opened via the API on behalf of another author) we'd store the wrong alias. We
+log ``actor_author_mismatch`` and skip instead.
+
+``MergeEventWebhook.WEBHOOK_EVENT_PROCESSORS`` registers these
 **before** ``handle_merge_request_event`` so the contributor row exists when
 the code-review handler's preflight billing check runs. Without that
 ordering, the first MR open from a new contributor would be denied with
@@ -34,10 +42,10 @@ seconds later.
 
 Known gap: ``MergeEventWebhook.__call__`` short-circuits before ``_handle``
 when the payload is missing ``last_commit`` or the author's email
-(``test_merge_event_no_last_commit``). In that case this processor never
-runs, so the MR author is not seeded. Subsequent ``update`` events for the
-same MR do not fire the processor either (the action filter is ``"open"``).
-Tracked on SCM-99 as a follow-up.
+(``test_merge_event_no_last_commit``). In that case these processors never
+run, so the MR author is not seeded on that delivery, though a later
+non-short-circuited event for the same MR will. Tracked on SCM-99 as a
+follow-up.
 """
 
 from __future__ import annotations
@@ -51,7 +59,10 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.seer.code_review.contributor_seats import track_contributor_seat
+from sentry.seer.code_review.contributor_seats import (
+    record_contributor_action,
+    track_contributor_seat,
+)
 from sentry.seer.code_review.webhooks.logging import debug_log
 from sentry.utils.redis import redis_clusters
 
@@ -63,12 +74,36 @@ SEAT_SEEN_KEY_PREFIX = "webhook:gitlab:seat_tracking:"
 SEAT_SEEN_TTL_SECONDS = 20
 
 
+def _actor_author_mismatch_extra(
+    *,
+    organization: RpcOrganization,
+    repo: Repository,
+    integration: RpcIntegration,
+    merge_request_iid: object,
+    merge_request_action: object,
+    author_id: object,
+    actor_id: object,
+    contributor_tracking_stage: str,
+) -> dict[str, object]:
+    return {
+        "seer.webhooks.organization_id": organization.id,
+        "seer.webhooks.provider_name": "gitlab",
+        "seer.webhooks.repository_id": repo.id,
+        "seer.webhooks.integration_id": integration.id,
+        "seer.webhooks.merge_request_iid": merge_request_iid,
+        "seer.webhooks.merge_request_action": merge_request_action,
+        "seer.webhooks.author_id": author_id,
+        "seer.webhooks.actor_id": actor_id,
+        "seer.webhooks.contributor_tracking_stage": contributor_tracking_stage,
+    }
+
+
 def _is_duplicate_delivery(seen_key: str) -> bool:
     """
     True if a delivery with this key was already processed within the TTL window.
 
-    On Redis errors we return False (process anyway) — double-counting once is
-    preferable to losing seat tracking entirely.
+    On Redis errors we return False (process anyway) — double-counting the
+    informational log once is preferable to losing it entirely.
     """
     try:
         cluster = redis_clusters.get("default")
@@ -112,7 +147,9 @@ def track_gitlab_contributor_seat_processor(
 
     try:
         user_id = object_attributes["author_id"]
-        user_username = event["user"]["username"]
+        event_user = event["user"]
+        event_actor_id = event_user["id"]
+        user_username = event_user["username"]
         iid = object_attributes["iid"]
     except KeyError as e:
         debug_log(
@@ -126,9 +163,32 @@ def track_gitlab_contributor_seat_processor(
 
     base_extra["author_id"] = user_id
 
+    # Skip when the webhook actor isn't the MR author: alias comes from the actor
+    # but the row is keyed by the author, so seeding would store the wrong alias.
+    # Runs before the dedup mark so a skipped mismatch doesn't block a later,
+    # matching delivery from seeding the author.
+    if user_id != event_actor_id:
+        debug_log(
+            logger,
+            organization,
+            "actor_author_mismatch",
+            _actor_author_mismatch_extra(
+                organization=organization,
+                repo=repo,
+                integration=integration,
+                merge_request_iid=iid,
+                merge_request_action=object_attributes.get("action"),
+                author_id=user_id,
+                actor_id=event_actor_id,
+                contributor_tracking_stage="seat",
+            ),
+            level=logging.WARNING,
+        )
+        return
+
     # Resolve the Organization before marking the delivery as seen so a missing
     # org does not poison the dedup window and block GitLab redeliveries from
-    # seeding the contributor later.
+    # logging the contributor later.
     try:
         org = Organization.objects.get_from_cache(id=organization.id)
     except Organization.DoesNotExist:
@@ -153,5 +213,75 @@ def track_gitlab_contributor_seat_processor(
         user_id=user_id,
         user_username=user_username,
         provider="gitlab",
+        logs_extra={
+            "pr_number": str(iid),
+            "github_event_action": object_attributes.get("action"),
+        },
     )
     debug_log(logger, organization, "contributor_seat_tracked", base_extra)
+
+
+def track_gitlab_contributor_action_processor(
+    *,
+    event: Mapping[str, Any],
+    organization: RpcOrganization,
+    repo: Repository,
+    integration: RpcIntegration | None = None,
+    **kwargs: Any,
+) -> None:
+    if integration is None:
+        return
+
+    if not features.has("organizations:seer-gitlab-support", organization):
+        return
+
+    object_attributes = event.get("object_attributes") or {}
+    try:
+        user_id = object_attributes["author_id"]
+        event_user = event["user"]
+        event_actor_id = event_user["id"]
+        user_username = event_user["username"]
+        iid = object_attributes["iid"]
+    except KeyError:
+        return
+
+    # Skip when the webhook actor isn't the MR author, to avoid seeding the wrong
+    # alias against the author's row (see track_gitlab_contributor_seat_processor).
+    if user_id != event_actor_id:
+        debug_log(
+            logger,
+            organization,
+            "actor_author_mismatch",
+            _actor_author_mismatch_extra(
+                organization=organization,
+                repo=repo,
+                integration=integration,
+                merge_request_iid=iid,
+                merge_request_action=object_attributes.get("action"),
+                author_id=user_id,
+                actor_id=event_actor_id,
+                contributor_tracking_stage="action",
+            ),
+            level=logging.WARNING,
+        )
+        return
+
+    try:
+        org = Organization.objects.get_from_cache(id=organization.id)
+    except Organization.DoesNotExist:
+        return
+
+    # GitLab visibility_level: 0 = private, 10 = internal, 20 = public.
+    visibility_level = (event.get("project") or {}).get("visibility_level")
+
+    record_contributor_action(
+        organization=org,
+        repo=repo,
+        integration_id=integration.id,
+        user_id=user_id,
+        user_username=user_username,
+        provider="gitlab",
+        pr_number=iid,
+        is_opened=object_attributes.get("action") == "open",
+        tags={"is_private": visibility_level == 0},
+    )

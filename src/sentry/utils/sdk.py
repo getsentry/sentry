@@ -20,6 +20,8 @@ from sentry_sdk import Scope, capture_exception, capture_message, isolation_scop
 from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
+from sentry_sdk.traces import StreamedSpan
+from sentry_sdk.tracing_utils import has_span_streaming_enabled
 from sentry_sdk.transport import make_transport
 from sentry_sdk.types import Event, Hint, Log
 from sentry_sdk.utils import logger as sdk_logger
@@ -30,6 +32,7 @@ from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
+from sentry.utils.tracing import get_current_span, start_span
 from sentry.viewer_context import set_viewer_context_organization
 
 # Can't import models in utils because utils should be the bottom of the food chain
@@ -70,9 +73,10 @@ SAMPLED_TASKS = {
     "sentry.tasks.process_buffer.process_incr": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.replays.tasks.delete_recording_segments": settings.SAMPLED_DEFAULT_RATE,
     "sentry.replays.tasks.delete_replay_recording_async": settings.SAMPLED_DEFAULT_RATE,
+    # Mirror the rate the ingest-replay-recordings consumer used for its
+    # per-message transaction, now that the work runs as a task.
+    "sentry.replays.tasks.process_replay_recording": settings.SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING,
     "sentry.tasks.summaries.weekly_reports.schedule_organizations": 1.0,
-    "sentry.tasks.summaries.weekly_reports.prepare_organization_report": 0.1
-    * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.profiles.task.process_profile": 0.1 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
@@ -80,7 +84,6 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.dynamic_sampling.per_org.run_calculations_per_org": 1.0,
     "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 1.0,
-    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations_bucket": 1.0,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2 * settings.SENTRY_BACKEND_APM_SAMPLING,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
     "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
@@ -205,6 +208,31 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
+def span_streaming_traces_sampler(sampling_context):
+    wsgi_path = sampling_context.get("wsgi_environ", {}).get("PATH_INFO")
+    if wsgi_path and wsgi_path in SAMPLED_ROUTES:
+        return SAMPLED_ROUTES[wsgi_path]
+
+    # Apply sample_rate from custom_sampling_context
+    custom_sample_rate = sampling_context.get("sample_rate")
+    if custom_sample_rate is not None:
+        return float(custom_sample_rate)
+
+    # If there's already a sampling decision, just use that
+    parent_sampled = sampling_context["span_context"]["parent_sampled"]
+    if parent_sampled is not None:
+        return parent_sampled
+
+    if "taskworker" in sampling_context:
+        task_name = sampling_context["taskworker"].get("task")
+
+        if task_name in SAMPLED_TASKS:
+            return SAMPLED_TASKS[task_name]
+
+    # Default to the sampling rate in settings
+    return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
+
+
 def profiles_sampler(sampling_context):
     PROFILES_SAMPLING_RATE = {
         "consumer.join": options.get("consumer.join.profiling.rate"),
@@ -308,12 +336,15 @@ def patch_transport_for_instrumentation(transport, transport_name):
 class Dsns(NamedTuple):
     sentry4sentry: str | None
     sentry_saas: str | None
+    sentry_mirror: str | None
 
 
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options = settings.SENTRY_SDK_CONFIG.copy()
     sdk_options["add_full_stack"] = True
+    sdk_options["max_value_length"] = 100_000
     sdk_options["traces_sampler"] = traces_sampler
+    sdk_options["transport_queue_size"] = 2_000
     sdk_options["before_send"] = before_send
     sdk_options["before_send_transaction"] = before_send_transaction
     sdk_options["enable_logs"] = True
@@ -329,6 +360,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     dsns = Dsns(
         sentry4sentry=sdk_options.pop("dsn", None),
         sentry_saas=sdk_options.pop("relay_dsn", None),
+        sentry_mirror=sdk_options.pop("sentry_mirror_dsn", None),
     )
 
     return sdk_options, dsns
@@ -548,6 +580,21 @@ def configure_sdk():
     else:
         disabled_integrations.append(ThreadingIntegration())
 
+    if dsns.sentry_mirror:
+        sdk_options.setdefault("_experiments", {}).update(
+            trace_lifecycle="stream",
+        )
+
+        sdk_options["traces_sampler"] = span_streaming_traces_sampler
+
+        sentry_sdk.init(
+            dsn=dsns.sentry_mirror,
+            integrations=integrations,
+            disabled_integrations=disabled_integrations,
+            **sdk_options,
+        )
+        return
+
     sentry_sdk.init(
         # set back the sentry4sentry_dsn popped above since we need a default dsn on the client
         # for dynamic sampling context public_key population
@@ -605,7 +652,9 @@ def check_tag_for_scope_bleed(
         }
         if add_to_scope:
             scope.set_tag("possible_mistag", True)
+            scope.set_attribute("possible_mistag", True)
             scope.set_tag(f"scope_bleed.{tag_key}", True)
+            scope.set_attribute(f"scope_bleed.{tag_key}", True)
             merge_context_into_scope("scope_bleed", extra, scope)
         logger.warning("Tag already set and different (%s).", tag_key, extra=extra)
 
@@ -683,6 +732,7 @@ def capture_exception_with_scope_check(
         # TODO: We probably should add this data to the scope in `check_current_scope_transaction`
         # instead, but the whole point is that right now it's unclear how trustworthy ambient scope is
         extra_scope.set_tag("scope_bleed.transaction", True)
+        extra_scope.set_attribute("scope_bleed.transaction", True)
         merge_context_into_scope("scope_bleed", transaction_mismatch, extra_scope)
 
     return sentry_sdk.capture_exception(error, scope=extra_scope)
@@ -696,12 +746,14 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     set_viewer_context_organization(organization.id)
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with sentry_sdk.start_span(op="other", name="bind_organization_context"):
+    with start_span(op="other", name="bind_organization_context"):
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 
         scope.set_tag("organization", organization.id)
+        scope.set_attribute("organization", organization.id)
         scope.set_tag("organization.slug", organization.slug)
+        scope.set_attribute("organization.slug", organization.slug)
         scope.set_context("organization", {"id": organization.id, "slug": organization.slug})
         if helper:
             try:
@@ -768,13 +820,23 @@ def bind_ambiguous_org_context(
 
 
 def get_trace_id():
-    span = sentry_sdk.get_current_span()
+    span = get_current_span()
+    if isinstance(span, StreamedSpan):
+        return span.trace_id
     if span is not None:
         return span.get_trace_context().get("trace_id")
+
     return None
 
 
 def set_span_attribute(data_name, value):
+    span_streaming = has_span_streaming_enabled(sentry_sdk.get_client().options)
+    if span_streaming:
+        streamed_span = sentry_sdk.traces.get_current_span()
+        if streamed_span is not None:
+            streamed_span.set_attribute(data_name, value)
+        return
+
     span = sentry_sdk.get_current_span()
     if span is not None:
         span.set_data(data_name, value)

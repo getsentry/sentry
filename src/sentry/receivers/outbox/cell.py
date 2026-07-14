@@ -12,7 +12,7 @@ import json  # noqa: S003 - urllib3 raises stdlib JSONDecodeError, not simplejso
 import logging
 from typing import Any, assert_never, cast
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.dispatch import receiver
 
 from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_rpc_service
@@ -27,16 +27,29 @@ from sentry.hybridcloud.services.organization_mapping.serial import (
     update_organization_mapping_from_instance,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.issues.action_log.types import GroupActionLogPayload
+from sentry.issues.derived.processing import ProcessingStrategy, trigger_group_log_processing
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
-from sentry.seer.agent.client import _trigger_explorer_indexes_if_needed
-from sentry.seer.agent.client_utils import AgentChatRequest, make_agent_chat_request
+from sentry.seer.agent.client import (
+    _trigger_explorer_indexes_if_needed,
+    get_available_monitoring_providers,
+    get_monitoring_provider_connections,
+)
+from sentry.seer.agent.client_utils import (
+    AgentChatRequest,
+    SeerFeatureRunWireRequest,
+    make_agent_chat_request,
+    make_feature_run_request,
+)
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
 from sentry.types.cell import get_local_cell
+from sentry.utils.env import in_test_environment
 from sentry.workflow_engine.models import Action
 
 logger = logging.getLogger(__name__)
@@ -234,6 +247,26 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
 
     match run_type:
         case SeerRunType.EXPLORER:
+            # Add connected and available monitoring providers for runs with user context.
+            if run.user_id is not None:
+                try:
+                    organization = Organization.objects.get_from_cache(id=run.organization_id)
+                    monitoring_provider_connections = get_monitoring_provider_connections(
+                        organization, run.user_id
+                    )
+                    if monitoring_provider_connections:
+                        body["monitoring_providers"] = monitoring_provider_connections
+
+                    available_monitoring_providers = get_available_monitoring_providers(
+                        organization, run.user_id
+                    )
+                    if available_monitoring_providers:
+                        body["available_monitoring_providers"] = available_monitoring_providers
+                except Organization.DoesNotExist:
+                    logger.warning(
+                        "seer_run_create.organization_dne",
+                        extra={"organization_id": run.organization_id, "run_id": run.id},
+                    )
             response = make_agent_chat_request(
                 cast(AgentChatRequest, body), viewer_context=viewer_context
             )
@@ -246,6 +279,11 @@ def handle_seer_run_create(object_identifier: int, payload: Any, **kwds: Any) ->
         case SeerRunType.ASSISTED_QUERY:
             response = make_search_agent_start_request(
                 cast(SearchAgentStartRequest, body), viewer_context=viewer_context
+            )
+        case SeerRunType.FEATURE_RUN:
+            wire_body = {**body, "ref": str(run.uuid)}
+            response = make_feature_run_request(
+                cast(SeerFeatureRunWireRequest, wire_body), viewer_context=viewer_context
             )
         case unknown:
             assert_never(unknown)
@@ -301,3 +339,48 @@ def _mark_seer_run_failed(run: SeerRun, event: str, **extra: Any) -> None:
     run.mirror_status = SeerRunMirrorStatus.FAILED
     run.save(update_fields=["mirror_status"])
     logger.warning(event, extra={"run_id": run.id, **extra})
+
+
+@receiver(process_cell_outbox, sender=OutboxCategory.GROUP_ACTION_LOG_EVENT)
+def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) -> None:
+    """Write a GroupActionLogEntry from the outbox payload, then trigger
+    derived data processing."""
+    try:
+        using = router.db_for_write(GroupActionLogEntry)
+
+        group_id = payload["group_id"]
+        force_async_derived = payload["force_async_derived"]
+
+        try:
+            with transaction.atomic(using=using):
+                GroupActionLogEntry.objects.create(
+                    group_id=group_id,
+                    project_id=payload["project_id"],
+                    type=payload["type"],
+                    actor_type=payload["actor_type"],
+                    actor_id=payload["actor_id"],
+                    source=payload["source"],
+                    data=payload["data"],
+                    idempotency_key=payload.get("idempotency_key"),
+                )
+        except IntegrityError:
+            # Idempotency conflict; we treat this as a no-op.
+            pass
+
+        # This receiver runs inside the outbox drain transaction
+        # (process_shard → transaction.atomic), so the GALE is not yet committed.
+        # Defer to on_commit so the GALE is visible to readers on other connections.
+        strategy = ProcessingStrategy.ASYNC if force_async_derived else ProcessingStrategy.INLINE
+        transaction.on_commit(
+            lambda: trigger_group_log_processing(group_id, strategy=strategy), using=using
+        )
+    except KeyError:
+        # Payload schema mismatches (e.g. deploy skew) must not raise —
+        # the outbox would retry forever.  Surface in tests so producer bugs
+        # are caught, but drop the message in production.
+        if in_test_environment():
+            raise
+        logger.exception(
+            "process_group_action_log_event.permanent_failure",
+            extra={"payload": payload},
+        )

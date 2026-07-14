@@ -13,7 +13,7 @@ enum NotificationBodyTextBlockType {
   CODE = 'code',
 }
 
-interface NotificationBodyTextBlock {
+export interface NotificationBodyTextBlock {
   text: string;
   type: NotificationBodyTextBlockType;
 }

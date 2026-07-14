@@ -79,9 +79,7 @@ def get_artifact_install_info(artifact: PreprodArtifact) -> ArtifactInstallInfo:
 
 
 def is_installable_artifact(artifact: PreprodArtifact) -> bool:
-    mobile_app_info = artifact.get_mobile_app_info()
-    build_number = mobile_app_info.build_number if mobile_app_info else None
-    if artifact.installable_app_file_id is None or build_number is None:
+    if artifact.installable_app_file_id is None:
         return False
     if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
         extras = artifact.extras or {}

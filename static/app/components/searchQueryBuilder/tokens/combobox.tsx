@@ -88,6 +88,12 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    * When passing `isOpen`, the open state is controlled by the parent.
    */
   isOpen?: boolean;
+  /**
+   * Element kept visible to screen readers (alongside the input and popover)
+   * while the menu is open. Use for content rendered next to the input, e.g.
+   * value chips, which `ariaHideOutside` would otherwise hide.
+   */
+  keepVisibleRef?: React.RefObject<HTMLElement | null>;
   maxOptions?: number;
   onClick?: (e: React.MouseEvent) => void;
   /**
@@ -383,6 +389,7 @@ export function SearchQueryBuilderCombobox<
   customMenu,
   isLoading: incomingIsLoading,
   isOpen: incomingIsOpen,
+  keepVisibleRef,
   ['data-test-id']: dataTestId,
   ref,
 }: SearchQueryBuilderComboboxProps<T>) {
@@ -601,12 +608,17 @@ export function SearchQueryBuilderCombobox<
   useEffect(() => {
     if (isOpen) {
       return ariaHideOutside(
-        [inputRef.current, popoverRef.current, descriptionRef.current].filter(defined)
+        [
+          inputRef.current,
+          popoverRef.current,
+          descriptionRef.current,
+          keepVisibleRef?.current,
+        ].filter(defined)
       );
     }
 
     return () => {};
-  }, [inputRef, popoverRef, isOpen, customMenu]);
+  }, [inputRef, popoverRef, isOpen, customMenu, keepVisibleRef]);
 
   const autosizeInput = useAutosizeInput({value: inputValue});
 

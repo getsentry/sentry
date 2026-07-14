@@ -385,6 +385,188 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert req_params["type"] == "encrypted"
 
     @responses.activate
+    @with_feature("organizations:integrations-vercel-upsert-env-var")
+    def test_update_org_config_vars_exist_with_upsert(self) -> None:
+        """Test that env vars are upserted when the feature flag is enabled,
+        bypassing the legacy get+patch fallback."""
+
+        with self.tasks():
+            self.install_integration()
+
+        org = self.organization
+        project_id = self.project.id
+        with assume_test_silo_mode(SiloMode.CELL):
+            project_key = ProjectKey.get_default(project=Project.objects.get(id=project_id))
+            enabled_dsn = project_key.get_dsn(public=True)
+            integration_endpoint = project_key.integration_endpoint
+            public_key = project_key.public_key
+
+        sentry_auth_token = SentryAppInstallationToken.objects.get_token(org.id, "vercel")
+
+        env_var_map = {
+            "SENTRY_ORG": {
+                "type": "encrypted",
+                "value": org.slug,
+                "target": ["production", "preview"],
+            },
+            "SENTRY_PROJECT": {
+                "type": "encrypted",
+                "value": self.project.slug,
+                "target": ["production", "preview"],
+            },
+            "SENTRY_DSN": {
+                "type": "encrypted",
+                "value": enabled_dsn,
+                "target": [
+                    "production",
+                    "preview",
+                    "development",
+                ],
+            },
+            "SENTRY_AUTH_TOKEN": {
+                "type": "encrypted",
+                "value": sentry_auth_token,
+                "target": ["production", "preview"],
+            },
+            "VERCEL_GIT_COMMIT_SHA": {
+                "type": "system",
+                "value": "VERCEL_GIT_COMMIT_SHA",
+                "target": ["production", "preview"],
+            },
+            "SENTRY_VERCEL_LOG_DRAIN_URL": {
+                "type": "encrypted",
+                "value": f"{integration_endpoint}vercel/logs/",
+                "target": ["production", "preview"],
+            },
+            "SENTRY_OTLP_TRACES_URL": {
+                "type": "encrypted",
+                "value": f"{integration_endpoint}otlp/v1/traces",
+                "target": ["production", "preview"],
+            },
+            "SENTRY_PUBLIC_KEY": {
+                "type": "encrypted",
+                "value": public_key,
+                "target": ["production", "preview"],
+            },
+        }
+
+        # mock get_project API call
+        responses.add(
+            responses.GET,
+            f"{VercelClient.base_url}{VercelClient.GET_PROJECT_URL % self.project_id}",
+            json={"link": {"type": "github"}, "framework": "gatsby"},
+        )
+
+        # mock upsert env vars: one POST per target per env var (per-target upsert)
+        expected_post_count = sum(len(d["target"]) for d in env_var_map.values())
+        for env_var, details in env_var_map.items():
+            for target in details["target"]:
+                responses.add(
+                    responses.POST,
+                    f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_V10_URL % self.project_id}",
+                    json={
+                        "key": env_var,
+                        "value": details["value"],
+                        "target": [target],
+                        "type": details["type"],
+                    },
+                )
+
+        data = {"project_mappings": [[project_id, self.project_id]]}
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(org.id)
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+        assert org_integration.config == {}
+        installation.update_organization_config(data)
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+        assert org_integration.config == {"project_mappings": [[project_id, self.project_id]]}
+
+        # calls[0] = GET project, then one POST per target per env var
+        post_calls = responses.calls[1:]
+        assert len(post_calls) == expected_post_count
+
+        for call in post_calls:
+            assert "upsert=true" in call.request.url
+            body = orjson.loads(call.request.body)
+            assert len(body["target"]) == 1, (
+                "Each upsert request should target a single environment"
+            )
+
+        # Verify SENTRY_ORG per-target requests (calls[1] and calls[2])
+        req_params = orjson.loads(responses.calls[1].request.body)
+        assert req_params["key"] == "SENTRY_ORG"
+        assert req_params["value"] == org.slug
+        assert req_params["target"] == ["production"]
+
+        req_params = orjson.loads(responses.calls[2].request.body)
+        assert req_params["key"] == "SENTRY_ORG"
+        assert req_params["target"] == ["preview"]
+
+        # Verify SENTRY_DSN per-target requests (3 targets: production, preview, development)
+        req_params = orjson.loads(responses.calls[5].request.body)
+        assert req_params["key"] == "SENTRY_DSN"
+        assert req_params["value"] == enabled_dsn
+        assert req_params["target"] == ["production"]
+
+        req_params = orjson.loads(responses.calls[6].request.body)
+        assert req_params["key"] == "SENTRY_DSN"
+        assert req_params["target"] == ["preview"]
+
+        req_params = orjson.loads(responses.calls[7].request.body)
+        assert req_params["key"] == "SENTRY_DSN"
+        assert req_params["target"] == ["development"]
+
+    @responses.activate
+    @with_feature("organizations:integrations-vercel-upsert-env-var")
+    def test_update_org_config_upsert_error_response(self) -> None:
+        """A failed upsert (e.g. a conflict) fails the request with a non-2xx, which
+        we surface as a ValidationError without persisting the mapping."""
+
+        with self.tasks():
+            self.install_integration()
+
+        org = self.organization
+        project_id = self.project.id
+
+        # mock get_project API call
+        responses.add(
+            responses.GET,
+            f"{VercelClient.base_url}{VercelClient.GET_PROJECT_URL % self.project_id}",
+            json={"link": {"type": "github"}, "framework": "gatsby"},
+        )
+
+        conflict_message = (
+            "Another Environment Variable with the same Name and Environment "
+            "exists in your project."
+        )
+        # Vercel returns a 403 with the error body when the variable can't be set.
+        responses.add(
+            responses.POST,
+            f"{VercelClient.base_url}{VercelClient.CREATE_ENV_VAR_V10_URL % self.project_id}",
+            status=403,
+            json={"error": {"code": "ENV_CONFLICT", "message": conflict_message}},
+        )
+
+        data = {"project_mappings": [[project_id, self.project_id]]}
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = integration.get_installation(org.id)
+
+        with pytest.raises(ValidationError) as exc_info:
+            installation.update_organization_config(data)
+
+        assert exc_info.value.detail == {"project_mappings": [conflict_message]}
+
+        # the mapping should not be persisted when an env var fails
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=org.id, integration_id=integration.id
+        )
+        assert org_integration.config == {}
+
+    @responses.activate
     def test_upgrade_org_config_no_dsn(self) -> None:
         """Test that the function doesn't progress if there is no active DSN"""
 

@@ -32,9 +32,8 @@ import type {
   BillingMetricHistory,
   BillingStatTotal,
   EventBucket,
-  InvoiceItem,
+  InvoiceItemType,
   Plan,
-  PreviewInvoiceItem,
   ProductTrial,
   Subscription,
 } from 'getsentry/types';
@@ -431,7 +430,7 @@ export function getTrialDaysLeft(subscription: Subscription): number {
  */
 export function getContractDaysLeft(subscription: Subscription): number {
   // contract period end is in the future
-  return -1 * getDaysSinceDate(subscription.contractPeriodEnd ?? '');
+  return -1 * getDaysSinceDate(subscription.billingPeriodEnd ?? '');
 }
 
 /**
@@ -444,7 +443,7 @@ function sortPlansForUpgrade(billingConfig: BillingConfig, subscription: Subscri
   // contract interval. Sorted by price as features will become progressively
   // more available.
   let plans = billingConfig.planList
-    .sort((a, b) => a.price - b.price)
+    .sort((a, b) => a.totalPrice - b.totalPrice)
     .filter(p => p.userSelectable && p.billingInterval === subscription.billingInterval);
 
   // If we're dealing with plans that are *not part of a tier* Then we can
@@ -491,7 +490,7 @@ export function getBestActionToIncreaseEventLimits(
   organization: Organization,
   subscription: Subscription
 ) {
-  const isPaidPlan = subscription.planDetails?.price > 0;
+  const isPaidPlan = subscription.planDetails?.totalPrice > 0;
   const hasBillingPerms = organization.access?.includes('org:billing');
 
   // free orgs can increase event limits by trialing
@@ -591,9 +590,6 @@ export function getSoftCapType(metricHistory: BillingMetricHistory): string | nu
     return toTitleCase(metricHistory.softCapType.replace(/_/g, ' ').toLowerCase(), {
       allowInnerUpperCase: true,
     }).replace(' ', metricHistory.softCapType === 'ON_DEMAND' ? '-' : ' ');
-  }
-  if (metricHistory.trueForward) {
-    return 'True Forward';
   }
   return null;
 }
@@ -737,7 +733,7 @@ export function partnerPlanEndingModalIsDismissed(
     return false;
   }
 
-  const lastDaysLeft = moment(subscription.contractPeriodEnd).diff(
+  const lastDaysLeft = moment(subscription.billingPeriodEnd).diff(
     moment.unix(time),
     'days'
   );
@@ -801,10 +797,10 @@ export const RETENTION_SETTINGS_CATEGORIES = new Set([
   DataCategory.TRANSACTIONS,
 ]);
 
-export function getCredits({
+export function getCredits<T extends {amount: number; type: InvoiceItemType}>({
   invoiceItems,
 }: {
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+  invoiceItems: T[];
 }) {
   return invoiceItems.filter(
     item =>
@@ -823,7 +819,7 @@ export function getCreditApplied({
   invoiceItems,
 }: {
   creditApplied: number;
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+  invoiceItems: Array<{amount: number; type: InvoiceItemType}>;
 }) {
   const credits = getCredits({invoiceItems});
   if (credits.some(item => item.type === 'balance_change')) {
@@ -836,10 +832,10 @@ export function getCreditApplied({
  * Returns extra fees included in the invoice or preview data, such as tax
  * or cancellation fees.
  */
-export function getFees({
+export function getFees<T extends {amount: number; type: InvoiceItemType}>({
   invoiceItems,
 }: {
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+  invoiceItems: T[];
 }) {
   return invoiceItems.filter(
     item =>
@@ -851,10 +847,10 @@ export function getFees({
 /**
  * Returns ondemand invoice items from the invoice or preview data.
  */
-export function getOnDemandItems({
+export function getOnDemandItems<T extends {amount: number; type: InvoiceItemType}>({
   invoiceItems,
 }: {
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+  invoiceItems: T[];
 }) {
   return invoiceItems.filter(item => item.type.startsWith('ondemand'));
 }
@@ -994,9 +990,7 @@ export function productIsEnabled(
     return false;
   }
   const hasNonPaygAccess =
-    (metricHistory.prepaid ?? 0) !== 0 ||
-    !!metricHistory.softCapType ||
-    !!subscription.hasSoftCap;
+    (metricHistory.prepaid ?? 0) !== 0 || !!metricHistory.softCapType;
   const hasPaygBudget =
     metricHistory.onDemandBudget > 0 ||
     (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED &&
@@ -1027,9 +1021,7 @@ export function normalizeMetricHistory(
       customPrice: null,
       order: 0,
       paygCpe: null,
-      sentUsageWarning: false,
       softCapType: null,
-      trueForward: false,
       usageExceeded: false,
     }
   );

@@ -25,7 +25,11 @@ from ..metrics import (
     record_webhook_handler_error,
     record_webhook_received,
 )
-from ..utils import _get_target_commit_sha, delete_existing_reactions_and_add_reaction
+from ..utils import (
+    _get_target_commit_sha,
+    delete_existing_reactions_and_add_reaction,
+    get_pr_author_id,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -102,17 +106,30 @@ def handle_pull_request_event(
 
     This handler processes PR events and sends them directly to Seer
     """
+    logs_extra = dict(tags)
+
     pull_request = event.get("pull_request")
     if not pull_request:
-        logger.warning(Log.MISSING_PULL_REQUEST.value)
+        logger.warning(Log.MISSING_PULL_REQUEST.value, extra=logs_extra)
         record_webhook_handler_error(
             github_event, "unknown", CodeReviewErrorType.MISSING_PULL_REQUEST
         )
         return
 
+    pr_number = pull_request.get("number")
+    is_pr_draft = pull_request.get("draft")
+
+    logs_extra.update(
+        pr_number=pr_number,
+        pr_state=pull_request.get("state"),
+        pr_draft=is_pr_draft,
+        pr_merged=pull_request.get("merged"),
+        pr_author_id=get_pr_author_id(event),
+    )
+
     action_value = event.get("action")
     if not action_value or not isinstance(action_value, str):
-        logger.warning(Log.MISSING_ACTION.value)
+        logger.warning(Log.MISSING_ACTION.value, extra=logs_extra)
         record_webhook_handler_error(github_event, "unknown", CodeReviewErrorType.MISSING_ACTION)
         return
 
@@ -121,14 +138,14 @@ def handle_pull_request_event(
     try:
         action = PullRequestAction(action_value)
     except ValueError:
-        logger.warning(Log.UNSUPPORTED_ACTION.value)
+        logger.warning(Log.UNSUPPORTED_ACTION.value, extra=logs_extra)
         record_webhook_filtered(
             github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
         return
 
     if action not in WHITELISTED_ACTIONS:
-        logger.warning(Log.UNSUPPORTED_ACTION.value)
+        logger.warning(Log.UNSUPPORTED_ACTION.value, extra=logs_extra)
         record_webhook_filtered(
             github_event, action_value, WebhookFilteredReason.UNSUPPORTED_ACTION
         )
@@ -152,10 +169,9 @@ def handle_pull_request_event(
 
     # Skip draft check for CLOSED actions to ensure Seer receives cleanup notifications
     # even if the PR was converted to draft before closing
-    if action != PullRequestAction.CLOSED and pull_request.get("draft") is True:
+    if action != PullRequestAction.CLOSED and is_pr_draft is True:
         return
 
-    pr_number = pull_request.get("number")
     if pr_number and action in ACTIONS_ELIGIBLE_FOR_EYES_REACTION:
         # We don't ever need to delete :eyes: since we later add it back to the PR description idempotently.
         reactions_to_delete = [GitHubReaction.HOORAY]
