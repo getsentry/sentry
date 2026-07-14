@@ -1,6 +1,6 @@
 import {createContext, useContext} from 'react';
 
-import type {StoryDescriptor} from './useStoriesLoader';
+import type {StoryDescriptor} from './storyDescriptor';
 
 interface StoryContextValue {
   story?: StoryDescriptor;

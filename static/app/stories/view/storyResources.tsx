@@ -5,7 +5,7 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {IconGithub} from 'sentry/icons';
 import * as Stories from 'sentry/stories';
-import {isMDXStory} from 'sentry/stories/view/useStoriesLoader';
+import {isMDXStory} from 'sentry/stories/view/storyDescriptor';
 import {useStory} from 'sentry/stories/view/useStory';
 
 export function StoryResources() {

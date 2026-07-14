@@ -8,9 +8,9 @@ import {IconArrow} from 'sentry/icons';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import type {StoryDescriptor} from './storyDescriptor';
 import type {StoryTreeNode} from './storyTree';
 import {useFlatStoryList} from './storyTree';
-import {type StoryDescriptor} from './useStoriesLoader';
 import {useStory} from './useStory';
 
 export function StoryFooter() {

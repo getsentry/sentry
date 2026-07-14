@@ -16,6 +16,12 @@ import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {APIReference} from 'sentry/stories/apiReference';
 
+import {
+  isMDXStory,
+  type MDXStoryDescriptor,
+  type StoryDescriptor,
+  type StoryDocumentation,
+} from './storyDescriptor';
 import {StoryFooter} from './storyFooter';
 import {storyMdxComponents} from './storyMdxComponent';
 import {StoryResources} from './storyResources';
@@ -24,12 +30,6 @@ import {
   StoryTableOfContents,
   StoryTableOfContentsPlaceholder,
 } from './storyTableOfContents';
-import {
-  isMDXStory,
-  type MDXStoryDescriptor,
-  type StoryDescriptor,
-  type StoryDocumentation,
-} from './useStoriesLoader';
 import type {StoryExports as StoryExportValues} from './useStory';
 import {StoryContextProvider, useStory} from './useStory';
 
@@ -48,9 +48,7 @@ function StoryLayout() {
     parseAsString.withOptions({history: 'push'}).withDefault('usage')
   );
   const documentation = useStoryDocumentation(
-    (isMDXStory(story) ? story.exports.documentation : story.exports.documentation) as
-      | StoryDocumentation
-      | undefined,
+    story.exports.documentation,
     story.filename
   );
 

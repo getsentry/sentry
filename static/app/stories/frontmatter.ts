@@ -1,5 +1,3 @@
-import type {StoryResources} from './view/useStoriesLoader';
-
 type ComponentCategory =
   | 'typography'
   | 'layout'
@@ -12,6 +10,14 @@ type ComponentCategory =
   | 'overlays'
   | 'utilities'
   | 'shared';
+
+export interface StoryResources {
+  a11y?: Record<string, string>;
+  figma?: string;
+  js?: string;
+  reference?: Record<string, string>;
+}
+
 /**
  * Frontmatter schema for MDX story files.
  * Validated at type-check time via Volar + @mdx-js/language-service.

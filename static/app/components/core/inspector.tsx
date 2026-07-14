@@ -21,11 +21,8 @@ import {
 import {NODE_ENV} from 'sentry/constants';
 import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {
-  isMDXStory,
-  useStoriesLoader,
-  useStoryBookFiles,
-} from 'sentry/stories/view/useStoriesLoader';
+import {isMDXStory} from 'sentry/stories/view/storyDescriptor';
+import {useStoriesLoader, useStoryBookFiles} from 'sentry/stories/view/useStoriesLoader';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useOrganization} from 'sentry/utils/useOrganization';
