@@ -165,14 +165,16 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
         assert "formatted" not in response.data
 
     def test_format_ignored_when_option_off(self) -> None:
-        # option defaults off -> ?format is inert, response unchanged
+        # option defaults off -> ?llmFormat is inert, response unchanged
         response = self.client.get(self._latest_url("?llmFormat=markdown"))
 
         assert response.status_code == 200
         assert "formatted" not in response.data
 
-    def test_invalid_format_returns_400(self) -> None:
+    def test_invalid_format_is_ignored(self) -> None:
+        # an unrecognized value is inert, not a 400 -> response is unchanged
         with override_options(FORMATTER_ON):
             response = self.client.get(self._latest_url("?llmFormat=banana"))
 
-        assert response.status_code == 400
+        assert response.status_code == 200
+        assert "formatted" not in response.data
