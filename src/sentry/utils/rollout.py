@@ -18,7 +18,7 @@ from sentry.utils.types import Bool, Dict, Float, Sequence
 
 logger = logging.getLogger(__name__)
 
-TData = TypeVar("TData")
+TData = TypeVar("TData")  # The type of data being compared
 
 SourceOfTruth = Literal["control", "experimental", "neither", "both"]
 
