@@ -131,19 +131,19 @@ export function isCodingAgentsArtifact(
  * `src/sentry/seer/autofix/pr_iteration/types.py` (`FeedbackSource`). Each
  * member is keyed by `type`; narrow on it before reading member fields.
  */
-export interface UserUiFeedbackSource {
+interface UserUiFeedbackSource {
   type: 'user-ui';
   user?: User;
   user_feedback?: string;
   user_id?: number;
 }
 
-export interface GithubPrCommentFeedbackSource {
+interface GithubPrCommentFeedbackSource {
   type: 'github-pr-comment';
   comment?: {html_url?: string; user?: {login: string}};
 }
 
-export type RawFeedbackSource = UserUiFeedbackSource | GithubPrCommentFeedbackSource;
+type RawFeedbackSource = UserUiFeedbackSource | GithubPrCommentFeedbackSource;
 
 export interface RawFeedback {
   text: string;
