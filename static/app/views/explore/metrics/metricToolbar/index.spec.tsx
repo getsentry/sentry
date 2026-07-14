@@ -78,7 +78,7 @@ describe('MetricToolbar', () => {
 
   it('renders group by selector for equation visualizations', async () => {
     const organization = OrganizationFixture({
-      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+      features: ['tracemetrics-enabled'],
     });
 
     const queryParams = new ReadableQueryParams({

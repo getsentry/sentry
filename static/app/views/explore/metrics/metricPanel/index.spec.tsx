@@ -202,7 +202,7 @@ describe('MetricPanel', () => {
 
     const equationOrg = {
       ...organization,
-      features: [...organization.features, 'tracemetrics-equations-in-explore'],
+      features: [...organization.features],
     };
 
     render(
@@ -246,11 +246,7 @@ describe('MetricPanel', () => {
 
     const equationOrg = {
       ...organization,
-      features: [
-        ...organization.features,
-        'tracemetrics-equations-in-explore',
-        'data-browsing-heat-map-widget',
-      ],
+      features: [...organization.features, 'data-browsing-heat-map-widget'],
     };
 
     render(
