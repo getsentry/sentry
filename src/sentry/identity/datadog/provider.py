@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import secrets
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 import orjson
 import sentry_sdk
@@ -61,10 +61,17 @@ def _basic_auth_header(client_id: str, client_secret: str) -> str:
     return "Basic " + base64.b64encode(f"{client_id}:{client_secret}".encode()).decode("ascii")
 
 
-def get_user_info(access_token: str, mcp_base_url: str) -> dict[str, Any]:
+class DatadogWhoami(TypedDict):
+    user_uuid: str
+    org_uuid: str
+    user_email: NotRequired[str]
+    user_name: NotRequired[str]
+
+
+def mcp_whoami(mcp_base_url: str, auth_headers: dict[str, str]) -> DatadogWhoami:
     """Fetch the current Datadog user via the MCP ``datadog://mcp/whoami`` resource."""
     url = f"{mcp_base_url}{MCP_ENDPOINT_PATH}"
-    headers = {"Authorization": f"Bearer {access_token}", "Content-Type": "application/json"}
+    headers = {**auth_headers, "Content-Type": "application/json"}
 
     init_resp = safe_urlopen(
         url,
@@ -97,6 +104,11 @@ def get_user_info(access_token: str, mcp_base_url: str) -> dict[str, Any]:
         return orjson.loads(body["result"]["contents"][0]["text"])
     except (KeyError, IndexError, orjson.JSONDecodeError) as e:
         raise IdentityNotValid("MCP whoami returned an unexpected response") from e
+
+
+def get_user_info(access_token: str, mcp_base_url: str) -> DatadogWhoami:
+    """Fetch the current Datadog user via MCP whoami, authenticating with a Bearer token."""
+    return mcp_whoami(mcp_base_url, {"Authorization": f"Bearer {access_token}"})
 
 
 def generate_pkce_code_verifier() -> str:
