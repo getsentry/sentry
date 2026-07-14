@@ -186,20 +186,15 @@ class OrganizationReportContextFactory:
             if not eligible_projects:
                 return
 
-            for attempt in range(2):
-                try:
-                    error_issues_by_project, perf_issues_by_project = org_top_issues(
-                        ctx,
-                        eligible_projects,
-                        sort_by="freq",
-                        referrer=Referrer.REPORTS_TOP_ISSUES.value,
-                    )
-                    break
-                except Exception:
-                    if attempt == 0:
-                        continue
-                    sentry_sdk.capture_exception()
-                    return
+            try:
+                error_issues_by_project, perf_issues_by_project = org_top_issues(
+                    ctx,
+                    eligible_projects,
+                    referrer=Referrer.REPORTS_TOP_ISSUES.value,
+                )
+            except Exception:
+                sentry_sdk.capture_exception()
+                return
 
             for project in projects:
                 project_ctx = ctx.projects_context_map[project.id]

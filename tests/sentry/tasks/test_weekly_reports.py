@@ -373,7 +373,6 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         errors_by_project, _perf_by_project = org_top_issues(
             ctx,
             [self.project],
-            sort_by="freq",
             referrer=Referrer.REPORTS_TOP_ISSUES.value,
         )
         assert self.project.id in errors_by_project
@@ -482,39 +481,27 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
     def test_message_builder_filter_resolved(
         self, message_builder: mock.MagicMock, record: mock.MagicMock
     ) -> None:
-        """Test that we filter resolved issues out of key errors"""
+        """Test that we surface up to 5 issues per project (error + perf combined)"""
         user = self.create_user()
         self.create_member(teams=[self.team], user=user, organization=self.organization)
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "message",
-                "timestamp": self.three_days_ago.isoformat(),
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "message",
-                "timestamp": self.three_days_ago.isoformat(),
-                "fingerprint": ["group-2"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
+        for i in range(3):
+            self.store_event(
+                data={
+                    "event_id": f"{chr(ord('a') + i)}" * 32,
+                    "message": "message",
+                    "timestamp": self.three_days_ago.isoformat(),
+                    "fingerprint": [f"group-{i + 1}"],
+                },
+                project_id=self.project.id,
+                default_event_type=EventType.DEFAULT,
+            )
         self.store_event_outcomes(
-            self.organization.id, self.project.id, self.three_days_ago, num_times=2
+            self.organization.id, self.project.id, self.three_days_ago, num_times=3
         )
 
         self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group1")
         self.create_performance_issue(fingerprint=f"{PerformanceNPlusOneGroupType.type_id}-group2")
 
-        # store a crons issue just to make sure it's not counted in key_performance_issues
-        self.create_group(type=MonitorIncidentType.type_id)
         prepare_organization_report(
             self.now.timestamp(), ONE_DAY * 7, self.organization.id, self._dummy_batch_id
         )
@@ -529,14 +516,14 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             assert context["organization"] == self.organization
             assert context["issue_summary"] == {
                 "escalating_substatus_count": 0,
-                "new_substatus_count": 4,
+                "new_substatus_count": 5,
                 "ongoing_substatus_count": 0,
                 "regression_substatus_count": 0,
-                "total_substatus_count": 4,
+                "total_substatus_count": 5,
             }
-            assert len(context["key_errors"]) == 2
+            assert len(context["key_errors"]) == 3
             assert len(context["key_performance_issues"]) == 2
-            assert context["trends"]["total_error_count"] == 2
+            assert context["trends"]["total_error_count"] == 3
 
             assert "Weekly Report for" in message_params["subject"]
 

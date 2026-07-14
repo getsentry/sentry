@@ -12,11 +12,9 @@ from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Granularity
 from snuba_sdk.function import Function
 from snuba_sdk.orderby import Direction, OrderBy
-from snuba_sdk.query import Join, Limit, Query
+from snuba_sdk.query import Join, Limit, LimitBy, Query
 from snuba_sdk.relationships import Relationship
 
-from sentry import search
-from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.constants import DataCategory
 from sentry.issues.grouptype import (
     PERFORMANCE_ISSUE_CATEGORIES,
@@ -126,111 +124,77 @@ def user_project_ownership(ctx: OrganizationReportContext) -> None:
             ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
 
+_ISSUE_LIMIT_PER_PROJECT = 5
+_CHUNK_SIZE = 100
+
+
 def org_top_issues(
     ctx: OrganizationReportContext,
     projects: Sequence[Project],
-    sort_by: str,
     referrer: str,
 ) -> tuple[dict[int, list[tuple[int, int]]], dict[int, list[tuple[Group, int]]]]:
     """
-    Fetch top issues (error + performance) for all org projects using the search backend.
+    Fetch top issues (error + performance) for all org projects via direct Snuba queries.
     Returns:
       - error_issues_by_project: {project_id: [(group_id, count), ...]} (top 5 per project)
       - perf_issues_by_project: {project_id: [(Group, count), ...]} (top 5 per project)
     """
     op = "weekly_reports.org_top_issues"
     with start_span(op=op, name=op):
-        limit = min(3 * len(projects), 1000)
-        result = search.backend.query(
-            projects=projects,
-            sort_by=sort_by,
-            limit=limit,
-            search_filters=[
-                SearchFilter(SearchKey("status"), "=", SearchValue([GroupStatus.UNRESOLVED])),
-            ],
-            date_from=ctx.start,
-            date_to=ctx.end,
-            referrer=referrer,
-        )
+        project_ids = [p.id for p in projects]
 
-        groups = result.results
-        if not groups:
-            return {}, {}
-
-        error_groups: list[Group] = []
-        perf_groups: list[Group] = []
-        for group in groups:
-            if group.type is None:
-                error_groups.append(group)
-                continue
-            try:
-                cat = group.issue_category
-            except InvalidGroupTypeError:
-                continue
-            if cat == GroupCategory.ERROR:
-                error_groups.append(group)
-            elif cat == GroupCategory.PERFORMANCE or cat in PERFORMANCE_ISSUE_CATEGORIES:
-                perf_groups.append(group)
-
-        error_counts: dict[int, int] = {}
-        perf_counts: dict[int, int] = {}
-
-        if error_groups:
-            error_counts = _count_error_events(
-                ctx,
-                project_ids=list({g.project_id for g in error_groups}),
-                group_ids=[g.id for g in error_groups],
-                referrer=referrer,
-            )
-
-        if perf_groups:
-            perf_counts = _count_search_issue_events(
-                ctx,
-                project_ids=list({g.project_id for g in perf_groups}),
-                group_ids=[g.id for g in perf_groups],
-                referrer=referrer,
-            )
-
-        error_issues_by_project: dict[int, list[tuple[int, int]]] = {}
-        for group in error_groups:
-            count = error_counts.get(group.id, 0)
-            pid = group.project_id
-            if pid not in error_issues_by_project:
-                error_issues_by_project[pid] = []
-            if len(error_issues_by_project[pid]) < 5:
-                error_issues_by_project[pid].append((group.id, count))
-
-        perf_issues_by_project: dict[int, list[tuple[Group, int]]] = {}
-        for group in perf_groups:
-            count = perf_counts.get(group.id, 0)
-            pid = group.project_id
-            if pid not in perf_issues_by_project:
-                perf_issues_by_project[pid] = []
-            if len(perf_issues_by_project[pid]) < 5:
-                perf_issues_by_project[pid].append((group, count))
+        error_issues_by_project = _query_top_error_issues(ctx, project_ids, referrer)
+        perf_issues_by_project = _query_top_perf_issues(ctx, project_ids, referrer)
 
         return error_issues_by_project, perf_issues_by_project
 
 
-def _count_error_events(
+def _query_top_error_issues(
     ctx: OrganizationReportContext,
     project_ids: list[int],
-    group_ids: list[int],
     referrer: str,
-) -> dict[int, int]:
-    """Count error-level events per group from the events dataset for the report period."""
+) -> dict[int, list[tuple[int, int]]]:
+    """Query top error-category issues per project using events ⟕ group_attributes JOIN."""
+    results: dict[int, list[tuple[int, int]]] = {}
+    for i in range(0, len(project_ids), _CHUNK_SIZE):
+        chunk = project_ids[i : i + _CHUNK_SIZE]
+        chunk_results = _query_top_error_issues_chunk(ctx, chunk, referrer)
+        results.update(chunk_results)
+    return results
+
+
+def _query_top_error_issues_chunk(
+    ctx: OrganizationReportContext,
+    project_ids: list[int],
+    referrer: str,
+) -> dict[int, list[tuple[int, int]]]:
+    events_entity = Entity("events", alias="events")
+    group_attributes_entity = Entity("group_attributes", alias="group_attributes")
     query = Query(
-        match=Entity("events"),
-        select=[Column("group_id"), Function("count", [])],
-        where=[
-            Condition(Column("timestamp"), Op.GTE, ctx.start),
-            Condition(Column("timestamp"), Op.LT, ctx.end),
-            Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("group_id"), Op.IN, group_ids),
-            Condition(Column("level"), Op.EQ, "error"),
+        match=Join([Relationship(events_entity, "attributes", group_attributes_entity)]),
+        select=[
+            Column("project_id", entity=events_entity),
+            Column("group_id", entity=events_entity),
+            Function("count", []),
         ],
-        groupby=[Column("group_id")],
-        limit=Limit(len(group_ids)),
+        where=[
+            Condition(Column("timestamp", entity=events_entity), Op.GTE, ctx.start),
+            Condition(Column("timestamp", entity=events_entity), Op.LT, ctx.end),
+            Condition(Column("project_id", entity=events_entity), Op.IN, project_ids),
+            Condition(Column("project_id", entity=group_attributes_entity), Op.IN, project_ids),
+            Condition(
+                Column("group_status", entity=group_attributes_entity),
+                Op.EQ,
+                GroupStatus.UNRESOLVED,
+            ),
+        ],
+        groupby=[
+            Column("project_id", entity=events_entity),
+            Column("group_id", entity=events_entity),
+        ],
+        orderby=[OrderBy(Function("count", []), Direction.DESC)],
+        limitby=LimitBy([Column("project_id", entity=events_entity)], _ISSUE_LIMIT_PER_PROJECT),
+        limit=Limit(len(project_ids) * _ISSUE_LIMIT_PER_PROJECT),
     )
     request = Request(
         dataset=Dataset.Events.value,
@@ -239,27 +203,38 @@ def _count_error_events(
         tenant_ids={"organization_id": ctx.organization.id},
     )
     rows = raw_snql_query(request, referrer=referrer)["data"]
-    return {row["group_id"]: row["count()"] for row in rows}
+
+    results: dict[int, list[tuple[int, int]]] = {}
+    for row in rows:
+        pid = row["events.project_id"]
+        if pid not in results:
+            results[pid] = []
+        results[pid].append((row["events.group_id"], row["count()"]))
+    return results
 
 
-def _count_search_issue_events(
+def _query_top_perf_issues(
     ctx: OrganizationReportContext,
     project_ids: list[int],
-    group_ids: list[int],
     referrer: str,
-) -> dict[int, int]:
-    """Count performance issue events per group from the search_issues dataset for the report period."""
+) -> dict[int, list[tuple[Group, int]]]:
+    """Query top performance issues per project from search_issues, post-filtered for unresolved status."""
     query = Query(
         match=Entity("search_issues"),
-        select=[Column("group_id"), Function("count", [])],
+        select=[
+            Column("project_id"),
+            Column("group_id"),
+            Function("count", []),
+        ],
         where=[
             Condition(Column("timestamp"), Op.GTE, ctx.start),
             Condition(Column("timestamp"), Op.LT, ctx.end),
             Condition(Column("project_id"), Op.IN, project_ids),
-            Condition(Column("group_id"), Op.IN, group_ids),
         ],
-        groupby=[Column("group_id")],
-        limit=Limit(len(group_ids)),
+        groupby=[Column("project_id"), Column("group_id")],
+        orderby=[OrderBy(Function("count", []), Direction.DESC)],
+        limitby=LimitBy([Column("project_id")], _ISSUE_LIMIT_PER_PROJECT),
+        limit=Limit(len(project_ids) * _ISSUE_LIMIT_PER_PROJECT),
     )
     request = Request(
         dataset=Dataset.IssuePlatform.value,
@@ -268,7 +243,30 @@ def _count_search_issue_events(
         tenant_ids={"organization_id": ctx.organization.id},
     )
     rows = raw_snql_query(request, referrer=referrer)["data"]
-    return {row["group_id"]: row["count()"] for row in rows}
+
+    group_ids = [row["group_id"] for row in rows]
+    if not group_ids:
+        return {}
+
+    unresolved_groups = {
+        g.id: g
+        for g in Group.objects.filter(
+            id__in=group_ids,
+            status=GroupStatus.UNRESOLVED,
+        )
+    }
+
+    results: dict[int, list[tuple[Group, int]]] = {}
+    for row in rows:
+        group = unresolved_groups.get(row["group_id"])
+        if group is None:
+            continue
+        pid = row["project_id"]
+        if pid not in results:
+            results[pid] = []
+        if len(results[pid]) < _ISSUE_LIMIT_PER_PROJECT:
+            results[pid].append((group, row["count()"]))
+    return results
 
 
 def fetch_key_error_groups(ctx: OrganizationReportContext) -> None:
