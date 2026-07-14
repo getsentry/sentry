@@ -1,22 +1,27 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from collections.abc import Iterable
+from datetime import datetime, timedelta
+from typing import Any
 
 import pytest
 from django.contrib.sessions.backends.base import SessionBase
 from django.test import RequestFactory, override_settings
 from django.utils import timezone
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from sentry.api.authentication import AgentTokenAuthentication
 from sentry.api.bases.organization import OrganizationPermission
+from sentry.auth.access import Access
 from sentry.models.organizationmember import OrganizationMember
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.testutils.cases import TestCase
 from sentry.testutils.requests import drf_request_from_request
 from sentry.types.token import SENTRY_AGENT_TOKEN_PREFIX
+from sentry.users.models.user import User
 from sentry.utils import jwt
 
 SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
@@ -33,14 +38,21 @@ class AgentTokenAuthAndGateTest(TestCase):
         self.member = self.create_user()
         self.create_member(user=self.member, organization=self.org, role="member")
 
-    def _agent_request(self, user, scopes, *, session_id="sess-1", method="PUT", ttl=None):
-        kwargs = {} if ttl is None else {"ttl": ttl}
+    def _agent_request(
+        self,
+        user: User,
+        scopes: Iterable[str],
+        *,
+        session_id: str = "sess-1",
+        method: str = "PUT",
+        ttl: timedelta | None = None,
+    ) -> Request:
         token, _ = agent_token.encode_agent_token(
             user_id=user.id,
             organization_id=self.org.id,
             scopes=scopes,
             session_id=session_id,
-            **kwargs,
+            ttl=ttl if ttl is not None else agent_token.DEFAULT_TOKEN_TTL,
         )
         request = getattr(RequestFactory(), method.lower())("/api/0/organizations/")
         request.session = SessionBase()
@@ -51,16 +63,24 @@ class AgentTokenAuthAndGateTest(TestCase):
         drf_request.user, drf_request.auth = result
         return drf_request
 
-    def _grant(self, *, session_id="s", scopes=("org:write",), expires_at=None):
-        return SeerAgentWriteGrant.objects.create(
-            organization_id=self.org.id,
-            user_id=self.owner.id,
-            agent_session_id=session_id,
-            scope_list=list(scopes),
-            **({"expires_at": expires_at} if expires_at else {}),
-        )
+    def _grant(
+        self,
+        *,
+        session_id: str = "s",
+        scopes: Iterable[str] = ("org:write",),
+        expires_at: datetime | None = None,
+    ) -> SeerAgentWriteGrant:
+        values: dict[str, Any] = {
+            "organization_id": self.org.id,
+            "user_id": self.owner.id,
+            "agent_session_id": session_id,
+            "scope_list": list(scopes),
+        }
+        if expires_at is not None:
+            values["expires_at"] = expires_at
+        return SeerAgentWriteGrant.objects.create(**values)
 
-    def _has_object_perm(self, drf_request) -> bool:
+    def _has_object_perm(self, drf_request: Request) -> bool:
         return OrganizationPermission().has_object_permission(drf_request, APIView(), self.org)
 
     # ----- authentication -----
@@ -75,7 +95,7 @@ class AgentTokenAuthAndGateTest(TestCase):
         assert request.auth.user_id == self.owner.id
         assert request.auth.get_scopes() == ["org:read"]
 
-    def _auth(self, bearer: str):
+    def _auth(self, bearer: str) -> tuple[Any, Any] | None:
         request = RequestFactory().get("/api/0/organizations/")
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {bearer}"
         return AgentTokenAuthentication().authenticate(drf_request_from_request(request))
@@ -136,7 +156,7 @@ class AgentTokenAuthAndGateTest(TestCase):
         request = self._agent_request(self.member, ["org:read", "org:write"], method="PUT")
         assert self._has_object_perm(request) is False
 
-    def _access_for(self, request):
+    def _access_for(self, request: Request) -> Access:
         OrganizationPermission().has_object_permission(request, APIView(), self.org)
         return request.access
 

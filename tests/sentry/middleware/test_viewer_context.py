@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory, override_settings
+from rest_framework.request import Request
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.middleware.auth import AuthenticationMiddleware
@@ -220,7 +222,9 @@ class ViewerContextMiddlewareTest(TestCase):
             return MagicMock(status_code=200)
 
         request = self.factory.get("/api/0/organizations/", HTTP_AUTHORIZATION=f"Bearer {token}")
-        AuthenticationMiddleware(lambda r: MagicMock(status_code=200)).process_request(request)
+        AuthenticationMiddleware(lambda r: MagicMock(status_code=200)).process_request(
+            cast(Request, request)
+        )
         ViewerContextMiddleware(get_response)(request)
 
         assert len(captured) == 1
