@@ -21,11 +21,13 @@ from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Any
 
+import orjson
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from pydantic import ValidationError
 
 from sentry import features, options
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -69,6 +71,7 @@ from sentry.pr_metrics.activity_types import (
 )
 from sentry.pr_metrics.attribution import (
     JUDGE_ELIGIBLE_SIGNAL_TYPES,
+    DelegatedAgentSignalDetails,
     SentryAppSignalDetails,
     record_attribution_signal,
 )
@@ -88,6 +91,7 @@ from sentry.pr_metrics.utils import (
     resolved_group_ids,
 )
 from sentry.seer.autofix.utils import (
+    DelegatedAgentMatch,
     MatchDelegatedAgentPrRequest,
     make_match_coding_agent_pr_request,
 )
@@ -175,7 +179,10 @@ def handle_attribution(
         _write_author_attribution(pr, github_user, pr_url=pr_url, group_ids=resolved_group_ids(pr))
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
-    if action == "opened" and pull_request is not None:
+    # Checked on open and re-checked on close, mirroring the SENTRY_APP author
+    # attribution above — the same out-of-order/missed-webhook concern applies,
+    # and record_attribution_signal is idempotent against the repeat check.
+    if action in ("opened", "closed") and pull_request is not None:
         _attribute_delegated_agent(pr, pull_request, repo, organization, github_user)
 
 
@@ -1141,7 +1148,9 @@ def _detect_delegated_agent(
     Filter PRs that could have been delegated by Autofix to external coding agents,
     and fire the matching request to Seer if it's a candidate.
 
-    Then Seer calls the RPC "record_pr_attribution" to write the attribution row async.
+    Seer resolves the match either synchronously (a ``200`` with the match body,
+    recorded in-process here) or asynchronously (a ``202``, followed later by the
+    "record_pr_attribution" RPC callback writing the attribution row).
     """
     group_ids = resolved_group_ids(pr)
     if not group_ids:
@@ -1215,7 +1224,33 @@ def _send_seer_delegated_agent_match(
         _record_delegated_candidate(provider_hint, "seer_error_bad_status")
         return
 
-    _record_delegated_candidate(provider_hint, "sent")
+    if response.status != 200:
+        # 202: Seer enqueued the match asynchronously and will call back via the
+        # record_pr_attribution RPC once it resolves.
+        _record_delegated_candidate(provider_hint, "sent")
+        return
+
+    # 200: Seer resolved the match synchronously — record the attribution now,
+    # in-process, instead of waiting for the async RPC callback.
+    try:
+        match = DelegatedAgentMatch.validate(orjson.loads(response.data))
+        signal_type = PullRequestAttributionSignalType(match.signal_type)
+    except (orjson.JSONDecodeError, ValidationError, ValueError):
+        logger.exception("pr_metrics.delegated_agent.seer_match.bad_body", extra=log_extra)
+        _record_delegated_candidate(provider_hint, "seer_error_bad_body")
+        return
+
+    record_attribution_signal(
+        pull_request=pr,
+        signal_type=signal_type,
+        source=PullRequestAttributionSource.SEER_DATA,
+        signal_details=DelegatedAgentSignalDetails(
+            agent_id=match.agent_id,
+            pr_url=request_body.pr_url,
+            run_id=match.run_id,
+        ).dict(),
+    )
+    _record_delegated_candidate(provider_hint, "sync_matched")
 
 
 def _write_mcp_attribution(pr: PullRequest) -> None:

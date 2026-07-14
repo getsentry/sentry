@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import functools
+
 from django.db import models
 from django.db.models.functions import Now
 
@@ -11,7 +13,7 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
-from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.issues.action_log.types import GroupAction, GroupActionType, GroupActorType
 
 
 @cell_silo_model
@@ -79,3 +81,11 @@ class GroupActionLogEntry(Model):
         ]
 
     __repr__ = sane_repr("group_id", "type", "actor_type", "actor_id")
+
+    @functools.cached_property
+    def action(self) -> GroupAction:
+        action_type = GroupActionType(self.type)
+        action_cls = GroupAction.by_type(action_type)
+        if action_cls is None:
+            raise ValueError(f"No GroupAction registered for {action_type!r}")
+        return action_cls(**self.data)

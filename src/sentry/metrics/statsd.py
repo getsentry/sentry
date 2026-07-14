@@ -65,17 +65,6 @@ class StatsdMetricsBackend(MetricsBackend):
         # NOTE: the statsd client does not have a `distribution` method
         self.timing(key, value, instance, tags, sample_rate)
 
-    def set(
-        self,
-        key: str,
-        value: str | int,
-        instance: str | None = None,
-        tags: Tags | None = None,
-        sample_rate: float = 1,
-        stacklevel: int = 0,
-    ) -> None:
-        self.client.set(self._full_key(self._get_key(key)), value, sample_rate)
-
     def event(
         self,
         title: str,
