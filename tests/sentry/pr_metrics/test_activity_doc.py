@@ -541,14 +541,39 @@ def test_check_events_converge_under_any_permutation() -> None:
 # --- checks: caps ----------------------------------------------------------
 
 
-def test_check_group_cap_drops_new_groups() -> None:
+def test_check_group_cap_evicts_least_recent_group() -> None:
     doc = new_document()
+    # Fill the cap with green CI suites on distinct SHAs, strictly increasing recency
+    # (sha0000 oldest ... sha0099 newest).
     with patch(f"{MODULE}.metrics") as mock_metrics, patch(f"{MODULE}.logger") as mock_logger:
-        for i in range(MAX_CHECK_GROUPS + 2):
-            _run(doc, head_sha=f"sha{i}", check_name="t", conclusion="failure")
+        for i in range(MAX_CHECK_GROUPS):
+            _suite(
+                doc,
+                head_sha=f"sha{i:04d}",
+                conclusion="success",
+                updated_at=f"2026-07-10T12:{i // 60:02d}:{i % 60:02d}Z",
+            )
+        assert len(doc["checks"]) == MAX_CHECK_GROUPS
+        assert mock_metrics.incr.call_count == 0  # filling exactly to the cap evicts nothing
+
+        # A failing check on a brand-new head must still land: the judge cares about
+        # the final head's CI state, so the cap evicts the stalest group, not this one.
+        _run(
+            doc,
+            head_sha="sha-final",
+            check_name="build",
+            conclusion="failure",
+            completed_at="2026-07-10T13:00:00Z",
+        )
+
     assert len(doc["checks"]) == MAX_CHECK_GROUPS
+    # The newcomer is present and carries the failure.
+    assert doc["checks"]["sha-final|github-actions"]["runs"]["build"]["conclusion"] == "failure"
+    # The least-recently-updated group was evicted; a newer green group survived.
+    assert "sha0000|github-actions" not in doc["checks"]
+    assert "sha0099|github-actions" in doc["checks"]
     mock_metrics.incr.assert_any_call("pr_metrics.activity_doc.check_groups_capped")
-    assert mock_logger.warning.call_count == 2
+    assert mock_logger.warning.call_count == 1
 
 
 def test_existing_group_still_updates_after_group_cap() -> None:

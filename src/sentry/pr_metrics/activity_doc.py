@@ -222,8 +222,6 @@ def _apply_check_suite(
     emit suite events.
     """
     group = _get_or_create_group(doc, payload)
-    if group is None:
-        return
 
     conclusion = payload.get("conclusion") or ""
     if _is_newer(suite_updated_at, group.get("suite_updated_at")):
@@ -249,8 +247,6 @@ def _apply_check_run(
     Latest-wins on ``completed_at`` keeps out-of-order deliveries convergent.
     """
     group = _get_or_create_group(doc, payload)
-    if group is None:
-        return
 
     _touch_last_event(group, completed_at)
     name = payload.get("check_name") or ""
@@ -290,11 +286,15 @@ def _apply_check_run(
         group["first_failure_at"] = _min_ts(group.get("first_failure_at"), completed_at)
 
 
-def _get_or_create_group(doc: dict[str, Any], payload: Mapping[str, Any]) -> dict[str, Any] | None:
-    """The rollup for a check payload's ``(head_sha, app_slug)``, or None if capped.
+def _get_or_create_group(doc: dict[str, Any], payload: Mapping[str, Any]) -> dict[str, Any]:
+    """The rollup for a check payload's ``(head_sha, app_slug)``.
 
-    Existing groups always resolve; a new group beyond ``MAX_CHECK_GROUPS`` is
-    dropped with a log/metric.
+    Existing groups always resolve. A new group beyond ``MAX_CHECK_GROUPS`` evicts
+    the least-recently-updated group (by ``last_event_at``) to make room rather than
+    dropping the newcomer: the judge cares most about the *final* head's CI state, so
+    a green-heavy PR that fills the cap must not freeze on stale SHAs and silently
+    drop a failing check that lands on a newer one. Each eviction is a cap hit,
+    surfaced via a log + metric — the cap is a pathology backstop, never silent.
     """
     head_sha = payload.get("head_sha") or ""
     app_slug = payload.get("app_slug") or ""
@@ -304,12 +304,13 @@ def _get_or_create_group(doc: dict[str, Any], payload: Mapping[str, Any]) -> dic
     if group is not None:
         return group
     if len(checks) >= MAX_CHECK_GROUPS:
+        evicted_key = min(checks, key=lambda existing: checks[existing].get("last_event_at") or "")
+        del checks[evicted_key]
         logger.warning(
             "pr_metrics.activity_doc.check_groups_capped",
-            extra={"head_sha": head_sha, "app_slug": app_slug},
+            extra={"head_sha": head_sha, "app_slug": app_slug, "evicted_key": evicted_key},
         )
         metrics.incr("pr_metrics.activity_doc.check_groups_capped")
-        return None
     group = {
         "head_sha": head_sha,
         "app_slug": app_slug,
