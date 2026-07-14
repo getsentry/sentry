@@ -1,4 +1,4 @@
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
@@ -28,14 +28,18 @@ export function ScmFeatureSelectionCards({
   isOnboarding,
 }: ScmFeatureSelectionCardsProps) {
   return (
-    <Stack gap="xl" width="100%" justify="center">
+    <Stack gap="lg" width="100%" justify="center">
       {isOnboarding ? (
-        <Flex justify="between" align="center">
-          <Heading as="h4">{t('What do you want to instrument?')}</Heading>
+        <Flex justify="between" align="center" gap="md">
+          <Heading as="h4" ellipsis>
+            {t('What do you want to instrument?')}
+          </Heading>
           {availableFeatures.length > 1 ? (
-            <Text size="sm" variant="secondary">
-              {t('Choose one or more')}
-            </Text>
+            <Container>
+              <Text size="sm" variant="secondary" wrap="nowrap">
+                {t('Choose one or more')}
+              </Text>
+            </Container>
           ) : null}
         </Flex>
       ) : null}
