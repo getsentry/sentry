@@ -25,7 +25,7 @@ from sentry.models.pullrequest import (
 from sentry.pr_metrics.emit import _activity_derived_metrics, ci_failing_at_close, select_verdict
 from sentry.pr_metrics.judge import _pr_activity_timeline
 from sentry.pr_metrics.tasks import cleanup_pr_activity_task
-from sentry.pr_metrics.utils import resolved_group_ids
+from sentry.pr_metrics.utils import load_activity_document, resolved_group_ids
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import cell_silo_test
@@ -103,6 +103,24 @@ class ActivityDocumentReadersTest(TestCase):
         # Document exists but records no pushes → merge head == opened head.
         self._write_doc(_doc())
         assert select_verdict(self.pr, self.organization) == PullRequestVerdict.MERGED_UNCHANGED
+
+    def test_unfolded_doc_row_reads_as_absent_not_empty(self) -> None:
+        # A row created but never folded holds the model's {} default (no version) —
+        # not a document. load_activity_document must report absence so readers fall
+        # back to the legacy store instead of computing zeros from a phantom doc.
+        PullRequestMetrics.objects.create(pull_request=self.pr)
+        PullRequestActivityLog.objects.create(pull_request=self.pr, data={})
+        PullRequestActivity.objects.create(
+            pull_request=self.pr,
+            webhook_id="sync1",
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            payload={},
+        )
+        assert load_activity_document(self.pr) is None
+        # The legacy SYNCHRONIZED row wins the routing fallback, so the reader sees
+        # the push and defers to the judge — not the wrong MERGED_UNCHANGED it would
+        # emit if the empty {} doc were read as a real (zeroed) document.
+        assert select_verdict(self.pr, self.organization) is None
 
     # --- _activity_derived_metrics ----------------------------------------
 

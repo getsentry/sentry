@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import cast
 
 from django.db.models import Q
 from django.utils import timezone
@@ -23,7 +24,7 @@ from sentry.models.pullrequest import (
     PullRequestMetrics,
     PullRequestVerdict,
 )
-from sentry.pr_metrics.activity_doc import ActivityDoc, commit_shas_from_doc, new_document
+from sentry.pr_metrics.activity_doc import ActivityDoc, commit_shas_from_doc
 from sentry.seer.models import SeerAgentRun, SeerRunPullRequest
 
 _PR_ACTIVITY_ATTRIBUTION_BUFFER = timedelta(hours=30)
@@ -202,11 +203,19 @@ def load_activity_document(pull_request: PullRequest) -> ActivityDoc | None:
     signal every reader uses: a row → read the document; no row → read the legacy
     ``PullRequestActivity`` rows. Mirrors the write-time routing, so a PR is read
     from whichever store it was written to.
+
+    A row whose document was never folded — a read racing the first fold, or a
+    pre-fix orphan from a fold that failed after the row was created — carries the
+    model's ``{}`` default with no ``version``. That is not a document: treat it as
+    absent (return None) so readers fall back to the legacy store instead of
+    computing zeroed metrics from a phantom, empty document.
     """
     row = PullRequestActivityLog.objects.filter(pull_request=pull_request).first()
     if row is None:
         return None
-    return row.data if row.data.get("version") else new_document()
+    if not (row.data and row.data.get("version")):
+        return None
+    return cast(ActivityDoc, row.data)
 
 
 def resolved_group_ids(pull_request: PullRequest) -> list[int]:
