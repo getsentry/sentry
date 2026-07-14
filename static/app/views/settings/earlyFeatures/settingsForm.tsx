@@ -3,10 +3,10 @@ import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -65,22 +65,6 @@ export function EarlyFeaturesSettingsForm({access}: Props) {
         data,
       }),
     onSuccess: (_response, updatedFlags) => {
-      const previous = queryClient.getQueryData(featureFlagsQueryOptions.queryKey);
-
-      for (const [flag, newValue] of Object.entries(updatedFlags)) {
-        const previousFlag = previous?.json[flag];
-        if (!previousFlag) {
-          continue;
-        }
-        addSuccessMessage(
-          tct('Changed [fieldName] from [oldValue] to [newValue]', {
-            fieldName: <strong>{previousFlag.description}</strong>,
-            oldValue: <em>{previousFlag.value ? t('enabled') : t('disabled')}</em>,
-            newValue: <em>{newValue ? t('enabled') : t('disabled')}</em>,
-          })
-        );
-      }
-
       queryClient.setQueryData(featureFlagsQueryOptions.queryKey, prev => {
         if (!prev) {
           return prev;
