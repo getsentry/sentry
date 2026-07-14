@@ -95,7 +95,7 @@ const spin = keyframes`
   to { transform: rotate(360deg); }
 `;
 
-export const Spinner = styled('div')`
+const Spinner = styled('div')`
   box-sizing: border-box;
   width: 12px;
   height: 12px;

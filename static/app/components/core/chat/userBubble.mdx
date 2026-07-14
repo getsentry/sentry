@@ -1,20 +1,20 @@
 ---
-title: MessageBubble
+title: UserBubble
 description: A single message bubble for the sender's own messages in an agent conversation.
 category: chat
 source: '@sentry/scraps/chat'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/messageBubble.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/userBubble.tsx
 ---
 
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {MessageBubble} from '@sentry/scraps/chat';
+import {UserBubble} from '@sentry/scraps/chat';
 
 import * as Storybook from 'sentry/stories';
 
-export const documentation = import('!!type-loader!@sentry/scraps/chat/messageBubble');
+export const documentation = import('!!type-loader!@sentry/scraps/chat/userBubble');
 
-The `MessageBubble` renders a single message bubble, styled for the
+The `UserBubble` renders a single message bubble, styled for the
 sender's own messages in an agent conversation. It is presentation only —
 alignment within the conversation is the caller's responsibility.
 
@@ -25,13 +25,13 @@ agent's responses.
 
 <Storybook.Demo>
   <Flex justify="end" width="100%">
-    <MessageBubble>How many errors happened in the last 24 hours?</MessageBubble>
+    <UserBubble>How many errors happened in the last 24 hours?</UserBubble>
   </Flex>
 </Storybook.Demo>
 
 ```jsx
 <Flex justify="end" width="100%">
-  <MessageBubble>How many errors happened in the last 24 hours?</MessageBubble>
+  <UserBubble>How many errors happened in the last 24 hours?</UserBubble>
 </Flex>
 ```
 
@@ -44,16 +44,16 @@ wider surfaces.
 <Storybook.Demo>
   <Stack gap="md" width="100%">
     <Flex justify="end" width="100%">
-      <MessageBubble maxWidth="60%">
+      <UserBubble maxWidth="60%">
         A longer question that wraps onto multiple lines once it reaches the max width of
         the bubble.
-      </MessageBubble>
+      </UserBubble>
     </Flex>
   </Stack>
 </Storybook.Demo>
 
 ```jsx
-<MessageBubble maxWidth="60%">…</MessageBubble>
+<UserBubble maxWidth="60%">…</UserBubble>
 ```
 
 Whitespace and long unbroken tokens are preserved and wrapped, so pasted URLs
