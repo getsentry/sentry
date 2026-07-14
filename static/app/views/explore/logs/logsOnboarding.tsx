@@ -131,6 +131,17 @@ function OnboardingPanel({
 }) {
   const organization = useOrganization();
 
+  const doesNotSupportLogging = project.platform
+    ? withoutLoggingSupport.has(project.platform)
+    : false;
+
+  const receivedFirstLog = !!useEventWaiter({
+    eventType: 'log',
+    organization,
+    project,
+    disabled: doesNotSupportLogging,
+  });
+
   const trackPromptCopied = (source: 'install_command' | 'prompt') => {
     trackAnalytics('logs.onboarding_ai_prompt_copied', {
       organization,
@@ -189,6 +200,11 @@ function OnboardingPanel({
                       {AI_SETUP_PROMPT}
                     </OnboardingCodeSnippet>
                   </PromptSnippet>
+                  {receivedFirstLog ? (
+                    <EventReceivedIndicator />
+                  ) : (
+                    <EventWaitingIndicator />
+                  )}
                 </Preview>
                 <OrDivider aria-hidden>{t('OR')}</OrDivider>
               </Body>
@@ -230,13 +246,6 @@ function Onboarding({organization, project}: OnboardingProps) {
   const doesNotSupportLogging = project.platform
     ? withoutLoggingSupport.has(project.platform)
     : false;
-
-  const receivedFirstLog = !!useEventWaiter({
-    eventType: 'log',
-    organization,
-    project,
-    disabled: doesNotSupportLogging,
-  });
 
   const analyticsPlatform = currentPlatform?.id ?? project.platform ?? 'unknown';
 
@@ -395,11 +404,6 @@ function Onboarding({organization, project}: OnboardingProps) {
               {index === steps.length - 1 ? (
                 <GuidedSteps.ButtonWrapper>
                   <GuidedSteps.BackButton size="md" />
-                  {receivedFirstLog ? (
-                    <EventReceivedIndicator />
-                  ) : (
-                    <EventWaitingIndicator />
-                  )}
                 </GuidedSteps.ButtonWrapper>
               ) : (
                 <GuidedSteps.ButtonWrapper>
