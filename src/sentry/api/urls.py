@@ -280,9 +280,6 @@ from sentry.integrations.api.endpoints.organization_repository_details import (
 from sentry.integrations.api.endpoints.organization_repository_platforms import (
     OrganizationRepositoryPlatformsEndpoint,
 )
-from sentry.integrations.api.endpoints.organization_repository_platforms_test import (
-    OrganizationRepositoryPlatformsTestEndpoint,
-)
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
@@ -2202,11 +2199,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/platforms/$",
         OrganizationRepositoryPlatformsEndpoint.as_view(),
         name="sentry-api-0-organization-repository-platforms",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/platforms-test/$",
-        OrganizationRepositoryPlatformsTestEndpoint.as_view(),
-        name="sentry-api-0-organization-repository-platforms-test",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/legacy-webhooks/$",

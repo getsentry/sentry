@@ -324,7 +324,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/repos/'
   | '/organizations/$organizationIdOrSlug/repos/$repoId/'
   | '/organizations/$organizationIdOrSlug/repos/$repoId/commits/'
-  | '/organizations/$organizationIdOrSlug/repos/$repoId/platforms-test/'
   | '/organizations/$organizationIdOrSlug/repos/$repoId/platforms/'
   | '/organizations/$organizationIdOrSlug/repos/settings/'
   | '/organizations/$organizationIdOrSlug/request-project-creation/'
