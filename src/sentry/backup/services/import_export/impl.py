@@ -52,6 +52,7 @@ from sentry.silo.base import SiloMode
 from sentry.users.models.user import User
 from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userrole import UserRoleUser
+from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -210,101 +211,115 @@ class UniversalImportExportService(ImportExportService):
                 max_inserted_pk: int | None = None
                 last_seen_ordinal = min_ordinal - 1
 
-                for deserialized_object in deserialize(
-                    "json", json_data, use_natural_keys=False, ignorenonexistent=True
-                ):
-                    model_instance = deserialized_object.object
-                    inst_model_name = get_model_name(model_instance)
-
-                    if not isinstance(model_instance, BaseModel):
+                # Do access checks on json dict data.
+                for item in json.loads(json_data):
+                    model_name = item["model"]
+                    inst_model_name = NormalizedModelName(model_name)
+                    model_class = get_model(inst_model_name)
+                    if not model_class:
+                        return RpcImportError(
+                            kind=RpcImportErrorKind.UnexpectedModel,
+                            on=InstanceID(model=model_name, ordinal=None),
+                            left_pk=item["pk"],
+                            reason=f"Received non-sentry model of kind `{model_name}`",
+                        )
+                    if not issubclass(model_class, BaseModel):
                         return RpcImportError(
                             kind=RpcImportErrorKind.UnexpectedModel,
                             on=InstanceID(model=str(inst_model_name), ordinal=None),
-                            left_pk=model_instance.pk,
+                            left_pk=item["pk"],
                             reason=f"Received non-sentry model of kind `{inst_model_name}`",
                         )
+                    if model_class._meta.app_label in EXCLUDED_APPS:
+                        return RpcImportError(
+                            kind=RpcImportErrorKind.UnexpectedModel,
+                            on=InstanceID(model=str(inst_model_name), ordinal=None),
+                            left_pk=item["pk"],
+                            reason=f"Received excluded model of kind `{inst_model_name}`",
+                        )
 
-                    if model_instance._meta.app_label not in EXCLUDED_APPS or model_instance:
-                        if model_instance.get_possible_relocation_scopes() & ok_relocation_scopes:
-                            if inst_model_name != batch_model_name:
-                                return RpcImportError(
-                                    kind=RpcImportErrorKind.UnexpectedModel,
-                                    on=InstanceID(model=str(inst_model_name), ordinal=None),
-                                    left_pk=model_instance.pk,
-                                    reason=f"Received model of kind `{inst_model_name}` when `{batch_model_name}` was expected",
-                                )
+                    if inst_model_name != batch_model_name:
+                        return RpcImportError(
+                            kind=RpcImportErrorKind.UnexpectedModel,
+                            on=InstanceID(model=str(inst_model_name), ordinal=None),
+                            left_pk=item["pk"],
+                            reason=f"Received model of kind `{inst_model_name}` when `{batch_model_name}` was expected",
+                        )
 
-                            for f in filters:
-                                if getattr(model_instance, f.field, None) not in f.values:
-                                    break
-                            else:
-                                try:
-                                    # We can only be sure `get_relocation_scope()` will be correct
-                                    # if it is fired AFTER normalization, as some
-                                    # `get_relocation_scope()` methods rely on being able to
-                                    # correctly resolve foreign keys, which is only possible after
-                                    # normalization.
-                                    old_pk = model_instance.normalize_before_relocation_import(
-                                        in_pk_map, import_scope, import_flags
-                                    )
-                                    if old_pk is None:
-                                        continue
+                    if not (model_class.get_possible_relocation_scopes() & ok_relocation_scopes):
+                        continue
 
-                                    # Now that the model has been normalized, we can ensure that
-                                    # this particular instance has a `RelocationScope` that permits
-                                    # importing.
-                                    if (
-                                        model_instance.get_relocation_scope()
-                                        not in ok_relocation_scopes
-                                    ):
-                                        continue
+                    # Convert the dict into a model object as it is allowed.
+                    deserialize_result = deserialize(
+                        "json", json.dumps([item]), use_natural_keys=False, ignorenonexistent=True
+                    )
+                    model_instance = next(deserialize_result).object
+                    assert isinstance(model_instance, BaseModel)
 
-                                    # Perform the actual database write.
-                                    written = model_instance.write_relocation_import(
-                                        import_scope, import_flags
-                                    )
-                                    if written is None:
-                                        continue
+                    for f in filters:
+                        if getattr(model_instance, f.field, None) not in f.values:
+                            break
+                    else:
+                        try:
+                            # We can only be sure `get_relocation_scope()` will be correct
+                            # if it is fired AFTER normalization, as some
+                            # `get_relocation_scope()` methods rely on being able to
+                            # correctly resolve foreign keys, which is only possible after
+                            # normalization.
+                            old_pk = model_instance.normalize_before_relocation_import(
+                                in_pk_map, import_scope, import_flags
+                            )
+                            if old_pk is None:
+                                continue
 
-                                    # For models that may have circular references to themselves
-                                    # (unlikely), keep track of the new pk in the input map as well.
-                                    last_seen_ordinal += 1
-                                    new_pk, import_kind = written
-                                    slug = getattr(model_instance, "slug", None)
-                                    in_pk_map.insert(
-                                        inst_model_name, old_pk, new_pk, import_kind, slug
-                                    )
-                                    out_pk_map.insert(
-                                        inst_model_name, old_pk, new_pk, import_kind, slug
-                                    )
+                            # Now that the model has been normalized, we can ensure that
+                            # this particular instance has a `RelocationScope` that permits
+                            # importing.
+                            if model_instance.get_relocation_scope() not in ok_relocation_scopes:
+                                continue
 
-                                    # Do a little bit of book-keeping for our future `ImportChunk`.
-                                    if min_old_pk == 0:
-                                        min_old_pk = old_pk
-                                    if old_pk > max_old_pk:
-                                        max_old_pk = old_pk
-                                    if import_kind == ImportKind.Inserted:
-                                        if min_inserted_pk is None:
-                                            min_inserted_pk = new_pk
-                                        if max_inserted_pk is None or new_pk > max_inserted_pk:
-                                            max_inserted_pk = new_pk
+                            # Perform the actual database write.
+                            written = model_instance.write_relocation_import(
+                                import_scope, import_flags
+                            )
+                            if written is None:
+                                continue
 
-                                except DjangoValidationError as e:
-                                    errs = {field: error for field, error in e.message_dict.items()}
-                                    return RpcImportError(
-                                        kind=RpcImportErrorKind.ValidationError,
-                                        on=InstanceID(import_model_name, ordinal=last_seen_ordinal),
-                                        left_pk=model_instance.pk,
-                                        reason=f"Django validation error encountered: {errs}",
-                                    )
+                            # For models that may have circular references to themselves
+                            # (unlikely), keep track of the new pk in the input map as well.
+                            last_seen_ordinal += 1
+                            new_pk, import_kind = written
+                            slug = getattr(model_instance, "slug", None)
+                            in_pk_map.insert(inst_model_name, old_pk, new_pk, import_kind, slug)
+                            out_pk_map.insert(inst_model_name, old_pk, new_pk, import_kind, slug)
 
-                                except DjangoRestFrameworkValidationError as e:
-                                    return RpcImportError(
-                                        kind=RpcImportErrorKind.ValidationError,
-                                        on=InstanceID(import_model_name, ordinal=last_seen_ordinal),
-                                        left_pk=model_instance.pk,
-                                        reason=str(e),
-                                    )
+                            # Do a little bit of book-keeping for our future `ImportChunk`.
+                            if min_old_pk == 0:
+                                min_old_pk = old_pk
+                            if old_pk > max_old_pk:
+                                max_old_pk = old_pk
+                            if import_kind == ImportKind.Inserted:
+                                if min_inserted_pk is None:
+                                    min_inserted_pk = new_pk
+                                if max_inserted_pk is None or new_pk > max_inserted_pk:
+                                    max_inserted_pk = new_pk
+
+                        except DjangoValidationError as e:
+                            errs = {field: error for field, error in e.message_dict.items()}
+                            return RpcImportError(
+                                kind=RpcImportErrorKind.ValidationError,
+                                on=InstanceID(import_model_name, ordinal=last_seen_ordinal),
+                                left_pk=model_instance.pk,
+                                reason=f"Django validation error encountered: {errs}",
+                            )
+
+                        except DjangoRestFrameworkValidationError as e:
+                            return RpcImportError(
+                                kind=RpcImportErrorKind.ValidationError,
+                                on=InstanceID(import_model_name, ordinal=last_seen_ordinal),
+                                left_pk=model_instance.pk,
+                                reason=str(e),
+                            )
 
                 # If the `last_seen_ordinal` has not been incremented, no actual writes were done.
                 if last_seen_ordinal == min_ordinal - 1:
@@ -369,7 +384,7 @@ class UniversalImportExportService(ImportExportService):
                     max_inserted_pk=max_inserted_pk,
                 )
 
-        except DeserializationError as err:
+        except (DeserializationError, json.JSONDecodeError) as err:
             sentry_sdk.capture_exception()
             reason = str(err) or "No additional information"
             if err.__cause__:
