@@ -4,6 +4,12 @@ from uuid import uuid4
 
 from sentry.buffer.base import Buffer
 from sentry.integrations.types import ExternalProviders
+from sentry.issues.action_log.types import (
+    PullRequestClosedAction,
+    PullRequestMergedAction,
+    PullRequestReopenedAction,
+    PullRequestUnlinkedAction,
+)
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -21,6 +27,8 @@ from sentry.models.repository import Repository
 from sentry.signals import buffer_incr_complete, receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.action_log import capture_action_log
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.users.models.user_option import UserOption
@@ -405,7 +413,8 @@ class ProjectHasReleasesReceiverTest(TestCase):
         )
 
 
-class PullRequestClosedSignalTest(TestCase):
+@with_feature("organizations:pr-lifecycle-activity")
+class PullRequestLifecycleSignalTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.repo = self.create_repo(project=self.project, name="example/repo")
@@ -413,6 +422,7 @@ class PullRequestClosedSignalTest(TestCase):
         self.pull_request = self.create_pull_request(
             repository_id=self.repo.id, organization_id=self.organization.id, key="1"
         )
+        self.pull_request.message = f"Fixes {self.group.qualified_short_id}"
         GroupLink.objects.create(
             group_id=self.group.id,
             project_id=self.group.project_id,
@@ -429,8 +439,8 @@ class PullRequestClosedSignalTest(TestCase):
         pr = self.create_pull_request(
             repository_id=self.repo.id, organization_id=self.organization.id, key=key
         )
-        if state is not None:
-            PullRequest.objects.filter(id=pr.id).update(state=state)
+        pr.message = f"Fixes {group.qualified_short_id}"
+        PullRequest.objects.filter(id=pr.id).update(state=state, message=pr.message)
         GroupLink.objects.create(
             group_id=group.id,
             project_id=group.project_id,
@@ -451,6 +461,22 @@ class PullRequestClosedSignalTest(TestCase):
             "pull_request": self.pull_request.id,
             "has_other_open_prs": False,
         }
+
+    @with_feature({"organizations:pr-lifecycle-activity": False})
+    def test_flag_disabled_still_emits_closed_activity(self) -> None:
+        self._save_with_state(PullRequestLifecycleState.CLOSED)
+
+        assert Activity.objects.filter(
+            group=self.group, type=ActivityType.PULL_REQUEST_CLOSED.value
+        ).exists()
+
+    @with_feature({"organizations:pr-lifecycle-activity": False})
+    def test_flag_disabled_does_not_emit_merged_activity(self) -> None:
+        self._save_with_state(PullRequestLifecycleState.MERGED)
+
+        assert not Activity.objects.filter(
+            group=self.group, type=ActivityType.PULL_REQUEST_MERGED.value
+        ).exists()
 
     def test_open_sibling_pr_counts_as_remaining(self) -> None:
         self._link_pr(self.group, key="2", state=PullRequestLifecycleState.OPEN)
@@ -526,15 +552,102 @@ class PullRequestClosedSignalTest(TestCase):
         assert first.data["has_other_open_prs"] is False
         assert second.data["has_other_open_prs"] is True
 
-    def test_merged_does_not_emit_activity(self) -> None:
-        self._save_with_state(PullRequestLifecycleState.MERGED)
+    def test_merged_emits_activity(self) -> None:
+        with capture_action_log() as action_log:
+            self._save_with_state(PullRequestLifecycleState.MERGED)
 
-        assert not Activity.objects.filter(type=ActivityType.PULL_REQUEST_CLOSED.value).exists()
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.PULL_REQUEST_MERGED.value
+        )
+        assert activity.data == {
+            "pull_request": self.pull_request.id,
+            "has_other_open_prs": False,
+        }
+        action_log.assert_logged(
+            PullRequestMergedAction,
+            group_id=self.group.id,
+            pull_request=self.pull_request.id,
+            has_other_open_prs=False,
+        )
+
+    def test_superseded_emits_closed_activity(self) -> None:
+        with capture_action_log() as action_log:
+            self._save_with_state(PullRequestLifecycleState.SUPERSEDED)
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.PULL_REQUEST_CLOSED.value
+        )
+        assert activity.data == {
+            "pull_request": self.pull_request.id,
+            "has_other_open_prs": False,
+        }
+        action_log.assert_logged(
+            PullRequestClosedAction,
+            group_id=self.group.id,
+            pull_request=self.pull_request.id,
+            has_other_open_prs=False,
+        )
+
+    def test_reopened_emits_activity(self) -> None:
+        PullRequest.objects.filter(id=self.pull_request.id).update(
+            state=PullRequestLifecycleState.CLOSED
+        )
+        self.pull_request.state = PullRequestLifecycleState.CLOSED
+
+        with capture_action_log() as action_log:
+            self._save_with_state(PullRequestLifecycleState.OPEN)
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.PULL_REQUEST_REOPENED.value
+        )
+        assert activity.data == {"pull_request": self.pull_request.id}
+        action_log.assert_logged(
+            PullRequestReopenedAction,
+            group_id=self.group.id,
+            pull_request=self.pull_request.id,
+        )
+
+    def test_unlinked_emits_activity(self) -> None:
+        self.pull_request.message = "No issue reference"
+        with capture_action_log() as action_log:
+            self.pull_request.save()
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.PULL_REQUEST_UNLINKED.value
+        )
+        assert activity.data == {
+            "pull_request": self.pull_request.id,
+            "has_other_open_prs": False,
+        }
+        action_log.assert_logged(
+            PullRequestUnlinkedAction,
+            group_id=self.group.id,
+            pull_request=self.pull_request.id,
+            has_other_open_prs=False,
+        )
+
+    def test_unlinked_with_open_sibling_reports_remaining(self) -> None:
+        self._link_pr(self.group, key="2", state=PullRequestLifecycleState.OPEN)
+        self.pull_request.message = "No issue reference"
+
+        self.pull_request.save()
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.PULL_REQUEST_UNLINKED.value
+        )
+        assert activity.data["has_other_open_prs"] is True
 
     def test_open_does_not_emit_activity(self) -> None:
         self._save_with_state(PullRequestLifecycleState.OPEN)
 
-        assert not Activity.objects.filter(type=ActivityType.PULL_REQUEST_CLOSED.value).exists()
+        assert not Activity.objects.filter(
+            type__in=(
+                ActivityType.PULL_REQUEST_CLOSED.value,
+                ActivityType.PULL_REQUEST_REOPENED.value,
+                ActivityType.PULL_REQUEST_MERGED.value,
+                ActivityType.PULL_REQUEST_UNLINKED.value,
+            )
+        ).exists()
 
     def test_resaving_closed_pr_does_not_duplicate(self) -> None:
         self._save_with_state(PullRequestLifecycleState.CLOSED)

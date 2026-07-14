@@ -90,7 +90,7 @@ const Container = styled('div')`
   padding: ${p => p.theme.space['3xl']};
   text-align: center;
 
-  @container seer-explorer-root (max-width: 400px) {
+  @container (max-width: 400px) {
     padding: ${p => p.theme.space.xl};
   }
 `;
@@ -107,7 +107,7 @@ const SuggestionButton = styled(Button)`
     text-wrap: balance;
   }
 
-  @container seer-explorer-root (max-width: 500px) {
+  @container (max-width: 500px) {
     flex-grow: 1;
     width: 100%;
   }
