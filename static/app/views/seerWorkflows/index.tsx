@@ -744,25 +744,16 @@ function IssueRow({
   return (
     <Container background="primary" border="muted" radius="md" padding="sm md">
       <Stack gap="xs">
-        <Flex justify="between" align="start" gap="md" wrap="wrap">
+        <Flex justify="between" align="center" gap="md" wrap="wrap">
           <Link to={`/organizations/${organizationSlug}/issues/${issue.groupId}/`}>
-            <Text bold ellipsis>
+            <Text size="sm" ellipsis>
               {title}
             </Text>
           </Link>
-          <ActionTag action={issue.action} />
+          <ActionTag action={issue.action} seerRunId={issue.seerRunId} />
         </Flex>
-        {issue.seerRunId || issue.pullRequests.length > 0 ? (
+        {issue.pullRequests.length > 0 ? (
           <Flex align="center" gap="sm" wrap="wrap">
-            {issue.seerRunId ? (
-              <LinkButton
-                size="xs"
-                icon={<IconOpen />}
-                to={getRelativeExplorerUrl(issue.seerRunId)}
-              >
-                {t('View conversation')}
-              </LinkButton>
-            ) : null}
             {issue.pullRequests.map(pullRequest => (
               <IssuePullRequestChip key={pullRequest.id} pullRequest={pullRequest} />
             ))}
@@ -780,10 +771,16 @@ const ACTION_TAG_VARIANT: Record<string, TagVariant> = {
   skip: 'muted',
 };
 
-function ActionTag({action}: {action: string}) {
-  return (
+function ActionTag({action, seerRunId}: {action: string; seerRunId: string | null}) {
+  const tag = (
     <Tag variant={ACTION_TAG_VARIANT[action] ?? 'muted'}>{getActionLabel(action)}</Tag>
   );
+  // Only autofix-triggered issues have a conversation to link to -- skipped
+  // and root-cause-only issues never invoke an agent run.
+  if (!seerRunId) {
+    return tag;
+  }
+  return <Link to={getRelativeExplorerUrl(seerRunId)}>{tag}</Link>;
 }
 
 function IssuePullRequestChip({pullRequest}: {pullRequest: PullRequest}) {

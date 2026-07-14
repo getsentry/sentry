@@ -131,9 +131,10 @@ describe('SeerWorkflows', () => {
     ).toHaveAttribute('href', `/organizations/${organization.slug}/issues/100/`);
     expect(screen.queryByRole('link', {name: '100'})).not.toBeInTheDocument();
 
-    // A "View conversation" button links to the Explorer deep link for this
-    // issue's own seer run, not a generic autofix drawer.
-    expect(screen.getByRole('button', {name: 'View conversation'})).toHaveAttribute(
+    // The action tag itself is the conversation link for an autofix-triggered
+    // issue, linking to the Explorer deep link for this issue's own seer run
+    // rather than a separate button or a generic autofix drawer.
+    expect(screen.getByRole('link', {name: 'Autofix queued'})).toHaveAttribute(
       'href',
       expect.stringContaining('explorerRunId=seer-1')
     );
@@ -141,6 +142,39 @@ describe('SeerWorkflows', () => {
     // Seer Run ID is a debug field — only visible to employees inside the
     // Debug disclosure. Non-employee tests should not see it.
     expect(screen.queryByText('seer-1')).not.toBeInTheDocument();
+  });
+
+  it('does not link the action tag for an issue with no seer run', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {},
+          issues: [
+            {
+              id: '10',
+              groupId: '100',
+              groupTitle: 'ValueError: something broke',
+              action: 'skip',
+              seerRunId: null,
+              pullRequests: [],
+              dateAdded: '2026-04-20T00:00:01Z',
+            },
+          ],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
+
+    expect(screen.getByText('Skipped')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Skipped'})).not.toBeInTheDocument();
   });
 
   it('falls back to the bare group id when the issue has no resolved title', async () => {
