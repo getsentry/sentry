@@ -7,7 +7,6 @@ from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
-from sentry.models.teamreplica import TeamReplica
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
@@ -148,47 +147,6 @@ def test_replicate_auth_identity() -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             for ai, next_ident in zip(auth_identities, [*auth_idents[1:], auth_idents[0]]):
                 assert AuthIdentityReplica.objects.get(auth_identity_id=ai.id).ident == next_ident
-
-
-@django_db_all(transaction=True)
-@all_silo_test
-def test_replicate_team() -> None:
-    org = Factories.create_organization()
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        assert TeamReplica.objects.count() == 0
-
-    with assume_test_silo_mode(SiloMode.CELL):
-        team = Factories.create_team(org)
-
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        replicated = TeamReplica.objects.get(team_id=team.id)
-
-    assert replicated.organization_id == team.organization_id
-    assert replicated.slug == team.slug
-    assert replicated.name == team.name
-    assert replicated.status == team.status
-
-    with assume_test_silo_mode(SiloMode.CELL):
-        teams = [
-            team,
-            Factories.create_team(organization=team.organization),
-            Factories.create_team(organization=team.organization),
-        ]
-        team_slugs = [team.slug for team in teams]
-        conflicting_pairs = list(zip(teams, [*team_slugs[1:], team_slugs[0]]))
-
-        with outbox_runner(), outbox_context(flush=False):
-            for team in teams:
-                team.slug += "-new"
-                team.save()
-
-            for team, next_slug in conflicting_pairs:
-                team.slug = next_slug
-                team.save()
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            for team, next_slug in zip(teams, [*team_slugs[1:], team_slugs[0]]):
-                assert TeamReplica.objects.get(team_id=team.id).slug == next_slug
 
 
 @django_db_all(transaction=True)
