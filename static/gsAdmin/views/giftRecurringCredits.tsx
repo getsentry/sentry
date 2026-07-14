@@ -88,9 +88,18 @@ interface BillingConfig {
   category_info: Record<string, CategoryInfo>;
 }
 
+interface ExistingGift {
+  // Raw (storage-unit) amount, as stored on the credit; converted for display.
+  amount: number;
+  periodEnd: string;
+  periodStart: string;
+}
+
 interface ResultRow {
   code: string | null;
   creditId: number | null;
+  // The gift this one would overwrite, or null when there's nothing to replace.
+  existingGift: ExistingGift | null;
   id: number | null;
   periodEnd: string | null;
   periodStart: string | null;
@@ -108,6 +117,7 @@ function downloadResultsCsv(results: ResultRow[]) {
       plan: row.plan ?? '',
       status: row.status,
       code: row.code ?? '',
+      existing_gift: row.existingGift ? 'yes' : 'no',
       period_start: row.periodStart ?? '',
       period_end: row.periodEnd ?? '',
       credit_id: row.creditId ?? '',
@@ -516,6 +526,20 @@ export function GiftRecurringCredits() {
       {results && (
         <ResultsSection data-test-id="results">
           <h4>Results</h4>
+          {results.some(row => row.existingGift) && (
+            <Alert.Container>
+              <Alert
+                variant="warning"
+                showIcon={false}
+                data-test-id="existing-gift-warning"
+              >
+                {results.filter(row => row.existingGift).length} of {results.length} orgs
+                already have an active recurring gift for this category. Gifting will
+                overwrite the existing gift's amount and schedule rather than add a second
+                one.
+              </Alert>
+            </Alert.Container>
+          )}
           {notInRegionOrgs.length > 0 && (
             <Alert.Container>
               <Alert
@@ -541,6 +565,7 @@ export function GiftRecurringCredits() {
                 <th>Plan</th>
                 <th>Status</th>
                 <th>Code</th>
+                <th>Current gift</th>
                 <th>New gift</th>
                 <th>Credit ID</th>
               </tr>
@@ -560,6 +585,17 @@ export function GiftRecurringCredits() {
                     <td>{row.plan ?? '—'}</td>
                     <td>{row.status}</td>
                     <td>{row.code ?? '—'}</td>
+                    <td>
+                      {row.existingGift
+                        ? formatGiftSummary(
+                            row.existingGift.amount / resultsFormatting.multiplier,
+                            row.existingGift.periodStart,
+                            row.existingGift.periodEnd,
+                            resultsFormatting.isCount,
+                            resultsFormatting.unitLabel
+                          )
+                        : '—'}
+                    </td>
                     <td>
                       {row.status === 'error' || !row.periodStart || !row.periodEnd
                         ? '—'

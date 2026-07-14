@@ -100,6 +100,11 @@ describe('GiftRecurringCredits', () => {
             status: 'created',
             code: null,
             plan: 'am3_team',
+            existingGift: {
+              amount: 2000,
+              periodStart: '2025-06-01',
+              periodEnd: '2025-08-01',
+            },
             periodStart: '2025-07-01',
             periodEnd: '2025-10-01',
             creditId: null,
@@ -110,6 +115,7 @@ describe('GiftRecurringCredits', () => {
             status: 'error',
             code: 'unknown-org',
             plan: null,
+            existingGift: null,
             periodStart: null,
             periodEnd: null,
             creditId: null,
@@ -151,7 +157,14 @@ describe('GiftRecurringCredits', () => {
     expect(results).toHaveTextContent('unknown-org');
     expect(results).toHaveTextContent('beta-org');
 
-    // The gift just created is summarized per org.
+    // The org with an existing gift is flagged, and a summary warns that
+    // gifting overwrites rather than stacks.
+    expect(screen.getByTestId('existing-gift-warning')).toHaveTextContent(
+      '1 of 2 orgs already have an active recurring gift'
+    );
+
+    // The override shows the current gift (before) next to the new one (after).
+    expect(results).toHaveTextContent('2,000/mo ×2');
     expect(results).toHaveTextContent('5,000/mo ×3');
 
     // The org's plan shows, and its slug links to the admin customer page.
@@ -181,6 +194,7 @@ describe('GiftRecurringCredits', () => {
             status: 'created',
             code: null,
             plan: 'am3_business',
+            existingGift: null,
             periodStart: '2025-07-01',
             periodEnd: '2025-10-01',
             creditId: 42,
