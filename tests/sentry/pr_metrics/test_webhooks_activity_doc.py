@@ -47,9 +47,14 @@ class ActivityDocumentWritePathTest(TestCase):
 
     # --- builders ---------------------------------------------------------
 
-    def _doc(self) -> dict[str, Any] | None:
+    def _doc_or_none(self) -> dict[str, Any] | None:
         log = PullRequestActivityLog.objects.filter(pull_request=self.pr).first()
         return log.data if log else None
+
+    def _doc(self) -> dict[str, Any]:
+        doc = self._doc_or_none()
+        assert doc is not None
+        return doc
 
     def _rows(self) -> int:
         return PullRequestActivity.objects.filter(pull_request=self.pr).count()
@@ -218,7 +223,7 @@ class ActivityDocumentWritePathTest(TestCase):
 
     def test_option_off_writes_legacy_row_only(self) -> None:
         self._activity(action="opened")
-        assert self._doc() is None
+        assert self._doc_or_none() is None
         assert self._rows() == 1
 
     def test_option_on_fresh_pr_writes_document_only(self) -> None:
@@ -239,7 +244,7 @@ class ActivityDocumentWritePathTest(TestCase):
         )
         with override_options(DOC_ON):
             self._activity(action="synchronize", webhook_id="d2", before="a", after="b")
-        assert self._doc() is None
+        assert self._doc_or_none() is None
         assert self._rows() == 2
 
     def test_option_on_existing_document_stays_on_document(self) -> None:
