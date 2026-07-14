@@ -50,8 +50,4 @@ examples:
     - 'const value = useMemo(() => compute(items, query), [items, query]);'
     - 'useEffect(() => subscribe(topic), [topic]);'
 
-include:
-  - 'static/app/**/*.tsx'
-  - 'static/app/**/*.ts'
-
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'use(Effect|LayoutEffect|Memo|Callback)\\(' {repo_path}/static/app/"
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} MemoDependencies'

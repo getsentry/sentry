@@ -46,6 +46,4 @@ examples:
         return <List query={query} />;
       }
 
-include:
-  - 'static/app/**/*.tsx'
-  - 'static/app/**/*.ts'
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} Globals'

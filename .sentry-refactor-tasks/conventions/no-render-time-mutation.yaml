@@ -43,6 +43,4 @@ examples:
     - 'const widget = {...props.widget, displayType: DisplayType.AREA};'
     - 'const sortedItems = items.toSorted(compareItems);'
 
-include:
-  - 'static/app/**/*.tsx'
-  - 'static/app/**/*.ts'
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} Immutability'

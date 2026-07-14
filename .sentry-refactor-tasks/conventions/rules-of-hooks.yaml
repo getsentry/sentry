@@ -44,8 +44,4 @@ examples:
     - 'const value = useFeatureValue({enabled});'
     - 'const value = enabled ? <EnabledView /> : <DisabledView />;'
 
-include:
-  - 'static/app/**/*.tsx'
-  - 'static/app/**/*.ts'
-
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'use[A-Z][A-Za-z0-9_]*\\(' {repo_path}/static/app/"
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} Hooks'

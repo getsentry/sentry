@@ -45,8 +45,4 @@ examples:
       const options = normalize(props.options);
       const result = useMemo(() => compute(options), [options]);
 
-include:
-  - 'static/app/**/*.tsx'
-  - 'static/app/**/*.ts'
-
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'use(Memo|Callback)\\(|memo\\(' {repo_path}/static/app/"
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} PreserveManualMemo'

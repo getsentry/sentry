@@ -39,8 +39,4 @@ examples:
     - 'const [mountedAt] = useState(() => Date.now());'
     - 'function Clock({now}: {now: number}) { return <Time date={now} />; }'
 
-include:
-  - 'static/app/**/*.tsx'
-  - 'static/app/**/*.ts'
-
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'Date\\.now\\(|new Date\\(\\)|Math\\.random\\(' {repo_path}/static/app/"
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} Purity'

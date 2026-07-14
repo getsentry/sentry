@@ -46,8 +46,4 @@ examples:
         sizeRef.current = elementRef.current?.getBoundingClientRect() ?? null;
       });
 
-include:
-  - 'static/app/**/*.tsx'
-  - 'static/app/**/*.ts'
-
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'useRef\\(|createRef\\(|\\.current' {repo_path}/static/app/"
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} Refs'

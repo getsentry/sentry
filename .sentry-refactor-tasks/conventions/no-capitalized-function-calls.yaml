@@ -46,8 +46,4 @@ examples:
     - 'const content = <Empty message={message} />;'
     - 'const gridOptions = makeGridOptions({left: 8, right: 8});'
 
-include:
-  - 'static/app/**/*.tsx'
-  - 'static/app/**/*.ts'
-
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E '[A-Z][A-Za-z0-9_]*\\(' {repo_path}/static/app/"
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} CapitalizedCalls'

@@ -42,8 +42,4 @@ examples:
       const normalizedValue = normalize(value);
       const result = useMemo(() => calculate(normalizedValue), [normalizedValue]);
 
-include:
-  - 'static/app/**/*.tsx'
-  - 'static/app/**/*.ts'
-
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' 'useMemo' {repo_path}/static/app/"
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} UseMemo'
