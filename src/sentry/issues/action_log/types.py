@@ -591,7 +591,7 @@ class AutoSetOngoingAction(GroupAction):
 class SetEscalatingAction(GroupAction):
     event_id: Optional[str] = None
     forecast: Optional[int] = None
-    expired_snooze: Optional[dict[str, int | str]] = None
+    expired_snooze: Optional[dict[str, int | str | None]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
