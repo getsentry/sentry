@@ -31,7 +31,7 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {ColumnType} from 'sentry/utils/discover/fields';
-import {FieldValueType} from 'sentry/utils/fields';
+import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useElementOffset} from 'sentry/utils/useElementOffset';
 import {
@@ -704,6 +704,10 @@ function LogsTableHeader({
   const setSortBys = useSetQueryParamsSortBys();
 
   const {data, meta, isError, isPending} = useLogsPageDataQueryResult();
+  const resolvedMeta = useMemo(
+    () => addValidatedFieldTypesToLogsMeta({meta, validatedFieldTypes}),
+    [meta, validatedFieldTypes]
+  );
   const pinningEnabled = !!useLogsPinning();
   return (
     <TableHead>
@@ -714,7 +718,7 @@ function LogsTableHeader({
         {fields.map((field, index) => {
           const direction = sortBys.find(s => s.field === field)?.kind;
 
-          const fieldType = validatedFieldTypes[field] ?? meta?.fields?.[field];
+          const fieldType = resolvedMeta.fields[field];
           const align = logsFieldAlignment(field, fieldType);
           const headerLabel = getTableHeaderLabel(
             field,
@@ -845,7 +849,11 @@ export function addValidatedFieldTypesToLogsMeta({
   const fields: Record<string, ColumnType> = {...meta?.fields};
 
   for (const [field, fieldType] of Object.entries(validatedFieldTypes)) {
-    const columnType = fieldValueTypeToColumnType(fieldType);
+    const definitionType = fieldValueTypeToColumnType(
+      getFieldDefinition(field, 'log')?.valueType ?? undefined
+    );
+    const columnType =
+      definitionType ?? fields[field] ?? fieldValueTypeToColumnType(fieldType);
     if (columnType) {
       fields[field] = columnType;
     }

@@ -258,7 +258,7 @@ describe('LogsAggregateTable', () => {
     expect(screen.queryByTestId('top-results-indicator')).not.toBeInTheDocument();
   });
 
-  it('uses validated field types for aggregate table actions', async () => {
+  it('uses validated field types when aggregate metadata is missing', async () => {
     const eventView = EventView.fromLocation(
       LocationFixture({
         query: {
@@ -281,7 +281,6 @@ describe('LogsAggregateTable', () => {
             ],
             meta: {
               fields: {
-                'custom.duration': FieldValueType.STRING,
                 'count()': FieldValueType.INTEGER,
               },
               units: {},
@@ -314,5 +313,49 @@ describe('LogsAggregateTable', () => {
     expect(
       screen.queryByRole('menuitemradio', {name: 'Add to filter'})
     ).not.toBeInTheDocument();
+  });
+
+  it('preserves compact count rendering and the user-facing aggregate label', () => {
+    const aggregate = 'count(message)';
+    const eventView = EventView.fromLocation(
+      LocationFixture({query: {field: ['message.template', aggregate]}})
+    );
+
+    render(
+      <LogsAggregateTableWithParamsProvider
+        validatedFieldTypes={{[aggregate]: FieldValueType.NUMBER}}
+        aggregatesTableResult={createAggregatesTableResult({
+          eventView,
+          data: {
+            data: [{'message.template': 'message', [aggregate]: 7_800_800}],
+            meta: {
+              fields: {
+                'message.template': FieldValueType.STRING,
+                [aggregate]: FieldValueType.INTEGER,
+              },
+              units: {},
+            },
+          },
+        })}
+      />,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_AGGREGATE_FN_KEY]: 'count',
+              [LOGS_AGGREGATE_PARAM_KEY]: '',
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    expect(screen.getByText('count(logs)')).toBeInTheDocument();
+    expect(screen.queryByText(aggregate)).not.toBeInTheDocument();
+    expect(screen.getByText('7.8M')).toBeInTheDocument();
   });
 });
