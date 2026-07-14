@@ -186,8 +186,6 @@ class DashboardFavoriteUserTest(TestCase):
         assert dashboard.position == 0
 
     def create_prebuilt_dashboard(self, title: str, prebuilt_id: int) -> Dashboard:
-        # Prebuilt dashboards must have created_by_id NULL (db check constraint), which
-        # the create_dashboard factory can't produce, so build the row directly.
         return Dashboard.objects.create(
             title=title,
             organization=self.organization,
@@ -199,8 +197,6 @@ class DashboardFavoriteUserTest(TestCase):
         web_vitals = self.create_prebuilt_dashboard("Web Vitals", 6)
         backend = self.create_prebuilt_dashboard("Backend Overview", 12)
 
-        # Insert the later-sorting title first, then the earlier one, so the earlier
-        # one has to be slotted in before it (shifting the later one down).
         DashboardFavoriteUser.objects.insert_favorite_dashboard_alphabetically(
             self.organization, self.user.id, web_vitals
         )
