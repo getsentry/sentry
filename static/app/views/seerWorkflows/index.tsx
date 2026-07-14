@@ -2,6 +2,7 @@ import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
+import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -24,17 +25,21 @@ import {
   IconClose,
   IconFilter,
   IconOpen,
+  IconPullRequest,
   IconRefresh,
   IconUser,
   IconWarning,
 } from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
+import type {PullRequest} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import type {TagVariant} from 'sentry/utils/theme';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {getRelativeExplorerUrl} from 'sentry/views/seerExplorer/utils';
 import {
   CATEGORY_LABELS,
   CATEGORY_ORDER,
@@ -44,6 +49,7 @@ import {
 import type {
   RunStatus,
   SeerNightShiftRun,
+  SeerNightShiftRunIssue,
   WorkflowKind,
   WorkflowRow,
 } from 'sentry/views/seerWorkflows/types';
@@ -342,7 +348,6 @@ function SeerWorkflows() {
               ) : (
                 sortedRows.map(row => {
                   const isExpanded = expanded.has(row.id);
-                  const explorerRunIds = getExplorerRunIds(row);
                   return (
                     <Fragment key={row.id}>
                       <SimpleTable.Row
@@ -381,13 +386,7 @@ function SeerWorkflows() {
                             ) : null}
                           </Flex>
                         </SimpleTable.RowCell>
-                        <SimpleTable.RowCell>
-                          <ResultCell
-                            row={row}
-                            explorerRunIds={explorerRunIds}
-                            organizationSlug={organization.slug}
-                          />
-                        </SimpleTable.RowCell>
+                        <SimpleTable.RowCell>{getResultContent(row)}</SimpleTable.RowCell>
                         <SimpleTable.RowCell>
                           <Button
                             aria-label={isExpanded ? t('Collapse run') : t('Expand run')}
@@ -512,45 +511,6 @@ function StatusIcon({status}: {status: RunStatus}) {
   );
 }
 
-function ResultCell({
-  row,
-  explorerRunIds,
-  organizationSlug,
-}: {
-  explorerRunIds: Array<number | string>;
-  organizationSlug: string;
-  row: WorkflowRow;
-}) {
-  const content = getResultContent(row);
-  // A failed run shows "Run failed" — don't turn that into Seer Explorer links
-  // even if its shards happen to carry run ids.
-  if (explorerRunIds.length === 0 || row.status === 'failed') {
-    return content;
-  }
-  // Result text once, then one Explorer link per shard.
-  return (
-    <Flex gap="sm" align="center" wrap="wrap">
-      {content}
-      {explorerRunIds.map((explorerRunId, index) => (
-        <Link
-          key={`${explorerRunId}-${index}`}
-          to={{
-            pathname: `/organizations/${organizationSlug}/issues/autofix/`,
-            query: {explorerRunId},
-          }}
-          onClick={e => e.stopPropagation()}
-        >
-          <IconOpen
-            size="xs"
-            variant="accent"
-            aria-label={t('Open run in Seer Explorer')}
-          />
-        </Link>
-      ))}
-    </Flex>
-  );
-}
-
 function getResultContent(row: WorkflowRow) {
   if (row.status === 'failed') {
     return (
@@ -634,7 +594,37 @@ function UserSection({
           {row.summary}
         </Text>
       ) : null}
-      <TriageIssuesUserPanel row={row} organizationSlug={organizationSlug} />
+      <TriageDispatchesPanel row={row} />
+      <IssueList issues={row.triage?.issues ?? []} organizationSlug={organizationSlug} />
+    </Stack>
+  );
+}
+
+function TriageDispatchesPanel({row}: {row: WorkflowRow}) {
+  const explorerRunIds = getExplorerRunIds(row);
+  return (
+    <Stack gap="sm">
+      <Text bold size="xs" variant="muted" uppercase>
+        {t('Triage dispatches (%s)', explorerRunIds.length)}
+      </Text>
+      {explorerRunIds.length === 0 ? (
+        <Text variant="muted" size="sm">
+          {t('No triage dispatches recorded for this run.')}
+        </Text>
+      ) : (
+        <Flex gap="sm" wrap="wrap">
+          {explorerRunIds.map((runId, index) => (
+            <LinkButton
+              key={`${runId}-${index}`}
+              size="xs"
+              icon={<IconOpen />}
+              to={getRelativeExplorerUrl(runId)}
+            >
+              {t('Shard %s', index + 1)}
+            </LinkButton>
+          ))}
+        </Flex>
+      )}
     </Stack>
   );
 }
@@ -715,14 +705,13 @@ function DebugSection({
   );
 }
 
-function TriageIssuesUserPanel({
-  row,
+function IssueList({
+  issues,
   organizationSlug,
 }: {
+  issues: SeerNightShiftRunIssue[];
   organizationSlug: string;
-  row: WorkflowRow;
 }) {
-  const issues = row.triage?.issues ?? [];
   return (
     <Stack gap="sm">
       <Text bold size="xs" variant="muted" uppercase>
@@ -734,39 +723,82 @@ function TriageIssuesUserPanel({
           {t('No issues processed in this run.')}
         </Text>
       ) : (
-        <Grid columns="max-content max-content max-content" gap="sm xl" align="center">
-          <Text bold size="xs" variant="muted">
-            {t('Group')}
-          </Text>
-          <Text bold size="xs" variant="muted">
-            {t('Action')}
-          </Text>
-          <span />
-          {issues.flatMap(issue => [
-            <Link
-              key={`${issue.id}-group`}
-              to={`/organizations/${organizationSlug}/issues/${issue.groupId}/`}
-            >
-              {issue.groupId}
-            </Link>,
-            <Text key={`${issue.id}-action`} size="sm">
-              {getActionLabel(issue.action)}
-            </Text>,
-            <LinkButton
-              key={`${issue.id}-autofix`}
-              size="xs"
-              icon={<IconOpen />}
-              to={{
-                pathname: `/organizations/${organizationSlug}/issues/${issue.groupId}/`,
-                query: {seerDrawer: true},
-              }}
-            >
-              {t('Autofix')}
-            </LinkButton>,
-          ])}
-        </Grid>
+        <Stack gap="xs">
+          {issues.map(issue => (
+            <IssueRow key={issue.id} issue={issue} organizationSlug={organizationSlug} />
+          ))}
+        </Stack>
       )}
     </Stack>
+  );
+}
+
+function IssueRow({
+  issue,
+  organizationSlug,
+}: {
+  issue: SeerNightShiftRunIssue;
+  organizationSlug: string;
+}) {
+  const title = issue.groupTitle ?? issue.groupId;
+  return (
+    <Container background="primary" border="muted" radius="md" padding="sm md">
+      <Stack gap="xs">
+        <Flex justify="between" align="start" gap="md" wrap="wrap">
+          <Link to={`/organizations/${organizationSlug}/issues/${issue.groupId}/`}>
+            <Text bold ellipsis>
+              {title}
+            </Text>
+          </Link>
+          <ActionTag action={issue.action} />
+        </Flex>
+        {issue.seerRunId || issue.pullRequests.length > 0 ? (
+          <Flex align="center" gap="sm" wrap="wrap">
+            {issue.seerRunId ? (
+              <LinkButton
+                size="xs"
+                icon={<IconOpen />}
+                to={getRelativeExplorerUrl(issue.seerRunId)}
+              >
+                {t('View conversation')}
+              </LinkButton>
+            ) : null}
+            {issue.pullRequests.map(pullRequest => (
+              <IssuePullRequestChip key={pullRequest.id} pullRequest={pullRequest} />
+            ))}
+          </Flex>
+        ) : null}
+      </Stack>
+    </Container>
+  );
+}
+
+const ACTION_TAG_VARIANT: Record<string, TagVariant> = {
+  autofix: 'info',
+  autofix_triggered: 'info',
+  root_cause_only: 'muted',
+  skip: 'muted',
+};
+
+function ActionTag({action}: {action: string}) {
+  return (
+    <Tag variant={ACTION_TAG_VARIANT[action] ?? 'muted'}>{getActionLabel(action)}</Tag>
+  );
+}
+
+function IssuePullRequestChip({pullRequest}: {pullRequest: PullRequest}) {
+  const title = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
+  return (
+    <Tooltip title={title} skipWrapper>
+      <LinkButton
+        size="xs"
+        icon={<IconPullRequest />}
+        href={pullRequest.externalUrl}
+        external
+      >
+        <Text ellipsis>{title}</Text>
+      </LinkButton>
+    </Tooltip>
   );
 }
 

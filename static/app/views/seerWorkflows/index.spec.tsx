@@ -25,8 +25,10 @@ describe('SeerWorkflows', () => {
             {
               id: '10',
               groupId: '100',
+              groupTitle: 'ValueError: something broke',
               action: 'autofix_triggered',
               seerRunId: 'seer-1',
+              pullRequests: [],
               dateAdded: '2026-04-20T00:00:01Z',
             },
           ],
@@ -90,7 +92,7 @@ describe('SeerWorkflows', () => {
     expect(await screen.findByText('No issues processed')).toBeInTheDocument();
   });
 
-  it('expands a row to show issue drill-down', async () => {
+  it('expands a row to show the issue title, action, and a conversation link', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
       body: [
@@ -104,8 +106,10 @@ describe('SeerWorkflows', () => {
             {
               id: '10',
               groupId: '100',
+              groupTitle: 'ValueError: something broke',
               action: 'autofix_triggered',
               seerRunId: 'seer-1',
+              pullRequests: [],
               dateAdded: '2026-04-20T00:00:01Z',
             },
           ],
@@ -120,16 +124,26 @@ describe('SeerWorkflows', () => {
 
     // User-facing view shows the friendly action label, not the raw enum.
     expect(screen.getByText('Autofix queued')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: '100'})).toHaveAttribute(
+
+    // The issue links via its real title, not the bare numeric group id.
+    expect(
+      screen.getByRole('link', {name: 'ValueError: something broke'})
+    ).toHaveAttribute('href', `/organizations/${organization.slug}/issues/100/`);
+    expect(screen.queryByRole('link', {name: '100'})).not.toBeInTheDocument();
+
+    // A "View conversation" button links to the Explorer deep link for this
+    // issue's own seer run, not a generic autofix drawer.
+    expect(screen.getByRole('button', {name: 'View conversation'})).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/issues/100/`
+      expect.stringContaining('explorerRunId=seer-1')
     );
+
     // Seer Run ID is a debug field — only visible to employees inside the
     // Debug disclosure. Non-employee tests should not see it.
     expect(screen.queryByText('seer-1')).not.toBeInTheDocument();
   });
 
-  it('links the Result cell to Seer Explorer once per seer run', async () => {
+  it('falls back to the bare group id when the issue has no resolved title', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
       body: [
@@ -143,12 +157,100 @@ describe('SeerWorkflows', () => {
             {
               id: '10',
               groupId: '100',
-              action: 'autofix_triggered',
-              seerRunId: 'seer-1',
+              groupTitle: null,
+              action: 'skip',
+              seerRunId: null,
+              pullRequests: [],
               dateAdded: '2026-04-20T00:00:01Z',
             },
           ],
-          // The null-id run (not yet mirrored back from Seer) is skipped.
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
+
+    expect(screen.getByRole('link', {name: '100'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/issues/100/`
+    );
+  });
+
+  it('shows a pull request chip for each PR linked to an issue', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {},
+          issues: [
+            {
+              id: '10',
+              groupId: '100',
+              groupTitle: 'ValueError: something broke',
+              action: 'autofix_triggered',
+              seerRunId: 'seer-1',
+              pullRequests: [
+                {
+                  id: '42',
+                  title: 'Fix the ValueError',
+                  message: null,
+                  dateCreated: '2026-04-20T00:00:01Z',
+                  repository: {
+                    id: '1',
+                    name: 'sentry',
+                    url: 'https://github.com/getsentry/sentry',
+                    provider: {id: 'github', name: 'GitHub'},
+                    status: 'active',
+                    externalSlug: 'getsentry/sentry',
+                    dateCreated: '2026-04-20T00:00:00Z',
+                  },
+                  externalUrl: 'https://github.com/getsentry/sentry/pull/42',
+                },
+              ],
+              dateAdded: '2026-04-20T00:00:01Z',
+            },
+          ],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
+
+    const prChip = screen.getByRole('button', {name: 'Fix the ValueError'});
+    expect(prChip).toHaveAttribute('href', 'https://github.com/getsentry/sentry/pull/42');
+    expect(prChip).toHaveAttribute('target', '_blank');
+  });
+
+  it('shows one labeled pill per triage dispatch in the expanded panel', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {},
+          issues: [
+            {
+              id: '10',
+              groupId: '100',
+              groupTitle: 'ValueError: something broke',
+              action: 'autofix_triggered',
+              seerRunId: 'seer-1',
+              pullRequests: [],
+              dateAdded: '2026-04-20T00:00:01Z',
+            },
+          ],
+          // The null-id shard (not yet mirrored back from Seer) is skipped.
           seerRuns: [{seerRunId: '42'}, {seerRunId: '43'}, {seerRunId: null}],
         },
       ],
@@ -156,20 +258,29 @@ describe('SeerWorkflows', () => {
 
     render(<SeerWorkflows />, {organization});
 
+    // The collapsed row's Result cell is plain text now -- no stacked icons.
     expect(await screen.findByText('1 issue')).toBeInTheDocument();
-    const links = screen.getAllByRole('link', {name: 'Open run in Seer Explorer'});
-    expect(links).toHaveLength(2);
-    expect(links[0]).toHaveAttribute(
+    expect(
+      screen.queryByRole('link', {name: 'Open run in Seer Explorer'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Expand run'}));
+
+    expect(screen.getByText('Triage dispatches (2)')).toBeInTheDocument();
+    // getRelativeExplorerUrl reads window.location, which in this test
+    // environment doesn't reflect the router's memory-history location --
+    // only the explorerRunId query param is meaningful to assert on here.
+    expect(screen.getByRole('button', {name: 'Shard 1'})).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/issues/autofix/?explorerRunId=42`
+      expect.stringContaining('explorerRunId=42')
     );
-    expect(links[1]).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Shard 2'})).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/issues/autofix/?explorerRunId=43`
+      expect.stringContaining('explorerRunId=43')
     );
   });
 
-  it('falls back to extras.agent_run_id when a run has no seer runs', async () => {
+  it('falls back to extras.agent_run_id for the dispatches panel when a run has no seer runs', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
       body: [
@@ -187,14 +298,15 @@ describe('SeerWorkflows', () => {
 
     render(<SeerWorkflows />, {organization});
 
-    const link = await screen.findByRole('link', {name: 'Open run in Seer Explorer'});
-    expect(link).toHaveAttribute(
+    await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
+
+    expect(screen.getByRole('button', {name: 'Shard 1'})).toHaveAttribute(
       'href',
-      `/organizations/${organization.slug}/issues/autofix/?explorerRunId=42`
+      expect.stringContaining('explorerRunId=42')
     );
   });
 
-  it('renders the Result cell as plain text when there is no run to link', async () => {
+  it('shows no triage dispatches recorded when a run has no shards', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
       body: [
@@ -208,8 +320,10 @@ describe('SeerWorkflows', () => {
             {
               id: '10',
               groupId: '100',
+              groupTitle: 'ValueError: something broke',
               action: 'autofix_triggered',
               seerRunId: 'seer-1',
+              pullRequests: [],
               dateAdded: '2026-04-20T00:00:01Z',
             },
           ],
@@ -220,10 +334,11 @@ describe('SeerWorkflows', () => {
 
     render(<SeerWorkflows />, {organization});
 
-    await screen.findByText('1 issue');
+    await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
+
     expect(
-      screen.queryByRole('link', {name: 'Open run in Seer Explorer'})
-    ).not.toBeInTheDocument();
+      screen.getByText('No triage dispatches recorded for this run.')
+    ).toBeInTheDocument();
   });
 
   it('sorts by date desc by default and toggles asc on Date header click', async () => {
@@ -240,8 +355,10 @@ describe('SeerWorkflows', () => {
             {
               id: '1',
               groupId: '100',
+              groupTitle: null,
               action: 'a',
               seerRunId: 's1',
+              pullRequests: [],
               dateAdded: '2026-04-10T00:00:01Z',
             },
           ],
@@ -256,15 +373,19 @@ describe('SeerWorkflows', () => {
             {
               id: '2',
               groupId: '101',
+              groupTitle: null,
               action: 'a',
               seerRunId: 's2',
+              pullRequests: [],
               dateAdded: '2026-04-20T00:00:01Z',
             },
             {
               id: '3',
               groupId: '102',
+              groupTitle: null,
               action: 'a',
               seerRunId: 's3',
+              pullRequests: [],
               dateAdded: '2026-04-20T00:00:02Z',
             },
           ],
@@ -301,8 +422,10 @@ describe('SeerWorkflows', () => {
             {
               id: '10',
               groupId: '100',
+              groupTitle: null,
               action: 'autofix_triggered',
               seerRunId: 'seer-1',
+              pullRequests: [],
               dateAdded: '2026-04-20T00:00:01Z',
             },
           ],
@@ -361,8 +484,10 @@ describe('SeerWorkflows', () => {
             {
               id: '10',
               groupId: '100',
+              groupTitle: null,
               action: 'autofix_triggered',
               seerRunId: 's1',
+              pullRequests: [],
               dateAdded: '2026-04-20T00:00:01Z',
             },
           ],
@@ -406,8 +531,10 @@ describe('SeerWorkflows', () => {
             {
               id: '10',
               groupId: '100',
+              groupTitle: null,
               action: 'autofix_triggered',
               seerRunId: 's1',
+              pullRequests: [],
               dateAdded: '2026-04-20T00:00:01Z',
             },
           ],
@@ -442,8 +569,10 @@ describe('SeerWorkflows', () => {
             {
               id: '10',
               groupId: '100',
+              groupTitle: null,
               action: 'autofix_triggered',
               seerRunId: 's1',
+              pullRequests: [],
               dateAdded: '2026-04-20T00:00:01Z',
             },
           ],
@@ -484,8 +613,10 @@ describe('SeerWorkflows', () => {
             {
               id: '10',
               groupId: '100',
+              groupTitle: null,
               action: 'autofix_triggered',
               seerRunId: 'seer-1',
+              pullRequests: [],
               dateAdded: '2026-04-20T00:00:01Z',
             },
           ],
@@ -577,8 +708,10 @@ describe('SeerWorkflows', () => {
             {
               id: '10',
               groupId: '100',
+              groupTitle: null,
               action: 'autofix_triggered',
               seerRunId: 'seer-1',
+              pullRequests: [],
               dateAdded: '2026-04-20T00:00:01Z',
             },
           ],
