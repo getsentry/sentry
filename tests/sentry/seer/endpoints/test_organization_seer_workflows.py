@@ -55,14 +55,14 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         # Transitional aliases for the existing frontend.
         assert response.data[0]["triageStrategy"] == "agentic_triage"
         assert len(response.data[0]["issues"]) == 1
-        legacy = response.data[0]["issues"][0]
-        assert legacy["groupId"] == str(group.id)
-        assert legacy["groupTitle"] == group.title
-        assert legacy["groupShortId"] == group.qualified_short_id
-        assert legacy["action"] == "autofix_triggered"
-        assert legacy["reason"] == "Null pointer in the checkout flow"
+        issue = response.data[0]["issues"][0]
+        assert issue["groupId"] == str(group.id)
+        assert issue["groupTitle"] == group.title
+        assert issue["groupShortId"] == group.qualified_short_id
+        assert issue["action"] == "autofix_triggered"
+        assert issue["reason"] == "Null pointer in the checkout flow"
         # "seer-123" is a non-numeric legacy id, so it can't resolve to a SeerRun.
-        assert legacy["pullRequests"] == []
+        assert issue["pullRequests"] == []
 
     def test_issue_with_missing_group_has_null_title(self) -> None:
         # group FK is db_constraint=False, so a stale group_id is possible in
@@ -78,10 +78,10 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         with self.feature("organizations:seer-night-shift"):
             response = self.get_success_response(self.organization.slug)
 
-        legacy = response.data[0]["issues"][0]
-        assert legacy["groupTitle"] is None
-        assert legacy["groupShortId"] is None
-        assert legacy["pullRequests"] == []
+        issue = response.data[0]["issues"][0]
+        assert issue["groupTitle"] is None
+        assert issue["groupShortId"] is None
+        assert issue["pullRequests"] == []
 
     def test_issue_includes_pull_requests_via_result_seer_run_fk(self) -> None:
         group = self.create_group()
@@ -104,12 +104,12 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         with self.feature("organizations:seer-night-shift"):
             response = self.get_success_response(self.organization.slug)
 
-        legacy = response.data[0]["issues"][0]
-        assert len(legacy["pullRequests"]) == 1
-        assert legacy["pullRequests"][0]["id"] == pull_request.key
-        assert legacy["pullRequests"][0]["title"] == pull_request.title
+        issue = response.data[0]["issues"][0]
+        assert len(issue["pullRequests"]) == 1
+        assert issue["pullRequests"][0]["id"] == pull_request.key
+        assert issue["pullRequests"][0]["title"] == pull_request.title
         # No webhook event observed for this PR, so status is unknown.
-        assert legacy["pullRequests"][0]["status"] is None
+        assert issue["pullRequests"][0]["status"] is None
 
     def test_issue_pull_request_status_reflects_merged_state(self) -> None:
         group = self.create_group()
@@ -133,8 +133,8 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         with self.feature("organizations:seer-night-shift"):
             response = self.get_success_response(self.organization.slug)
 
-        legacy = response.data[0]["issues"][0]
-        assert legacy["pullRequests"][0]["status"] == "merged"
+        issue = response.data[0]["issues"][0]
+        assert issue["pullRequests"][0]["status"] == "merged"
 
     def test_issue_includes_pull_requests_via_legacy_seer_run_id(self) -> None:
         group = self.create_group()
@@ -157,9 +157,9 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         with self.feature("organizations:seer-night-shift"):
             response = self.get_success_response(self.organization.slug)
 
-        legacy = response.data[0]["issues"][0]
-        assert len(legacy["pullRequests"]) == 1
-        assert legacy["pullRequests"][0]["id"] == pull_request.key
+        issue = response.data[0]["issues"][0]
+        assert len(issue["pullRequests"]) == 1
+        assert issue["pullRequests"][0]["id"] == pull_request.key
 
     def test_pull_requests_not_leaked_across_runs(self) -> None:
         group_a = self.create_group()

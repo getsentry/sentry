@@ -37,9 +37,9 @@ class SeerNightShiftRunPullRequestResponse(PullRequestSerializerResponse):
     status: PullRequestStatus | None
 
 
-# TODO(telkins): legacy alias for the frontend. Drop this, the `issues` key, and
-# `_serialize_legacy_issue` once the UI reads `results` instead (filtering to
-# kind=agentic_triage). The frontend migration must deploy before the removal.
+# TODO(telkins): this `issues` list is a triage-specific view derived from
+# `results`, kept for the current frontend. Once the UI reads `results`
+# directly (filtering to kind=agentic_triage), drop this key and _serialize_issue.
 class SeerNightShiftRunIssueResponse(TypedDict):
     id: str
     groupId: str
@@ -196,7 +196,7 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
             "errorMessage": extras.get("error_message") or shard_error,
             "results": [_serialize_result(r) for r in all_results],
             "issues": [
-                _serialize_legacy_issue(
+                _serialize_issue(
                     r, group_titles_by_id, group_short_ids_by_id, pull_requests_by_result_id
                 )
                 for r in triage_results
@@ -235,7 +235,7 @@ def _get_stored_pull_request_status(pull_request: PullRequest) -> PullRequestSta
     return None
 
 
-def _serialize_legacy_issue(
+def _serialize_issue(
     result: SeerNightShiftRunResult,
     group_titles_by_id: Mapping[int, str | None],
     group_short_ids_by_id: Mapping[int, str | None],
