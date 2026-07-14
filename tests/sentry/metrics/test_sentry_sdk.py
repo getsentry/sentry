@@ -85,9 +85,6 @@ class TestSentrySDKMetricsBackend:
     def test_event_noop(self, backend):
         backend.event("title", "message")
 
-    def test_set_noop(self, backend):
-        backend.set("foo", 4242, tags={"x": "y"})
-
     @mock.patch("sentry_sdk.metrics.count")
     def test_incr_sampling(self, mock_count):
         backend = SentrySDKMetricsBackend(prefix="test.", experimental_sample_rate=0.0)

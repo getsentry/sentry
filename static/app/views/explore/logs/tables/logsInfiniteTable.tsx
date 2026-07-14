@@ -32,8 +32,10 @@ import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {ColumnType} from 'sentry/utils/discover/fields';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useElementOffset} from 'sentry/utils/useElementOffset';
+import {useLocation} from 'sentry/utils/useLocation';
 import {
   TableBodyCell,
   TableHead,
@@ -44,6 +46,7 @@ import {
 } from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
+import {LOGS_ROW_ID_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
 import {
   MINIMUM_INFINITE_SCROLL_FETCH_COOLDOWN_MS,
@@ -138,6 +141,8 @@ export function LogsInfiniteTable({
   showExploreSimilarSpansLink,
   validatedFieldTypes = {},
 }: LogsTableProps) {
+  const location = useLocation();
+  const linkedRowId = decodeScalar(location.query[LOGS_ROW_ID_KEY]);
   const fields = useQueryParamsFields();
   const search = useQueryParamsSearch();
   const autoRefresh = useLogsAutoRefreshEnabled();
@@ -247,11 +252,32 @@ export function LogsInfiniteTable({
   const {width: tableWidth} = useDimensions({elementRef: tableRef});
   const {top: backToTopOffset} = useElementOffset(tableBodyRef, tableRef);
   const [expandedLogRows, setExpandedLogRows] = useState(
-    new Set(embeddedOptions?.openWithExpandedIds)
+    new Set([
+      ...(embeddedOptions?.openWithExpandedIds ?? []),
+      ...(linkedRowId ? [linkedRowId] : []),
+    ])
   );
   const [expandedLogRowsHeights, setExpandedLogRowsHeights] = useState<
     Record<string, number>
   >({});
+
+  // Keep the linked row expanded across client-side navigations that change
+  // `logsRowId`. This is additive: we never collapse a previously expanded row
+  // since we can't tell a prior link apart from a user-expanded row.
+  useEffect(() => {
+    if (!linkedRowId) {
+      return;
+    }
+    setExpandedLogRows(prev => {
+      if (prev.has(linkedRowId)) {
+        return prev;
+      }
+      const next = new Set(prev);
+      next.add(linkedRowId);
+      return next;
+    });
+  }, [linkedRowId]);
+
   const [isFunctionScrolling, setIsFunctionScrolling] = useState(false);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
@@ -290,12 +316,17 @@ export function LogsInfiniteTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchString, localOnlyItemFilters?.filterText]);
 
+  const getItemKey = useCallback(
+    (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
+    [data]
+  );
+
   const virtualizer = useVirtualizer<HTMLElement, Element>({
     count: data?.length ?? 0,
     estimateSize,
     overscan: 35,
     getScrollElement: () => tableBodyRef?.current,
-    getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
+    getItemKey,
   });
 
   useLayoutEffect(() => {
@@ -638,6 +669,7 @@ export function LogsInfiniteTable({
                   showCellActions={showCellActions}
                   showExploreSimilarSpansLink={showExploreSimilarSpansLink}
                   isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+                  isHighlighted={!!linkedRowId && rowId === linkedRowId}
                   isHoverLinked={hoveredRowId === rowId}
                   setHoveredRowId={setHoveredRowId}
                   togglePinnedRow={logsPinning ? handleTogglePinnedRow : undefined}
