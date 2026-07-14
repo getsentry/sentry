@@ -136,6 +136,7 @@ class Activity(Model):
         indexes = (
             models.Index(fields=("project", "datetime")),
             models.Index(fields=("project", "type")),
+            models.Index(fields=("project", "id")),
         )
 
     __repr__ = sane_repr("project_id", "group_id", "event_id", "user_id", "type", "ident")
