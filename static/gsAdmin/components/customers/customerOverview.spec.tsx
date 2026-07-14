@@ -44,6 +44,70 @@ describe('CustomerOverview', () => {
     expect(screen.getByText('Soft Cap By Category:')).toBeInTheDocument();
   });
 
+  it('renders recurring credit gifts with active and upcoming status', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({
+      organization,
+      giftCredits: [
+        {
+          id: 1,
+          type: 'replay',
+          amount: 5000,
+          periodStart: moment().subtract(2, 'days').format('YYYY-MM-DD'),
+          periodEnd: moment().add(1, 'month').format('YYYY-MM-DD'),
+          totalAmountRemaining: null,
+        },
+        {
+          id: 2,
+          type: 'error',
+          amount: 1000,
+          periodStart: moment().add(1, 'month').format('YYYY-MM-DD'),
+          periodEnd: moment().add(4, 'months').format('YYYY-MM-DD'),
+          totalAmountRemaining: null,
+        },
+      ],
+    });
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    // Scope to the gifts section: category names also appear in Reserved Data.
+    const header = screen.getByText('Recurring Credit Gifts');
+    const giftListEl = header.nextElementSibling as HTMLElement;
+    const giftList = within(giftListEl);
+    expect(giftList.getByText('Replays:')).toBeInTheDocument();
+    expect(giftList.getByText('Errors:')).toBeInTheDocument();
+    // The in-progress gift reads Active; the future-dated one reads Upcoming.
+    expect(giftList.getByText('Active')).toBeInTheDocument();
+    expect(giftList.getByText('Upcoming')).toBeInTheDocument();
+    // Each gift shows its billing-period count and start date.
+    expect(giftListEl).toHaveTextContent('3 billing periods');
+    expect(giftListEl).toHaveTextContent(moment().add(1, 'month').format('ll'));
+  });
+
+  it('shows the recurring credit gifts section as None when there are none', () => {
+    const organization = OrganizationFixture();
+    const subscription = SubscriptionFixture({organization});
+    render(
+      <CustomerOverview
+        customer={subscription}
+        onAction={jest.fn()}
+        organization={organization}
+      />
+    );
+
+    // The section is always present so an admin can tell "no gift" apart from
+    // a missing/broken section.
+    const header = screen.getByText('Recurring Credit Gifts');
+    expect(
+      within(header.nextElementSibling as HTMLElement).getByText('None')
+    ).toBeInTheDocument();
+  });
+
   it('renders soft cap type details', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({
