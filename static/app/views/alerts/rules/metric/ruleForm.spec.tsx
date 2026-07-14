@@ -639,7 +639,6 @@ describe('Incident Rules Form', () => {
         'performance-view',
         'tracemetrics-enabled',
         'tracemetrics-equations-in-explore',
-        'tracemetrics-equations-in-alerts',
       ];
       location = {
         ...location,
