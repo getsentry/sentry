@@ -36,8 +36,7 @@ export function useValidatedExploreColumns({
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const setQueryParams = useSetQueryParams();
-  const lastAggregateCleanupRef = useRef<string | null>(null);
-  const lastColumnsCleanupRef = useRef<string | null>(null);
+  const lastCleanupRef = useRef<string | null>(null);
   const {
     boolean: booleanAttributes,
     number: numberAttributes,
@@ -69,92 +68,88 @@ export function useValidatedExploreColumns({
     validatedColumnData;
 
   useEffect(() => {
-    if (!shouldCleanupColumns || isValidating) {
+    if (isValidating) {
       return;
     }
 
     const fieldsChanged =
-      validatedFields.length !== fields.length ||
-      validatedFields.some((field, index) => field !== fields[index]);
+      shouldCleanupColumns &&
+      (validatedFields.length !== fields.length ||
+        validatedFields.some((field, index) => field !== fields[index]));
+    const aggregateFieldsChanged =
+      shouldCleanupAggregateColumns &&
+      (validatedAggregateFields.length !== aggregateFields.length ||
+        validatedAggregateFields.some((aggregateField, index) => {
+          const currentAggregateField = aggregateFields[index];
+          if (!currentAggregateField) {
+            return true;
+          }
+          if (isGroupBy(aggregateField) && isGroupBy(currentAggregateField)) {
+            return aggregateField.groupBy !== currentAggregateField.groupBy;
+          }
+          if (!isGroupBy(aggregateField) && !isGroupBy(currentAggregateField)) {
+            return aggregateField.yAxis !== currentAggregateField.yAxis;
+          }
+          return true;
+        }));
 
-    if (fieldsChanged) {
-      const nextFields = [...validatedFields];
-      const nextSortBys = sortBys.filter(sortBy => nextFields.includes(sortBy.field));
-      const cleanupKey = JSON.stringify([fields, nextFields, sortBys, nextSortBys]);
-
-      if (lastColumnsCleanupRef.current !== cleanupKey) {
-        lastColumnsCleanupRef.current = cleanupKey;
-        setQueryParams({fields: nextFields, sortBys: nextSortBys});
-        onFieldsCleanup?.(nextFields, nextSortBys);
-      }
-    } else {
-      lastColumnsCleanupRef.current = null;
-    }
-  }, [
-    fields,
-    isValidating,
-    onFieldsCleanup,
-    setQueryParams,
-    shouldCleanupColumns,
-    sortBys,
-    validatedFields,
-  ]);
-
-  useEffect(() => {
-    if (!shouldCleanupAggregateColumns || isValidating) {
+    if (!fieldsChanged && !aggregateFieldsChanged) {
+      lastCleanupRef.current = null;
       return;
     }
 
-    const aggregateFieldsChanged =
-      validatedAggregateFields.length !== aggregateFields.length ||
-      validatedAggregateFields.some((aggregateField, index) => {
-        const currentAggregateField = aggregateFields[index];
-        if (!currentAggregateField) {
-          return true;
-        }
-        if (isGroupBy(aggregateField) && isGroupBy(currentAggregateField)) {
-          return aggregateField.groupBy !== currentAggregateField.groupBy;
-        }
-        if (!isGroupBy(aggregateField) && !isGroupBy(currentAggregateField)) {
-          return aggregateField.yAxis !== currentAggregateField.yAxis;
-        }
-        return true;
-      });
+    const nextFields = fieldsChanged ? [...validatedFields] : undefined;
+    const nextSortBys = nextFields
+      ? sortBys.filter(sortBy => nextFields.includes(sortBy.field))
+      : undefined;
+    const validAggregateFields = new Set(
+      validatedAggregateFields.map(aggregateField =>
+        isGroupBy(aggregateField) ? aggregateField.groupBy : aggregateField.yAxis
+      )
+    );
+    const nextAggregateFields = aggregateFieldsChanged
+      ? validatedAggregateFields.map(serializeAggregateField)
+      : undefined;
+    const nextAggregateSortBys = aggregateFieldsChanged
+      ? aggregateSortBys.filter(sortBy => validAggregateFields.has(sortBy.field))
+      : undefined;
+    const cleanupKey = JSON.stringify([
+      fields,
+      nextFields,
+      sortBys,
+      nextSortBys,
+      aggregateFields.map(serializeAggregateField),
+      nextAggregateFields,
+      aggregateSortBys,
+      nextAggregateSortBys,
+    ]);
 
-    if (aggregateFieldsChanged) {
-      const validAggregateFields = new Set(
-        validatedAggregateFields.map(aggregateField =>
-          isGroupBy(aggregateField) ? aggregateField.groupBy : aggregateField.yAxis
-        )
-      );
-      const nextAggregateFields = validatedAggregateFields.map(serializeAggregateField);
-      const nextAggregateSortBys = aggregateSortBys.filter(sortBy =>
-        validAggregateFields.has(sortBy.field)
-      );
-      const cleanupKey = JSON.stringify([
-        aggregateFields.map(serializeAggregateField),
-        nextAggregateFields,
-        aggregateSortBys,
-        nextAggregateSortBys,
-      ]);
+    if (lastCleanupRef.current === cleanupKey) {
+      return;
+    }
 
-      if (lastAggregateCleanupRef.current !== cleanupKey) {
-        lastAggregateCleanupRef.current = cleanupKey;
-        setQueryParams({
-          aggregateFields: nextAggregateFields,
-          aggregateSortBys: nextAggregateSortBys,
-        });
-      }
-    } else {
-      lastAggregateCleanupRef.current = null;
+    lastCleanupRef.current = cleanupKey;
+    setQueryParams({
+      fields: nextFields,
+      sortBys: nextSortBys,
+      aggregateFields: nextAggregateFields,
+      aggregateSortBys: nextAggregateSortBys,
+    });
+    if (nextFields && nextSortBys) {
+      onFieldsCleanup?.(nextFields, nextSortBys);
     }
   }, [
     aggregateFields,
     aggregateSortBys,
+    fields,
     isValidating,
+    onFieldsCleanup,
     setQueryParams,
     shouldCleanupAggregateColumns,
+    shouldCleanupColumns,
+    sortBys,
     validatedAggregateFields,
+    validatedFields,
   ]);
 
   return validatedColumnData;

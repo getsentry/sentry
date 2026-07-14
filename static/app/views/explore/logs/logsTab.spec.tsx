@@ -399,15 +399,12 @@ describe('LogsTabContent', () => {
     }
   });
 
-  it('removes sorts for invalid aggregate columns after validation', async () => {
-    const setQueryParams = jest.fn();
-    const setQueryParamsSpy = jest
-      .spyOn(QueryParamsContext, 'useSetQueryParams')
-      .mockReturnValue(setQueryParams);
+  it('removes invalid sample and aggregate columns together after validation', async () => {
     const validationBody: EventValidationData = {
       dataset: [],
       environment: [],
       field: [
+        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
         {
           attrType: null,
           error: 'unknown attribute',
@@ -432,6 +429,8 @@ describe('LogsTabContent', () => {
         query: {
           ...initialRouterConfig.location.query,
           mode: Mode.AGGREGATE,
+          [LOGS_FIELDS_KEY]: ['custom.duration', 'invalid.attribute'],
+          [LOGS_SORT_BYS_KEY]: ['invalid.attribute'],
           [LOGS_AGGREGATE_FIELD_KEY]: [
             JSON.stringify({groupBy: 'invalid.attribute'}),
             JSON.stringify({groupBy: 'severity'}),
@@ -442,24 +441,24 @@ describe('LogsTabContent', () => {
       },
     };
 
-    try {
-      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+    const {router} = render(
+      <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+      {
         initialRouterConfig: aggregateRouterConfig,
         organization,
         additionalWrapper: ProviderWrapper,
-      });
+      }
+    );
 
-      await waitFor(() => {
-        expect(setQueryParams).toHaveBeenCalledWith({
-          aggregateFields: expect.not.arrayContaining([
-            expect.objectContaining({groupBy: 'invalid.attribute'}),
-          ]),
-          aggregateSortBys: [],
-        });
-      });
-    } finally {
-      setQueryParamsSpy.mockRestore();
-    }
+    await waitFor(() => {
+      expect(router.location.query[LOGS_FIELDS_KEY]).toBe('custom.duration');
+      expect(router.location.query[LOGS_SORT_BYS_KEY]).toBeUndefined();
+      expect(router.location.query[LOGS_AGGREGATE_FIELD_KEY]).toEqual([
+        JSON.stringify({groupBy: 'severity'}),
+        JSON.stringify({yAxes: ['count(message)']}),
+      ]);
+      expect(router.location.query[LOGS_AGGREGATE_SORT_BYS_KEY]).toBeUndefined();
+    });
   });
 
   it('should switch between modes', async () => {
