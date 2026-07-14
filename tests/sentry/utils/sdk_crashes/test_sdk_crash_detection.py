@@ -13,10 +13,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.store_transaction import store_transaction
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
-from sentry.utils.sdk_crashes.sdk_crash_detection import (
-    get_hybrid_sdk_parent,
-    sdk_crash_detection,
-)
+from sentry.utils.sdk_crashes.sdk_crash_detection import get_hybrid_sdk_parent, sdk_crash_detection
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
     SDKCrashDetectionConfig,
     build_sdk_crash_detection_configs,
