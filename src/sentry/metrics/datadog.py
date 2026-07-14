@@ -112,27 +112,6 @@ class DatadogMetricsBackend(MetricsBackend):
         # We keep the same implementation for Datadog.
         return self.timing(key, value, instance, tags, sample_rate)
 
-    def set(
-        self,
-        key: str,
-        value: str | int,
-        instance: str | None = None,
-        tags: Tags | None = None,
-        sample_rate: float = 1,
-        stacklevel: int = 0,
-    ) -> None:
-        tags = dict(tags or ())
-
-        if self.tags:
-            tags.update(self.tags)
-        if instance:
-            tags["instance"] = instance
-
-        tags_list = [f"{k}:{v}" for k, v in tags.items()]
-        self.stats.set(
-            self._get_key(key), value, sample_rate=sample_rate, tags=tags_list, host=self.host
-        )
-
     def event(
         self,
         title: str,

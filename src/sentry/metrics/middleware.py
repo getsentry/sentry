@@ -210,22 +210,6 @@ class MiddlewareWrapper(MetricsBackend):
             key, value, instance, current_tags, sample_rate, unit, stacklevel + 1
         )
 
-    def set(
-        self,
-        key: str,
-        value: str | int,
-        instance: str | None = None,
-        tags: Tags | None = None,
-        sample_rate: float = 1,
-        stacklevel: int = 0,
-    ) -> None:
-        current_tags = get_current_global_tags()
-        if tags is not None:
-            current_tags.update(tags)
-        current_tags = _filter_tags(key, current_tags)
-
-        return self.inner.set(key, value, instance, current_tags, sample_rate, stacklevel + 1)
-
     def event(
         self,
         title: str,
