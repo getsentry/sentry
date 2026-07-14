@@ -172,6 +172,9 @@ def _backfill_project(
         group_id__isnull=False,
     )
     if cursor_dt is not None:
+        # gte not gt: may re-fetch the last row from the previous batch, but the
+        # idempotency key (ON CONFLICT DO NOTHING) makes that a no-op. Avoids
+        # skipping rows that share a timestamp at the batch boundary.
         qs = qs.filter(datetime__gte=cursor_dt)
     activities = list(qs.order_by("datetime")[:batch_size])
 
