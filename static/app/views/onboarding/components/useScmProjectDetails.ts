@@ -306,6 +306,15 @@ export function useScmProjectDetails({
 
   const submitTooltipText = getSubmitTooltipText(missingFields);
 
+  // Block submit while a saved notification selection is still being restored
+  // (messaging query pending), so nothingChanged can't race and create a duplicate.
+  const isRestoringNotificationSelection =
+    !!restoredNotificationOptionsRef.current &&
+    !(
+      notificationProps.querySuccess &&
+      notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION)
+    );
+
   // Block submission until teams and the projects store have loaded so the
   // reuse check below can't be bypassed by a race.
   const canSubmit =
@@ -315,7 +324,8 @@ export function useScmProjectDetails({
     !missingFields.notificationChannel &&
     !isCompleting &&
     !isLoadingTeams &&
-    projectsLoaded;
+    projectsLoaded &&
+    !isRestoringNotificationSelection;
 
   const existingProject = createdProjectSlug
     ? projects.find(p => p.slug === createdProjectSlug)

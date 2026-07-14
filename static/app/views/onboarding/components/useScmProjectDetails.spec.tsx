@@ -318,6 +318,63 @@ describe('useScmProjectDetails', () => {
       expect(onComplete.mock.calls[0][0].project.slug).toBe(existingProject.slug);
     });
 
+    it('blocks submit until the persisted notification selection is restored', async () => {
+      const existingProject = ProjectFixture({slug: 'my-project', platform: 'python'});
+      ProjectsStore.loadInitialData([existingProject]);
+
+      const persistedAction = {
+        id: IssueAlertActionType.SLACK as const,
+        workspace: slackIntegration.id,
+        channel: '#eng',
+      };
+
+      const createMock = MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: existingProject,
+      });
+
+      const onComplete = jest.fn();
+      const {result} = renderDetails({
+        projectDetailsForm: {
+          projectName: 'my-project',
+          teamSlug: adminTeam.slug,
+          alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+          notificationAction: persistedAction,
+        },
+        createdProjectSlug: existingProject.slug,
+        selectedPlatform: pythonPlatform,
+        onComplete,
+      });
+
+      // Before the messaging query resolves, the restore is pending: canSubmit
+      // must be false so a premature click can't create a duplicate.
+      expect(result.current.canSubmit).toBe(false);
+
+      act(() => {
+        result.current.submit();
+      });
+
+      // The submit bailed — no create POST, no completion.
+      expect(createMock).not.toHaveBeenCalled();
+      expect(onComplete).not.toHaveBeenCalled();
+
+      // Once integrations load the restore settles: canSubmit becomes true.
+      await waitFor(() =>
+        expect(result.current.notificationProps.provider).toBe('slack')
+      );
+      expect(result.current.canSubmit).toBe(true);
+
+      // Now submit reuses the existing project without a new create.
+      act(() => {
+        result.current.submit();
+      });
+
+      await waitFor(() => expect(onComplete).toHaveBeenCalled());
+      expect(createMock).not.toHaveBeenCalled();
+      expect(onComplete.mock.calls[0][0].project.slug).toBe(existingProject.slug);
+    });
+
     it('creates a new project when the notification channel changes on return', async () => {
       const existingProject = ProjectFixture({slug: 'my-project', platform: 'python'});
       ProjectsStore.loadInitialData([existingProject]);
