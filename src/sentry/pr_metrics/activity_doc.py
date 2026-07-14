@@ -290,12 +290,13 @@ def _fold_sync_chain(doc: ActivityDoc, payload: Mapping[str, Any]) -> None:
     ``events`` (an auto-rebase bot is exactly the synchronize-heavy pathology that
     fills the cap). Idempotent: a redelivery or a re-reported ``after_sha`` already
     present is a no-op. At the cap the oldest pair is evicted (logged + metered,
-    like every cap in this module).
+    like every cap in this module). ``setdefault`` because a stored document written
+    by a build predating this field lacks the key; the fold creates it in place.
     """
     after = payload.get("after_sha") or ""
     if not after:
         return
-    chain = doc["sync_chain"]
+    chain = doc.setdefault("sync_chain", [])
     if any(pair[0] == after for pair in chain):
         return
     if len(chain) >= MAX_SYNC_CHAIN:

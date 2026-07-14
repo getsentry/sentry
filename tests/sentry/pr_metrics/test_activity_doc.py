@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import copy
 import itertools
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 
 from sentry.models.pullrequest import PullRequestActivityType
@@ -400,6 +400,21 @@ def test_sync_chain_ignores_blank_or_missing_after_sha() -> None:
         after_sha="",
     )
     assert doc["sync_chain"] == []
+
+
+def test_synchronize_folds_into_pre_sync_chain_document() -> None:
+    # A stored document written by a build predating sync_chain lacks the key
+    # (rolling deploy); folding a synchronize must create it in place, not KeyError.
+    legacy: dict[str, Any] = {k: v for k, v in new_document().items() if k != "sync_chain"}
+    doc = cast(ActivityDoc, legacy)
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="d1",
+        after_sha="head1",
+        before_sha="base1",
+    )
+    assert doc["sync_chain"] == [["head1", "base1"]]
 
 
 # --- comments: participants only ------------------------------------------
