@@ -1,4 +1,4 @@
-import {Component, useContext} from 'react';
+import {Component} from 'react';
 import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 import type {Location} from 'history';
 
@@ -12,7 +12,6 @@ import type {
   LocationQuery,
 } from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
-import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -281,14 +280,11 @@ class _GenericDiscoverQuery<T, P> extends Component<Props<T, P>, State<T>> {
   }
 }
 
-// Shim to allow us to use generic discover query or any specialization with or without passing org slug or eventview, which are now contexts.
-// This will help keep tests working and we can remove extra uses of context-provided props and update tests as we go.
 export function GenericDiscoverQuery<T, P>(props: OuterProps<T, P>) {
   const organizationSlug = useOrganization({allowNull: true})?.slug;
-  const performanceEventView = useContext(PerformanceEventViewContext)?.eventView;
 
   const orgSlug = props.orgSlug ?? organizationSlug;
-  const eventView = props.eventView ?? performanceEventView;
+  const eventView = props.eventView;
 
   if (orgSlug === undefined || eventView === undefined) {
     throw new Error('GenericDiscoverQuery requires both an orgSlug and eventView');
