@@ -6,24 +6,17 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import * as Storybook from 'sentry/stories';
 
-interface ImageEntry {
-  file: string;
-  src: string;
-}
-
-const imageContext = require.context('sentry-images', true, /\.(svg|gif|png)$/, 'sync');
-const images: ImageEntry[] = imageContext.keys().map(file => ({
-  file: file.replace(/^\.\//, 'sentry-images/'),
-  src: loadImage(file),
+const images = Object.entries(
+  import.meta.glob<string>('../../images/**/*.{svg,gif,png}', {
+    eager: true,
+    import: 'default',
+  })
+).map(([file, src]) => ({
+  file: file.replace('../../images/', 'sentry-images/'),
+  src,
 }));
 
-function loadImage(file: string): string {
-  const image = imageContext(file);
-  if (typeof image !== 'string') {
-    throw new TypeError(`Expected ${file} to resolve to an image URL`);
-  }
-  return image;
-}
+type ImageEntry = (typeof images)[number];
 
 const toCamelCase = function camalize(str: string) {
   return str
