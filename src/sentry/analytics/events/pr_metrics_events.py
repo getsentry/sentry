@@ -90,8 +90,11 @@ class PrCloseMetricsEvent(analytics.Event):
     # ``| None`` is only the column's unset default, not an expected emitted value.
     verdict: str | None = None
     # Close-reason labels behind the verdict (e.g. out_of_scope_or_unwanted) — the
-    # "why", a vocabulary shared across judges, not specific to any one. Repeated
-    # free-string column; null off the judge path. BigQuery-only.
+    # "why", a vocabulary shared across judges, not specific to any one. Mostly
+    # judge-sourced, but Sentry's own deterministic CLOSED_UNMERGED path can also
+    # set "ci_failing_at_close" (see pr_metrics.emit.ci_failing_at_close) — so a
+    # non-null value doesn't by itself mean the row was judged. Repeated
+    # free-string column; null when nothing applies. BigQuery-only.
     diagnosis_labels: list[str] | None = None
 
     # --- Conversation judge (set only on a judged close/merge row) ---

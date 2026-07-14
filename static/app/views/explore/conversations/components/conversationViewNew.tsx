@@ -103,7 +103,6 @@ export function ConversationViewContentNew({
               nodes={nodes}
               selectedNodeId={selectedNode?.id ?? null}
               onSelectNode={handleSelectAndOpenDetail}
-              nodeTraceMap={nodeTraceMap}
             />
           ) : (
             <AiSpanTimeline
@@ -111,7 +110,6 @@ export function ConversationViewContentNew({
               nodes={nodes}
               selectedNodeKey={selectedNode?.id ?? ''}
               onSelectNode={handleSelectAndOpenDetail}
-              nodeTraceMap={nodeTraceMap}
               compressGaps
             />
           )

@@ -54,11 +54,7 @@ jest.mock('sentry/views/explore/metrics/hooks/useStableLabels', () => {
 
 const mockedUseNavigate = jest.mocked(useNavigate);
 
-const EQUATION_FEATURES = [
-  'tracemetrics-enabled',
-  'tracemetrics-equations-in-dashboards',
-  'tracemetrics-equations-in-explore',
-];
+const EQUATION_FEATURES = ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'];
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';

@@ -20,6 +20,7 @@ from sentry.pr_metrics.emit import (
     _activity_derived_metrics,
     active_attributions,
     build_pr_metrics_row,
+    ci_failing_at_close,
     emit_pr_metrics_row,
     is_pr_tracked,
     resolve_autofix_referrers,
@@ -139,6 +140,16 @@ class PrMetricsEmissionTest(TestCase):
             payload={},
         )
 
+    def _add_check_suite(
+        self, *, app_slug: str = "github-actions", conclusion: str = "success", webhook_id: str
+    ) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id=webhook_id,
+            event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED,
+            payload={"conclusion": conclusion, "app_slug": app_slug, "check_runs_count": 1},
+        )
+
     def test_select_verdict_merged_without_later_commits_is_unchanged(self) -> None:
         # Merged with no SYNCHRONIZED activity: merge head == opened head.
         assert (
@@ -211,6 +222,50 @@ class PrMetricsEmissionTest(TestCase):
             with patch("sentry.pr_metrics.emit.metrics") as mock_metrics:
                 assert select_verdict(self.pull_request, self.organization) is None
         mock_metrics.incr.assert_called_once_with("pr_metrics.select_verdict.activity_disabled")
+
+    def test_ci_failing_at_close_no_check_activity_is_false(self) -> None:
+        assert ci_failing_at_close(self.pull_request) is False
+
+    def test_ci_failing_at_close_all_success_is_false(self) -> None:
+        self._add_check_suite(conclusion="success", webhook_id="check-1")
+        assert ci_failing_at_close(self.pull_request) is False
+
+    def test_ci_failing_at_close_failure_is_true(self) -> None:
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        assert ci_failing_at_close(self.pull_request) is True
+
+    def test_ci_failing_at_close_timed_out_is_true(self) -> None:
+        self._add_check_suite(conclusion="timed_out", webhook_id="check-1")
+        assert ci_failing_at_close(self.pull_request) is True
+
+    def test_ci_failing_at_close_startup_failure_is_true(self) -> None:
+        self._add_check_suite(conclusion="startup_failure", webhook_id="check-1")
+        assert ci_failing_at_close(self.pull_request) is True
+
+    def test_ci_failing_at_close_non_failure_conclusions_are_false(self) -> None:
+        # neutral/cancelled/skipped/stale/action_required never ran to a failure
+        # verdict, so none of them should trip the label.
+        for conclusion in ("neutral", "cancelled", "skipped", "stale", "action_required"):
+            PullRequestActivity.objects.filter(pull_request=self.pull_request).delete()
+            self._add_check_suite(conclusion=conclusion, webhook_id="check-1")
+            assert ci_failing_at_close(self.pull_request) is False, conclusion
+
+    def test_ci_failing_at_close_one_app_failing_among_others_is_true(self) -> None:
+        self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-1")
+        self._add_check_suite(app_slug="codecov", conclusion="failure", webhook_id="check-2")
+        assert ci_failing_at_close(self.pull_request) is True
+
+    def test_ci_failing_at_close_rerun_success_after_failure_is_false(self) -> None:
+        # A rerun with no new push (no SYNCHRONIZED row) still writes another
+        # CHECK_SUITE_COMPLETED row for the same app; the latest one wins.
+        self._add_check_suite(app_slug="github-actions", conclusion="failure", webhook_id="check-1")
+        self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-2")
+        assert ci_failing_at_close(self.pull_request) is False
+
+    def test_ci_failing_at_close_rerun_failure_after_success_is_true(self) -> None:
+        self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-1")
+        self._add_check_suite(app_slug="github-actions", conclusion="failure", webhook_id="check-2")
+        assert ci_failing_at_close(self.pull_request) is True
 
     def test_build_row_for_merge(self) -> None:
         row = build_pr_metrics_row(
