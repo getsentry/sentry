@@ -197,13 +197,12 @@ export function useCreateNotificationAction({
     if (!messagingIntegrationsQuery.isSuccess || hasInitializedSelection.current) {
       return;
     }
-    hasInitializedSelection.current = true;
 
     const firstAction = defaultActions?.[0];
     if (firstAction) {
-      // Restore from a persisted/default action (e.g. back-nav). Provider key
-      // is derived from the action's id; integration is matched by integrationId
-      // if present, falling back to the first in the list.
+      // Restore from a persisted/default action (e.g. back-nav). Latch here so
+      // the restore runs exactly once and never overwrites a user's later edits.
+      hasInitializedSelection.current = true;
       const matchedProviderKey = Object.keys(providerDetails).find(
         key =>
           providerDetails[key as keyof typeof providerDetails].action === firstAction.id
@@ -234,15 +233,21 @@ export function useCreateNotificationAction({
       return;
     }
 
-    // No persisted action: auto-select the first available provider/integration
-    // so the picker is pre-populated rather than blank.
+    // No persisted action: auto-select the first available provider/integration.
     const providerKeys = Object.keys(providersToIntegrations);
     const firstProvider = providerKeys[0];
-    const firstIntegration = providersToIntegrations[String(firstProvider)]?.[0];
+    if (!firstProvider) {
+      // No integrations yet: show the setup CTA and do NOT latch, so this
+      // effect re-runs after the user connects one and the query refetches.
+      setShouldRenderSetupButton(true);
+      return;
+    }
+    hasInitializedSelection.current = true;
+    const firstIntegration = providersToIntegrations[firstProvider]?.[0];
     setProvider(firstProvider);
     setIntegration(firstIntegration);
     setChannel(undefined);
-    setShouldRenderSetupButton(!firstProvider);
+    setShouldRenderSetupButton(false);
   }, [messagingIntegrationsQuery.isSuccess, providersToIntegrations, defaultActions]);
 
   const createNotificationAction = useCallback(

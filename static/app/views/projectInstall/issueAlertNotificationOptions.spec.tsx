@@ -1,3 +1,4 @@
+import {focusManager} from '@tanstack/react-query';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
@@ -187,6 +188,35 @@ describe('useCreateNotificationAction', () => {
     expect(result.current.notificationProps.provider).toBe('slack');
     expect(result.current.notificationProps.integration?.id).toBe(slackIntegration.id);
     expect(result.current.notificationProps.channel?.value).toBe('#alerts');
+  });
+
+  it('auto-selects provider/integration after connect when initial query had no integrations', async () => {
+    // First fetch returns nothing (no integrations connected yet).
+    addIntegrationsResponse([]);
+
+    const {result} = renderHookWithProviders(() => useCreateNotificationAction(), {
+      organization,
+    });
+
+    // Query resolves but no integrations: setup button should show, guard not latched.
+    await waitFor(() => expect(result.current.notificationProps.querySuccess).toBe(true));
+    expect(result.current.notificationProps.provider).toBeUndefined();
+    expect(result.current.notificationProps.shouldRenderSetupButton).toBe(true);
+
+    // User connects an integration. Simulate a refetch by toggling focusManager.
+    MockApiClient.clearMockResponses();
+    addIntegrationsResponse([slackIntegration]);
+    act(() => {
+      focusManager.setFocused(false);
+    });
+    act(() => {
+      focusManager.setFocused(true);
+    });
+
+    // After the refetch, the auto-select branch should fire and populate the picker.
+    await waitFor(() => expect(result.current.notificationProps.provider).toBe('slack'));
+    expect(result.current.notificationProps.integration?.id).toBe(slackIntegration.id);
+    expect(result.current.notificationProps.shouldRenderSetupButton).toBe(false);
   });
 
   it('resolves provider, integration, and actions from defaultActions on mount', async () => {
