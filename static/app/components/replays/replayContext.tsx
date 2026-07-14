@@ -578,7 +578,7 @@ export function Provider({
       if (replayerRef.current) {
         // If it's already been initialized, we still call initRoot, which
         // should clear out existing dom element
-        initRoot(replayerRef.current.wrapper.parentElement as RootElem);
+        initRoot((replayerRef.current.wrapper?.parentElement ?? rootEl) as RootElem);
       } else if (rootEl) {
         initRoot(rootEl);
       }
