@@ -27,6 +27,7 @@ from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from pydantic import ValidationError
 
 from sentry import features, options
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -1222,8 +1223,8 @@ def _send_seer_delegated_agent_match(
     try:
         match = DelegatedAgentMatch.validate(orjson.loads(response.data))
         signal_type = PullRequestAttributionSignalType(match.signal_type)
-    except Exception:
-        logger.warning("pr_metrics.delegated_agent.seer_match.bad_body", extra=log_extra)
+    except (orjson.JSONDecodeError, ValidationError, ValueError):
+        logger.exception("pr_metrics.delegated_agent.seer_match.bad_body", extra=log_extra)
         _record_delegated_candidate(provider_hint, "seer_error_bad_body")
         return
 
