@@ -34,6 +34,4 @@ examples:
   good:
     - 'A minimized upstream report or a baseline entry pending an analyzer fix.'
 
-include:
-  - 'static/app/**/*.tsx'
-  - 'static/app/**/*.ts'
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} "Unexpected error"'
