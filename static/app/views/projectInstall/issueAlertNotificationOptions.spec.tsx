@@ -219,6 +219,52 @@ describe('useCreateNotificationAction', () => {
     expect(result.current.notificationProps.shouldRenderSetupButton).toBe(false);
   });
 
+  it('restores the persisted selection after a refetch delivers the integration', async () => {
+    // First fetch returns nothing (integration not yet visible / mid-load).
+    addIntegrationsResponse([]);
+
+    const defaultActions = [
+      {
+        id: IssueAlertActionType.SLACK,
+        workspace: slackIntegration.id,
+        channel: '#eng',
+      },
+    ];
+
+    const {result} = renderHookWithProviders(
+      () => useCreateNotificationAction({actions: defaultActions}),
+      {organization}
+    );
+
+    // Query resolved but integration list empty: setup CTA shown, guard not latched,
+    // INTEGRATION must NOT be in actions (picker not half-applied).
+    await waitFor(() => expect(result.current.notificationProps.querySuccess).toBe(true));
+    expect(result.current.notificationProps.provider).toBeUndefined();
+    expect(result.current.notificationProps.shouldRenderSetupButton).toBe(true);
+    expect(result.current.notificationProps.actions).not.toContain(
+      MultipleCheckboxOptions.INTEGRATION
+    );
+
+    // Refetch delivers the Slack integration (e.g. user connected it via CTA).
+    MockApiClient.clearMockResponses();
+    addIntegrationsResponse([slackIntegration]);
+    act(() => {
+      focusManager.setFocused(false);
+    });
+    act(() => {
+      focusManager.setFocused(true);
+    });
+
+    // Full restore completes: provider, integration, channel, and actions are set.
+    await waitFor(() => expect(result.current.notificationProps.provider).toBe('slack'));
+    expect(result.current.notificationProps.integration?.id).toBe(slackIntegration.id);
+    expect(result.current.notificationProps.channel?.value).toBe('#eng');
+    expect(result.current.notificationProps.actions).toContain(
+      MultipleCheckboxOptions.INTEGRATION
+    );
+    expect(result.current.notificationProps.shouldRenderSetupButton).toBe(false);
+  });
+
   it('resolves provider, integration, and actions from defaultActions on mount', async () => {
     addIntegrationsResponse([slackIntegration]);
 

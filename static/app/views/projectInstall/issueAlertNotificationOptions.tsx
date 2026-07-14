@@ -200,9 +200,9 @@ export function useCreateNotificationAction({
 
     const firstAction = defaultActions?.[0];
     if (firstAction) {
-      // Restore from a persisted/default action (e.g. back-nav). Latch here so
-      // the restore runs exactly once and never overwrites a user's later edits.
-      hasInitializedSelection.current = true;
+      // Restore from a persisted/default action (e.g. back-nav). Provider key is
+      // derived from the action's id; integration is matched by integrationId if
+      // present, falling back to the first in the list.
       const matchedProviderKey = Object.keys(providerDetails).find(
         key =>
           providerDetails[key as keyof typeof providerDetails].action === firstAction.id
@@ -214,6 +214,15 @@ export function useCreateNotificationAction({
       const matchedIntegration =
         (integrationId ? integrationList.find(i => i.id === integrationId) : undefined) ??
         integrationList[0];
+
+      // Integration action whose integration hasn't loaded yet: show the setup CTA
+      // and wait for a refetch to deliver it. Don't latch or half-apply the
+      // restore, so the picker can't look submittable with an unresolved integration.
+      const isIntegrationAction = firstAction.id !== IssueAlertActionType.NOTIFY_EMAIL;
+      if (isIntegrationAction && !matchedIntegration) {
+        setShouldRenderSetupButton(true);
+        return;
+      }
 
       setProvider(matchedProviderKey);
       setIntegration(matchedIntegration);
@@ -230,6 +239,8 @@ export function useCreateNotificationAction({
         // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
         setChannel({label: restoredChannel, value: restoredChannel});
       }
+
+      hasInitializedSelection.current = true;
       return;
     }
 
