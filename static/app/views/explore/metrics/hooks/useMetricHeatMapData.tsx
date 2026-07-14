@@ -10,7 +10,10 @@ import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/uti
 import {metricBoundsApiOptions} from 'sentry/views/explore/metrics/hooks/metricBoundsApiOptions';
 import {metricHeatMapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatMapApiOptions';
 import {makePartitionedHeatMapWindowCombiner} from 'sentry/views/explore/metrics/hooks/metricHeatMapCombine';
-import {partitionDateTimeIntoHeatMapWindows} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
+import {
+  dateTimeAsHeatMapWindow,
+  partitionDateTimeIntoHeatMapWindows,
+} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 interface UseMetricHeatMapDataOptions {
@@ -33,7 +36,8 @@ interface UseMetricHeatMapDataOptions {
  * patched onto the merged grid here, once.
  *
  * Narrow ranges skip Phase A and issue one unpinned request over the selection.
- * A wide range whose Phase A finds no data falls back to that same single request.
+ * A wide range whose bounds come back empty — or whose bounds request fails —
+ * degrades to that same single request instead of erroring.
  */
 export function useMetricHeatMapData({
   organization,
@@ -77,16 +81,23 @@ export function useMetricHeatMapData({
     enabled: enabled && validDims && isChunked,
   });
 
-  const boundsResolved = isChunked && boundsQuery.isSuccess;
-  const boundsEmpty = boundsResolved && boundsQuery.data === null;
+  // Bounds only exist to pin a shared y-domain across chunks. They're usable once
+  // the query resolves to a real range; "settled" also covers the empty and
+  // errored outcomes, where we can't pin and degrade to a single request.
   const bounds = boundsQuery.data ?? undefined;
+  const canPin = isChunked && boundsQuery.isSuccess && defined(bounds);
+  const boundsSettled = isChunked && (boundsQuery.isSuccess || boundsQuery.isError);
 
-  // Phase B, build the queries to fetch the actual heat map chunks. When the
-  // range is empty (bounds resolved to nothing), fall back to a single window so
-  // one real (empty) response drives "No data".
+  // Phase B, fetch the heat map itself once we're ready (narrow range: right
+  // away; chunked: after bounds settle either way). When we can't pin — a narrow
+  // range, or bounds that came back empty or errored — fetch one unpinned request
+  // over the whole selection, materialized here rather than carried on the plan.
   const shouldFetch =
-    enabled && validDims && windows.length > 0 && (isChunked ? boundsResolved : true);
-  const activeWindows = boundsEmpty ? windows.slice(0, 1) : windows;
+    enabled && validDims && windows.length > 0 && (isChunked ? boundsSettled : true);
+  let activeWindows = windows;
+  if (shouldFetch && isChunked && !canPin) {
+    activeWindows = [dateTimeAsHeatMapWindow(selection.datetime)];
+  }
 
   const queries = shouldFetch
     ? activeWindows.map(timeWindow =>
@@ -98,9 +109,8 @@ export function useMetricHeatMapData({
           query,
           interval,
           yBuckets,
-          // Pin the shared y-domain when chunking so every chunk has aligned
-          // y-buckets and can be merged. The fast path and empty fallback have no
-          // bounds and stay unpinned.
+          // Pin the shared y-domain only when chunking, so every chunk has aligned
+          // y-buckets and can be merged. The fallback request stays unpinned.
           yMin: bounds?.min,
           yMax: bounds?.max,
         })
@@ -123,7 +133,9 @@ export function useMetricHeatMapData({
   const series = chunkSeries
     ? mergeMetricUnit(chunkSeries, traceMetric.unit ?? undefined)
     : chunkSeries;
-  const error = boundsQuery.error ?? chunkError;
+  // A failed bounds query isn't fatal — it degrades to the single-request
+  // fallback above, so only the heat map request's own error matters.
+  const error = chunkError;
 
   return {
     series,

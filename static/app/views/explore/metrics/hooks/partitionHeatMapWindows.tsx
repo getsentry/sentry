@@ -73,7 +73,7 @@ export function partitionDateTimeIntoHeatMapWindows(
 
   if (!timeDomain || timeDomain.end - timeDomain.start < MINIMUM_PARTITION_RANGE) {
     return {
-      windows: [dateTimeAsHeatMapWindow(normalized)],
+      windows: [dateTimeAsHeatMapWindow(datetime)],
       timeDomain: {start: 0, end: 0},
     };
   }
@@ -92,14 +92,18 @@ export function partitionDateTimeIntoHeatMapWindows(
   return {windows, timeDomain: {start: alignedStart, end: alignedEnd}};
 }
 
-function dateTimeAsHeatMapWindow(
-  normalized: ReturnType<typeof normalizeDateTimeParams>
-): HeatMapWindow {
-  if (defined(normalized.start) && defined(normalized.end)) {
-    return {start: normalized.start, end: normalized.end};
+/**
+ * The whole selection as one un-chunked window — the narrow-range fast path, and
+ * the fallback the caller fires just-in-time when a wide range's bounds are
+ * unavailable (empty or errored).
+ */
+export function dateTimeAsHeatMapWindow(datetime: DateTimeFilter): HeatMapWindow {
+  const {start, end, statsPeriod} = normalizeDateTimeParams(datetime);
+  if (defined(start) && defined(end)) {
+    return {start, end};
   }
 
-  return {statsPeriod: normalized.statsPeriod ?? ''};
+  return {statsPeriod: statsPeriod ?? ''};
 }
 
 /**
