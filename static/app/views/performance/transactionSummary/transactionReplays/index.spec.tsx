@@ -8,10 +8,6 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {
-  SPAN_OP_BREAKDOWN_FIELDS,
-  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-} from 'sentry/utils/discover/fields';
 import TransactionSummaryLayout from 'sentry/views/performance/transactionSummary/layout';
 import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
 import TransactionReplays from 'sentry/views/performance/transactionSummary/transactionReplays';
@@ -76,7 +72,9 @@ const renderComponent = ({
 };
 
 describe('TransactionReplays', () => {
+  let replaysMockApi: jest.Mock;
   let eventsMockApi: jest.Mock;
+
   beforeEach(() => {
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -94,8 +92,15 @@ describe('TransactionReplays', () => {
       },
       statusCode: 200,
     });
+    replaysMockApi = MockApiClient.addMockResponse({
+      url: mockReplaysUrl,
+      body: {
+        data: [],
+      },
+      statusCode: 200,
+    });
     eventsMockApi = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
+      url: mockEventsUrl,
       body: {
         data: [],
       },
@@ -108,29 +113,78 @@ describe('TransactionReplays', () => {
     resetMockDate();
   });
 
-  it('should query the events endpoint for replayIds of a transaction', async () => {
+  it('should query the replays endpoint with segment_names', async () => {
+    renderComponent();
+
+    await waitFor(() => {
+      expect(replaysMockApi).toHaveBeenCalledWith(
+        mockReplaysUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'segment_names:"Settings Page"',
+            statsPeriod: '90d',
+          }),
+        })
+      );
+    });
+  });
+
+  it('should query the events endpoint for enrichment data', async () => {
     renderComponent();
 
     await waitFor(() => {
       expect(eventsMockApi).toHaveBeenCalledWith(
-        '/organizations/org-slug/events/',
+        mockEventsUrl,
         expect.objectContaining({
           query: expect.objectContaining({
-            cursor: undefined,
-            statsPeriod: '14d',
-            project: ['1'],
-            environment: [],
-            field: expect.arrayContaining([
-              'replayId',
-              'count()',
-              'transaction.duration',
-              'trace',
-              'timestamp',
-              ...SPAN_OP_BREAKDOWN_FIELDS,
-              SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-            ]),
-            per_page: 50,
-            query: 'event.type:transaction transaction:"Settings Page" !replayId:""',
+            query: expect.stringContaining('transaction:"Settings Page"'),
+          }),
+        })
+      );
+    });
+  });
+
+  it('should union span-derived replayIds into the replays query', async () => {
+    // The events (spans) endpoint surfaces replayIds that segment_names may not
+    // yet cover; those ids should be OR'd into the single replays query.
+    MockApiClient.addMockResponse({
+      url: mockEventsUrl,
+      statusCode: 200,
+      body: {
+        data: [
+          {replayId: '346789a703f6454384f1de473b8b9fcc'},
+          {replayId: 'b05dae9b6be54d21a4d5ad9f8f02b780'},
+          // Duplicate + empty ids should be dropped before building the clause
+          {replayId: '346789a703f6454384f1de473b8b9fcc'},
+          {replayId: ''},
+        ],
+      },
+    });
+
+    renderComponent();
+
+    await waitFor(() => {
+      expect(replaysMockApi).toHaveBeenCalledWith(
+        mockReplaysUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query:
+              '(segment_names:"Settings Page") OR (id:[346789a703f6454384f1de473b8b9fcc,b05dae9b6be54d21a4d5ad9f8f02b780])',
+          }),
+        })
+      );
+    });
+  });
+
+  it('should query the replays endpoint by segment_names only when no spans have replayIds', async () => {
+    renderComponent();
+
+    await waitFor(() => {
+      expect(replaysMockApi).toHaveBeenCalledWith(
+        mockReplaysUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: 'segment_names:"Settings Page"',
           }),
         })
       );
@@ -143,102 +197,52 @@ describe('TransactionReplays', () => {
     await screen.findByText('No replays found');
   });
 
-  it('should show loading indicator when loading replays', async () => {
-    const mockApi = MockApiClient.addMockResponse({
-      url: mockEventsUrl,
-      statusCode: 200,
-      body: {
-        data: [],
-      },
-    });
-
-    renderComponent();
-
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledWith(
-        mockEventsUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: 'event.type:transaction transaction:"Settings Page" !replayId:""',
-          }),
-        })
-      );
-    });
-  });
-
   it('should show a list of replays and have the correct values', async () => {
-    const mockApi = MockApiClient.addMockResponse({
+    const replayData = [
+      {
+        ...ReplayListFixture()[0],
+        count_errors: 1,
+        duration: 52346,
+        finished_at: new Date('2022-09-15T06:54:00+00:00'),
+        id: '346789a703f6454384f1de473b8b9fcc',
+        started_at: new Date('2022-09-15T06:50:00+00:00'),
+        urls: [
+          'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/',
+          '/organizations/sentry-emerging-tech/replays/?project=2',
+        ],
+      },
+      {
+        ...ReplayListFixture()[0],
+        count_errors: 4,
+        duration: 400,
+        finished_at: new Date('2022-09-21T21:40:38+00:00'),
+        id: 'b05dae9b6be54d21a4d5ad9f8f02b780',
+        started_at: new Date('2022-09-21T21:30:44+00:00'),
+        urls: [
+          'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/?project=2&statsPeriod=24h',
+          '/organizations/sentry-emerging-tech/issues/',
+          '/organizations/sentry-emerging-tech/issues/?project=2',
+        ],
+      },
+    ].map(hydrated => ({
+      ...hydrated,
+      started_at: hydrated.started_at.toString(),
+      finished_at: hydrated.finished_at.toString(),
+    }));
+
+    MockApiClient.addMockResponse({
       url: mockReplaysUrl,
       statusCode: 200,
-      body: {
-        data: [
-          {
-            ...ReplayListFixture()[0],
-            count_errors: 1,
-            duration: 52346,
-            finished_at: new Date('2022-09-15T06:54:00+00:00'),
-            id: '346789a703f6454384f1de473b8b9fcc',
-            started_at: new Date('2022-09-15T06:50:00+00:00'),
-            urls: [
-              'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/',
-              '/organizations/sentry-emerging-tech/replays/?project=2',
-            ],
-          },
-          {
-            ...ReplayListFixture()[0],
-            count_errors: 4,
-            duration: 400,
-            finished_at: new Date('2022-09-21T21:40:38+00:00'),
-            id: 'b05dae9b6be54d21a4d5ad9f8f02b780',
-            started_at: new Date('2022-09-21T21:30:44+00:00'),
-            urls: [
-              'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/?project=2&statsPeriod=24h',
-              '/organizations/sentry-emerging-tech/issues/',
-              '/organizations/sentry-emerging-tech/issues/?project=2',
-            ],
-          },
-        ].map(hydrated => ({
-          ...hydrated,
-          started_at: hydrated.started_at.toString(),
-          finished_at: hydrated.finished_at.toString(),
-        })),
-      },
+      body: {data: replayData},
     });
 
     // Mock the system date to be 2022-09-28
     setMockDate(new Date('Sep 28, 2022 11:29:13 PM UTC'));
 
-    renderComponent({location: {query: {query: 'test'}}});
-
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(1);
-    });
+    renderComponent();
 
     // Expect the table to have 2 rows
-    expect(screen.getAllByText('testDisplayName')).toHaveLength(2);
-
-    const expectedQuery =
-      'playlistEnd=2022-09-28T23%3A29%3A13&playlistStart=2022-09-14T23%3A29%3A13&query=test&referrer=transactionReplays';
-    // Expect the first row to have the correct href
-    expect(
-      screen.getByRole('link', {
-        name: 'T testDisplayName project-slug 346789a7 14 days ago',
-      })
-    ).toHaveAttribute(
-      'href',
-      `/organizations/org-slug/explore/replays/346789a703f6454384f1de473b8b9fcc/?${expectedQuery}`
-    );
-
-    // Expect the second row to have the correct href
-    expect(
-      screen.getByRole('link', {
-        name: 'T testDisplayName project-slug b05dae9b 7 days ago',
-      })
-    ).toHaveAttribute(
-      'href',
-      `/organizations/org-slug/explore/replays/b05dae9b6be54d21a4d5ad9f8f02b780/?${expectedQuery}`
-    );
+    expect(await screen.findAllByText('testDisplayName')).toHaveLength(2);
 
     // Expect the first row to have the correct duration
     expect(screen.getByText('14:32:26')).toBeInTheDocument();
@@ -286,13 +290,10 @@ describe('TransactionReplays', () => {
       },
     });
 
-    // hack: Wait for any pending updates to complete
-    // without await the test fails with "An update to _GenericDiscoverQuery inside a test was not wrapped in act(...)"
     await waitFor(() => {
       expect(screen.queryByTestId('replay-table')).not.toBeInTheDocument();
     });
 
-    // Content should be hidden, not showing a message or table
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 });

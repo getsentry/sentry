@@ -44,7 +44,7 @@ import type {
   ReplayListRecord,
   ReplayRecordNestedFieldName,
 } from 'sentry/views/explore/replays/types';
-import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
+import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/types';
 
 type ListRecord = ReplayListRecord | ReplayListRecordWithTx;
 

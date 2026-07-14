@@ -1,6 +1,5 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import type {Location} from 'history';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -18,18 +17,15 @@ import {
   ReplaySessionColumn,
   ReplaySlowestTransactionColumn,
 } from 'sentry/components/replays/table/replayTableColumns';
+import {DEFAULT_REPLAY_LIST_SORT} from 'sentry/components/replays/table/useReplayTableSort';
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
-import type {Organization} from 'sentry/types/organization';
-import {EventView} from 'sentry/utils/discover/eventView';
-import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 
-import type {EventSpanData} from './useReplaysFromTransaction';
-import {useReplaysFromTransaction} from './useReplaysFromTransaction';
-import {useReplaysWithTxData} from './useReplaysWithTxData';
+import {useTransactionReplays} from './useTransactionReplays';
 import {generateTransactionReplaysEventView} from './utils';
 
 export function TransactionReplays() {
@@ -41,91 +37,44 @@ export function TransactionReplays() {
 }
 
 function TransactionReplaysContent() {
-  const {organization, transactionName, setError} = useTransactionSummaryContext();
+  const {transactionName, setError} = useTransactionSummaryContext();
 
   const location = useLocation();
   const replayIdsEventView = useMemo(
     () => generateTransactionReplaysEventView({location, transactionName}),
     [location, transactionName]
   );
+  const sort = decodeScalar(location.query.sort, DEFAULT_REPLAY_LIST_SORT);
 
-  // Hard-code 90d to match the count query. There's no date selector for the replay tab.
-  const {data, fetchError, isFetching} = useReplaysFromTransaction({
+  const {replays, isPending, error, playlistEventView} = useTransactionReplays({
+    transactionName,
+    sort,
     replayIdsEventView,
-    location: {
-      ...location,
-      query: {
-        ...location.query,
-        statsPeriod: '90d',
-      },
-    },
-    organization,
+    location,
   });
 
   useEffect(() => {
-    setError(fetchError?.message ?? fetchError);
-  }, [setError, fetchError]);
+    if (error instanceof Error) {
+      setError(error.message);
+    } else if (typeof error === 'string') {
+      setError(error);
+    } else {
+      setError(undefined);
+    }
+  }, [setError, error]);
 
-  if (!data) {
-    return isFetching ? (
+  const playlistQuery = usePlaylistQuery('transactionReplays', playlistEventView);
+  const theme = useTheme();
+  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.sm})`);
+  const {allMobileProj} = useAllMobileProj({});
+
+  if (isPending) {
+    return (
       <Layout.Main width="full">
         <LoadingIndicator />
       </Layout.Main>
-    ) : (
-      <Fragment>{null}</Fragment>
     );
   }
-
-  const {events, replayRecordsEventView} = data;
-  return (
-    <ReplaysContent
-      eventView={replayRecordsEventView}
-      events={events}
-      organization={organization}
-    />
-  );
-}
-
-function ReplaysContent({
-  eventView,
-  events,
-  organization,
-}: {
-  eventView: EventView;
-  events: EventSpanData[];
-  organization: Organization;
-}) {
-  const location = useLocation();
-
-  if (!eventView.query) {
-    eventView.query = String(location.query.query ?? '');
-  }
-  const playlistQuery = usePlaylistQuery('transactionReplays', eventView);
-
-  const newLocation = useMemo(() => ({query: {}}) as Location, []);
-  const theme = useTheme();
-  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.sm})`);
-
-  const {replays, isFetching, fetchError} = useReplayList({
-    enabled: eventView.query !== '',
-    // for the replay tab in transactions, if payload.query is undefined,
-    // this means the transaction has no related replays.
-    // but because we cannot query for an empty list of IDs (e.g. `id:[]` breaks our search endpoint),
-    // and leaving query empty results in ALL replays being returned for a specified project
-    // (which doesn't make sense as we want to show no replays),
-    // we essentially want to hardcode no replays being returned.
-    eventView,
-    location: newLocation,
-    organization,
-    queryReferrer: 'transactionReplays',
-  });
-
-  const replaysWithTx = useReplaysWithTxData({
-    replays,
-    events,
-  });
-
-  const {allMobileProj} = useAllMobileProj({});
 
   return (
     <Layout.Main width="full">
@@ -140,9 +89,9 @@ function ReplaysContent({
           ReplayCountErrorsColumn,
           ReplayActivityColumn,
         ]}
-        error={fetchError}
-        isPending={isFetching}
-        replays={replaysWithTx ?? []}
+        error={error instanceof Error ? error : undefined}
+        isPending={false}
+        replays={replays ?? []}
         showDropdownFilters={false}
       />
     </Layout.Main>
