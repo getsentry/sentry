@@ -224,7 +224,9 @@ export function getFormatter({
 
     if (limit) {
       const originalLength = seriesParams.length;
-      seriesParams = seriesParams.sort((a, b) => getSeriesValue(b, 1) - getSeriesValue(a, 1)).slice(0, limit);
+      seriesParams = seriesParams
+        .sort((a, b) => getSeriesValue(b, 1) - getSeriesValue(a, 1))
+        .slice(0, limit);
       if (originalLength > limit) {
         seriesParams.push({
           seriesName: `+${originalLength - limit} more`,
