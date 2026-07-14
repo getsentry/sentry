@@ -294,9 +294,10 @@ def _issue_progress_filter_from_derived_data(
     progress_values: list[str], projects: Sequence[Project]
 ) -> Q:
     """
-    Reads progress from the materialized GroupDerivedData.progress column. The
-    column stores the IssueProgressState value verbatim, so progress_values maps
-    directly onto it.
+    Reads progress from the materialized GroupDerivedData.progress column, mirroring
+    _get_derived_progress: the column stores the IssueProgressState value verbatim, a
+    null column (closed issues) counts as fix_applied, and a group without a derived-data
+    row counts as identified.
     """
     project_ids = [p.id for p in projects]
     q = Q(
@@ -305,12 +306,18 @@ def _issue_progress_filter_from_derived_data(
             group__project_id__in=project_ids,
         ).values_list("group_id", flat=True)
     )
+    if IssueProgressState.FIX_APPLIED.value in progress_values:
+        q |= Q(
+            id__in=GroupDerivedData.objects.filter(
+                progress__isnull=True,
+                group__project_id__in=project_ids,
+            ).values_list("group_id", flat=True)
+        )
     if IssueProgressState.IDENTIFIED.value in progress_values:
-        explicit_progress_group_ids = GroupDerivedData.objects.filter(
-            progress__isnull=False,
+        derived_data_group_ids = GroupDerivedData.objects.filter(
             group__project_id__in=project_ids,
         ).values_list("group_id", flat=True)
-        q |= Q(project_id__in=project_ids) & ~Q(id__in=explicit_progress_group_ids)
+        q |= Q(project_id__in=project_ids) & ~Q(id__in=derived_data_group_ids)
     return q
 
 

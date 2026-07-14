@@ -1069,16 +1069,24 @@ LAST_SEEN_TIEBREAK_DIVISOR = 10**13
 
 
 def _get_group_progress_states_from_derived_data(group_ids: list[int]) -> dict[int, str]:
-    """Read progress from the materialized GroupDerivedData.progress column. The column
-    stores the IssueProgressState value verbatim. Groups without a derived row (or a null
-    progress) fall back to identified so every group still gets a rank."""
+    """Read progress from the materialized GroupDerivedData.progress column, mirroring
+    _get_derived_progress: the column stores the IssueProgressState value verbatim, a null
+    column (closed issues) counts as fix_applied, and a group without a derived row counts
+    as identified, so every group still gets a rank."""
     stored = dict(
         GroupDerivedData.objects.filter(group_id__in=group_ids).values_list("group_id", "progress")
     )
-    return {
-        group_id: stored.get(group_id) or IssueProgressState.IDENTIFIED.value
-        for group_id in group_ids
-    }
+    result: dict[int, str] = {}
+    for group_id in group_ids:
+        if group_id not in stored:
+            result[group_id] = IssueProgressState.IDENTIFIED.value
+            continue
+        progress = stored[group_id]
+        if progress is None:
+            result[group_id] = IssueProgressState.FIX_APPLIED.value
+        else:
+            result[group_id] = progress
+    return result
 
 
 def resolve_progress_signal(
