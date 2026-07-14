@@ -251,7 +251,7 @@ class UniversalImportExportService(ImportExportService):
 
                     # Convert the dict into a model object as it is allowed.
                     deserialize_result = deserialize(
-                        "json", json.dumps([item]), use_natural_keys=False, ignorenotexistent=True
+                        "json", json.dumps([item]), use_natural_keys=False, ignorenonexistent=True
                     )
                     model_instance = next(deserialize_result).object
 
@@ -383,7 +383,7 @@ class UniversalImportExportService(ImportExportService):
                     max_inserted_pk=max_inserted_pk,
                 )
 
-        except DeserializationError as err:
+        except (DeserializationError, json.JSONDecodeError) as err:
             sentry_sdk.capture_exception()
             reason = str(err) or "No additional information"
             if err.__cause__:
