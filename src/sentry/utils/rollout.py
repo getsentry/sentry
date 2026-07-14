@@ -13,11 +13,12 @@ from sentry.options.manager import (
 )
 from sentry.utils import metrics
 from sentry.utils.safe import trim
+from sentry.utils.sdk import sdk_logger
 from sentry.utils.types import Bool, Dict, Float, Sequence
 
 logger = logging.getLogger(__name__)
 
-TData = TypeVar("TData")
+TData = TypeVar("TData")  # The type of data being compared
 
 SourceOfTruth = Literal["control", "experimental", "neither", "both"]
 
@@ -89,6 +90,14 @@ class SafeRolloutComparator:
 
     # This identifies your overall rollout, and is used in option names and metrics/log tagging
     ROLLOUT_NAME: str
+    # Whether to log using the regular Python logger (which logs to both GCP and Sentry), or the SDK
+    # logger (which logs only to Sentry). Useful for situations where mismatch logs might include
+    # customer data. Defaults to False (meaning the Python logger is used).
+    internal_logs_only: bool = False
+    # Custom serializer to use when logging control and experimental data in cases where they don't
+    # match. Can also be passed directly to `compare`, `check_and_choose`, and
+    # `check_and_choose_with_timings` for callsite-specific serialization.
+    data_serializer: Callable[[TData], Any] | None = None
 
     @classmethod
     def _should_run_experiment_option(cls) -> str:
@@ -197,6 +206,10 @@ class SafeRolloutComparator:
 
     @classmethod
     def _default_serialize_for_log(cls, value: Any) -> Any:
+        # The internal-only logger handles serialization itself
+        if cls.internal_logs_only:
+            return value
+
         if isinstance(value, (str, int, float, bool)) or value is None:
             return value
         if isinstance(value, dict):
@@ -224,22 +237,42 @@ class SafeRolloutComparator:
         if not cls._should_log_mismatch(callsite):
             return
 
-        serialize = data_serializer or cls._default_serialize_for_log
-
-        logger.info(
-            "saferollout.mismatch",
-            extra={
-                "rollout_name": cls.ROLLOUT_NAME,
-                "callsite": callsite,
-                "source_of_truth": source_of_truth,
-                "exact_match": is_exact_match,
-                "reasonable_match": is_reasonable_match,
-                "is_null_result": is_experimental_data_nullish,
-                "debug_context": trim(cls._default_serialize_for_log(debug_context)),
-                "control_data_raw": trim(serialize(control_data)),
-                "experimental_data_raw": trim(serialize(experimental_data)),
-            },
+        serialize = (
+            data_serializer
+            or cls.data_serializer
+            # For comparators using internal logs only, `_default_serialize_for_log` is a
+            # pass-through, since our SDK logging wrapper (which internal-only comparators use for
+            # logging) handles serialization itself. For comparators using the Python logger, it
+            # preserves structure but stringifies values of unknown types.
+            or cls._default_serialize_for_log
         )
+
+        base_logging_data = {
+            "rollout_name": cls.ROLLOUT_NAME,
+            "callsite": callsite,
+            "source_of_truth": source_of_truth,
+            "exact_match": is_exact_match,
+            "reasonable_match": is_reasonable_match,
+            "is_null_result": is_experimental_data_nullish,
+            "debug_context": cls._default_serialize_for_log(debug_context),
+            "control_data_raw": serialize(control_data),
+            "experimental_data_raw": serialize(experimental_data),
+        }
+
+        if cls.internal_logs_only:
+            sdk_logger.info("saferollout.mismatch", attributes=base_logging_data)
+        else:
+            logger.info(
+                "saferollout.mismatch",
+                extra={
+                    **base_logging_data,
+                    # Trimming has to be handled here rather than in `_default_serialize_for_log`
+                    # because the latter is recursive, and we only want to trim at the end.
+                    "debug_context": trim(base_logging_data["debug_context"]),
+                    "control_data_raw": trim(base_logging_data["control_data_raw"]),
+                    "experimental_data_raw": trim(base_logging_data["experimental_data_raw"]),
+                },
+            )
 
     @classmethod
     def _is_valid_sample_rate(cls, value: Any) -> bool:
