@@ -26,12 +26,14 @@ import {
   IconFilter,
   IconOpen,
   IconPullRequest,
+  IconPullRequestClosed,
+  IconPullRequestDraft,
   IconRefresh,
   IconUser,
   IconWarning,
 } from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import type {PullRequest} from 'sentry/types/integrations';
+import type {PullRequestStatus} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type {TagVariant} from 'sentry/utils/theme';
@@ -50,6 +52,7 @@ import type {
   RunStatus,
   SeerNightShiftRun,
   SeerNightShiftRunIssue,
+  SeerNightShiftRunPullRequest,
   WorkflowKind,
   WorkflowRow,
 } from 'sentry/views/seerWorkflows/types';
@@ -743,24 +746,34 @@ function IssueRow({
   const title = issue.groupTitle ?? issue.groupId;
   return (
     <Container background="primary" border="muted" radius="md" padding="sm md">
-      <Flex justify="between" align="center" gap="md" wrap="wrap">
-        <Link to={`/organizations/${organizationSlug}/issues/${issue.groupId}/`}>
-          <Text size="sm" ellipsis>
-            {issue.groupShortId ? (
-              <Text bold as="span">
-                {issue.groupShortId}{' '}
-              </Text>
-            ) : null}
-            {title}
+      <Stack gap="xs">
+        <Flex justify="between" align="center" gap="md" wrap="wrap">
+          <Link to={`/organizations/${organizationSlug}/issues/${issue.groupId}/`}>
+            <Text size="sm" ellipsis>
+              {issue.groupShortId ? (
+                <Text bold as="span">
+                  {issue.groupShortId}{' '}
+                </Text>
+              ) : null}
+              {title}
+            </Text>
+          </Link>
+          <Stack gap="xs" align="end">
+            {issue.pullRequests.length > 0 ? (
+              issue.pullRequests.map(pullRequest => (
+                <IssuePullRequestChip key={pullRequest.id} pullRequest={pullRequest} />
+              ))
+            ) : (
+              <IssueStatusTag issue={issue} />
+            )}
+          </Stack>
+        </Flex>
+        {issue.reason ? (
+          <Text size="sm" variant="muted">
+            {issue.reason}
           </Text>
-        </Link>
-        <Stack gap="xs" align="end">
-          <ActionTag action={issue.action} seerRunId={issue.seerRunId} />
-          {issue.pullRequests.map(pullRequest => (
-            <IssuePullRequestChip key={pullRequest.id} pullRequest={pullRequest} />
-          ))}
-        </Stack>
-      </Flex>
+        ) : null}
+      </Stack>
     </Container>
   );
 }
@@ -772,34 +785,47 @@ const ACTION_TAG_VARIANT: Record<string, TagVariant> = {
   skip: 'muted',
 };
 
-function ActionTag({action, seerRunId}: {action: string; seerRunId: string | null}) {
-  // Only autofix-triggered issues have a conversation to link to -- skipped
-  // and root-cause-only issues never invoke an agent run. The icon signals
-  // which tags are actually clickable, since most aren't.
-  if (!seerRunId) {
-    return (
-      <Tag variant={ACTION_TAG_VARIANT[action] ?? 'muted'}>{getActionLabel(action)}</Tag>
-    );
+function IssueStatusTag({issue}: {issue: SeerNightShiftRunIssue}) {
+  const label = getActionLabel(issue.action);
+  const variant = ACTION_TAG_VARIANT[issue.action] ?? 'muted';
+  if (!issue.seerRunId) {
+    return <Tag variant={variant}>{label}</Tag>;
   }
+  // The icon marks this tag as clickable, since most aren't.
   return (
-    <Link to={getRelativeExplorerUrl(seerRunId)}>
-      <Tag variant={ACTION_TAG_VARIANT[action] ?? 'muted'} icon={<IconOpen />}>
-        {getActionLabel(action)}
+    <Link to={getRelativeExplorerUrl(issue.seerRunId)}>
+      <Tag variant={variant} icon={<IconOpen />}>
+        {label}
       </Tag>
     </Link>
   );
 }
 
-function IssuePullRequestChip({pullRequest}: {pullRequest: PullRequest}) {
+const PR_STATUS_ICON: Partial<Record<PullRequestStatus, typeof IconPullRequest>> = {
+  merged: IconCheckmark,
+  closed: IconPullRequestClosed,
+  draft: IconPullRequestDraft,
+};
+
+const PR_STATUS_PREFIX: Partial<Record<PullRequestStatus, string>> = {
+  merged: t('Merged'),
+  closed: t('Closed'),
+  draft: t('Draft'),
+};
+
+function IssuePullRequestChip({
+  pullRequest,
+}: {
+  pullRequest: SeerNightShiftRunPullRequest;
+}) {
   const title = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
+  const status = pullRequest.status;
+  const Icon = (status && PR_STATUS_ICON[status]) || IconPullRequest;
+  const prefix = status ? PR_STATUS_PREFIX[status] : undefined;
+  const label = prefix ? `${prefix}: ${title}` : title;
   return (
-    <LinkButton
-      size="xs"
-      icon={<IconPullRequest />}
-      href={pullRequest.externalUrl}
-      external
-    >
-      <Text ellipsis>{title}</Text>
+    <LinkButton size="xs" icon={<Icon />} href={pullRequest.externalUrl} external>
+      <Text ellipsis>{label}</Text>
     </LinkButton>
   );
 }

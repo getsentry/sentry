@@ -133,9 +133,7 @@ describe('SeerWorkflows', () => {
     ).toHaveAttribute('href', `/organizations/${organization.slug}/issues/100/`);
     expect(screen.queryByRole('link', {name: '100'})).not.toBeInTheDocument();
 
-    // The action tag itself is the conversation link for an autofix-triggered
-    // issue, linking to the Explorer deep link for this issue's own seer run
-    // rather than a separate button or a generic autofix drawer.
+    // The action tag itself is the conversation link, not a separate button.
     expect(screen.getByRole('link', {name: 'Autofix queued'})).toHaveAttribute(
       'href',
       expect.stringContaining('explorerRunId=seer-1')
@@ -177,6 +175,74 @@ describe('SeerWorkflows', () => {
 
     expect(screen.getByText('Skipped')).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: 'Skipped'})).not.toBeInTheDocument();
+  });
+
+  it('shows the triage reason below the action, e.g. why an issue was skipped', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {},
+          issues: [
+            {
+              id: '10',
+              groupId: '100',
+              groupTitle: 'ValueError: something broke',
+              action: 'skip',
+              reason: 'Third-party rate limit error, not actionable by the team.',
+              seerRunId: null,
+              pullRequests: [],
+              dateAdded: '2026-04-20T00:00:01Z',
+            },
+          ],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
+
+    expect(
+      screen.getByText('Third-party rate limit error, not actionable by the team.')
+    ).toBeInTheDocument();
+  });
+
+  it('shows nothing extra when no reason is recorded for an issue', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {},
+          issues: [
+            {
+              id: '10',
+              groupId: '100',
+              groupTitle: 'ValueError: something broke',
+              action: 'skip',
+              reason: null,
+              seerRunId: null,
+              pullRequests: [],
+              dateAdded: '2026-04-20T00:00:01Z',
+            },
+          ],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
+
+    expect(screen.getByText('Skipped')).toBeInTheDocument();
   });
 
   it('falls back to the bare group id when the issue has no resolved title', async () => {
@@ -248,6 +314,7 @@ describe('SeerWorkflows', () => {
                     dateCreated: '2026-04-20T00:00:00Z',
                   },
                   externalUrl: 'https://github.com/getsentry/sentry/pull/42',
+                  status: 'merged',
                 },
               ],
               dateAdded: '2026-04-20T00:00:01Z',
@@ -261,9 +328,63 @@ describe('SeerWorkflows', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
 
-    const prChip = screen.getByRole('button', {name: 'Fix the ValueError'});
+    // A single button carries both the PR and its status -- no separate
+    // "Autofix queued" tag, which would contradict a merged PR.
+    const prChip = screen.getByRole('button', {name: 'Merged: Fix the ValueError'});
     expect(prChip).toHaveAttribute('href', 'https://github.com/getsentry/sentry/pull/42');
     expect(prChip).toHaveAttribute('target', '_blank');
+    expect(screen.queryByText('Autofix queued')).not.toBeInTheDocument();
+  });
+
+  it('shows the plain PR title with no status prefix when status is unobserved', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/workflows/`,
+      body: [
+        {
+          id: '1',
+          dateAdded: '2026-04-20T00:00:00Z',
+          triageStrategy: 'agentic',
+          errorMessage: null,
+          extras: {},
+          issues: [
+            {
+              id: '10',
+              groupId: '100',
+              groupTitle: 'ValueError: something broke',
+              action: 'autofix_triggered',
+              seerRunId: 'seer-1',
+              pullRequests: [
+                {
+                  id: '42',
+                  title: 'Fix the ValueError',
+                  message: null,
+                  dateCreated: '2026-04-20T00:00:01Z',
+                  repository: {
+                    id: '1',
+                    name: 'sentry',
+                    url: 'https://github.com/getsentry/sentry',
+                    provider: {id: 'github', name: 'GitHub'},
+                    status: 'active',
+                    externalSlug: 'getsentry/sentry',
+                    dateCreated: '2026-04-20T00:00:00Z',
+                  },
+                  externalUrl: 'https://github.com/getsentry/sentry/pull/42',
+                  status: null,
+                },
+              ],
+              dateAdded: '2026-04-20T00:00:01Z',
+            },
+          ],
+        },
+      ],
+    });
+
+    render(<SeerWorkflows />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
+
+    expect(screen.getByRole('button', {name: 'Fix the ValueError'})).toBeInTheDocument();
+    expect(screen.queryByText('Autofix queued')).not.toBeInTheDocument();
   });
 
   it('shows one labeled pill per triage batch in the expanded panel', async () => {
@@ -304,9 +425,8 @@ describe('SeerWorkflows', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Expand run'}));
 
     expect(screen.getByText('Triage batches (2)')).toBeInTheDocument();
-    // getRelativeExplorerUrl reads window.location, which in this test
-    // environment doesn't reflect the router's memory-history location --
-    // only the explorerRunId query param is meaningful to assert on here.
+    // window.location doesn't track the router's memory-history location
+    // here, so only the explorerRunId query param is meaningful to assert.
     expect(screen.getByRole('button', {name: 'Batch 1'})).toHaveAttribute(
       'href',
       expect.stringContaining('explorerRunId=42')

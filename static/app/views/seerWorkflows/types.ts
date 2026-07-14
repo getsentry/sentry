@@ -1,4 +1,8 @@
-import type {PullRequest} from 'sentry/types/integrations';
+import type {PullRequest, PullRequestStatus} from 'sentry/types/integrations';
+
+export type SeerNightShiftRunPullRequest = PullRequest & {
+  status: PullRequestStatus | null;
+};
 
 export type SeerNightShiftRunIssue = {
   action: string;
@@ -7,7 +11,8 @@ export type SeerNightShiftRunIssue = {
   groupShortId: string | null;
   groupTitle: string | null;
   id: string;
-  pullRequests: PullRequest[];
+  pullRequests: SeerNightShiftRunPullRequest[];
+  reason: string | null;
   seerRunId: string | null;
 };
 
