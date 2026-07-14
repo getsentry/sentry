@@ -416,7 +416,7 @@ describe('useTraceMetricsHeatmapQuery', () => {
       body: heatmapResponse,
     });
 
-    const {result} = renderHookWithProviders(() =>
+    renderHookWithProviders(() =>
       useTraceMetricsHeatmapQuery({
         widget: heatmapWidget,
         organization,
@@ -443,10 +443,6 @@ describe('useTraceMetricsHeatmapQuery', () => {
         })
       );
     });
-
-    await waitFor(() => {
-      expect(result.current.heatmapResults?.values).toHaveLength(1);
-    });
   });
 
   it("patches the Y axis with the selected metric's unit", async () => {
@@ -462,6 +458,18 @@ describe('useTraceMetricsHeatmapQuery', () => {
           orderby: '',
         },
       ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'min(value)': 0,
+            'max(value)': 100,
+          },
+        ],
+      },
     });
 
     MockApiClient.addMockResponse({

@@ -48,22 +48,19 @@ export function useMetricHeatMapData({
   yBuckets,
   enabled,
 }: UseMetricHeatMapDataOptions): MetricHeatMapData {
-  const validDims = defined(yBuckets) && yBuckets > 0;
   const intervalMs = defined(interval) ? intervalToMilliseconds(interval) : 0;
+  const validDimensions = defined(yBuckets) && yBuckets > 0 && intervalMs > 0;
 
-  // Partition the range into per-window request params once per filter/interval
-  // change, so it's stable across renders (`partitionDateTimeIntoHeatMapWindows` reads
-  // Date.now() for relative ranges — pinning it here avoids re-partitioning, and
-  // relative windows stay relative so the backend still re-resolves now per fetch).
+  // Partition the range into per-window request params
   const {windows, timeDomain} = useMemo(
     () =>
       partitionDateTimeIntoHeatMapWindows(selection.datetime, interval, 'progressive'),
     [interval, selection.datetime]
   );
 
-  const isChunked = windows.length > 1;
+  // Optional Phase A, fetch Y-axis range if there is more than one window
+  const isBoundsQueryNeeded = windows.length > 1;
 
-  // Phase A, fetch Y-axis range
   const boundsQuery = useQuery({
     ...metricBoundsApiOptions({
       organization,
@@ -71,44 +68,47 @@ export function useMetricHeatMapData({
       traceMetric,
       query,
     }),
-    enabled: enabled && validDims && isChunked,
+    enabled: enabled && isBoundsQueryNeeded,
   });
 
-  // Bounds only exist to pin a shared y-domain across chunks. They're usable once
-  // the query resolves to a real range; "settled" also covers the empty and
-  // errored outcomes, where we can't pin and degrade to a single request.
+  // Bounds only exist to pin a shared Y-axis domain across chunks. They're
+  // usable once the query has settled. If successful, we will pin the windows.
+  // If failed, we will swap the calculated windows with one global window, and
+  // turn pinning off.
   const bounds = boundsQuery.data ?? undefined;
-  const canPin = isChunked && boundsQuery.isSuccess && defined(bounds);
-  const boundsSettled = isChunked && (boundsQuery.isSuccess || boundsQuery.isError);
+  const boundsSettled = boundsQuery.isSuccess || boundsQuery.isError;
+  const didBoundsComeBack = boundsSettled && boundsQuery.isSuccess && defined(bounds);
 
-  // Phase B, fetch the heat map itself once we're ready (narrow range: right
-  // away; chunked: after bounds settle either way). When we can't pin — a narrow
-  // range, or bounds that came back empty or errored — fetch one unpinned request
-  // over the whole selection, materialized here rather than carried on the plan.
-  const shouldFetch =
-    enabled && validDims && windows.length > 0 && (isChunked ? boundsSettled : true);
+  // Phase B, fetch the heat map itself once we're ready
+
+  // When we can't pin when e.g., bounds that came back empty or errored — fetch
+  // one unpinned request over the whole selection
   let activeWindows = windows;
-  if (shouldFetch && isChunked && !canPin) {
+  if (isBoundsQueryNeeded && boundsSettled && !didBoundsComeBack) {
     activeWindows = [dateTimeAsHeatMapWindow(selection.datetime)];
   }
 
-  const queries = shouldFetch
-    ? activeWindows.map(timeWindow =>
-        metricHeatMapApiOptions({
-          organization,
-          selection,
-          timeWindow,
-          traceMetric,
-          query,
-          interval,
-          yBuckets,
-          // Pin the shared y-domain only when chunking, so every chunk has aligned
-          // y-buckets and can be merged. The fallback request stays unpinned.
-          yMin: bounds?.min,
-          yMax: bounds?.max,
-        })
-      )
-    : [];
+  // Construct all the needed queries, and let them wait for the bounds query to
+  // resolve if it's needed. If it doesn't resolve correctly the active windows
+  // have been swapped for the one global window.
+  const queries = activeWindows.map(timeWindow => ({
+    ...metricHeatMapApiOptions({
+      organization,
+      selection,
+      timeWindow,
+      traceMetric,
+      query,
+      interval,
+      yBuckets,
+      // Pin the shared y-domain only when chunking, so every chunk has aligned
+      // y-buckets and can be merged. The fallback request stays unpinned.
+      yMin: bounds?.min,
+      yMax: bounds?.max,
+    }),
+    // We can run these queries once we have valid dimensions, and we either
+    // tried to get the bounds, or they weren't needed
+    enabled: enabled && validDimensions && (isBoundsQueryNeeded ? boundsSettled : true),
+  }));
 
   const combine = useMemo(
     () => makePartitionedHeatMapWindowCombiner({timeDomain, intervalMs}),
@@ -118,8 +118,8 @@ export function useMetricHeatMapData({
   const {
     series: chunkSeries,
     error: chunkError,
-    isPending: isPending,
-    isFetching: isFetching,
+    isPending: areChunksPending,
+    isFetching: areChunksFetching,
     isPartial,
   } = useQueries({queries, combine});
 
@@ -127,15 +127,17 @@ export function useMetricHeatMapData({
   const series = chunkSeries
     ? mergeMetricUnit(chunkSeries, traceMetric.unit ?? undefined)
     : chunkSeries;
-  // A failed bounds query isn't fatal — it degrades to the single-request
-  // fallback above, so only the heat map request's own error matters.
-  const error = chunkError;
 
   return {
     series,
-    error,
-    isPending: isPending || boundsQuery.isPending,
-    isFetching: isFetching || boundsQuery.isFetching,
+    // A failed bounds query isn't fatal since it degrades to the single-request
+    // fallback above, so only the heat map request's own error matters
+    error: chunkError,
+    // The bounds query might be pending because it's waiting for dimensions, or
+    // because it's not needed. Its pending state is only taken into account if
+    // it's actually ever going to be needed
+    isPending: areChunksPending || (isBoundsQueryNeeded && boundsQuery.isPending),
+    isFetching: areChunksFetching || boundsQuery.isFetching,
     isPartial,
   };
 }

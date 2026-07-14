@@ -125,7 +125,7 @@ describe('makePartitionedHeatMapWindowCombiner', () => {
     const out = combine([success(newer), success(older)]);
     expect(out.series).toBeDefined();
     expect(out.isPartial).toBe(false);
-    expect(out.isFetchingMore).toBe(false);
+    expect(out.isFetching).toBe(false);
     expect(out.error).toBeNull();
   });
 
@@ -133,10 +133,10 @@ describe('makePartitionedHeatMapWindowCombiner', () => {
     expect(combine([loading(), loading()]).series).toBeUndefined();
   });
 
-  it('Flags fetchingMore while some chunks stream in', () => {
+  it('Flags fetching while some chunks stream in', () => {
     const out = combine([success(older), loading()]);
     expect(out.series).toBeDefined();
-    expect(out.isFetchingMore).toBe(true);
+    expect(out.isFetching).toBe(true);
   });
 
   it('Flags partial and keeps survivors when a chunk errors', () => {
@@ -219,7 +219,7 @@ function loading(): UseQueryResult<HeatMapSeries> {
     isSuccess: false,
     isError: false,
     isPending: true,
-    fetchStatus: 'fetching',
+    isFetching: true,
     data: undefined,
     error: null,
   } as unknown as UseQueryResult<HeatMapSeries>;
