@@ -91,6 +91,18 @@ def should_increment_contributor_seat(
     )
 
 
+def _safe_instance_hostname(integration: Integration | RpcIntegration) -> str | None:
+    try:
+        return instance_hostname(integration)
+    except Exception:
+        logger.warning(
+            "scm.webhook.organization_contributor.hostname_error",
+            exc_info=True,
+            extra={"provider": integration.provider, "integration_id": integration.id},
+        )
+        return None
+
+
 def get_canonical_contributor(
     *,
     organization_id: int,
@@ -105,7 +117,7 @@ def get_canonical_contributor(
         OrganizationContributors.objects.filter(
             organization_id=organization_id,
             provider=integration.provider,
-            hostname=instance_hostname(integration),
+            hostname=_safe_instance_hostname(integration),
             external_identifier=external_identifier,
         )
         .order_by("id")
@@ -138,7 +150,7 @@ def get_or_create_contributor(
                 integration_id=integration.id,
                 external_identifier=external_identifier,
                 provider=integration.provider,
-                hostname=instance_hostname(integration),
+                hostname=_safe_instance_hostname(integration),
                 alias=alias,
             )
     except IntegrityError:
@@ -168,7 +180,6 @@ def track_contributor_seat(
         external_identifier=str(user_id),
         alias=user_username,
     )
-
     if not should_increment_contributor_seat(organization, repo, contributor):
         return
 

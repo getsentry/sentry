@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import re
 from collections.abc import Callable, Mapping
 from types import FrameType
 from typing import TYPE_CHECKING, Any, Concatenate, ParamSpec, TypeVar
@@ -53,6 +54,10 @@ if TYPE_CHECKING:
 
 
 TIMEOUT_STATUS_CODE = 0
+
+CLAUDE_ROUTINE_URL_RE = re.compile(
+    r"https://api\.anthropic\.com/v1/claude_code/routines/[^/?#]+/fire/?"
+)
 
 logger = logging.getLogger("sentry.sentry_apps.webhooks")
 
@@ -277,6 +282,10 @@ def send_and_save_webhook_request(
                 custom_headers_enabled = features.has(
                     "organizations:sentry-apps-custom-webhook-headers", owner_org
                 )
+                if CLAUDE_ROUTINE_URL_RE.fullmatch(url) and features.has(
+                    "organizations:sentry-apps-claude-routine-webhooks", owner_org
+                ):
+                    app_platform_event.include_text_summary = True
             circuit_breaker = _create_circuit_breaker(sentry_app)
             if not _circuit_breaker_allows_request(circuit_breaker, sentry_app, lifecycle):
                 return Response()

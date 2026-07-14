@@ -8,7 +8,7 @@ from sentry.testutils.cases import TestCase
 class InstanceHostnameTest(TestCase):
     def test_supported_providers(self) -> None:
         cases = [
-            ("github", {"domain_name": "github.com/example"}, "github.com"),
+            ("github", {}, "github.com"),
             (
                 "github_enterprise",
                 {"domain_name": "github.example.com/example"},

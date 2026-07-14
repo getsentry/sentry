@@ -81,7 +81,6 @@ class GitHubWebhookTestCase(APITestCase):
         metadata = {
             "access_token": access_token,
             "expires_at": future_expires.isoformat(),
-            "domain_name": "github.com/example",
             **metadata_overrides,
         }
 

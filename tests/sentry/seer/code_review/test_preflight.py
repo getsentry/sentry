@@ -22,7 +22,6 @@ class TestCodeReviewPreflightService(TestCase):
                 organization=self.organization,
                 provider="github",
                 external_id="github:123",
-                metadata={"domain_name": "github.com/example"},
             )
             self.integration = serialize_integration(integration)
         self.external_identifier = "user123"
