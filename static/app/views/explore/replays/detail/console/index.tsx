@@ -49,13 +49,17 @@ export function Console() {
   const clearSearchTerm = () => setSearchTerm('');
 
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const getItemKey = useCallback(
+    (index: number) => getVirtualItemKey(items[index], index),
+    [items]
+  );
 
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => scrollContainerRef.current,
     estimateSize: () => ESTIMATED_ROW_HEIGHT,
     overscan: 12,
-    getItemKey: index => getVirtualItemKey(items[index], index),
+    getItemKey,
     useAnimationFrameWithResizeObserver: true,
   });
 

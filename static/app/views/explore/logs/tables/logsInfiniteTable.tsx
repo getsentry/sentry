@@ -303,12 +303,17 @@ export function LogsInfiniteTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchString, localOnlyItemFilters?.filterText]);
 
+  const getItemKey = useCallback(
+    (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
+    [data]
+  );
+
   const virtualizer = useVirtualizer<HTMLElement, Element>({
     count: data?.length ?? 0,
     estimateSize,
     overscan: 35,
     getScrollElement: () => tableBodyRef?.current,
-    getItemKey: (index: number) => data?.[index]?.[OurLogKnownFieldKey.ID] ?? index,
+    getItemKey,
   });
 
   useLayoutEffect(() => {

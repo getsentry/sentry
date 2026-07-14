@@ -16,20 +16,10 @@ import type {SeerPreferencesResponse} from 'sentry/components/events/autofix/pre
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {ProjectSeerContainer as ProjectSeer} from 'sentry/views/settings/projectSeer';
 
-// Needed to mock useVirtualizer lists.
-jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
-  x: 0,
-  y: 0,
-  width: 0,
-  height: 30,
-  left: 0,
-  top: 0,
-  right: 0,
-  bottom: 0,
-  toJSON: jest.fn(),
-}));
+mockElementSize({width: 0, height: 30});
 
 describe('ProjectSeer', () => {
   let project: DetailedProject;
