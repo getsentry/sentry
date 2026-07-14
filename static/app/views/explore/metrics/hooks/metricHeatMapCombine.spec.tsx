@@ -156,14 +156,41 @@ describe('makePartitionedHeatMapWindowCombiner', () => {
 
 const HOUR = 60 * 60 * 1000;
 
+const Y_BUCKET_SIZE = 50;
 // Two pinned y buckets shared by every chunk.
-const Y_VALUES = [0, 50];
+const Y_VALUES = [0, Y_BUCKET_SIZE];
 
 function makeChunk(columns: Array<{x: number; z: [number, number]}>): HeatMapSeries {
   const values = columns.flatMap(({x, z}) =>
     Y_VALUES.map((y, i) => ({xAxis: x, yAxis: y, zAxis: z[i]!}))
   );
-  return HeatMapSeriesFixture({values});
+
+  return HeatMapSeriesFixture({
+    values,
+    meta: {
+      xAxis: {
+        name: 'time',
+        bucketCount: columns.length,
+        bucketSize: HOUR,
+        start: Math.min(...values.map(value => value.xAxis)),
+        end: Math.max(...values.map(value => value.xAxis)),
+      },
+      yAxis: {
+        name: 'value',
+        bucketCount: Y_VALUES.length,
+        bucketSize: Y_BUCKET_SIZE,
+        start: Y_VALUES.at(0)!,
+        end: Y_VALUES.at(-1)!,
+        valueType: 'number',
+        valueUnit: null,
+      },
+      zAxis: {
+        name: 'count()',
+        start: Math.min(...values.map(value => value.zAxis)),
+        end: Math.max(...values.map(value => value.zAxis)),
+      },
+    },
+  });
 }
 
 // A combiner over a plan covering [0, 2h); chunking is inferred from the number
