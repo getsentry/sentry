@@ -86,11 +86,11 @@ export function mergeHeatMapChunks(
   let maxLoadedX = -Infinity;
 
   for (const chunk of chunks) {
+    minLoadedX = Math.min(minLoadedX, chunk.meta.xAxis.start);
+    maxLoadedX = Math.max(maxLoadedX, chunk.meta.xAxis.end);
+
     for (const {xAxis, yAxis, zAxis} of chunk.values) {
       yValueSet.add(yAxis);
-
-      minLoadedX = Math.min(minLoadedX, xAxis);
-      maxLoadedX = Math.max(maxLoadedX, xAxis);
 
       if (zAxis === null) {
         continue;
