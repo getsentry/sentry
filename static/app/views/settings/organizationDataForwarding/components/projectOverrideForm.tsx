@@ -5,7 +5,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -126,7 +126,7 @@ export function ProjectOverrideForm({
         </Flex>
       </Disclosure.Title>
       <Disclosure.Content>
-        <Flex direction="column" borderTop="primary">
+        <Stack borderTop="primary">
           <form.AppForm form={form}>
             <form.AppField name="is_enabled">
               {field => (
@@ -367,7 +367,7 @@ export function ProjectOverrideForm({
               </form.SubmitButton>
             </Flex>
           </form.AppForm>
-        </Flex>
+        </Stack>
       </Disclosure.Content>
     </Disclosure>
   );

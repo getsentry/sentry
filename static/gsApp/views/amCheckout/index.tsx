@@ -764,13 +764,7 @@ function AMCheckout(props: Props) {
   );
 
   return (
-    <Flex
-      width="100%"
-      background="primary"
-      justify="center"
-      align="center"
-      direction="column"
-    >
+    <Stack width="100%" background="primary" justify="center" align="center">
       <SentryDocumentTitle title={t('Change Subscription')} orgSlug={organization.slug} />
       {isOnSponsoredPartnerPlan && (
         <Alert.Container>
@@ -821,7 +815,7 @@ function AMCheckout(props: Props) {
       >
         {renderCheckoutContent()}
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 

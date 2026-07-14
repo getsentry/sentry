@@ -12,14 +12,12 @@ from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models import (
     ApiKeyReplica,
     ApiTokenReplica,
-    ExternalActorReplica,
     OrgAuthTokenReplica,
 )
 from sentry.hybridcloud.outbox.base import ReplicatedCellModel, ReplicatedControlModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
 from sentry.hybridcloud.services.replica.service import CellReplicaService, ControlReplicaService
-from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.integration import Integration
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -35,7 +33,6 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.projectkeymapping import ProjectKeyMapping
 from sentry.models.team import Team
 from sentry.models.teamreplica import TeamReplica
-from sentry.notifications.services import RpcExternalActor
 from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.users.models.user import User
 
@@ -280,27 +277,6 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
 
 
 class DatabaseBackedControlReplicaService(ControlReplicaService):
-    def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
-        try:
-            if external_actor.user_id is not None:
-                # Validating existence of user
-                User.objects.get(id=external_actor.user_id)
-            integration = Integration.objects.get(id=external_actor.integration_id)
-        except (User.DoesNotExist, Integration.DoesNotExist):
-            return
-
-        destination = ExternalActorReplica(
-            externalactor_id=external_actor.id,
-            external_id=external_actor.external_id,
-            external_name=external_actor.external_name,
-            organization_id=external_actor.organization_id,
-            user_id=external_actor.user_id,
-            provider=external_actor.provider,
-            team_id=external_actor.team_id,
-            integration_id=integration.id,
-        )
-        handle_replication(ExternalActor, destination, "externalactor_id")
-
     def remove_replicated_organization_member_team(
         self, *, organization_id: int, organization_member_team_id: int
     ) -> None:

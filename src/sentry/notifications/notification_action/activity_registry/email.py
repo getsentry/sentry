@@ -14,7 +14,7 @@ from sentry.notifications.platform.strategies.issue_owners import (
 )
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.templates.workflow_engine import (
-    WorkflowEngineActivityAction,
+    ActivityAlertAction,
 )
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
@@ -37,7 +37,7 @@ class EmailActivityHandler(ActivityHandler):
             raise ValueError(f"Activity {activity.id} has no associated group")
         strategy = IssueOwnersActivityAlertStrategy(group=group)
         data = build_activity_data(invocation, activity)
-        NotificationService[WorkflowEngineActivityAction](data=data).notify_sync(strategy=strategy)
+        NotificationService[ActivityAlertAction](data=data).notify_sync(strategy=strategy)
 
     @classmethod
     def invoke_action(cls, invocation: ActionInvocation, activity: Activity) -> None:

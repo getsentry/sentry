@@ -57,7 +57,7 @@ def test_segment_deserialized_correctly(mock_process_segment: mock.MagicMock) ->
     with (
         mock.patch.object(factory, "producer", new=mock.Mock()) as mock_producer,
         mock.patch(
-            "sentry.spans.consumers.process_segments.tasks._snuba_items_producer"
+            "sentry.spans.consumers.process_segments.tasks._snuba_items_task_producer"
         ) as mock_task_producer,
     ):
         strategy = factory.create_with_partitions(
@@ -147,7 +147,7 @@ def test_process_segment_task_matches_consumer_output(
     consumer_payloads = [value.payload for value in consumer_values]
 
     with mock.patch(
-        "sentry.spans.consumers.process_segments.tasks._snuba_items_producer"
+        "sentry.spans.consumers.process_segments.tasks._snuba_items_task_producer"
     ) as mock_producer:
         process_segment_task(segment_bytes)
 

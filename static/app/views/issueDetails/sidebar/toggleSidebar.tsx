@@ -40,10 +40,14 @@ const ToggleButton = styled(Button)<{expanded: boolean}>`
     p.expanded &&
     css`
       margin-right: calc(-${p.theme.space.xl} - 1px);
+      /* Square the right corners on both layers so the shadow (::before) reaches the edge like the surface (::after) */
+      &::before,
       &::after {
-        border-right-color: transparent;
         border-top-right-radius: 0px;
         border-bottom-right-radius: 0px;
+      }
+      &::after {
+        border-right-color: transparent;
       }
     `}
 `;

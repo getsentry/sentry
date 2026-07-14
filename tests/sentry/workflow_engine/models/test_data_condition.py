@@ -51,11 +51,11 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
             type=Condition.GREATER, comparison=1.0, condition_result=DetectorPriorityLevel.HIGH
         )
         evaluation = dc.evaluate_value(2)
-        assert evaluation.condition_met is True
+        assert evaluation.outcome.triggered is True
         assert evaluation.result == DetectorPriorityLevel.HIGH
 
         evaluation = dc.evaluate_value(1)
-        assert evaluation.condition_met is False
+        assert evaluation.outcome.triggered is False
         assert evaluation.result is None
 
     def test_dict_comparison_result(self) -> None:
@@ -104,7 +104,8 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
             condition_result="wrong",
         )
         evaluation = dc.evaluate_value(2)
-        assert evaluation.result == ConditionError(msg="Invalid condition result")
+        assert evaluation.result is None
+        assert evaluation.error == ConditionError(msg="Invalid condition result")
 
     def test_condition_evaluation__data_condition_exception(self) -> None:
         def evaluate_value(value: int, comparison: int) -> bool:

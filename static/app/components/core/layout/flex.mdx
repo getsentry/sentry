@@ -106,6 +106,10 @@ Simialarly to `Container`, `Flex` inherits all spacing props like `m`, `p`, `mt`
 
 #### Column direction
 
+> [!NOTE]
+> While `Flex` supports `direction="column"`, prefer [`Stack`](/stories/core/stack/)
+> for vertical layouts. It's a `Flex` that defaults to column direction with a focused API.
+
 <Storybook.Demo>
   <Flex direction="column" gap="md" justify="between" align="center">
     <Container padding="md" border="primary" radius="md" background="primary">

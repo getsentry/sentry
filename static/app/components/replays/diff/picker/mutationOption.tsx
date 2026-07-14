@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 
 import {IconClock} from 'sentry/icons/iconClock';
@@ -35,7 +35,7 @@ export function MutationOption({
 
   return (
     <Label htmlFor={id}>
-      <Flex direction="column" gap="xs" align="center">
+      <Stack gap="xs" align="center">
         <Flex gap="sm" align="center">
           <IconClock variant="primary" size="sm" />
           <span>{formattedDuration}</span>
@@ -49,7 +49,7 @@ export function MutationOption({
           value={frame.timestamp - startTimestampMs}
           onChange={onChange}
         />
-      </Flex>
+      </Stack>
     </Label>
   );
 }

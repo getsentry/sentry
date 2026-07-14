@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from django.utils import timezone
 
+from sentry.api.serializers import serialize
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
@@ -106,8 +107,12 @@ class FindReferencedGroupsTest(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
         )
-        assert activity.data == {"version": release.version}
+        assert activity.data == {"version": release.version, "commit": commit.id}
         assert activity.ident == str(resolution.id)
+
+        serialized_data = serialize(activity)["data"]
+        assert serialized_data["version"] == release.version
+        assert serialized_data["commit"]["id"] == commit.key
 
     def test_resolve_in_pull_request(self) -> None:
         group = self.create_group()
@@ -183,8 +188,14 @@ class FindReferencedGroupsTest(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
         )
-        assert activity.data == {"version": release.version}
+        commit = Commit.objects.get(key=merge_commit_sha)
+        assert activity.data == {"version": release.version, "commit": commit.id}
         assert activity.ident == str(resolution.id)
+
+        serialized_data = serialize(activity)["data"]
+        assert serialized_data["version"] == release.version
+        assert serialized_data["commit"]["id"] == commit.key
+        assert serialized_data["commit"]["pullRequest"]["id"] == pr.key
 
 
 class PullRequestRetentionTest(TestCase):

@@ -171,10 +171,18 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                 elif y_buckets > MAX_BUCKETS:
                     raise ParseError(f"yBuckets must be less than {MAX_BUCKETS}")
 
+            # Callers may need to pin the value axis via yMin/yMax to enforce
+            # identical bounds across parallel requests.
+            pinned_bounds = self._parse_pinned_bounds(request)
+
             query = request.GET.get("query", "")
 
         with handle_query_errors():
-            bucket_ranges = self.query_y_bucket_ranges(snuba_params, dataset, query, yAxis)
+            bucket_ranges = (
+                pinned_bounds
+                if pinned_bounds is not None
+                else self.query_y_bucket_ranges(snuba_params, dataset, query, yAxis)
+            )
             use_log_scale: bool = bool(y_log_scale and bucket_ranges.range > 1)
             if bucket_ranges.min_value != bucket_ranges.max_value:
                 yAxes = {}
@@ -270,6 +278,33 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                 ),
                 status=200,
             )
+
+    @staticmethod
+    def _parse_pinned_bounds(request: Request) -> LimitTuple | None:
+        """Parse optional yMin/yMax into a pinned value domain, or None to auto-derive it."""
+        yMin = request.GET.get("yMin")
+        yMax = request.GET.get("yMax")
+
+        if yMin is None and yMax is None:
+            return None
+
+        if yMin is None or yMax is None:
+            raise ParseError("yMin and yMax must be provided together")
+
+        try:
+            min_bound = float(yMin)
+            max_bound = float(yMax)
+        except ValueError:
+            raise ParseError("yMin and yMax must be numbers")
+
+        # float() accepts nan/inf, which would poison the bucket math and break JSON serialization.
+        if not math.isfinite(min_bound) or not math.isfinite(max_bound):
+            raise ParseError("yMin and yMax must be finite numbers")
+
+        if max_bound < min_bound:
+            raise ParseError("yMax must be greater than or equal to yMin")
+
+        return LimitTuple(min_bound, max_bound)
 
     def query_y_bucket_ranges(
         self, snuba_params: SnubaParams, dataset: Any, query: str, yAxis: str
