@@ -30,6 +30,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.seer.models.night_shift import SeerNightShiftRunResult
+from sentry.seer.models.smart_assignment import SeerSmartAssignmentResult
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.seer.delete_seer_grouping_records import (
@@ -99,6 +100,7 @@ ADDITIONAL_GROUP_RELATED_MODELS = (
     models.EventAttachment,
     NotificationMessage,
     SeerNightShiftRunResult,
+    SeerSmartAssignmentResult,
 )
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + ADDITIONAL_GROUP_RELATED_MODELS
 
