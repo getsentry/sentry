@@ -20,6 +20,7 @@ from sentry.models.group import Group, GroupStatus, get_group_with_redirect
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
 from sentry.utils.sdk import bind_organization_context
+from sentry.viewer_context import set_viewer_context_project
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +98,8 @@ class GroupEndpoint(Endpoint):
         # we didn't bind context above, so do it now
         if not organization:
             bind_organization_context(group.project.organization)
+
+        set_viewer_context_project(group.project_id)
 
         if group.status in EXCLUDED_STATUSES:
             raise ResourceDoesNotExist
