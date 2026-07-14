@@ -375,6 +375,41 @@ describe('useScmProjectDetails', () => {
       expect(onComplete.mock.calls[0][0].project.slug).toBe(existingProject.slug);
     });
 
+    it('keeps submit enabled after unchecking integration once restore settles', async () => {
+      const existingProject = ProjectFixture({slug: 'my-project', platform: 'python'});
+      ProjectsStore.loadInitialData([existingProject]);
+
+      const persistedAction = {
+        id: IssueAlertActionType.SLACK as const,
+        workspace: slackIntegration.id,
+        channel: '#eng',
+      };
+
+      const {result} = renderDetails({
+        projectDetailsForm: {
+          projectName: 'my-project',
+          teamSlug: adminTeam.slug,
+          alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+          notificationAction: persistedAction,
+        },
+        createdProjectSlug: existingProject.slug,
+        selectedPlatform: pythonPlatform,
+      });
+
+      // Restore settles: the gate opens.
+      await waitFor(() =>
+        expect(result.current.notificationProps.provider).toBe('slack')
+      );
+      expect(result.current.canSubmit).toBe(true);
+
+      // Unchecking "notify via integration" drops INTEGRATION from actions.
+      // The restore-complete latch must keep canSubmit true rather than wedging it.
+      act(() => {
+        result.current.notificationProps.setActions([MultipleCheckboxOptions.EMAIL]);
+      });
+      expect(result.current.canSubmit).toBe(true);
+    });
+
     it('creates a new project when the notification channel changes on return', async () => {
       const existingProject = ProjectFixture({slug: 'my-project', platform: 'python'});
       ProjectsStore.loadInitialData([existingProject]);

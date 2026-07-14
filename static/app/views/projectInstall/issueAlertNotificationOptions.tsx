@@ -13,7 +13,11 @@ import {Stack} from '@sentry/scraps/layout';
 import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import {t, tct} from 'sentry/locale';
-import {IssueAlertActionType, type IntegrationAction} from 'sentry/types/alerts';
+import {
+  IssueAlertActionType,
+  type IntegrationAction,
+  type IssueAlertRuleAction,
+} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -172,6 +176,19 @@ export function useCreateNotificationAction({
 
   const hasInitializedSelection = useRef(false);
 
+  function getIntegrationId(action: IssueAlertRuleAction): string | undefined {
+    switch (action.id) {
+      case IssueAlertActionType.SLACK:
+        return action.workspace;
+      case IssueAlertActionType.DISCORD:
+        return action.server;
+      case IssueAlertActionType.MS_TEAMS:
+        return action.team;
+      default:
+        return undefined;
+    }
+  }
+
   // Seeds the notification picker once, after the integrations query resolves:
   // restores the provider/integration/channel from a default action when one is
   // present, otherwise auto-selects the first available integration. Guarded by
@@ -191,14 +208,7 @@ export function useCreateNotificationAction({
         key =>
           providerDetails[key as keyof typeof providerDetails].action === firstAction.id
       );
-      const integrationId =
-        'workspace' in firstAction
-          ? firstAction.workspace
-          : 'server' in firstAction
-            ? firstAction.server
-            : 'team' in firstAction
-              ? firstAction.team
-              : undefined;
+      const integrationId = getIntegrationId(firstAction);
       const integrationList = matchedProviderKey
         ? (providersToIntegrations[matchedProviderKey] ?? [])
         : [];
