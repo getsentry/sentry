@@ -155,42 +155,51 @@ export class InstalledIntegration extends Component<Props> {
                 />
               </IntegrationItemBox>
               <div>
-                <Tooltip
-                  disabled={allowMemberConfiguration || hasAccess || superuser}
-                  position="left"
-                  title={t(
-                    'You must be an organization owner, manager or admin to configure'
-                  )}
-                >
-                  {requiresUpgrade && provider.key === 'github' && (
-                    <Button
-                      data-test-id="integration-upgrade-button"
-                      disabled={disableAction}
-                      icon={<IconWarning />}
-                      onClick={this.handleUpdatePermissionsClick}
-                      variant="primary"
-                      size="sm"
-                    >
-                      {t('Update Now')}
-                    </Button>
-                  )}
-                  {requiresUpgrade && provider.key !== 'github' && (
-                    <AddIntegrationButton
-                      analyticsParams={{
-                        view: 'integrations_directory_integration_detail',
-                        already_installed: true,
-                      }}
-                      buttonText={t('Update %s', provider.name)}
-                      data-test-id="integration-upgrade-button"
-                      disabled={disableAction}
-                      onAddIntegration={() => {}}
-                      organization={organization}
-                      provider={provider}
-                      variant="primary"
-                      size="sm"
-                    />
-                  )}
-                  {!provider.metadata.aspects?.directEnable && (
+                {requiresUpgrade && (
+                  <Tooltip
+                    disabled={!disableAction}
+                    position="left"
+                    title={t(
+                      'You must be an organization owner, manager or admin to update'
+                    )}
+                  >
+                    {provider.key === 'github' ? (
+                      <Button
+                        data-test-id="integration-upgrade-button"
+                        disabled={disableAction}
+                        icon={<IconWarning />}
+                        onClick={this.handleUpdatePermissionsClick}
+                        variant="primary"
+                        size="sm"
+                      >
+                        {t('Update Now')}
+                      </Button>
+                    ) : (
+                      <AddIntegrationButton
+                        analyticsParams={{
+                          view: 'integrations_directory_integration_detail',
+                          already_installed: true,
+                        }}
+                        buttonText={t('Update %s', provider.name)}
+                        data-test-id="integration-upgrade-button"
+                        disabled={disableAction}
+                        onAddIntegration={() => {}}
+                        organization={organization}
+                        provider={provider}
+                        variant="primary"
+                        size="sm"
+                      />
+                    )}
+                  </Tooltip>
+                )}
+                {!provider.metadata.aspects?.directEnable && (
+                  <Tooltip
+                    disabled={allowMemberConfiguration || hasAccess || superuser}
+                    position="left"
+                    title={t(
+                      'You must be an organization owner, manager or admin to configure'
+                    )}
+                  >
                     <StyledLinkButton
                       variant="transparent"
                       icon={<IconSettings />}
@@ -200,8 +209,8 @@ export class InstalledIntegration extends Component<Props> {
                     >
                       {t('Configure')}
                     </StyledLinkButton>
-                  )}
-                </Tooltip>
+                  </Tooltip>
+                )}
               </div>
               <div>
                 <Tooltip

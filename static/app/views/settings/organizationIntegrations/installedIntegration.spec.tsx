@@ -2,7 +2,7 @@ import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegration
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
 
@@ -54,5 +54,28 @@ describe('InstalledIntegration', () => {
     render(<InstalledIntegration {...defaultProps} provider={provider} />);
 
     expect(screen.getByRole('button', {name: 'Uninstall'})).toBeInTheDocument();
+  });
+
+  it('shows an admin tooltip on the disabled Update Now button', async () => {
+    const lowerAccessOrg = OrganizationFixture({access: ['org:read']});
+
+    render(
+      <InstalledIntegration
+        {...defaultProps}
+        organization={lowerAccessOrg}
+        requiresUpgrade
+      />,
+      {organization: lowerAccessOrg}
+    );
+
+    const updateButton = screen.getByRole('button', {name: 'Update Now'});
+    expect(updateButton).toBeDisabled();
+
+    await userEvent.hover(updateButton);
+    expect(
+      await screen.findByText(
+        'You must be an organization owner, manager or admin to update'
+      )
+    ).toBeInTheDocument();
   });
 });
