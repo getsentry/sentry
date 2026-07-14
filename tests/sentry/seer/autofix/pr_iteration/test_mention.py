@@ -96,3 +96,24 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         with self.feature("organizations:autofix-pr-iteration"):
             self._call(event)
         mock_delay.assert_not_called()
+
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    def test_skips_when_mention_has_hyphen_suffix(self, mock_delay: MagicMock) -> None:
+        """Test that @sentry-cursor-agent doesn't trigger the command."""
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._call(self._event(body="@sentry-cursor-agent please help"))
+        mock_delay.assert_not_called()
+
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    def test_skips_when_mention_has_underscore_suffix(self, mock_delay: MagicMock) -> None:
+        """Test that @sentry_bot doesn't trigger the command."""
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._call(self._event(body="@sentry_bot do something"))
+        mock_delay.assert_not_called()
+
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    def test_skips_when_mention_in_email(self, mock_delay: MagicMock) -> None:
+        """Test that email@sentry.io doesn't trigger the command."""
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._call(self._event(body="contact email@sentry.io for help"))
+        mock_delay.assert_not_called()

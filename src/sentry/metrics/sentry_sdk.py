@@ -155,18 +155,6 @@ class SentrySDKMetricsBackend(MetricsBackend):
             attributes=metric_attributes,
         )
 
-    def set(
-        self,
-        key: str,
-        value: str | int,
-        instance: str | None = None,
-        tags: Tags | None = None,
-        sample_rate: float = 1,
-        stacklevel: int = 0,
-    ) -> None:
-        # Sentry SDK metrics have no set type.
-        pass
-
     def event(
         self,
         title: str,

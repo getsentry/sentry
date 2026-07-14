@@ -24,11 +24,7 @@ import {
 jest.mock('sentry/utils/useNavigate');
 const mockedUseNavigate = jest.mocked(useNavigate);
 
-const EQUATION_FEATURES = [
-  'tracemetrics-enabled',
-  'tracemetrics-equations-in-dashboards',
-  'tracemetrics-equations-in-explore',
-];
+const EQUATION_FEATURES = ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'];
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
@@ -143,27 +139,6 @@ describe('useTraceMetricsVisualizeModeState', () => {
     });
 
     expect(result.current.isEquationMode).toBe(true);
-  });
-
-  it('starts in series mode without the equations feature flag', () => {
-    const {result} = renderHookWithProviders(useTraceMetricsVisualizeModeState, {
-      organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
-      additionalWrapper: WidgetBuilderProvider,
-      initialRouterConfig: {
-        location: {
-          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-          query: {
-            dataset: WidgetType.TRACEMETRICS,
-            displayType: DisplayType.LINE,
-            yAxis: [
-              'equation|sum(value,alpha_metric,counter,none) + avg(value,beta_metric,counter,none)',
-            ],
-          },
-        },
-      },
-    });
-
-    expect(result.current.isEquationMode).toBe(false);
   });
 
   it('toggles to equation mode', () => {
