@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, memo, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -52,7 +52,6 @@ export function MessagesPanelNew({
   onSelectNode,
   isLoading,
 }: MessagesPanelNewProps) {
-  const organization = useOrganization();
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
 
   // Detect XML once per list so selection re-renders don't re-parse every message.
@@ -75,14 +74,6 @@ export function MessagesPanelNew({
     return map;
   }, [nodes]);
 
-  const handleMessageClick = (message: ConversationMessage) => {
-    trackAnalytics('conversations.message.click', {organization});
-    const node = nodeMap.get(message.nodeId);
-    if (node) {
-      onSelectNode(node);
-    }
-  };
-
   if (isLoading) {
     return <MessagesPanelSkeleton />;
   }
@@ -100,32 +91,37 @@ export function MessagesPanelNew({
       <Stack gap="0" width="100%">
         {messages.map(message => {
           const hasXmlTags = hasXmlByMessageId.get(message.id) ?? false;
-          const isSelected = message.nodeId === selectedNodeId;
 
           if (message.role === 'user') {
             return (
-              <UserMessageBlock key={message.id} expand={hasXmlTags}>
-                <MessageText align="left">
-                  <AIContentRenderer
-                    text={message.content}
-                    inline
-                    autoCollapseLimit={10}
-                  />
-                </MessageText>
-              </UserMessageBlock>
+              <UserTurn
+                key={message.id}
+                content={message.content}
+                hasXmlTags={hasXmlTags}
+              />
             );
           }
+
+          // Pass each turn only the selection state that concerns it, rather
+          // than the shared `selectedNodeId`. A turn's props stay referentially
+          // stable when the selection moves to an unrelated turn, so once these
+          // rows are memoized only the turns that gain/lose selection re-render.
+          const isSelected = message.nodeId === selectedNodeId;
+          const selectedToolCallId = message.toolCalls?.some(
+            tool => tool.nodeId === selectedNodeId
+          )
+            ? selectedNodeId
+            : null;
 
           return (
             <AssistantTurn
               key={message.id}
               message={message}
               hasXmlTags={hasXmlTags}
-              isSelected={message.role === 'assistant' && isSelected}
-              selectedNodeId={selectedNodeId}
+              isSelected={isSelected}
+              selectedToolCallId={selectedToolCallId}
               nodeMap={nodeMap}
               onSelectNode={onSelectNode}
-              onClick={() => handleMessageClick(message)}
             />
           );
         })}
@@ -134,25 +130,50 @@ export function MessagesPanelNew({
   );
 }
 
+// User turns carry no selection state, so their props never change on a
+// selection change — memoized, they render once and always bail out after.
+const UserTurn = memo(function UserTurn({
+  content,
+  hasXmlTags,
+}: {
+  content: string;
+  hasXmlTags: boolean;
+}) {
+  return (
+    <UserMessageBlock expand={hasXmlTags}>
+      <MessageText align="left">
+        <AIContentRenderer text={content} inline autoCollapseLimit={10} />
+      </MessageText>
+    </UserMessageBlock>
+  );
+});
+
 interface AssistantTurnProps {
   hasXmlTags: boolean;
   isSelected: boolean;
   message: ConversationMessage;
   nodeMap: Map<string, AITraceSpanNode>;
-  onClick: () => void;
   onSelectNode: (node: AITraceSpanNode) => void;
-  selectedNodeId: string | null;
+  /**
+   * The selected node id when it belongs to one of this turn's tool calls,
+   * otherwise null. Scoping it to the turn keeps the prop stable for turns
+   * unaffected by a selection change.
+   */
+  selectedToolCallId: string | null;
 }
 
-function AssistantTurn({
+// Memoized so a selection change only re-renders the turns that gain or lose
+// selection. This relies on every prop being referentially stable per turn,
+// which is why the click handler is built here rather than passed in.
+const AssistantTurn = memo(function AssistantTurn({
   message,
   hasXmlTags,
   isSelected,
-  selectedNodeId,
+  selectedToolCallId,
   nodeMap,
   onSelectNode,
-  onClick,
 }: AssistantTurnProps) {
+  const organization = useOrganization();
   const generationNode = nodeMap.get(message.nodeId);
   // Spans often report `gen_ai.cost.total_tokens` as 0 when the API omits cost;
   // treat that as absent so we don't show `<$0.01`, matching the timeline.
@@ -163,13 +184,20 @@ function AssistantTurn({
     cost !== undefined || (message.duration !== undefined && message.duration > 0);
   const meta = <AssistantMeta cost={cost} duration={message.duration} />;
 
+  const handleClick = () => {
+    trackAnalytics('conversations.message.click', {organization});
+    if (generationNode) {
+      onSelectNode(generationNode);
+    }
+  };
+
   return (
     <Fragment>
       {message.toolCalls && message.toolCalls.length > 0 && (
         <MessageBlock>
           <MessageToolCallsNew
             toolCalls={message.toolCalls}
-            selectedNodeId={selectedNodeId}
+            selectedToolCallId={selectedToolCallId}
             nodeMap={nodeMap}
             onSelectNode={onSelectNode}
           />
@@ -185,7 +213,7 @@ function AssistantTurn({
         // Tool/reasoning-only turn: still surface the turn's cost and duration.
         hasMeta && <MessageBlock justify="end">{meta}</MessageBlock>
       ) : message.content === EMPTY_TEXT_CONTENT ? (
-        <AssistantMessageBlock meta={meta} isSelected={isSelected} onClick={onClick}>
+        <AssistantMessageBlock meta={meta} isSelected={isSelected} onClick={handleClick}>
           <MessageText align="left" variant="muted">
             {message.content}
           </MessageText>
@@ -195,7 +223,7 @@ function AssistantTurn({
           expand={hasXmlTags}
           meta={meta}
           isSelected={isSelected}
-          onClick={onClick}
+          onClick={handleClick}
         >
           <MessageText align="left">
             <AIContentRenderer text={message.content} inline autoCollapseLimit={10} />
@@ -204,7 +232,7 @@ function AssistantTurn({
       )}
     </Fragment>
   );
-}
+});
 
 function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
   return (
