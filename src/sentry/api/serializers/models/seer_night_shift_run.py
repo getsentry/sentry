@@ -19,7 +19,7 @@ from sentry.seer.models.night_shift import (
     SeerNightShiftRunResult,
     SeerNightShiftRunShard,
 )
-from sentry.seer.models.run import SeerRun, SeerRunPullRequest
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 
 
@@ -106,27 +106,9 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
             group_id: group.qualified_short_id for group_id, group in groups_by_id.items()
         }
 
-        # Resolve each result's SeerRun pk: prefer the FK, else match the
-        # legacy seer_run_id text against SeerRun.seer_run_state_id.
-        seer_run_pk_by_result_id: dict[int, int] = {}
-        legacy_state_id_by_result_id: dict[int, int] = {}
-        for r in triage_results:
-            if r.result_seer_run_id is not None:
-                seer_run_pk_by_result_id[r.id] = r.result_seer_run_id
-            elif r.seer_run_id is not None and r.seer_run_id.isdigit():
-                legacy_state_id_by_result_id[r.id] = int(r.seer_run_id)
-
-        seer_run_pk_by_state_id: dict[int, int] = {
-            state_id: pk
-            for state_id, pk in SeerRun.objects.filter(
-                seer_run_state_id__in=set(legacy_state_id_by_result_id.values())
-            ).values_list("seer_run_state_id", "id")
-            if state_id is not None
+        seer_run_pk_by_result_id: dict[int, int] = {
+            r.id: r.result_seer_run_id for r in triage_results if r.result_seer_run_id is not None
         }
-        for result_id, state_id in legacy_state_id_by_result_id.items():
-            pk = seer_run_pk_by_state_id.get(state_id)
-            if pk is not None:
-                seer_run_pk_by_result_id[result_id] = pk
 
         # Serialize each PR exactly once, keyed by Django pk (not `.key` --
         # that's the PR number and collides across repos).

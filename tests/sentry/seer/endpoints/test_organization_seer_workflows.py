@@ -61,7 +61,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         assert issue["groupShortId"] == group.qualified_short_id
         assert issue["action"] == "autofix_triggered"
         assert issue["reason"] == "Null pointer in the checkout flow"
-        # "seer-123" is a non-numeric legacy id, so it can't resolve to a SeerRun.
+        # No result_seer_run FK is set on this result, so no PRs resolve.
         assert issue["pullRequests"] == []
 
     def test_issue_with_missing_group_has_null_title(self) -> None:
@@ -136,7 +136,11 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         issue = response.data[0]["issues"][0]
         assert issue["pullRequests"][0]["status"] == "merged"
 
-    def test_issue_includes_pull_requests_via_legacy_seer_run_id(self) -> None:
+    def test_issue_with_only_legacy_seer_run_id_has_no_pull_requests(self) -> None:
+        # result_seer_run has no backfill migration, so rows predating it only
+        # have the legacy text seer_run_id -- PRs are intentionally not
+        # resolved for those, even if a SeerRun with a matching
+        # seer_run_state_id exists.
         group = self.create_group()
         repo = self.create_repo()
         pull_request = self.create_pull_request(
@@ -158,8 +162,7 @@ class OrganizationSeerWorkflowsTest(APITestCase):
             response = self.get_success_response(self.organization.slug)
 
         issue = response.data[0]["issues"][0]
-        assert len(issue["pullRequests"]) == 1
-        assert issue["pullRequests"][0]["id"] == pull_request.key
+        assert issue["pullRequests"] == []
 
     def test_pull_requests_not_leaked_across_runs(self) -> None:
         group_a = self.create_group()
