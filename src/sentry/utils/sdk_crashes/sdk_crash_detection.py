@@ -32,17 +32,19 @@ def get_hybrid_sdk_parent(sdk_name: str, event_data: Mapping[str, Any]) -> tuple
     if not isinstance(packages, Sequence) or isinstance(packages, str | bytes):
         return None
 
-    versions = {
-        package.get("version")
-        for package in packages
-        if isinstance(package, Mapping)
-        and package.get("name") == parent_package_name
-        and isinstance(package.get("version"), str)
-    }
+    versions: set[str] = set()
+    for package in packages:
+        if not isinstance(package, Mapping) or package.get("name") != parent_package_name:
+            continue
+
+        version = package.get("version")
+        if isinstance(version, str):
+            versions.add(version)
+
     if len(versions) != 1:
         return None
 
-    parent_sdk_version = versions.pop()
+    parent_sdk_version = next(iter(versions))
     try:
         Version(parent_sdk_version)
     except InvalidVersion:
