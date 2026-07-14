@@ -331,7 +331,9 @@ export function getArbitraryRelativePeriod(arbitraryPeriod?: string | null) {
   // Get the custom period label ("8D" --> "8 Days")
   // parseStatsPeriodString is safe here because we already checked STATS_PERIOD_REGEX above
   const parsed = parseStatsPeriodString(arbitraryPeriod)!;
-  return {[arbitraryPeriod]: SUPPORTED_RELATIVE_PERIOD_UNITS[parsed.unit]!.label(parsed.value)};
+  return {
+    [arbitraryPeriod]: SUPPORTED_RELATIVE_PERIOD_UNITS[parsed.unit]!.label(parsed.value),
+  };
 }
 
 /**
