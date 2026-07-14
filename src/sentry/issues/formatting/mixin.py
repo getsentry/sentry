@@ -1,6 +1,6 @@
 """REST delivery for the formatter.
 
-A mixin that adds a ``formatted`` field to an endpoint's JSON response when ``?format`` is
+A mixin that adds a ``formatted`` field to an endpoint's JSON response when ``?llmFormat`` is
 requested. Endpoints opt in by setting ``formatter_adapter`` (serialized response -> text).
 Gated by the ``issues.standardized-markdown-for-llm`` option: when it's off the mixin is inert
 and the response is untouched.
@@ -12,7 +12,6 @@ import logging
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any
 
-from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -38,16 +37,6 @@ _VALID_FORMATS: tuple[Format, ...] = ("markdown", "xml")
 class FormattableResponseMixin(_Base):
     # maps this endpoint's serialized response dict + format into rendered text
     formatter_adapter: Callable[[Mapping[str, Any], Format], str] | None = None
-
-    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
-        super().initial(request, *args, **kwargs)
-        if not options.get(FORMATTER_OPTION):
-            return
-        fmt = request.GET.get(QUERY_PARAM)
-        if fmt is not None and fmt not in _VALID_FORMATS:
-            raise ParseError(
-                f"Unsupported {QUERY_PARAM}: {fmt!r}. Expected one of {list(_VALID_FORMATS)}."
-            )
 
     def finalize_response(
         self, request: Request, response: Response, *args: Any, **kwargs: Any
