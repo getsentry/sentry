@@ -319,7 +319,6 @@ function TraceConversationTranscript({
                 nodes={nodes}
                 selectedNodeId={selectedNode?.id ?? null}
                 onSelectNode={handleSelectNode}
-                nodeTraceMap={nodeTraceMap}
               />
             </Flex>
           </ConversationLeftPanel>

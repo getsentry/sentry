@@ -30,9 +30,9 @@ import {
   getTimelineColorByOpType,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {useToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/useToolOutputBytes';
 import {SpanFields} from 'sentry/views/insights/types';
 
 interface SpanPresentation {
@@ -46,7 +46,6 @@ export function AiSpanTimeline({
   nodes,
   selectedNodeKey,
   onSelectNode,
-  nodeTraceMap,
   compressGaps = false,
   isLoading = false,
 }: {
@@ -55,7 +54,6 @@ export function AiSpanTimeline({
   selectedNodeKey: string | null;
   compressGaps?: boolean;
   isLoading?: boolean;
-  nodeTraceMap?: Map<string, string>;
 }) {
   const compressedBounds = useMemo(
     () => (compressGaps ? getCompressedTimeBounds(nodes) : null),
@@ -95,7 +93,6 @@ export function AiSpanTimeline({
             node={node}
             indent={shouldIndent ? 1 : 0}
             traceBounds={timeBounds}
-            traceId={nodeTraceMap?.get(node.id)}
             onSelectNode={onSelectNode}
             isSelected={node.id === selectedNodeKey}
             compressedStartByNodeId={compressedBounds?.compressedStartByNodeId}
@@ -157,7 +154,6 @@ const TimelineRow = memo(function TimelineRow({
   isSelected,
   indent,
   traceBounds,
-  traceId,
   compressedStartByNodeId,
 }: {
   indent: number;
@@ -166,7 +162,6 @@ const TimelineRow = memo(function TimelineRow({
   onSelectNode: (node: AITraceSpanNode) => void;
   traceBounds: TraceBounds;
   compressedStartByNodeId?: Map<string, number>;
-  traceId?: string;
 }) {
   const theme = useTheme();
   const hasErrors = hasError(node);
@@ -241,22 +236,7 @@ const TimelineRow = memo(function TimelineRow({
                     {metric}
                   </Text>
                 ) : isTool ? (
-                  traceId ? (
-                    <ToolOutputSizeMetric
-                      node={node}
-                      traceId={traceId}
-                      isSelected={isSelected}
-                    />
-                  ) : (
-                    <Text
-                      size="sm"
-                      variant={isSelected ? 'primary' : 'muted'}
-                      align="right"
-                      tabular
-                    >
-                      {formatBytesBase10(0)}
-                    </Text>
-                  )
+                  <ToolOutputSizeMetric node={node} isSelected={isSelected} />
                 ) : null}
                 {metric || isTool ? (
                   <Text size="sm" variant={isSelected ? 'primary' : 'muted'}>
@@ -307,18 +287,16 @@ function getMetric(node: AITraceSpanNode): React.ReactNode {
 
 /**
  * Tool-call spans don't report token usage, so we show their output size
- * (e.g. `4.1 KB`) instead, fetched per tool span via `useToolOutputBytes`.
+ * (e.g. `4.1 KB`) instead, derived from the tool result on the span.
  */
 function ToolOutputSizeMetric({
   node,
-  traceId,
   isSelected,
 }: {
   isSelected: boolean;
   node: AITraceSpanNode;
-  traceId: string;
 }) {
-  const bytes = useToolOutputBytes(node, traceId);
+  const bytes = getToolOutputBytes(node);
 
   return (
     <Text size="sm" variant={isSelected ? 'primary' : 'muted'} align="right" tabular>

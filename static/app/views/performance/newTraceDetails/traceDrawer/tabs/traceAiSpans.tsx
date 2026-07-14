@@ -101,13 +101,6 @@ export function TraceAiSpans({
   const {selectedNode, handleSelectNode} = useAiSpanSelection(nodes);
 
   const showTimeline = hasGenAiConversationsRedesignFeature(organization);
-  const nodeTraceMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const node of nodes) {
-      map.set(node.id, traceSlug);
-    }
-    return map;
-  }, [nodes, traceSlug]);
 
   const handleViewFullTraceClick = () => {
     trackAnalytics('agent-monitoring.trace.view-full-trace-click', {
@@ -152,7 +145,6 @@ export function TraceAiSpans({
             nodes={nodes}
             onSelectNode={handleSelectNode}
             selectedNodeKey={selectedNode?.id ?? null}
-            nodeTraceMap={nodeTraceMap}
           />
         ) : (
           <AISpanList
@@ -218,7 +210,6 @@ export function AiSpansSplitView({
                   nodes={nodes}
                   onSelectNode={handleSelectNode}
                   selectedNodeKey={selectedNode?.id ?? null}
-                  nodeTraceMap={nodeTraceMap}
                 />
               ) : (
                 <AISpanList
