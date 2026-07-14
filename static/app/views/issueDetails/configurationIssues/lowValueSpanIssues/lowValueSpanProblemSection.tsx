@@ -10,8 +10,10 @@ import {
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {EMPTY_OPTION_VALUE, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -27,6 +29,11 @@ import {
 
 interface LowValueSpanProblemSectionProps {
   event: Event;
+}
+
+interface LowValueSpanCostsResponse {
+  estimatedCostUsd: number | null;
+  extrapolatedCount: number | null;
 }
 
 const LOW_VALUE_SPAN_EXPLORE_REFERRER = 'low-value-span-configuration-issue';
@@ -48,13 +55,25 @@ export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionPr
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const evidenceData = getLowValueSpanEvidenceData(event.occurrence?.evidenceData);
-  // Estimated cost is billing-sensitive, so only expose it to org owners and managers.
-  const canViewEstimatedCost = ['manager', 'owner'].includes(organization.orgRole ?? '');
-  const hasEstimatedCost =
-    canViewEstimatedCost &&
-    evidenceData.estimatedCostUsd !== null &&
-    evidenceData.estimatedCostUsd > 0;
-  const spanCount = evidenceData.extrapolatedCount ?? evidenceData.count;
+  const canViewEstimatedCost = ['billing', 'manager', 'owner'].includes(
+    organization.orgRole ?? ''
+  );
+  const {data: costData} = useApiQuery<LowValueSpanCostsResponse>(
+    [
+      getApiUrl('/organizations/$organizationIdOrSlug/low-value-spans-costs/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
+      {query: {spanCount: evidenceData.count}},
+    ],
+    {
+      enabled: canViewEstimatedCost && evidenceData.count !== null,
+      staleTime: 30000,
+    }
+  );
+  const estimatedCostUsd = costData?.estimatedCostUsd ?? null;
+  const hasEstimatedCost = estimatedCostUsd !== null && estimatedCostUsd > 0;
+  const extrapolatedCount = costData?.extrapolatedCount ?? evidenceData.extrapolatedCount;
+  const spanCount = extrapolatedCount ?? evidenceData.count;
   const affectedSpanQuery = getAffectedSpanQuery(evidenceData);
   const affectedSpanExploreUrl = affectedSpanQuery
     ? getExploreUrl({
@@ -85,7 +104,7 @@ export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionPr
             <Text monospace>
               {spanCount === null ? t('Unknown') : formatAbbreviatedNumber(spanCount)}
             </Text>
-            {evidenceData.extrapolatedCount !== null && (
+            {extrapolatedCount !== null && (
               <InfoTip
                 size="xs"
                 title={t(
@@ -105,9 +124,7 @@ export function LowValueSpanProblemSection({event}: LowValueSpanProblemSectionPr
             subject: t('Estimated cost'),
             value: (
               <Flex align="center" gap="xs">
-                <Text monospace>
-                  {formatEstimatedCostUsd(evidenceData.estimatedCostUsd)}
-                </Text>
+                <Text monospace>{formatEstimatedCostUsd(estimatedCostUsd)}</Text>
                 <InfoTip
                   size="xs"
                   title={t(

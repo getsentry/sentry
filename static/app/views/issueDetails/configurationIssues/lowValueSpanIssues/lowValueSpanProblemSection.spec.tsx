@@ -6,15 +6,28 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {LowValueSpanProblemSection} from './lowValueSpanProblemSection';
 import type {LowValueSpanEvidenceData} from './types';
 
+interface LowValueSpanCostsResponse {
+  estimatedCostUsd: number | null;
+  extrapolatedCount: number | null;
+}
+
 const evidenceData: LowValueSpanEvidenceData = {
   op: 'function',
   description: 'compute_checksum',
   count: 1234,
   extrapolatedCount: 60_000,
   avgDurationMs: 0.4,
-  estimatedCostUsd: 12.34,
   spanOrigin: 'auto',
 };
+
+function mockCostResponse(
+  body: LowValueSpanCostsResponse = {estimatedCostUsd: 12.34, extrapolatedCount: 60_000}
+) {
+  return MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/low-value-spans-costs/',
+    body,
+  });
+}
 
 function makeEvent(overrides: Partial<LowValueSpanEvidenceData> = {}) {
   return EventFixture({
@@ -22,11 +35,18 @@ function makeEvent(overrides: Partial<LowValueSpanEvidenceData> = {}) {
       evidenceData: {...evidenceData, ...overrides},
       type: 13002,
     },
+    groupID: '1',
   });
 }
 
 describe('LowValueSpanProblemSection', () => {
-  it('renders low-value span evidence from the occurrence', () => {
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+  });
+
+  it('renders low-value span evidence from the occurrence', async () => {
+    mockCostResponse();
+
     render(<LowValueSpanProblemSection event={makeEvent()} />, {
       organization: OrganizationFixture({orgRole: 'owner'}),
     });
@@ -36,18 +56,31 @@ describe('LowValueSpanProblemSection', () => {
     expect(screen.getByText('function - compute_checksum')).toBeInTheDocument();
     expect(screen.getByText('Span count')).toBeInTheDocument();
     expect(screen.getByText('60K')).toBeInTheDocument();
-    expect(screen.getAllByLabelText('More information')).toHaveLength(2);
-    expect(screen.getByText('Estimated cost')).toBeInTheDocument();
+    expect(await screen.findByText('Estimated cost')).toBeInTheDocument();
     expect(screen.getByText('$12.34')).toBeInTheDocument();
+    expect(screen.getAllByLabelText('More information')).toHaveLength(2);
     expect(screen.getByText('<1ms')).toBeInTheDocument();
   });
 
-  it('renders estimated cost for org managers', () => {
+  it('renders estimated cost for org managers', async () => {
+    mockCostResponse();
+
     render(<LowValueSpanProblemSection event={makeEvent()} />, {
       organization: OrganizationFixture({orgRole: 'manager'}),
     });
 
-    expect(screen.getByText('Estimated cost')).toBeInTheDocument();
+    expect(await screen.findByText('Estimated cost')).toBeInTheDocument();
+    expect(screen.getByText('$12.34')).toBeInTheDocument();
+  });
+
+  it('renders estimated cost for billing users', async () => {
+    mockCostResponse();
+
+    render(<LowValueSpanProblemSection event={makeEvent()} />, {
+      organization: OrganizationFixture({orgRole: 'billing'}),
+    });
+
+    expect(await screen.findByText('Estimated cost')).toBeInTheDocument();
     expect(screen.getByText('$12.34')).toBeInTheDocument();
   });
 
@@ -72,15 +105,17 @@ describe('LowValueSpanProblemSection', () => {
 
   it('falls back to the sampled span count when extrapolated count is unavailable', () => {
     render(<LowValueSpanProblemSection event={makeEvent({extrapolatedCount: null})} />, {
-      organization: OrganizationFixture({orgRole: 'owner'}),
+      organization: OrganizationFixture({orgRole: 'member'}),
     });
 
     expect(screen.getByText('1.2K')).toBeInTheDocument();
-    expect(screen.getAllByLabelText('More information')).toHaveLength(1);
+    expect(screen.queryAllByLabelText('More information')).toHaveLength(0);
   });
 
   it('does not render estimated cost when unavailable', () => {
-    render(<LowValueSpanProblemSection event={makeEvent({estimatedCostUsd: null})} />, {
+    mockCostResponse({estimatedCostUsd: null, extrapolatedCount: 60_000});
+
+    render(<LowValueSpanProblemSection event={makeEvent()} />, {
       organization: OrganizationFixture({orgRole: 'owner'}),
     });
 
@@ -88,7 +123,9 @@ describe('LowValueSpanProblemSection', () => {
   });
 
   it('does not render estimated cost when zero', () => {
-    render(<LowValueSpanProblemSection event={makeEvent({estimatedCostUsd: 0})} />, {
+    mockCostResponse({estimatedCostUsd: 0, extrapolatedCount: 60_000});
+
+    render(<LowValueSpanProblemSection event={makeEvent()} />, {
       organization: OrganizationFixture({orgRole: 'owner'}),
     });
 
