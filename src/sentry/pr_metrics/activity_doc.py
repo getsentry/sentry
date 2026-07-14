@@ -180,6 +180,12 @@ def _apply_entry(
     the (bounded) ``events`` list — the caller holds the row lock. Counts increment
     once per non-duplicate delivery, before the events cap, so ``select_verdict`` /
     ``reviews_count`` stay exact even when entries are dropped by the cap.
+
+    The one exactness gap is a pathology-on-a-pathology: once the cap is reached a
+    dropped entry keeps no stored ``webhook_id``, so a later redelivery of that same
+    capped event can't be deduped and increments ``counts`` a second time. Retaining
+    the dropped ids would reintroduce exactly the unbounded per-event growth the cap
+    exists to stop, so the rare over-count on a 500+-entry PR is accepted, not fixed.
     """
     if webhook_id and _is_duplicate(doc, webhook_id):
         return
@@ -188,6 +194,8 @@ def _apply_entry(
     _fold_participant(doc, payload)
 
     if len(doc["events"]) >= MAX_EVENTS:
+        # Past the cap the entry (and its webhook_id) isn't retained, so a redelivery
+        # re-increments counts — the accepted dedup gap documented above.
         doc["events_dropped"] = doc.get("events_dropped", 0) + 1
         logger.warning(
             "pr_metrics.activity_doc.events_capped",
