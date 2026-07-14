@@ -484,7 +484,7 @@ def test_check_events_converge_under_any_permutation() -> None:
     # ``checks`` map in every arrival order. (The one creation-order-sensitive case
     # — a passing re-run delivered before the failure it supersedes for the same
     # name — is excluded here and covered by its own limitation test.)
-    events = [
+    events: list[tuple[str, dict[str, Any]]] = [
         (
             "run",
             {"check_name": "a", "conclusion": "failure", "completed_at": "2026-07-10T12:00:00Z"},
