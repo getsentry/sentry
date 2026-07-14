@@ -505,7 +505,6 @@ def unlock_hashes(project_id: int, locked_primary_hashes: Sequence[str]) -> None
 @instrumented_task(
     name="sentry.tasks.unmerge.start_unmerge",
     namespace=issues_merge_tasks,
-    alias_namespace=issues_tasks,
     processing_deadline_duration=300,
     silo_mode=SiloMode.CELL,
 )

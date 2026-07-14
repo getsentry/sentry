@@ -33,7 +33,6 @@ _TASK_KEY = "merge_groups"
 @instrumented_task(
     name="sentry.tasks.merge.start_merge_groups",
     namespace=issues_merge_tasks,
-    alias_namespace=issues_tasks,
     retry=Retry(delay=60 * 5),
     silo_mode=SiloMode.CELL,
 )
@@ -81,6 +80,7 @@ def merge_groups(
     to_object_id: int | str | None = None,
     transaction_id: int | None = None,
     eventstream_state: Mapping[str, Any] | None = None,
+    recursed: bool = False,  # Deprecated: tolerated for in-flight tasks during rolling deploy
 ) -> bool:
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models.activity import Activity
