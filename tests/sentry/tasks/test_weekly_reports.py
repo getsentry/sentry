@@ -419,7 +419,6 @@ class WeeklyReportsTest(
         result = org_key_errors(ctx, [self.project.id], Referrer.REPORTS_KEY_ERRORS.value)
         assert result == {self.project.id: [{"events.group_id": event1.group.id, "count()": 1}]}
 
-    @with_feature("organizations:weekly-report-batched-key-errors")
     def test_message_builder_filter_resolved_batched(self) -> None:
         self.project.first_event = self.now - timedelta(days=3)
         self.project.save()
