@@ -4,7 +4,7 @@ import {AddressElement, useElements, useStripe} from '@stripe/react-stripe-js';
 import type {StripeAddressElementChangeEvent} from '@stripe/stripe-js';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
@@ -131,7 +131,7 @@ function BillingDetailsFormFields({
   }, [stripe, elements, handleStripeLoadError, handleStripeLoadSuccess]);
 
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       {stripeIsBlocked ? (
         <Alert variant="warning">
           {t(
@@ -205,7 +205,7 @@ function BillingDetailsFormFields({
           )}
         </Fragment>
       )}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -225,7 +225,7 @@ function CustomBillingDetailsFormField({
   placeholder?: string;
 }) {
   return (
-    <Flex direction="column" gap="xs">
+    <Stack gap="xs">
       <Flex align="center" gap="xs">
         <Text size="sm" variant="muted">
           {label}
@@ -239,7 +239,7 @@ function CustomBillingDetailsFormField({
         value={value}
         aria-label={label}
       />
-    </Flex>
+    </Stack>
   );
 }
 

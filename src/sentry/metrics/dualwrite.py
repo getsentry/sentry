@@ -159,6 +159,22 @@ class DualWriteMetricsBackend(MetricsBackend):
             key, value, instance, tags, sample_rate, unit, stacklevel + 1
         )
 
+    def set(
+        self,
+        key: str,
+        value: str | int,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        sample_rate: float = 1,
+        stacklevel: int = 0,
+    ) -> None:
+        use_primary, use_secondary = self._other_choice(key)
+        if use_primary:
+            self._primary_backend.set(key, value, instance, tags, sample_rate, stacklevel + 1)
+        if use_secondary:
+            self._secondary_backend.set(key, value, instance, tags, sample_rate, stacklevel + 1)
+        self._experimental_backend.set(key, value, instance, tags, sample_rate, stacklevel + 1)
+
     def event(
         self,
         title: str,

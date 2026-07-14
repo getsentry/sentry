@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo} from 'react';
 import type {Dispatch, SetStateAction} from 'react';
 
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
@@ -218,7 +218,7 @@ function IssueStackTraceContent({
   if (view === 'raw') {
     return (
       <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           <Panel>
             <RawStackTraceText>
               {formatExceptionsAsText({
@@ -234,7 +234,7 @@ function IssueStackTraceContent({
             group={group}
             projectSlug={projectSlug}
           />
-        </Flex>
+        </Stack>
       </FoldSection>
     );
   }
@@ -248,8 +248,8 @@ function IssueStackTraceContent({
 
     return (
       <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
-        <Flex direction="column" gap="lg">
-          <Flex direction="column" gap="sm">
+        <Stack gap="lg">
+          <Stack gap="sm">
             {hasExceptionInfo && (
               <Fragment>
                 <div>
@@ -262,7 +262,7 @@ function IssueStackTraceContent({
                 />
               </Fragment>
             )}
-          </Flex>
+          </Stack>
           <ErrorBoundary customComponent={null}>
             <StacktraceBanners event={event} stacktrace={exc.stacktrace} />
           </ErrorBoundary>
@@ -284,14 +284,14 @@ function IssueStackTraceContent({
             group={group}
             projectSlug={projectSlug}
           />
-        </Flex>
+        </Stack>
       </FoldSection>
     );
   }
 
   return (
     <FoldSection sectionKey={sectionKey} title="Stack Trace" actions={sectionActions}>
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Text variant="muted">
           {tn(
             'There is %s chained exception in this event.',
@@ -334,7 +334,7 @@ function IssueStackTraceContent({
                 <ExceptionHeader type={excType} module={excModule} />
               </Disclosure.Title>
               <Disclosure.Content>
-                <Flex direction="column" gap="sm">
+                <Stack gap="sm">
                   <ExceptionDescription
                     value={excValue}
                     mechanism={exc.mechanism}
@@ -365,7 +365,7 @@ function IssueStackTraceContent({
                       frameActionsComponent={IssueFrameActions}
                     />
                   </StackTraceProvider>
-                </Flex>
+                </Stack>
               </Disclosure.Content>
             </Disclosure>
           );
@@ -375,7 +375,7 @@ function IssueStackTraceContent({
           group={group}
           projectSlug={projectSlug}
         />
-      </Flex>
+      </Stack>
     </FoldSection>
   );
 }

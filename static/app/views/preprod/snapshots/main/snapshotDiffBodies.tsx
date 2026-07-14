@@ -243,7 +243,7 @@ export const OnionCardBody = memo(function OnionCardBody({
     height: maxH ? `${((headImage.height || 0) / maxH) * 100}%` : '100%',
   };
   return (
-    <Flex direction="column" gap="md" align="center">
+    <Stack gap="md" align="center">
       <Container
         position="relative"
         width="100%"
@@ -284,7 +284,7 @@ export const OnionCardBody = memo(function OnionCardBody({
           {t('Head')}
         </Text>
       </Flex>
-    </Flex>
+    </Stack>
   );
 });
 

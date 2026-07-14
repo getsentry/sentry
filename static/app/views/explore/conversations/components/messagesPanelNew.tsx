@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
@@ -35,7 +35,6 @@ import {detectAIContentType} from 'sentry/views/performance/newTraceDetails/trac
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 interface MessagesPanelNewProps {
-  nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
@@ -51,7 +50,6 @@ export function MessagesPanelNew({
   nodes,
   selectedNodeId,
   onSelectNode,
-  nodeTraceMap,
   isLoading,
 }: MessagesPanelNewProps) {
   const organization = useOrganization();
@@ -126,7 +124,6 @@ export function MessagesPanelNew({
               isSelected={message.role === 'assistant' && isSelected}
               selectedNodeId={selectedNodeId}
               nodeMap={nodeMap}
-              nodeTraceMap={nodeTraceMap}
               onSelectNode={onSelectNode}
               onClick={() => handleMessageClick(message)}
             />
@@ -142,7 +139,6 @@ interface AssistantTurnProps {
   isSelected: boolean;
   message: ConversationMessage;
   nodeMap: Map<string, AITraceSpanNode>;
-  nodeTraceMap: Map<string, string>;
   onClick: () => void;
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
@@ -154,7 +150,6 @@ function AssistantTurn({
   isSelected,
   selectedNodeId,
   nodeMap,
-  nodeTraceMap,
   onSelectNode,
   onClick,
 }: AssistantTurnProps) {
@@ -176,7 +171,6 @@ function AssistantTurn({
             toolCalls={message.toolCalls}
             selectedNodeId={selectedNodeId}
             nodeMap={nodeMap}
-            nodeTraceMap={nodeTraceMap}
             onSelectNode={onSelectNode}
           />
         </MessageBlock>
@@ -282,20 +276,20 @@ export function MessagesPanelSkeleton() {
           <Placeholder height="14px" width="180px" />
         </UserMessageBlock>
         <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
-          <Flex direction="column" gap="md">
+          <Stack gap="md">
             <Placeholder style={invertedPlaceholderStyle} height="12px" width="320px" />
             <Placeholder style={invertedPlaceholderStyle} height="12px" width="260px" />
             <Placeholder style={invertedPlaceholderStyle} height="12px" width="180px" />
-          </Flex>
+          </Stack>
         </AssistantMessageBlock>
         <UserMessageBlock>
           <Placeholder height="14px" width="120px" />
         </UserMessageBlock>
         <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
-          <Flex direction="column" gap="md">
+          <Stack gap="md">
             <Placeholder style={invertedPlaceholderStyle} height="12px" width="280px" />
             <Placeholder style={invertedPlaceholderStyle} height="12px" width="200px" />
-          </Flex>
+          </Stack>
         </AssistantMessageBlock>
       </Stack>
     </PanelContainer>
@@ -304,15 +298,9 @@ export function MessagesPanelSkeleton() {
 
 function PanelContainer({children}: {children: React.ReactNode}) {
   return (
-    <Flex
-      direction="column"
-      padding="xl 0"
-      background="primary"
-      minHeight="100%"
-      width="100%"
-    >
+    <Stack padding="xl 0" background="primary" minHeight="100%" width="100%">
       {children}
-    </Flex>
+    </Stack>
   );
 }
 

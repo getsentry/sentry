@@ -13,7 +13,7 @@ import isEqual from 'lodash/isEqual';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
@@ -328,12 +328,12 @@ function WidgetBuilderSlideoutInner({
           return (
             <Fragment>
               {header}
-              <Flex direction="column" gap="2xl" padding="2xl">
+              <Stack gap="2xl" padding="2xl">
                 <Placeholder height="50px" />
                 <Placeholder height="50px" />
                 <Placeholder height="50px" />
                 <Placeholder height="200px" />
-              </Flex>
+              </Stack>
             </Fragment>
           );
         }

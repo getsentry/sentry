@@ -1,7 +1,5 @@
 import type {Theme} from '@emotion/react';
 
-import {IconChat, IconChevron, IconCode, IconFix} from 'sentry/icons';
-import {IconBot} from 'sentry/icons/iconBot';
 import type {EventTransaction} from 'sentry/types/event';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -277,25 +275,4 @@ export function getTimelineColorByOpType(theme: Theme): ColorByOpType {
     default: theme.tokens.content.secondary,
     error: theme.tokens.content.danger,
   };
-}
-
-/**
- * Returns the icon element for a given gen_ai operation type.
- */
-export function getGenAiOpTypeIcon(
-  opType: string | undefined,
-  size: 'xs' | 'sm' | 'md' | 'lg' = 'sm'
-) {
-  switch (opType) {
-    case GenAiOperationType.AGENT:
-      return <IconBot size={size} />;
-    case GenAiOperationType.AI_CLIENT:
-      return <IconChat size={size} />;
-    case GenAiOperationType.TOOL:
-      return <IconFix size={size} />;
-    case GenAiOperationType.HANDOFF:
-      return <IconChevron size={size} isDouble direction="right" />;
-    default:
-      return <IconCode size={size} />;
-  }
 }
