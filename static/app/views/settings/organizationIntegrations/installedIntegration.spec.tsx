@@ -100,9 +100,7 @@ describe('InstalledIntegration', () => {
 
     await userEvent.hover(updateButton);
     expect(
-      screen.queryByText(
-        'You must be an organization owner, manager or admin to update'
-      )
+      screen.queryByText('You must be an organization owner, manager or admin to update')
     ).not.toBeInTheDocument();
   });
 
