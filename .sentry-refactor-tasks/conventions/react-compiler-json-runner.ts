@@ -95,8 +95,9 @@ const excludedLocations = new Set(
 );
 
 const excludedFindingsPath = process.env.REACT_COMPILER_EXCLUDE_FINDINGS;
+let excludedFindings: ScannerFile[] = [];
 if (excludedFindingsPath) {
-  const excludedFindings = JSON.parse(
+  excludedFindings = JSON.parse(
     readFileSync(excludedFindingsPath, 'utf8')
   ) as ScannerFile[];
   for (const file of excludedFindings) {
@@ -132,6 +133,13 @@ for (const diagnostic of diagnostics) {
     endLine: line,
   });
   files.set(filePath, messages);
+}
+
+if (process.env.REACT_COMPILER_INCLUDE_EXCLUDED_FINDINGS) {
+  for (const file of excludedFindings) {
+    const filePath = path.resolve(repoPath, file.filePath);
+    files.set(filePath, [...(files.get(filePath) ?? []), ...file.messages]);
+  }
 }
 
 console.log(
