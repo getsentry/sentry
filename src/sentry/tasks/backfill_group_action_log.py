@@ -119,6 +119,7 @@ def backfill_group_action_log_for_project(
     project_id: int,
     last_activity_id: int = 0,
     cursor_datetime: str | None = None,
+    cursor_id: int = 0,
     **kwargs: object,
 ) -> None:
     task_state = current_task()
@@ -143,13 +144,14 @@ def backfill_group_action_log_for_project(
     parsed_cursor = datetime.fromisoformat(cursor_datetime) if cursor_datetime else None
 
     try:
-        _backfill_project(project, parsed_cursor, activation_id)
+        _backfill_project(project, parsed_cursor, cursor_id, activation_id)
     except Exception:
         logger.exception(
             "backfill_group_action_log.task_failed",
             extra={
                 "project_id": project_id,
                 "cursor_datetime": cursor_datetime,
+                "cursor_id": cursor_id,
             },
         )
         raise
@@ -158,6 +160,7 @@ def backfill_group_action_log_for_project(
 def _backfill_project(
     project: Project,
     cursor_dt: datetime | None,
+    cursor_id: int = 0,
     activation_id: str | None = None,
 ) -> None:
     batch_size: int = options.get("issues.backfill_group_action_log.batch_size")
@@ -175,11 +178,11 @@ def _backfill_project(
         group_id__isnull=False,
     )
     if cursor_dt is not None:
-        # gte not gt: may re-fetch the last row from the previous batch, but the
-        # idempotency key (ON CONFLICT DO NOTHING) makes that a no-op. Avoids
-        # skipping rows that share a timestamp at the batch boundary.
-        qs = qs.filter(datetime__gte=cursor_dt)
-    activities = list(qs.order_by("datetime")[:batch_size])
+        qs = qs.extra(  # type: ignore[assignment]
+            where=['ROW("datetime", "id") > ROW(%s, %s)'],
+            params=[cursor_dt, cursor_id],
+        )
+    activities = list(qs.order_by("datetime", "id")[:batch_size])
 
     if not activities:
         logger.info(
@@ -256,7 +259,7 @@ def _backfill_project(
         tags={"reason": "translation_error"},
     )
 
-    next_cursor = activities[-1].datetime.isoformat()
+    last_activity = activities[-1]
 
     logger.info(
         "backfill_group_action_log.batch_complete",
@@ -265,7 +268,8 @@ def _backfill_project(
             "converted_count": converted_count,
             "skipped_count": skipped_count,
             "error_count": error_count,
-            "next_cursor_datetime": next_cursor,
+            "next_cursor_datetime": last_activity.datetime.isoformat(),
+            "next_cursor_id": last_activity.id,
         },
     )
 
@@ -273,7 +277,8 @@ def _backfill_project(
         backfill_group_action_log_for_project.apply_async(
             kwargs={
                 "project_id": project.id,
-                "cursor_datetime": next_cursor,
+                "cursor_datetime": last_activity.datetime.isoformat(),
+                "cursor_id": last_activity.id,
             },
             countdown=inter_batch_delay_s,
             headers={"sentry-propagate-traces": False},
