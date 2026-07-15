@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1132_add_organizationcontributors_hostname"),
+        ("sentry", "1133_pullrequest_activity_log"),
     ]
 
     operations = [
