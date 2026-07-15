@@ -20,7 +20,7 @@ function getReleaseResolutionSource(commit: Commit | null | undefined) {
   }
 
   if (commit) {
-    return tct(' via commit [commit]', {
+    return tct(' via [commit]', {
       commit: <CommitChip commit={commit} />,
     });
   }
@@ -45,7 +45,7 @@ export function getResolvedInReleaseDetails(
   if ('current_release_version' in data) {
     return (
       <Fragment>
-        {tct('in releases greater than [version]', {
+        {tct('starting with a release after [version]', {
           version: (
             <ActivityRelease
               organization={organization}

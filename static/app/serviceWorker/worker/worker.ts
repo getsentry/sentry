@@ -1,40 +1,22 @@
 import * as Sentry from '@sentry/browser';
 
 import type {ResponseMessage} from 'sentry/serviceWorker/types';
-import {getUnhandledRejectionError} from 'sentry/serviceWorker/worker/getUnhandledRejectionError';
+import {fetchClientConfig} from 'sentry/serviceWorker/worker/client-config';
+import {DEBUG_LOGGING, log} from 'sentry/serviceWorker/worker/constants';
 import {handleInboundEvent} from 'sentry/serviceWorker/worker/handleInboundEvent';
 import {handleInboundRequest} from 'sentry/serviceWorker/worker/handleInboundRequest';
 import {initializeSentry} from 'sentry/serviceWorker/worker/initializeSentry';
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 
-const DEBUG_LOGGING = false;
-
-function log(message: string) {
-  Sentry.metrics.count(`service-worker.worker.${message}`);
-  if (DEBUG_LOGGING) {
-    // eslint-disable-next-line no-console
-    console.log(`service-worker.worker.${message}`);
-  }
-}
-
 sw.addEventListener('install', event => {
-  log('onInstall');
   event.waitUntil(
     Promise.all([
       // Force activation to happen without waiting for the current worker to
       // have zero clients. This worker instance will activate and claim all
       // the clients for itself.
       sw.skipWaiting(),
-      // If this fetch fails, or initializeSentry throws an error, the worker
-      // will not be 'installed' and cannot be activated. We'll try again when
-      // the next update-check downloads a new version.
-      fetch('/api/client-config/', {
-        credentials: 'include',
-        headers: {'Content-Type': 'application/json'},
-      })
-        .then(data => data.json())
-        .then(initializeSentry),
+      fetchClientConfig().then(initializeSentry),
     ]).then(() => {
       log('didInstall');
     })
@@ -47,10 +29,13 @@ sw.addEventListener('activate', event => {
   event.waitUntil(sw.clients.claim());
 });
 
-sw.addEventListener('unhandledrejection', (event: unknown) => {
+sw.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
   log('onUnhandledRejection');
-  const reason = getUnhandledRejectionError(event);
-  Sentry.captureException(reason);
+  fetchClientConfig()
+    .then(initializeSentry)
+    .then(() => {
+      Sentry.captureException(event.reason);
+    });
 });
 
 sw.addEventListener('message', event => {
@@ -58,45 +43,103 @@ sw.addEventListener('message', event => {
     return;
   }
   event.waitUntil(
+    fetchClientConfig()
+      .then(initializeSentry)
+      .then(() =>
+        Sentry.startSpan(
+          {
+            name: 'service-worker.worker.onMessage',
+            op: 'sw.onmessage',
+            attributes: {
+              type: event.data.type,
+              name: event.data.name,
+              messageId: event.data.messageId,
+            },
+          },
+          async () => {
+            if (DEBUG_LOGGING) {
+              // eslint-disable-next-line no-console
+              console.log('service-worker.worker.onMessage');
+            }
+
+            switch (event.data.type) {
+              case 'event': {
+                await handleInboundEvent(sw, event.data);
+                break;
+              }
+              case 'request': {
+                try {
+                  const data = await handleInboundRequest(sw, event.data);
+                  event.source?.postMessage({
+                    type: 'response',
+                    messageId: event.data.messageId,
+                    data,
+                  } satisfies ResponseMessage);
+                } catch (error) {
+                  event.source?.postMessage({
+                    type: 'response',
+                    messageId: event.data.messageId,
+                    error,
+                  } satisfies ResponseMessage);
+                }
+                break;
+              }
+            }
+          }
+        )
+      )
+  );
+});
+
+sw.addEventListener('notificationclick', (event: NotificationEvent) => {
+  if (!event.notification || typeof event.notification !== 'object') {
+    return;
+  }
+  event.waitUntil(
     Sentry.startSpan(
       {
-        name: 'service-worker.worker.onMessage',
-        op: 'sw.onmessage',
+        name: 'service-worker.worker.onNotificationclick',
+        op: 'sw.notificationclick',
         attributes: {
-          type: event.data.type,
-          name: event.data.name,
-          messageId: event.data.messageId,
+          tag: event.notification.tag,
+          navigateTo: event.notification.data?.navigateTo,
         },
       },
       async () => {
-        if (DEBUG_LOGGING) {
-          // eslint-disable-next-line no-console
-          console.log('service-worker.worker.onMessage');
+        event.notification.close();
+
+        if (!('data' in event.notification)) {
+          log('onNotificationclick', {attributes: {data: 'isUndefined'}});
+          return;
         }
 
-        switch (event.data.type) {
-          case 'event': {
-            await handleInboundEvent(sw, event.data);
-            break;
-          }
-          case 'request': {
-            try {
-              const data = await handleInboundRequest(sw, event.data);
-              event.source?.postMessage({
-                type: 'response',
-                messageId: event.data.messageId,
-                data,
-              } satisfies ResponseMessage);
-            } catch (error) {
-              event.source?.postMessage({
-                type: 'response',
-                messageId: event.data.messageId,
-                error,
-              } satisfies ResponseMessage);
+        if ('navigateTo' in event.notification.data) {
+          const {pathname, query = {}} = event.notification.data.navigateTo as {
+            pathname: string;
+            query?: Record<string, string>;
+          };
+          const windowClients = await sw.clients.matchAll({type: 'window'});
+          for (const windowClient of windowClients) {
+            const windowUrl = new URL(windowClient.url);
+            if (windowUrl.pathname === pathname && 'focus' in windowClient) {
+              log('onNotificationclick.navigateTo', {
+                attributes: {client: 'focus', url: windowClient.url},
+              });
+              return windowClient.focus();
             }
-            break;
           }
+
+          const targetUrl = new URL(pathname, sw.location.origin);
+          Object.entries(query).forEach(([key, value]) => {
+            targetUrl.searchParams.set(key, value);
+          });
+
+          log('onNotificationclick.navigateTo', {
+            attributes: {client: 'openWindow', url: targetUrl.toString()},
+          });
+          return sw.clients.openWindow(targetUrl);
         }
+        return;
       }
     )
   );

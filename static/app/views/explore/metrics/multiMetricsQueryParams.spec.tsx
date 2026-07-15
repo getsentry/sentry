@@ -4,9 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHookWithProviders, screen} from 'sentry-test/reactTestingLibrary';
 
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   MultiMetricsQueryParamsProvider,
   useAddMetricQuery,
@@ -33,10 +31,8 @@ function TestableMetricComponent() {
 }
 
 function Wrapper({children}: {children: ReactNode}) {
-  const organization = useOrganization();
-  const hasEquations = canUseMetricsEquations(organization);
   return (
-    <MultiMetricsQueryParamsProvider hasEquations={hasEquations}>
+    <MultiMetricsQueryParamsProvider>
       <TestableMetricComponent />
       {children}
     </MultiMetricsQueryParamsProvider>
@@ -611,7 +607,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       const {result, router} = renderHookWithProviders(useAddMetricQuery, {
         additionalWrapper: Wrapper,
         organization: OrganizationFixture({
-          features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+          features: ['tracemetrics-enabled'],
         }),
         initialRouterConfig: {
           location: {
@@ -678,7 +674,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       const {result, router} = renderHookWithProviders(useAddMetricQuery, {
         additionalWrapper: Wrapper,
         organization: OrganizationFixture({
-          features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+          features: ['tracemetrics-enabled'],
         }),
         initialRouterConfig: {
           location: {
@@ -754,7 +750,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       const {result} = renderHookWithProviders(useAddMetricQuery, {
         additionalWrapper: Wrapper,
         organization: OrganizationFixture({
-          features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+          features: ['tracemetrics-enabled'],
         }),
         initialRouterConfig: {
           location: {
@@ -795,7 +791,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
       const {result} = renderHookWithProviders(useAddMetricQuery, {
         additionalWrapper: Wrapper,
         organization: OrganizationFixture({
-          features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+          features: ['tracemetrics-enabled'],
         }),
         initialRouterConfig: {
           location: {
