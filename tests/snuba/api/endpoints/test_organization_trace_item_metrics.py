@@ -5,7 +5,6 @@ from sentry.explore.models import (
     TraceItemTypes,
     TraceMetricTypes,
 )
-from sentry.models.project import Project
 from sentry.search.eap.trace_metrics.types import TraceMetricType
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TraceMetricsTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -29,7 +28,6 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         metric_name: str,
         metric_type: TraceMetricType = "counter",
         metric_unit: str | None = None,
-        project: Project | None = None,
     ) -> None:
         timestamp = before_now(minutes=10)
         self.store_eap_items(
@@ -39,7 +37,6 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
                     1,
                     metric_type,
                     metric_unit=metric_unit,
-                    project=project if project is not None else self.project,
                     timestamp=timestamp,
                     # Real ingestion sets this; the fixture must too for max(timestamp_precise).
                     attributes={"sentry.timestamp_precise": int(timestamp.timestamp() * 1e9)},
@@ -105,10 +102,11 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         assert response.status_code == 200, response.data
         assert [row["name"] for row in response.data] == ["checkout.requests"]
 
-    def test_expand_context_project_scoped(self) -> None:
+    def test_expand_context(self) -> None:
         self.store_metric("checkout.requests", "counter")
         self.create_context(
             "checkout.requests",
+            project=None,
             brief="Checkout requests",
             additional_context="Longer notes.",
         )
@@ -124,62 +122,25 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
             "additionalContext": "Longer notes.",
         }
 
-    def test_expand_context_org_wide(self) -> None:
+    def test_project_scoped_context_not_surfaced(self) -> None:
         self.store_metric("checkout.requests", "counter")
-        self.create_context("checkout.requests", project=None, brief="Org-wide brief")
-
-        # Org-wide context is read for the all-projects sentinel.
-        response = self.do_request(query={"project": -1, "expand": "context"})
-
-        assert response.status_code == 200, response.data
-        assert response.data[0]["context"] == {"brief": "Org-wide brief"}
-
-    def test_falls_back_to_org_wide_context(self) -> None:
-        self.store_metric("checkout.requests", "counter")
-        # Only org-wide context exists; a single-project request falls back to it.
-        self.create_context("checkout.requests", project=None, brief="Org-wide brief")
-
-        response = self.do_request(query={"project": self.project.id, "expand": "context"})
-
-        assert response.status_code == 200, response.data
-        assert response.data[0]["context"] == {"brief": "Org-wide brief"}
-
-    def test_org_wide_context_preferred_over_project(self) -> None:
-        self.store_metric("checkout.requests", "counter")
-        self.create_context("checkout.requests", project=None, brief="Org-wide brief")
+        # Only org-wide context is surfaced for now; project-scoped rows are ignored.
         self.create_context("checkout.requests", brief="Project brief")
 
         response = self.do_request(query={"project": self.project.id, "expand": "context"})
 
         assert response.status_code == 200, response.data
-        assert response.data[0]["context"] == {"brief": "Org-wide brief"}
-
-    def test_multi_project_context(self) -> None:
-        other_project = self.create_project(organization=self.organization)
-        self.store_metric("checkout.requests", "counter")
-        self.store_metric("checkout.requests", "counter", project=other_project)
-        # Context authored in one of the selected projects surfaces in the
-        # cross-project list.
-        self.create_context("checkout.requests", project=other_project, brief="Other brief")
-
-        url = reverse(self.viewname, kwargs={"organization_id_or_slug": self.organization.slug})
-        with self.feature(self.feature_flags):
-            response = self.client.get(
-                url,
-                QUERY_STRING=(
-                    f"project={self.project.id}&project={other_project.id}&expand=context"
-                ),
-            )
-
-        assert response.status_code == 200, response.data
-        assert response.data[0]["name"] == "checkout.requests"
-        assert response.data[0]["context"] == {"brief": "Other brief"}
+        assert "context" not in response.data[0]
 
     def test_context_only_matches_metric_type(self) -> None:
         self.store_metric("checkout.requests", "counter")
-        # Context is stored for a gauge of the same name — must not attach to the counter.
+        # Org-wide context stored for a gauge of the same name — must not attach
+        # to the counter.
         self.create_context(
-            "checkout.requests", metric_type=TraceMetricTypes.GAUGE, brief="Gauge brief"
+            "checkout.requests",
+            metric_type=TraceMetricTypes.GAUGE,
+            project=None,
+            brief="Gauge brief",
         )
 
         response = self.do_request(
@@ -191,7 +152,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
 
     def test_context_requires_expand(self) -> None:
         self.store_metric("checkout.requests", "counter")
-        self.create_context("checkout.requests", brief="Checkout requests")
+        self.create_context("checkout.requests", project=None, brief="Checkout requests")
 
         response = self.do_request(query={"project": self.project.id})
 
@@ -200,7 +161,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
 
     def test_context_requires_feature_flag(self) -> None:
         self.store_metric("checkout.requests", "counter")
-        self.create_context("checkout.requests", brief="Checkout requests")
+        self.create_context("checkout.requests", project=None, brief="Checkout requests")
 
         response = self.do_request(
             query={"project": self.project.id, "expand": "context"},

@@ -1,6 +1,5 @@
 from typing import Never, NotRequired, TypedDict
 
-from django.db.models import Q
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -87,8 +86,6 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
             "organizations:data-browsing-attribute-context", organization, actor=request.user
         )
 
-        project_ids = [project.id for project in snuba_params.projects]
-
         def data_fn(offset: int, limit: int) -> list[TraceMetricItem]:
             with handle_query_errors():
                 results = TraceMetrics.run_table_query(
@@ -119,7 +116,7 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
                 for row in results["data"]
             ]
             if include_context:
-                self._attach_context(metrics, organization, project_ids)
+                self._attach_context(metrics, organization)
             return metrics
 
         return self.paginate(
@@ -134,34 +131,25 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
         self,
         metrics: list[TraceMetricItem],
         organization: Organization,
-        project_ids: list[int],
     ) -> None:
         """Attach authored context to a page of metrics with a single lookup (no N+1)."""
         names = [metric["name"] for metric in metrics]
         if not names:
             return
 
-        # Metrics are aggregated across the selected projects, so fetch both the
-        # project-scoped rows for those projects and org-wide rows (null project).
+        # Only org-wide context is surfaced for now: metrics are aggregated across
+        # the selected projects, so a single org-wide row per (value, type) keeps
+        # the attached context unambiguous. Project-scoped context is ignored here.
         context_rows = TraceItemAttributeValueContext.objects.filter(
-            Q(project__isnull=True) | Q(project_id__in=project_ids),
             organization=organization,
+            project__isnull=True,
             item_type=TraceItemTypes.TRACEMETRICS,
             attribute_name=METRIC_NAME_ALIAS,
             attribute_value__in=names,
         )
-
-        # A metric can have context in more than one selected project (plus
-        # org-wide), so pick a deterministic winner per (value, type): org-wide
-        # wins (stable regardless of the project selection), otherwise the most
-        # recently updated project-scoped row.
-        ordered_rows = sorted(
-            context_rows,
-            key=lambda row: (row.project_id is not None, -row.date_updated.timestamp()),
-        )
-        context_by_key: dict[tuple[str, int], TraceItemAttributeValueContext] = {}
-        for row in ordered_rows:
-            context_by_key.setdefault((row.attribute_value, row.attribute_type), row)
+        context_by_key: dict[tuple[str, int], TraceItemAttributeValueContext] = {
+            (row.attribute_value, row.attribute_type): row for row in context_rows
+        }
 
         for metric in metrics:
             type_id = TraceMetricTypes.get_id_for_type_name(metric["type"])
