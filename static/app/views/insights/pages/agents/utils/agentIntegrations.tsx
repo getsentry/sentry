@@ -67,3 +67,5 @@ export const DENO_AGENT_INTEGRATIONS = [
   AgentIntegration.VERCEL_AI,
   AgentIntegration.MANUAL,
 ];
+
+export const PHP_AGENT_INTEGRATIONS = [AgentIntegration.MANUAL];
