@@ -87,6 +87,12 @@ export interface SearchQueryBuilderProps {
    */
   caseInsensitive?: CaseInsensitive;
   className?: string;
+  /**
+   * When true, submitting free text will open Ask Seer and submit the full query.
+   * Requires AI search to be enabled and the organization to have the
+   * gen-ai-default-to-ask-seer feature.
+   */
+  defaultToAskSeerOnFreeTextSearch?: boolean;
   disabled?: boolean;
   /**
    * When true, free text will be marked as invalid.

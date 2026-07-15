@@ -56,6 +56,7 @@ const ActorSlot = styled('div')`
   place-items: center;
   min-width: 22px;
   min-height: 22px;
+  margin-top: -2px;
 `;
 
 const SeerActor = styled('span')`

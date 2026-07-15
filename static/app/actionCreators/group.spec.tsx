@@ -151,6 +151,95 @@ describe('group', () => {
         expect.objectContaining({query: {id: ['1', '2', '3'], project: [99]}})
       );
     });
+
+    it('should normalize string assignedTo to Actor object for optimistic update', () => {
+      MockApiClient.addMockResponse({
+        url: '/projects/1337/1337/issues/',
+        method: 'PUT',
+      });
+
+      bulkUpdate(
+        new MockApiClient(),
+        {
+          orgId: '1337',
+          projectId: '1337',
+          itemIds: ['1'],
+          data: {assignedTo: 'user:123'},
+        },
+        {}
+      );
+
+      expect(GroupStore.onUpdate).toHaveBeenCalledWith(expect.any(String), ['1'], {
+        assignedTo: {type: 'user', id: '123', name: ''},
+      });
+    });
+
+    it('should normalize empty assignedTo string to null for optimistic update', () => {
+      MockApiClient.addMockResponse({
+        url: '/projects/1337/1337/issues/',
+        method: 'PUT',
+      });
+
+      bulkUpdate(
+        new MockApiClient(),
+        {
+          orgId: '1337',
+          projectId: '1337',
+          itemIds: ['1'],
+          data: {assignedTo: ''},
+        },
+        {}
+      );
+
+      expect(GroupStore.onUpdate).toHaveBeenCalledWith(expect.any(String), ['1'], {
+        assignedTo: null,
+      });
+    });
+
+    it('should normalize team assignedTo string for optimistic update', () => {
+      MockApiClient.addMockResponse({
+        url: '/projects/1337/1337/issues/',
+        method: 'PUT',
+      });
+
+      bulkUpdate(
+        new MockApiClient(),
+        {
+          orgId: '1337',
+          projectId: '1337',
+          itemIds: ['1'],
+          data: {assignedTo: 'team:456'},
+        },
+        {}
+      );
+
+      expect(GroupStore.onUpdate).toHaveBeenCalledWith(expect.any(String), ['1'], {
+        assignedTo: {type: 'team', id: '456', name: ''},
+      });
+    });
+
+    it('should send raw string assignedTo to the API', () => {
+      const request = MockApiClient.addMockResponse({
+        url: '/projects/1337/1337/issues/',
+        method: 'PUT',
+      });
+
+      bulkUpdate(
+        new MockApiClient(),
+        {
+          orgId: '1337',
+          projectId: '1337',
+          itemIds: ['1'],
+          data: {assignedTo: 'user:123'},
+        },
+        {}
+      );
+
+      expect(request).toHaveBeenCalledWith(
+        '/projects/1337/1337/issues/',
+        expect.objectContaining({data: {assignedTo: 'user:123'}})
+      );
+    });
   });
 
   describe('mergeGroups()', () => {

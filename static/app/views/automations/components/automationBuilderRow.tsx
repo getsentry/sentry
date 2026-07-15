@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {IconDelete} from 'sentry/icons';
@@ -24,7 +24,7 @@ export function AutomationBuilderRow({
   warningMessages = [],
 }: RowProps) {
   return (
-    <Flex direction="column" gap="xs">
+    <Stack gap="xs">
       <RowContainer incompatible={hasError}>
         <RowLine>{children}</RowLine>
         <DeleteButton
@@ -51,7 +51,7 @@ export function AutomationBuilderRow({
           {t('This action is incompatible with the current configuration.')}
         </Alert>
       )}
-    </Flex>
+    </Stack>
   );
 }
 

@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import orjson
 from django.conf import settings
 from django.core.cache import cache
 
@@ -18,6 +19,7 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
+    PullRequestLifecycleState,
     PullRequestMetrics,
     PullRequestVerdict,
 )
@@ -367,6 +369,45 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         row = mock_record.call_args_list[-1].args[0]
         assert row.close_action == "closed"
         assert row.verdict == "closed_unmerged"
+        assert row.diagnosis_labels is None
+
+    def _add_check_suite(self, *, conclusion: str, webhook_id: str) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id=webhook_id,
+            event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED,
+            payload={"conclusion": conclusion, "app_slug": "github-actions", "check_runs_count": 1},
+        )
+
+    @patch("sentry.analytics.record")
+    def test_closed_unmerged_with_failing_ci_sets_diagnosis_label(
+        self, mock_record: MagicMock
+    ) -> None:
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        self._call(merged=False)
+        row = mock_record.call_args_list[-1].args[0]
+        assert row.verdict == "closed_unmerged"
+        assert row.diagnosis_labels == ["ci_failing_at_close"]
+
+    @patch("sentry.analytics.record")
+    def test_closed_unmerged_with_passing_ci_has_no_diagnosis_label(
+        self, mock_record: MagicMock
+    ) -> None:
+        self._add_check_suite(conclusion="success", webhook_id="check-1")
+        self._call(merged=False)
+        row = mock_record.call_args_list[-1].args[0]
+        assert row.verdict == "closed_unmerged"
+        assert row.diagnosis_labels is None
+
+    @patch("sentry.analytics.record")
+    def test_merged_with_failing_ci_has_no_diagnosis_label(self, mock_record: MagicMock) -> None:
+        # The deterministic CI-failure label is scoped to CLOSED_UNMERGED; a clean
+        # merge never carries it even if a check suite failed along the way.
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        self._call(merged=True)
+        row = mock_record.call_args_list[-1].args[0]
+        assert row.verdict == "merged_unchanged"
+        assert row.diagnosis_labels is None
 
     def _add_synchronize(self) -> None:
         # A push to the PR branch after it opened — makes a merge non-deterministic.
@@ -1023,6 +1064,45 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         activity = PullRequestActivity.objects.get(pull_request=self.pr)
         assert activity.event_type == PullRequestActivityType.DEQUEUED
         assert activity.payload["reason"] == "MERGE_CONFLICT"
+
+    def test_closed_unmerged_writes_closed_activity_with_sender(self) -> None:
+        self._call(action="closed", merged=False)
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.CLOSED
+        assert activity.payload["sender_login"] == "testuser"
+        assert activity.payload["sender_type"] == "User"
+
+    def test_closed_merged_writes_merged_activity_with_sender(self) -> None:
+        self._call(action="closed", merged=True)
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.MERGED
+        assert activity.payload["sender_login"] == "testuser"
+        assert activity.payload["sender_type"] == "User"
+
+    def test_terminal_event_written_despite_terminal_state(self) -> None:
+        # The close/merge webhook stamps the terminal state before this runs, so
+        # the terminal row (recording the closer) must still be written even though
+        # the PR's state already reads terminal.
+        self.pr.state = PullRequestLifecycleState.MERGED
+        self.pr.save()
+
+        self._call(action="closed", merged=True)
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.event_type == PullRequestActivityType.MERGED
+
+    def test_terminal_pr_activity_stops_once_verdict_claimed(self) -> None:
+        # Not short-circuiting CLOSED/MERGED means a stray later event could be
+        # recorded; the verdict gate bounds that once the PR is settled.
+        self.pr.state = PullRequestLifecycleState.MERGED
+        self.pr.save()
+        PullRequestMetrics.objects.create(pull_request=self.pr, verdict="merged_unchanged")
+
+        self._call(action="synchronize", before="a", after="b")
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
     # --- Unhandled actions ---
 
@@ -1821,10 +1901,40 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_check_suite_cooldown_verdict_allows_late_check(self) -> None:
+        PullRequestMetrics.objects.create(
+            pull_request=self.pr,
+            verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN,
+        )
+
+        self._call_suite()
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
     def test_check_run_verdict_claimed_skips(self) -> None:
         PullRequestMetrics.objects.create(pull_request=self.pr, verdict="closed_unmerged")
 
         self._call_run()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_run_cooldown_verdict_allows_late_check(self) -> None:
+        PullRequestMetrics.objects.create(
+            pull_request=self.pr,
+            verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN,
+        )
+
+        self._call_run()
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_suite_judge_in_progress_skips(self) -> None:
+        PullRequestMetrics.objects.create(
+            pull_request=self.pr,
+            verdict=PullRequestVerdict.JUDGE_IN_PROGRESS,
+        )
+
+        self._call_suite()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
@@ -2040,9 +2150,10 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             repo=self.repo,
         )
 
-    def _mock_seer(self, status: int = 202) -> Any:
+    def _mock_seer(self, status: int = 202, body: dict[str, Any] | None = None) -> Any:
         mock_response = MagicMock()
         mock_response.status = status
+        mock_response.data = orjson.dumps(body) if body is not None else b""
         return patch(MATCH_RPC, return_value=mock_response)
 
     def _mock_org_check(self) -> Any:
@@ -2108,6 +2219,94 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             "outcome": "sent",
         }
 
+    # --- Synchronous match (200) ---
+
+    def test_sync_match_records_attribution_in_process(self) -> None:
+        body = {
+            "run_id": 123,
+            "agent_id": "agent-1",
+            "signal_type": PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE.value,
+            "match_path": "some/path",
+        }
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=200, body=body),
+            patch(f"{MODULE}.metrics.incr") as mock_incr,
+        ):
+            self._call(head_ref="claude/fix")
+
+        attribution = PullRequestAttribution.objects.get(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+            source=PullRequestAttributionSource.SEER_DATA,
+        )
+        assert attribution.signal_details == {
+            "agent_id": "agent-1",
+            "pr_url": "https://github.com/org/repo/pull/42",
+            "run_id": 123,
+        }
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "sync_matched",
+        }
+
+    def test_sync_match_bad_body_records_error_outcome(self) -> None:
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=200, body={"not": "a match"}),
+            patch(f"{MODULE}.metrics.incr") as mock_incr,
+        ):
+            self._call(head_ref="claude/fix")
+
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "seer_error_bad_body",
+        }
+        assert not PullRequestAttribution.objects.filter(
+            pull_request=self.pr, source=PullRequestAttributionSource.SEER_DATA
+        ).exists()
+
+    def test_sync_match_bad_signal_type_records_error_outcome(self) -> None:
+        body = {
+            "run_id": 123,
+            "agent_id": "agent-1",
+            "signal_type": "not_a_real_signal_type",
+            "match_path": "some/path",
+        }
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=200, body=body),
+            patch(f"{MODULE}.metrics.incr") as mock_incr,
+        ):
+            self._call(head_ref="claude/fix")
+
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "seer_error_bad_body",
+        }
+
+    def test_sync_match_idempotent_across_open_then_close(self) -> None:
+        # Re-checked on close, like the SENTRY_APP case — a PR matched on open
+        # must not gain a second attribution row when re-matched on close.
+        body = {
+            "run_id": 123,
+            "agent_id": "agent-1",
+            "signal_type": PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE.value,
+            "match_path": "some/path",
+        }
+        with self._mock_org_check(), self._mock_seer(status=200, body=body):
+            self._call(action="opened", head_ref="claude/fix")
+            self._call(action="closed", head_ref="claude/fix")
+
+        assert (
+            PullRequestAttribution.objects.filter(
+                pull_request=self.pr,
+                signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+                source=PullRequestAttributionSource.SEER_DATA,
+            ).count()
+            == 1
+        )
+
     # --- Error handling ---
 
     def test_seer_non_2xx_logs_warning_and_error_metric(self) -> None:
@@ -2148,11 +2347,20 @@ class HandleDelegatedAgentDetectionTest(TestCase):
 
         mock_rpc.assert_not_called()
 
-    def test_non_opened_action_does_not_call_seer(self) -> None:
-        for action in ("synchronize", "closed", "labeled", "assigned"):
+    def test_non_opened_or_closed_action_does_not_call_seer(self) -> None:
+        for action in ("synchronize", "labeled", "assigned"):
             with self._mock_seer() as mock_rpc:
                 self._call(action=action, head_ref="claude/fix")
                 mock_rpc.assert_not_called()
+
+    def test_closed_action_sends_to_seer(self) -> None:
+        # Re-checked on close, mirroring the SENTRY_APP author attribution — an
+        # out-of-order or missed "opened" webhook shouldn't lose the match.
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
+            self._call(action="closed", head_ref="claude/fix")
+
+        mock_rpc.assert_called_once()
+        assert mock_rpc.call_args.args[0].provider == "claude_code"
 
     # --- Gating ---
 

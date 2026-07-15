@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useRef} from 'react';
 import {css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
@@ -20,19 +21,15 @@ import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conv
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
-import {
-  getGenAiOpType,
-  getGenAiOpTypeIcon,
-  getSpanColor,
-  getTimelineColorByOpType,
-  getTraceNodeAttribute,
-} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
+import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {
   getDurationComparison,
   MIN_PCT_DURATION_DIFFERENCE,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/durationComparison';
 import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
+import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {
   getAIInputMessages,
@@ -45,6 +42,11 @@ import {
 import {AttributesContent} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
+import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
+
+const AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH = 3;
+const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;
+const AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT = 100_000;
 
 export type DetailTab = 'input' | 'output' | 'attributes';
 
@@ -92,8 +94,8 @@ export function ConversationSpanDetail({
   isLoading,
   scrollResetKey,
 }: ConversationSpanDetailProps) {
-  const theme = useTheme();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const organization = useOrganization();
 
   useEffect(() => {
     scrollContainerRef.current?.scrollTo({top: 0});
@@ -123,7 +125,6 @@ export function ConversationSpanDetail({
 
   const title = node.op || node.description || t('Span');
   const duration = getNodeTimeBounds(node).duration;
-  const squareColor = getSpanColor(node, getTimelineColorByOpType(theme));
   const comparison = getDurationComparison(
     avgDuration,
     duration,
@@ -134,9 +135,7 @@ export function ConversationSpanDetail({
     <SpanDetailCard ref={scrollContainerRef} embedded={embedded}>
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
-          <Flex flexShrink={0} style={{color: squareColor}}>
-            {getGenAiOpTypeIcon(getGenAiOpType(node), 'md')}
-          </Flex>
+          <AiSpanStatusIcon node={node} />
           <Tooltip title={title} showOnlyOnOverflow skipWrapper>
             <Text size="lg" bold ellipsis>
               {title}
@@ -169,6 +168,13 @@ export function ConversationSpanDetail({
           <SpanMetadata node={node} attributes={attributes} />
         )}
       </Stack>
+
+      <StyledIssueList
+        node={node}
+        issues={node.uniqueIssues}
+        organization={organization}
+        traceSlug={traceId}
+      />
 
       {/*
        * The per-span fetch backs both the metadata and the tab content, and it
@@ -296,11 +302,20 @@ function InputTab({
             {capitalize(message.role)}
           </TraceDrawerComponents.MultilineTextLabel>
           {/* System prompts are usually long, repetitive, and sit on top, so keep them clipped */}
-          <MessageContent content={message.content} clip={message.role === 'system'} />
+          <InputMessageContent
+            key={`${node.id}:message:${index}`}
+            content={message.content}
+            clip={message.role === 'system'}
+          />
         </Fragment>
       ))}
       {toolArgs ? (
-        <TraceDrawerComponents.MultilineJSON value={toolArgs} maxDefaultDepth={1} />
+        <TraceDrawerComponents.MultilineJSON
+          key={`${node.id}:tool-input`}
+          value={toolArgs}
+          maxDefaultDepth={AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH}
+          autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+        />
       ) : null}
       {embeddingsInput ? (
         <TraceDrawerComponents.MultilineText clip={false}>
@@ -332,7 +347,13 @@ function OutputTab({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <AIContentRenderer text={responseText} clip={false} />
+          <AIContentRenderer
+            key={`${node.id}:response-text`}
+            text={responseText}
+            maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
+            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            clip={false}
+          />
         </Fragment>
       ) : null}
       {responseObject ? (
@@ -340,7 +361,13 @@ function OutputTab({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Response Object')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <AIContentRenderer text={responseObject} clip={false} />
+          <AIContentRenderer
+            key={`${node.id}:response-object`}
+            text={responseObject}
+            maxJsonDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
+            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+            clip={false}
+          />
         </Fragment>
       ) : null}
       {toolCalls ? (
@@ -348,23 +375,45 @@ function OutputTab({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Tool Calls')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <TraceDrawerComponents.MultilineJSON value={toolCalls} maxDefaultDepth={2} />
+          <TraceDrawerComponents.MultilineJSON
+            key={`${node.id}:tool-calls`}
+            value={toolCalls}
+            maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
+            autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+          />
         </Fragment>
       ) : null}
       {toolOutput ? (
-        <TraceDrawerComponents.MultilineJSON value={toolOutput} maxDefaultDepth={1} />
+        <TraceDrawerComponents.MultilineJSON
+          key={`${node.id}:tool-output`}
+          value={toolOutput}
+          maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
+          autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+        />
       ) : null}
     </Fragment>
   );
 }
 
-function MessageContent({content, clip = false}: {content: unknown; clip?: boolean}) {
+function InputMessageContent({
+  content,
+  clip = false,
+}: {
+  content: unknown;
+  clip?: boolean;
+}) {
   return typeof content === 'string' ? (
-    <AIContentRenderer text={content} clip={clip} />
+    <AIContentRenderer
+      text={content}
+      maxJsonDepth={AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH}
+      autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
+      clip={clip}
+    />
   ) : (
     <TraceDrawerComponents.MultilineJSON
       value={content}
-      maxDefaultDepth={2}
+      maxDefaultDepth={AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH}
+      autoCollapseLimit={AI_SPAN_JSON_AUTO_COLLAPSE_LIMIT}
       clip={clip}
     />
   );
@@ -399,6 +448,14 @@ function AttributesTab({
     />
   );
 }
+
+// IssueList colors its severity icons from the trace grid CSS variables, which
+// the trace waterfall normally provides via an ancestor. This panel isn't nested
+// under the waterfall, so scope those variables here.
+const StyledIssueList = styled(IssueList)`
+  ${traceGridCssVariables}
+  flex-shrink: 0;
+`;
 
 function EmptyTab({message}: {message: string}) {
   return (

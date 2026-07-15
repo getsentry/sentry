@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
@@ -204,7 +204,7 @@ export function CodingAgentPreview({section}: ArtifactPreviewProps) {
                 : ('success' as const);
 
         return (
-          <Flex key={codingAgent.id} direction="column" gap="md">
+          <Stack key={codingAgent.id} gap="md">
             <Text>{codingAgent.name}</Text>
             <Flex direction="row-reverse" align="center" justify="between">
               <Tag variant={statusVariant}>{codingAgent.status}</Tag>
@@ -220,7 +220,7 @@ export function CodingAgentPreview({section}: ArtifactPreviewProps) {
                 </LinkButton>
               ) : null}
             </Flex>
-          </Flex>
+          </Stack>
         );
       })}
     </ArtifactCard>
@@ -235,13 +235,13 @@ interface ArtifactCardProps {
 
 function ArtifactCard({children, icon, title}: ArtifactCardProps) {
   return (
-    <Flex direction="column" border="primary" radius="md" gap="md" padding="md">
+    <Stack border="primary" radius="md" gap="md" padding="md">
       <Flex gap="md">
         {icon}
         <Text bold>{title}</Text>
       </Flex>
       {children}
-    </Flex>
+    </Stack>
   );
 }
 

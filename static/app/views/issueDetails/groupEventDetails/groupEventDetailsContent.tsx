@@ -125,7 +125,7 @@ export function EventDetailsContent({
   const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   if (group.issueType === IssueType.SOURCEMAP_CONFIGURATION) {
-    return <SourceMapIssueDetails group={group} event={event} project={project} />;
+    return <SourceMapIssueDetails event={event} project={project} />;
   }
 
   return (
@@ -149,7 +149,7 @@ export function EventDetailsContent({
           {/* Low-value spans is the only consumer of configurationProblem today;
               the implementation will be generalized once more configuration
               issues opt into this flag. */}
-          <LowValueSpanProblemSection event={event} project={project} />
+          <LowValueSpanProblemSection event={event} />
         </FoldSection>
       )}
       {issueTypeConfig.configurationTroubleshooting.enabled && (
@@ -296,7 +296,7 @@ export function EventDetailsContent({
         <MetricDetectorTriggeredSection group={group} event={event} />
       </ErrorBoundary>
       <ErrorBoundary customComponent={() => null}>
-        <SizeAnalysisTriggeredSection group={group} event={event} />
+        <SizeAnalysisTriggeredSection event={event} />
       </ErrorBoundary>
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />

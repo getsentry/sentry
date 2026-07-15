@@ -39,6 +39,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.seer.night_shift.simple_triage import (
     ScoredCandidate,
     fixability_score_strategy,
+    fixability_score_strategy_per_project,
     priority_label,
 )
 from sentry.tasks.seer.night_shift.tweaks import (
@@ -59,7 +60,7 @@ from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
-NIGHT_SHIFT_SPREAD_DURATION = timedelta(hours=4)
+NIGHT_SHIFT_SPREAD_DURATION = timedelta(hours=1)
 
 BATCH_FEATURE_NAMES = [
     "organizations:seer-night-shift",
@@ -267,7 +268,7 @@ def run_night_shift_execution(
     (from run_night_shift_for_org) and async dispatch (apply_async)."""
     run = SeerNightShiftRun.objects.select_related("organization").filter(id=run_id).first()
     if run is None:
-        logger.info("night_shift.missing_run", extra={"run_id": run_id})
+        logger.info("night_shift.missing_run", extra={"night_shift_run_id": run_id})
         return None
 
     organization = run.organization
@@ -276,7 +277,7 @@ def run_night_shift_execution(
     log_extra: dict[str, object] = {
         "organization_id": organization.id,
         "organization_slug": organization.slug,
-        "run_id": run.id,
+        "night_shift_run_id": run.id,
     }
     if project_ids is not None:
         log_extra["project_ids"] = project_ids
@@ -472,48 +473,61 @@ def _get_eligible_projects(
 
     preferences = bulk_read_preferences_from_sentry_db(organization.id, list(project_map))
 
-    with_automation = [
-        project_map[pid]
-        for pid, pref in preferences.items()
-        if pref.repositories
-        and pref.autofix_automation_tuning != AutofixAutomationTuningSettings.OFF
-    ]
-    if not with_automation:
-        return []
-
-    eligible = [
-        EligibleProject(
-            project=p,
-            tweaks=get_night_shift_tweaks(p),
-            stopping_point=AutofixStoppingPoint(
-                preferences[p.id].automated_run_stopping_point
-                or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
-            ),
-            connected_repos=[
-                f"{repo.owner}/{repo.name}" for repo in preferences[p.id].repositories
-            ],
-        )
-        for p in with_automation
-    ]
-    if source == "cron":
-        eligible = [ep for ep in eligible if ep.tweaks.enabled]
-
-    # Night shift's only output is a PR, so drop projects that don't stop at
-    # open_pr; log the stopping point to surface misconfigured UX.
-    pr_producing: list[EligibleProject] = []
-    for ep in eligible:
-        if ep.stopping_point == AutofixStoppingPoint.OPEN_PR:
-            pr_producing.append(ep)
+    eligible: list[EligibleProject] = []
+    for pid, project in project_map.items():
+        pref = preferences.get(pid)
+        if pref is None:
             continue
-        logger.info(
-            "night_shift.project_filtered.not_pr_producing",
-            extra={
-                "organization_id": organization.id,
-                "project_id": ep.project.id,
-                "stopping_point": ep.stopping_point.value,
-            },
+        tweaks = get_night_shift_tweaks(project)
+        stopping_point = AutofixStoppingPoint(
+            pref.automated_run_stopping_point or SEER_AUTOMATED_RUN_STOPPING_POINT_DEFAULT
         )
-    return pr_producing
+
+        reasons: list[str] = []
+        if not pref.repositories:
+            reasons.append("no_connected_repos")
+        if pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF:
+            reasons.append("automation_tuning_off")
+        if source == "cron" and not tweaks.enabled:
+            reasons.append("tweaks_disabled")
+        if stopping_point != AutofixStoppingPoint.OPEN_PR:
+            # Night shift's only output is a PR, so a project that stops
+            # short of open_pr can never produce a usable result.
+            reasons.append("not_pr_producing")
+
+        if reasons:
+            logger.info(
+                "night_shift.project_filtered",
+                extra={
+                    "organization_id": organization.id,
+                    "project_id": pid,
+                    "reasons": reasons,
+                    "automation_tuning": pref.autofix_automation_tuning.value,
+                    "tweaks_enabled": tweaks.enabled,
+                    "stopping_point": stopping_point.value,
+                },
+            )
+            continue
+
+        eligible.append(
+            EligibleProject(
+                project=project,
+                tweaks=tweaks,
+                stopping_point=stopping_point,
+                connected_repos=[f"{repo.owner}/{repo.name}" for repo in pref.repositories],
+            )
+        )
+
+    return eligible
+
+
+def _should_use_per_project_quotas(source: NightShiftRunSource, organization_id: int) -> bool:
+    """When allowed_project_slugs (org_tweaks) is set, give each project its
+    own quota. Manual runs bypass allowed_project_slugs, so never per-project."""
+    if source != "cron":
+        return False
+    org_tweaks = get_night_shift_org_tweaks(organization_id)
+    return org_tweaks is not None and org_tweaks.allowed_project_slugs is not None
 
 
 def _build_triage_payload(
@@ -557,7 +571,11 @@ def _dispatch_to_seer_feature(
     deliver_feature_result."""
     eligible_projects = [ep.project for ep in eligible]
     repos_by_project = {ep.project.id: ep.connected_repos for ep in eligible}
-    scored = fixability_score_strategy(eligible_projects, resolved_options["max_candidates"])
+    per_project_quotas = _should_use_per_project_quotas(resolved_options["source"], organization.id)
+    score_strategy = (
+        fixability_score_strategy_per_project if per_project_quotas else fixability_score_strategy
+    )
+    scored = score_strategy(eligible_projects, resolved_options["max_candidates"])
     run.update(extras={**(run.extras or {}), "num_candidates": len(scored)})
     if not scored:
         logger.info("night_shift.no_candidates", extra=log_extra)

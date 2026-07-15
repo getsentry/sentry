@@ -18,11 +18,13 @@ import {
   useSelectedProjectIds,
   useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {useTraceExploreAiQuerySetup} from 'sentry/views/explore/hooks/useTraceExploreAiQuerySetup';
 import {getSeerExploreQuery} from 'sentry/views/explore/seerQuery';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -47,6 +49,7 @@ export function SpansTabSeerComboBox() {
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
   const organization = useOrganization();
+  const {projects} = useProjects();
   const analyticsArea = useAnalyticsArea();
   const {setRunId} = useAiQueryContext();
   const {askSeerSuggestedQueryRef, enableAISearch} = useSearchQueryBuilderAI();
@@ -118,11 +121,17 @@ export function SpansTabSeerComboBox() {
         pageDatetime: pageFilters.selection.datetime,
       });
 
+      // Move any `project:` filter Seer put in the query onto the page-level
+      // project selector so it isn't duplicated in the search bar.
+      const {query: cleanedQuery, projectIds} = resolveSeerProjectSelection(
+        seerQuery.query,
+        projects,
+        result.expandedProjectIds
+      );
+
       const selection = {
         ...pageFilters.selection,
-        ...(result.expandedProjectIds?.length
-          ? {projects: result.expandedProjectIds}
-          : {}),
+        ...(projectIds?.length ? {projects: projectIds} : {}),
         datetime: seerQuery.datetime,
       };
 
@@ -130,7 +139,7 @@ export function SpansTabSeerComboBox() {
       const url = getExploreUrl({
         organization,
         selection,
-        query: seerQuery.query,
+        query: cleanedQuery,
         visualize: seerQuery.visualizes,
         groupBy: seerQuery.groupBys,
         sort: seerQuery.sort,
@@ -141,7 +150,7 @@ export function SpansTabSeerComboBox() {
 
       askSeerSuggestedQueryRef.current = JSON.stringify({
         selection,
-        query: seerQuery.query,
+        query: cleanedQuery,
         visualize: seerQuery.visualizes,
         groupBy: seerQuery.groupBys,
         sort: seerQuery.sort,
@@ -152,7 +161,7 @@ export function SpansTabSeerComboBox() {
       trackAnalytics('ai_query.applied', {
         organization,
         area: analyticsArea,
-        query: seerQuery.query,
+        query: cleanedQuery,
         group_by_count: seerQuery.groupBys.length,
         visualize_count: seerQuery.visualizes.length,
       });
@@ -167,6 +176,7 @@ export function SpansTabSeerComboBox() {
       navigate,
       organization,
       pageFilters.selection,
+      projects,
       setRunId,
     ]
   );

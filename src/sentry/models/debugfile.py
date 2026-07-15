@@ -21,6 +21,7 @@ from typing import IO, TYPE_CHECKING, Any, BinaryIO, ClassVar
 from django.db import models
 from django.db.models import ProtectedError, Q
 from django.db.models.functions import Now
+from django.http import HttpRequest
 from django.utils import timezone
 from objectstore_client import RequestError
 from objectstore_client.multipart import CompletePart, MultipartUpload
@@ -42,7 +43,7 @@ from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
-from sentry.objectstore import get_debug_files_session
+from sentry.objectstore import get_debug_files_session, get_download_redirect_url
 from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.zip import safe_extract_zip
@@ -59,6 +60,35 @@ DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
 OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE = 32 * 1024 * 1024  # 32 MiB
+
+
+def _dif_file_extension(file_format: str, file_type: str | None) -> str:
+    if file_format == "breakpad":
+        return ".sym"
+    if file_format == "macho":
+        return ".debug" if file_type == "dbg" else ""
+    if file_format == "proguard":
+        return ".txt"
+    if file_format == "elf":
+        return "" if file_type == "exe" else ".debug"
+    if file_format == "pe":
+        return ".exe" if file_type == "exe" else ".dll"
+    if file_format == "pdb" or file_format == "portablepdb":
+        return ".pdb"
+    if file_format == "sourcebundle":
+        return ".src.zip"
+    if file_format == "wasm":
+        return ".wasm"
+    if file_format == "bcsymbolmap":
+        return ".bcsymbolmap"
+    if file_format == "uuidmap":
+        return ".plist"
+    if file_format == "il2cpp":
+        return ".json"
+    if file_format == "dartsymbolmap":
+        return ".json"
+
+    return ""
 
 
 class BadDif(Exception):
@@ -219,32 +249,7 @@ class ProjectDebugFile(Model):
 
     @property
     def file_extension(self) -> str:
-        if self.file_format == "breakpad":
-            return ".sym"
-        if self.file_format == "macho":
-            return ".debug" if self.file_type == "dbg" else ""
-        if self.file_format == "proguard":
-            return ".txt"
-        if self.file_format == "elf":
-            return "" if self.file_type == "exe" else ".debug"
-        if self.file_format == "pe":
-            return ".exe" if self.file_type == "exe" else ".dll"
-        if self.file_format == "pdb" or self.file_format == "portablepdb":
-            return ".pdb"
-        if self.file_format == "sourcebundle":
-            return ".src.zip"
-        if self.file_format == "wasm":
-            return ".wasm"
-        if self.file_format == "bcsymbolmap":
-            return ".bcsymbolmap"
-        if self.file_format == "uuidmap":
-            return ".plist"
-        if self.file_format == "il2cpp":
-            return ".json"
-        if self.file_format == "dartsymbolmap":
-            return ".json"
-
-        return ""
+        return _dif_file_extension(self.file_format, self.file_type)
 
     @property
     def features(self) -> frozenset[str]:
@@ -273,6 +278,22 @@ class ProjectDebugFile(Model):
         if self.file is not None:
             return self.file.getfile()
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
+
+    def get_objectstore_presigned_url(self, request: HttpRequest) -> str:
+        """
+        Returns the URL that `request` should be redirected to in order to download this debug file
+        directly from Objectstore.
+
+        This function should only be called if this debug file is Objectstore-backed, it will raise an exception otherwise.
+        """
+        from sentry.models.project import Project
+
+        if self.storage_path is None:
+            raise ValueError("debug file is not stored in Objectstore")
+
+        session = self._get_objectstore_session()
+        org_id = Project.objects.get_from_cache(id=self.project_id).organization_id
+        return get_download_redirect_url(request, session, org_id, self.storage_path)
 
     def save_to(self, path: str) -> None:
         if self.storage_path is not None:
@@ -402,9 +423,10 @@ def _upload_dif_to_objectstore(
     fileobj: IO[bytes],
     content_type: str,
     file_size: int,
+    filename: str,
 ) -> str:
     """Uploads a debug file to Objectstore via parallel multipart upload, returning the key under which the file was uploaded."""
-    upload = session.initiate_multipart_upload(content_type=content_type)
+    upload = session.initiate_multipart_upload(content_type=content_type, filename=filename)
 
     lock = threading.Lock()
     num_parts = max(1, math.ceil(file_size / OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE))
@@ -523,11 +545,19 @@ def create_dif_from_id(
 
     if features.has("organizations:objectstore-debugfiles-write", project.organization):
         session = get_debug_files_session(project.organization_id, project.id)
+        file_type = (meta.data or {}).get("type")
+        filename = (
+            f"{os.path.basename(meta.debug_id)}{_dif_file_extension(meta.file_format, file_type)}"
+        )
         if file is not None:
             with file.getfile() as source:
-                storage_path = _upload_dif_to_objectstore(session, source, content_type, file_size)
+                storage_path = _upload_dif_to_objectstore(
+                    session, source, content_type, file_size, filename
+                )
         elif fileobj is not None:
-            storage_path = _upload_dif_to_objectstore(session, fileobj, content_type, file_size)
+            storage_path = _upload_dif_to_objectstore(
+                session, fileobj, content_type, file_size, filename
+            )
         else:
             raise RuntimeError("missing file object")
 

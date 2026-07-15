@@ -5,13 +5,14 @@ from time import time
 from typing import Any, TypedDict
 from uuid import uuid4
 
-from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
+from sentry.sentry_apps.utils.headers import mask_header_values, parse_custom_headers
 from sentry.sentry_apps.utils.webhooks import SentryAppActionType, SentryAppResourceType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
+from sentry.utils.safe import get_path
 
 
 class AppPlatformEventActorType(StrEnum):
@@ -56,6 +57,7 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
         self.install = install
         self.data = data
         self.actor = actor
+        self.include_text_summary = False
 
     def get_actor(self) -> AppPlatformEventActor:
         # when sentry auto assigns, auto resolves, etc.
@@ -80,16 +82,30 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
             name=self.actor.name,
         )
 
+    def get_text_summary(self) -> str:
+        summary = f"Sentry {self.resource}.{self.action}"
+        # Comment and installation payloads carry no URL.
+        url = (
+            get_path(self.data, "issue", "permalink")  # issue.*
+            or get_path(self.data, "event", "web_url")  # event_alert.triggered
+            or get_path(self.data, "error", "web_url")  # error.created
+            or get_path(self.data, "web_url")  # metric_alert.*
+        )
+        if url:
+            summary += f": {url}"
+        return summary
+
     @property
     def body(self) -> str:
-        return json.dumps(
-            AppPlatformEventBody(
-                action=self.action,
-                installation=AppPlatformEventInstallation(uuid=self.install.uuid),
-                data=self.data,
-                actor=self.get_actor(),
-            )
+        body = AppPlatformEventBody(
+            action=self.action,
+            installation=AppPlatformEventInstallation(uuid=self.install.uuid),
+            data=self.data,
+            actor=self.get_actor(),
         )
+        if self.include_text_summary:
+            return json.dumps({**body, "text": self.get_text_summary()})
+        return json.dumps(body)
 
     @cached_property
     def sentry_headers(self) -> dict[str, str]:
@@ -111,12 +127,7 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
     @property
     def custom_headers(self) -> dict[str, str]:
         """User-configured headers parsed from the SentryApp's webhook_headers."""
-        headers: dict[str, str] = {}
-        for header in self.install.sentry_app.webhook_headers or []:
-            name, separator, value = header.partition(":")
-            if separator:
-                headers[name.strip()] = value.strip()
-        return headers
+        return parse_custom_headers(self.install.sentry_app.webhook_headers)
 
     @property
     def headers(self) -> dict[str, str]:
@@ -132,7 +143,7 @@ class AppPlatformEvent[T: Mapping[str, Any]]:
         never persisted to the request buffer. The names are kept so the debug UI
         can show which custom headers were sent without leaking the values.
         """
-        return {name: MASKED_VALUE for name in self.custom_headers}
+        return mask_header_values(self.custom_headers)
 
     @property
     def loggable_headers(self) -> dict[str, str]:
