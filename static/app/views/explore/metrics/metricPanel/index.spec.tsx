@@ -269,7 +269,7 @@ describe('MetricPanel', () => {
     expect(chartTypeSelect).toBeInTheDocument();
     await userEvent.click(chartTypeSelect);
     expect(await screen.findByText('Type')).toBeInTheDocument();
-    const heatMapOption = await screen.findByRole('option', {name: 'Heat Map'});
+    const heatMapOption = await screen.findByRole('option', {name: 'Heatmap'});
     expect(heatMapOption).toHaveAttribute('aria-disabled', 'true');
   });
 
@@ -305,7 +305,7 @@ describe('MetricPanel', () => {
 
     const chartTypeSelect = await screen.findByTestId('metric-panel-chart-type-select');
     await userEvent.click(chartTypeSelect);
-    const heatMapOption = await screen.findByRole('option', {name: 'Heat Map'});
+    const heatMapOption = await screen.findByRole('option', {name: 'Heatmap'});
     expect(heatMapOption).toHaveAttribute('aria-disabled', 'true');
   });
 
