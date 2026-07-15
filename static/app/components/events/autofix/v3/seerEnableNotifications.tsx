@@ -41,15 +41,24 @@ export function SeerEnableNotifications({status}: Props) {
 
   const analyticsArea = useAnalyticsArea();
 
+  const isEligible =
+    organization.features.includes('autofix-browser-notifications') &&
+    isServiceWorkerSupported &&
+    supportsNotifications &&
+    status === 'processing';
+
   const {
     isPromptDismissed,
     snoozePrompt,
-    isLoading: isLoadingPromptDismissed,
+    isLoading: isPromptLoading,
     isError: isPromptError,
   } = usePrompt({
     feature: PROMPT_FEATURE,
     organization,
   });
+
+  const shouldRender =
+    isEligible && !isPromptDismissed && !isPromptLoading && !isPromptError;
 
   useEffect(() => {
     if (isSuccessVisible && permission === 'granted') {
@@ -62,26 +71,17 @@ export function SeerEnableNotifications({status}: Props) {
     return () => {};
   }, [isSuccessVisible, permission]);
 
-  const shouldNotRender =
-    !organization.features.includes('autofix-browser-notifications') ||
-    !isServiceWorkerSupported ||
-    !supportsNotifications ||
-    isLoadingPromptDismissed ||
-    isPromptDismissed === true ||
-    isPromptError ||
-    status !== 'processing';
-
   useEffect(() => {
-    if (shouldNotRender) {
+    if (shouldRender) {
       return;
     }
     trackAnalytics('seer-enable-notifications.rendered', {
       organization,
       surface: analyticsArea,
     });
-  }, [analyticsArea, organization, shouldNotRender]);
+  }, [analyticsArea, organization, shouldRender]);
 
-  if (shouldNotRender) {
+  if (shouldRender) {
     return null;
   }
 
