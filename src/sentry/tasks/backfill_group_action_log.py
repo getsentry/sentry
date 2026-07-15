@@ -118,6 +118,7 @@ def reset_and_backfill_group_action_log(
 def backfill_group_action_log_for_project(
     project_id: int,
     last_activity_id: int = 0,
+    reset: bool = False,
     cursor_datetime: str | None = None,
     cursor_id: int = 0,
     **kwargs: object,
@@ -141,6 +142,9 @@ def backfill_group_action_log_for_project(
     except Project.DoesNotExist:
         return
 
+    if reset and cursor_datetime is None:
+        _reset_project(project)
+
     parsed_cursor = datetime.fromisoformat(cursor_datetime) if cursor_datetime else None
 
     try:
@@ -155,6 +159,29 @@ def backfill_group_action_log_for_project(
             },
         )
         raise
+
+
+def _reset_project(project: Project) -> None:
+    from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+    from sentry.issues.models.groupderiveddata import GroupDerivedData
+
+    deleted_derived, _ = GroupDerivedData.objects.filter(
+        group__project_id=project.id,
+    ).delete()
+
+    deleted_entries, _ = GroupActionLogEntry.objects.filter(
+        project_id=project.id,
+        source=BACKFILL_ACTIVITY_SOURCE,
+    ).delete()
+
+    logger.info(
+        "backfill_group_action_log.project_reset_completed",
+        extra={
+            "project_id": project.id,
+            "deleted_entries": deleted_entries,
+            "deleted_derived": deleted_derived,
+        },
+    )
 
 
 def _backfill_project(
