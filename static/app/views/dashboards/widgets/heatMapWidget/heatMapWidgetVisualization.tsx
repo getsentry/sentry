@@ -186,11 +186,9 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = params => {
-    // Don't render the tooltip during a drag selection. ECharts calls this on
-    // every mousemove, and building the tooltip mounts a whole React root via
-    // `renderToString` — expensive enough to stall the drag on a dense heat map.
-    // This replaces hiding the tooltip with `setOption`, which forced a chart
-    // re-render that delayed the selection box's first paint (see useChartBoxZoom).
+    // Skip the tooltip during a drag — its `renderToString` is expensive enough
+    // to stall the drag. Hidden via this guard + `hideTip` in useChartBoxZoom,
+    // not a `setOption` chart re-render.
     if (isDraggingRef.current) {
       return '';
     }

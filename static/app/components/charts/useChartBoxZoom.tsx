@@ -42,10 +42,7 @@ interface UseChartBoxZoomProps {
 }
 
 interface BoxZoomOptions {
-  /**
-   * True while a drag selection is in progress. Consumers read it to skip
-   * expensive per-move work (e.g. a tooltip formatter) during a drag.
-   */
+  /** True while a drag selection is in progress. */
   isDraggingRef: MutableRefObject<boolean>;
   onChartReady: EChartChartReadyHandler;
 }
@@ -78,9 +75,6 @@ export function useChartBoxZoom({
   // listeners.
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  // True for the duration of a drag selection. The heat map's tooltip formatter
-  // reads this to bail out during a drag — see the note in `onPointerDown` on why
-  // we no longer hide the tooltip via `setOption`.
   const isDraggingRef = useRef(false);
 
   const onZoomRef = useRef(onZoom);
@@ -160,13 +154,10 @@ export function useChartBoxZoom({
       // and never leave a drag half-open.
       dom.setPointerCapture(pointerId);
 
-      // Immediately hide any tooltip that's already open from hovering, so it
-      // doesn't linger over the selection box. `hideTip` only hides the tooltip
-      // element — cheap, unlike `setOption`, which re-renders the whole chart and
-      // (on a dense heat map) blocks the main thread long enough to delay the
-      // first pointermove and the box's first paint by ~300ms in Safari. Keeping
-      // the tooltip hidden for the rest of the drag is handled by the formatter,
-      // which checks `isDraggingRef` and returns an empty string while dragging.
+      // Hide an already-open tooltip so it doesn't sit over the selection box.
+      // `hideTip` is cheap; `setOption` would re-render the chart and stall the
+      // drag's first paint by ~300ms in Safari. The formatter keeps it hidden for
+      // the rest of the drag via `isDraggingRef`.
       chartInstance.dispatchAction({type: 'hideTip'});
 
       $overlay = createOverlay(overlayStyleRef.current);
