@@ -170,6 +170,16 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         assert response.status_code == 200, response.data
         assert "context" not in response.data[0]
 
+    def test_invalid_query_returns_400(self) -> None:
+        self.store_metric("checkout.requests", "counter")
+
+        response = self.do_request(
+            query={"project": self.project.id, "query": "metric.name:foo("},
+        )
+
+        assert response.status_code == 400, response.data
+        assert "detail" in response.data
+
     def test_requires_feature_flag(self) -> None:
         self.store_metric("checkout.requests", "counter")
 

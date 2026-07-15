@@ -14,6 +14,7 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpointBase,
 )
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.explore.models import (
     TraceItemAttributeValueContext,
     TraceItemTypes,
@@ -95,16 +96,18 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
         project_ids = [project.id for project in snuba_params.projects]
 
         def data_fn(offset: int, limit: int) -> list[TraceMetricItem]:
-            results = TraceMetrics.run_table_query(
-                params=snuba_params,
-                query_string=query_string,
-                selected_columns=_SELECTED_COLUMNS,
-                orderby=[METRIC_NAME_ALIAS],
-                offset=offset,
-                limit=limit,
-                referrer=Referrer.API_EXPLORE_TRACEMETRICS_METRICS_LIST.value,
-                config=SearchResolverConfig(),
-            )
+            with handle_query_errors():
+                results = TraceMetrics.run_table_query(
+                    params=snuba_params,
+                    query_string=query_string,
+                    selected_columns=_SELECTED_COLUMNS,
+                    orderby=[METRIC_NAME_ALIAS],
+                    offset=offset,
+                    limit=limit,
+                    referrer=Referrer.API_EXPLORE_TRACEMETRICS_METRICS_LIST.value,
+                    config=SearchResolverConfig(),
+                    sampling_mode=snuba_params.sampling_mode,
+                )
             metrics: list[TraceMetricItem] = [
                 {
                     "name": row[METRIC_NAME_ALIAS],
@@ -148,12 +151,16 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
             attribute_value__in=names,
         )
 
-        # Key by (value, type); prefer a project-scoped row over an org-wide one.
+        # Key by (value, type). Prefer a project-scoped row over an org-wide one,
+        # and pick deterministically (lowest project id) when a multi-project
+        # request has project-scoped rows in more than one project.
+        ordered_rows = sorted(
+            context_rows,
+            key=lambda row: (row.project_id is None, row.project_id or 0),
+        )
         context_by_key: dict[tuple[str, int], TraceItemAttributeValueContext] = {}
-        for row in context_rows:
-            key = (row.attribute_value, row.attribute_type)
-            if key not in context_by_key or row.project_id is not None:
-                context_by_key[key] = row
+        for row in ordered_rows:
+            context_by_key.setdefault((row.attribute_value, row.attribute_type), row)
 
         for metric in metrics:
             type_id = TraceMetricTypes.get_id_for_type_name(metric["type"])
