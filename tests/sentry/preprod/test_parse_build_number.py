@@ -21,6 +21,9 @@ from sentry.preprod.build_distribution_utils import parse_build_number
         # A component too wide for the padding width is refused rather than
         # silently corrupting the ordering of adjacent components
         ("1234567.2.3", None),
+        # Unicode "digits" that int() cannot parse (isdigit() True, isdecimal() False)
+        ("²", None),
+        ("1.²", None),
     ],
 )
 def test_parse_build_number(build: str, expected: int | None) -> None:

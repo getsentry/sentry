@@ -30,12 +30,14 @@ def parse_build_number(build: str) -> int | None:
     integers pass through unchanged; up to three dot-separated integers (e.g.
     "1.2.3") are packed by zero-padding each component; anything else returns None.
     """
-    if build.isdigit():
+    # isdecimal() (not isdigit()) is the subset int() can always parse; isdigit()
+    # also matches chars like superscripts that make int() raise.
+    if build.isdecimal():
         return int(build)
 
     parts = build.split(".")
     if 2 <= len(parts) <= 3 and all(
-        p.isdigit() and len(p) <= _BUILD_NUMBER_COMPONENT_WIDTH for p in parts
+        p.isdecimal() and len(p) <= _BUILD_NUMBER_COMPONENT_WIDTH for p in parts
     ):
         parts += ["0"] * (3 - len(parts))
         return sum(
