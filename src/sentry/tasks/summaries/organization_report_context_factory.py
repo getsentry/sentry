@@ -262,8 +262,14 @@ class OrganizationReportContextFactory:
             name="weekly_reports.organization_top_spans",
         ):
             referrer = Referrer.REPORTS_TOP_SPANS.value
-            organization_top_spans(ctx, referrer=referrer)
-            organization_top_spans_timeseries(ctx, referrer=referrer)
+            try:
+                organization_top_spans(ctx, referrer=referrer)
+                organization_top_spans_timeseries(ctx, referrer=referrer)
+            except Exception:
+                sentry_sdk.capture_exception()
+                ctx.top_spans = []
+                ctx.top_spans_timeseries = {}
+                ctx.top_spans_projects = {}
 
     def create_context(self) -> OrganizationReportContext:
         ctx = OrganizationReportContext(self.timestamp, self.duration, self.organization)
