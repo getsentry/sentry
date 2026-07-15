@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.utils.hostname import InstanceHostnameError
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
     OrganizationContributorAction,
@@ -285,6 +286,23 @@ class TrackContributorSeatTest(TestCase):
             == "scm.webhook.organization_contributor.num_actions_should_increment"
         )
 
+    @patch("sentry.seer.code_review.contributor_seats.sentry_sdk.capture_exception")
+    @patch(
+        "sentry.seer.code_review.contributor_seats.instance_hostname",
+        side_effect=InstanceHostnameError("missing"),
+    )
+    def test_missing_hostname_captures_and_skips_seeding(
+        self, mock_hostname: MagicMock, mock_capture: MagicMock
+    ) -> None:
+        self._call(user_id="999")
+
+        assert not OrganizationContributors.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier="999",
+        ).exists()
+        mock_capture.assert_called_once()
+
 
 class RecordContributorActionTest(TestCase):
     def setUp(self) -> None:
@@ -432,3 +450,21 @@ class RecordContributorActionTest(TestCase):
         contributor = self._contributor()
         assert contributor.num_actions == ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD + 1
         mock_assign.delay.assert_called_once_with(contributor.id)
+
+    @patch("sentry.seer.code_review.contributor_seats.sentry_sdk.capture_exception")
+    @patch(
+        "sentry.seer.code_review.contributor_seats.instance_hostname",
+        side_effect=InstanceHostnameError("missing"),
+    )
+    def test_missing_hostname_captures_and_skips_seeding(
+        self, mock_hostname: MagicMock, mock_capture: MagicMock
+    ) -> None:
+        self._call()
+
+        assert not OrganizationContributors.objects.filter(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            external_identifier="123",
+        ).exists()
+        assert self._action_count() == 0
+        mock_capture.assert_called_once()

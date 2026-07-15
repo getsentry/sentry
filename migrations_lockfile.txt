@@ -31,7 +31,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0026_add_night_shift_result_idempotency_key
 
-sentry: 1134_remove_teamreplica_pending
+sentry: 1135_organizationcontributors_provider_hostname_not_null
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
