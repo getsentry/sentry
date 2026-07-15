@@ -59,6 +59,14 @@ class PullRequestVerdict(models.TextChoices):
     MERGED_UNCHANGED = "merged_unchanged"
     MERGED_WITH_ITERATION = "merged_with_iteration"
     CLOSED_UNMERGED = "closed_unmerged"
+    # A real terminal verdict, but only ever assigned locally when the judge
+    # forward fails for a PR select_verdict couldn't read reliable activity data
+    # for (INDETERMINATE) — unlike select_fallback_verdict's other merged
+    # outcomes, there's no trustworthy signal to call unchanged vs. iterated, so
+    # this says so explicitly rather than guessing. Never a judge *result* — Seer
+    # always settles a real outcome when it succeeds, so this is excluded from
+    # RESULT_VERDICTS.
+    MERGED_UNKNOWN_ITERATION = "merged_unknown_iteration"
     # Transient, internal: a terminal event whose outcome a judge must decide has
     # been claimed and forwarded to Seer, but the judged verdict hasn't returned.
     # Reuses the verdict column as the redelivery guard so a redelivered terminal

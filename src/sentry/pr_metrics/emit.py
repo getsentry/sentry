@@ -157,6 +157,32 @@ def select_fallback_verdict(pull_request: PullRequest) -> PullRequestVerdict:
     return PullRequestVerdict.CLOSED_UNMERGED
 
 
+def select_judge_failure_fallback_verdict(
+    pull_request: PullRequest, deferral: VerdictDeferral
+) -> PullRequestVerdict:
+    """The verdict for a judge-eligible PR whose forward to Seer failed.
+
+    A partial event (no conversation analysis, a less-specialized verdict) beats
+    no event at all, so this settles the row locally rather than leaving it
+    claimed at ``JUDGE_IN_PROGRESS`` forever. Judge-eligible PRs are forwarded to
+    Seer for either deferral reason, unlike ``select_fallback_verdict``'s
+    judge-*ineligible* callers, which only ever see ``NEEDS_JUDGE``:
+
+    - ``NEEDS_JUDGE`` carries real activity/engagement data, so this reuses
+      ``select_fallback_verdict`` exactly as the judge-ineligible path does.
+    - ``INDETERMINATE`` merged PRs have no reliable activity data at all —
+      reusing ``select_fallback_verdict`` here would silently read that absence
+      as "no commits after open" and mislabel an actually-iterated PR as
+      unchanged, so this settles on ``MERGED_UNKNOWN_ITERATION`` instead of
+      guessing. Closed PRs don't need the same care: ``select_fallback_verdict``
+      already settles ``CLOSED_UNMERGED`` unconditionally regardless of deferral
+      reason, so there's nothing INDETERMINATE-specific to change there.
+    """
+    if pull_request.merged_at is not None and deferral is VerdictDeferral.INDETERMINATE:
+        return PullRequestVerdict.MERGED_UNKNOWN_ITERATION
+    return select_fallback_verdict(pull_request)
+
+
 # Diagnosis label Sentry can derive on its own (unlike the judge's free-string
 # vocabulary): the deterministic closed-unmerged path's "why", read straight off
 # the PR's own check-suite activity rather than a judge's opinion.

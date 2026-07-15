@@ -1,6 +1,7 @@
 from typing import Any
 from unittest.mock import patch
 
+from sentry.pr_metrics.emit import VerdictDeferral
 from sentry.pr_metrics.tasks import forward_pr_to_seer_task
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
@@ -21,12 +22,15 @@ class ForwardPrToSeerTaskTest(TestCase):
             pull_request_id=overrides.get("pull_request_id", self.pull_request.id),
             organization_id=overrides.get("organization_id", self.organization.id),
             repository_id=overrides.get("repository_id", self.repo.id),
+            deferral=overrides.get("deferral", VerdictDeferral.NEEDS_JUDGE.value),
         )
 
     @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_judge")
     def test_forwards_resolved_pr_and_repo(self, mock_forward: Any) -> None:
         self._run()
-        mock_forward.assert_called_once_with(self.pull_request, self.repo)
+        mock_forward.assert_called_once_with(
+            self.pull_request, self.repo, VerdictDeferral.NEEDS_JUDGE
+        )
 
     @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_judge")
     def test_missing_pull_request_is_dropped(self, mock_forward: Any) -> None:

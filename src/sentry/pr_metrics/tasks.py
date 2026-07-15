@@ -17,6 +17,7 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.models.repository import Repository
+from sentry.pr_metrics.emit import VerdictDeferral
 from sentry.pr_metrics.judge import forward_pr_to_seer_judge
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -49,13 +50,18 @@ def forward_pr_to_seer_task(
     pull_request_id: int,
     organization_id: int,
     repository_id: int,
+    deferral: str,
 ) -> None:
     """Forward a needs-judge terminal PR event to Seer, off the webhook request path.
 
     The webhook claims the ``JUDGE_IN_PROGRESS`` sentinel and enqueues this; the
     forward itself is a blocking signed HTTP call, so it can't run inline in the
-    webhook. Retries on a retryable Seer status (via ``forward_pr_to_seer_judge``);
-    a PR or repo that vanished between enqueue and run is permanent and dropped.
+    webhook. Retries on a retryable Seer status (via ``forward_pr_to_seer_judge``,
+    which also settles a deterministic fallback verdict on a non-retryable
+    failure — see its docstring); a PR or repo that vanished between enqueue and
+    run is permanent and dropped. ``deferral`` is ``select_verdict``'s original
+    ``VerdictDeferral`` reason, carried through so a fallback verdict can be
+    chosen correctly if the forward fails.
     """
     log_extra = {
         "pull_request_id": pull_request_id,
@@ -82,7 +88,7 @@ def forward_pr_to_seer_task(
         metrics.incr("pr_metrics.judge.forward_failed", tags={"reason": "repo_not_found"})
         return
 
-    forward_pr_to_seer_judge(pull_request, repository)
+    forward_pr_to_seer_judge(pull_request, repository, VerdictDeferral(deferral))
 
 
 @instrumented_task(

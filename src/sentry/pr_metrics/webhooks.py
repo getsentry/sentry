@@ -327,6 +327,7 @@ def _forward_to_judge(
             pull_request_id=pr.id,
             organization_id=organization.id,
             repository_id=pr.repository_id,
+            deferral=deferral.value,
         )
     except Exception:
         # The claim committed but the enqueue didn't, so no task will settle this

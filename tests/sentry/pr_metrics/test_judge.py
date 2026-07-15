@@ -17,6 +17,7 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.pr_metrics.attribution import record_attribution_signal
+from sentry.pr_metrics.emit import VerdictDeferral
 from sentry.pr_metrics.judge import (
     _MAX_FORWARDED_CHECK_ROWS,
     forward_pr_to_seer_judge,
@@ -472,7 +473,7 @@ class ForwardPrToSeerJudgeTest(TestCase):
     @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
     def test_forwards_terminal_facts_and_repo_identity(self, mock_request: Any) -> None:
         mock_request.return_value = self._response(202)
-        forward_pr_to_seer_judge(self.pull_request, self.repo)
+        forward_pr_to_seer_judge(self.pull_request, self.repo, VerdictDeferral.NEEDS_JUDGE)
 
         kwargs = mock_request.call_args.kwargs
         assert kwargs["path"] == "/v1/pr-metrics/pr-close-judge"
@@ -515,7 +516,7 @@ class ForwardPrToSeerJudgeTest(TestCase):
             event_type=PullRequestActivityType.REVIEW_SUBMITTED,
             payload={"review_state": "changes_requested"},
         )
-        forward_pr_to_seer_judge(self.pull_request, self.repo)
+        forward_pr_to_seer_judge(self.pull_request, self.repo, VerdictDeferral.NEEDS_JUDGE)
 
         activity = orjson.loads(mock_request.call_args.kwargs["body"])["activity"]
         by_type = {e["event_type"]: e["payload"] for e in activity}
@@ -560,7 +561,7 @@ class ForwardPrToSeerJudgeTest(TestCase):
             date_added=base + timedelta(hours=10),
         )
 
-        forward_pr_to_seer_judge(self.pull_request, self.repo)
+        forward_pr_to_seer_judge(self.pull_request, self.repo, VerdictDeferral.NEEDS_JUDGE)
 
         activity = orjson.loads(mock_request.call_args.kwargs["body"])["activity"]
         check_events = [e for e in activity if e["event_type"] == "check_run_completed"]
@@ -591,7 +592,7 @@ class ForwardPrToSeerJudgeTest(TestCase):
     def test_close_action_is_closed_when_unmerged(self, mock_request: Any) -> None:
         mock_request.return_value = self._response(202)
         self.pull_request.update(merged_at=None, merge_commit_sha=None)
-        forward_pr_to_seer_judge(self.pull_request, self.repo)
+        forward_pr_to_seer_judge(self.pull_request, self.repo, VerdictDeferral.NEEDS_JUDGE)
 
         body = orjson.loads(mock_request.call_args.kwargs["body"])
         assert body["close_action"] == "closed"
@@ -599,19 +600,99 @@ class ForwardPrToSeerJudgeTest(TestCase):
 
     @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
     def test_retryable_status_raises_for_task_retry(self, mock_request: Any) -> None:
-        # 5xx/429 raise so the enclosing task's Retry policy kicks in.
+        # 5xx/429 raise so the enclosing task's Retry policy kicks in, and the
+        # row is left untouched (still claimable) rather than settled early.
         mock_request.return_value = self._response(503)
         with pytest.raises(HTTPError):
-            forward_pr_to_seer_judge(self.pull_request, self.repo)
+            forward_pr_to_seer_judge(self.pull_request, self.repo, VerdictDeferral.NEEDS_JUDGE)
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
 
-    @patch("sentry.pr_metrics.judge.metrics")
-    @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
-    def test_client_error_is_dropped_not_retried(
-        self, mock_request: Any, mock_metrics: Any
-    ) -> None:
-        # A permanent 4xx is observe-only: no raise (no retry), the row stays claimed.
-        mock_request.return_value = self._response(404)
-        forward_pr_to_seer_judge(self.pull_request, self.repo)
-        mock_metrics.incr.assert_any_call(
-            "pr_metrics.judge.forward_failed", tags={"reason": "client_error"}
+    def _track(self) -> None:
+        # A valid attribution makes the PR "tracked" so emit isn't skipped.
+        record_attribution_signal(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
         )
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
+    def test_client_error_falls_back_and_emits(self, mock_request: Any, mock_record: Any) -> None:
+        # A permanent 4xx no longer drops the row silently: a partial event with
+        # a deterministic fallback verdict beats no event at all.
+        self._track()
+        mock_request.return_value = self._response(404)
+        forward_pr_to_seer_judge(self.pull_request, self.repo, VerdictDeferral.NEEDS_JUDGE)
+
+        # Merged with no commits after open (setUp creates none) -> unchanged,
+        # same as select_fallback_verdict's judge-ineligible path.
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_unchanged"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        assert _last_row(mock_record).verdict == "merged_unchanged"
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
+    def test_forward_error_falls_back_and_emits(self, mock_request: Any, mock_record: Any) -> None:
+        # Any other error building/sending the request (not a retryable Seer
+        # status) settles the same fallback rather than crashing the task bare.
+        self._track()
+        mock_request.side_effect = ValueError("boom")
+        forward_pr_to_seer_judge(self.pull_request, self.repo, VerdictDeferral.NEEDS_JUDGE)
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_unchanged"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
+    def test_indeterminate_merged_falls_back_to_unknown_iteration(
+        self, mock_request: Any, mock_record: Any
+    ) -> None:
+        # INDETERMINATE means select_verdict had no reliable activity data to
+        # read "no commits after open" from, so a merged PR can't reuse
+        # select_fallback_verdict's activity-based read without risking a wrong
+        # label -- it settles on the explicitly-unknown verdict instead.
+        self._track()
+        mock_request.return_value = self._response(404)
+        forward_pr_to_seer_judge(self.pull_request, self.repo, VerdictDeferral.INDETERMINATE)
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_unknown_iteration"
+        )
+        assert _last_row(mock_record).verdict == "merged_unknown_iteration"
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
+    def test_indeterminate_closed_falls_back_to_closed_unmerged(
+        self, mock_request: Any, mock_record: Any
+    ) -> None:
+        # Unlike the merged case, INDETERMINATE doesn't change the closed
+        # outcome: select_fallback_verdict's CLOSED_UNMERGED is unconditional
+        # regardless of deferral reason.
+        self._track()
+        self.pull_request.update(merged_at=None, merge_commit_sha=None)
+        mock_request.return_value = self._response(404)
+        forward_pr_to_seer_judge(self.pull_request, self.repo, VerdictDeferral.INDETERMINATE)
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "closed_unmerged"
+        )
+
+    @patch("sentry.analytics.record")
+    @patch("sentry.pr_metrics.judge.make_signed_seer_api_request")
+    def test_fallback_skipped_when_already_settled(
+        self, mock_request: Any, mock_record: Any
+    ) -> None:
+        # A redelivered forward that lost the race to an earlier settle (success
+        # or an earlier fallback) must not emit a second row.
+        self._track()
+        PullRequestMetrics.objects.filter(pull_request=self.pull_request).update(
+            verdict=PullRequestVerdict.MERGED_UNCHANGED
+        )
+        mock_request.return_value = self._response(404)
+        forward_pr_to_seer_judge(self.pull_request, self.repo, VerdictDeferral.NEEDS_JUDGE)
+
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0

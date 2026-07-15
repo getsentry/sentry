@@ -38,7 +38,14 @@ from sentry.pr_metrics.contracts import (
     PrCloseJudgeRequest,
     PrConversationAnalysis,
 )
-from sentry.pr_metrics.emit import active_attributions, emit_pr_metrics_row
+from sentry.pr_metrics.emit import (
+    CI_FAILING_AT_CLOSE,
+    VerdictDeferral,
+    active_attributions,
+    ci_failing_at_close,
+    emit_pr_metrics_row,
+    select_judge_failure_fallback_verdict,
+)
 from sentry.pr_metrics.utils import iso_or_none, resolved_group_ids
 from sentry.seer.code_review.models import SeerCodeReviewRepoDefinition
 from sentry.seer.code_review.utils import build_repo_definition
@@ -61,11 +68,14 @@ seer_pr_metrics_connection_pool = connection_from_url(
     timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
-# The verdicts Seer may return: every real outcome, never an internal sentinel.
-# The callback rejects JUDGE_IN_PROGRESS / WAITING_EVENT_COOLDOWN coming back from Seer.
+# The verdicts Seer may return: every real outcome, never an internal sentinel and
+# never Sentry's own judge-failure fallback (Seer always settles a real outcome
+# when it succeeds — MERGED_UNKNOWN_ITERATION only exists for when it doesn't).
+# The callback rejects any of these three coming back from Seer.
 RESULT_VERDICTS = frozenset(PullRequestVerdict.values) - {
     PullRequestVerdict.JUDGE_IN_PROGRESS,
     PullRequestVerdict.WAITING_EVENT_COOLDOWN,
+    PullRequestVerdict.MERGED_UNKNOWN_ITERATION,
 }
 
 
@@ -174,7 +184,9 @@ def _build_judge_request(pull_request: PullRequest, repository: Repository) -> P
     )
 
 
-def forward_pr_to_seer_judge(pull_request: PullRequest, repository: Repository) -> None:
+def forward_pr_to_seer_judge(
+    pull_request: PullRequest, repository: Repository, deferral: VerdictDeferral
+) -> None:
     """Forward a needs-judge terminal PR event to Seer (Sentry → Seer).
 
     The outbound half of the round-trip: when ``select_verdict`` can't settle the
@@ -183,33 +195,81 @@ def forward_pr_to_seer_judge(pull_request: PullRequest, repository: Repository) 
     the ``JUDGE_IN_PROGRESS`` sentinel before dispatch, so this never double-fires
     on a redelivery.
 
-    Raises ``HTTPError`` on a retryable Seer status (5xx/429) so the enclosing task
-    retries. A permanent rejection (4xx) is logged and dropped — observe-only: the
-    row stays claimed and simply never emits, an accepted loss until a reaper lands.
+    Raises ``HTTPError`` on a retryable Seer status (5xx/429 — urllib3 also
+    raises connection-level failures, e.g. timeouts, as ``HTTPError`` subclasses,
+    so those retry too) so the enclosing task's ``Retry`` policy retries it;
+    still silently exhausted after ``MAX_RETRIES`` with no further action, an
+    accepted residual gap. Anything else — a permanent rejection (4xx), or any
+    other error building or sending the request — settles the row with a
+    deterministic fallback verdict and emits a partial event instead of leaving
+    it claimed forever: no conversation analysis and a less-specialized verdict
+    beat no event at all. ``deferral`` is ``select_verdict``'s original outcome,
+    needed to pick the right fallback — see ``select_judge_failure_fallback_verdict``.
     """
-    payload = _build_judge_request(pull_request, repository)
     log_extra = {
         "organization_id": pull_request.organization_id,
         "repository_id": pull_request.repository_id,
         "repo_name": repository.name,
         "pull_request_id": pull_request.id,
     }
-    response = make_signed_seer_api_request(
-        connection_pool=seer_pr_metrics_connection_pool,
-        path=SEER_PR_METRICS_JUDGE_PATH,
-        body=payload.json().encode("utf-8"),
-        viewer_context=SeerViewerContext(organization_id=pull_request.organization_id),
-    )
-    if response.status >= 500 or response.status == 429:
-        raise HTTPError(f"Seer judge forward returned retryable status {response.status}")
-    if response.status >= 400:
-        logger.warning(
-            "pr_metrics.judge.forward_rejected", extra={**log_extra, "status": response.status}
+    try:
+        payload = _build_judge_request(pull_request, repository)
+        response = make_signed_seer_api_request(
+            connection_pool=seer_pr_metrics_connection_pool,
+            path=SEER_PR_METRICS_JUDGE_PATH,
+            body=payload.json().encode("utf-8"),
+            viewer_context=SeerViewerContext(organization_id=pull_request.organization_id),
         )
-        metrics.incr("pr_metrics.judge.forward_failed", tags={"reason": "client_error"})
+        if response.status >= 500 or response.status == 429:
+            raise HTTPError(f"Seer judge forward returned retryable status {response.status}")
+        if response.status >= 400:
+            logger.warning(
+                "pr_metrics.judge.forward_rejected",
+                extra={**log_extra, "status": response.status},
+            )
+            metrics.incr("pr_metrics.judge.forward_failed", tags={"reason": "client_error"})
+            _settle_judge_failure_fallback(pull_request, deferral, log_extra)
+            return
+    except HTTPError:
+        raise
+    except Exception:
+        logger.exception("pr_metrics.judge.forward_error", extra=log_extra)
+        metrics.incr("pr_metrics.judge.forward_failed", tags={"reason": "error"})
+        _settle_judge_failure_fallback(pull_request, deferral, log_extra)
         return
     metrics.incr("pr_metrics.judge.forwarded")
     logger.info("pr_metrics.judge.forwarded", extra=log_extra)
+
+
+def _settle_judge_failure_fallback(
+    pull_request: PullRequest, deferral: VerdictDeferral, log_extra: Mapping[str, Any]
+) -> None:
+    """Claim a judge-eligible PR off ``JUDGE_IN_PROGRESS`` with a fallback verdict.
+
+    Mirrors ``update_pr_metrics``'s single-emit guard: a compare-and-set off the
+    forward sentinel (or an unclaimed null, covering the brief redelivery window
+    before the sentinel lands) so a redelivered forward can't emit twice.
+    """
+    verdict = select_judge_failure_fallback_verdict(pull_request, deferral)
+    diagnosis_labels = (
+        [CI_FAILING_AT_CLOSE]
+        if verdict == PullRequestVerdict.CLOSED_UNMERGED and ci_failing_at_close(pull_request)
+        else None
+    )
+    with transaction.atomic(using=router.db_for_write(PullRequestMetrics)):
+        settled = (
+            PullRequestMetrics.objects.filter(pull_request=pull_request)
+            .filter(Q(verdict=PullRequestVerdict.JUDGE_IN_PROGRESS) | Q(verdict__isnull=True))
+            .update(verdict=verdict)
+        )
+        if not settled:
+            logger.info("pr_metrics.judge.fallback_skipped", extra=log_extra)
+            metrics.incr("pr_metrics.judge.fallback_skipped", tags={"reason": "already_settled"})
+            return
+
+    emit_pr_metrics_row(pull_request=pull_request, diagnosis_labels=diagnosis_labels)
+    metrics.incr("pr_metrics.judge.fallback_emitted", tags={"verdict": verdict})
+    logger.info("pr_metrics.judge.fallback_emitted", extra={**log_extra, "verdict": verdict})
 
 
 def _parse_attributions(

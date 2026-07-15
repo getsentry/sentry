@@ -2045,6 +2045,7 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
             pull_request_id=self.pull_request.id,
             organization_id=self.organization.id,
             repository_id=self.repo.id,
+            deferral="needs_judge",
         )
 
     @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
