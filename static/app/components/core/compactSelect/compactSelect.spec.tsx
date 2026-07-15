@@ -519,7 +519,7 @@ describe('CompactSelect', () => {
       expect(onChange).not.toHaveBeenCalled();
     });
 
-    it('moves focus to the option list instead of selecting while loading', async () => {
+    it('keeps focus in the search input while loading', async () => {
       const onChange = jest.fn();
       render(
         <CompactSelect
@@ -536,7 +536,7 @@ describe('CompactSelect', () => {
       await waitFor(() => expect(searchInput).toHaveFocus());
       await userEvent.keyboard('{Enter}');
 
-      expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+      expect(searchInput).toHaveFocus();
       expect(onChange).not.toHaveBeenCalled();
     });
 

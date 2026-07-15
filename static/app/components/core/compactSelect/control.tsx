@@ -295,8 +295,8 @@ export function Control({
           ) ?? []
         ).filter(option => option.getAttribute('aria-disabled') !== 'true');
 
-        if (options.length > 0) {
-          if (options.length === 1 && !loading) {
+        if (options.length > 0 && !loading) {
+          if (options.length === 1) {
             // Trigger the same press behavior as if the user had focused the option and
             // pressed Enter.
             options[0]?.click();
