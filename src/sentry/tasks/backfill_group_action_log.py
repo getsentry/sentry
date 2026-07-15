@@ -163,8 +163,6 @@ def _backfill_project(
     cursor_id: int = 0,
     activation_id: str | None = None,
 ) -> None:
-    from django.db.models import Q
-
     batch_size: int = options.get("issues.backfill_group_action_log.batch_size")
     inter_batch_delay_s: int = options.get("issues.backfill_group_action_log.inter_batch_delay_s")
 
@@ -180,7 +178,10 @@ def _backfill_project(
         group_id__isnull=False,
     )
     if cursor_dt is not None:
-        qs = qs.filter(Q(datetime__gt=cursor_dt) | Q(datetime=cursor_dt, id__gt=cursor_id))
+        qs = qs.extra(
+            where=['ROW("datetime", "id") > ROW(%s, %s)'],
+            params=[cursor_dt, cursor_id],
+        )
     activities = list(qs.order_by("datetime", "id")[:batch_size])
 
     if not activities:
