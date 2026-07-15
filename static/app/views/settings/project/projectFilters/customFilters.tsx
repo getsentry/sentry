@@ -185,7 +185,17 @@ function getConditionPropertyOptions(
   index: number
 ) {
   const currentProperty = conditions[index]?.property;
-  return propertyOptions.filter(option => {
+  // An existing filter may reference a property whose ingestion feature is now
+  // off, so it's missing from propertyOptions. Keep the stored option available
+  // for this row so the select can still display and retain it.
+  const availableOptions =
+    currentProperty && !propertyOptions.some(option => option.value === currentProperty)
+      ? [
+          ...propertyOptions,
+          ...ALL_PROPERTY_OPTIONS.filter(option => option.value === currentProperty),
+        ]
+      : propertyOptions;
+  return availableOptions.filter(option => {
     if (option.value === currentProperty || !isExclusiveProperty(option.value)) {
       return true;
     }

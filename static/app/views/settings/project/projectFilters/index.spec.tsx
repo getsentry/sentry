@@ -616,6 +616,25 @@ describe('ProjectFilters', () => {
     expect(await screen.findByText('Updated name')).toBeInTheDocument();
   });
 
+  it('keeps a gated condition property selectable when editing', async () => {
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Drop debug log spam',
+        conditions: [{type: 'log_message', value: ['*DEBUG*']}],
+      }),
+    ]);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Edit filter'}));
+    expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
+
+    const propertySelect = screen.getByRole('textbox', {name: 'Condition property'});
+    expect(propertySelect).toHaveTextContent('Log Message');
+
+    await userEvent.click(propertySelect);
+    expect(screen.getByRole('menuitemradio', {name: 'Log Message'})).toBeInTheDocument();
+  });
+
   it('deletes a filter', async () => {
     renderInboundFilters([CustomInboundFilterFixture({id: '1', name: 'Delete me'})]);
 
