@@ -45,6 +45,7 @@ export function SeerEnableNotifications({status}: Props) {
     isPromptDismissed,
     snoozePrompt,
     isLoading: isLoadingPromptDismissed,
+    isError: isPromptError,
   } = usePrompt({
     feature: PROMPT_FEATURE,
     organization,
@@ -84,6 +85,7 @@ export function SeerEnableNotifications({status}: Props) {
     !supportsNotifications ||
     isLoadingPromptDismissed ||
     isPromptDismissed === true ||
+    isPromptError ||
     status !== 'processing'
   ) {
     return null;
