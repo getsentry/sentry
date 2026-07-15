@@ -680,7 +680,11 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
     from sentry.models.commit import Commit
     from sentry.models.files.file import File
     from sentry.models.grouprulestatus import GroupRuleStatus
-    from sentry.models.pullrequest import PullRequest, PullRequestActivity
+    from sentry.models.pullrequest import (
+        PullRequest,
+        PullRequestActivity,
+        PullRequestActivityLog,
+    )
     from sentry.models.release import Release
     from sentry.monitors.models import MonitorCheckIn
     from sentry.preprod.models import PreprodArtifact
@@ -698,6 +702,10 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
         (PreprodArtifact, "date_added", "date_added"),
         (PullRequest, "date_added", "date_added"),
         (PullRequestActivity, "date_added", "date_added"),
+        # Keyed on ``date_updated``: the doc is rewritten in place on every webhook,
+        # so a PR still receiving events must not be reaped on its (fixed) creation
+        # time — only once it has gone quiet for the retention window.
+        (PullRequestActivityLog, "date_updated", "date_updated"),
         (Release, "date_added", "date_added"),
         (File, "timestamp", "id"),
         (Commit, "date_added", "id"),
