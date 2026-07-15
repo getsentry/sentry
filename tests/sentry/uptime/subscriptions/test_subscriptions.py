@@ -9,7 +9,7 @@ from pytest import raises
 from sentry.conf.types.uptime import UptimeRegionConfig
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
-from sentry.quotas.base import SeatAssignmentResult
+from sentry.quotas.base import SeatAssignmentReason, SeatAssignmentResult
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
@@ -1108,7 +1108,9 @@ class EnableUptimeDetectorTest(UptimeTestCase):
 
     @mock.patch(
         "sentry.quotas.backend.check_assign_seat",
-        return_value=SeatAssignmentResult(assignable=False, reason="Testing"),
+        return_value=SeatAssignmentResult(
+            assignment_reason=SeatAssignmentReason.QUOTA_EXCEEDED, reason="Testing"
+        ),
     )
     @mock.patch(
         "sentry.quotas.backend.assign_seat",

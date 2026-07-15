@@ -5,7 +5,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_SUCCESS,
 )
 
-from sentry.quotas.base import SeatAssignmentResult
+from sentry.quotas.base import SeatAssignmentReason, SeatAssignmentResult
 from sentry.testutils.cases import TestCase, UptimeTestCase
 from sentry.uptime.endpoints.validators import (
     UptimeDomainCheckFailureValidator,
@@ -258,7 +258,9 @@ class UptimeDomainCheckFailureValidatorTest(UptimeTestCase):
 
     @mock.patch(
         "sentry.quotas.backend.check_assign_seat",
-        return_value=SeatAssignmentResult(assignable=False, reason="No seats available"),
+        return_value=SeatAssignmentResult(
+            assignment_reason=SeatAssignmentReason.QUOTA_EXCEEDED, reason="No seats available"
+        ),
     )
     def test_update_enable_no_seat_available(self, mock_check_assign_seat: mock.MagicMock) -> None:
         """Test that enabling fails with validation error when no seats are available."""

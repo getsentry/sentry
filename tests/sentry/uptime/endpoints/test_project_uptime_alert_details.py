@@ -5,7 +5,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
-from sentry.quotas.base import SeatAssignmentResult
+from sentry.quotas.base import SeatAssignmentReason, SeatAssignmentResult
 from sentry.uptime.endpoints.serializers import UptimeDetectorSerializer
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
 from tests.sentry.uptime.endpoints import UptimeAlertBaseEndpointTest
@@ -293,7 +293,10 @@ class ProjectUptimeAlertDetailsPutEndpointTest(ProjectUptimeAlertDetailsBaseEndp
     )
     @mock.patch(
         "sentry.quotas.backend.check_assign_seat",
-        return_value=SeatAssignmentResult(assignable=False, reason="Assignment failed in test"),
+        return_value=SeatAssignmentResult(
+            assignment_reason=SeatAssignmentReason.QUOTA_EXCEEDED,
+            reason="Assignment failed in test",
+        ),
     )
     def test_status_enable_no_seat_assignment(
         self, _mock_check_assign_seat: mock.MagicMock, _mock_assign_seat: mock.MagicMock

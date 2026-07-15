@@ -22,7 +22,7 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.monitors.utils import ensure_cron_detector, get_timeout_at
-from sentry.quotas.base import SeatAssignmentResult
+from sentry.quotas.base import SeatAssignmentReason, SeatAssignmentResult
 from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.outcomes import Outcome
@@ -792,7 +792,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
     @patch("sentry.quotas.backend.check_assign_seat")
     @patch("sentry.quotas.backend.assign_seat")
     def test_activate_monitor_success(self, assign_seat: MagicMock, check_seat: MagicMock) -> None:
-        check_seat.return_value = SeatAssignmentResult(assignable=True)
+        check_seat.return_value = SeatAssignmentResult()
         assign_seat.return_value = Outcome.ACCEPTED
 
         monitor = self._create_monitor()
@@ -811,7 +811,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
     def test_no_activate_if_already_activated(
         self, assign_seat: MagicMock, check_seat: MagicMock
     ) -> None:
-        check_seat.return_value = SeatAssignmentResult(assignable=True)
+        check_seat.return_value = SeatAssignmentResult()
         assign_seat.return_value = Outcome.ACCEPTED
 
         monitor = self._create_monitor()
@@ -842,7 +842,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
     def test_update_slug_sends_right_slug_to_assign(
         self, assign_seat, check_seat, update_monitor_slug
     ):
-        check_seat.return_value = SeatAssignmentResult(assignable=True)
+        check_seat.return_value = SeatAssignmentResult()
 
         def dummy_assign(data_category=None, seat_object=None):
             assert seat_object.slug == old_slug
@@ -870,7 +870,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
     @patch("sentry.quotas.backend.assign_seat")
     def test_activate_monitor_invalid(self, assign_seat: MagicMock, check_seat: MagicMock) -> None:
         result = SeatAssignmentResult(
-            assignable=False,
+            assignment_reason=SeatAssignmentReason.QUOTA_EXCEEDED,
             reason="Over quota",
         )
         check_seat.return_value = result
