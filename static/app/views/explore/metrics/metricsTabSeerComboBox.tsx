@@ -45,7 +45,15 @@ import {
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {useQueryParams} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
+import {tokenizeExpression} from 'sentry/components/arithmeticBuilder/tokenizer';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
+import {
+  isVisualize,
+  isVisualizeEquation,
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {getSeerExploreQuery, getSeerSort} from 'sentry/views/explore/seerQuery';
 
 interface MetricsTabSeerComboBoxProps {
@@ -109,7 +117,28 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       });
 
       const seerVisualizes = (result.visualizations ?? []).flatMap(viz =>
-        viz.yAxes.map(yAxis => new VisualizeFunction(yAxis, {chartType: viz.chartType}))
+        viz.yAxes.flatMap(yAxis => {
+          if (isEquation(yAxis)) {
+            const expressionText = stripEquationPrefix(yAxis);
+            const tokens = tokenizeExpression(expressionText);
+            const seen = new Set<string>();
+            const subFunctions: VisualizeFunction[] = [];
+            for (const token of tokens) {
+              if (!isTokenFunction(token) || seen.has(token.text)) {
+                continue;
+              }
+              seen.add(token.text);
+              subFunctions.push(
+                new VisualizeFunction(token.text, {chartType: viz.chartType})
+              );
+            }
+            return [
+              ...subFunctions,
+              new VisualizeEquation(yAxis, {chartType: viz.chartType}),
+            ];
+          }
+          return [new VisualizeFunction(yAxis, {chartType: viz.chartType})];
+        })
       );
 
       // Move any `project:` filter Seer put in the query onto the page-level
@@ -173,6 +202,10 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // clobber a customized aggregate.
       if (seerVisualizes.length > 0) {
         for (const viz of seerVisualizes) {
+          if (isVisualizeEquation(viz)) {
+            aggregateFields.push(viz);
+            continue;
+          }
           const {aggregation, traceMetric: vizMetric} = parseMetricAggregate(viz.yAxis);
           const isQualified = Boolean(
             vizMetric.name && vizMetric.type && isTraceMetricTypeValue(vizMetric.type)
