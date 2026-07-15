@@ -11,6 +11,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+import sentry_sdk
 from django.db import router, transaction
 from django.db.models import F
 
@@ -18,7 +19,7 @@ from sentry import features, quotas
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.utils.hostname import instance_hostname
+from sentry.integrations.utils.hostname import InstanceHostnameError, instance_hostname
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
@@ -101,6 +102,12 @@ def track_contributor_seat(
     logs_extra: Mapping[str, Any] | None = None,
 ) -> None:
     """Informational logging for the legacy seat-charging path."""
+    try:
+        hostname = instance_hostname(integration)
+    except InstanceHostnameError as e:
+        sentry_sdk.capture_exception(e)
+        return
+
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
         integration_id=integration.id,
@@ -108,7 +115,7 @@ def track_contributor_seat(
         defaults={
             "alias": user_username,
             "provider": integration.provider,
-            "hostname": instance_hostname(integration),
+            "hostname": hostname,
         },
     )
     if not should_increment_contributor_seat(organization, repo, contributor):
@@ -146,6 +153,12 @@ def record_contributor_action(
     tags: Mapping[str, Any] | None = None,
 ) -> None:
     """Seed a contributor and record the contributor's PR-opened action."""
+    try:
+        hostname = instance_hostname(integration)
+    except InstanceHostnameError as e:
+        sentry_sdk.capture_exception(e)
+        return
+
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
         integration_id=integration.id,
@@ -153,7 +166,7 @@ def record_contributor_action(
         defaults={
             "alias": user_username,
             "provider": integration.provider,
-            "hostname": instance_hostname(integration),
+            "hostname": hostname,
         },
     )
 
