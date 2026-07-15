@@ -125,8 +125,7 @@ for i = 0, 100 do -- Theoretic maximum depth of redirects is 100
 end
 
 local function insert_metric(t, key, value)
-    -- This is only reliable for dense tables. If the table is sparse this behavior is undefined
-    -- (varies by Lua version).
+    -- This is only reliable for dense tables. If the table is sparse this behavior is undefined.
     t[#t + 1] = key
     t[#t + 1] = value
 end
