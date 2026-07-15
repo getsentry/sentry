@@ -37,7 +37,7 @@ SUPPORTED_ACTIVITIES = [
 
 # Activities the smart assignment feature reacts to: a Seer AI step starting, an
 # assignment, or a resolution. Each triggers a prediction (deduped to one per group)
-# and records ground truth; gating lives in maybe_trigger_smart_assignment. The exact
+# and records ground truth; gating lives in trigger_smart_assignment. The exact
 # ActivityType is forwarded through as the trigger (see smart_assignment.models).
 _SMART_ASSIGNMENT_ACTIVITIES = RESOLUTION_ACTIVITIES | frozenset(
     {
@@ -113,7 +113,7 @@ def smart_assignment_activity_handler(
     Invoked unconditionally for every group activity (via
     invoke_workflow_activity_handlers), so it self-filters to the activities we care
     about and delegates gating, dispatch (deduped to one run per group), and
-    ground-truth capture to maybe_trigger_smart_assignment.
+    ground-truth capture to trigger_smart_assignment.
     """
     try:
         activity_type = ActivityType(activity.type)
@@ -123,9 +123,9 @@ def smart_assignment_activity_handler(
     if activity_type not in _SMART_ASSIGNMENT_ACTIVITIES:
         return
 
-    from sentry.seer.smart_assignment.trigger import maybe_trigger_smart_assignment
+    from sentry.seer.smart_assignment.trigger import trigger_smart_assignment
 
-    maybe_trigger_smart_assignment(group, activity_type, activity)
+    trigger_smart_assignment(group, activity_type, activity)
 
 
 @workflow_activity_registry.register("generic_activity")

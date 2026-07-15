@@ -1,18 +1,3 @@
-"""Gating and dispatch for the smart assignment feature.
-
-`maybe_trigger_smart_assignment` is the single gated entrypoint: it checks the
-feature flag, dedups to one prediction per issue (so a run is only dispatched the
-first time), and enforces per-org and global daily dispatch caps. It takes the
-triggering `ActivityType` directly (rather than condensing it into a bespoke enum)
-so we keep the exact provenance in metrics and the run mirror. Today every trigger
-is an activity; a future non-activity source would widen this parameter.
-
-There is no dedicated result table: Seer stores the run/verdict (queryable per issue
-via `category_value=<group_id>`) and the run's Sentry-side mirror (`SeerAgentRun`,
-source="smart_assignment") is the dedup key. The triggering activity is stamped with
-a pointer back to the run it kicked off.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -26,8 +11,8 @@ from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.smart_assignment.models import (
-    FEATURE_ID,
     RESOLUTION_ACTIVITIES,
+    SEER_FEATURE_ID,
     SmartAssignmentPayload,
 )
 from sentry.types.activity import ActivityType
@@ -41,7 +26,7 @@ FEATURE_FLAG = "organizations:seer-smart-assignment-run"
 _RATE_LIMIT_WINDOW = 86400
 
 
-def maybe_trigger_smart_assignment(
+def trigger_smart_assignment(
     group: Group,
     activity_type: ActivityType,
     activity: Activity | None = None,
@@ -70,9 +55,8 @@ def maybe_trigger_smart_assignment(
     # code (not a DB constraint) so re-runs are cheap to enable later -- e.g. gate on
     # a cooldown or a new-signal check against the latest run instead. The run mirror
     # is our durable record that a run was dispatched.
-    if not _already_predicted(group):
-        if not _dispatch_rate_limited(organization):
-            _dispatch(group, activity_type, activity)
+    if not _already_predicted(group) and not _dispatch_rate_limited(organization):
+        _dispatch(group, activity_type, activity)
 
 
 def _already_predicted(group: Group) -> bool:
@@ -82,7 +66,7 @@ def _already_predicted(group: Group) -> bool:
     cross-service call. Best-effort: a rare concurrent trigger could slip a second
     run past this before the first mirror commits, which the daily caps still bound.
     """
-    return SeerAgentRun.objects.filter(group_id=group.id, source=FEATURE_ID).exists()
+    return SeerAgentRun.objects.filter(group_id=group.id, source=SEER_FEATURE_ID).exists()
 
 
 def _dispatch_rate_limited(organization: Organization) -> bool:
@@ -116,7 +100,7 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity | No
     """Dispatch a Seer smart-assignment run and stamp the triggering activity.
 
     The run's Sentry-side mirror (`SeerAgentRun`) is created inside `start_feature_run`
-    with `source=FEATURE_ID`, `group`, and the `extras` we seed here -- that's the
+    with `source=SEER_FEATURE_ID`, `group`, and the `extras` we seed here -- that's the
     dedup key and the scoring bookkeeping row. The triggering activity is stamped with
     a pointer to the run so an action can be traced to the run it kicked off.
     """
@@ -136,7 +120,7 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity | No
     title = f"Smart assignment for {group.qualified_short_id or group.id}"
     try:
         run = client.start_feature_run(
-            feature_id=FEATURE_ID,
+            feature_id=SEER_FEATURE_ID,
             payload=payload.dict(),
             title=title,
             flush=False,
@@ -168,7 +152,7 @@ def _stamp_activity(activity: Activity, run: SeerRun, activity_type: ActivityTyp
     so this is for display/traceability, not querying -- to list runs (and their
     triggering activity ids) use the `SeerAgentRun` mirror.
     """
-    data = {**(activity.data or {})}
+    data = dict(activity.data or {})
     data["seer_smart_assignment"] = {
         "run_id": run.id,
         "run_uuid": str(run.uuid),

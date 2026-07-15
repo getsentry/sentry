@@ -19,14 +19,15 @@ from pydantic import BaseModel, Field
 
 from sentry.types.activity import ActivityType
 
-# feature_id this feature is registered under on the Seer side; also the
-# SeerAgentRun.source of its run mirrors, so it's the key we dedup/look up runs by.
-FEATURE_ID = "smart_assignment"
+# SeerAgentRun.source, the key we dedup/look up runs by.
+SEER_FEATURE_ID = "smart_assignment"
 
 
 # Resolutions we treat as ground truth: a human resolving an issue is a signal for
 # who should have owned it.
 # SET_RESOLVED_BY_AGE is excluded (auto-resolve cron, no acting user, so no signal).
+# Other ground-truth activities include ASSIGNED and SEER_*_STARTED,
+# configured in workflow_activity_handlers.py
 RESOLUTION_ACTIVITIES = frozenset(
     {
         ActivityType.SET_RESOLVED,
@@ -50,36 +51,20 @@ class SmartAssignmentScore(models.TextChoices):
     MISS = "miss"  # neither
 
 
-class _Base(BaseModel):
-    class Config:
-        extra = "ignore"
-
-
-# Request payload (Sentry -> Seer): the `payload` block of the feature run.
-
-
-class SmartAssignmentPayload(_Base):
+class SmartAssignmentPayload(BaseModel):
     group_id: int
     project_slug: str | None = None
 
 
-# Result payload (Seer -> Sentry): the ranked verdict pushed back.
-
-
-class RankedCandidate(_Base):
+class RankedCandidate(BaseModel):
     identifier: str
-    # How to resolve `identifier`: "username" (a linked Sentry user's @handle) or
-    # "email" (a raw commit email). Unlike `signals`/`confidence` above, this IS a
-    # field we switch on, so we mirror Seer's Literal exactly (rather than loosening
-    # it) -- an unexpected kind should fail loudly at parse time, not silently
-    # resolve to no user.
     identifier_kind: Literal["email", "username"]
     reason: str = ""
     signals: list[str] = Field(default_factory=list)
     confidence: str = ""
 
 
-class AssigneeVerdict(_Base):
+class AssigneeVerdict(BaseModel):
     """The artifact Seer delivers: ranked best-first, empty == no confident pick."""
 
     candidates: list[RankedCandidate] = Field(default_factory=list)

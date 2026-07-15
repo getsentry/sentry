@@ -26,7 +26,7 @@ class WorkflowActivityRegistryTest(TestCase):
 
 
 class SmartAssignmentActivityHandlerTest(TestCase):
-    TRIGGER = "sentry.seer.smart_assignment.trigger.maybe_trigger_smart_assignment"
+    TRIGGER = "sentry.seer.smart_assignment.trigger.trigger_smart_assignment"
 
     def setUp(self) -> None:
         self.group = self.create_group()
