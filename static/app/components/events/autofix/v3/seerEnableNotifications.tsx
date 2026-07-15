@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {IconSubscribed} from 'sentry/icons/iconSubscribed';
 import {t} from 'sentry/locale';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
@@ -20,7 +21,18 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 const SUCCESS_VISIBLE_DURATION_MS = 25_000;
 const PROMPT_FEATURE = 'autofix-sw-notification';
 
-export function SeerEnableNotifications() {
+interface Props {
+  status: undefined | ExplorerAutofixState['status'];
+}
+
+const funMessages = [
+  t("It's ok to go watch a cat video."),
+  t('Seer can take a minute to reply, but it feels like an eternity.'),
+  t('By the time you enable this Seer should be done.'),
+  t("Allowing notifications doesn't bias the results, but I wish it would."),
+];
+
+export function SeerEnableNotifications({status}: Props) {
   const organization = useOrganization();
   const [isSuccessVisible, setIsSuccessVisible] = useState(false);
   const {isServiceWorkerSupported, controller} = useServiceWorker();
@@ -29,7 +41,11 @@ export function SeerEnableNotifications() {
 
   const analyticsArea = useAnalyticsArea();
 
-  const {isPromptDismissed, snoozePrompt} = usePrompt({
+  const {
+    isPromptDismissed,
+    snoozePrompt,
+    isLoading: isLoadingPromptDismissed,
+  } = usePrompt({
     feature: PROMPT_FEATURE,
     organization,
   });
@@ -63,9 +79,12 @@ export function SeerEnableNotifications() {
   ]);
 
   if (
+    !organization.features.includes('autofix-browser-notifications') ||
     !isServiceWorkerSupported ||
     !supportsNotifications ||
-    isPromptDismissed !== false
+    isLoadingPromptDismissed ||
+    isPromptDismissed === true ||
+    status !== 'processing'
   ) {
     return null;
   }
@@ -115,9 +134,12 @@ export function SeerEnableNotifications() {
   }
 
   if (permission === 'default') {
+    const funMessage = funMessages[Math.floor(Math.random() * funMessages.length)]!;
+
     return (
       <Stack gap="lg" justify="center" align="center">
-        <Text>{t('Get a notification when Seer has an update')}</Text>
+        <Text align="center">{t('Get notified when Seer has an update.')}</Text>
+        <Text align="center">{funMessage}</Text>
 
         <Flex gap="lg" align="center">
           <Flex align="center" gap="md">
