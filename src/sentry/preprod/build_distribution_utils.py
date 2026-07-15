@@ -24,15 +24,12 @@ _BUILD_NUMBER_COMPONENT_WIDTH = 6
 
 
 def parse_build_number(build: str) -> int | None:
-    """Parse a raw build identifier (e.g. CFBundleVersion) into a sortable int.
+    """Parse a build number into the sortable int launchpad stores on the artifact.
 
-    Mirrors launchpad's ``_parse_build_number`` so a client-supplied build number
-    expands to the same sortable int launchpad stored on the artifact. Plain
-    integers pass through unchanged; two to three period-separated integers (e.g.
-    "1.2.3") are packed by zero-padding each component; anything else returns None.
-
-    Values that overflow the build_number column (a BoundedBigIntegerField) return
-    None: they can never match a stored row and would otherwise fail query prep.
+    Mirrors launchpad's ``_parse_build_number``: plain integers pass through, two
+    or three period-separated integers (e.g. "1.2.3") are packed by zero-padding
+    each component, and anything else (or a value too large for the build_number
+    column) returns None.
     """
     build = build.strip()
 
