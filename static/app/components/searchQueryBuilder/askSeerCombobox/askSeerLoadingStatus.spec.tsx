@@ -23,6 +23,17 @@ it('shows only the current step', () => {
   expect(getStatus()).not.toHaveTextContent('Fine-tuned query');
 });
 
+it('shows a status for metric candidate discovery', () => {
+  render(
+    <AskSeerLoadingStatus
+      completedSteps={[]}
+      currentStep={{key: 'get_metric_candidates'}}
+    />
+  );
+
+  expect(getStatus()).toHaveTextContent('Finding matching metrics...');
+});
+
 it('advances copy for repeated steps while deduplicating parallel calls', () => {
   render(
     <AskSeerLoadingStatus

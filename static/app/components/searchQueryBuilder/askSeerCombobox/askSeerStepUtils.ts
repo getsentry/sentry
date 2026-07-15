@@ -37,7 +37,14 @@ const TAG_INVESTIGATION_LABELS: StepLabel[] = [
  */
 const STEP_LABELS: Record<string, StepLabel[]> = {
   get_field_values: TAG_INVESTIGATION_LABELS,
-  get_errors_field_values: TAG_INVESTIGATION_LABELS,
+  get_metric_candidates: [
+    {loading: t('Finding matching metrics...'), completed: t('Found matching metrics')},
+    {loading: t('Looking for more metrics...'), completed: t('Found more metrics')},
+    {
+      loading: t('Checking additional metrics...'),
+      completed: t('Checked additional metrics'),
+    },
+  ],
   execute_query: [
     {loading: t('Fine-tuning your query...'), completed: t('Fine-tuned query')},
     {loading: t('Trying another approach...'), completed: t('Tried another approach')},
@@ -51,6 +58,7 @@ const STEP_LABELS: Record<string, StepLabel[]> = {
   ],
 
   // DEPRECATED
+  get_errors_field_values: TAG_INVESTIGATION_LABELS,
   fetch_tag_values: TAG_INVESTIGATION_LABELS,
   get_tag_values: TAG_INVESTIGATION_LABELS,
   test_query: [
