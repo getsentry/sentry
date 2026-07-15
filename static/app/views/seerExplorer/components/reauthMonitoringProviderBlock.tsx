@@ -19,6 +19,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   datadog: 'Datadog',
   datadog_pat: 'Datadog',
   gcp: 'Google Cloud Platform',
+  gcp_sa: 'Google Cloud Platform',
 };
 
 interface ReauthMonitoringProviderBlockProps {

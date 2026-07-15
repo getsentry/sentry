@@ -49,6 +49,7 @@ class IntegrationProviderSlug(StrEnum):
     DATADOG = "datadog"
     DATADOG_PAT = "datadog_pat"
     GCP = "gcp"
+    GCP_SA = "gcp_sa"
 
 
 MONITORING_PROVIDERS: frozenset[str] = frozenset(
@@ -56,6 +57,7 @@ MONITORING_PROVIDERS: frozenset[str] = frozenset(
         IntegrationProviderSlug.DATADOG,
         IntegrationProviderSlug.DATADOG_PAT,
         IntegrationProviderSlug.GCP,
+        IntegrationProviderSlug.GCP_SA,
     }
 )
 
