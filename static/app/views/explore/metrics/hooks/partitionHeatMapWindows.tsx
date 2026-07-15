@@ -222,7 +222,7 @@ const CHUNK_COUNT = 3;
 
 // For the `progressive` strategy: each older window is this many times larger
 // than the one after it.
-const GROWTH_FACTOR = 3;
+const GROWTH_FACTOR = 1.5;
 
 // Ranges shorter than this aren't worth partitioning — a single request is fast.
 const MINIMUM_PARTITION_RANGE = 1000 * 60 * 60 * 24; // 1 day
