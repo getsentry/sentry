@@ -327,6 +327,8 @@ export function generateTargetQuery({
       } else {
         search.setFilterValues(groupBy, [value]);
       }
+    } else if (typeof value === 'number') {
+      search.setFilterValues(groupBy, [String(value)]);
     } else if (!defined(value)) {
       search.addFilterValue('!has', groupBy);
     }
