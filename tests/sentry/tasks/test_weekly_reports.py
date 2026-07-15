@@ -32,14 +32,11 @@ from sentry.tasks.summaries.utils import (
     ONE_DAY,
     OrganizationReportContext,
     ProjectContext,
-    _project_key_errors_eap,
-    _project_key_errors_snuba,
     _project_key_performance_issues_eap,
     _project_key_performance_issues_snuba,
     fetch_past_resolved_issue_links,
     org_key_errors,
     organization_project_issue_summaries,
-    project_key_errors,
     project_past_resolved_issues,
     user_project_ownership,
 )
@@ -346,43 +343,6 @@ class WeeklyReportsTest(
         assert substatus_totals.get(GroupSubStatus.REGRESSED, 0) == 0
         assert sum(substatus_totals.values()) == 2
 
-    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
-    def test_organization_project_issue_status(self) -> None:
-        self.login_as(user=self.user)
-        self.project.first_event = self.now - timedelta(days=3)
-        min_ago = (self.now - timedelta(minutes=1)).isoformat()
-        event1 = self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "message",
-                "timestamp": min_ago,
-                "fingerprint": ["group-1"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        event2 = self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "message",
-                "timestamp": min_ago,
-                "fingerprint": ["group-2"],
-            },
-            project_id=self.project.id,
-            default_event_type=EventType.DEFAULT,
-        )
-        group2 = event2.group
-        group2.status = GroupStatus.RESOLVED
-        group2.substatus = None
-        group2.resolved_at = self.now - timedelta(minutes=1)
-        group2.save()
-
-        timestamp = self.now.timestamp()
-        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
-        user_project_ownership(ctx)
-        key_errors = project_key_errors(ctx, self.project, Referrer.REPORTS_KEY_ERRORS.value)
-        assert key_errors == [{"events.group_id": event1.group.id, "count()": 1}]
-
     def test_org_key_errors_batched(self) -> None:
         self.project.first_event = self.now - timedelta(days=3)
         self.project.save()
@@ -419,7 +379,6 @@ class WeeklyReportsTest(
         result = org_key_errors(ctx, [self.project.id], Referrer.REPORTS_KEY_ERRORS.value)
         assert result == {self.project.id: [{"events.group_id": event1.group.id, "count()": 1}]}
 
-    @with_feature("organizations:weekly-report-batched-key-errors")
     def test_message_builder_filter_resolved_batched(self) -> None:
         self.project.first_event = self.now - timedelta(days=3)
         self.project.save()
@@ -478,61 +437,6 @@ class WeeklyReportsTest(
         assert event1.group.id in key_error_ids
         assert event3.group.id in key_error_ids
         assert len(ctx.projects_context_map[self.project.id].key_errors_by_id) == 2
-
-    def test_project_key_errors_eap_matches_snuba(self) -> None:
-        self.project.first_event = self.now - timedelta(days=3)
-        self.project.save()
-
-        ts = (self.now - timedelta(hours=1)).timestamp()
-
-        group_a = self.store_events_to_snuba_and_eap(
-            "key-errors-a",
-            count=3,
-            timestamp=ts,
-            extra_event_data={"level": "error"},
-        )[0].group
-        group_b = self.store_events_to_snuba_and_eap(
-            "key-errors-b",
-            count=2,
-            timestamp=ts,
-            extra_event_data={"level": "error"},
-        )[0].group
-        group_c = self.store_events_to_snuba_and_eap(
-            "key-errors-c",
-            count=4,
-            timestamp=ts,
-            extra_event_data={"level": "info"},
-        )[0].group
-        group_d = self.store_events_to_snuba_and_eap(
-            "key-errors-d",
-            count=1,
-            timestamp=ts,
-            extra_event_data={"level": "error"},
-        )[0].group
-        assert group_a is not None
-        assert group_b is not None
-        assert group_c is not None
-        assert group_d is not None
-
-        # Excluded in both paths due to unresolved filter
-        group_b.update(
-            status=GroupStatus.RESOLVED,
-            substatus=None,
-            resolved_at=self.now - timedelta(minutes=1),
-        )
-
-        ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
-        referrer = Referrer.REPORTS_KEY_ERRORS.value
-
-        snuba_rows = _project_key_errors_snuba(ctx, self.project, referrer)
-        eap_rows = _project_key_errors_eap(ctx, self.project, referrer)
-
-        expected_rows = [
-            {"events.group_id": group_a.id, "count()": 3},
-            {"events.group_id": group_d.id, "count()": 1},
-        ]
-        assert snuba_rows == expected_rows
-        assert eap_rows == expected_rows
 
     def test_project_key_performance_issues_eap_matches_snuba(self) -> None:
         self.project.first_event = self.now - timedelta(days=3)

@@ -58,7 +58,11 @@ function useRegisterServiceWorker() {
 
     navigator.serviceWorker
       // https://rspack.rs/guide/features/web-workers
-      .register(getWorkerUrl(), {scope: '/'})
+      // type: 'module' is required because the bundle is output as an ES module.
+      // Safari 26 (WebKit 26) strictly rejects classic service worker registrations
+      // that contain ES module syntax; Chrome/Firefox are more lenient. Module
+      // service workers are supported since Safari 16.4.
+      .register(getWorkerUrl(), {scope: '/', type: 'module'})
       .then(registration => {
         log('registered', {
           attributes: {
@@ -115,6 +119,11 @@ function useServiceWorkerUpdateCheck() {
           // AbortErrors are expected when the user navigates away during an
           // update check — they are not actionable and produce no stack trace.
           if (error instanceof Error && error.name === 'AbortError') {
+            return;
+          }
+          // InvalidStateError occurs when the service worker registration
+          // becomes stale/invalid while the tab was backgrounded — unactionable.
+          if (error instanceof Error && error.name === 'InvalidStateError') {
             return;
           }
           Sentry.captureException(error);

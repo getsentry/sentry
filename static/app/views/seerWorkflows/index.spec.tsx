@@ -330,7 +330,7 @@ describe('SeerWorkflows', () => {
 
     // A single button carries both the PR and its status -- no separate
     // "Autofix queued" tag, which would contradict a merged PR.
-    const prChip = screen.getByRole('button', {name: 'Merged: Fix the ValueError'});
+    const prChip = screen.getByRole('button', {name: 'Merged #42'});
     expect(prChip).toHaveAttribute('href', 'https://github.com/getsentry/sentry/pull/42');
     expect(prChip).toHaveAttribute('target', '_blank');
     expect(screen.queryByText('Autofix queued')).not.toBeInTheDocument();
@@ -383,16 +383,12 @@ describe('SeerWorkflows', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
 
-    expect(screen.getByText('Merged: Fix the ValueError')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Merged: Fix the ValueError'})
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', {name: 'Merged: Fix the ValueError'})
-    ).not.toBeInTheDocument();
+    expect(screen.getByText('Merged #42')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Merged #42'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Merged #42'})).not.toBeInTheDocument();
   });
 
-  it('shows the plain PR title with no status prefix when status is unobserved', async () => {
+  it('shows the plain PR number with no status prefix when status is unobserved', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/workflows/`,
       body: [
@@ -439,7 +435,7 @@ describe('SeerWorkflows', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Expand run'}));
 
-    expect(screen.getByRole('button', {name: 'Fix the ValueError'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: '#42'})).toBeInTheDocument();
     expect(screen.queryByText('Autofix queued')).not.toBeInTheDocument();
   });
 
