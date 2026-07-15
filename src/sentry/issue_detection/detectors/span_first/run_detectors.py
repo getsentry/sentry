@@ -126,16 +126,13 @@ def compare_span_first_problems_to_control_data(
     for grouptype, span_first_problems in span_first_problems_by_grouptype.items():
         control_problems = control_problems_by_grouptype.get(grouptype) or []
 
-        control_fingerprints = {problem.fingerprint for problem in control_problems}
-        span_first_fingerprints = {problem.fingerprint for problem in span_first_problems}
-
         # The vast majority of the time, a given detector isn't going to detect anything, and while
         # it's good to know that the new and legacy detectors agree on not having found anything,
         # those trivial cases can end up overwhelming the more interesting cases. Splitting them off
         # into their own metric lets us continue to track them (at the standard 10% sample rate)
         # while at the same time reducing the hits to the main comparison metric sufficiently that
         # we can afford to ramp its sample rate up to 100%.
-        if not control_fingerprints and not span_first_fingerprints:
+        if not control_problems and not span_first_problems:
             metrics.incr(
                 "span_first_detectors.empty_result_comparison_skipped", tags={"callsite": grouptype}
             )
@@ -143,10 +140,12 @@ def compare_span_first_problems_to_control_data(
 
         SpanFirstDetectorsRolloutController.compare(
             callsite=grouptype,
-            control_data=control_fingerprints,
-            experimental_data=span_first_fingerprints,
-            is_experimental_data_nullish=not bool(span_first_fingerprints),
+            control_data=control_problems,
+            experimental_data=span_first_problems,
+            is_experimental_data_nullish=not bool(span_first_problems),
             source_of_truth=get_source_of_truth(grouptype),
+            exact_match_comparator=_compare_fingerprint_sets,
+            data_serializer=lambda problems: [problem.to_dict() for problem in problems],
             metric_sample_rate=1.0,
         )
 
