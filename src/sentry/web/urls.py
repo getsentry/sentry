@@ -1236,12 +1236,6 @@ urlpatterns += [
         OrganizationAvatarPhotoView.as_view(),
         name="sentry-organization-avatar-url",
     ),
-    # Deprecated because it lacks an organization slug
-    re_path(
-        r"^organization-avatar/(?P<avatar_id>[^/]+)/$",
-        OrganizationAvatarPhotoView.as_view(),
-        name="sentry-organization-avatar-url-deprecated",
-    ),
     re_path(
         r"^team-avatar/(?P<organization_slug>[^/]+)/(?P<avatar_id>[^/]+)/$",
         TeamAvatarPhotoView.as_view(),

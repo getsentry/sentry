@@ -1,4 +1,5 @@
 from sentry.eventtypes.base import DefaultEvent
+from sentry.eventtypes.base import EventTypeStr as EventTypeStr
 from sentry.eventtypes.error import ErrorEvent
 from sentry.eventtypes.feedback import FeedbackEvent
 from sentry.eventtypes.generic import GenericEvent

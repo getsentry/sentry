@@ -218,6 +218,7 @@ class SeerAutofixOperator[CachePayloadT]:
                         step=AutofixStep.ROOT_CAUSE,
                         referrer=AutofixReferrer.SLACK,
                         run_id=None,
+                        user=user,
                     )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                     trigger_push_changes(
@@ -235,6 +236,7 @@ class SeerAutofixOperator[CachePayloadT]:
                         step=AutofixStep.from_autofix_stopping_point(stopping_point),
                         referrer=AutofixReferrer.SLACK,
                         run_id=run_id,
+                        user=user,
                     )
             except NoSeerQuotaException:
                 error = "No budget for Seer Autofix"
@@ -495,6 +497,10 @@ class SeerAgentOperator[CachePayloadT]:
                     is_interactive=True,
                     enable_coding=False,
                     enable_code_mode_tools=enable_code_mode_tools,
+                    # Entrypoints (e.g. Slack) render responses as plain markdown and
+                    # can't display embed widgets, so the raw Markdoc tags would leak as
+                    # text. Don't ask the agent to emit them in the first place.
+                    enable_embeds=False,
                 )
             except SeerPermissionError as e:
                 with SeerOperatorEventLifecycleMetric(

@@ -442,6 +442,73 @@ class OrganizationEventsHeatmapTraceMetricsEndpointTest(OrganizationEventsEndpoi
         assert response.data["meta"]["yAxis"]["bucketCount"] == 1
         assert response.data["meta"]["yAxis"]["start"] == pytest.approx(0.000008527, rel=1e-3)
 
+    def test_pinned_bounds_applied(self) -> None:
+        # Pinning yMin/yMax wider than the data forces those bounds onto the grid
+        # instead of the auto-derived data min/max (120/720).
+        metric_values = [120, 240, 360, 480, 600, 720]
+        trace_metrics = [
+            self.create_trace_metric(
+                "foo",
+                value,
+                "counter",
+                timestamp=self.start + timedelta(hours=hour),
+            )
+            for hour, value in enumerate(metric_values)
+        ]
+        self.store_eap_items(trace_metrics)
+
+        response = self._do_request(
+            data={
+                "start": self.start,
+                "end": self.start + timedelta(hours=6),
+                "yAxis": "value",
+                "interval": "1h",
+                "yBuckets": 6,
+                "yMin": 0,
+                "yMax": 1200,
+                "query": "metric.name:foo metric.type:counter",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["yAxis"]["start"] == 0
+        assert response.data["meta"]["yAxis"]["end"] == 1200
+        assert response.data["meta"]["yAxis"]["bucketSize"] == 200
+        # Edges follow the pinned domain (0..1200 in 6 buckets), not the data (120..720).
+        assert sorted({row["yAxis"] for row in response.data["values"]}) == [
+            0,
+            200,
+            400,
+            600,
+            800,
+            1000,
+        ]
+
+    def test_pinned_bounds_validation_errors(self) -> None:
+        base_data = {
+            "start": self.start,
+            "end": self.start + timedelta(hours=6),
+            "yAxis": "value",
+            "interval": "1h",
+            "yBuckets": 6,
+            "query": "metric.name:foo metric.type:counter",
+            "project": self.project.id,
+            "dataset": self.dataset,
+        }
+        cases: list[tuple[dict[str, object], str]] = [
+            ({"yMin": 120}, "yMin and yMax must be provided together"),
+            ({"yMin": "abc", "yMax": 720}, "yMin and yMax must be numbers"),
+            ({"yMin": 720, "yMax": 120}, "yMax must be greater than or equal to yMin"),
+            # nan/inf pass float() but would break the bucket math and JSON serialization.
+            ({"yMin": "nan", "yMax": "nan"}, "yMin and yMax must be finite numbers"),
+            ({"yMin": 0, "yMax": "inf"}, "yMin and yMax must be finite numbers"),
+        ]
+        for params, detail in cases:
+            response = self._do_request(data={**base_data, **params})
+            assert response.status_code == 400, response.content
+            assert response.data["detail"] == detail
+
 
 class TestFormatLongFloat:
     def test_small_number_no_scientific_notation(self) -> None:

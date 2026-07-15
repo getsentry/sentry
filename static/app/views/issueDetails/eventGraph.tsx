@@ -5,7 +5,7 @@ import {mergeRefs, useResizeObserver} from '@react-aria/utils';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
-import {Flex, Grid, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, Grid, type FlexProps, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
@@ -586,22 +586,20 @@ function GraphButton({
 
   return (
     <CalloutButton aria-label={`${t('Toggle graph series')} - ${label}`} {...props}>
-      <Flex direction="column" gap="xs">
+      <Stack gap="xs">
         <Text size="sm" variant={textVariant}>
           {label}
         </Text>
         <Text size="lg" variant={textVariant}>
           {count ? formatAbbreviatedNumber(count) : '-'}
         </Text>
-      </Flex>
+      </Stack>
     </CalloutButton>
   );
 }
 
 function SummaryContainer(props: FlexProps) {
-  return (
-    <Flex padding="lg xs lg lg" direction="column" gap="sm" radius="md" {...props} />
-  );
+  return <Stack padding="lg xs lg lg" gap="sm" radius="md" {...props} />;
 }
 
 const CalloutButton = styled(Button)`

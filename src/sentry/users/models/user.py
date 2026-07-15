@@ -10,13 +10,14 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
 from django.db import IntegrityError, models, router, transaction
-from django.db.models import Count, Subquery
+from django.db.models import Count, Q, Subquery
 from django.db.models.query import QuerySet
 from django.dispatch import receiver
 from django.forms import model_to_dict
 from django.http.request import HttpRequest
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.crypto import get_random_string
 from django.utils.translation import gettext_lazy as _
 
 from bitfield import TypedClassBitField
@@ -34,12 +35,10 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import Model, control_silo_model, sane_repr
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.db.models.utils import unique_db_instance
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.locks import locks
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -51,7 +50,6 @@ from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
-from sentry.utils.retries import TimedRetryPolicy
 
 audit_logger = logging.getLogger("sentry.audit.user")
 logger = logging.getLogger(__name__)
@@ -482,8 +480,6 @@ class User(Model, AbstractBaseUser):
         self.is_password_expired = False
 
     def refresh_session_nonce(self, request: HttpRequest | None = None) -> None:
-        from django.utils.crypto import get_random_string
-
         self.session_nonce = get_random_string(12)
         if request is not None:
             request.session["_nonce"] = self.session_nonce
@@ -537,6 +533,35 @@ class User(Model, AbstractBaseUser):
 
         return old_pk
 
+    @classmethod
+    def is_username_available(cls, username: str, *, exclude_user_id: int = 0) -> bool:
+        """
+        A username is available only if it is not already in use as another account's
+        username, primary email, or verified email. Login resolves a username before
+        falling back to email (see find_users in sentry/utils/auth.py), so a username
+        equal to an email another account owns would collide with its login identity.
+
+        `exclude_user_id` is the user being updated (excluded from the check); leave it
+        as the default when checking a not-yet-saved user (e.g. a relocation import).
+        """
+        username_or_primary_taken = (
+            cls.objects.exclude(id=exclude_user_id)
+            .filter(
+                Q(username__iexact=username)
+                | Q(email__iexact=username)
+                | Q(email_unique__iexact=username)
+            )
+            .exists()
+        )
+        if username_or_primary_taken:
+            return False
+        verified_email_taken = (
+            UserEmail.objects.filter(email__iexact=username, is_verified=True)
+            .exclude(user_id=exclude_user_id)
+            .exists()
+        )
+        return not verified_email_taken
+
     def write_relocation_import(
         self, scope: ImportScope, flags: ImportFlags
     ) -> tuple[int, ImportKind] | None:
@@ -551,7 +576,7 @@ class User(Model, AbstractBaseUser):
                 DatabaseLostPasswordHashService,
             )
 
-            serializer_cls = BaseUserSerializer
+            serializer_cls: type[BaseUserSerializer]
             if scope not in {ImportScope.Config, ImportScope.Global}:
                 serializer_cls = UserSerializer
             else:
@@ -570,29 +595,27 @@ class User(Model, AbstractBaseUser):
             # that actually goes, and how to prevent it from happening during the validation pass.
             return (self.pk, ImportKind.Inserted)
 
-        # If there is no existing user with this `username`, no special renaming or merging
-        # shenanigans are needed, as we can just insert this exact model directly.
-        existing = User.objects.filter(username=self.username).first()
-        if not existing:
-            return do_write()
-
-        # Re-use the existing user if merging is enabled.
+        # Merging is enabled only for SAAS_TO_SAAS relocations, where the data is
+        # server-generated and `username` is unique, so matching on username alone is safe.
+        # Reuse the existing account instead of inserting.
         if flags.merge_users:
-            return (existing.pk, ImportKind.Existing)
+            username_match = User.objects.filter(username__iexact=self.username).first()
+            if username_match:
+                return (username_match.pk, ImportKind.Existing)
 
-        # We already have a user with this `username`, but merging users has not been enabled. In
-        # this case, add a random suffix to the importing username.
-        lock = locks.get(f"user:username:{self.id}", duration=10, name="username")
-        with TimedRetryPolicy(10)(lock.acquire):
-            unique_db_instance(
-                self,
-                self.username,
-                max_length=MAX_USERNAME_LENGTH,
-                field_name="username",
-            )
+        # Suffix until the username collides with neither an existing username nor email.
+        # The standard slug helper (unique_db_instance) does not support cross-column checking.
+        if not User.is_username_available(self.username):
+            base = self.username[: MAX_USERNAME_LENGTH - 13]
+            for _ in range(3):
+                # 3 chances to create a random suffix - randomly selecting an exact duplicate should be almost impossible
+                suffix = get_random_string(12, allowed_chars="abcdefghijklmnopqrstuvwxyz0123456789")
+                self.username = f"{base}-{suffix}"
+                if User.is_username_available(self.username):
+                    return do_write()
+            raise RuntimeError("Could not generate a unique username during relocation import")
 
-            # Perform the remainder of the write while we're still holding the lock.
-            return do_write()
+        return do_write()
 
     @classmethod
     def sanitize_relocation_json(

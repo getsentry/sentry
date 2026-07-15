@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, Callable, ParamSpec, TypeVar, overload
 
 import sentry_sdk
 from sentry_sdk.scope import Scope
-from sentry_sdk.traces import StreamedSpan
+from sentry_sdk.traces import StreamedSpan, new_trace
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 from sentry_sdk.tracing_utils import has_span_streaming_enabled
 
@@ -94,6 +94,11 @@ def start_span(
             attributes["sentry.span.source"] = source
 
         if transaction:
+            """
+            Prior to span streaming, calling start_transaction created a new trace.
+            To keep this behaviour for manual instrumentation in sync, we always create a new trace here as well.
+            """
+            new_trace()
             previous_custom_sampling_context = None
             if custom_sampling_context is not None:
                 scope = sentry_sdk.get_current_scope()

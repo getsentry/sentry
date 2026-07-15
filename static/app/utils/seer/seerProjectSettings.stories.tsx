@@ -137,7 +137,7 @@ export default Storybook.story('SeerProjectSettings', story => {
     const [projectSlug, setProjectSlug] = useQueryState('project', parseAsString);
 
     return (
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Storybook.SelectProject
           projectSlug={projectSlug}
           setProjectSlug={setProjectSlug}
@@ -149,7 +149,7 @@ export default Storybook.story('SeerProjectSettings', story => {
             <Text variant="muted">Select a project to view the story</Text>
           </Flex>
         )}
-      </Flex>
+      </Stack>
     );
   });
 
@@ -263,7 +263,7 @@ export default Storybook.story('SeerProjectSettings', story => {
     const [projectSlug, setProjectSlug] = useQueryState('project', parseAsString);
 
     return (
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Storybook.SelectProject
           projectSlug={projectSlug}
           setProjectSlug={setProjectSlug}
@@ -275,7 +275,7 @@ export default Storybook.story('SeerProjectSettings', story => {
             <Text variant="muted">Select a project to view the story</Text>
           </Flex>
         )}
-      </Flex>
+      </Stack>
     );
   });
 
@@ -468,7 +468,7 @@ export default Storybook.story('SeerProjectSettings', story => {
     );
 
     return (
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Storybook.SelectProjects
           projectSlugs={projectSlugs}
           setProjectSlugs={setProjectSlugs}
@@ -480,7 +480,7 @@ export default Storybook.story('SeerProjectSettings', story => {
             <Text variant="muted">Select a project to view the story</Text>
           </Flex>
         )}
-      </Flex>
+      </Stack>
     );
   });
 });

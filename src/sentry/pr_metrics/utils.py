@@ -20,7 +20,9 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestLifecycleState,
     PullRequestMetrics,
+    PullRequestVerdict,
 )
+from sentry.seer.models import SeerAgentRun, SeerRunPullRequest
 
 _PR_ACTIVITY_ATTRIBUTION_BUFFER = timedelta(hours=30)
 
@@ -41,9 +43,10 @@ def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | N
        already-terminal PR may also be recorded until the verdict is claimed —
        an accepted cost for capturing the closer.
 
-    2. A verdict check runs next: if ``PullRequestMetrics`` exists with a
-       non-null verdict (terminal emit or ``JUDGE_IN_PROGRESS`` claim), no
-       further activity is needed.
+    2. A verdict check runs next: activity remains enabled while the verdict is
+       null or ``WAITING_EVENT_COOLDOWN`` so late check events can be captured.
+       All other non-null verdicts (including terminal verdicts and
+       ``JUDGE_IN_PROGRESS``) stop further activity.
 
     3. A time-based buffer gate applies last:
        - Within ``_PR_ACTIVITY_ATTRIBUTION_BUFFER`` (30 h) of ``pr.date_added``,
@@ -57,11 +60,12 @@ def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | N
     if pr is not None:
         if pr.state == PullRequestLifecycleState.SUPERSEDED:
             return False
-        verdict_claimed = PullRequestMetrics.objects.filter(
-            pull_request=pr,
-            verdict__isnull=False,
-        ).exists()
-        if verdict_claimed:
+        verdict = (
+            PullRequestMetrics.objects.filter(pull_request=pr)
+            .values_list("verdict", flat=True)
+            .first()
+        )
+        if verdict is not None and verdict != PullRequestVerdict.WAITING_EVENT_COOLDOWN:
             return False
         if timezone.now() - pr.date_added <= _PR_ACTIVITY_ATTRIBUTION_BUFFER:
             return True
@@ -196,3 +200,29 @@ def resolved_group_ids(pull_request: PullRequest) -> list[int]:
         combined = pr_filter
 
     return sorted(GroupLink.objects.filter(combined).values_list("group_id", flat=True).distinct())
+
+
+def seer_run_link_for_pull_request(pull_request: PullRequest) -> tuple[list[int], int | None]:
+    """Group id and run id for the Seer run that opened this PR, via the local
+    ``SeerRunPullRequest`` link.
+
+    That link is written by the on_completion_hook-driven ``seer.pr_created`` flow
+    (``process_autofix_updates`` -> ``link_seer_run_pull_requests``). It may not
+    exist yet at the "opened" webhook if that flow hasn't landed; the "closed"
+    re-check in ``handle_attribution`` covers that case.
+    """
+    link = (
+        SeerRunPullRequest.objects.select_related("seer_run__agent")
+        .filter(pull_request=pull_request)
+        .first()
+    )
+    if link is None:
+        return [], None
+
+    run_id = link.seer_run.seer_run_state_id
+    try:
+        group_id = link.seer_run.agent.group_id
+    except SeerAgentRun.DoesNotExist:
+        group_id = None
+
+    return ([group_id] if group_id is not None else []), run_id

@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ReplayTooltipTime} from 'sentry/components/replays/replayTooltipTime';
@@ -42,12 +42,12 @@ export function CrumbItem({
             </LeftAligned>
           }
         >
-          <Flex direction="column" gap="xs">
+          <Stack gap="xs">
             <Flex gap="sm" align="center">
               {icon}
               {formattedDuration}
             </Flex>
-          </Flex>
+          </Stack>
         </Tooltip>
       </ErrorLabel>
     </Container>
