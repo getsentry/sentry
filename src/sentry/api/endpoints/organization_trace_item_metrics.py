@@ -12,7 +12,7 @@ from sentry.api.bases import NoProjects
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpointBase,
 )
-from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.explore.models import (
     TraceItemAttributeValueContext,
@@ -77,7 +77,7 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
-            return Response([])
+            return self.paginate(request=request, paginator=ChainPaginator([]))
 
         query_string = serialized.get("query", "")
         # Authored context is joined from TraceItemAttributeValueContext, gated
@@ -98,7 +98,9 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
                         _COUNT_ALIAS,
                         _LAST_SEEN_ALIAS,
                     ],
-                    orderby=[METRIC_NAME_ALIAS],
+                    # Order by the full grouping key so pagination has a stable
+                    # total order (a name alone isn't unique across type/unit).
+                    orderby=[METRIC_NAME_ALIAS, METRIC_TYPE_ALIAS, METRIC_UNIT_ALIAS],
                     offset=offset,
                     limit=limit,
                     referrer=Referrer.API_EXPLORE_TRACEMETRICS_METRICS_LIST.value,
