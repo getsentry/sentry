@@ -255,6 +255,73 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert conversation["firstInput"] == "Hello, I need help"
         assert conversation["lastOutput"] == last_response_text
 
+    def _store_minimal_conversation(self, conversation_id: str, timestamp) -> None:
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=timestamp,
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            tokens=LLM_TOKENS,
+            cost=LLM_COST,
+            messages=[{"role": "user", "content": "Hello"}],
+            response_text="Hi",
+        )
+
+    def test_direct_hit_header_set_for_single_id_lookup(self) -> None:
+        """A conversation-ID search resolving to exactly one conversation sets the header."""
+        now = before_now(days=15).replace(microsecond=0)
+        conversation_id_1 = uuid4().hex
+        conversation_id_2 = uuid4().hex
+        self._store_minimal_conversation(conversation_id_1, now)
+        self._store_minimal_conversation(conversation_id_2, now)
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+            "query": f"gen_ai.conversation.id:{conversation_id_1}",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["conversationId"] == conversation_id_1
+        assert response.has_header("X-Sentry-Direct-Hit")
+        assert response["X-Sentry-Direct-Hit"] == "1"
+
+    def test_direct_hit_header_not_set_for_non_id_query(self) -> None:
+        """A non-ID query resolving to a single conversation does not set the header."""
+        now = before_now(days=16).replace(microsecond=0)
+        self._store_minimal_conversation(uuid4().hex, now)
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert not response.has_header("X-Sentry-Direct-Hit")
+
+    def test_direct_hit_header_not_set_when_id_lookup_matches_nothing(self) -> None:
+        """A conversation-ID search that resolves to no conversation does not set the header."""
+        now = before_now(days=17).replace(microsecond=0)
+        self._store_minimal_conversation(uuid4().hex, now)
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+            "query": f"gen_ai.conversation.id:{uuid4().hex}",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 0
+        assert not response.has_header("X-Sentry-Direct-Hit")
+
     def test_conversation_spanning_multiple_traces(self) -> None:
         """Test a conversation with spans across multiple traces"""
         now = before_now(days=30).replace(microsecond=0)
