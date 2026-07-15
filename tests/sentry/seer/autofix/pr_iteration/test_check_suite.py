@@ -165,6 +165,33 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert isinstance(kwargs["feedback"].source, CheckSuiteFeedbackSource)
         mock_trigger_consume.assert_called_once()
 
+    @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
+    @patch(f"{CHECK_PATH}.trigger_consume_pr_iteration_feedback")
+    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
+    def test_seer_error_on_one_pr_continues_to_remaining(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+        mock_capture: MagicMock,
+    ) -> None:
+        from sentry.seer.models import SeerApiError
+
+        mock_resolve.return_value = MagicMock(organization_id=self.organization.id)
+        error = SeerApiError("transient", 500)
+        mock_get_state.side_effect = [error, self._agent_state()]
+        raw = self._raw(pull_requests=[{"id": 111}, {"id": 222}])
+
+        pr_iteration_from_check_suite_listener(self._event(raw))
+
+        assert mock_get_state.call_count == 2
+        mock_capture.assert_called_once_with(error)
+        mock_enqueue.assert_called_once()
+        mock_trigger_consume.assert_called_once()
+
 
 def _check_suite_source() -> CheckSuiteFeedbackSource:
     return CheckSuiteFeedbackSource(

@@ -1,6 +1,7 @@
 import logging
 
 import orjson
+import sentry_sdk
 
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import CheckSuiteEvent
@@ -9,6 +10,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.queue import try_enqueue_autofix_feedback
+from sentry.seer.models import SeerApiError
 from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 
 logger = logging.getLogger(__name__)
@@ -40,7 +42,13 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
         return None
 
     for pr_id in pr_ids:
-        agent_state = get_agent_state_from_pr_id(organization_id, _SEER_GITHUB_PROVIDER, pr_id)
+        try:
+            agent_state = get_agent_state_from_pr_id(organization_id, _SEER_GITHUB_PROVIDER, pr_id)
+        except SeerApiError as e:
+            # One PR's Seer failure must not abort the rest of the suite.
+            sentry_sdk.capture_exception(e)
+            continue
+
         if agent_state is None or not agent_state.repo_pr_states:
             continue
 
