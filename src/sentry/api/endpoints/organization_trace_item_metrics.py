@@ -62,7 +62,7 @@ class OrganizationTraceItemMetricsSerializer(serializers.Serializer[Never]):
 @cell_silo_endpoint
 class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.DATA_BROWSING
 
