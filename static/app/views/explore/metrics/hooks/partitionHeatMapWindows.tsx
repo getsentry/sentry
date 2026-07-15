@@ -108,9 +108,9 @@ export function dateTimeAsHeatMapWindow(datetime: DateTimeFilter): HeatMapWindow
 
 /**
  * Splits buckets across windows, newest/smallest first, with the oldest window
- * taking the remainder. Returns the per-window bucket counts. `progressive`
- * weights each older window `GROWTH_FACTOR`× larger than the one after it;
- * `equal` weights them uniformly.
+ * taking the remainder. Returns the per-window bucket counts. e.g., 720 buckets
+ * becomes progressive (weights 1:1.5:2.25): `[152, 227, 341]`; equal: `[240, 240,
+ * 240]`.
  */
 function distributeBucketCount(
   totalBuckets: number,
@@ -127,7 +127,8 @@ function distributeBucketCount(
 
   for (let i = 0; i < CHUNK_COUNT - 1 && remaining > 0; i++) {
     // This window's weighted share of the total, floored at 1 bucket and capped
-    // at what's left. The final (oldest) window takes whatever remains.
+    // at what's left. e.g., progressive 720: 152 (=round(720/4.75)), 227, then the
+    // oldest window takes the remaining 341.
     const target = Math.round((totalBuckets * weights[i]!) / weightSum);
     const count = Math.min(Math.max(target, 1), remaining);
     bucketDistribution.push(count);
@@ -220,8 +221,7 @@ function pageFilterDateTimeToTimeDomain(
 const CHUNK_COUNT = 3;
 
 // For the `progressive` strategy: each older window is this many times larger
-// than the one after it. Kept below the golden ratio (~1.618) so the largest
-// (oldest) window stays under half the grid.
+// than the one after it.
 const GROWTH_FACTOR = 1.5;
 
 // Ranges shorter than this aren't worth partitioning — a single request is fast.
