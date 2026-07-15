@@ -14,6 +14,7 @@ import {
   type UseSpanSearchQueryBuilderProps,
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -119,7 +120,10 @@ function ConversationsOverviewPage() {
               </Flex>
               {!showOnboarding && !isOnboardingLoading && (
                 <Flex flex={1} minWidth="300px">
-                  <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+                  <TraceItemSearchQueryBuilder
+                    {...spanSearchQueryBuilderProps}
+                    placeholder={t('Search or paste a conversation ID')}
+                  />
                 </Flex>
               )}
               {!showOnboarding && !isOnboardingLoading && <SaveConversationQueryButton />}
