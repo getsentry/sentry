@@ -2,6 +2,7 @@ import {Spinner, type ToolCallStatus} from '@sentry/scraps/chat';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {t} from 'sentry/locale';
 import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 interface BlockVariantProps {
@@ -74,7 +75,7 @@ export function MessagePlaceholder({content}: {content?: string}) {
         height="12px"
         flexShrink={0}
       >
-        <Spinner />
+        <Spinner role="status" aria-label={t('Loading')} />
       </Flex>
       {hasValidContent(content) && <SeerMarkdown raw={content} />}
     </Flex>

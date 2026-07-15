@@ -21,7 +21,7 @@ interface SpinnerProps extends React.HTMLAttributes<HTMLSpanElement> {
 export function Spinner({size = 12, ...props}: SpinnerProps) {
   return (
     <Ring
-      size={size}
+      $size={size}
       aria-hidden={!props['aria-label'] && !props.role ? true : undefined}
       {...props}
     />
@@ -34,11 +34,11 @@ const spin = keyframes`
   }
 `;
 
-const Ring = styled('span')<{size: number}>`
+const Ring = styled('span')<{$size: number}>`
   box-sizing: border-box;
   display: inline-block;
-  width: ${p => p.size}px;
-  height: ${p => p.size}px;
+  width: ${p => p.$size}px;
+  height: ${p => p.$size}px;
   border-radius: ${p => p.theme.radius.full};
   border: 1.5px solid ${p => p.theme.tokens.border.primary};
   border-left-color: ${p => p.theme.tokens.border.accent.vibrant};
