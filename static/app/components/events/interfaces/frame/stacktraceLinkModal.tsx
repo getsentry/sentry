@@ -38,7 +38,7 @@ function WrappingFilePath({path}: {path: string}) {
 
   return (
     <Text
-      as="code"
+      as="span"
       monospace
       wrap="pre-wrap"
       wordBreak="break-word"
