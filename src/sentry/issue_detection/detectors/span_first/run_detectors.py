@@ -146,6 +146,11 @@ def compare_span_first_problems_to_control_data(
             is_experimental_data_nullish=not bool(span_first_problems),
             source_of_truth=get_source_of_truth(grouptype),
             exact_match_comparator=_compare_fingerprint_sets,
+            debug_context={
+                "org_slug": project.organization.slug,
+                "project_id": project.id,
+                "project_slug": project.slug,
+            },
             data_serializer=lambda problems: [problem.to_dict() for problem in problems],
             metric_sample_rate=1.0,
         )
