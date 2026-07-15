@@ -3,7 +3,7 @@ from sentry.notifications.platform.templates.activity.base import (
     SetResolvedInCommitActionData,
     build_footer,
     build_issue_link,
-    create_activity_alert_example,
+    create_activity_notification_example,
 )
 from sentry.notifications.platform.templates.activity.set_resolved.base import (
     get_resolution_subject,
@@ -24,7 +24,7 @@ from sentry.types.activity import ActivityType
 
 
 def create_set_resolved_in_commit_example() -> SetResolvedInCommitActionData:
-    action_data = create_activity_alert_example(ActivityType.SET_RESOLVED_IN_COMMIT)
+    action_data = create_activity_notification_example(ActivityType.SET_RESOLVED_IN_COMMIT)
     return SetResolvedInCommitActionData(
         **action_data.dict(),
         commit_sha="abc1234",

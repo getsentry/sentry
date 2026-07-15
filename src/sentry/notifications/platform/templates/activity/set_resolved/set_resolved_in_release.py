@@ -6,7 +6,7 @@ from sentry.notifications.platform.templates.activity.base import (
     SetResolvedInReleaseActionData,
     build_footer,
     build_issue_link,
-    create_activity_alert_example,
+    create_activity_notification_example,
 )
 from sentry.notifications.platform.templates.activity.set_resolved.base import (
     get_resolution_subject,
@@ -25,7 +25,7 @@ from sentry.types.activity import ActivityType
 
 
 def create_set_resolved_in_release_example() -> SetResolvedInReleaseActionData:
-    action_data = create_activity_alert_example(
+    action_data = create_activity_notification_example(
         ActivityType.SET_RESOLVED_IN_RELEASE,
         activity_data={"version": "v1.0.0"},
     )

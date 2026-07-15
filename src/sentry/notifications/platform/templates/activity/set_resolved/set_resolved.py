@@ -3,7 +3,7 @@ from sentry.notifications.platform.templates.activity.base import (
     ActivityAlertActionData,
     build_footer,
     build_issue_link,
-    create_activity_alert_example,
+    create_activity_notification_example,
 )
 from sentry.notifications.platform.templates.activity.set_resolved.base import (
     get_resolution_subject,
@@ -22,7 +22,7 @@ from sentry.types.activity import ActivityType
 @template_registry.register(NotificationSource.ACTIVITY_SET_RESOLVED)
 class SetResolvedActivityTemplate(NotificationTemplate[ActivityAlertActionData]):
     category = NotificationCategory.ACTIVITY
-    example_data = create_activity_alert_example(ActivityType.SET_RESOLVED)
+    example_data = create_activity_notification_example(ActivityType.SET_RESOLVED)
 
     def render(self, data: ActivityAlertActionData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(

@@ -1,7 +1,7 @@
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.activity.base import (
     ActivityAlertActionData,
-    create_activity_alert_example,
+    create_activity_notification_example,
 )
 from sentry.notifications.platform.templates.activity.seer.base import (
     build_template,
@@ -25,7 +25,7 @@ from sentry.types.activity import ActivityType
 @template_registry.register(NotificationSource.ACTIVITY_SEER_ITERATION_COMPLETED)
 class SeerIterationCompletedActivityTemplate(NotificationTemplate[ActivityAlertActionData]):
     category = NotificationCategory.ACTIVITY
-    example_data = create_activity_alert_example(
+    example_data = create_activity_notification_example(
         ActivityType.SEER_ITERATION_COMPLETED,
         activity_data={
             "iteration_index": 2,
