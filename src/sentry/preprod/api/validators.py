@@ -4,6 +4,8 @@ from typing import Any
 
 from rest_framework import serializers
 
+from sentry.preprod.build_distribution_utils import parse_build_number
+
 
 class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
     """Validator for the public latest installable build endpoint (camelCase params)."""
@@ -18,9 +20,14 @@ class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
         required=False,
         help_text="Current build version. When provided, enables check-for-updates mode.",
     )
-    buildNumber = serializers.IntegerField(
+    buildNumber = serializers.CharField(
         required=False,
-        help_text="Current build number. Either this or mainBinaryIdentifier must be provided when buildVersion is set.",
+        help_text=(
+            "Current build number. Accepts a plain integer (e.g. 42) or a dotted "
+            "build code (e.g. Apple CFBundleVersion 1.2.3), which is expanded to the "
+            "sortable integer used internally. Either this or mainBinaryIdentifier "
+            "must be provided when buildVersion is set."
+        ),
     )
     mainBinaryIdentifier = serializers.CharField(
         required=False,
@@ -35,6 +42,16 @@ class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
         if value:
             return value.lower()
         return value
+
+    def validate_buildNumber(self, value: str | None) -> int | None:
+        if value is None or value == "":
+            return None
+        parsed = parse_build_number(value)
+        if parsed is None:
+            raise serializers.ValidationError(
+                "buildNumber must be an integer or a dotted build code (e.g. 42 or 1.2.3)."
+            )
+        return parsed
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         build_version = data.get("buildVersion")

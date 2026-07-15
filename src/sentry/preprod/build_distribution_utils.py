@@ -17,6 +17,34 @@ from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 
+# Zero-padding width per dotted component. Must stay in sync with launchpad's
+# _BUILD_NUMBER_COMPONENT_WIDTH in artifact_processor._parse_build_number.
+_BUILD_NUMBER_COMPONENT_WIDTH = 6
+
+
+def parse_build_number(build: str) -> int | None:
+    """Parse a raw build identifier (e.g. CFBundleVersion) into a sortable int.
+
+    Mirrors launchpad's ``_parse_build_number`` so a client-supplied build code
+    expands to the same sortable int launchpad stored on the artifact. Plain
+    integers pass through unchanged; up to three dot-separated integers (e.g.
+    "1.2.3") are packed by zero-padding each component; anything else returns None.
+    """
+    if build.isdigit():
+        return int(build)
+
+    parts = build.split(".")
+    if 2 <= len(parts) <= 3 and all(
+        p.isdigit() and len(p) <= _BUILD_NUMBER_COMPONENT_WIDTH for p in parts
+    ):
+        parts += ["0"] * (3 - len(parts))
+        return sum(
+            int(part) * 10 ** (_BUILD_NUMBER_COMPONENT_WIDTH * (2 - i))
+            for i, part in enumerate(parts)
+        )
+
+    return None
+
 
 @dataclass(frozen=True)
 class ArtifactInstallInfo:
