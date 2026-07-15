@@ -2,6 +2,7 @@ import logging
 
 import orjson
 import sentry_sdk
+from pydantic import ValidationError
 
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import CheckSuiteEvent
@@ -26,9 +27,14 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
     if check_suite_event.check_suite["conclusion"] not in CONCLUSIONS:
         return None
 
-    raw = orjson.loads(check_suite_event.subscription_event["event"])
+    try:
+        raw = orjson.loads(check_suite_event.subscription_event["event"])
+        source = CheckSuiteFeedbackSource(event=raw)
+    except (orjson.JSONDecodeError, ValidationError, TypeError, ValueError) as e:
+        # Malformed webhook payload — report and drop; do not fail the listener task.
+        sentry_sdk.capture_exception(e)
+        return None
 
-    source = CheckSuiteFeedbackSource(event=raw)
     event = source.event
     repo = source.repository
     if repo is None:

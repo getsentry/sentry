@@ -88,6 +88,28 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         pr_iteration_from_check_suite_listener(self._event(self._raw()))
         mock_get_state.assert_not_called()
 
+    @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
+    @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
+    def test_invalid_payload_captures_and_returns(
+        self, mock_get_state: MagicMock, mock_capture: MagicMock
+    ) -> None:
+        # Missing required check_suite fields (head_sha, check_runs_url, app).
+        raw = {"check_suite": {"id": 1}, "repository": {"html_url": "https://github.com/o/r"}}
+        pr_iteration_from_check_suite_listener(self._event(raw))
+        mock_capture.assert_called_once()
+        mock_get_state.assert_not_called()
+
+    @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
+    @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
+    def test_invalid_json_captures_and_returns(
+        self, mock_get_state: MagicMock, mock_capture: MagicMock
+    ) -> None:
+        event = self._event()
+        event.subscription_event["event"] = "not-json"
+        pr_iteration_from_check_suite_listener(event)
+        mock_capture.assert_called_once()
+        mock_get_state.assert_not_called()
+
     @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback")
     @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id", return_value=None)
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
