@@ -19,20 +19,16 @@ import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
  * component's own compound parts (`BreadcrumbList.CopyAction` /
  * `BreadcrumbList.MenuAction`) or a plain `Button`/`LinkButton` — never an
  * arbitrary ReactNode — so the trailing slot stays visually consistent.
- *
- * @public Consumed once call sites migrate onto the typed API in a downstream PR.
  */
-export type BreadcrumbTitleAction =
+type BreadcrumbTitleAction =
   | React.ReactElement<BreadcrumbCopyActionProps>
   | React.ReactElement<BreadcrumbMenuActionProps>
   | React.ReactElement<ButtonProps | LinkButtonProps>;
 
 /**
  * One action, or a list (falsy entries are dropped so consumers can inline conditionals).
- *
- * @public Consumed once call sites migrate onto the typed API in a downstream PR.
  */
-export type BreadcrumbTitleActions =
+type BreadcrumbTitleActions =
   | BreadcrumbTitleAction
   | Array<BreadcrumbTitleAction | false | null>;
 

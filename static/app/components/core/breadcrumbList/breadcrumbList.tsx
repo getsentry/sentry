@@ -18,14 +18,12 @@ import type {BreadcrumbItemSelectProjectsProps} from './items/breadcrumbItemSele
 import {BreadcrumbItemSelectProjects} from './items/breadcrumbItemSelectProjects';
 import {BreadcrumbDividerCombo} from './breadcrumbDividerCombo';
 
-/** @public Public API of the redesigned breadcrumbs; consumers migrate onto it in a downstream PR. */
 export type BreadcrumbItem =
   | ({type: 'link'} & BreadcrumbItemLinkProps)
   | ({type: 'page-title'} & BreadcrumbItemPageTitleProps)
   | ({type: 'editable-title'} & BreadcrumbItemPageTitleEditableProps)
   | ({type: 'select-projects'} & BreadcrumbItemSelectProjectsProps);
 
-/** @public Public API of the redesigned breadcrumbs; consumers migrate onto it in a downstream PR. */
 export interface BreadcrumbListProps extends React.HTMLAttributes<HTMLElement> {
   items: BreadcrumbItem[];
 }
@@ -68,8 +66,6 @@ function renderItem(item: BreadcrumbItem) {
  * - Narrow (< 500px): every parent item is hidden, leaving only the last crumb.
  *   'link' parents additionally collapse into a single BreadcrumbItemMenuBreadcrumbs
  *   overflow button; non-link parents (e.g. 'select-projects') just hide.
- *
- * @public Consumed once call sites migrate onto the typed API in a downstream PR.
  */
 function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
   if (items.length === 0) {
@@ -143,8 +139,6 @@ function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
  * Compound component. Element-slot parts (`EditableTitle`) and trailing-action
  * parts (`CopyAction`, `MenuAction`) are attached here so consumers pass typed
  * elements into item props rather than arbitrary ReactNodes.
- *
- * @public Consumed once call sites migrate onto the typed API in a downstream PR.
  */
 export const BreadcrumbList = Object.assign(BreadcrumbListRoot, {
   EditableTitle: BreadcrumbEditableTitle,
