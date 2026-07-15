@@ -82,7 +82,7 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
                     "or mainBinaryIdentifier must be provided when buildVersion is set."
                 ),
                 required=False,
-                type=str,
+                type={"oneOf": [{"type": "integer"}, {"type": "string"}]},
                 location="query",
             ),
             OpenApiParameter(
