@@ -25,10 +25,14 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {isAggregateField} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   MetricsCardinalityProvider,
   useMetricsCardinalityContext,
 } from 'sentry/utils/performance/contexts/metricsCardinality';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
@@ -156,14 +160,23 @@ export function PageLayout(props: Props) {
     return null;
   }
 
+  const conditions = new MutableSearch(decodeScalar(location.query.query, ''));
+  conditions.setFilterValues('transaction', [transactionName]);
+  Object.keys(conditions.filters).forEach(field => {
+    if (isAggregateField(field)) {
+      conditions.removeFilter(field);
+    }
+  });
+
   const eventView = EventView.fromNewQueryWithLocation(
     {
       id: undefined,
       version: 2,
       name: transactionName,
       fields: ['project', 'count()'],
-      query: `transaction:"${transactionName}"`,
+      query: conditions.formatString(),
       projects: [],
+      dataset: DiscoverDatasets.SPANS,
     },
     location
   );
