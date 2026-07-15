@@ -414,11 +414,10 @@ def run_deferred_emission(pull_request: PullRequest, organization: Organization)
     final state.
 
     Reopen handling: if the PR is no longer terminal (reopened during the window),
-    release the sentinel and stop — a later re-close reschedules. Otherwise release
-    the cooldown claim back to NULL and run the standard verdict -> emit/forward
-    path, whose own NULL-based guards settle the row exactly once (a late redelivery
-    that races the brief NULL window still emits once: whichever of the two claims
-    the verdict wins, the other no-ops).
+    release the sentinel and stop — a later re-close reschedules. Otherwise run the
+    standard verdict -> emit/forward path, whose own NULL-based guards settle the
+    row exactly once (a late redelivery that races the brief NULL window still
+    emits once: whichever of the two claims the verdict wins, the other no-ops).
     """
     log_extra = {
         "organization_id": organization.id,
@@ -426,8 +425,6 @@ def run_deferred_emission(pull_request: PullRequest, organization: Organization)
         "pull_request_id": pull_request.id,
     }
 
-    # Release our cooldown claim so the deterministic/judge guards below — which
-    # compare-and-set against a NULL verdict — can settle the row.
     PullRequestMetrics.objects.filter(
         pull_request=pull_request, verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN
     ).update(verdict=None)

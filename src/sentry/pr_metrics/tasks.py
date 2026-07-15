@@ -4,11 +4,18 @@ from __future__ import annotations
 
 import logging
 
+from django.conf import settings
+from django.db import Error as DjangoDBError
 from taskbroker_client.retry import Retry
 from urllib3.exceptions import HTTPError
 
 from sentry.models.organization import Organization
-from sentry.models.pullrequest import PullRequest, PullRequestActivity
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestActivity,
+    PullRequestMetrics,
+    PullRequestVerdict,
+)
 from sentry.models.repository import Repository
 from sentry.pr_metrics.judge import forward_pr_to_seer_judge
 from sentry.silo.base import SiloMode
@@ -21,6 +28,12 @@ logger = logging.getLogger(__name__)
 MAX_RETRIES = 5
 DELAY_BETWEEN_RETRIES = 60  # seconds
 
+# forward_pr_to_seer_task's Seer call blocks for up to settings.SEER_DEFAULT_TIMEOUT.
+# Give the task headroom past that instead of the taskbroker client's 10s default —
+# otherwise the broker can decide the worker is dead (and redeliver the task to
+# another worker) while the call is still legitimately in flight.
+FORWARD_PROCESSING_DEADLINE = settings.SEER_DEFAULT_TIMEOUT + 15
+
 
 @instrumented_task(
     name="sentry.pr_metrics.tasks.forward_pr_to_seer",
@@ -28,6 +41,7 @@ DELAY_BETWEEN_RETRIES = 60  # seconds
     # introducing an unrouted one; both forward PR events to the same Seer host.
     namespace=seer_code_review_tasks,
     retry=Retry(times=MAX_RETRIES, delay=DELAY_BETWEEN_RETRIES, on=(HTTPError,)),
+    processing_deadline_duration=FORWARD_PROCESSING_DEADLINE,
     silo_mode=SiloMode.CELL,
 )
 def forward_pr_to_seer_task(
@@ -74,6 +88,7 @@ def forward_pr_to_seer_task(
 @instrumented_task(
     name="sentry.pr_metrics.tasks.emit_pr_metrics_cooldown",
     namespace=seer_code_review_tasks,
+    retry=Retry(times=MAX_RETRIES, delay=DELAY_BETWEEN_RETRIES, on=(DjangoDBError, HTTPError)),
     silo_mode=SiloMode.CELL,
 )
 def emit_pr_metrics_cooldown_task(
@@ -87,14 +102,14 @@ def emit_pr_metrics_cooldown_task(
     Scheduled by ``handle_emission`` when a close/merge webhook claims the
     ``WAITING_EVENT_COOLDOWN`` sentinel. Deferring emission by the cooldown lets
     late attribution and activity settle before the verdict is chosen and the row
-    read (see ``run_deferred_emission``). A PR or org that vanished between enqueue
-    and run is permanent and dropped.
+    read (see ``run_deferred_emission``).
     """
     log_extra = {
         "pull_request_id": pull_request_id,
         "organization_id": organization_id,
         "repository_id": repository_id,
     }
+
     # Scope to the claimed org+repo, matching the rest of the pipeline.
     try:
         pull_request = PullRequest.objects.get(
@@ -103,14 +118,18 @@ def emit_pr_metrics_cooldown_task(
             repository_id=repository_id,
         )
     except PullRequest.DoesNotExist:
-        logger.warning("pr_metrics.cooldown.pull_request_not_found", extra=log_extra)
+        logger.exception("pr_metrics.cooldown.pull_request_not_found", extra=log_extra)
         metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "pr_gone"})
         return
+
+    PullRequestMetrics.objects.filter(
+        pull_request=pull_request, verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN
+    ).update(verdict=None)
 
     try:
         organization = Organization.objects.get(id=organization_id)
     except Organization.DoesNotExist:
-        logger.warning("pr_metrics.cooldown.organization_not_found", extra=log_extra)
+        logger.exception("pr_metrics.cooldown.organization_not_found", extra=log_extra)
         metrics.incr("pr_metrics.cooldown.skipped", tags={"reason": "org_gone"})
         return
 

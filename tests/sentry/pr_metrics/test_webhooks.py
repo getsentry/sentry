@@ -671,12 +671,40 @@ class HandleWebhookForPrMetricsCooldownTest(TestCase):
 
     @patch("sentry.analytics.record")
     def test_task_drops_when_pull_request_gone(self, mock_record: MagicMock) -> None:
+        # The lookup is scoped by (id, organization_id, repository_id) together, so
+        # a real PR whose repository_id no longer matches (e.g. re-parented between
+        # enqueue and run) is indistinguishable from one that vanished outright —
+        # both raise PullRequest.DoesNotExist on this compound filter. No PR, no
+        # PullRequestMetrics row to release: the sentinel is left untouched rather
+        # than guessed at from pull_request_id alone.
+        self.pull_request.metrics.update(verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN)
+
         emit_pr_metrics_cooldown_task(
-            pull_request_id=self.pull_request.id + 999,
+            pull_request_id=self.pull_request.id,
             organization_id=self.organization.id,
+            repository_id=self.repo.id + 999,
+        )
+
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert self._verdict() == "waiting_event_cooldown"
+
+    @patch("sentry.analytics.record")
+    def test_task_drops_when_organization_gone(self, mock_record: MagicMock) -> None:
+        # The PR lookup is itself scoped by organization_id, so to reach the
+        # Organization lookup (rather than failing the PR lookup first), the PR's
+        # own organization_id must point at the now-missing org.
+        missing_organization_id = self.organization.id + 999
+        self.pull_request.update(organization_id=missing_organization_id)
+        self.pull_request.metrics.update(verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN)
+
+        emit_pr_metrics_cooldown_task(
+            pull_request_id=self.pull_request.id,
+            organization_id=missing_organization_id,
             repository_id=self.repo.id,
         )
+
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert self._verdict() is None
 
 
 @with_feature("organizations:pr-metrics-emit")
