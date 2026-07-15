@@ -1,10 +1,7 @@
 import logging
 
 import orjson
-from scm import actions as scm_actions
-from scm.types import ListCheckRunsForRefProtocol
 
-from sentry.scm.factory import new as make_scm
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
@@ -73,32 +70,8 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
         if not enqueued:
             continue
 
-        # Only consume once every check run on the head commit has finished.
-        # We gate on check *runs* rather than check *suites*: apps often register
-        # a check suite on the PR that never runs anything (it sits `queued`
-        # forever), so an "all suites completed" gate would never fire.
-        head_sha = check_suite.head_sha
-        try:
-            scm = make_scm(organization_id, repo.id, referrer="seer")
-        except Exception:
-            logger.warning(
-                "autofix.pr_iteration.check_suite.scm_init_failed",
-                extra={
-                    "organization_id": organization_id,
-                    "repo_id": repo.id,
-                    "pr_id": pr_id,
-                    "run_id": agent_state.run_id,
-                    "head_sha": head_sha,
-                },
-                exc_info=True,
-            )
-            scm = None
-        if isinstance(scm, ListCheckRunsForRefProtocol) and head_sha:
-            check_runs = scm_actions.list_check_runs_for_ref(scm, head_sha)["data"]
-            incomplete_count = sum(1 for run in check_runs if run["status"] != "completed")
-            if incomplete_count:
-                continue
-
+        # Defer Now/Later/skip to `should_trigger` (incomplete check runs schedule
+        # a delayed consume rather than dropping the scheduled task entirely).
         logger.info(
             "autofix.pr_iteration.check_suite.trigger_consume",
             extra={

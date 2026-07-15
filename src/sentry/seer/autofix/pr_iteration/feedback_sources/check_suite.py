@@ -226,6 +226,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
 
     def should_queue(self, run_state: SeerRunState) -> bool:
         head_sha, repo_name, matched = self._matches_current_head(run_state)
+        cap_reached = matched and _check_suite_iteration_cap_reached(run_state)
         logger.info(
             "autofix.pr_iteration.check_suite.should_queue.evaluated",
             extra={
@@ -233,10 +234,13 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
                 "head_sha": head_sha,
                 "repo_name": repo_name,
                 "matched": matched,
+                "hard_cap_reached": cap_reached,
                 "repo_pr_state_count": len(run_state.repo_pr_states),
             },
         )
-        return matched
+        # Hard cap also blocks enqueue so failed suites don't pile up in Redis
+        # with no check-suite consume path to drain them.
+        return matched and not cap_reached
 
     def should_consume(self, run_state: SeerRunState) -> bool:
         head_sha, repo_name, matched = self._matches_current_head(run_state)
@@ -323,6 +327,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
                 )
                 if incomplete_count:
                     return ConsumeTask.Later(timedelta(hours=1))
+
         except Exception:
             logger.warning(
                 "autofix.pr_iteration.should_trigger.list_check_runs_failed",

@@ -134,7 +134,6 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_trigger_consume.assert_not_called()
 
     @patch(f"{CHECK_PATH}.trigger_consume_pr_iteration_feedback")
-    @patch(f"{CHECK_PATH}.make_scm")
     @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
@@ -143,7 +142,6 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_resolve: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
-        _mock_make_scm: MagicMock,
         mock_trigger_consume: MagicMock,
     ) -> None:
         mock_resolve.return_value = MagicMock(organization_id=self.organization.id)
@@ -170,7 +168,10 @@ def _check_suite_source() -> CheckSuiteFeedbackSource:
                 "check_runs_url": "https://github.com/owner/repo/check-runs",
                 "app": {"name": "CI"},
             },
-            "repository": {"html_url": "https://github.com/owner/repo"},
+            "repository": {
+                "html_url": "https://github.com/owner/repo",
+                "full_name": "owner/repo",
+            },
         }
     )
 
@@ -207,11 +208,22 @@ class CheckSuiteHardCapTest(TestCase):
     def _source(self) -> CheckSuiteFeedbackSource:
         return _check_suite_source()
 
+    def _run_state_on_head(self, *, blocks: list[MemoryBlock]) -> SeerRunState:
+        state = _run_state(blocks=blocks)
+        state.repo_pr_states = {"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
+        return state
+
     def test_none_when_cap_reached(self) -> None:
         cap = CHECK_SUITE_ITERATION_HARD_CAP
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap)]
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) is None
+
+    def test_should_queue_false_when_cap_reached(self) -> None:
+        cap = CHECK_SUITE_ITERATION_HARD_CAP
+        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap)]
+
+        assert not self._source().should_queue(self._run_state_on_head(blocks=blocks))
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository", return_value=None)
     def test_not_capped_when_fewer_than_cap_iterations(self, _mock: MagicMock) -> None:
