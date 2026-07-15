@@ -41,6 +41,11 @@ class SendWeeklyEmailAction extends Component<Props, State> {
   handleConfirm = (_params: AdminConfirmParams) => {
     const {targetEmail, deliveryEmail, dryRun} = this.state;
 
+    if (!dryRun && !deliveryEmail) {
+      addErrorMessage('Delivery email address is required when dry run is disabled');
+      return;
+    }
+
     addLoadingMessage('Sending Email');
     this.props.api
       .requestPromise(`/customers/${this.props.orgId}/send-weekly-email/`, {
