@@ -60,7 +60,7 @@ interface BaseListProps<Value extends SelectKey>
    * Custom function to determine whether an option is disabled. By default, an option
    * is considered disabled when it has {disabled: true}.
    */
-  isOptionDisabled?: (opt: SelectOptionWithKey<SelectKey>) => boolean;
+  isOptionDisabled?: (opt: SelectOptionWithKey<Value>) => boolean;
   /**
    * Text label to be rendered as heading on top of grid list.
    */

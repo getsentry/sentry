@@ -206,7 +206,7 @@ export interface ControlProps
 /**
  * Controls Select's open state and exposes SelectContext to all chidlren.
  */
-export function Control({
+export function Control<Value extends SelectKey>({
   // Control props
   autoFocus,
   trigger,
@@ -248,10 +248,10 @@ export function Control({
   menuRef,
   ...wrapperProps
 }: ControlProps & {
-  isOptionDisabled?: (option: SelectOptionWithKey<SelectKey>) => boolean;
-  items?: Array<SelectOptionOrSectionWithKey<SelectKey>>;
+  isOptionDisabled?: (option: SelectOptionWithKey<Value>) => boolean;
+  items?: Array<SelectOptionOrSectionWithKey<Value>>;
   menuRef?: React.Ref<HTMLDivElement>;
-  value?: SelectKey | SelectKey[] | undefined;
+  value?: Value | Value[] | undefined;
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null);
 
