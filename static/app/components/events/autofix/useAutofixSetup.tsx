@@ -1,12 +1,7 @@
-import type {AutofixRepoDefinition} from 'sentry/components/events/autofix/types';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-interface AutofixSetupRepoDefinition extends AutofixRepoDefinition {
-  ok: boolean;
-}
 
 export interface AutofixSetupResponse {
   billing: {
@@ -17,35 +12,24 @@ export interface AutofixSetupResponse {
     reason: string | null;
   };
   seerReposLinked: boolean;
-  githubWriteIntegration?: {
-    ok: boolean;
-    repos: AutofixSetupRepoDefinition[];
-  } | null;
 }
 
-function makeAutofixSetupQueryKey(
-  orgSlug: string,
-  groupId: string,
-  checkWriteAccess?: boolean
-): ApiQueryKey {
+function makeAutofixSetupQueryKey(orgSlug: string, groupId: string): ApiQueryKey {
   return [
     getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/', {
       path: {organizationIdOrSlug: orgSlug, issueId: groupId},
     }),
-    {
-      query: checkWriteAccess ? {check_write_access: true} : undefined,
-    },
   ];
 }
 
 export function useAutofixSetup(
-  {groupId, checkWriteAccess}: {groupId: string; checkWriteAccess?: boolean},
+  {groupId}: {groupId: string},
   options: Omit<UseApiQueryOptions<AutofixSetupResponse>, 'staleTime'> = {}
 ) {
   const orgSlug = useOrganization().slug;
 
   const queryData = useApiQuery<AutofixSetupResponse>(
-    makeAutofixSetupQueryKey(orgSlug, groupId, checkWriteAccess),
+    makeAutofixSetupQueryKey(orgSlug, groupId),
     {
       enabled: Boolean(groupId),
       staleTime: 0,
@@ -57,7 +41,6 @@ export function useAutofixSetup(
   return {
     ...queryData,
     canStartAutofix: Boolean(queryData.data?.integration.ok),
-    canCreatePullRequests: Boolean(queryData.data?.githubWriteIntegration?.ok),
     hasAutofixQuota: Boolean(queryData.data?.billing?.hasAutofixQuota),
     seerReposLinked: Boolean(queryData.data?.seerReposLinked),
   };

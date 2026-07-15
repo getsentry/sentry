@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Stack, Grid} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 
@@ -33,9 +33,15 @@ export function ChooseYourBillingCycle({
 
   let previousPlanPrice = 0;
   return (
-    <Flex direction="column" gap="xl" id={`step${stepNumber}`}>
+    <Stack gap="xl" id={`step${stepNumber}`}>
       <StepHeader title={t('Pay monthly or yearly, your choice')} />
-      <Grid columns={{xs: '1fr', lg: `repeat(${intervalOptions.length}, 1fr)`}} gap="lg">
+      <Grid
+        columns={{
+          'screen:xs': '1fr',
+          'screen:lg': `repeat(${intervalOptions.length}, 1fr)`,
+        }}
+        gap="lg"
+      >
         {intervalOptions.map(plan => {
           const isSelected = plan.id === formData.plan;
           const isAnnual = plan.billingInterval === ANNUAL;
@@ -68,6 +74,6 @@ export function ChooseYourBillingCycle({
           );
         })}
       </Grid>
-    </Flex>
+    </Stack>
   );
 }

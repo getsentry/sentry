@@ -26,6 +26,7 @@ class IntegrationExamples:
                         "team:read",
                         "users:read",
                     ],
+                    "outOfDate": False,
                     "status": "active",
                     "provider": {
                         "key": "slack",
@@ -34,14 +35,7 @@ class IntegrationExamples:
                         "canAdd": True,
                         "canDisable": False,
                         "features": ["alert-rule", "chat-unfurl"],
-                        "aspects": {
-                            "alerts": [
-                                {
-                                    "type": "info",
-                                    "text": "The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.",
-                                }
-                            ]
-                        },
+                        "aspects": {},
                     },
                     "configOrganization": [],
                     "configData": {"installationType": "born_as_bot"},
@@ -79,6 +73,7 @@ class IntegrationExamples:
                     "team:read",
                     "users:read",
                 ],
+                "outOfDate": False,
                 "status": "active",
                 "provider": {
                     "key": "slack",
@@ -87,14 +82,7 @@ class IntegrationExamples:
                     "canAdd": True,
                     "canDisable": False,
                     "features": ["alert-rule", "chat-unfurl"],
-                    "aspects": {
-                        "alerts": [
-                            {
-                                "type": "info",
-                                "text": "The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.",
-                            }
-                        ]
-                    },
+                    "aspects": {},
                 },
                 "configOrganization": [],
                 "configData": {"installationType": "born_as_bot"},
@@ -550,14 +538,7 @@ class IntegrationExamples:
                             "noun": "Installation",
                             "issue_url": "https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=PagerDuty%20Integration%20Problem",
                             "source_url": "https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/pagerduty",
-                            "aspects": {
-                                "alerts": [
-                                    {
-                                        "type": "info",
-                                        "text": "The PagerDuty integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to PagerDuty you must create a rule using the PagerDuty action in your project settings.",
-                                    }
-                                ]
-                            },
+                            "aspects": {},
                         },
                         "canAdd": True,
                         "canDisable": False,
@@ -583,14 +564,7 @@ class IntegrationExamples:
                             "noun": "Workspace",
                             "issue_url": "https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Slack%20Integration%20Problem",
                             "source_url": "https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack",
-                            "aspects": {
-                                "alerts": [
-                                    {
-                                        "type": "info",
-                                        "text": "The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.",
-                                    }
-                                ]
-                            },
+                            "aspects": {},
                         },
                         "canAdd": True,
                         "canDisable": False,
@@ -790,6 +764,92 @@ class IntegrationExamples:
                 },
             ],
             status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    GROUP_INTEGRATION_ISSUE_CONFIG = [
+        OpenApiExample(
+            "Config for creating a new external issue",
+            value={
+                "id": "123456",
+                "name": "Example Jira",
+                "icon": "https://example.atlassian.net/icon.png",
+                "domainName": "example.atlassian.net",
+                "accountType": None,
+                "scopes": None,
+                "outOfDate": None,
+                "status": "active",
+                "provider": {
+                    "key": "jira",
+                    "slug": "jira",
+                    "name": "Jira",
+                    "canAdd": False,
+                    "canDisable": False,
+                    "features": ["issue-basic", "issue-sync", "ticket-rules"],
+                    "aspects": {},
+                },
+                "createIssueConfig": [
+                    {
+                        "name": "title",
+                        "label": "Title",
+                        "default": 'TypeError: Cannot read property "foo" of undefined',
+                        "type": "string",
+                        "required": True,
+                    },
+                    {
+                        "name": "description",
+                        "label": "Description",
+                        "default": "Sentry Issue: PROJECT-1\nhttps://example.sentry.io/issues/1/",
+                        "type": "textarea",
+                        "autosize": True,
+                        "maxRows": 10,
+                    },
+                ],
+            },
+            status_codes=["200"],
+            response_only=True,
+        ),
+        OpenApiExample(
+            "Config for linking an existing external issue",
+            value={
+                "id": "123456",
+                "name": "Example Jira",
+                "icon": "https://example.atlassian.net/icon.png",
+                "domainName": "example.atlassian.net",
+                "accountType": None,
+                "scopes": None,
+                "outOfDate": None,
+                "status": "active",
+                "provider": {
+                    "key": "jira",
+                    "slug": "jira",
+                    "name": "Jira",
+                    "canAdd": False,
+                    "canDisable": False,
+                    "features": ["issue-basic", "issue-sync", "ticket-rules"],
+                    "aspects": {},
+                },
+                "linkIssueConfig": [
+                    {"name": "externalIssue", "label": "Issue", "default": "", "type": "string"}
+                ],
+            },
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    EXTERNAL_ISSUE_LINK = [
+        OpenApiExample(
+            "Create or link an external issue",
+            value={
+                "id": 5,
+                "key": "PROJECT-123",
+                "url": "https://example.atlassian.net/browse/PROJECT-123",
+                "integrationId": 123456,
+                "displayName": "PROJECT-123",
+            },
+            status_codes=["201"],
             response_only=True,
         )
     ]

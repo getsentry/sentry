@@ -108,14 +108,11 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     from django.conf import settings
     from taskbroker_client.scheduler import RunStorage, ScheduleRunner
 
-    from sentry.taskworker.adapters import SentryMetricsBackend
     from sentry.taskworker.runtime import app
     from sentry.utils.redis import redis_clusters
 
     app.load_modules()
-    run_storage = RunStorage(
-        metrics=SentryMetricsBackend(), redis=redis_clusters.get(redis_cluster)
-    )
+    run_storage = RunStorage(metrics=app.metrics, redis=redis_clusters.get(redis_cluster))
 
     with managed_bgtasks(role="taskworker-scheduler"):
         runner = ScheduleRunner(app, run_storage)
@@ -168,6 +165,9 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
 )
 @click.option("--concurrency", help="Number of child processes to create.", default=1)
 @click.option(
+    "--min-concurrency", help="Minimum number of children that should always be active.", default=0
+)
+@click.option(
     "--namespace", help="The dedicated task namespace that this worker processes", default=None
 )
 @click.option(
@@ -210,6 +210,19 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     default=5.0,
     type=float,
 )
+@click.option(
+    "--future-checking-frequency",
+    help="How long the future checking thread in each worker child sleeps between iterations"
+    "to take pressure off the GIL",
+    default=0.1,
+    type=float,
+)
+@click.option(
+    "--prometheus-port",
+    help="Expose worker occupancy on this port for Prometheus scraping. Unset = disabled.",
+    default=None,
+    type=int,
+)
 @log_options()
 @configuration
 def taskworker(**options: Any) -> None:
@@ -231,6 +244,7 @@ def run_taskworker(
     max_child_task_count: int,
     namespace: str | None,
     concurrency: int,
+    min_concurrency: int,
     child_tasks_queue_maxsize: int,
     result_queue_maxsize: int,
     rebalance_after: int,
@@ -239,6 +253,8 @@ def run_taskworker(
     health_check_file_path: str | None,
     health_check_sec_per_touch: float,
     push_timeout_sec: float,
+    future_checking_frequency: float,
+    prometheus_port: int | None,
     **options: Any,
 ) -> None:
     """
@@ -256,6 +272,7 @@ def run_taskworker(
                 max_child_task_count=max_child_task_count,
                 namespace=namespace,
                 concurrency=concurrency,
+                min_concurrency=min_concurrency,
                 child_tasks_queue_maxsize=child_tasks_queue_maxsize,
                 result_queue_maxsize=result_queue_maxsize,
                 rebalance_after=rebalance_after,
@@ -266,6 +283,8 @@ def run_taskworker(
                 grpc_port=worker_rpc_port,
                 push_task_timeout=push_timeout_sec,
                 skip_awaiting_futures=skip_awaiting_futures,
+                future_checking_frequency=future_checking_frequency,
+                prometheus_port=prometheus_port,
             )
         elif batch_push_mode:
             worker = BatchPushTaskWorker(
@@ -274,6 +293,7 @@ def run_taskworker(
                 max_child_task_count=max_child_task_count,
                 namespace=namespace,
                 concurrency=concurrency,
+                min_concurrency=min_concurrency,
                 child_tasks_queue_maxsize=child_tasks_queue_maxsize,
                 result_queue_maxsize=result_queue_maxsize,
                 rebalance_after=rebalance_after,
@@ -284,6 +304,8 @@ def run_taskworker(
                 grpc_port=worker_rpc_port,
                 update_in_batches=True,
                 skip_awaiting_futures=skip_awaiting_futures,
+                future_checking_frequency=future_checking_frequency,
+                prometheus_port=prometheus_port,
             )
         else:
             worker = TaskWorker(
@@ -294,6 +316,7 @@ def run_taskworker(
                 max_child_task_count=max_child_task_count,
                 namespace=namespace,
                 concurrency=concurrency,
+                min_concurrency=min_concurrency,
                 child_tasks_queue_maxsize=child_tasks_queue_maxsize,
                 result_queue_maxsize=result_queue_maxsize,
                 rebalance_after=rebalance_after,
@@ -301,6 +324,7 @@ def run_taskworker(
                 health_check_file_path=health_check_file_path,
                 health_check_sec_per_touch=health_check_sec_per_touch,
                 skip_awaiting_futures=skip_awaiting_futures,
+                future_checking_frequency=future_checking_frequency,
             )
         exitcode = worker.start()
         raise SystemExit(exitcode)
@@ -380,8 +404,12 @@ def taskbroker_send_tasks(
     namespace: str,
     extra_arg_bytes: int | None,
 ) -> None:
+    from taskbroker_client.canary import CANARY_TASK_NAME
+    from taskbroker_client.constants import INTERNAL_NAMESPACE
+
     from sentry.conf.server import KAFKA_CLUSTERS
     from sentry.taskworker.adapters import set_route_overrides
+    from sentry.taskworker.runtime import app
     from sentry.utils.imports import import_string
 
     if bootstrap_servers:
@@ -390,11 +418,14 @@ def taskbroker_send_tasks(
     if kafka_topic and namespace:
         set_route_overrides({namespace: kafka_topic})
 
-    try:
-        func = import_string(task_function_path)
-    except Exception as e:
-        click.echo(f"Error: {e}")
-        raise click.Abort()
+    if task_function_path == CANARY_TASK_NAME and namespace == INTERNAL_NAMESPACE:
+        func = app.get_task(namespace, task_function_path)
+    else:
+        try:
+            func = import_string(task_function_path)
+        except Exception as e:
+            click.echo(f"Error: {e}")
+            raise click.Abort()
 
     task_args = [] if not args else eval(args)
     task_kwargs = {} if not kwargs else eval(kwargs)
@@ -571,6 +602,7 @@ def basic_consumer(
         logging.getLogger("arroyo").setLevel(log_level.upper())
 
     add_global_tags(
+        all_threads=True,
         set_sentry_tags=True,
         tags={
             "kafka_topic": topic,

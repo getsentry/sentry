@@ -10,6 +10,7 @@ from fixtures.github import (
     INSTALLATION_API_RESPONSE,
     INSTALLATION_DELETE_EVENT_EXAMPLE,
     INSTALLATION_EVENT_EXAMPLE,
+    INSTALLATION_NEW_PERMISSIONS_EVENT_EXAMPLE,
     ISSUES_ASSIGNED_EVENT_EXAMPLE,
     ISSUES_CLOSED_EVENT_EXAMPLE,
     ISSUES_REOPENED_EVENT_EXAMPLE,
@@ -341,6 +342,121 @@ class InstallationDeleteEventWebhookTest(APITestCase):
         assert integration.external_id == "2"
         assert integration.name == "octocat"
         assert integration.status == ObjectStatus.DISABLED
+
+
+@control_silo_test
+class InstallationNewPermissionsEventWebhookTest(APITestCase):
+    base_url = "https://api.github.com"
+
+    def setUp(self) -> None:
+        self.url = "/extensions/github/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        options.set("github-app.webhook-secret", self.secret)
+
+    def _post(self) -> int:
+        body = INSTALLATION_NEW_PERMISSIONS_EVENT_EXAMPLE
+        sig1 = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha1", body.encode(), self.secret
+        )
+        sig256 = GitHubIntegrationsWebhookEndpoint.compute_signature(
+            "sha256", body.encode(), self.secret
+        )
+        response = self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="installation",
+            HTTP_X_HUB_SIGNATURE=f"sha1={sig1}",
+            HTTP_X_HUB_SIGNATURE_256=f"sha256={sig256}",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        return response.status_code
+
+    def _add_refresh_response(self) -> None:
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/app/installations/2/access_tokens",
+            json={
+                "token": "new-token",
+                "expires_at": "2099-01-01T00:00:00Z",
+                "permissions": {"contents": "write", "pull_requests": "write"},
+            },
+            status=200,
+            content_type="application/json",
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def test_refreshes_token_and_persists_permissions(self, get_jwt: MagicMock) -> None:
+        # A token that is still valid (well in the future) so the only reason a
+        # refresh happens is that the handler expired it. Confirms we ALWAYS refresh.
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(hours=1)
+        integration = self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="2",
+            provider="github",
+            metadata={
+                "access_token": "old-token",
+                "expires_at": future_expires.isoformat(),
+                "permissions": {"contents": "read"},
+            },
+        )
+        self._add_refresh_response()
+
+        assert self._post() == 204
+
+        # The refresh endpoint was hit even though the stored token was unexpired.
+        assert len(responses.calls) == 1
+        assert "access_tokens" in responses.calls[0].request.url
+
+        integration = Integration.objects.get(external_id="2")
+        assert integration.metadata["access_token"] == "new-token"
+        assert integration.metadata["expires_at"] == "2099-01-01T00:00:00"
+        # Permissions returned with the refreshed token are persisted as a side effect.
+        assert integration.metadata["permissions"] == {
+            "contents": "write",
+            "pull_requests": "write",
+        }
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def test_missing_integration_is_noop(self, get_jwt: MagicMock) -> None:
+        self._add_refresh_response()
+
+        # No integration exists for external_id "2".
+        assert self._post() == 204
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    def test_token_refresh_failure_is_non_fatal(self, get_jwt: MagicMock) -> None:
+        future_expires = datetime.now().replace(microsecond=0) + timedelta(hours=1)
+        self.create_integration(
+            name="octocat",
+            organization=self.organization,
+            external_id="2",
+            provider="github",
+            metadata={
+                "access_token": "old-token",
+                "expires_at": future_expires.isoformat(),
+                "permissions": {"contents": "read"},
+            },
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/app/installations/2/access_tokens",
+            status=500,
+        )
+
+        # A failed refresh must not surface an error to GitHub.
+        assert self._post() == 204
+
+        # The token was expired prior to the (failed) refresh; it stays expired so
+        # the next request will retry the refresh lazily.
+        integration = Integration.objects.get(external_id="2")
+        assert integration.metadata["access_token"] is None
+        assert integration.metadata["expires_at"] is None
 
 
 @control_silo_test
@@ -1674,10 +1790,10 @@ class PullRequestEventWebhookTest(APITestCase):
 
         mock_track_contributor_seat.assert_called_once()
         call_kwargs = mock_track_contributor_seat.call_args[1]
-        assert call_kwargs["integration_id"] == integration.id
+        assert call_kwargs["integration"].id == integration.id
+        assert call_kwargs["integration"].provider == "github"
         assert str(call_kwargs["user_id"]) == "6752317"
         assert call_kwargs["user_username"] == "baxterthehacker"
-        assert call_kwargs["provider"] == "github"
         assert call_kwargs["organization"] == self.project.organization
         assert call_kwargs["repo"] == repo
 
@@ -1986,12 +2102,13 @@ class TrackContributorActionProcessorTest(TestCase):
         kwargs = mock_record.call_args.kwargs
         assert kwargs["organization"].id == self.organization.id
         assert kwargs["repo"].id == self.repo.id
-        assert kwargs["integration_id"] == self.integration.id
+        assert kwargs["integration"].id == self.integration.id
+        assert kwargs["integration"].provider == "github"
         assert kwargs["user_id"] == "6752317"
         assert kwargs["user_username"] == "baxterthehacker"
-        assert kwargs["provider"] == "github"
         assert kwargs["pr_number"] == 1
         assert kwargs["is_opened"] is True
+        assert kwargs["logs_extra"] == {"github_event_action": "opened"}
         assert kwargs["tags"] == {"is_private": False}
 
     @patch("sentry.integrations.github.webhook.record_contributor_action")

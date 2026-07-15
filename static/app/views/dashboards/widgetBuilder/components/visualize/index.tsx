@@ -27,12 +27,7 @@ import {
   type QueryFieldValue,
   type ValidateColumnTypes,
 } from 'sentry/utils/discover/fields';
-import {
-  classifyTagKey,
-  FieldKind,
-  FieldValueType,
-  prettifyTagKey,
-} from 'sentry/utils/fields';
+import {classifyTagKey, FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
@@ -48,6 +43,7 @@ import {
   ColumnCompactSelect,
   SelectRow,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/selectRow';
+import {buildTraceItemColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceItemColumnOptions';
 import {MetricSelectRow} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricSelectRow';
 import {MetricsEquationVisualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize';
 import {VisualizeGhostField} from 'sentry/views/dashboards/widgetBuilder/components/visualize/visualizeGhostField';
@@ -65,7 +61,6 @@ import {FieldValueKind, type FieldValue} from 'sentry/views/discover/table/types
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
-import {canUseMetricsEquationsInDashboards} from 'sentry/views/explore/metrics/metricsFlags';
 import {MAX_METRICS_ALLOWED} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 
 export const NONE = 'none';
@@ -308,9 +303,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
   // Heat maps don't support equations, so the equation mode toggle and the
   // "Add Equation" affordances are hidden for them.
   const canShowTraceMetricEquations =
-    state.dataset === WidgetType.TRACEMETRICS &&
-    !isHeatmapWidget &&
-    canUseMetricsEquationsInDashboards(organization);
+    state.dataset === WidgetType.TRACEMETRICS && !isHeatmapWidget;
 
   const {isEquationMode, handleModeToggle, equationSnapshot} =
     traceMetricsVisualizeMode ?? {
@@ -375,26 +368,10 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
             trailingItems: () => <TypeBadge kind={classifyTagKey(column)} />,
           };
         }),
-      ...Object.values(booleanSpanTags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          trailingItems: () => <TypeBadge kind={FieldKind.BOOLEAN} />,
-        };
-      }),
-      ...Object.values(stringSpanTags).map(tag => {
-        return {
-          label: tag.name,
-          value: tag.key,
-          trailingItems: () => <TypeBadge kind={FieldKind.TAG} />,
-        };
-      }),
-      ...Object.values(numericSpanTags).map(tag => {
-        return {
-          label: prettifyTagKey(tag.name),
-          value: tag.key,
-          trailingItems: () => <TypeBadge kind={FieldKind.MEASUREMENT} />,
-        };
+      ...buildTraceItemColumnOptions({
+        booleanTags: booleanSpanTags,
+        stringTags: stringSpanTags,
+        numberTags: numericSpanTags,
       }),
     ];
     options.sort(_sortFn);

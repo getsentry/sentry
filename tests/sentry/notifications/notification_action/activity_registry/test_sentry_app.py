@@ -114,6 +114,19 @@ class TestBuildActivityData(BaseWorkflowTest):
         with pytest.raises(ValueError, match="Unrecognized activity type"):
             _build_activity_data(activity)
 
+    def test_status_change_activity_includes_user(self) -> None:
+        activity = self.create_group_activity(
+            group=self.create_group(),
+            type=ActivityType.SET_RESOLVED.value,
+            user_id=self.user.id,
+        )
+        result = _build_activity_data(activity)
+        assert result["type"] == "status_resolved"
+        assert "user" in result["details"]
+        assert result["details"]["user"]["id"] == self.user.id
+        assert result["details"]["user"]["name"] == self.user.get_display_name()
+        assert result["details"]["user"]["username"] == self.user.username
+
 
 class TestBuildWorkflowData(BaseWorkflowTest):
     def setUp(self) -> None:
@@ -160,7 +173,11 @@ class TestBuildWorkflowData(BaseWorkflowTest):
         assert result["id"] == self.workflow.id
         assert result["title"] == self.workflow.name
         assert result["sentry_app_id"] == self.sentry_app.id
-        assert f"alerts/{self.workflow.id}/" in result["url"]
+
+        assert result["url"].endswith(
+            f"/api/0/organizations/{self.organization.slug}/workflows/{self.workflow.id}/"
+        )
+        assert f"alerts/{self.workflow.id}/" in result["web_url"]
         assert "settings" not in result
 
     def test_includes_settings_when_present(self) -> None:

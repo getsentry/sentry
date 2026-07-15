@@ -15,15 +15,18 @@ from sentry.api.serializers.models.actor import ActorSerializerResponse
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupAnnotation,
+    GroupLevelStr,
     GroupProjectResponse,
     GroupSerializer,
     GroupSerializerSnuba,
     GroupStatusDetailsResponseOptional,
+    GroupStatusStr,
     SeenStats,
     is_seen_stats,
     snuba_tsdb,
 )
 from sentry.constants import StatsPeriod
+from sentry.eventtypes import EventTypeStr
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.grouptype import GroupCategory
@@ -40,6 +43,7 @@ from sentry.sentry_apps.api.serializers.platform_external_issue import (
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.snuba.dataset import Dataset
 from sentry.tsdb.base import TSDBModel
+from sentry.types.group import GroupPriorityStr, GroupSubStatusStr
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
@@ -250,19 +254,19 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     culprit: NotRequired[str | None]
     permalink: NotRequired[str]
     logger: NotRequired[str | None]
-    level: NotRequired[str]
-    status: NotRequired[str]
+    level: NotRequired[GroupLevelStr]
+    status: NotRequired[GroupStatusStr]
     statusDetails: NotRequired[GroupStatusDetailsResponseOptional]
-    substatus: NotRequired[str | None]
+    substatus: NotRequired[GroupSubStatusStr | None]
     isPublic: NotRequired[bool]
     platform: NotRequired[str | None]
-    priority: NotRequired[str | None]
+    priority: NotRequired[GroupPriorityStr | None]
     priorityLockedAt: NotRequired[datetime | None]
     seerFixabilityScore: NotRequired[float | None]
     seerAutofixLastTriggered: NotRequired[datetime | None]
     seerExplorerAutofixLastTriggered: NotRequired[datetime | None]
     project: NotRequired[GroupProjectResponse]
-    type: NotRequired[str]
+    type: NotRequired[EventTypeStr]
     issueType: NotRequired[str]
     issueCategory: NotRequired[str]
     metadata: NotRequired[dict[str, Any]]

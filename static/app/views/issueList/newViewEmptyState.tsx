@@ -1,21 +1,15 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Panel} from 'sentry/components/panels/panel';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
-import {IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
-import {SavedSearchVisibility} from 'sentry/types/group';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 
 type SearchSuggestion = {
   label: string;
@@ -70,15 +64,6 @@ function Query({label, query}: SearchSuggestion) {
 }
 
 export function NewViewEmptyState() {
-  const organization = useOrganization();
-  const {data: savedSearches = [], isPending} = useFetchSavedSearchesForOrg({
-    orgSlug: organization.slug,
-  });
-
-  const personalSavedSearches = savedSearches.filter(
-    search => search.visibility === SavedSearchVisibility.OWNER
-  );
-
   return (
     <Stack justify="center" align="center" marginTop="3xl">
       <Card>
@@ -90,60 +75,9 @@ export function NewViewEmptyState() {
           ))}
         </QueryGrid>
       </Card>
-      {personalSavedSearches.length > 0 && !isPending && (
-        <Card>
-          <CardHeading>
-            {t('My Saved Searches')}
-            <Tooltip
-              title={
-                <Fragment>
-                  <Bold>
-                    {t('Saved searches are deprecated and will be removed soon.')}
-                  </Bold>
-                  {tct(
-                    'Organization saved searches have been converted to Issue Views and are available in the [allViews:All Views] page.',
-                    {
-                      allViews: (
-                        <TooltipSubLink to="/organizations/organization-slug/issues/views/" />
-                      ),
-                    }
-                  )}
-                </Fragment>
-              }
-              skipWrapper
-              isHoverable
-            >
-              <IconWarning variant="muted" />
-            </Tooltip>
-          </CardHeading>
-          <p>{t('Your personal saved searches.')}</p>
-          <QueryGrid>
-            {personalSavedSearches.map(savedSearch => (
-              <Query
-                key={savedSearch.id}
-                label={savedSearch.name}
-                query={savedSearch.query}
-              />
-            ))}
-          </QueryGrid>
-        </Card>
-      )}
     </Stack>
   );
 }
-
-const Bold = styled('div')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const TooltipSubLink = styled(Link)`
-  color: ${p => p.theme.tokens.content.secondary};
-  text-decoration: underline;
-
-  :hover {
-    color: ${p => p.theme.tokens.content.secondary};
-  }
-`;
 
 const Card = styled(Panel)`
   width: 80%;

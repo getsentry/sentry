@@ -157,32 +157,17 @@ function AMCheckout(props: Props) {
     return navigate(normalizeUrl(`/settings/${organization.slug}/billing/overview/`));
   }, [navigate, organization.slug]);
 
-  const getPlans = useCallback(
-    (config: BillingConfig) => {
-      const isTestOrg = subscription.planDetails.isTestPlan;
-      if (isTestOrg) {
-        const testPlans = config.planList.filter(
-          plan =>
-            plan.isTestPlan &&
-            (plan.id.includes(config.freePlan) || Boolean(plan.basePrice))
-        );
+  const getPlans = useCallback((config: BillingConfig) => {
+    const plans = config.planList.filter(
+      plan =>
+        plan.id === config.freePlan || Boolean(plan.basePrice && plan.userSelectable)
+    );
 
-        if (testPlans.length > 0) {
-          return testPlans;
-        }
-      }
-      const plans = config.planList.filter(
-        plan =>
-          plan.id === config.freePlan || Boolean(plan.basePrice && plan.userSelectable)
-      );
-
-      if (plans.length === 0) {
-        throw new Error('Cannot get plan options');
-      }
-      return plans;
-    },
-    [subscription.planDetails.isTestPlan]
-  );
+    if (plans.length === 0) {
+      throw new Error('Cannot get plan options');
+    }
+    return plans;
+  }, []);
 
   /**
    * Default to the business plan if:
@@ -779,13 +764,7 @@ function AMCheckout(props: Props) {
   );
 
   return (
-    <Flex
-      width="100%"
-      background="primary"
-      justify="center"
-      align="center"
-      direction="column"
-    >
+    <Stack width="100%" background="primary" justify="center" align="center">
       <SentryDocumentTitle title={t('Change Subscription')} orgSlug={organization.slug} />
       {isOnSponsoredPartnerPlan && (
         <Alert.Container>
@@ -826,7 +805,7 @@ function AMCheckout(props: Props) {
       </CheckoutHeader>
 
       <Flex
-        direction={{xs: 'column', md: 'row'}}
+        direction={{'screen:xs': 'column', 'screen:md': 'row'}}
         gap="md 3xl"
         justify="between"
         width="100%"
@@ -836,7 +815,7 @@ function AMCheckout(props: Props) {
       >
         {renderCheckoutContent()}
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 

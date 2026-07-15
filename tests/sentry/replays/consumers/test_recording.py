@@ -15,6 +15,7 @@ from sentry.analytics.events.first_replay_sent import FirstReplaySentEvent
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
 from sentry.replays.lib.storage import _make_recording_filename, storage_kv
+from sentry.replays.tasks import process_replay_recording
 from sentry.replays.usecases.pack import unpack
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
@@ -275,3 +276,47 @@ class RecordingTestCase(TransactionTestCase):
             assert report_hydration_issue.called
             assert report_hydration_issue.call_count == 2
             assert set_project_flag_and_signal.call_count == 1
+
+    @patch("sentry.models.OrganizationOnboardingTask.objects.record")
+    @patch("sentry.analytics.record")
+    @patch("sentry.replays.usecases.ingest.track_outcome")
+    @patch("sentry.replays.usecases.ingest.report_hydration_error")
+    def test_process_replay_recording_task(
+        self,
+        report_hydration_issue: MagicMock,
+        track_outcome: MagicMock,
+        mock_record: MagicMock,
+        mock_onboarding_task: MagicMock,
+    ) -> None:
+        # The raw-mode taskbroker entrypoint: a single Kafka message is handed to
+        # the task as raw bytes (taskbroker also passes headers).
+        data = [{"hello": "world"}]
+        segment_id = 0
+        message = self.nonchunked_messages(
+            message=json.dumps(data).encode(),
+            segment_id=segment_id,
+            compressed=True,
+            replay_event=json.dumps(
+                {
+                    "type": "replay_event",
+                    "replay_id": self.replay_id,
+                    "timestamp": int(time.time()),
+                }
+            ).encode(),
+        )[0]
+
+        process_replay_recording(msgpack.packb(message))
+
+        dat = self.get_recording_data(segment_id)
+        assert json.loads(bytes(dat).decode("utf-8")) == data
+
+        self.project.refresh_from_db()
+        assert self.project.flags.has_replays
+
+        mock_onboarding_task.assert_called_with(
+            organization_id=self.project.organization_id,
+            task=OnboardingTask.SESSION_REPLAY,
+            status=OnboardingTaskStatus.COMPLETE,
+            date_completed=ANY,
+        )
+        assert track_outcome.called

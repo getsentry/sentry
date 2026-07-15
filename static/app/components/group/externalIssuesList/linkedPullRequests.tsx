@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {Avatar, UserAvatar} from '@sentry/scraps/avatar';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -12,7 +12,12 @@ import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon'
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {GroupActivityType, type Group} from 'sentry/types/group';
+import {
+  GroupActivityType,
+  type Group,
+  type GroupActivityPullRequestClosed,
+  type GroupActivitySetByResolvedInPullRequest,
+} from 'sentry/types/group';
 import type {
   LinkedPullRequest,
   LinkedPullRequestsResponse,
@@ -30,15 +35,25 @@ import {
   PullRequestStatusBadge,
 } from './pullRequestStatusBadge';
 
-const LINKED_PULL_REQUESTS_FEATURE = 'issue-details-linked-pull-requests';
+const PULL_REQUEST_ACTIVITY_TYPES = new Set([
+  GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+  GroupActivityType.PULL_REQUEST_CLOSED,
+]);
 
 export function getLinkedPullRequestActivityIds(group: Group) {
   return new Set(
     group.activity
       .filter(
-        activity => activity.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST
+        (
+          activity
+        ): activity is
+          | GroupActivityPullRequestClosed
+          | GroupActivitySetByResolvedInPullRequest =>
+          PULL_REQUEST_ACTIVITY_TYPES.has(activity.type)
       )
-      .map(activity => activity.data.pullRequest?.id)
+      .map(activity => {
+        return activity.data.pullRequest?.id;
+      })
       .filter(id => id !== undefined)
   );
 }
@@ -100,7 +115,7 @@ function LinkedPullRequestRow({
               variant="muted"
             />
           </Flex>
-          <Flex direction="column" gap="xs" minWidth={0}>
+          <Stack gap="xs" minWidth={0}>
             <PullRequestTitle>
               <Text as="span" bold textWrap="nowrap">
                 {pullRequestLabel}
@@ -125,7 +140,7 @@ function LinkedPullRequestRow({
                 />
               </Text>
             </Flex>
-          </Flex>
+          </Stack>
         </Grid>
       </PullRequestRow>
     </Tooltip>
@@ -208,15 +223,12 @@ function SeerAttributionAvatar() {
 
 export function useLinkedPullRequests({group}: {group: Group}) {
   const organization = useOrganization();
-  const hasFeature = organization.features.includes(LINKED_PULL_REQUESTS_FEATURE);
 
   return useQuery(
     apiOptions.as<LinkedPullRequestsResponse>()(
       '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
       {
-        path: hasFeature
-          ? {organizationIdOrSlug: organization.slug, issueId: group.id}
-          : skipToken,
+        path: {organizationIdOrSlug: organization.slug, issueId: group.id},
         staleTime: 30_000,
       }
     )
@@ -224,12 +236,10 @@ export function useLinkedPullRequests({group}: {group: Group}) {
 }
 
 export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsProps) {
-  const organization = useOrganization();
-  const hasFeature = organization.features.includes(LINKED_PULL_REQUESTS_FEATURE);
   const {data, isError, isPending} = useLinkedPullRequests({group});
   const activityPullRequestIds = getLinkedPullRequestActivityIds(group);
 
-  if (!hasFeature || isError) {
+  if (isError) {
     return null;
   }
 
@@ -250,10 +260,9 @@ export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsPr
   }
 
   return (
-    <Flex
+    <Stack
       as="ul"
       aria-label={t('Linked pull requests')}
-      direction="column"
       border="primary"
       radius="md"
       overflow="hidden"
@@ -270,7 +279,7 @@ export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsPr
           <LinkedPullRequestRow group={group} pullRequest={pullRequest} />
         </Container>
       ))}
-    </Flex>
+    </Stack>
   );
 }
 

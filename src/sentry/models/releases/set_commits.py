@@ -3,7 +3,7 @@ from __future__ import annotations
 import itertools
 import logging
 import re
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from django.db import IntegrityError, router
 
@@ -35,7 +35,7 @@ from sentry.models.pullrequest import PullRequest
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
-from sentry.plugins.providers.repository import RepositoryProvider
+from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
 
 
 class _CommitDataKwargs(TypedDict, total=False):
@@ -47,9 +47,10 @@ class _CommitDataKwargs(TypedDict, total=False):
 def set_commits(release, commit_list):
     commit_list.sort(key=lambda commit: commit.get("timestamp", 0), reverse=True)
 
-    # todo(meredith): implement for IntegrationRepositoryProvider
     commit_list = [
-        c for c in commit_list if not RepositoryProvider.should_ignore_commit(c.get("message", ""))
+        c
+        for c in commit_list
+        if not IntegrationRepositoryProvider.should_ignore_commit(c.get("message", ""))
     ]
     lock_key = Release.get_lock_key(release.organization_id, release.id)
     # Acquire the lock for a maximum of 10 minutes
@@ -307,13 +308,17 @@ def update_group_resolutions(release, commit_author_by_commit):
             group.update(status=GroupStatus.RESOLVED, substatus=None)
             remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
             if should_create_resolution_activity:
+                activity_data: dict[str, Any] = {"version": release.version}
+                resolution_commit_id = commit_id_by_group.get(group_id)
+                if resolution_commit_id is not None:
+                    activity_data["commit"] = resolution_commit_id
                 Activity.objects.create(
                     project_id=group.project_id,
                     group=group,
                     type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
                     user_id=actor.id if actor is not None else None,
                     ident=resolution.id,
-                    data={"version": release.version},
+                    data=activity_data,
                 )
             record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
 

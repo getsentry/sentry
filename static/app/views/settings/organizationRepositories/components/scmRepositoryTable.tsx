@@ -177,7 +177,7 @@ function SingleInstallTableContent({
           <IntegrationSummary installation={merged} />
         </Flex>
         <Flex align="center" gap="sm">
-          <Flex display={{xs: 'none', sm: 'flex'}}>
+          <Flex display={{'screen:xs': 'none', 'screen:sm': 'flex'}}>
             <InstallationRepoCountTag installation={merged} />
           </Flex>
           <InstallationActions installation={merged} providerName={provider.name} />
@@ -306,7 +306,7 @@ function InstallationRow({
         <Flex align="center" gap="sm">
           <IntegrationSummary installation={merged} />
         </Flex>
-        <Flex align="center" display={{xs: 'none', sm: 'flex'}}>
+        <Flex align="center" display={{'screen:xs': 'none', 'screen:sm': 'flex'}}>
           <InstallationRepoCountTag installation={merged} />
         </Flex>
         <Flex align="center" gap="md" justifySelf="end">
@@ -527,12 +527,17 @@ function VirtualizedRepoList({
     return sortBy(filtered, [r => !hasMapping(r.id), r => r.name]);
   }, [repositories, repoMatches, mappedProjectSlugsByRepoId]);
 
+  const getItemKey = useCallback(
+    (index: number) => visibleRepos[index]!.id,
+    [visibleRepos]
+  );
+
   const virtualizer = useVirtualizer({
     count: visibleRepos.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ESTIMATED_REPO_ROW_HEIGHT,
     overscan: 6,
-    getItemKey: i => visibleRepos[i]!.id,
+    getItemKey,
   });
 
   const renderEmptyMessage = () => {

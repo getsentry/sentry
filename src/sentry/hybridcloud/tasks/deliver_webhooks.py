@@ -33,6 +33,7 @@ from sentry.taskworker.namespaces import hybridcloud_control_tasks
 from sentry.types.cell import Cell, get_cell_by_name
 from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -372,10 +373,11 @@ def _discard_stale_mailbox_payloads(payload: WebhookPayload) -> None:
     Remove payloads in this mailbox that are older than MAX_DELIVERY_AGE.
     Once payloads are this old they are low value, and we're better off prioritizing new work.
     """
-    with sentry_sdk.start_span(
-        op="hybridcloud.deliver_webhooks.discard_stale_mailbox_payloads"
+    with start_span(
+        op="hybridcloud.deliver_webhooks.discard_stale_mailbox_payloads",
+        name="hybridcloud.deliver_webhooks.discard_stale_mailbox_payloads",
     ) as span:
-        span.set_tag("mailbox_name", payload.mailbox_name)
+        set_span_tag(span, "mailbox_name", payload.mailbox_name)
         max_age = timezone.now() - MAX_DELIVERY_AGE
         if payload.date_added >= max_age:
             return

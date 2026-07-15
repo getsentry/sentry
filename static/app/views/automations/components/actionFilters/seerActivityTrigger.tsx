@@ -1,4 +1,4 @@
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
@@ -13,8 +13,8 @@ import {useDataConditionNodeContext} from 'sentry/views/automations/components/d
 const SEER_ACTIVITY_STAGE_CHOICES: Array<{label: string; value: string}> = [
   {value: 'rca_started', label: t('Root cause analysis started')},
   {value: 'rca_completed', label: t('Root cause analysis completed')},
-  {value: 'solution_started', label: t('Solution search started')},
-  {value: 'solution_completed', label: t('Solution search completed')},
+  {value: 'solution_started', label: t('Planning started')},
+  {value: 'solution_completed', label: t('Planning completed')},
   {value: 'coding_started', label: t('Coding started')},
   {value: 'coding_completed', label: t('Coding completed')},
   {value: 'pr_created', label: t('Pull request created')},
@@ -53,7 +53,7 @@ export function SeerActivityTriggerNode() {
     : SEER_ACTIVITY_STAGE_CHOICES;
 
   return (
-    <Flex direction="column" gap="sm">
+    <Stack gap="sm">
       <Text>{t('Seer runs on an issue and reaches the stage...')}</Text>
       <AutomationBuilderSelect
         multiple
@@ -67,7 +67,7 @@ export function SeerActivityTriggerNode() {
           removeError(condition.id);
         }}
       />
-    </Flex>
+    </Stack>
   );
 }
 

@@ -43,6 +43,7 @@ class TestBuildAttributeContext:
         assert "span.op" not in ATTRIBUTE_METADATA
         context = build_sentry_convention_context("span.op", "sentry.op")
         assert context == {
+            "isConvention": True,
             "brief": "The operation of a span.",
             "examples": ["http.client"],
             "isDeprecated": False,
@@ -51,11 +52,30 @@ class TestBuildAttributeContext:
     def test_deprecated_attribute_includes_replacement(self) -> None:
         context = build_sentry_convention_context("transaction", "sentry.transaction")
         assert context is not None
+        assert context["isConvention"] is True
         assert context["isDeprecated"] is True
         assert context["replacementAttribute"] == "sentry.segment.name"
 
     def test_unknown_attribute_returns_none(self) -> None:
         assert build_sentry_convention_context("not.a.convention", "also.not.a.convention") is None
+
+    def test_matches_convention_not_in_attributes_py(self) -> None:
+        # `http.route` is defined in sentry-conventions but not in attributes.py,
+        # so it resolves as a `user` source attribute. It should still match.
+        context = build_sentry_convention_context("http.route", "http.route")
+        assert context is not None
+        assert context["isConvention"] is True
+        assert context["brief"]
+
+    def test_matching_type_is_required_when_provided(self) -> None:
+        # `http.route` is a string convention; a number attribute with the same
+        # name is not that convention.
+        assert build_sentry_convention_context("http.route", "http.route", "string") is not None
+        assert build_sentry_convention_context("http.route", "http.route", "number") is None
+        # Array / "any" convention types don't constrain the match (`ai.citations`
+        # is a `string[]` convention).
+        context = build_sentry_convention_context("ai.citations", "ai.citations", "number")
+        assert context is not None and context["isConvention"] is True
 
 
 class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase):
@@ -94,6 +114,10 @@ class OrganizationTraceItemAttributesEndpointLogsTest(
     def test_no_feature(self) -> None:
         response = self.do_request(features={})
         assert response.status_code == 404, response.content
+
+    def test_invalid_query_returns_400(self) -> None:
+        response = self.do_request(query={"query": "trace:nope", "project": self.project.id})
+        assert response.status_code == 400, response.content
 
     def test_invalid_dataset(self) -> None:
         response = self.do_request(query={"dataset": "invalid"})
@@ -499,10 +523,11 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
             uuid4().hex,
             organization_id=self.organization.id,
             timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
-            # `gen_ai.request.model` is a sentry convention name, but as a
-            # user-supplied tag it resolves to a `user` source. It must not pick
-            # up convention metadata.
-            tags={"foo": "foo", "gen_ai.request.model": "gpt-4"},
+            # `gen_ai.request.model` is a sentry convention name supplied as a
+            # user tag, and `http.route` is a convention defined in
+            # sentry-conventions but not in attributes.py. Both stay `user`
+            # source but should still be matched to their convention's context.
+            tags={"foo": "foo", "gen_ai.request.model": "gpt-4", "http.route": "/users/:id"},
         )
 
     def test_expand_context(self) -> None:
@@ -517,6 +542,7 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         # A non-deprecated sentry convention gets brief + examples + isDeprecated.
         assert attributes["device.class"]["context"] == {
+            "isConvention": True,
             "brief": (
                 "The classification of the device. For example, `low`, `medium`, or `high`. "
                 "Typically inferred by Relay - SDKs generally do not need to set this directly."
@@ -526,18 +552,80 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         }
         # A deprecated convention also surfaces the replacement attribute.
         assert attributes["transaction"]["context"] == {
+            "isConvention": True,
             "brief": "The sentry transaction (segment name).",
             "examples": ["GET /"],
             "isDeprecated": True,
             "replacementAttribute": "sentry.segment.name",
         }
-        # Custom attribute context isn't served yet, so user tags get an empty
-        # context for now.
+        # Custom (non-convention) attributes aren't served yet, so they get an
+        # empty context.
         assert attributes["foo"]["context"] == {}
-        # A user tag whose name collides with a sentry convention still gets an
-        # empty context, because only `sentry`-source attributes are expanded.
+        # A user tag whose name matches a sentry convention keeps its `user`
+        # source (it was user-set) but is still matched to the convention's
+        # context, since context is matched by name/type, not source.
         assert attributes["gen_ai.request.model"]["attributeSource"]["source_type"] == "user"
-        assert attributes["gen_ai.request.model"]["context"] == {}
+        assert attributes["gen_ai.request.model"]["context"] == {
+            "isConvention": True,
+            "brief": "The model identifier being used for the request.",
+            "examples": ["gpt-4-turbo-preview"],
+            "isDeprecated": False,
+        }
+        # `http.route` is a convention defined in sentry-conventions but not in
+        # attributes.py, so it resolves as a `user` source attribute but is still
+        # matched to its convention's context.
+        assert attributes["http.route"]["attributeSource"]["source_type"] == "user"
+        assert attributes["http.route"]["context"] == {
+            "isConvention": True,
+            "brief": (
+                "The matched route, that is, the path template in the format used "
+                "by the respective server framework."
+            ),
+            "examples": ["/users/:id"],
+            "isDeprecated": False,
+        }
+        # `span.description` is a Sentry-defined attribute that isn't a sentry
+        # convention. It's always included (this segment sets no description) and
+        # carries context from its definition (`ResolvedAttribute.context`), marked
+        # isConvention=False with a `sentry` source.
+        assert attributes["span.description"]["attributeSource"]["source_type"] == "sentry"
+        assert attributes["span.description"]["context"]["isConvention"] is False
+        assert attributes["span.description"]["context"]["brief"]
+        # `project` is served as a virtual column (VirtualColumnDefinition), not a
+        # ResolvedAttribute. Its brief still surfaces via the virtual-context
+        # fallback, marked isConvention=False with a `sentry` source.
+        assert attributes["project"]["attributeSource"]["source_type"] == "sentry"
+        assert attributes["project"]["context"] == {
+            "isConvention": False,
+            "brief": (
+                "The name of the project. In some pages of sentry.io, you can also "
+                "filter on project using a dropdown."
+            ),
+            "isDeprecated": False,
+        }
+
+    def test_expand_context_user_attribute_matching_secondary_alias(self) -> None:
+        # `message` is a secondary alias of `span.description` on spans and carries
+        # a definition context. A user tag that happens to share that name must not
+        # be mislabeled with the Sentry context; it should resolve to an empty one.
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(days=0, minutes=10).replace(microsecond=0),
+            tags={"message": "hello"},
+        )
+
+        response = self.do_request(
+            query={"attributeType": "string", "expand": "context"},
+        )
+        assert response.status_code == 200, response.data
+
+        attributes = {item["key"]: item for item in response.data}
+        message = attributes["tags[message,string]"]
+        assert message["name"] == "message"
+        assert message["context"] == {}
 
     def test_expand_context_without_feature_flag(self) -> None:
         self._store_basic_segment()
@@ -762,13 +850,10 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         )
         assert response.status_code == 200, response.data
 
+        # `span.description` is now always included (a curated Sentry-defined
+        # attribute), so it occupies a slot on the first page and pushes `bar`
+        # to a later page.
         expected: list[TraceItemAttributeKey] = [
-            {
-                "key": "bar",
-                "name": "bar",
-                "attributeType": "string",
-                "attributeSource": {"source_type": "user"},
-            },
             {
                 "key": "device.class",
                 "name": "device.class",
@@ -776,14 +861,21 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "attributeSource": {"source_type": "sentry"},
             },
             {
-                "key": "span.module",
-                "name": "span.module",
+                "key": "project",
+                "name": "project",
                 "attributeType": "string",
                 "attributeSource": {"source_type": "sentry"},
             },
             {
-                "key": "project",
-                "name": "project",
+                "key": "span.description",
+                "name": "span.description",
+                "attributeType": "string",
+                "attributeSource": {"source_type": "sentry"},
+                "secondaryAliases": ["description", "message"],
+            },
+            {
+                "key": "span.module",
+                "name": "span.module",
                 "attributeType": "string",
                 "attributeSource": {"source_type": "sentry"},
             },
@@ -830,11 +922,10 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
                 "attributeSource": {"source_type": "user"},
             },
             {
-                "key": "span.description",
-                "name": "span.description",
+                "key": "project",
+                "name": "project",
                 "attributeType": "string",
                 "attributeSource": {"source_type": "sentry"},
-                "secondaryAliases": ["description", "message"],
             },
         ]
         assert sorted(
@@ -860,11 +951,10 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
 
         expected_3: list[TraceItemAttributeKey] = [
             {
-                "key": "span.description",
-                "name": "span.description",
+                "key": "foo",
+                "name": "foo",
                 "attributeType": "string",
-                "attributeSource": {"source_type": "sentry"},
-                "secondaryAliases": ["description", "message"],
+                "attributeSource": {"source_type": "user"},
             },
             {
                 "key": "transaction",
