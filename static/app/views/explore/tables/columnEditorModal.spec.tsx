@@ -157,18 +157,25 @@ describe('ColumnEditorModal', () => {
 
     expect(await screen.findByRole('button', {name: 'Apply'})).toBeInTheDocument();
 
-    const columnButtons = screen.getAllByRole('button', {name: /^Column/});
-    expect(columnButtons[0]).toHaveAccessibleName('Column id string');
-    expect(columnButtons[0]).toHaveAttribute('aria-disabled', 'true');
+    const idColumnButton = screen.getByRole('button', {
+      name: 'Column id string',
+      hidden: true,
+    });
+    expect(idColumnButton).toHaveAttribute('aria-disabled', 'true');
+
+    const projectColumnButton = screen.getByRole('button', {
+      name: 'Column project string',
+      hidden: true,
+    });
+    expect(projectColumnButton).not.toHaveAttribute('aria-disabled', 'true');
+
     expect(screen.getAllByLabelText('Remove Column')[0]).toBeDisabled();
+    expect(screen.getAllByLabelText('Remove Column')[1]).toBeEnabled();
+
     expect(screen.getAllByLabelText('Drag to reorder')[0]).toHaveAttribute(
       'aria-disabled',
       'true'
     );
-
-    expect(columnButtons[1]).toHaveAccessibleName('Column project string');
-    expect(columnButtons[1]).not.toHaveAttribute('aria-disabled', 'true');
-    expect(screen.getAllByLabelText('Remove Column')[1]).toBeEnabled();
     expect(screen.getAllByLabelText('Drag to reorder')[1]).not.toHaveAttribute(
       'aria-disabled',
       'true'
