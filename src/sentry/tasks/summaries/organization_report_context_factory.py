@@ -15,7 +15,6 @@ from sentry.tasks.summaries.utils import (
     org_key_errors,
     organization_project_issue_summaries,
     project_event_counts_for_organization,
-    project_key_errors,
     project_key_performance_issues,
     project_past_resolved_issues,
 )
@@ -181,48 +180,36 @@ class OrganizationReportContextFactory:
     def _append_project_key_errors(self, ctx: OrganizationReportContext) -> None:
         with start_span(op="weekly_reports.project_passes", name="weekly_reports.project_passes"):
             organization = ctx.organization
-            use_batched = features.has(
-                "organizations:weekly-report-batched-key-errors", organization
-            )
 
             projects = [
                 p for p in organization.project_set.all() if p.id in ctx.projects_context_map
             ]
 
-            if use_batched:
-                try:
-                    eligible_project_ids = [p.id for p in projects if p.first_event]
-                    key_errors_by_project = org_key_errors(
-                        ctx,
-                        project_ids=eligible_project_ids,
-                        referrer=Referrer.REPORTS_KEY_ERRORS_BATCHED.value,
-                    )
-                    for project_id, key_errors in key_errors_by_project.items():
-                        project_ctx = ctx.projects_context_map[project_id]
-                        assert isinstance(project_ctx, ProjectContext), (
-                            f"Expected a ProjectContext, received {type(project_ctx)}"
-                        )
-                        project_ctx.key_errors_by_id = [
-                            (e["events.group_id"], e["count()"]) for e in key_errors
-                        ]
-                except Exception:
-                    sentry_sdk.capture_exception()
-                    use_batched = False
+            eligible_project_ids = [p.id for p in projects if p.first_event]
+            try:
+                key_errors_by_project = org_key_errors(
+                    ctx,
+                    project_ids=eligible_project_ids,
+                    referrer=Referrer.REPORTS_KEY_ERRORS_BATCHED.value,
+                )
+            except Exception:
+                sentry_sdk.capture_exception()
+                key_errors_by_project = {}
+
+            for project_id, key_errors in key_errors_by_project.items():
+                project_ctx = ctx.projects_context_map[project_id]
+                assert isinstance(project_ctx, ProjectContext), (
+                    f"Expected a ProjectContext, received {type(project_ctx)}"
+                )
+                project_ctx.key_errors_by_id = [
+                    (e["events.group_id"], e["count()"]) for e in key_errors
+                ]
 
             for project in projects:
                 project_ctx = ctx.projects_context_map[project.id]
                 assert isinstance(project_ctx, ProjectContext), (
                     f"Expected a ProjectContext, received {type(project_ctx)}"
                 )
-
-                if not use_batched:
-                    per_project_key_errors = project_key_errors(
-                        ctx, project, referrer=Referrer.REPORTS_KEY_ERRORS.value
-                    )
-                    if per_project_key_errors:
-                        project_ctx.key_errors_by_id = [
-                            (e["events.group_id"], e["count()"]) for e in per_project_key_errors
-                        ]
 
                 key_performance_issues = project_key_performance_issues(
                     ctx, project, referrer=Referrer.REPORTS_KEY_PERFORMANCE_ISSUES.value

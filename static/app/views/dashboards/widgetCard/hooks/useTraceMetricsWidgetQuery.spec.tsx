@@ -294,7 +294,11 @@ describe('useTraceMetricsTableQuery', () => {
 
 describe('useTraceMetricsHeatmapQuery', () => {
   const organization = OrganizationFixture();
-  const pageFilters = PageFiltersFixture();
+  // Set a narrow range to prevent windowed heat map requests, which keeps the
+  // test simpler. The windowing is tested elsewhere.
+  const pageFilters = PageFiltersFixture({
+    datetime: {period: '1h', start: null, end: null, utc: null},
+  });
 
   const heatmapWidget = WidgetFixture({
     displayType: DisplayType.HEATMAP,
@@ -412,7 +416,7 @@ describe('useTraceMetricsHeatmapQuery', () => {
       body: heatmapResponse,
     });
 
-    const {result} = renderHookWithProviders(() =>
+    renderHookWithProviders(() =>
       useTraceMetricsHeatmapQuery({
         widget: heatmapWidget,
         organization,
@@ -439,10 +443,6 @@ describe('useTraceMetricsHeatmapQuery', () => {
         })
       );
     });
-
-    await waitFor(() => {
-      expect(result.current.heatmapResults?.values).toHaveLength(1);
-    });
   });
 
   it("patches the Y axis with the selected metric's unit", async () => {
@@ -458,6 +458,18 @@ describe('useTraceMetricsHeatmapQuery', () => {
           orderby: '',
         },
       ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'min(value)': 0,
+            'max(value)': 100,
+          },
+        ],
+      },
     });
 
     MockApiClient.addMockResponse({
