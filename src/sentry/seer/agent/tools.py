@@ -6,7 +6,7 @@ from typing import Any, TypedDict, cast
 
 from django.core.exceptions import BadRequest
 from django.db import models
-from rest_framework.exceptions import NotFound, ParseError
+from rest_framework.exceptions import ParseError
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
@@ -14,9 +14,6 @@ from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Req
 from sentry import eventstore, features
 from sentry.api import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
-from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
-    query_attribute_distributions,
-)
 from sentry.api.event_search import parse_search_query
 from sentry.api.exceptions import BadRequest as SentryBadRequest
 from sentry.api.serializers.base import serialize
@@ -68,7 +65,6 @@ from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     BaselineTagDistributionEntry,
     BaselineTagDistributionResponse,
-    ComparativeAttributeDistributionsResponse,
     EAPTrace,
     EmptyResponse,
     EventDetailsResponse,
@@ -88,7 +84,6 @@ from sentry.seer.sentry_data_models import (
     ReplayMetadataResponse,
     RepositoryDefinitionResponse,
     TeamMembersResponse,
-    TraceItemAttributesResponse,
     TraceItemEventsResponse,
 )
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -2385,63 +2380,6 @@ def get_replay_metadata(
     return ReplayMetadataResponse(__root__=result)
 
 
-def get_trace_item_attributes(
-    *,
-    org_id: int,
-    project_id: int,
-    trace_id: str,
-    item_id: str,
-    item_type: str,
-) -> TraceItemAttributesResponse:
-    """
-    Fetch all attributes for a given trace item (span, metric, log, etc.).
-
-    This is a generic version that supports all trace item types.
-
-    Args:
-        org_id: Organization ID
-        project_id: Project ID
-        trace_id: Trace ID
-        item_id: The item ID (span_id, metric_id, log_id, etc.)
-        item_type: The trace item type as a string ("spans", "tracemetrics", "logs", etc.)
-
-    Returns:
-        Dict with "attributes" key containing all attributes for the item
-    """
-    try:
-        organization = Organization.objects.get(id=org_id)
-    except Organization.DoesNotExist:
-        logger.warning(
-            "get_trace_item_attributes: Organization not found",
-            extra={"org_id": org_id},
-        )
-        return TraceItemAttributesResponse(attributes=[])
-
-    try:
-        project = Project.objects.get(id=project_id, organization=organization)
-    except Project.DoesNotExist:
-        logger.warning(
-            "get_trace_item_attributes: Project not found",
-            extra={"org_id": org_id, "project_id": project_id},
-        )
-        return TraceItemAttributesResponse(attributes=[])
-
-    params = {
-        "item_type": item_type,
-        "referrer": Referrer.SEER_EXPLORER_TOOLS.value,
-        "trace_id": trace_id,
-    }
-
-    resp = client.get(
-        auth=ApiKey(organization_id=organization.id, scope_list=["org:read", "project:read"]),
-        user=None,
-        path=f"/projects/{organization.slug}/{project.slug}/trace-items/{item_id}/",
-        params=params,
-    )
-
-    return TraceItemAttributesResponse(attributes=resp.data["attributes"])
-
-
 def _make_get_trace_request(
     trace_id: str,
     trace_item_type: TraceItemType.ValueType,
@@ -2833,98 +2771,6 @@ def get_baseline_tag_distribution(
     ]
 
     return BaselineTagDistributionResponse(baseline_tag_distribution=baseline_distribution)
-
-
-def get_comparative_attribute_distributions(
-    *,
-    organization_id: int,
-    range_start: str,
-    range_end: str,
-    start: str | None = None,
-    end: str | None = None,
-    stats_period: str | None = None,
-    aggregate_function: str = "count(span.duration)",
-    above: bool = True,
-    query: str | None = "",
-    project_ids: list[int] | None = None,
-    project_slugs: list[str] | None = None,
-    sampling_mode: SAMPLING_MODES = "NORMAL",
-) -> ComparativeAttributeDistributionsResponse:
-    """
-    Fetch span attribute distributions for a selected time range (minute precision) compared to a baseline (defined by start/end/stats_period params).
-    The selected range should be smaller and within the larger range. This is not validated.
-
-    Optional args unique to this endpoint:
-    - aggregate_function: An aggregate function to used to filter the outlier cohort
-    - above: Whether to filter above or below the function value (above for spikes, below for dips)
-    - query: Additional base query to filter both cohorts
-
-    Outputs attribute distribution data (list of (attribute_name, label, value) tuples) for Seer analysis.
-    """
-    # Parse inner date filter (outlier cohort)
-    range_start_dt, range_end_dt = get_date_range_from_params(
-        {"start": range_start, "end": range_end}
-    )
-    if (range_start_dt.timestamp() // 60) >= (range_end_dt.timestamp() // 60):
-        raise ValueError("range_start must be before range_end (minute precision)")
-
-    # Parse outer date filter (baseline cohort)
-    # Default to [range_start - 1 minute, now] (explicit filter is recommended)
-    default_stats_period = (
-        datetime.now(range_start_dt.tzinfo) - range_start_dt + timedelta(minutes=1)
-    )
-    start_dt, end_dt = get_date_range_from_params(
-        {"start": start, "end": end, "statsPeriod": stats_period},
-        default_stats_period=default_stats_period,
-    )
-
-    organization = Organization.objects.get(id=organization_id)
-    projects = list(
-        Project.objects.filter(
-            organization=organization,
-            status=ObjectStatus.ACTIVE,
-            **({"id__in": project_ids} if bool(project_ids) else {}),
-            **({"slug__in": project_slugs} if bool(project_slugs) else {}),
-        )
-    )
-    if not projects:
-        raise NotFound("No projects found for this organization and the given project filters")
-
-    # Build the cohort queries by adding a time filter for cohort 1 (minute precision).
-    base_query = (query or "").strip()
-    range_start_str = range_start_dt.replace(second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
-    range_end_str = range_end_dt.replace(second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
-    query_1 = (
-        f"{base_query} timestamp:>={range_start_str} timestamp:<={range_end_str}"
-        if base_query
-        else f"timestamp:>={range_start_str} timestamp:<={range_end_str}"
-    )
-    query_2 = base_query
-
-    # Query for and compute the two attribute distributions.
-    snuba_params = SnubaParams(
-        start=start_dt,
-        end=end_dt,
-        projects=projects,
-        organization=organization,
-        sampling_mode=sampling_mode,
-    )
-
-    distributions_result = query_attribute_distributions(
-        snuba_params=snuba_params,
-        function_string=aggregate_function,
-        above=above,
-        query_1=query_1,
-        query_2=query_2,
-    )
-
-    return ComparativeAttributeDistributionsResponse(
-        baseline_distribution=distributions_result["cohort_2_distribution"],
-        total_baseline=distributions_result["total_cohort_2"],
-        outliers_distribution=distributions_result["cohort_1_distribution"],
-        total_outliers=distributions_result["total_cohort_1"],
-        outliers_function_value=distributions_result["cohort_1_function_value"],
-    )
 
 
 def get_dsn(

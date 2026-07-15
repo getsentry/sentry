@@ -182,4 +182,31 @@ describe('useConversations', () => {
     expect(result.current.data[0]?.conversationId).toBe('newer');
     expect(result.current.data[1]?.conversationId).toBe('older');
   });
+
+  it('reports a direct hit when the header is present', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/`,
+      body: [{...BASE_CONVERSATION, firstInput: null, lastOutput: null}],
+      headers: {'X-Sentry-Direct-Hit': '1'},
+    });
+
+    const {result} = renderHookWithProviders(() => useConversations(), {organization});
+
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+
+    expect(result.current.isDirectHit).toBe(true);
+  });
+
+  it('does not report a direct hit when the header is absent', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/ai-conversations/`,
+      body: [{...BASE_CONVERSATION, firstInput: null, lastOutput: null}],
+    });
+
+    const {result} = renderHookWithProviders(() => useConversations(), {organization});
+
+    await waitFor(() => expect(result.current.isFetching).toBe(false));
+
+    expect(result.current.isDirectHit).toBe(false);
+  });
 });

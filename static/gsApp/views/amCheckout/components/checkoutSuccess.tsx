@@ -518,7 +518,7 @@ export function CheckoutSuccess({
 
   const isImmediateCharge = !!invoice; // if they paid for something now, the changes are effective immediately
   const data = isImmediateCharge ? invoice : previewData;
-  const invoiceItems = isImmediateCharge
+  const invoiceItems: Array<InvoiceItem | PreviewInvoiceItem> = isImmediateCharge
     ? invoice.items
     : (previewData?.invoiceItems ?? []);
   const planItem = invoiceItems.find(item => item.type === 'subscription');

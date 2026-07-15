@@ -1,5 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {DiffStatus} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {SnapshotSidebarContent, type SidebarSection} from './snapshotSidebarContent';
@@ -7,17 +8,7 @@ import {SnapshotSidebarContent, type SidebarSection} from './snapshotSidebarCont
 const noop = () => {};
 
 beforeEach(() => {
-  jest.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-    width: 350,
-    height: 600,
-    top: 0,
-    left: 0,
-    bottom: 600,
-    right: 350,
-    x: 0,
-    y: 0,
-    toJSON: jest.fn(),
-  });
+  mockElementSize({width: 350, height: 600});
 });
 
 const statusCounts: Record<DiffStatus, number> = {

@@ -353,6 +353,16 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     .toSorted((a, b) => a - b);
   const earliestTimeStamp = allBoundaries.at(0);
   const latestTimeStamp = allBoundaries.at(-1);
+  const bubbleReleases = useMemo(
+    () =>
+      hasReleaseBubbles
+        ? props.releases?.map(({timestamp, version}) => ({
+            date: timestamp,
+            version,
+          }))
+        : [],
+    [hasReleaseBubbles, props.releases]
+  );
 
   const {
     connectReleaseBubbleChartRef,
@@ -364,12 +374,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     chartId: props.id,
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
-    releases: hasReleaseBubbles
-      ? props.releases?.map(({timestamp, version}) => ({
-          date: timestamp,
-          version,
-        }))
-      : [],
+    releases: bubbleReleases,
+    legendSelected:
+      props.legendSelection === undefined
+        ? undefined
+        : props.legendSelection.Releases !== false,
     yAxisIndex: yAxes.length,
   });
 
@@ -540,6 +549,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     Record<string, boolean>
   >({});
   const legendSelection = props.legendSelection ?? localLegendSelection;
+  const normalizedLegendSelection = hasReleaseBubblesSeries
+    ? {...legendSelection, Releases: legendSelection.Releases !== false}
+    : legendSelection;
   const {onLegendSelectionChange} = props;
   const handleLegendSelectionChange = useCallback(
     (selection: Record<string, boolean>) => {
@@ -636,7 +648,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       {showLegend && (
         <ChartLegend
           items={chartLegendItems}
-          selected={legendSelection}
+          selected={normalizedLegendSelection}
           onSelectionChange={handleLegendSelectionChange}
         />
       )}
@@ -661,7 +673,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             showLegend
               ? {
                   show: false,
-                  selected: legendSelection,
+                  selected: normalizedLegendSelection,
                 }
               : undefined
           }

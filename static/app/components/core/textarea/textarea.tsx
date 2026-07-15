@@ -52,6 +52,9 @@ interface AutosizeTextAreaProps extends Omit<TextAreaProps, 'autosize' | 'size'>
 // container-driven resizes leave the height stale. Force a recompute on
 // border-box width changes (border box ignores internal-scrollbar jitter).
 function AutosizeTextArea({ref, rows, maxRows, ...p}: AutosizeTextAreaProps) {
+  // we need to turn off the compiler here because we need to force text-area-auto-size
+  // to recompute on width changes, even though we don't use the state variable.
+  'use no memo';
   // Storing width in state re-renders on change so react-textarea-autosize recomputes
   const [, setWidth] = useState<number>();
 

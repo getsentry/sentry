@@ -119,7 +119,7 @@ export type OurLogsAggregate =
   | AggregationKey.MAX;
 
 type OurLogsAggregateKeys = `${OurLogsAggregate}(${OurLogFieldKey})`;
-type OurLogsAggregateResponseItem = Record<
+export type OurLogsAggregateResponseItem = Record<
   keyof OurLogsResponseItem | OurLogsAggregateKeys,
   string | number
 >;

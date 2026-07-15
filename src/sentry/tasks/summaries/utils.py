@@ -73,9 +73,7 @@ class OrganizationReportContext:
 
 class ProjectContext:
     accepted_error_count = 0
-    accepted_transaction_count = 0
     prev_week_accepted_error_count = 0
-    prev_week_accepted_transaction_count = 0
 
     new_substatus_count = 0
     ongoing_substatus_count = 0
@@ -99,8 +97,6 @@ class ProjectContext:
         # Dictionary of { timestamp: count }
         self.error_count_by_day = {}
         # Dictionary of { timestamp: count }
-        self.transaction_count_by_day = {}
-        # Dictionary of { timestamp: count }
         self.issue_count_by_day = {}
 
     def __repr__(self) -> str:
@@ -108,7 +104,6 @@ class ProjectContext:
             [
                 f"{self.key_errors_by_group}, ",
                 f"Errors: [Accepted {self.accepted_error_count}]",
-                f"Transactions: [Accepted {self.accepted_transaction_count}]",
             ]
         )
 
@@ -118,7 +113,6 @@ class ProjectContext:
             and not self.key_performance_issues
             and not self.past_resolved_issues
             and not self.accepted_error_count
-            and not self.accepted_transaction_count
         )
 
 
@@ -219,7 +213,7 @@ def _project_key_errors_snuba(
         ],
         groupby=[Column("group_id", entity=events_entity)],
         orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limit=Limit(3),
+        limit=Limit(5),
     )
 
     request = Request(
@@ -239,7 +233,7 @@ def _org_key_errors_snuba(
     ctx: OrganizationReportContext,
     project_ids: Sequence[int],
     referrer: str,
-    per_project_limit: int = 3,
+    per_project_limit: int = 5,
 ) -> dict[int, list[dict[str, Any]]]:
     if not project_ids:
         return {}
@@ -402,7 +396,7 @@ def _project_key_errors_eap(
         {"events.group_id": row["group_id"], "count()": row["count()"]}
         for row in normalized_rows
         if row["group_id"] in unresolved_group_ids
-    ][:3]
+    ][:5]
 
     return filtered_rows
 
@@ -500,7 +494,7 @@ def _project_key_performance_issues_snuba(
         ],
         groupby=[Column("group_id")],
         orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limit=Limit(3),
+        limit=Limit(5),
     )
     request = Request(
         dataset=Dataset.IssuePlatform.value,
@@ -536,7 +530,7 @@ def _project_key_performance_issues_eap(
             selected_columns=["group_id", "count()"],
             orderby=["-count()"],
             offset=0,
-            limit=3,
+            limit=5,
             referrer=referrer,
             config=SearchResolverConfig(),
             occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
@@ -637,7 +631,7 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
             Condition(
                 Column("category"),
                 Op.IN,
-                [*DataCategory.error_categories(), DataCategory.TRANSACTION],
+                [*DataCategory.error_categories()],
             ),
         ],
         groupby=[Column("outcome"), Column("category"), Column("project_id"), Column("time")],

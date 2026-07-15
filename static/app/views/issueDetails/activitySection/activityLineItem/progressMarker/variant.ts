@@ -8,6 +8,7 @@ export type ActivityMarkerState = ProgressState | 'activity';
 export function getActivityMarkerState(item: GroupActivity): ActivityMarkerState {
   switch (item.type) {
     case GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST:
+    case GroupActivityType.PULL_REQUEST_REOPENED:
     case GroupActivityType.REFERENCED_IN_COMMIT:
     case GroupActivityType.SEER_PR_CREATED:
       return ProgressState.FIX_PROPOSED;
@@ -15,7 +16,7 @@ export function getActivityMarkerState(item: GroupActivity): ActivityMarkerState
     case GroupActivityType.SET_RESOLVED_BY_AGE:
     case GroupActivityType.SET_RESOLVED_IN_RELEASE:
     case GroupActivityType.SET_RESOLVED_IN_COMMIT:
-    case GroupActivityType.MARK_REVIEWED:
+    case GroupActivityType.PULL_REQUEST_MERGED:
       return ProgressState.FIX_APPLIED;
     case GroupActivityType.SET_ESCALATING:
     case GroupActivityType.SEER_RCA_COMPLETED:
@@ -33,6 +34,7 @@ export function getActivityMarkerState(item: GroupActivity): ActivityMarkerState
     case GroupActivityType.SET_PRIORITY:
       return 'activity';
     case GroupActivityType.SET_REGRESSION:
+    case GroupActivityType.MARK_REVIEWED:
       return ProgressState.IDENTIFIED;
     case GroupActivityType.SET_IGNORED:
       return ProgressState.ASSIGNED;
