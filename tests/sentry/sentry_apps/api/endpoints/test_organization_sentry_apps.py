@@ -46,6 +46,7 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
                     "slug": self.unpublished_app.slug,
                     "scopes": [],
                     "events": [],
+                    "webhookEvents": [],
                     "uuid": self.unpublished_app.uuid,
                     "status": self.unpublished_app.get_status_display(),
                     "webhookUrl": self.unpublished_app.webhook_url,
@@ -57,6 +58,7 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
                     "clientSecret": self.unpublished_app.application.client_secret,
                     "overview": self.unpublished_app.overview,
                     "allowedOrigins": [],
+                    "webhookHeaders": [],
                     "schema": {},
                     "owner": {"id": self.org.id, "slug": self.org.slug},
                     "featureData": [

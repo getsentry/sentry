@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, NamedTuple
 from urllib.parse import urlparse
@@ -15,7 +15,8 @@ from sentry.stacktraces.functions import set_in_app, trim_function_name
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import hash_values
-from sentry.utils.safe import get_path, safe_execute, set_path, setdefault_path
+from sentry.utils.safe import get_path, set_path, setdefault_path
+from sentry.utils.tracing import set_span_data, start_span, trace
 
 logger = logging.getLogger(__name__)
 op = "stacktrace_processing"
@@ -355,7 +356,7 @@ def normalize_stacktraces_for_grouping(
     # the trimming produces a different function than the function we have
     # otherwise stored in `function` to not make the payload larger
     # unnecessarily.
-    with sentry_sdk.start_span(op=op, name="iterate_frames"):
+    with start_span(op=op, name="iterate_frames"):
         stripped_querystring = False
         for frames in stacktrace_frames:
             for frame in frames:
@@ -440,7 +441,7 @@ def normalize_stacktraces_for_grouping(
 
     # If a grouping config is available, run grouping enhancers
     if grouping_config is not None:
-        with sentry_sdk.start_span(op=op, name="apply_modifications_to_frame"):
+        with start_span(op=op, name="apply_modifications_to_frame"):
             for frames, stacktrace_container in zip(stacktrace_frames, stacktrace_containers):
                 # This call has a caching mechanism when the same stacktrace and rules are used
                 grouping_config.enhancements.apply_category_and_updated_in_app_to_frames(
@@ -478,48 +479,6 @@ def _trim_function_name(frame: dict[str, Any], platform: str | None) -> None:
     if trimmed_function != function:
         frame["raw_function"] = function
         frame["function"] = trimmed_function
-
-
-def should_process_for_stacktraces(data):
-    from sentry.plugins.base import plugins
-
-    infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
-    platforms: set[str] = set()
-    for info in infos:
-        platforms.update(info.platforms or ())
-    for plugin in plugins.all(version=2):
-        processors = safe_execute(
-            plugin.get_stacktrace_processors, data=data, stacktrace_infos=infos, platforms=platforms
-        )
-        if processors:
-            return True
-    return False
-
-
-def get_processors_for_stacktraces(data, infos):
-    from sentry.plugins.base import plugins
-
-    platforms: set[str] = set()
-    for info in infos:
-        platforms.update(info.platforms or ())
-
-    processors: list[Callable] = []
-    for plugin in plugins.all(version=2):
-        processors.extend(
-            safe_execute(
-                plugin.get_stacktrace_processors,
-                data=data,
-                stacktrace_infos=infos,
-                platforms=platforms,
-            )
-            or ()
-        )
-
-    if processors:
-        project = Project.objects.get_from_cache(id=data["project"])
-        processors = [x(data, infos, project) for x in processors]
-
-    return processors
 
 
 def get_processable_frames(stacktrace_info, processors) -> list[ProcessableFrame]:
@@ -676,20 +635,15 @@ def dedup_errors(errors):
     return rv
 
 
-@sentry_sdk.tracing.trace
+@trace
 def process_stacktraces(
     data: MutableMapping[str, Any], make_processors=None, set_raw_stacktrace: bool = True
 ) -> MutableMapping[str, Any] | None:
     infos = find_stacktraces_in_data(data, include_empty_exceptions=True)
     if make_processors is None:
-        processors = get_processors_for_stacktraces(data, infos)
+        return None
     else:
         processors = make_processors(data, infos)
-
-    # Early out if we have no processors.  We don't want to record a timer
-    # in that case.
-    if not processors:
-        return None
 
     changed = False
 
@@ -698,32 +652,35 @@ def process_stacktraces(
     try:
         # Preprocess step
         for processor in processing_task.iter_processors():
-            with sentry_sdk.start_span(
-                op="stacktraces.processing.process_stacktraces.preprocess_step"
+            with start_span(
+                op="stacktraces.processing.process_stacktraces.preprocess_step",
+                name="stacktraces.processing.process_stacktraces.preprocess_step",
             ) as span:
-                span.set_data("processor", processor.__class__.__name__)
+                set_span_data(span, "processor", processor.__class__.__name__)
                 if processor.preprocess_step(processing_task):
                     changed = True
-                    span.set_data("data_changed", True)
+                    set_span_data(span, "data_changed", True)
 
         # Process all stacktraces
         for stacktrace_info, processable_frames in processing_task.iter_processable_stacktraces():
             # Let the stacktrace processors touch the exception
             if stacktrace_info.is_exception and stacktrace_info.container:
                 for processor in processing_task.iter_processors():
-                    with sentry_sdk.start_span(
-                        op="stacktraces.processing.process_stacktraces.process_exception"
+                    with start_span(
+                        op="stacktraces.processing.process_stacktraces.process_exception",
+                        name="stacktraces.processing.process_stacktraces.process_exception",
                     ) as span:
-                        span.set_data("processor", processor.__class__.__name__)
+                        set_span_data(span, "processor", processor.__class__.__name__)
                         if processor.process_exception(stacktrace_info.container):
                             changed = True
-                            span.set_data("data_changed", True)
+                            set_span_data(span, "data_changed", True)
 
             # If the stacktrace is empty we skip it for processing
             if not stacktrace_info.stacktrace:
                 continue
-            with sentry_sdk.start_span(
-                op="stacktraces.processing.process_stacktraces.process_single_stacktrace"
+            with start_span(
+                op="stacktraces.processing.process_stacktraces.process_single_stacktrace",
+                name="stacktraces.processing.process_stacktraces.process_single_stacktrace",
             ) as span:
                 new_frames, new_raw_frames, errors = process_single_stacktrace(
                     processing_task, stacktrace_info, processable_frames
@@ -731,7 +688,7 @@ def process_stacktraces(
                 if new_frames is not None:
                     stacktrace_info.stacktrace["frames"] = new_frames
                     changed = True
-                    span.set_data("data_changed", True)
+                    set_span_data(span, "data_changed", True)
             if (
                 set_raw_stacktrace
                 and new_raw_frames is not None

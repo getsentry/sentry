@@ -142,10 +142,13 @@ class SerializeSlackPreviewTest(TestCase):
         assert len(blocks) >= 4  # header, body, actions, footer, image
 
         # Check header block
-        assert_header_block(blocks[0], "Mock Notification")
+        assert_header_block(blocks[0], "Alert: Mock Notification")
 
         # Check body block
-        assert_section_block(blocks[1], "This is a mock notification")
+        assert_section_block(
+            blocks[1],
+            "This is a mock notification *important* _urgent_ <https://sentry.io/issue/1|View Issue>",
+        )
 
         # Check actions block exists
         actions_block = find_block_by_type(blocks, "actions")

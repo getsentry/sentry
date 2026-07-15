@@ -41,6 +41,7 @@ interface SnapshotListViewProps {
   onSelectSnapshot?: (key: string | null) => void;
   onVisibleGroupChange?: (name: string | null) => void;
   overlayColor?: string;
+  overlayOpacity?: number;
   ref?: React.Ref<SnapshotListViewHandle>;
   selectedSnapshotKey?: string | null;
 }
@@ -194,6 +195,7 @@ export const SnapshotListView = memo(function SnapshotListView({
   onScrollProgress,
   diffMode = 'split',
   overlayColor,
+  overlayOpacity,
   diffImageBaseUrl,
   ref,
   onVisibleGroupChange,
@@ -232,12 +234,13 @@ export const SnapshotListView = memo(function SnapshotListView({
   }, []);
 
   const groups = useMemo(() => buildGroups(items, contentWidth), [items, contentWidth]);
+  const getItemKey = useCallback((index: number) => groups[index]!.id, [groups]);
 
   const virtualizer = useVirtualizer({
     count: groups.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: i => groups[i]!.estimatedHeight,
-    getItemKey: i => groups[i]!.id,
+    getItemKey,
     overscan: 5,
     scrollPaddingEnd: 8,
   });
@@ -603,6 +606,7 @@ export const SnapshotListView = memo(function SnapshotListView({
                 onOpenSnapshot={onOpenSnapshot}
                 diffMode={diffMode}
                 overlayColor={overlayColor}
+                overlayOpacity={overlayOpacity}
                 diffImageBaseUrl={diffImageBaseUrl}
               />
             </RowPositioner>
@@ -622,6 +626,7 @@ const GroupContainer = memo(function GroupContainer({
   onOpenSnapshot,
   diffMode,
   overlayColor,
+  overlayOpacity,
   diffImageBaseUrl,
 }: {
   diffMode: DiffMode;
@@ -633,6 +638,7 @@ const GroupContainer = memo(function GroupContainer({
   onOpenSnapshot?: (key: string) => void;
   onSelectSnapshot?: (key: string | null) => void;
   overlayColor?: string;
+  overlayOpacity?: number;
 }) {
   const organization = useOrganization();
   const cards = group.cards.map(card => {
@@ -661,6 +667,7 @@ const GroupContainer = memo(function GroupContainer({
         copyUrl={copyUrl}
         diffMode={diffMode}
         overlayColor={overlayColor}
+        overlayOpacity={overlayOpacity}
         diffImageBaseUrl={diffImageBaseUrl}
         snapshotKey={snapshotKey}
         onSelectSnapshot={onSelectSnapshot}
@@ -708,7 +715,7 @@ const ScrollContainer = styled('div')`
   }
 
   @media (min-width: ${p => p.theme.breakpoints.sm}) and (max-width: ${p =>
-      p.theme.breakpoints.md}) {
+    p.theme.breakpoints.md}) {
     padding-left: ${p => p.theme.space.xl};
   }
   background: ${p => p.theme.tokens.background.secondary};

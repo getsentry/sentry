@@ -5873,6 +5873,44 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             },
         ]
 
+    def test_semver_package_multiple_values(self) -> None:
+        release_1 = self.create_release(version="test1@1.2.1")
+        release_2 = self.create_release(version="test2@1.2.1")
+        release_3 = self.create_release(version="test3@1.2.1")
+
+        span1 = self.create_span(
+            {"sentry_tags": {"release": release_1.version}}, start_ts=self.ten_mins_ago
+        )
+        span2 = self.create_span(
+            {"sentry_tags": {"release": release_2.version}}, start_ts=self.ten_mins_ago
+        )
+        span3 = self.create_span(
+            {"sentry_tags": {"release": release_3.version}}, start_ts=self.ten_mins_ago
+        )
+        self.store_spans([span1, span2, span3])
+
+        request = {
+            "field": ["release"],
+            "project": self.project.id,
+            "dataset": "spans",
+            "orderby": "release",
+        }
+
+        response = self.do_request({**request, "query": "release.package:[test1, test2]"})
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [
+            {
+                "id": span1["span_id"],
+                "project.name": self.project.slug,
+                "release": "test1@1.2.1",
+            },
+            {
+                "id": span2["span_id"],
+                "project.name": self.project.slug,
+                "release": "test2@1.2.1",
+            },
+        ]
+
     def test_semver_build(self) -> None:
         release_1 = self.create_release(version="test@1.2.3+121")
         release_2 = self.create_release(version="test@1.2.3+122")
@@ -6251,7 +6289,26 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             }
         )
         assert response.status_code == 400, response.content
-        assert response.data["detail"] == "test% is an invalid value for trace"
+        assert (
+            response.data["detail"]
+            == "`test%` must be a valid UUID hex (32-36 characters long, containing only digits, dashes, or a-f characters)"
+        )
+
+    def test_invalid_span_id(self) -> None:
+        response = self.do_request(
+            {
+                "field": ["trace"],
+                "project": self.project.id,
+                "dataset": "spans",
+                "query": "id:test",
+                "orderby": "trace",
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert (
+            response.data["detail"]
+            == "`test` must be a valid 16 character hex (containing only digits, or a-f characters)"
+        )
 
     def test_short_trace_id_filter(self) -> None:
         trace_ids = [

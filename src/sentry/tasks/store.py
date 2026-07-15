@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from typing import Any
 
 import orjson
-import sentry_sdk
 from sentry_relay.processing import StoreNormalizer
 
 from sentry import options, reprocessing2
@@ -25,7 +24,7 @@ from sentry.models.project import Project
 from sentry.relay.datascrubbing import scrub_data
 from sentry.services.eventstore import processing
 from sentry.silo.base import SiloMode
-from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
+from sentry.stacktraces.processing import process_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import (
     ingest_attachments_tasks,
@@ -38,6 +37,7 @@ from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
+from sentry.utils.tracing import set_span_data, start_span, trace
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
@@ -53,9 +53,6 @@ def should_process(data: Mapping[str, Any]) -> bool:
         return False
 
     if get_event_preprocessors(data):
-        return True
-
-    if should_process_for_stacktraces(data):
         return True
 
     return False
@@ -295,7 +292,7 @@ def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
     return random.random() < rollout_rate
 
 
-@sentry_sdk.tracing.trace
+@trace
 def normalize_event(data: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     normalizer = StoreNormalizer(
         remove_other=False,
@@ -354,7 +351,10 @@ def do_process_event(
         return _continue_to_save_event()
 
     # NOTE: This span ranges in the 1-2ms range.
-    with sentry_sdk.start_span(op="tasks.store.process_event.get_project_from_cache"):
+    with start_span(
+        op="tasks.store.process_event.get_project_from_cache",
+        name="tasks.store.process_event.get_project_from_cache",
+    ):
         project = Project.objects.get_from_cache(id=project_id)
 
     project.set_cached_field_value(
@@ -401,8 +401,10 @@ def do_process_event(
     # Default event processors.
     preprocessors = get_event_preprocessors(data)
 
-    with sentry_sdk.start_span(op="task.store.process_event.preprocessors") as span:
-        span.set_data("from_symbolicate", from_symbolicate)
+    with start_span(
+        op="task.store.process_event.preprocessors", name="task.store.process_event.preprocessors"
+    ) as span:
+        set_span_data(span, "from_symbolicate", from_symbolicate)
         for processor in preprocessors:
             try:
                 result = processor(data)

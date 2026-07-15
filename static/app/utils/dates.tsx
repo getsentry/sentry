@@ -11,7 +11,7 @@ const MILLISECOND_TIMESTAMP = 100_000_000_000;
 const MICROSECOND_TIMESTAMP = 100_000_000_000_000;
 const NANOSECOND_TIMESTAMP = 100_000_000_000_000_000;
 
-export function getParser(local = false): typeof moment | typeof moment.utc {
+function getParser(local = false): typeof moment | typeof moment.utc {
   return local ? moment : moment.utc;
 }
 

@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
     OrganizationContributorAction,
@@ -14,7 +15,6 @@ from sentry.seer.code_review.contributor_seats import (
     track_contributor_seat,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 class IsAutofixEnabledForRepoTest(TestCase):
@@ -223,17 +223,19 @@ class TrackContributorSeatTest(TestCase):
         track_contributor_seat(
             organization=self.organization,
             repo=self.repo,
-            integration_id=self.integration.id,
+            integration=serialize_integration(self.integration),
             user_id=user_id,
             user_username=user_username,
-            provider="github",
         )
 
+    @patch("sentry.seer.code_review.contributor_seats.logger")
     @patch(
         "sentry.seer.code_review.contributor_seats.should_increment_contributor_seat",
         return_value=False,
     )
-    def test_creates_contributor_record(self, mock_should_increment: MagicMock) -> None:
+    def test_not_eligible_seeds_contributor_without_logging(
+        self, mock_should_increment: MagicMock, mock_logger: MagicMock
+    ) -> None:
         self._call(user_id="999", user_username="newuser")
 
         contributor = OrganizationContributors.objects.get(
@@ -242,21 +244,30 @@ class TrackContributorSeatTest(TestCase):
             external_identifier="999",
         )
         assert contributor.alias == "newuser"
+        assert contributor.provider == "github"
+        assert contributor.hostname == "github.com"
         assert contributor.num_actions == 0
+        mock_logger.info.assert_not_called()
 
+    @patch("sentry.seer.code_review.contributor_seats.assign_seat_to_organization_contributor")
+    @patch("sentry.seer.code_review.contributor_seats.logger")
     @patch(
         "sentry.seer.code_review.contributor_seats.should_increment_contributor_seat",
-        return_value=False,
+        return_value=True,
     )
-    def test_does_not_increment_when_should_increment_returns_false(
-        self, mock_should_increment: MagicMock
+    def test_eligible_logs_but_does_not_assign_seat(
+        self,
+        mock_should_increment: MagicMock,
+        mock_logger: MagicMock,
+        mock_assign_seat: MagicMock,
     ) -> None:
         OrganizationContributors.objects.create(
             organization=self.organization,
             integration_id=self.integration.id,
             external_identifier="12345",
+            provider=self.integration.provider,
             alias="testuser",
-            num_actions=0,
+            num_actions=5,
         )
 
         self._call()
@@ -265,73 +276,16 @@ class TrackContributorSeatTest(TestCase):
             organization_id=self.organization.id,
             external_identifier="12345",
         )
-        assert contributor.num_actions == 0
-
-    @patch("sentry.seer.code_review.contributor_seats.assign_seat_to_organization_contributor")
-    @patch(
-        "sentry.seer.code_review.contributor_seats.should_increment_contributor_seat",
-        return_value=True,
-    )
-    def test_increments_and_does_not_assign_below_threshold(
-        self, mock_should_increment: MagicMock, mock_assign_seat: MagicMock
-    ) -> None:
-        self._call()
-
-        contributor = OrganizationContributors.objects.get(
-            organization_id=self.organization.id,
-            external_identifier="12345",
-        )
-        assert contributor.num_actions == 1
+        assert contributor.num_actions == 5
         mock_assign_seat.delay.assert_not_called()
 
-    @patch("sentry.seer.code_review.contributor_seats.assign_seat_to_organization_contributor")
-    @patch(
-        "sentry.seer.code_review.contributor_seats.should_increment_contributor_seat",
-        return_value=True,
-    )
-    def test_increments_and_assigns_at_threshold(
-        self, mock_should_increment: MagicMock, mock_assign_seat: MagicMock
-    ) -> None:
-        OrganizationContributors.objects.create(
-            organization=self.organization,
-            integration_id=self.integration.id,
-            external_identifier="12345",
-            alias="testuser",
-            num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD - 1,
+        mock_logger.info.assert_called_once()
+        assert (
+            mock_logger.info.call_args.args[0]
+            == "scm.webhook.organization_contributor.num_actions_should_increment"
         )
 
-        self._call()
 
-        contributor = OrganizationContributors.objects.get(
-            organization_id=self.organization.id,
-            external_identifier="12345",
-        )
-        assert contributor.num_actions == ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
-        mock_assign_seat.delay.assert_called_once_with(contributor.id)
-
-    @patch("sentry.seer.code_review.contributor_seats.assign_seat_to_organization_contributor")
-    @patch(
-        "sentry.seer.code_review.contributor_seats.should_increment_contributor_seat",
-        return_value=True,
-    )
-    def test_handles_deleted_contributor_gracefully(
-        self, mock_should_increment: MagicMock, mock_assign_seat: MagicMock
-    ) -> None:
-        contributor = OrganizationContributors.objects.create(
-            organization=self.organization,
-            integration_id=self.integration.id,
-            external_identifier="12345",
-            alias="testuser",
-        )
-        # Delete after creation so the select_for_update will fail
-        OrganizationContributors.objects.filter(id=contributor.id).delete()
-
-        # Should not raise
-        self._call()
-        mock_assign_seat.delay.assert_not_called()
-
-
-@with_feature("organizations:dual-write-contributor-actions")
 class RecordContributorActionTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -358,25 +312,28 @@ class RecordContributorActionTest(TestCase):
             repository_id=self.repo.id, pr_number=pr_number
         ).count()
 
+    def _call(self, *, pr_number: int = 5, is_opened: bool = True) -> None:
+        record_contributor_action(
+            organization=self.organization,
+            repo=self.repo,
+            integration=serialize_integration(self.integration),
+            user_id="123",
+            user_username="alice",
+            pr_number=pr_number,
+            is_opened=is_opened,
+        )
+
     @patch(
         "sentry.seer.code_review.contributor_seats.should_increment_contributor_seat",
         return_value=False,
     )
     def test_not_eligible_does_not_record_action(self, mock_should: MagicMock) -> None:
-        record_contributor_action(
-            organization=self.organization,
-            repo=self.repo,
-            integration_id=self.integration.id,
-            user_id="123",
-            user_username="alice",
-            provider="github",
-            pr_number=5,
-            is_opened=True,
-            tags={"is_private": False},
-        )
+        self._call()
 
         contributor = self._contributor()
         assert contributor.alias == "alice"
+        assert contributor.provider == "github"
+        assert contributor.hostname == "github.com"
         assert contributor.num_actions == 0
         assert self._action_count() == 0
 
@@ -384,41 +341,24 @@ class RecordContributorActionTest(TestCase):
         "sentry.seer.code_review.contributor_seats.should_increment_contributor_seat",
         return_value=True,
     )
-    def test_opened_and_eligible_records_action(self, mock_should: MagicMock) -> None:
-        record_contributor_action(
-            organization=self.organization,
-            repo=self.repo,
-            integration_id=self.integration.id,
-            user_id="123",
-            user_username="alice",
-            provider="github",
-            pr_number=5,
-            is_opened=True,
-            tags={"is_private": False},
-        )
+    def test_opened_and_eligible_records_action_and_increments(
+        self, mock_should: MagicMock
+    ) -> None:
+        self._call()
 
         contributor = self._contributor()
         action = OrganizationContributorAction.objects.get(
             repository_id=self.repo.id, pr_number="5"
         )
         assert action.organization_contributor_id == contributor.id
+        assert contributor.num_actions == 1
 
     @patch(
         "sentry.seer.code_review.contributor_seats.should_increment_contributor_seat",
         return_value=True,
     )
     def test_not_opened_does_not_record_action(self, mock_should: MagicMock) -> None:
-        record_contributor_action(
-            organization=self.organization,
-            repo=self.repo,
-            integration_id=self.integration.id,
-            user_id="123",
-            user_username="alice",
-            provider="github",
-            pr_number=5,
-            is_opened=False,
-            tags={"is_private": False},
-        )
+        self._call(is_opened=False)
 
         self._contributor()
         assert self._action_count() == 0
@@ -429,16 +369,66 @@ class RecordContributorActionTest(TestCase):
     )
     def test_records_idempotently(self, mock_should: MagicMock) -> None:
         for _ in range(2):
-            record_contributor_action(
-                organization=self.organization,
-                repo=self.repo,
-                integration_id=self.integration.id,
-                user_id="123",
-                user_username="alice",
-                provider="github",
-                pr_number=5,
-                is_opened=True,
-                tags={"is_private": False},
-            )
+            self._call()
 
         assert self._action_count() == 1
+        assert self._contributor().num_actions == 1
+
+    @patch("sentry.seer.code_review.contributor_seats.assign_seat_to_organization_contributor")
+    @patch(
+        "sentry.seer.code_review.contributor_seats.should_increment_contributor_seat",
+        return_value=True,
+    )
+    def test_increments_and_does_not_assign_below_threshold(
+        self, mock_should: MagicMock, mock_assign: MagicMock
+    ) -> None:
+        self._call()
+
+        assert self._contributor().num_actions == 1
+        mock_assign.delay.assert_not_called()
+
+    @patch("sentry.seer.code_review.contributor_seats.assign_seat_to_organization_contributor")
+    @patch(
+        "sentry.seer.code_review.contributor_seats.should_increment_contributor_seat",
+        return_value=True,
+    )
+    def test_increments_and_assigns_at_threshold(
+        self, mock_should: MagicMock, mock_assign: MagicMock
+    ) -> None:
+        OrganizationContributors.objects.create(
+            organization=self.organization,
+            integration_id=self.integration.id,
+            external_identifier="123",
+            provider=self.integration.provider,
+            alias="alice",
+            num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD - 1,
+        )
+
+        self._call()
+
+        contributor = self._contributor()
+        assert contributor.num_actions == ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
+        mock_assign.delay.assert_called_once_with(contributor.id)
+
+    @patch("sentry.seer.code_review.contributor_seats.assign_seat_to_organization_contributor")
+    @patch(
+        "sentry.seer.code_review.contributor_seats.should_increment_contributor_seat",
+        return_value=True,
+    )
+    def test_increments_and_assigns_above_threshold(
+        self, mock_should: MagicMock, mock_assign: MagicMock
+    ) -> None:
+        OrganizationContributors.objects.create(
+            organization=self.organization,
+            integration_id=self.integration.id,
+            external_identifier="123",
+            provider=self.integration.provider,
+            alias="alice",
+            num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
+        )
+
+        self._call()
+
+        contributor = self._contributor()
+        assert contributor.num_actions == ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD + 1
+        mock_assign.delay.assert_called_once_with(contributor.id)

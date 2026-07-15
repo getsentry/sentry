@@ -3,7 +3,7 @@ import {ClassNames} from '@emotion/react';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import {ReplayList} from 'sentry/components/replays/list/__stories__/replayList';
@@ -35,7 +35,7 @@ export default Storybook.story('ReplayList', story => {
     );
 
     return (
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         Selected Replay: {replayId}
         <Flex gap="sm">
           <Storybook.SelectProject projectSlug={project} setProjectSlug={setProject} />
@@ -47,11 +47,11 @@ export default Storybook.story('ReplayList', story => {
           />
         </Flex>
         <Flex height="500px">
-          <Flex direction="column" gap="md" flex="1">
+          <Stack gap="md" flex="1">
             <ReplayList onSelect={setReplayId} queryResult={queryResult} />
-          </Flex>
+          </Stack>
         </Flex>
-      </Flex>
+      </Stack>
     );
   });
 
@@ -81,7 +81,7 @@ export default Storybook.story('ReplayList', story => {
         {({css}) => (
           <Hovercard
             body={
-              <Flex direction="column" gap="md">
+              <Stack gap="md">
                 <Flex gap="sm">
                   <Storybook.SelectProject
                     projectSlug={project}
@@ -94,11 +94,11 @@ export default Storybook.story('ReplayList', story => {
                   />
                 </Flex>
                 <Flex height="500px">
-                  <Flex direction="column" gap="md" flex="1">
+                  <Stack gap="md" flex="1">
                     <ReplayList onSelect={setReplayId} queryResult={queryResult} />
-                  </Flex>
+                  </Stack>
                 </Flex>
-              </Flex>
+              </Stack>
             }
             containerClassName={css`
               width: max-content;

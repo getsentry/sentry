@@ -24,6 +24,7 @@ import {
   useQueryParamsSearch,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
 
@@ -35,6 +36,13 @@ interface UseLogsAggregatesTableOptions {
 }
 
 export type LogsAggregatesTableResult = ReturnType<typeof useLogsAggregatesTable>;
+
+export function getLogsAggregatesFields(
+  groupBys: readonly string[],
+  visualizes: readonly Visualize[]
+): string[] {
+  return [...groupBys.filter(Boolean), ...visualizes.map(visualize => visualize.yAxis)];
+}
 
 export function useLogsAggregatesTable({
   enabled,
@@ -124,11 +132,7 @@ function useLogsAggregatesApiOptions({
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const aggregateCursor = useQueryParamsAggregateCursor();
   const [caseInsensitive] = useCaseInsensitivity();
-  const fields: string[] = [];
-  fields.push(
-    ...groupBys.filter(Boolean),
-    ...visualizes.map(visualize => visualize.yAxis)
-  );
+  const fields = getLogsAggregatesFields(groupBys, visualizes);
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {

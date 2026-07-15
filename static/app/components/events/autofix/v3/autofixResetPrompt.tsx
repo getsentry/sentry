@@ -1,7 +1,7 @@
 import {useState, type ReactNode} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
@@ -25,7 +25,7 @@ export function AutofixResetPrompt({
   const [userContext, setUserContext] = useState('');
 
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <Text>{prompt}</Text>
       <TextArea
         autosize
@@ -53,6 +53,6 @@ export function AutofixResetPrompt({
           {t('Re-run from here')}
         </Button>
       </Flex>
-    </Flex>
+    </Stack>
   );
 }

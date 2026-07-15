@@ -5,7 +5,6 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {Csp} from 'sentry/components/events/interfaces/csp';
-import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {Request} from 'sentry/components/events/interfaces/request';
 import {Template} from 'sentry/components/events/interfaces/template';
@@ -98,13 +97,6 @@ function SharedEventEntry({
       return <Template event={event} data={entry.data} />;
     case EntryType.CSP:
       return <Csp event={event} data={entry.data} />;
-    case EntryType.EXPECTCT:
-    case EntryType.EXPECTSTAPLE:
-      return <Generic type={entry.type} data={entry.data} />;
-    case EntryType.HPKP:
-      return (
-        <Generic type={entry.type} data={entry.data} meta={event._meta?.hpkp ?? {}} />
-      );
     case EntryType.THREADS:
       return (
         <Threads

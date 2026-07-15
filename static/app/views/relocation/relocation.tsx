@@ -257,10 +257,8 @@ export function RelocationOnboarding() {
       <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
         {stepObj.Component && (
           <stepObj.Component
-            active
             data-test-id={`onboarding-step-${stepObj.id}`}
             existingRelocationUUID={existingRelocation}
-            stepIndex={stepIndex}
             onUpdateRelocationState={({
               orgSlugs,
               localityName,

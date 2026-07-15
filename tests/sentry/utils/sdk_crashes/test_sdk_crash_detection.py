@@ -97,7 +97,7 @@ class PerformanceEventTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):
 
         incr.assert_called_with(
             "post_process.sdk_crash_monitoring.sdk_event",
-            tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+            tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0", "is_anr_or_apphang": "false"},
         )
 
         # Ensure that no counter is incremented
@@ -253,18 +253,47 @@ def test_should_increment_counters_for_sdk_crash(incr, sdk_crash_reporter, store
         [
             call(
                 "post_process.sdk_crash_monitoring.sdk_event",
-                tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+                tags={
+                    "sdk_name": "sentry.cocoa",
+                    "sdk_version": "8.2.0",
+                    "is_anr_or_apphang": "false",
+                },
             ),
             call(
                 "post_process.sdk_crash_monitoring.detecting_sdk_crash",
-                tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+                tags={
+                    "sdk_name": "sentry.cocoa",
+                    "sdk_version": "8.2.0",
+                    "is_anr_or_apphang": "false",
+                },
             ),
             call(
                 "post_process.sdk_crash_monitoring.sdk_crash_detected",
-                tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+                tags={
+                    "sdk_name": "sentry.cocoa",
+                    "sdk_version": "8.2.0",
+                    "is_anr_or_apphang": "false",
+                },
             ),
         ],
         any_order=True,
+    )
+
+
+@django_db_all
+@pytest.mark.snuba
+@patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+@patch("sentry.utils.metrics.incr")
+def test_anr_event_tags_is_anr_or_apphang_true(incr, sdk_crash_reporter, store_event) -> None:
+    event_data = get_crash_event()
+    event_data["exception"]["values"][0]["mechanism"]["type"] = "ANR"  # type: ignore[index]
+    event = store_event(data=event_data)
+
+    sdk_crash_detection.detect_sdk_crash(event=event, configs=build_sdk_configs())
+
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.sdk_event",
+        tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0", "is_anr_or_apphang": "true"},
     )
 
 
@@ -286,11 +315,19 @@ def test_should_only_increment_detecting_counter_for_non_crash_event(
         [
             call(
                 "post_process.sdk_crash_monitoring.sdk_event",
-                tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+                tags={
+                    "sdk_name": "sentry.cocoa",
+                    "sdk_version": "8.2.0",
+                    "is_anr_or_apphang": "false",
+                },
             ),
             call(
                 "post_process.sdk_crash_monitoring.detecting_sdk_crash",
-                tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+                tags={
+                    "sdk_name": "sentry.cocoa",
+                    "sdk_version": "8.2.0",
+                    "is_anr_or_apphang": "false",
+                },
             ),
         ],
         any_order=True,
@@ -341,7 +378,7 @@ def test_should_increment_counter_for_non_crash_event(
 
     incr.assert_called_with(
         "post_process.sdk_crash_monitoring.sdk_event",
-        tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0"},
+        tags={"sdk_name": "sentry.cocoa", "sdk_version": "8.2.0", "is_anr_or_apphang": "false"},
     )
 
     # Ensure that no counter is incremented

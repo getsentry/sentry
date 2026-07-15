@@ -140,6 +140,11 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
         return self.sample_rate is not None
 
     def get_sample_rate(self) -> TargetSampleRate:
+        # Mirror the legacy serving path (get_guarded_project_sample_rate): a blended
+        # (reserved-based) rate of 100% takes precedence over the usage-based sliding-window
+        # rate. Reproduced intentionally so the new pipeline matches the legacy one.
+        if self.sample_rate == 1.0:
+            return self.sample_rate
         if self.sliding_window_sample_rate is not None:
             return self.sliding_window_sample_rate
         return self.sample_rate

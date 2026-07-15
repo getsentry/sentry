@@ -5,7 +5,6 @@ Utilities related to proxying a request to a cell
 from __future__ import annotations
 
 import logging
-import random
 from collections.abc import Callable, Generator
 from http.cookiejar import Cookie
 from threading import local
@@ -130,12 +129,7 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     """Take a django request object and proxy it to a cell silo"""
 
     host = cell.address
-    rollout_option = options.get("apigateway.proxy.cell-rollout")
-    if (
-        cell.api_gateway_address
-        and isinstance(rollout_option, dict)
-        and random.random() < rollout_option.get(cell.name, 0.0)
-    ):
+    if cell.api_gateway_address:
         host = cell.api_gateway_address
 
     metric_tags = {
@@ -180,7 +174,8 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
     header_dict[PROXY_APIGATEWAY_HEADER] = "true"
 
     assert request.method is not None
-    query_params = request.GET
+    query_string = request.META.get("QUERY_STRING")
+    request_url = f"{target_url}?{query_string}" if query_string else target_url
 
     # This option has a default of None, which is cast to 0
     timeout = options.get("apigateway.proxy.timeout")
@@ -211,9 +206,8 @@ def proxy_cell_request(request: HttpRequest, cell: Cell, url_name: str) -> HttpR
         with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
             resp = requester(
                 request.method,
-                url=target_url,
+                url=request_url,
                 headers=header_dict,
-                params=dict(query_params) if query_params is not None else None,
                 data=data,
                 stream=True,
                 timeout=timeout,

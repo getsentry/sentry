@@ -1,8 +1,9 @@
 import {useRef, useState} from 'react';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -30,7 +31,7 @@ export function PrIterationFeedbackForm({
   onClose,
 }: PrIterationFeedbackFormProps) {
   const organization = useOrganization();
-  const {isPolling, startStep} = autofix;
+  const {startStep} = autofix;
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const submitButtonRef = useRef<HTMLButtonElement>(null);
@@ -41,11 +42,9 @@ export function PrIterationFeedbackForm({
     if (!feedback.trim()) {
       return;
     }
-    // Show the loader immediately on click. We don't reuse `isPolling` here
-    // because submitting kicks off a run that flips it, which can hide the
-    // surrounding UI before a polling-driven busy state could render. The
-    // component unmounts and remounts fresh (resetting this flag) once the run
-    // completes.
+    // Briefly show the loader while the request is in flight to guard against a
+    // double submit. Feedback submitted while a run is in progress is queued for
+    // the next iteration rather than dropped, so this form stays usable mid-run.
     setIsSubmitting(true);
     try {
       await startStep('pr_iteration', {runId, userContext: feedback});
@@ -60,15 +59,20 @@ export function PrIterationFeedbackForm({
       mode: 'explorer',
       referrer,
     });
-    // Dismiss the reset UI for callers that render this inline (e.g. the code
-    // changes card) so it doesn't reappear after the run completes. Callers
-    // without an onClose (e.g. the next-step view) keep relying on isSubmitting.
+    // Clear the input and reset the busy state so further feedback can be queued
+    // while the run continues. Callers that render this inline (e.g. the code
+    // changes card) pass an onClose to dismiss the form after submitting.
+    setFeedback('');
+    setIsSubmitting(false);
     onClose?.();
   };
 
   return (
-    <Flex direction="column" gap="lg">
-      <Text>{prompt}</Text>
+    <Stack gap="lg">
+      <Flex gap="xs" align="center">
+        <Text>{prompt}</Text>
+        <FeatureBadge type="alpha" />
+      </Flex>
       <InputGroup>
         <InputGroup.TextArea
           autosize
@@ -77,6 +81,7 @@ export function PrIterationFeedbackForm({
             'Give Seer additional context to improve your pull request and make changes to your code. Hit ENTER to submit.'
           )}
           value={feedback}
+          disabled={isSubmitting}
           onChange={event => setFeedback(event.target.value)}
           onKeyDown={event => {
             if (event.nativeEvent.isComposing) {
@@ -100,14 +105,13 @@ export function PrIterationFeedbackForm({
         )}
         <Button
           ref={submitButtonRef}
-          icon={<IconArrow size="md" direction="right" />}
-          busy={isSubmitting}
-          disabled={isPolling || !feedback.trim()}
+          icon={isSubmitting ? undefined : <IconArrow size="md" direction="right" />}
+          disabled={isSubmitting || !feedback.trim()}
           onClick={handleSubmit}
         >
-          {t('Submit')}
+          {isSubmitting ? t('Submitting feedback') : t('Submit')}
         </Button>
       </Flex>
-    </Flex>
+    </Stack>
   );
 }

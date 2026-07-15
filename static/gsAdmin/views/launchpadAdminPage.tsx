@@ -6,7 +6,7 @@ import {useMutation} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Stack, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -282,7 +282,7 @@ export function LaunchpadAdminPage() {
   return (
     <div>
       <PageHeader title="Launchpad Admin Page" />
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Text as="p">
           This is a launchpad admin page for managing preprod artifacts. Provide the
           preprod artifact ID to perform the desired action.
@@ -317,7 +317,7 @@ export function LaunchpadAdminPage() {
         >
           <form onSubmit={handleFetchInfoSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
-              <Flex direction="column" gap="md">
+              <Stack gap="md">
                 <Heading as="h3">Fetch Artifact Info</Heading>
                 <Text as="p" variant="muted">
                   Retrieve all data and details for a specific preprod artifact (includes
@@ -343,13 +343,13 @@ export function LaunchpadAdminPage() {
                 >
                   Fetch Info
                 </Button>
-              </Flex>
+              </Stack>
             </Container>
           </form>
 
           <form onSubmit={handleDeleteSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
-              <Flex direction="column" gap="md">
+              <Stack gap="md">
                 <Heading as="h3">Delete Artifact Data</Heading>
                 <Text as="p" variant="muted">
                   Delete all associated data for a specific preprod artifact.
@@ -374,13 +374,13 @@ export function LaunchpadAdminPage() {
                 >
                   Delete Data
                 </Button>
-              </Flex>
+              </Stack>
             </Container>
           </form>
 
           <form onSubmit={handleRerunSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
-              <Flex direction="column" gap="md">
+              <Stack gap="md">
                 <Heading as="h3">Batch Rerun Analyses</Heading>
                 <Text as="p" variant="muted">
                   Rerun all enabled analyses (size, snapshots, etc.) for one or more
@@ -406,13 +406,13 @@ export function LaunchpadAdminPage() {
                 >
                   Rerun Analysis
                 </Button>
-              </Flex>
+              </Stack>
             </Container>
           </form>
 
           <form onSubmit={handleBatchDeleteSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
-              <Flex direction="column" gap="md">
+              <Stack gap="md">
                 <Heading as="h3">Batch Delete Artifacts</Heading>
                 <Text as="p" variant="muted">
                   Delete multiple artifacts at once using comma-separated IDs.
@@ -437,13 +437,13 @@ export function LaunchpadAdminPage() {
                 >
                   Batch Delete
                 </Button>
-              </Flex>
+              </Stack>
             </Container>
           </form>
 
           <form onSubmit={handleDownloadSubmit}>
             <Container background="secondary" border="primary" radius="md" padding="lg">
-              <Flex direction="column" gap="md">
+              <Stack gap="md">
                 <Heading as="h3">Download Build</Heading>
                 <Text as="p" variant="muted">
                   Download the build file for a specific preprod artifact.
@@ -468,14 +468,14 @@ export function LaunchpadAdminPage() {
                 >
                   Download Build
                 </Button>
-              </Flex>
+              </Stack>
             </Container>
           </form>
         </Grid>
 
         {fetchedArtifactInfo && (
           <Container background="secondary" border="primary" radius="md" padding="lg">
-            <Flex direction="column" gap="md">
+            <Stack gap="md">
               {fetchedArtifactInfo.artifact_info?.project?.organization_slug &&
                 fetchedArtifactInfo.artifact_info?.project?.slug &&
                 fetchedArtifactInfo.artifact_info?.id && (
@@ -485,7 +485,7 @@ export function LaunchpadAdminPage() {
                     radius="sm"
                     padding="md"
                   >
-                    <Flex direction="column" gap="xs">
+                    <Stack gap="xs">
                       <Text bold size="sm">
                         Artifact URL:
                       </Text>
@@ -494,7 +494,7 @@ export function LaunchpadAdminPage() {
                       >
                         {`https://${fetchedArtifactInfo.artifact_info.project.organization_slug}.sentry.io/preprod/${fetchedArtifactInfo.artifact_info.project.slug}/${fetchedArtifactInfo.artifact_info.id}/`}
                       </Link>
-                    </Flex>
+                    </Stack>
                   </Container>
                 )}
               <Heading as="h3">Fetched Artifact Information</Heading>
@@ -504,10 +504,10 @@ export function LaunchpadAdminPage() {
               <Button variant="secondary" onClick={() => setFetchedArtifactInfo(null)}>
                 Clear Info
               </Button>
-            </Flex>
+            </Stack>
           </Container>
         )}
-      </Flex>
+      </Stack>
     </div>
   );
 }

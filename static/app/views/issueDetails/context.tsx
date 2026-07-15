@@ -43,10 +43,7 @@ export const enum SectionKey {
   HYDRATION_DIFF = 'hydration-diff',
   REPLAY = 'replay',
 
-  HPKP = 'hpkp',
   CSP = 'csp',
-  EXPECTCT = 'expectct',
-  EXPECTSTAPLE = 'expectstaple',
   TEMPLATE = 'template',
 
   BREADCRUMBS = 'breadcrumbs',
@@ -73,7 +70,7 @@ export const enum SectionKey {
   GROUPING_INFO = 'grouping-info',
   PROCESSING_ERROR = 'processing-error',
   CONFIGURATION_PROBLEM = 'configuration-problem',
-  CONFIGURATION_SOLUTION = 'configuration-solution',
+  CONFIGURATION_TROUBLESHOOTING = 'configuration-troubleshooting',
   RRWEB = 'rrweb', // Legacy integration prior to replays
 
   MERGED_ISSUES = 'merged',

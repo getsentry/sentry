@@ -5,7 +5,7 @@ import moment from 'moment-timezone';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
@@ -133,10 +133,9 @@ function ReceiptGrid({
 
   return (
     <Fragment>
-      <Flex
+      <Stack
         border="primary"
         radius="md"
-        direction="column"
         background="primary"
         data-test-id="payment-list"
       >
@@ -190,7 +189,7 @@ function ReceiptGrid({
             </Grid>
           );
         })}
-      </Flex>
+      </Stack>
       {payments.length === 0 && <Text>{t('No receipts found')}</Text>}
       {paymentsPageLinks && <Pagination pageLinks={paymentsPageLinks} />}
     </Fragment>

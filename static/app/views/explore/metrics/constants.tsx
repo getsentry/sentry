@@ -7,6 +7,7 @@ import {
   SENTRY_TRACEMETRIC_NUMBER_TAGS,
   SENTRY_TRACEMETRIC_STRING_TAGS,
 } from 'sentry/views/explore/constants';
+import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {
   TraceMetricKnownFieldKey,
   VirtualTableSampleColumnKey,
@@ -58,6 +59,10 @@ export const HiddenTraceMetricSearchFields: TraceMetricFieldKey[] = [
   TraceMetricKnownFieldKey.METRIC_NAME,
   TraceMetricKnownFieldKey.METRIC_TYPE,
   TraceMetricKnownFieldKey.METRIC_UNIT,
+];
+
+export const HiddenTraceMetricTraceViewSearchFields: TraceMetricFieldKey[] = [
+  ...AlwaysHiddenTraceMetricFields,
 ];
 
 export const HiddenTraceMetricGroupByFields: TraceMetricFieldKey[] = [
@@ -346,6 +351,15 @@ export const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
   distribution: 'sum',
   gauge: 'avg',
 };
+
+/**
+ * Heat maps plot the distribution of a measurement's values over time, so they
+ * only make sense for `distribution` metrics. Counters (always `1`) and gauges
+ * have no meaningful value distribution to visualize.
+ */
+export function doesMetricSupportHeatMapVisualization(metric: TraceMetric): boolean {
+  return metric.type === 'distribution';
+}
 
 export const RATE_AGGREGATES = new Set(['per_second', 'per_minute']);
 

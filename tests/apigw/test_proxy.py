@@ -1,9 +1,15 @@
 import httpx
+import pytest
 from emmett55 import current
 from emmett_core.http.response import HTTPResponse
 from emmett_core.protocols.rsgi.wrappers import Response
 
-from apigw.proxy import adapt_response, build_proxied_cell_headers, build_proxied_headers
+from apigw.proxy import (
+    adapt_response,
+    build_proxied_cell_headers,
+    build_proxied_headers,
+    build_proxied_url,
+)
 
 
 class FakeScope:
@@ -26,6 +32,22 @@ class FakeRequest:
         self._scope = FakeScope()
         self.headers = FakeHeaders(headers)
         self.host = host
+
+
+def test_proxied_url() -> None:
+    assert (
+        build_proxied_url("http://test-host.internal:9000", "/test")
+        == "http://test-host.internal:9000/test"
+    )
+
+    try:
+        current.response = Response(None)
+        with pytest.raises(HTTPResponse):
+            build_proxied_url("http://test-host.internal:9000", "//1.2.3.4:1234")
+
+        assert current.response.status == 400
+    finally:
+        del current.response
 
 
 def test_proxied_headers_filtering() -> None:

@@ -1,4 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
+import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 export type SeerAnalyticsEventsParameters = {
   'ai_query.applied': {
@@ -142,7 +143,7 @@ export type SeerAnalyticsEventsParameters = {
     conversations_url: string | undefined;
     explorer_url: string | undefined;
     langfuse_url: string | undefined;
-    run_id: number | undefined;
+    run_id: SeerExplorerRunId | undefined;
     type: 'positive' | 'negative';
   };
   'seer.explorer.global_panel.opened': {
@@ -164,7 +165,10 @@ export type SeerAnalyticsEventsParameters = {
   };
   'seer.explorer.session_link_copied': Record<string, unknown>;
   'seer.explorer.timed_out': {
-    run_id: number | null;
+    run_id: SeerExplorerRunId | null;
+  };
+  'seer.explorer.update_slack_clicked': {
+    num_configurations: number;
   };
 };
 
@@ -201,4 +205,5 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
     'Seer Explorer: Session Copied to Clipboard',
   'seer.explorer.session_link_copied': 'Seer Explorer: Session Link Copied',
   'seer.explorer.timed_out': 'Seer Explorer: Timed Out',
+  'seer.explorer.update_slack_clicked': 'Seer Explorer: Update Slack Clicked',
 };

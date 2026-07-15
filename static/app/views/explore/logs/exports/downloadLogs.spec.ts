@@ -10,11 +10,11 @@ jest.mock('sentry/views/explore/logs/exports/downloadLogsAsCsv', () => ({
   },
 }));
 
-const mockDownloadLogsAsJsonl = jest.fn();
+const mockDownloadAsJsonl = jest.fn();
 
-jest.mock('sentry/views/explore/logs/exports/downloadLogsAsJsonl', () => ({
-  get downloadLogsAsJsonl() {
-    return mockDownloadLogsAsJsonl;
+jest.mock('sentry/components/exports/downloadAsJsonl', () => ({
+  get downloadAsJsonl() {
+    return mockDownloadAsJsonl;
   },
 }));
 
@@ -44,15 +44,15 @@ describe('downloadLogs', () => {
 
     expect(mockDownloadLogsAsCsv).toHaveBeenCalledTimes(1);
     expect(mockDownloadLogsAsCsv).toHaveBeenCalledWith(rows, fields, filename);
-    expect(mockDownloadLogsAsJsonl).not.toHaveBeenCalled();
+    expect(mockDownloadAsJsonl).not.toHaveBeenCalled();
     expect(result).toBe(expected);
   });
 
-  it('delegates to downloadLogsAsJsonl when format is json', () => {
+  it('delegates to downloadAsJsonl when format is json', () => {
     const rows = [row('a'), row('b'), row('c')];
     const expected = 'json-result';
 
-    mockDownloadLogsAsJsonl.mockReturnValue(expected);
+    mockDownloadAsJsonl.mockReturnValue(expected);
 
     const result = downloadLogs({
       format: 'jsonl',
@@ -61,8 +61,8 @@ describe('downloadLogs', () => {
       filename,
     });
 
-    expect(mockDownloadLogsAsJsonl).toHaveBeenCalledTimes(1);
-    expect(mockDownloadLogsAsJsonl).toHaveBeenCalledWith(rows, filename);
+    expect(mockDownloadAsJsonl).toHaveBeenCalledTimes(1);
+    expect(mockDownloadAsJsonl).toHaveBeenCalledWith(rows, filename);
     expect(mockDownloadLogsAsCsv).not.toHaveBeenCalled();
     expect(result).toBe(expected);
   });

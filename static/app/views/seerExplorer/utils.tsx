@@ -13,6 +13,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {isUUID} from 'sentry/utils/string/isUUID';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -38,6 +39,7 @@ import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {
   Block,
+  SeerExplorerRunId,
   SeerExplorerSidebarPosition,
   ToolCall,
   ToolLink,
@@ -57,7 +59,7 @@ type ToolFormatter = (
 
 export const makeSeerExplorerQueryKey = (
   orgSlug: string,
-  runId: number | null
+  runId: SeerExplorerRunId | null
 ): ApiQueryKey => [
   runId
     ? getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/', {
@@ -1063,6 +1065,14 @@ function locationToUrl(location: LocationDescriptor): string | null {
 }
 
 const RUN_ID_QUERY_PARAM = 'explorerRunId';
+const RESUME_RUN_QUERY_PARAM = 'explorerRunResume';
+
+export function parseRunIdParam(value: string): SeerExplorerRunId | null {
+  if (/^\d+$/.test(value)) {
+    return Number(value);
+  }
+  return isUUID(value) ? value : null;
+}
 
 /**
  * useEffect which listens for run ID query param in the current location. If found, it removes the query param and runs a callback.
@@ -1071,7 +1081,7 @@ export function useSeerExplorerDeepLink({
   callback,
   enabled = true,
 }: {
-  callback: (runId: number) => void;
+  callback: (runId: SeerExplorerRunId) => void;
   enabled?: boolean;
 }) {
   const location = useLocation();
@@ -1087,13 +1097,45 @@ export function useSeerExplorerDeepLink({
       return;
     }
 
-    const parsedRunId = Number(paramValue);
-    if (!Number.isNaN(parsedRunId)) {
-      const {[RUN_ID_QUERY_PARAM]: _removed, ...restQuery} = location.query ?? {};
-      navigate({...location, query: restQuery}, {replace: true});
-      callback(parsedRunId);
+    const runId = parseRunIdParam(paramValue);
+    if (runId === null) {
+      return;
     }
+
+    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query ?? {};
+    navigate({...location, query: restQuery}, {replace: true});
+    callback(runId);
   }, [location, navigate, callback, enabled]);
+}
+
+/**
+ * Consumes the resume query param in the current location after an out-of-band round-trip (e.g.
+ * an OAuth reauth redirect). Once `ready` is true, it runs `onResume` and strips the marker.
+ */
+export function useSeerExplorerResumeDeepLink({
+  onResume,
+  ready,
+}: {
+  onResume: () => void;
+  ready: boolean;
+}) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const hasResumedRef = useRef(false);
+
+  useEffect(() => {
+    if (location.query?.[RESUME_RUN_QUERY_PARAM] !== '1') {
+      hasResumedRef.current = false;
+      return;
+    }
+    if (!ready || hasResumedRef.current) {
+      return;
+    }
+    hasResumedRef.current = true;
+    onResume();
+    const {[RESUME_RUN_QUERY_PARAM]: _resume, ...restQuery} = location.query ?? {};
+    navigate({...location, query: restQuery}, {replace: true});
+  }, [location, navigate, ready, onResume]);
 }
 
 /**
@@ -1105,11 +1147,30 @@ export function getExplorerUrl(runId: number | string): string {
   return url.toString();
 }
 
+/**
+ * Returns the relative URL of the current window with the run ID query param set.
+ * Pass `resume` to also mark the URL so the explorer continues the run once the
+ * user returns from an out-of-band round-trip (e.g. OAuth reauth).
+ */
+export function getRelativeExplorerUrl(
+  runId: number | string,
+  {resume = false}: {resume?: boolean} = {}
+): string {
+  const url = new URL(window.location.href);
+  url.searchParams.set(RUN_ID_QUERY_PARAM, String(runId));
+  if (resume) {
+    url.searchParams.set(RESUME_RUN_QUERY_PARAM, '1');
+  }
+  return url.pathname + url.search;
+}
+
 export function getLangfuseUrl(runId: number | string): string {
   return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/sessions/${runId}`;
 }
 
-export function getExplorerFeedbackOptions(runId: number | null): UseFeedbackOptions {
+export function getExplorerFeedbackOptions(
+  runId: SeerExplorerRunId | null
+): UseFeedbackOptions {
   return {
     formTitle: 'Seer Agent Feedback',
     messagePlaceholder: 'How can we make Seer better for you?',
@@ -1173,17 +1234,20 @@ type SeerExplorerSidebarOrientation = 'right' | 'bottom';
 
 /**
  * Resolves the dock preference to a concrete orientation. `auto` docks right on
- * wide viewports (≥ `xl`) and bottom otherwise. Shared by the layout (to lay
- * out the split) and the provider (to persist the popped-out window's size to
- * the right key).
+ * wide viewports (≥ `xl`) and on short landscape viewports (e.g. phones in
+ * landscape), and bottom otherwise. Shared by the layout (to lay out the split)
+ * and the provider (to persist the popped-out window's size to the right key).
  */
 export function useSeerExplorerSidebarOrientation(
   sidebarPosition: SeerExplorerSidebarPosition
 ): SeerExplorerSidebarOrientation {
   const theme = useTheme();
   const isWideScreen = useMedia(`(min-width: ${theme.breakpoints.xl})`);
+  const isShortLandscape = useMedia(
+    `(orientation: landscape) and (max-height: ${theme.breakpoints.xs})`
+  );
   if (sidebarPosition === 'auto') {
-    return isWideScreen ? 'right' : 'bottom';
+    return isWideScreen || isShortLandscape ? 'right' : 'bottom';
   }
   return sidebarPosition;
 }

@@ -462,16 +462,19 @@ export function OnboardingWithoutContext() {
   return (
     <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
-      <Header columns={{'2xs': 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}} as="header">
+      <Header
+        columns={{'screen:2xs': 'repeat(2, 1fr)', 'screen:md': 'repeat(3, 1fr)'}}
+        as="header"
+      >
         <LogoSvg showWordmark={!hasScmOnboarding} />
         {stepIndex !== -1 && (
           <Flex
             justify="center"
             display={{
-              '2xs': 'none',
-              xs: 'none',
-              sm: 'none',
-              md: 'flex',
+              'screen:2xs': 'none',
+              'screen:xs': 'none',
+              'screen:sm': 'none',
+              'screen:md': 'flex',
             }}
           >
             <Stepper
@@ -597,6 +600,7 @@ const OnboardingContainer = styled('div')<{
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow-x: hidden;
   background: ${p => p.theme.tokens.background.primary};
   padding: ${p => (p.hasScmOnboarding ? '60px' : '120px')} ${p => p.theme.space['2xl']};
   width: 100%;

@@ -5,7 +5,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
   OurLogKnownFieldKey,
@@ -59,7 +58,6 @@ interface MetaProps {
   meta: TraceMetaQueryResults['data'];
   metrics: {count: number} | undefined;
   metricsEnabled: boolean;
-  organization: Organization;
   representativeEvent: TraceTree.RepresentativeTraceEvent | null;
   tree: TraceTree;
 }

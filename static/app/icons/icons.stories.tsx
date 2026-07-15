@@ -764,6 +764,27 @@ const SECTIONS: TSection[] = [
         name: 'Bot',
         defaultProps: {},
       },
+      {
+        id: 'barAntennaOne',
+        groups: ['status'],
+        keywords: ['signal', 'antenna', 'bars', 'strength', 'connectivity', 'low'],
+        name: 'BarAntennaOne',
+        defaultProps: {},
+      },
+      {
+        id: 'barAntennaTwo',
+        groups: ['status'],
+        keywords: ['signal', 'antenna', 'bars', 'strength', 'connectivity', 'medium'],
+        name: 'BarAntennaTwo',
+        defaultProps: {},
+      },
+      {
+        id: 'barAntennaThree',
+        groups: ['status'],
+        keywords: ['signal', 'antenna', 'bars', 'strength', 'connectivity', 'full'],
+        name: 'BarAntennaThree',
+        defaultProps: {},
+      },
     ],
   },
   {
@@ -1160,6 +1181,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'sun',
+        groups: ['action'],
+        keywords: ['light', 'day', 'theme', 'mode', 'bright'],
+        name: 'Sun',
+        defaultProps: {},
+      },
+      {
         id: 'subscribed',
         groups: ['action'],
         keywords: ['alert', 'notification', 'subscribe', 'bell', 'ring', 'enabled'],
@@ -1545,6 +1573,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'pullRequestDraft',
+        groups: ['code'],
+        keywords: ['git', 'repo', 'code', 'version control', 'project', 'draft', 'wip'],
+        name: 'PullRequestDraft',
+        defaultProps: {},
+      },
+      {
         id: 'repository',
         groups: ['code'],
         keywords: ['git', 'repo', 'code', 'version control', 'project'],
@@ -1610,13 +1645,13 @@ export function IconsStories() {
         .
       </Text>
       <StyledSticky>
-        <Flex padding="xl 0" direction="column" gap="lg">
+        <Stack padding="xl 0" gap="lg">
           <Input
             value={searchTerm}
             placeholder="Search icons by name or keyword"
             onChange={e => setSearchTerm(e.target.value.toLowerCase())}
           />
-        </Flex>
+        </Stack>
       </StyledSticky>
       <Heading as="h5" size="xl" variant="primary">
         Icon Variants
@@ -1868,20 +1903,24 @@ function Section(props: CategorySectionProps) {
   }
 
   return (
-    <Flex as="section" direction="column" gap="xl">
+    <Stack as="section" gap="xl">
       <Container padding="xl 0 0 0">
         <Heading as="h5" size="xl" style={{scrollMarginTop: '128px'}}>
           {props.title}
         </Heading>
       </Container>
       <Grid
-        columns={{xs: 'repeat(2, 1fr)', sm: 'repeat(3, 1fr)', lg: 'repeat(4, 1fr)'}}
+        columns={{
+          'screen:xs': 'repeat(2, 1fr)',
+          'screen:sm': 'repeat(3, 1fr)',
+          'screen:lg': 'repeat(4, 1fr)',
+        }}
         align="center"
         gap="md"
       >
         {filteredIcons.map(icon => props.renderIcon(icon))}
       </Grid>
-    </Flex>
+    </Stack>
   );
 }
 

@@ -33,7 +33,7 @@ from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_extern
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.pullrequest import PullRequest
+from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -381,6 +381,15 @@ class IssuesEventWebhook(GitlabWebhook):
         return f"{integration.metadata['domain_name']}:{path_with_namespace}#{issue_iid}"
 
 
+def _map_gitlab_state_to_pullrequest_lifecycle(gitlab_state: str | None) -> str | None:
+    return {
+        "opened": PullRequestLifecycleState.OPEN,
+        "closed": PullRequestLifecycleState.CLOSED,
+        "merged": PullRequestLifecycleState.MERGED,
+        "locked": PullRequestLifecycleState.LOCKED,
+    }.get(gitlab_state or "")
+
+
 class MergeEventWebhook(GitlabWebhook):
     """
     Handle Merge Request Hook
@@ -445,9 +454,19 @@ class MergeEventWebhook(GitlabWebhook):
             last_commit = event["object_attributes"]["last_commit"]
             author_email = None
             author_name = None
+            head_commit_sha = None
             if last_commit:
                 author_email = last_commit["author"]["email"]
                 author_name = last_commit["author"]["name"]
+                head_commit_sha = last_commit.get("id")
+
+            updated_at = event["object_attributes"].get("updated_at")
+            merged_at = event["object_attributes"].get("merged_at")
+            state = _map_gitlab_state_to_pullrequest_lifecycle(
+                event["object_attributes"].get("state")
+            )
+            action = event["object_attributes"].get("action")
+            draft = event["object_attributes"].get("work_in_progress")
         except KeyError as e:
             logger.warning(
                 "gitlab.webhook.invalid-merge-data",
@@ -475,19 +494,40 @@ class MergeEventWebhook(GitlabWebhook):
             organization_id=organization.id, email=author_email, defaults={"name": author_name}
         )[0]
 
+        opened_at = parse_date(created_at).astimezone(timezone.utc)
+        state_changed_at = parse_date(updated_at).astimezone(timezone.utc) if updated_at else None
+        merged_at_dt = parse_date(merged_at).astimezone(timezone.utc) if merged_at else None
+
+        defaults = {
+            "title": title,
+            "author": author,
+            "message": body,
+            "merge_commit_sha": merge_commit_sha,
+            "head_commit_sha": head_commit_sha,
+            "date_added": opened_at,
+            "opened_at": opened_at,
+            "merged_at": merged_at_dt,
+            "state": state,
+            "draft": draft,
+        }
+
+        # GitLab has no closed_at, so derive it from the lifecycle action. A
+        # merged merge request is also closed. Actions that don't change
+        # lifecycle state (e.g. "update") leave the stored closed_at untouched.
+        if action == "merge":
+            defaults["closed_at"] = merged_at_dt or state_changed_at
+        elif action == "close":
+            defaults["closed_at"] = state_changed_at
+        elif action in ("reopen", "open"):
+            defaults["closed_at"] = None
+
         author.preload_users()
         try:
             PullRequest.objects.update_or_create(
                 organization_id=organization.id,
                 repository_id=repo.id,
                 key=number,
-                defaults={
-                    "title": title,
-                    "author": author,
-                    "message": body,
-                    "merge_commit_sha": merge_commit_sha,
-                    "date_added": parse_date(created_at).astimezone(timezone.utc),
-                },
+                defaults=defaults,
             )
         except IntegrityError:
             pass

@@ -8,8 +8,10 @@ import sentry_sdk
 
 from sentry import search
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.issues.search import group_types_from
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
+from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.autofix.constants import FixabilityScoreThresholds
 from sentry.seer.autofix.utils import is_issue_category_eligible
 from sentry.snuba.referrer import Referrer
@@ -20,6 +22,8 @@ from sentry.types.group import PriorityLevel
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
 NIGHT_SHIFT_ISSUE_FETCH_LIMIT = 100
+# Scales the per-project fetch limit instead of using the flat limit above.
+NIGHT_SHIFT_PER_PROJECT_FETCH_MULTIPLIER = 3
 FIXABILITY_SCORE_THRESHOLD = FixabilityScoreThresholds.MEDIUM.value
 
 
@@ -36,19 +40,47 @@ def fixability_score_strategy(
     projects: Sequence[Project],
     max_candidates: int,
 ) -> list[ScoredCandidate]:
+    """Scores candidates across all projects combined — a busy project can eat
+    the whole max_candidates budget. See fixability_score_strategy_per_project."""
+    return _fetch_and_score(projects, max_candidates, NIGHT_SHIFT_ISSUE_FETCH_LIMIT)
+
+
+def fixability_score_strategy_per_project(
+    projects: Sequence[Project],
+    max_candidates: int,
+) -> list[ScoredCandidate]:
+    """Like fixability_score_strategy, but scores each project independently so
+    no project can crowd out the others' share of max_candidates."""
+    fetch_limit = min(
+        NIGHT_SHIFT_ISSUE_FETCH_LIMIT, max_candidates * NIGHT_SHIFT_PER_PROJECT_FETCH_MULTIPLIER
+    )
+    selected: list[ScoredCandidate] = []
+    for project in projects:
+        selected.extend(_fetch_and_score([project], max_candidates, fetch_limit))
+    return selected
+
+
+def _fetch_and_score(
+    projects: Sequence[Project],
+    max_candidates: int,
+    fetch_limit: int,
+) -> list[ScoredCandidate]:
     """
     Fetch top recommended unresolved issues that haven't been triaged by Seer yet.
     Issues with a fixability score above the threshold are taken first (sorted by
     fixability), then backfilled with unscored issues in their original recommended
     sort order.
     """
+    # Default types + LowValueSpan
+    type_ids = sorted(group_types_from([]) | {LowValueSpanConfigurationType.type_id})
     result = search.backend.query(
         projects=projects,
         sort_by="recommended",
-        limit=NIGHT_SHIFT_ISSUE_FETCH_LIMIT,
+        limit=fetch_limit,
         search_filters=[
             SearchFilter(SearchKey("status"), "=", SearchValue([GroupStatus.UNRESOLVED])),
             SearchFilter(SearchKey("issue.seer_last_run"), "=", SearchValue("")),
+            SearchFilter(SearchKey("issue.type"), "=", SearchValue(type_ids)),
         ],
         referrer=Referrer.SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY.value,
     )

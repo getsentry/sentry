@@ -3,7 +3,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
-import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {
   DisableDetectorAction,
@@ -17,20 +16,12 @@ import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components
 
 type FallbackDetectorDetailsProps = {
   detector: Detector;
-  project: Project;
 };
 
-export function FallbackDetectorDetails({
-  detector,
-  project,
-}: FallbackDetectorDetailsProps) {
+export function FallbackDetectorDetails({detector}: FallbackDetectorDetailsProps) {
   return (
     <DetailLayout>
-      <DetectorDetailsHeader
-        detector={detector}
-        project={project}
-        useLocalDetailActions
-      />
+      <DetectorDetailsHeader detector={detector} useLocalDetailActions />
       <DetailLayout.Body>
         <DetailLayout.Main>
           <Flex align="center" justify="between" gap="md">

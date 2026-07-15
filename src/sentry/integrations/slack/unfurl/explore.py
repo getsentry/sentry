@@ -26,6 +26,7 @@ from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.unfurl.types import Handler, UnfurlableUrl, UnfurledUrl
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
+from sentry.search.eap.constants import VALID_GRANULARITIES
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, PERCENT_UNITS, SIZE_UNITS
 from sentry.search.events.fields import is_function, parse_arguments
@@ -59,6 +60,18 @@ _DEFAULT_INTERVAL_LADDER: tuple[tuple[timedelta, str], ...] = (
 )
 
 
+# Heat Map unfurls always render to a fixed Chartcuterie canvas. We pick the
+# X-axis interval to target ~150 columns; the actual column count varies because
+# we're limited to a known set of intervals. The Y-axis bucket count is then
+# derived geometrically from that column width (see `_heatmap_y_buckets`) so
+# cells render square regardless of how the interval quantization landed,
+# falling back to `HEATMAP_FALLBACK_Y_BUCKETS` when the geometry is undefined.
+HEATMAP_TARGET_X_BUCKETS = 150
+# Fallback Y-axis bucket count for degenerate time ranges. 50 over the 400px
+# canvas gives ~8px cells.
+HEATMAP_FALLBACK_Y_BUCKETS = 50
+
+
 def _query_time_range(params: QueryDict) -> timedelta:
     """Return the selected time range, mirroring the frontend's
     `getDiffInMinutes`: prefer absolute start/end, otherwise parse statsPeriod."""
@@ -83,6 +96,40 @@ def _interval_for_query(params: QueryDict) -> str:
         if diff >= threshold:
             return interval
     return "1m"
+
+
+def _heatmap_interval(time_range: timedelta) -> str:
+    """Pick the finest backend-supported granularity that keeps the Heat Map
+    within ``HEATMAP_TARGET_X_BUCKETS`` columns, so it renders a fixed-density
+    grid sized to the Chartcuterie canvas regardless of the selected time range.
+    Iterates the EAP-accepted ``VALID_GRANULARITIES`` (the only dataset we
+    support for Heat Map widgets is trace metrics)."""
+    seconds = time_range.total_seconds()
+    for granularity in sorted(VALID_GRANULARITIES):
+        if seconds / granularity <= HEATMAP_TARGET_X_BUCKETS:
+            return f"{granularity}s"
+    return f"{max(VALID_GRANULARITIES)}s"
+
+
+def _heatmap_y_buckets(time_range: timedelta, interval: str) -> int | None:
+    """Derive the Y-axis bucket count that makes Heat Map cells square on the
+    fixed Chartcuterie canvas: the X column width in px is
+    ``(interval / time_range) * width``, and we pick the Y bucket count whose
+    cell height matches it. Returns ``None`` when the geometry is undefined
+    (empty time range / interval) so the caller can fall back to a default.
+    Mirrors the frontend's ``calculateHeatMapBucketDimensions``."""
+    total = time_range.total_seconds()
+    interval_td = parse_stats_period(interval)
+    interval_seconds = interval_td.total_seconds() if interval_td else 0
+    if total <= 0 or interval_seconds <= 0:
+        return None
+    x_columns = total / interval_seconds
+    column_width_px = EXPLORE_CHART_SIZE["width"] / x_columns
+    square_buckets = round(EXPLORE_CHART_SIZE["height"] / column_width_px)
+    # Clamp to [1 row, one row per vertical pixel]. The lower bound covers the
+    # single-column case; the upper bound keeps very long ranges from requesting
+    # sub-pixel rows (and blowing past the events-heatmap yBuckets cap).
+    return max(1, min(square_buckets, EXPLORE_CHART_SIZE["height"]))
 
 
 def _clamp_interval(url_interval: str, minimum_interval: str) -> str:
@@ -150,8 +197,9 @@ def _parse_aggregate_field_entries(
 def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
     """Assemble the QueryDict sent to the events-heatmap API. Like
     ``_build_timeseries_query`` but adds the heatmap params (xAxis/yAxis/zAxis/
-    yBuckets). The interval is the per-range ladder value (the URL interval is
-    ignored); yBuckets is derived from it to keep cells ~square."""
+    yBuckets). The URL interval is ignored; instead we pick the interval that
+    targets `HEATMAP_TARGET_X_BUCKETS` columns and derive `yBuckets`
+    geometrically so cells render square on the Chartcuterie canvas."""
     out = QueryDict(mutable=True)
 
     for param in ("project", "statsPeriod", "start", "end", "environment"):
@@ -176,16 +224,11 @@ def _build_heatmap_query(raw_query: QueryDict) -> QueryDict:
     if not out.get("statsPeriod") and not out.get("start"):
         out["statsPeriod"] = DEFAULT_PERIOD
 
-    # Per-range ladder interval (fine end, for plenty of columns), then size
-    # yBuckets to keep cells roughly square: yBuckets ≈ xBuckets * (height / width).
-    interval = _interval_for_query(out)
+    time_range = _query_time_range(out)
+    interval = _heatmap_interval(time_range)
     out["interval"] = interval
-    interval_td = parse_stats_period(interval)
-    x_buckets = round(_query_time_range(out) / interval_td) if interval_td else 0
-    y_buckets = max(
-        1, round(x_buckets * EXPLORE_CHART_SIZE["height"] / EXPLORE_CHART_SIZE["width"])
-    )
-    out["yBuckets"] = str(y_buckets)
+    y_buckets = _heatmap_y_buckets(time_range, interval)
+    out["yBuckets"] = str(y_buckets if y_buckets is not None else HEATMAP_FALLBACK_Y_BUCKETS)
 
     # Fixed axes — the endpoint currently only supports these values.
     out["xAxis"] = "time"

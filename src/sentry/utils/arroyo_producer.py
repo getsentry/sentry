@@ -9,6 +9,7 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_produ
 from arroyo.types import BrokerValue, Partition
 from arroyo.types import Topic as ArroyoTopic
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -32,6 +33,16 @@ class SingletonProducer:
         self._futures: deque[_ProducerFuture] = deque()
         self.max_futures = max_futures
 
+        # This fixes a shutdown-ordering bug with OutcomeAggregator, which
+        # flushes buffered outcomes into a producer from its own atexit handler.
+        # atexit runs handlers in reverse registration order. When we registered
+        # our shutdown lazily (on the first produce), it ran after the
+        # aggregator's, so the producer was closed before that flush could run
+        # and the flush failed with "producer has been closed". Registering here,
+        # at construction (import time), makes our close run after the flush.
+        # _shutdown is a no-op when the producer was never created.
+        atexit.register(self._shutdown)
+
     def produce(
         self, destination: ArroyoTopic | Partition, payload: KafkaPayload
     ) -> _ProducerFuture:
@@ -42,7 +53,6 @@ class SingletonProducer:
     def _get(self) -> KafkaProducer:
         if self._producer is None:
             self._producer = self._factory()
-            atexit.register(self._shutdown)
 
         return self._producer
 
@@ -69,7 +79,7 @@ class SingletonProducer:
 
 def get_arroyo_producer(
     name: str,
-    topic: Topic,
+    topic: Topic | str,
     additional_config: dict | None = None,
     exclude_config_keys: list[str] | None = None,
     **kafka_producer_kwargs,
@@ -91,6 +101,13 @@ def get_arroyo_producer(
 
     producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
 
+    # temp(benmckerry): roll out poll metrics to our producers
+    poll_metrics_map = options.get("arroyo.producer.record_poll_metrics") or []
+    record_poll_metrics = False
+    if name in poll_metrics_map or "all" in poll_metrics_map:
+        record_poll_metrics = True
+    poll_metric_frequency = options.get("arroyo.producer.poll_metric_frequency")
+
     # Remove any excluded config keys
     if exclude_config_keys:
         for key in exclude_config_keys:
@@ -103,5 +120,8 @@ def get_arroyo_producer(
     producer_config["client.id"] = name
 
     return KafkaProducer(
-        build_kafka_producer_configuration(default_config=producer_config), **kafka_producer_kwargs
+        build_kafka_producer_configuration(default_config=producer_config),
+        record_poll_metrics=record_poll_metrics,
+        poll_metric_frequency=poll_metric_frequency,
+        **kafka_producer_kwargs,
     )

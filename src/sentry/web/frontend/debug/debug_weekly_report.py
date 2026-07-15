@@ -20,6 +20,7 @@ from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, Pro
 from sentry.tasks.summaries.weekly_reports import get_group_display, render_template_context
 from sentry.types.group import GroupSubStatus
 from sentry.utils import loremipsum
+from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.web.decorators import login_required
 from sentry.web.frontend.base import internal_cell_silo_view
@@ -27,7 +28,7 @@ from sentry.web.frontend.base import internal_cell_silo_view
 from .mail import MailPreviewView
 
 
-def get_random(request):
+def get_random(request: AuthenticatedHttpRequest) -> Random:
     seed = request.GET.get("seed", str(time.time()))
     return Random(seed)
 
@@ -67,7 +68,7 @@ def make_debug_issue_title(random: Random, prefix: str) -> str:
 @internal_cell_silo_view
 @method_decorator(login_required, name="dispatch")
 class DebugWeeklyReportView(MailPreviewView):
-    def get_context(self, request):
+    def get_context(self, request: AuthenticatedHttpRequest) -> dict[str, Any] | None:
         organization = Organization(id=1, slug="myorg", name="MyOrg")
 
         if request.GET.get("enhanced_privacy"):
@@ -106,20 +107,14 @@ class DebugWeeklyReportView(MailPreviewView):
                 start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum)
                 for i in range(0, 7)
             }
-            project_context.transaction_count_by_day = {
-                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum)
+            project_context.issue_count_by_day = {
+                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum // 10)
                 for i in range(0, 7)
             }
 
             project_context.accepted_error_count = sum(project_context.error_count_by_day.values())
-            project_context.accepted_transaction_count = sum(
-                project_context.transaction_count_by_day.values()
-            )
             project_context.prev_week_accepted_error_count = int(
                 project_context.accepted_error_count * random.uniform(0.5, 1.5)
-            )
-            project_context.prev_week_accepted_transaction_count = int(
-                project_context.accepted_transaction_count * random.uniform(0.5, 1.5)
             )
             substatuses = [
                 (GroupStatus.UNRESOLVED, GroupSubStatus.NEW),
@@ -158,18 +153,10 @@ class DebugWeeklyReportView(MailPreviewView):
                 + project_context.regression_substatus_count
                 + project_context.ongoing_substatus_count
             )
+            project_context.prev_week_total_substatus_count = int(
+                project_context.total_substatus_count * random.uniform(0.5, 1.5)
+            )
 
-            # Array of (transaction_name, count_this_week, p95_this_week, count_last_week, p95_last_week)
-            project_context.key_transactions = [
-                (
-                    f"/test/transaction{random.randint(0, 3)}",
-                    random.randint(0, 1000),
-                    random.random() * 100,
-                    random.randint(0, 1000),
-                    random.random() * 100,
-                )
-                for _ in range(0, 3)
-            ]
             performance_issue_types = [
                 PerformanceSlowDBQueryGroupType,
                 PerformanceNPlusOneGroupType,

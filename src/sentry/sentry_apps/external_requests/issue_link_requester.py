@@ -10,13 +10,14 @@ from requests import RequestException
 
 from sentry.http import safe_urlread
 from sentry.models.group import Group
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.external_requests.utils import (
     integrator_error_message,
     send_and_save_sentry_app_request,
     validate,
+    validate_outbound_url,
 )
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppExternalRequestFailureReason,
     SentryAppExternalRequestHaltReason,
     SentryAppInteractionEvent,
@@ -167,7 +168,9 @@ class IssueLinkRequester:
             )
 
         urlparts = urlparse(self.sentry_app.webhook_url)
-        return f"{urlparts.scheme}://{urlparts.netloc}{self.uri}"
+        url = f"{urlparts.scheme}://{urlparts.netloc}{self.uri}"
+        validate_outbound_url(url, urlparts.netloc, self.uri)
+        return url
 
     def _validate_response(self, resp: dict[str, str]) -> bool:
         return validate(instance=resp, schema_type="issue_link")

@@ -85,8 +85,7 @@ def send_search_agent_start_request(
         options["model_name"] = model_name
     if metric_context is not None:
         options["metric_context"] = metric_context
-    if options:
-        body["options"] = options
+    body["options"] = options
 
     return enqueue_seer_run(
         organization=organization,
@@ -175,7 +174,6 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         user_org_context = collect_user_org_context(request.user, organization)
         user_email = user_org_context.get("user_email")
         timezone = user_org_context.get("user_timezone")
-
         try:
             viewer_context = SeerViewerContext(
                 organization_id=organization.id, user_id=request.user.id

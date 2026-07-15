@@ -19,6 +19,7 @@ from sentry.incidents.endpoints.serializers.utils import (
 from sentry.integrations.slack.tasks.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.rules.conditions.existing_high_priority_issue import ExistingHighPriorityIssueCondition
 from sentry.silo.base import SiloMode
@@ -338,6 +339,12 @@ class GetProjectRulesTest(ProjectRuleBaseTestCase):
 
 class CreateProjectRuleTest(ProjectRuleBaseTestCase):
     method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        # NotifyEventAction (used by several tests) only dual-writes a WEBHOOK action when webhooks
+        # are enabled; enable it so the parity checks have a comparable action to compare.
+        ProjectOption.objects.set_value(self.project, "webhooks:enabled", True)
 
     def mock_conversations_info(self, channel):
         return patch(

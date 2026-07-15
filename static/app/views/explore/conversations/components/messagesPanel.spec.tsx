@@ -309,23 +309,27 @@ describe('MessagesPanel', () => {
     expect(screen.getByText('test@example.com')).toBeInTheDocument();
   });
 
-  it('deduplicates identical user messages', () => {
-    const sameMessage = JSON.stringify([{role: 'user', content: 'Duplicate message'}]);
-
+  it('deduplicates a last user message replayed across a cumulative tool loop', () => {
     const node1 = createMockNode({
       id: 'span-1',
       startTimestamp: 1000,
       attributes: {
-        [SpanFields.GEN_AI_REQUEST_MESSAGES]: sameMessage,
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Duplicate message'},
+        ]),
         [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response 1',
       },
     });
 
+    // Cumulative history replaying the same last message: shown once.
     const node2 = createMockNode({
       id: 'span-2',
       startTimestamp: 2000,
       attributes: {
-        [SpanFields.GEN_AI_REQUEST_MESSAGES]: sameMessage,
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Duplicate message'},
+          {role: 'assistant', content: 'Response 1'},
+        ]),
         [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response 2',
       },
     });
@@ -499,6 +503,44 @@ describe('MessagesPanel', () => {
 
     expect(screen.getByText('Called tool')).toBeInTheDocument();
     expect(screen.getByText('weather_api')).toBeInTheDocument();
+  });
+
+  it('keeps reasoning text in the DOM inside a collapsed details element', () => {
+    const requestMessages = JSON.stringify([{role: 'user', content: 'User message'}]);
+    const outputMessages = JSON.stringify([
+      {
+        role: 'assistant',
+        parts: [
+          {type: 'reasoning', content: 'My secret thinking text'},
+          {type: 'text', text: 'The final answer'},
+        ],
+      },
+    ]);
+
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+        [SpanFields.GEN_AI_OUTPUT_MESSAGES]: outputMessages,
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    // Reasoning text is rendered in the DOM even though the <details> is
+    // collapsed, so the browser's find-in-page (Ctrl-F) can locate it and
+    // natively open the section.
+    const reasoning = screen.getByText('My secret thinking text');
+    expect(reasoning).toBeInTheDocument();
+    const details = reasoning.closest('details');
+    expect(details).not.toBeNull();
+    expect(details).not.toHaveAttribute('open');
   });
 
   it('handles output messages as a JSON object with content key', () => {

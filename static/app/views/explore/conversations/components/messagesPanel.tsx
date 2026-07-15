@@ -1,8 +1,7 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -71,26 +70,14 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
 
   if (messages.length === 0) {
     return (
-      <Flex
-        direction="column"
-        padding="lg md md md"
-        background="secondary"
-        minHeight="100%"
-        width="100%"
-      >
+      <Stack padding="lg md md md" background="secondary" minHeight="100%" width="100%">
         <EmptyMessage>{t('No messages found')}</EmptyMessage>
-      </Flex>
+      </Stack>
     );
   }
 
   return (
-    <Flex
-      direction="column"
-      padding="lg md md md"
-      background="secondary"
-      minHeight="100%"
-      width="100%"
-    >
+    <Stack padding="lg md md md" background="secondary" minHeight="100%" width="100%">
       <Stack gap="md" width="100%">
         {messages.map((message, index) => {
           const isSelected = message.id === effectiveSelectedMessageId;
@@ -161,7 +148,7 @@ export function MessagesPanel({nodes, selectedNodeId, onSelectNode}: MessagesPan
           );
         })}
       </Stack>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -244,40 +231,54 @@ const MessageBubble = styled('div')<{
 `;
 
 function ReasoningSection({reasoning}: {reasoning: string}) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const organization = useOrganization();
+  const [isOpen, setIsOpen] = useState(false);
 
+  const handleToggle = (open: boolean) => {
+    setIsOpen(open);
+    trackAnalytics('conversations.detail.expand-thinking', {
+      organization,
+      expanded: open,
+    });
+  };
+
+  // A collapsed <details> keeps its text in the DOM so find-in-page can reveal it.
   return (
-    <Fragment>
-      <Button
-        size="zero"
-        variant="link"
-        onClick={e => {
-          e.stopPropagation();
-          setIsExpanded(prev => !prev);
-        }}
-        aria-expanded={isExpanded}
+    <ReasoningDetails onToggle={e => handleToggle(e.currentTarget.open)}>
+      <Flex
+        as="summary"
+        align="center"
+        gap="xs"
+        padding="sm md 0"
+        width="100%"
+        justify="start"
+        cursor="pointer"
+        onClick={e => e.stopPropagation()}
       >
-        <Flex align="center" gap="xs" padding="sm md 0" width="100%" justify="start">
-          <Text size="xs" variant="muted" monospace italic>
-            {t('Thinking...')}
-          </Text>
-          <IconChevron
-            direction={isExpanded ? 'down' : 'right'}
-            size="xs"
-            variant="muted"
-          />
-        </Flex>
-      </Button>
-      {isExpanded && (
-        <Container padding="md">
-          <MessageText size="sm" align="left" variant="muted" monospace italic>
-            <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
-          </MessageText>
-        </Container>
-      )}
-    </Fragment>
+        <Text size="xs" variant="muted" monospace italic>
+          {t('Thinking...')}
+        </Text>
+        <IconChevron direction={isOpen ? 'down' : 'right'} size="xs" variant="muted" />
+      </Flex>
+      <Container padding="md">
+        <MessageText size="sm" align="left" variant="muted" monospace italic>
+          <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
+        </MessageText>
+      </Container>
+    </ReasoningDetails>
   );
 }
+
+const ReasoningDetails = styled('details')`
+  width: 100%;
+
+  summary {
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
+  }
+`;
 
 const StyledClippedBox = styled(ClippedBox)`
   padding: 0;

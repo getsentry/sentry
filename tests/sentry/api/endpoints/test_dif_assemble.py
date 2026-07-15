@@ -20,9 +20,12 @@ from sentry.tasks.assemble import (
     set_assemble_status,
 )
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.skips import requires_objectstore
 
 
+@debug_files_test_both_backends
 class DifAssembleEndpoint(APITestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)
@@ -308,8 +311,11 @@ class DifAssembleEndpoint(APITestCase):
             debug_id="11111111-1111-1111-1111-111111111111",
         )
 
-        assert first_dif.file_id == second_dif.file_id
-        assert File.objects.filter(type="project.dif", checksum=checksum).count() == 1
+        if first_dif.storage_path is not None:
+            assert first_dif.storage_path != second_dif.storage_path
+        else:
+            assert first_dif.file_id == second_dif.file_id
+        assert File.objects.filter(type="project.dif", checksum=checksum).count() <= 1
 
     def test_reupload_proguard_with_same_debug_id_is_idempotent(self) -> None:
         file_contents = b"proguard mapping"
@@ -372,3 +378,111 @@ class DifAssembleEndpoint(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data[checksum]["state"] == ChunkFileState.ERROR
         assert response.data[checksum]["detail"] == "This file is not a ProGuard mapping."
+
+
+@requires_objectstore
+class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
+    """Cover ProGuard clone requests where the source row's backend differs from
+    the active write backend, i.e. the rollout/rollback transition windows that
+    `debug_files_test_both_backends` cannot reach (it ties source creation and
+    the clone to the same flag state)."""
+
+    def setUp(self) -> None:
+        self.organization = self.create_organization(owner=self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(
+            teams=[self.team], organization=self.organization, name="foo"
+        )
+        self.url = reverse(
+            "sentry-api-0-assemble-dif-files", args=[self.organization.slug, self.project.slug]
+        )
+
+    def _assemble_source(self, checksum: str, chunks: list[str]) -> None:
+        assemble_dif(
+            project_id=self.project.id,
+            name="/proguard/mapping-00000000-0000-0000-0000-000000000000.txt",
+            checksum=checksum,
+            chunks=chunks,
+        )
+
+    def _clone_request(self, checksum: str, chunks: list[str]):
+        return self.client.post(
+            self.url,
+            data={
+                checksum: {
+                    "name": "/proguard/mapping-11111111-1111-1111-1111-111111111111.txt",
+                    "chunks": chunks,
+                }
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+    def test_clone_file_backed_source_to_objectstore(self) -> None:
+        """A file-backed source (created before rollout) is cloned while the write flag is enabled, producing an Objectstore-backed clone."""
+
+        file_contents = b"proguard mapping"
+        checksum = sha1(file_contents).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
+        chunks = [blob.checksum]
+
+        with self.feature({"organizations:objectstore-debugfiles-write": False}):
+            self._assemble_source(checksum, chunks)
+
+        first_dif = ProjectDebugFile.objects.get(
+            project_id=self.project.id,
+            debug_id="00000000-0000-0000-0000-000000000000",
+        )
+        assert first_dif.file_id is not None
+        assert first_dif.storage_path is None
+
+        with self.feature({"organizations:objectstore-debugfiles-write": True}):
+            response = self._clone_request(checksum, chunks)
+
+        assert response.status_code == 200, response.content
+        assert response.data[checksum]["state"] == ChunkFileState.OK
+        assert response.data[checksum]["dif"]["uuid"] == "11111111-1111-1111-1111-111111111111"
+
+        second_dif = ProjectDebugFile.objects.get(
+            project_id=self.project.id,
+            debug_id="11111111-1111-1111-1111-111111111111",
+        )
+        # The source stays file-backed; the clone is written to Objectstore.
+        assert second_dif.file_id is None
+        assert second_dif.storage_path is not None
+        assert second_dif.get_file().read() == file_contents
+
+    def test_clone_objectstore_backed_source_to_file(self) -> None:
+        """An Objectstore-backed source (created during rollout) is cloned after the write flag is disabled, producing a file-backed clone."""
+
+        file_contents = b"proguard mapping"
+        checksum = sha1(file_contents).hexdigest()
+        blob = FileBlob.from_file_with_organization(ContentFile(file_contents), self.organization)
+        chunks = [blob.checksum]
+
+        with self.feature({"organizations:objectstore-debugfiles-write": True}):
+            self._assemble_source(checksum, chunks)
+
+        first_dif = ProjectDebugFile.objects.get(
+            project_id=self.project.id,
+            debug_id="00000000-0000-0000-0000-000000000000",
+        )
+        assert first_dif.file_id is None
+        assert first_dif.storage_path is not None
+
+        with self.feature({"organizations:objectstore-debugfiles-write": False}):
+            response = self._clone_request(checksum, chunks)
+
+        assert response.status_code == 200, response.content
+        assert response.data[checksum]["state"] == ChunkFileState.OK
+        assert response.data[checksum]["dif"]["uuid"] == "11111111-1111-1111-1111-111111111111"
+
+        second_dif = ProjectDebugFile.objects.get(
+            project_id=self.project.id,
+            debug_id="11111111-1111-1111-1111-111111111111",
+        )
+        # The source stays Objectstore-backed; the clone is written as a File.
+        assert second_dif.file_id is not None
+        assert second_dif.storage_path is None
+        assert second_dif.get_file().read() == file_contents

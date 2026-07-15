@@ -6,6 +6,7 @@ No Django dependencies — pure Python, fully testable in isolation.
 import copy
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
+from datetime import datetime
 from enum import IntEnum, StrEnum
 from typing import Any, Protocol, runtime_checkable
 
@@ -18,12 +19,28 @@ _MISSING = object()
 
 
 class Codec[T]:
-    """Handles serialization of a Feature value to/from JSON-compatible form."""
+    """Converts a Feature's Python value to/from storage representations.
 
-    def dump(self, value: T) -> Any:
+    Two pairs of methods handle different storage backends:
+
+    * ``to_json`` / ``from_json`` — for the ``data`` JSONField blob.
+    * ``to_column`` / ``from_column`` — for dedicated Django model columns.
+
+    The default implementation is identity for both pairs.  Override as
+    needed (e.g. ``EnumCodec`` wraps raw strings back into enum members
+    on ``from_column`` so that column-loaded values are real enum instances).
+    """
+
+    def to_json(self, value: T) -> Any:
         return value
 
-    def load(self, raw: Any) -> T:
+    def from_json(self, raw: Any) -> T:
+        return raw
+
+    def to_column(self, value: T) -> Any:
+        return value
+
+    def from_column(self, raw: Any) -> T:
         return raw
 
 
@@ -34,22 +51,42 @@ class EnumCodec[E: StrEnum](Codec[E]):
     def __init__(self, enum_cls: type[E]) -> None:
         self._enum_cls = enum_cls
 
-    def load(self, raw: Any) -> E:
+    def to_json(self, value: E) -> str:
+        return value.value
+
+    def from_json(self, raw: Any) -> E:
         return self._enum_cls(raw)
 
-    def dump(self, value: E) -> str:
+    def to_column(self, value: E) -> str:
         return value.value
+
+    def from_column(self, raw: Any) -> E:
+        return self._enum_cls(raw)
+
+
+class DateTimeCodec(Codec[datetime]):
+    def to_json(self, value: datetime) -> str:
+        return value.isoformat()
+
+    def from_json(self, raw: Any) -> datetime:
+        return datetime.fromisoformat(raw)
 
 
 class OptionalCodec[T](Codec[T | None]):
     def __init__(self, inner: Codec[T]) -> None:
         self._inner = inner
 
-    def load(self, raw: Any) -> T | None:
-        return self._inner.load(raw) if raw is not None else None
+    def to_json(self, value: T | None) -> Any:
+        return self._inner.to_json(value) if value is not None else None
 
-    def dump(self, value: T | None) -> Any:
-        return self._inner.dump(value) if value is not None else None
+    def from_json(self, raw: Any) -> T | None:
+        return self._inner.from_json(raw) if raw is not None else None
+
+    def to_column(self, value: T | None) -> Any:
+        return self._inner.to_column(value) if value is not None else None
+
+    def from_column(self, raw: Any) -> T | None:
+        return self._inner.from_column(raw) if raw is not None else None
 
 
 # ---------------------------------------------------------------------------
@@ -62,8 +99,9 @@ FeatureEntry = tuple["Feature[Any]", Any]
 class Feature[T]:
     """A named, typed slot in derived state with a default value.
 
-    The `codec` handles conversion to/from JSON-compatible representations.
-    Defaults to identity (pass-through) for JSON-native types.
+    The ``codec`` handles conversion to/from storage representations.
+    JSON-blob features use ``to_json`` / ``from_json``; column-backed
+    features use ``to_column`` / ``from_column``.
     """
 
     def __init__(
@@ -87,11 +125,17 @@ class Feature[T]:
             return self._default_factory()
         return self._default
 
-    def dump(self, value: T) -> Any:
-        return self._codec.dump(value)
+    def to_json(self, value: T) -> Any:
+        return self._codec.to_json(value)
 
-    def load(self, raw: Any) -> T:
-        return self._codec.load(raw)
+    def from_json(self, raw: Any) -> T:
+        return self._codec.from_json(raw)
+
+    def to_column(self, value: T) -> Any:
+        return self._codec.to_column(value)
+
+    def from_column(self, raw: Any) -> T:
+        return self._codec.from_column(raw)
 
     def value(self, val: T) -> FeatureEntry:
         return (self, val)
@@ -144,10 +188,20 @@ class StateUpdate(_FeatureStore):
 class State(_FeatureStore):
     """Complete pipeline state."""
 
+    def __init__(self, data: dict[Feature[Any], Any] | None = None) -> None:
+        super().__init__(data)
+        self._updated: set[Feature[Any]] = set()
+
+    @property
+    def updated(self) -> frozenset[Feature[Any]]:
+        """Features that aggregators have provided updates for via merge()."""
+        return frozenset(self._updated)
+
     def view(self, allowed: frozenset[Feature[Any]]) -> "StateView":
         return StateView(self._data, allowed)
 
     def merge(self, update: StateUpdate) -> None:
+        self._updated.update(update._data)
         self._data.update(update._data)
 
     def items(self) -> Iterator[tuple[str, Any]]:
@@ -208,6 +262,8 @@ def emit(*entries: FeatureEntry) -> AggregatorResult:
 
     >>> return emit(VIEW_COUNT.value(5), STATUS.value(IssueStatus.CLOSED))
     """
+    if not entries:
+        return None
     return StateUpdate(dict(entries))
 
 
@@ -222,16 +278,30 @@ class Aggregator[E: HasType]:
     scope: tuple[int, ...] | None = None
 
 
-def aggregator[E: HasType, S: IntEnum](
+class _HasGetType(Protocol):
+    @classmethod
+    def get_type(cls) -> IntEnum: ...
+
+
+type ScopeItem = IntEnum | type[_HasGetType]
+
+
+def _scope_int(item: ScopeItem) -> int:
+    if isinstance(item, IntEnum):
+        return item.value
+    return item.get_type().value
+
+
+def aggregator[E: HasType](
     outputs: tuple[Feature[Any], ...],
     *,
     deps: tuple[Feature[Any], ...] = (),
-    scope: tuple[S, ...] | None = None,
+    scope: tuple[ScopeItem, ...] | None = None,
 ) -> Callable[[AggregatorFn[E]], Aggregator[E]]:
-    """Decorator to create an Aggregator. `scope` accepts enum members directly."""
+    """Decorator to create an Aggregator. `scope` accepts enum members or classes with get_type()."""
     if not outputs:
         raise ValueError("aggregator must declare at least one output")
-    raw_scope = tuple(s.value for s in scope) if scope is not None else None
+    raw_scope = tuple(_scope_int(s) for s in scope) if scope is not None else None
 
     def decorator(fn: AggregatorFn[E]) -> Aggregator[E]:
         return Aggregator(name=fn.__name__, deps=deps, outputs=outputs, fn=fn, scope=raw_scope)
