@@ -23,15 +23,15 @@ from sentry.integrations.services.github_copilot_identity import github_copilot_
 from sentry.integrations.services.integration import integration_service
 from sentry.models.pullrequest import PullRequestAttributionSignalType
 from sentry.pr_metrics.attribution import attribute_delegated_agent_pull_request
+from sentry.seer.autofix.coding_agent_handoffs import sync_coding_agent_status
+from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.autofix.utils import (
     AutofixState,
     CodingAgentProviderType,
     CodingAgentResult,
     CodingAgentState,
-    CodingAgentStatus,
     StoreCodingAgentStatesRequest,
     make_store_coding_agent_states_request,
-    update_coding_agent_state,
 )
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext
@@ -261,8 +261,9 @@ def poll_github_copilot_agents(
                         branch_name=branch_name,
                     )
 
-                update_coding_agent_state(
+                sync_coding_agent_status(
                     agent_id=agent_id,
+                    organization_id=organization_id,
                     status=new_status,
                     result=result,
                 )
@@ -369,8 +370,9 @@ def poll_claude_agent(
         )
 
         if new_status != agent_state.status:
-            update_coding_agent_state(
+            sync_coding_agent_status(
                 agent_id=agent_id,
+                organization_id=org_id,
                 status=new_status,
                 result=result,
             )
@@ -404,12 +406,16 @@ def poll_claude_agent(
 
     elif last_event_type == ClaudeSessionEventStatus.RESCHEDULING:
         if agent_state.status != CodingAgentStatus.PENDING:
-            update_coding_agent_state(agent_id=agent_id, status=CodingAgentStatus.PENDING)
+            sync_coding_agent_status(
+                agent_id=agent_id, organization_id=org_id, status=CodingAgentStatus.PENDING
+            )
 
     else:
         # Any other event (status_running, agent, tool_result, etc.) means active.
         if agent_state.status != CodingAgentStatus.RUNNING:
-            update_coding_agent_state(agent_id=agent_id, status=CodingAgentStatus.RUNNING)
+            sync_coding_agent_status(
+                agent_id=agent_id, organization_id=org_id, status=CodingAgentStatus.RUNNING
+            )
 
 
 def get_claude_code_client(clients, agent_id, org_id, integration_id: int | None) -> Any | None:

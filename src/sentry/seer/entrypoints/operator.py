@@ -296,10 +296,8 @@ class SeerAutofixOperator[CachePayloadT]:
     ) -> None:
         from sentry.locks import locks
         from sentry.seer.autofix.autofix_agent import trigger_coding_agent_handoff
-        from sentry.seer.autofix.utils import (
-            CodingAgentProviderType,
-            CodingAgentStatus,
-        )
+        from sentry.seer.autofix.constants import CodingAgentStatus
+        from sentry.seer.autofix.utils import CodingAgentProviderType
         from sentry.utils.locking import UnableToAcquireLock
 
         event_lifecycle = SeerOperatorEventLifecycleMetric(

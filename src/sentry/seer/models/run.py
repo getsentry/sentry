@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import TypedDict
 from uuid import uuid4
 
 from django.db import models
@@ -9,6 +10,7 @@ from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, cell_si
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.pullrequest import PullRequest
+from sentry.seer.autofix.constants import CodingAgentStatus
 
 
 class SeerRunType(models.TextChoices):
@@ -113,6 +115,44 @@ class SeerRunPullRequest(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("seer_run_id", "pull_request_id")
+
+
+class SeerRunCodingAgentHandoffExtras(TypedDict, total=False):
+    # Deep link to the agent's session on the provider's own site (e.g. Cursor).
+    # Not every provider supplies one.
+    agent_url: str | None
+
+
+@cell_silo_model
+class SeerRunCodingAgentHandoff(DefaultFieldsModel):
+    """Records a coding agent Seer handed a run off to (Cursor/GitHub Copilot/Claude
+    Code), and its outcome.
+
+    A run can hand off to multiple agents (one per repo), so ``seer_run`` is not unique.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    seer_run = FlexibleForeignKey(
+        "seer.SeerRun", on_delete=models.CASCADE, related_name="coding_agent_handoffs"
+    )
+    provider = models.CharField(max_length=256)
+    agent_id = models.CharField(max_length=256, unique=True)
+    status = models.CharField(
+        max_length=256,
+        choices=[(s.value, s.value) for s in CodingAgentStatus],
+        default=CodingAgentStatus.PENDING,
+        db_default=CodingAgentStatus.PENDING,
+    )
+    # See SeerRunCodingAgentHandoffExtras for the expected shape.
+    extras = models.JSONField(db_default={}, default=dict)
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_seerruncodingagenthandoff"
+        indexes = [models.Index(fields=["seer_run", "status"])]
+
+    __repr__ = sane_repr("seer_run_id", "provider", "status")
 
 
 @cell_silo_model
