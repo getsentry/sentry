@@ -88,6 +88,19 @@ class DatadogIntegrationProviderTest(IntegrationTestCase):
         assert installation.app_key == "app"
         assert installation.site == "datadoghq.com"
 
+    def test_post_install_writes_site_to_debug_data(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="datadog",
+            external_id="dd-ext",
+            metadata={"api_key": "api", "app_key": "app", "site": "datadoghq.com"},
+        )
+
+        self._provider().post_install(integration, self.pipeline.organization, extra={})
+
+        integration.refresh_from_db()
+        assert integration.debug_data == {"site": "datadoghq.com"}
+
     def test_provider_is_single_install_and_flagged(self) -> None:
         provider = self.provider()
         assert provider.key == "datadog"

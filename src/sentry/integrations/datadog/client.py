@@ -3,7 +3,7 @@ from __future__ import annotations
 from requests import HTTPError, RequestException
 
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.identity.datadog.provider import DatadogWhoami, _mcp_base_url_for_site, mcp_whoami
+from sentry.identity.datadog.provider import DatadogWhoami, mcp_base_url_for_site, mcp_whoami
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 
 
@@ -13,7 +13,7 @@ def validate_datadog_credentials(api_key: str, app_key: str, site: str) -> Datad
     Returns the whoami payload on success, or raises ``IntegrationConfigurationError``
     if the site or credentials are invalid.
     """
-    base_url = _mcp_base_url_for_site(site)
+    base_url = mcp_base_url_for_site(site)
     if base_url is None:
         raise IntegrationConfigurationError(f"Invalid Datadog site: {site}")
 

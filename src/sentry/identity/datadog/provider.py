@@ -50,7 +50,7 @@ MCP_TOKEN_PATH = "/api/unstable/mcp-server/token"
 MCP_ENDPOINT_PATH = "/api/unstable/mcp-server/mcp"
 
 
-def _mcp_base_url_for_site(site: str | None) -> str | None:
+def mcp_base_url_for_site(site: str | None) -> str | None:
     """Validated Datadog MCP base URL for a site, or None if it's missing/invalid."""
     if not site or site not in DATADOG_VALID_SITES:
         return None
@@ -311,13 +311,13 @@ class DatadogIdentityProvider(McpIdentityProvider, OAuth2Provider):
     def _build_mcp_base_url(self) -> str:
         """MCP base URL for this provider's configured site. Raises if invalid."""
         site = self._get_oauth_parameter("site")
-        base = _mcp_base_url_for_site(site)
+        base = mcp_base_url_for_site(site)
         if base is None:
             raise ValueError(f"Invalid Datadog site: {site}")
         return base
 
     def build_mcp_urls(self, identity_data: dict[str, Any]) -> list[str]:
-        base = _mcp_base_url_for_site(identity_data.get("site"))
+        base = mcp_base_url_for_site(identity_data.get("site"))
         return [f"{base}{MCP_ENDPOINT_PATH}"] if base else []
 
     def get_oauth_authorize_url(self) -> str:
@@ -436,7 +436,7 @@ class DatadogPatIdentityProvider(McpIdentityProvider, Provider):
         return []
 
     def build_mcp_urls(self, identity_data: dict[str, Any]) -> list[str]:
-        base = _mcp_base_url_for_site(identity_data.get("site"))
+        base = mcp_base_url_for_site(identity_data.get("site"))
         return [f"{base}{MCP_ENDPOINT_PATH}"] if base else []
 
     def build_identity(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -445,7 +445,7 @@ class DatadogPatIdentityProvider(McpIdentityProvider, Provider):
             raise ValueError("Datadog requires an 'access_token' parameter.")
 
         site = data.get("site")
-        base = _mcp_base_url_for_site(site)
+        base = mcp_base_url_for_site(site)
         if not site:
             raise ValueError("Datadog requires a 'site' parameter (e.g. 'datadoghq.com').")
         elif base is None:

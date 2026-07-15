@@ -18,8 +18,10 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.datadog.client import validate_datadog_credentials
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
@@ -132,3 +134,14 @@ class DatadogIntegrationProvider(IntegrationProvider):
             "name": f"Datadog ({site})",
             "metadata": dict(credentials),
         }
+
+    def post_install(
+        self,
+        integration: Integration,
+        organization: RpcOrganization,
+        *,
+        extra: dict[str, Any],
+    ) -> None:
+        site = integration.metadata.get("site")
+        if site:
+            integration.update(debug_data={**(integration.debug_data or {}), "site": site})
