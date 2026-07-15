@@ -305,6 +305,31 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         # sorted by title by default
         assert values == ["Dashboard 3", "Dashboard 4", "Dashboard 5"]
 
+    def test_get_only_favorites_ordered_by_position(self) -> None:
+        d_a = Dashboard.objects.create(
+            title="Alpha", created_by_id=self.user.id, organization=self.organization
+        )
+        d_b = Dashboard.objects.create(
+            title="Bravo", created_by_id=self.user.id, organization=self.organization
+        )
+        d_c = Dashboard.objects.create(
+            title="Charlie", created_by_id=self.user.id, organization=self.organization
+        )
+        d_a.favorited_by = [self.user.id]
+        d_b.favorited_by = [self.user.id]
+        d_c.favorited_by = [self.user.id]
+        # Reorder so position order is Charlie, Alpha, Bravo (not title order)
+        DashboardFavoriteUser.objects.reorder_favorite_dashboards(
+            organization=self.organization,
+            user_id=self.user.id,
+            new_dashboard_positions=[d_c.id, d_a.id, d_b.id],
+        )
+        self.login_as(self.user)
+        with self.feature("organizations:dashboards-starred"):
+            response = self.client.get(self.url, data={"filter": "onlyFavorites"})
+        assert response.status_code == 200, response.content
+        assert [row["title"] for row in response.data] == ["Charlie", "Alpha", "Bravo"]
+
     def test_get_only_favorites_with_sort(self) -> None:
         user_1 = self.create_user(username="user_1")
         self.create_member(organization=self.organization, user=user_1)
@@ -355,6 +380,34 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         values = [row["title"] for row in response.data]
         assert values == ["Dashboard 4", "Dashboard 3", "Dashboard 5"]
+
+    def test_get_only_favorites_explicit_sort_overrides_position_with_flag(self) -> None:
+        d_a = Dashboard.objects.create(
+            title="Alpha", created_by_id=self.user.id, organization=self.organization
+        )
+        d_b = Dashboard.objects.create(
+            title="Bravo", created_by_id=self.user.id, organization=self.organization
+        )
+        d_c = Dashboard.objects.create(
+            title="Charlie", created_by_id=self.user.id, organization=self.organization
+        )
+        d_a.favorited_by = [self.user.id]
+        d_b.favorited_by = [self.user.id]
+        d_c.favorited_by = [self.user.id]
+        # Reorder positions to the reverse of dateCreated order
+        DashboardFavoriteUser.objects.reorder_favorite_dashboards(
+            organization=self.organization,
+            user_id=self.user.id,
+            new_dashboard_positions=[d_c.id, d_b.id, d_a.id],
+        )
+        self.login_as(self.user)
+        with self.feature("organizations:dashboards-starred"):
+            response = self.client.get(
+                self.url, data={"filter": "onlyFavorites", "sort": "dateCreated"}
+            )
+        assert response.status_code == 200, response.content
+        # Explicit sort wins over per-user position order even with the flag on
+        assert [row["title"] for row in response.data] == ["Alpha", "Bravo", "Charlie"]
 
     def test_get_exclude_favorites_with_no_sort(self) -> None:
         user_1 = self.create_user(username="user_1")
@@ -2252,6 +2305,23 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             ).values_list("prebuilt_id", flat=True)
         )
         assert favorited_prebuilt_ids == pre_favorited_prebuilt_ids
+
+    def test_endpoint_auto_stars_prebuilts_in_alphabetical_order(self) -> None:
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                "organizations:dashboards-starred",
+            ]
+        ):
+            response = self.do_request("get", self.url, {"filter": "onlyFavorites"})
+        assert response.status_code == 200
+
+        # The sidebar (onlyFavorites) returns auto-starred prebuilts by position, and the
+        # auto-star inserts them alphabetically, mirroring Explore.
+        titles = [row["title"] for row in response.data]
+        assert titles == sorted(titles)
+        assert titles == ["AI Agents Overview", "Backend Overview", "Web Vitals"]
 
     def test_post_with_text_widget(self) -> None:
         data = {
