@@ -55,6 +55,7 @@ export function SeerEnableNotifications({status}: Props) {
   } = usePrompt({
     feature: PROMPT_FEATURE,
     organization,
+    options: {enabled: isEligible},
   });
 
   const shouldRender =
@@ -72,7 +73,7 @@ export function SeerEnableNotifications({status}: Props) {
   }, [isSuccessVisible, permission]);
 
   useEffect(() => {
-    if (shouldRender) {
+    if (!shouldRender) {
       return;
     }
     trackAnalytics('seer-enable-notifications.rendered', {
@@ -81,7 +82,7 @@ export function SeerEnableNotifications({status}: Props) {
     });
   }, [analyticsArea, organization, shouldRender]);
 
-  if (shouldRender) {
+  if (!shouldRender) {
     return null;
   }
 
