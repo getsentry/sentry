@@ -148,7 +148,7 @@ interface GithubPrReviewCommentFeedbackSource {
   comment?: {html_url?: string; user?: {login: string}};
 }
 
-export type RawFeedbackSource =
+type RawFeedbackSource =
   | UserUiFeedbackSource
   | GithubPrCommentFeedbackSource
   | GithubPrReviewCommentFeedbackSource;
