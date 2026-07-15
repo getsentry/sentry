@@ -18,6 +18,7 @@ from sentry.tasks.backfill_group_action_log import (
     reset_and_backfill_group_action_log,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.activity import ActivityType
 
 TEST_BATCH_SIZE = 5
@@ -30,14 +31,14 @@ class BackfillGroupActionLogForGroupTest(TestCase):
         self.now = timezone.now()
 
     def test_backfills_activities_for_group(self) -> None:
-        self.create_group_activity(
+        resolved_activity = self.create_group_activity(
             group=self.group,
             type=ActivityType.SET_RESOLVED.value,
             data={},
             user_id=self.user.id,
             datetime=self.now - timedelta(minutes=2),
         )
-        self.create_group_activity(
+        assigned_activity = self.create_group_activity(
             group=self.group,
             type=ActivityType.ASSIGNED.value,
             data={"assignee": str(self.user.id), "assigneeType": "user"},
@@ -45,12 +46,17 @@ class BackfillGroupActionLogForGroupTest(TestCase):
             datetime=self.now - timedelta(minutes=1),
         )
 
-        backfill_group_action_log_for_group(self.group.id)
+        with freeze_time(self.now):
+            backfill_group_action_log_for_group(self.group.id)
 
         entries = GroupActionLogEntry.objects.filter(group_id=self.group.id).order_by("date_added")
         assert entries.count() == 2
         assert entries[0].type == GroupActionType.RESOLVE.value
+        assert entries[0].date_added == resolved_activity.datetime
+        assert entries[0].date_updated == self.now
         assert entries[1].type == GroupActionType.ASSIGN.value
+        assert entries[1].date_added == assigned_activity.datetime
+        assert entries[1].date_updated == self.now
 
     def test_sets_actor_from_user_id(self) -> None:
         self.create_group_activity(

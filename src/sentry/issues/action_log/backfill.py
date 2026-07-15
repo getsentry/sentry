@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from django.db import connections, router, transaction
+from django.utils import timezone
 
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
@@ -47,7 +48,7 @@ def bulk_insert_action_log_entries(params: list[int | str | datetime], num_rows:
 
     *params* is a flat list of values for *num_rows* rows, each with 10 columns:
     (group_id, project_id, type, actor_type, actor_id, source, data,
-     date_added, idempotency_key).
+     date_added, date_updated, idempotency_key).
 
     Returns the number of rows actually inserted (via RETURNING).
     """
@@ -57,7 +58,7 @@ def bulk_insert_action_log_entries(params: list[int | str | datetime], num_rows:
     sql = """
         INSERT INTO sentry_groupactionlogentry
             (group_id, project_id, type, actor_type, actor_id, source, data,
-             date_added, idempotency_key)
+             date_added, date_updated, idempotency_key)
         VALUES %s
         ON CONFLICT (group_id, idempotency_key)
             WHERE idempotency_key IS NOT NULL
@@ -109,6 +110,7 @@ def backfill_actions(
                 entry.source,
                 json.dumps(entry.action.dict()),
                 entry.date_added,
+                timezone.now(),  # date_updated
                 entry.idempotency_key,
             ]
         )
