@@ -107,8 +107,6 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                 status=400,
             )
 
-        # Accepts a plain integer or a dotted build code (e.g. "1.2.3"), expanded
-        # to the sortable int launchpad stored on the artifact.
         provided_build_number: int | None = None
         if provided_build_number_str is not None:
             provided_build_number = parse_build_number(provided_build_number_str)

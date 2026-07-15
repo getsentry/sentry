@@ -30,11 +30,12 @@ from sentry.preprod.build_distribution_utils import parse_build_number
         # blowing up query prep
         ("9223372036854775808", None),
         ("99999999999999999999999999", None),
+        # Surrounding whitespace is trimmed, matching int()'s old tolerance
+        ("  42  ", 42),
+        (" 1.2.3 ", 1_000_002_000_003),
     ],
 )
 def test_parse_build_number(build: str, expected: int | None) -> None:
-    # Must stay in sync with launchpad's _parse_build_number so a client-supplied
-    # build code expands to the same sortable int launchpad stored on the artifact.
     assert parse_build_number(build) == expected
 
 

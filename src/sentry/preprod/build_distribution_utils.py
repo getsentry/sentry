@@ -18,22 +18,24 @@ from sentry.utils.numbers import validate_bigint
 
 logger = logging.getLogger(__name__)
 
-# Zero-padding width per dotted component. Must stay in sync with launchpad's
-# _BUILD_NUMBER_COMPONENT_WIDTH in artifact_processor._parse_build_number.
+# Zero-padding width per period-separated component. Must stay in sync with
+# launchpad's _BUILD_NUMBER_COMPONENT_WIDTH in artifact_processor._parse_build_number.
 _BUILD_NUMBER_COMPONENT_WIDTH = 6
 
 
 def parse_build_number(build: str) -> int | None:
     """Parse a raw build identifier (e.g. CFBundleVersion) into a sortable int.
 
-    Mirrors launchpad's ``_parse_build_number`` so a client-supplied build code
+    Mirrors launchpad's ``_parse_build_number`` so a client-supplied build number
     expands to the same sortable int launchpad stored on the artifact. Plain
-    integers pass through unchanged; up to three dot-separated integers (e.g.
+    integers pass through unchanged; two to three period-separated integers (e.g.
     "1.2.3") are packed by zero-padding each component; anything else returns None.
 
     Values that overflow the build_number column (a BoundedBigIntegerField) return
     None: they can never match a stored row and would otherwise fail query prep.
     """
+    build = build.strip()
+
     # isdecimal() (not isdigit()) is the subset int() can always parse; isdigit()
     # also matches chars like superscripts that make int() raise.
     if build.isdecimal():
