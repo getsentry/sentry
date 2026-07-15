@@ -55,9 +55,6 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     initialDashboard ?? null
   );
 
-  // Clear optimistic dashboard state when the URL changes to a different dashboard.
-  // Adjusting state during render (instead of in an effect) avoids the derived-state
-  // anti-pattern and an extra render pass.
   const [prevDashboardId, setPrevDashboardId] = useState(dashboardId);
   if (dashboardId && !isEqual(dashboardId, prevDashboardId)) {
     setPrevDashboardId(dashboardId);
