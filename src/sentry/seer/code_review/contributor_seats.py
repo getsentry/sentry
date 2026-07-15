@@ -126,7 +126,7 @@ def get_or_create_contributor(
     integration: Integration | RpcIntegration,
     external_identifier: str,
     alias: str | None,
-) -> OrganizationContributors:
+) -> OrganizationContributors | None:
     """
     TODO(CW-1539): Replace with get_or_create() after the contributor deduplication
     migration has completed.
@@ -181,6 +181,8 @@ def track_contributor_seat(
         external_identifier=str(user_id),
         alias=user_username,
     )
+    if contributor is None:
+        return
     if not should_increment_contributor_seat(organization, repo, contributor):
         return
 
@@ -222,6 +224,8 @@ def record_contributor_action(
         external_identifier=str(user_id),
         alias=user_username,
     )
+    if contributor is None:
+        return
 
     if not is_opened or not should_increment_contributor_seat(organization, repo, contributor):
         return
