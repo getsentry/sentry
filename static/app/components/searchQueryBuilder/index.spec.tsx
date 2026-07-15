@@ -6847,6 +6847,30 @@ describe('SearchQueryBuilder', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('keeps ask seer in the footer after clearing an existing filter key', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          enableAISearch
+          initialQuery="browser.name:Firefox"
+        />,
+        {
+          organization: {
+            features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+          },
+        }
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
+      );
+      await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter key'}));
+
+      expect(
+        screen.getByRole('button', {name: /Ask AI to build your query/})
+      ).toBeInTheDocument();
+    });
+
     it('does not render ask seer in the footer when AI search is disabled', async () => {
       render(<SearchQueryBuilder {...defaultProps} />, {
         organization: {

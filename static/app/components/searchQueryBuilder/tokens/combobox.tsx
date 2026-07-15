@@ -312,9 +312,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   const organization = useOrganization();
   const anyItemsShowing = totalOptions > hiddenOptions.size;
   const showAskSeerFooter =
-    enableAISearch &&
-    Boolean(filterValue) &&
-    organization.features.includes('gen-ai-ask-seer-ux-rework');
+    enableAISearch && organization.features.includes('gen-ai-ask-seer-ux-rework');
 
   if (customMenu) {
     return customMenu({
