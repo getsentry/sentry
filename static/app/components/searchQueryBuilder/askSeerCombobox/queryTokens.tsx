@@ -177,26 +177,28 @@ function NewQueryTokens({
       : null;
 
     tokens.push(
-      <Stack gap="xs" overflow="hidden" key={`${crossEvent.type}-${idx}`}>
+      <Stack overflow="hidden" key={`${crossEvent.type}-${idx}`}>
         <ExploreParamTitle>{t('Cross Event Filter')}</ExploreParamTitle>
-        <Stack gap="xs">
-          <ExploreParamTitle>{t('Dataset')}</ExploreParamTitle>
-          <Container>
-            <ExploreGroupBys>{crossEvent.type}</ExploreGroupBys>
-          </Container>
-        </Stack>
-        <Stack gap="xs">
-          <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
+        <Flex gap="md">
           <Stack gap="xs">
-            {parsedCrossEvent
-              ?.filter(({text}) => text.trim() !== '')
-              .map(({text}) => (
-                <FormattedQueryWrapper key={text}>
-                  <ProvidedFormattedQuery query={text} />
-                </FormattedQueryWrapper>
-              ))}
+            <ExploreParamTitle>{t('Dataset')}</ExploreParamTitle>
+            <Container>
+              <ExploreGroupBys>{crossEvent.type}</ExploreGroupBys>
+            </Container>
           </Stack>
-        </Stack>
+          <Stack gap="xs">
+            <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
+            <Stack gap="xs">
+              {parsedCrossEvent
+                ?.filter(({text}) => text.trim() !== '')
+                .map(({text}) => (
+                  <FormattedQueryWrapper key={text}>
+                    <ProvidedFormattedQuery query={text} />
+                  </FormattedQueryWrapper>
+                ))}
+            </Stack>
+          </Stack>
+        </Flex>
       </Stack>
     );
   });
