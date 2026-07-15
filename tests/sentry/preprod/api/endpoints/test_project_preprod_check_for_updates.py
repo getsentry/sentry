@@ -241,6 +241,18 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         assert response.status_code == 400
         assert "Invalid build_number format" in response.json()["error"]
 
+    def test_overflowing_build_number_returns_400(self) -> None:
+        """A build_number larger than the column can hold is rejected, not a 500."""
+        url = self._get_url()
+        response = self.client.get(
+            url
+            + "?app_id=com.example.app&platform=android&build_version=1.0.0&build_number=99999999999999999999999999",
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
+        )
+        assert response.status_code == 400
+        assert "Invalid build_number format" in response.json()["error"]
+
     def test_platform_specific_filtering_android(self) -> None:
         """Test that Android platform only returns AAB/APK artifacts"""
         # Create Android artifact

@@ -14,6 +14,7 @@ from packaging.version import parse as parse_version
 from sentry.models.project import Project
 from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
 from sentry.utils.http import absolute_uri
+from sentry.utils.numbers import validate_bigint
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +30,15 @@ def parse_build_number(build: str) -> int | None:
     expands to the same sortable int launchpad stored on the artifact. Plain
     integers pass through unchanged; up to three dot-separated integers (e.g.
     "1.2.3") are packed by zero-padding each component; anything else returns None.
+
+    Values that overflow the build_number column (a BoundedBigIntegerField) return
+    None: they can never match a stored row and would otherwise fail query prep.
     """
     # isdecimal() (not isdigit()) is the subset int() can always parse; isdigit()
     # also matches chars like superscripts that make int() raise.
     if build.isdecimal():
-        return int(build)
+        value = int(build)
+        return value if validate_bigint(value) else None
 
     parts = build.split(".")
     if 2 <= len(parts) <= 3 and all(

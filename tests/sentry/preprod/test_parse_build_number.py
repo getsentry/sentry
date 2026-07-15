@@ -24,6 +24,12 @@ from sentry.preprod.build_distribution_utils import parse_build_number
         # Unicode "digits" that int() cannot parse (isdigit() True, isdecimal() False)
         ("²", None),
         ("1.²", None),
+        # Largest value the build_number column can hold passes through
+        ("9223372036854775807", 9223372036854775807),
+        # One past I64_MAX overflows the column, so it is rejected rather than
+        # blowing up query prep
+        ("9223372036854775808", None),
+        ("99999999999999999999999999", None),
     ],
 )
 def test_parse_build_number(build: str, expected: int | None) -> None:
