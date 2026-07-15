@@ -321,7 +321,7 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         if dataset not in query_datasets_to_type:
             raise serializers.ValidationError(
                 "Invalid dataset for alerts. Valid datasets are: %s"
-                % ", ".join(sorted(d.name.lower() for d in query_datasets_to_type))
+                % ", ".join(sorted(d.value for d in query_datasets_to_type))
             )
         query_type = data.setdefault("query_type", query_datasets_to_type[dataset])
 

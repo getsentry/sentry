@@ -82,6 +82,11 @@ class SnubaQueryValidatorTest(TestCase):
         assert not validator.is_valid()
         non_field_errors = validator.errors.get("nonFieldErrors", [])
         assert any("Invalid dataset for alerts" in str(e) for e in non_field_errors)
+        # The advertised datasets must be the submittable `.value` strings (e.g.
+        # "generic_metrics"), not the enum member names (e.g. "performancemetrics").
+        message = " ".join(str(e) for e in non_field_errors)
+        assert Dataset.PerformanceMetrics.value in message
+        assert Dataset.PerformanceMetrics.name.lower() not in message
 
     def test_validated_create_source_limits(self) -> None:
         with self.settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=2):
