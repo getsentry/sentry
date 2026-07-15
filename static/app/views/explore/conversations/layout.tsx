@@ -64,7 +64,6 @@ function ConversationsLayoutContent() {
           <NoProjectMessage organization={organization}>
             <PageFiltersContainer
               maxPickableDays={MAX_PICKABLE_DAYS}
-              storageNamespace="conversations"
               skipLoadLastUsed={isDetailPage}
             >
               <Outlet />

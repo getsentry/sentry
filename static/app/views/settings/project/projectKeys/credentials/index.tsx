@@ -62,7 +62,7 @@ function SecurityTab({securityEndpoint}: SecurityTabProps) {
                 {
                   link: (
                     <ExternalLink href="https://docs.sentry.io/product/security-policy-reporting/">
-                      {t('CSP and Expect-CT reports')}
+                      {t('CSP reports')}
                     </ExternalLink>
                   ),
                 }

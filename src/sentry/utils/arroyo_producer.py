@@ -9,6 +9,7 @@ from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_produ
 from arroyo.types import BrokerValue, Partition
 from arroyo.types import Topic as ArroyoTopic
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
@@ -100,6 +101,13 @@ def get_arroyo_producer(
 
     producer_config = get_kafka_producer_cluster_options(topic_definition["cluster"])
 
+    # temp(benmckerry): roll out poll metrics to our producers
+    poll_metrics_map = options.get("arroyo.producer.record_poll_metrics") or []
+    record_poll_metrics = False
+    if name in poll_metrics_map or "all" in poll_metrics_map:
+        record_poll_metrics = True
+    poll_metric_frequency = options.get("arroyo.producer.poll_metric_frequency")
+
     # Remove any excluded config keys
     if exclude_config_keys:
         for key in exclude_config_keys:
@@ -112,5 +120,8 @@ def get_arroyo_producer(
     producer_config["client.id"] = name
 
     return KafkaProducer(
-        build_kafka_producer_configuration(default_config=producer_config), **kafka_producer_kwargs
+        build_kafka_producer_configuration(default_config=producer_config),
+        record_poll_metrics=record_poll_metrics,
+        poll_metric_frequency=poll_metric_frequency,
+        **kafka_producer_kwargs,
     )

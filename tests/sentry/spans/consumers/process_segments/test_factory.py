@@ -33,6 +33,8 @@ def build_mock_message(data, topic=None):
     {
         "spans.process-segments.dedupe-ttl": 0,
         "spans.process-segments.dedupe-filter-enable": False,
+        "arroyo.producer.record_poll_metrics": [],
+        "arroyo.producer.poll_metric_frequency": 10,
     }
 )
 @mock.patch(

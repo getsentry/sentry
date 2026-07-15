@@ -671,12 +671,40 @@ class HandleWebhookForPrMetricsCooldownTest(TestCase):
 
     @patch("sentry.analytics.record")
     def test_task_drops_when_pull_request_gone(self, mock_record: MagicMock) -> None:
+        # The lookup is scoped by (id, organization_id, repository_id) together, so
+        # a real PR whose repository_id no longer matches (e.g. re-parented between
+        # enqueue and run) is indistinguishable from one that vanished outright —
+        # both raise PullRequest.DoesNotExist on this compound filter. No PR, no
+        # PullRequestMetrics row to release: the sentinel is left untouched rather
+        # than guessed at from pull_request_id alone.
+        self.pull_request.metrics.update(verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN)
+
         emit_pr_metrics_cooldown_task(
-            pull_request_id=self.pull_request.id + 999,
+            pull_request_id=self.pull_request.id,
             organization_id=self.organization.id,
+            repository_id=self.repo.id + 999,
+        )
+
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert self._verdict() == "waiting_event_cooldown"
+
+    @patch("sentry.analytics.record")
+    def test_task_drops_when_organization_gone(self, mock_record: MagicMock) -> None:
+        # The PR lookup is itself scoped by organization_id, so to reach the
+        # Organization lookup (rather than failing the PR lookup first), the PR's
+        # own organization_id must point at the now-missing org.
+        missing_organization_id = self.organization.id + 999
+        self.pull_request.update(organization_id=missing_organization_id)
+        self.pull_request.metrics.update(verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN)
+
+        emit_pr_metrics_cooldown_task(
+            pull_request_id=self.pull_request.id,
+            organization_id=missing_organization_id,
             repository_id=self.repo.id,
         )
+
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert self._verdict() is None
 
 
 @with_feature("organizations:pr-metrics-emit")
@@ -2088,17 +2116,75 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
 
     @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
-    def test_ineligible_attribution_skips_judge(
+    def test_ineligible_attribution_emits_merged_with_iteration(
         self, mock_record: MagicMock, mock_delay: MagicMock
     ) -> None:
         # Only SENTRY_APP and SEER_DELEGATED_* attributions qualify for the judge.
-        # A PR tracked only via MCP or REFERENCED_ISSUE is skipped.
+        # A PR tracked only via MCP or REFERENCED_ISSUE settles locally instead of
+        # being dropped: merged with a later commit becomes MERGED_WITH_ITERATION,
+        # the same label the judge would use, even though no judge looked at it.
         PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(
             signal_type=PullRequestAttributionSignalType.MCP
         )
         self._call()
         assert mock_delay.call_count == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_with_iteration"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
+    def test_ineligible_attribution_emits_without_seer_access(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # The fallback never talks to Seer, so an org's Seer-access consent gate
+        # (gen-ai-features / hide_ai_features) must not block it — only the actual
+        # forward-to-Seer branch, reached for judge-eligible attribution, needs it.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(
+            signal_type=PullRequestAttributionSignalType.MCP
+        )
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
+        assert mock_delay.call_count == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_with_iteration"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
+    def test_ineligible_attribution_redelivery_emits_once(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # The same NULL-verdict claim that guards the deterministic path also
+        # guards the fallback emit, so a redelivered close/merge settles once.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(
+            signal_type=PullRequestAttributionSignalType.MCP
+        )
+        self._call()
+        self._call()
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
+    def test_ineligible_attribution_stays_unemitted_when_indeterminate(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # Without activity tracking, select_verdict can't tell whether push
+        # activity happened at all (INDETERMINATE), not just that it's genuinely
+        # ambiguous (NEEDS_JUDGE). The fallback only trusts the latter, so an
+        # ineligible-attribution PR here is left unemitted, same as before the
+        # fallback existed — guessing would risk mislabeling an iterated PR as
+        # unchanged.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(
+            signal_type=PullRequestAttributionSignalType.MCP
+        )
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            self._call()
+        assert mock_delay.call_count == 0
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
 
 MATCH_RPC = "sentry.pr_metrics.webhooks.make_match_coding_agent_pr_request"

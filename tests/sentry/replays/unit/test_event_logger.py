@@ -22,7 +22,13 @@ from sentry.replays.usecases.ingest.event_parser import (
     ParsedEventMeta,
     TapEvent,
 )
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
+
+_ARROYO_PRODUCER_OPTIONS = {
+    "arroyo.producer.record_poll_metrics": [],
+    "arroyo.producer.poll_metric_frequency": 10,
+}
 
 
 def test_gen_rage_clicks() -> None:
@@ -51,6 +57,7 @@ def test_gen_rage_clicks() -> None:
     assert len(list(gen_rage_clicks(meta, 1, "1", None))) == 0
 
 
+@override_options(_ARROYO_PRODUCER_OPTIONS)
 @thread_leak_allowlist(reason="replays", issue=97033)
 def test_emit_click_events_environment_handling() -> None:
     click_events = [
@@ -89,6 +96,7 @@ def test_emit_click_events_environment_handling() -> None:
         assert producer.call_args.args[1].value is not None
 
 
+@override_options(_ARROYO_PRODUCER_OPTIONS)
 @thread_leak_allowlist(reason="replays", issue=97033)
 def test_emit_tap_events_environment_handling() -> None:
     tap_events = [
@@ -115,6 +123,7 @@ def test_emit_tap_events_environment_handling() -> None:
         assert producer.call_args.args[1].value is not None
 
 
+@override_options(_ARROYO_PRODUCER_OPTIONS)
 @thread_leak_allowlist(reason="replays", issue=97033)
 @mock.patch("arroyo.backends.kafka.consumer.KafkaProducer.produce")
 def test_emit_trace_items_to_eap(producer: mock.MagicMock) -> None:

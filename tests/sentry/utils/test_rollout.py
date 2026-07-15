@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
@@ -6,6 +7,7 @@ from sentry.options import all as all_options
 from sentry.testutils.helpers import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.rollout import SafeRolloutComparator
+from sentry.utils.safe import trim
 
 
 class TestRolloutComparator(SafeRolloutComparator):
@@ -209,3 +211,153 @@ class SafeRolloutComparatorTestCase(TestCase):
         assert mock_check_and_choose.called
         assert mock_check_and_choose.call_args.kwargs["debug_context"] == {"x": "y"}
         assert mock_check_and_choose.call_args.kwargs["data_serializer"] is serializer
+
+    @override_options({TEST_CALLSITE_MISMATCH_LOG_ALLOWLIST_OPTION: ["*"]})
+    def test_serializer_use(self) -> None:
+        maybe_log_mismatch_kwargs: Any = {
+            "callsite": "dogpark",
+            "source_of_truth": "neither",
+            "is_exact_match": True,
+            "is_reasonable_match": True,
+            "is_experimental_data_nullish": False,
+            "control_data": {"dogs are great"},
+            "experimental_data": {"adopt, don't shop"},
+            "debug_context": {"fetch": "the ball"},
+            "data_serializer": None,
+        }
+
+        mock_default_serializer = MagicMock(return_value="default serializer result")
+        mock_class_level_serializer = MagicMock(return_value="class-level serializer result")
+        mock_callsite_level_serializer = MagicMock(return_value="callsite-level serializer result")
+
+        # When neither a class-level nor callsite-level custom serializer is provided, the default
+        # serializer is used for the control and experimental data, and for the debug context
+        with (
+            patch("sentry.utils.rollout.logger.info") as mock_python_logger,
+            patch.object(
+                TestRolloutComparator, "_default_serialize_for_log", mock_default_serializer
+            ),
+        ):
+            TestRolloutComparator._maybe_log_mismatch(**maybe_log_mismatch_kwargs)
+
+            mock_default_serializer.assert_any_call({"dogs are great"})
+            mock_default_serializer.assert_any_call({"adopt, don't shop"})
+            mock_default_serializer.assert_any_call({"fetch": "the ball"})
+
+            logger_extra = mock_python_logger.call_args.kwargs["extra"]
+            assert logger_extra["control_data_raw"] == "default serializer result"
+            assert logger_extra["experimental_data_raw"] == "default serializer result"
+            assert logger_extra["debug_context"] == "default serializer result"
+
+        # When a class-level serializer but no callsite-level serializer is provided, the
+        # class-level serializer is used for the control and experimental data, and the default
+        # serializer is used for the debug context
+        with (
+            patch("sentry.utils.rollout.logger.info") as mock_python_logger,
+            patch.object(
+                TestRolloutComparator, "_default_serialize_for_log", mock_default_serializer
+            ),
+            patch.object(TestRolloutComparator, "data_serializer", mock_class_level_serializer),
+        ):
+            TestRolloutComparator._maybe_log_mismatch(**maybe_log_mismatch_kwargs)
+
+            mock_class_level_serializer.assert_any_call({"dogs are great"})
+            mock_class_level_serializer.assert_any_call({"adopt, don't shop"})
+            mock_default_serializer.assert_any_call({"fetch": "the ball"})
+
+            logger_extra = mock_python_logger.call_args.kwargs["extra"]
+            assert logger_extra["control_data_raw"] == "class-level serializer result"
+            assert logger_extra["experimental_data_raw"] == "class-level serializer result"
+            assert logger_extra["debug_context"] == "default serializer result"
+
+        # When a callsite-level serializer but no class-level serializer is provided, the
+        # callsite-level serializer is used for the control and experimental data, and the default
+        # serializer is used for the debug context
+        with (
+            patch("sentry.utils.rollout.logger.info") as mock_python_logger,
+            patch.object(
+                TestRolloutComparator, "_default_serialize_for_log", mock_default_serializer
+            ),
+            patch.dict(maybe_log_mismatch_kwargs, data_serializer=mock_callsite_level_serializer),
+        ):
+            TestRolloutComparator._maybe_log_mismatch(**maybe_log_mismatch_kwargs)
+
+            mock_callsite_level_serializer.assert_any_call({"dogs are great"})
+            mock_callsite_level_serializer.assert_any_call({"adopt, don't shop"})
+            mock_default_serializer.assert_any_call({"fetch": "the ball"})
+
+            logger_extra = mock_python_logger.call_args.kwargs["extra"]
+            assert logger_extra["control_data_raw"] == "callsite-level serializer result"
+            assert logger_extra["experimental_data_raw"] == "callsite-level serializer result"
+            assert logger_extra["debug_context"] == "default serializer result"
+
+        # When both a class-level serializer and a callsite-level serializer are provided, the
+        # callsite-level serializer takes precedence and is used for the control and experimental
+        # data, and the default serializer is used for the debug context
+        with (
+            patch("sentry.utils.rollout.logger.info") as mock_python_logger,
+            patch.object(TestRolloutComparator, "data_serializer", mock_class_level_serializer),
+            patch.object(
+                TestRolloutComparator, "_default_serialize_for_log", mock_default_serializer
+            ),
+            patch.dict(maybe_log_mismatch_kwargs, data_serializer=mock_callsite_level_serializer),
+        ):
+            TestRolloutComparator._maybe_log_mismatch(**maybe_log_mismatch_kwargs)
+
+            mock_callsite_level_serializer.assert_any_call({"dogs are great"})
+            mock_callsite_level_serializer.assert_any_call({"adopt, don't shop"})
+            mock_default_serializer.assert_any_call({"fetch": "the ball"})
+
+            logger_extra = mock_python_logger.call_args.kwargs["extra"]
+            assert logger_extra["control_data_raw"] == "callsite-level serializer result"
+            assert logger_extra["experimental_data_raw"] == "callsite-level serializer result"
+            assert logger_extra["debug_context"] == "default serializer result"
+
+    @override_options({TEST_CALLSITE_MISMATCH_LOG_ALLOWLIST_OPTION: ["*"]})
+    def test_internal_only_logging(self) -> None:
+        maybe_log_mismatch_kwargs: Any = {
+            "callsite": "dogpark",
+            "source_of_truth": "neither",
+            "is_exact_match": True,
+            "is_reasonable_match": True,
+            "is_experimental_data_nullish": False,
+            "control_data": {"dogs are great"},
+            "experimental_data": {"adopt, don't shop"},
+            "debug_context": {"fetch": "the ball"},
+            "data_serializer": None,
+        }
+
+        # The option defaults to `False`
+        assert TestRolloutComparator.internal_logs_only is False
+
+        with (
+            patch("sentry.utils.rollout.trim", wraps=trim) as trim_spy,
+            patch("sentry.utils.rollout.logger.info") as mock_python_logger,
+            patch("sentry.utils.rollout.sdk_logger.info") as mock_sdk_logger,
+        ):
+            TestRolloutComparator._maybe_log_mismatch(**maybe_log_mismatch_kwargs)
+
+            assert trim_spy.call_count == 3  # For control data, experimental data, debug context
+            mock_python_logger.assert_called()
+            mock_sdk_logger.assert_not_called()
+            # By default, `_default_serialize_for_log` turns sets into lists
+            assert mock_python_logger.call_args.kwargs["extra"]["control_data_raw"] == [
+                "dogs are great"
+            ]
+
+        with (
+            patch.object(TestRolloutComparator, "internal_logs_only", True),
+            patch("sentry.utils.rollout.trim", wraps=trim) as trim_spy,
+            patch("sentry.utils.rollout.logger.info") as mock_python_logger,
+            patch("sentry.utils.rollout.sdk_logger.info") as mock_sdk_logger,
+        ):
+            TestRolloutComparator._maybe_log_mismatch(**maybe_log_mismatch_kwargs)
+
+            assert trim_spy.call_count == 0
+            mock_python_logger.assert_not_called()
+            mock_sdk_logger.assert_called()
+            # If we're only logging internally, `_default_serialize_for_log` is just a pass through,
+            # and leaves serialization to to the SDK logger
+            assert mock_sdk_logger.call_args.kwargs["attributes"]["control_data_raw"] == {
+                "dogs are great"
+            }
