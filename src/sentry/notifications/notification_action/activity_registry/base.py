@@ -19,7 +19,7 @@ from sentry.notifications.platform.types import NotificationTarget
 from sentry.types.activity import ActivityType
 from sentry.users.services.user.service import user_service
 from sentry.utils.http import absolute_uri
-from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.models import Action, Workflow
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
@@ -70,6 +70,11 @@ def build_activity_action_data(
 
     group, project, organization = extract_notification_models_by_activity(activity)
 
+    try:
+        workflow = Workflow.objects.get(id=invocation.workflow_id, organization_id=organization.id)
+    except Workflow.DoesNotExist:
+        raise ValueError(f"Workflow not found: {invocation.workflow_id}")
+
     action_data = dict(
         source=source,
         activity_type=activity.type,
@@ -78,9 +83,11 @@ def build_activity_action_data(
         issue_url=absolute_uri(group.get_absolute_url()),
         issue_title=build_attachment_title(group) or "",
         issue_culprit=group.culprit,
+        project_slug=project.slug,
         alert_url=organization.absolute_url(
             f"organizations/{organization.slug}/monitors/alerts/{invocation.workflow_id}/"
         ),
+        alert_name=workflow.name,
         activity_data=activity.data,
         activity_user_name=None,
     )
