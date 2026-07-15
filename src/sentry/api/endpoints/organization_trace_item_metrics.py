@@ -13,11 +13,6 @@ from sentry.api.bases import NoProjects
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpointBase,
 )
-from sentry.api.endpoints.organization_trace_item_metric_context import (
-    METRIC_NAME_ALIAS,
-    METRIC_TYPE_ALIAS,
-    METRIC_UNIT_ALIAS,
-)
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.explore.models import (
@@ -27,20 +22,17 @@ from sentry.explore.models import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.constants import (
+    METRIC_NAME_ALIAS,
+    METRIC_TYPE_ALIAS,
+    METRIC_UNIT_ALIAS,
+)
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.trace_metrics import TraceMetrics
 
 _COUNT_ALIAS = f"count({METRIC_NAME_ALIAS})"
 _LAST_SEEN_ALIAS = "max(timestamp_precise)"
-
-_SELECTED_COLUMNS = [
-    METRIC_NAME_ALIAS,
-    METRIC_TYPE_ALIAS,
-    METRIC_UNIT_ALIAS,
-    _COUNT_ALIAS,
-    _LAST_SEEN_ALIAS,
-]
 
 # Metrics count is small; a generous cap avoids paginating in practice.
 MAX_METRICS_PER_PAGE = 1000
@@ -119,7 +111,13 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
                 results = TraceMetrics.run_table_query(
                     params=snuba_params,
                     query_string=query_string,
-                    selected_columns=_SELECTED_COLUMNS,
+                    selected_columns=[
+                        METRIC_NAME_ALIAS,
+                        METRIC_TYPE_ALIAS,
+                        METRIC_UNIT_ALIAS,
+                        _COUNT_ALIAS,
+                        _LAST_SEEN_ALIAS,
+                    ],
                     orderby=[METRIC_NAME_ALIAS],
                     offset=offset,
                     limit=limit,
