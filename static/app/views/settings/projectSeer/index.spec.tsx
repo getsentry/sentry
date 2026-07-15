@@ -1105,9 +1105,6 @@ describe('ProjectSeer', () => {
       const select = await screen.findByRole('textbox', {
         name: /Where should Seer stop/i,
       });
-      act(() => {
-        select.focus();
-      });
       await userEvent.click(select);
       await userEvent.click(await screen.findByText('Hand off to Claude Agent'));
 
