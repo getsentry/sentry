@@ -194,7 +194,8 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         relocation_storage = get_relocation_storage()
         # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
         fp = BytesIO(bytes(encrypted_bytes or []))
-        relocation_storage.save(path, fp)
+        storage_path = relocation_storage.save(path, fp)
+        logger_data["storage_path"] = storage_path
         logger.info("SaaS -> SaaS export contents retrieved", extra=logger_data)
 
         # Save transfer record so we can push state to the requesting cell
@@ -204,6 +205,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
             requesting_cell=requesting_region_name,
             exporting_cell=replying_region_name,
             state=RelocationTransferState.Reply,
+            storage_path=storage_path,
             # Set next runtime in the future to reduce races with scheduled tasks
             scheduled_for=timezone.now() + RETRY_BACKOFF,
         )

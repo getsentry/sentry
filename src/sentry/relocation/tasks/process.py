@@ -398,8 +398,9 @@ def fulfill_cross_region_export_request(
     )
 
     fp.seek(0)
-    relocation_storage.save(path, fp)
+    storage_path = relocation_storage.save(path, fp)
     logger_data["encrypted_contents_size"] = fp.tell()
+    logger_data["storage_path"] = storage_path
     logger.info(
         "fulfill_cross_region_export_request: saved",
         extra=logger_data,
@@ -412,6 +413,7 @@ def fulfill_cross_region_export_request(
         exporting_cell=replying_cell_name,
         org_slug=org_slug,
         state=RelocationTransferState.Reply,
+        storage_path=storage_path,
         # Set next runtime in the future to reduce races with scheduled tasks
         scheduled_for=timezone.now() + TRANSFER_RETRY_BACKOFF,
     )

@@ -133,11 +133,10 @@ def process_relocation_transfer_control(transfer_id: int) -> None:
         # We expect the `ProxyRelocationExportService::reply_with_export` implementation to have
         # written the export data to the control silo's local relocation-specific GCS bucket. Here,
         # we just read it into memory and attempt the RPC back to the requesting cell.
-        uuid = transfer.relocation_uuid
         slug = transfer.org_slug
 
         relocation_storage = get_relocation_storage()
-        path = f"runs/{uuid}/saas_to_saas_export/{slug}.tar"
+        path = transfer.get_storage_path()
         try:
             encrypted_bytes = relocation_storage.open(path)
         except Exception as err:
@@ -202,7 +201,7 @@ def process_relocation_transfer_region(transfer_id: int) -> None:
 
     if transfer.state == RelocationTransferState.Reply:
         relocation_storage = get_relocation_storage()
-        path = f"runs/{uuid}/saas_to_saas_export/{slug}.tar"
+        path = transfer.get_storage_path()
         try:
             encrypted_bytes = relocation_storage.open(path)
         except Exception as err:

@@ -13,6 +13,7 @@ from sentry.relocation.models.relocationtransfer import (
     RegionRelocationTransfer,
     RelocationTransferState,
 )
+from sentry.relocation.services.relocation_export.impl import ProxyingRelocationExportService
 from sentry.relocation.tasks.transfer import (
     find_relocation_transfer_control,
     find_relocation_transfer_region,
@@ -180,6 +181,32 @@ class ProcessRelocationTransferControlTest(TestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             assert RelocationFile.objects.filter(relocation=relocation).exists()
 
+    @patch("sentry.relocation.tasks.transfer.cell_relocation_export_service.reply_with_export")
+    @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_control.delay")
+    def test_transfer_reply_state_uses_saved_path(
+        self, mock_process_delay: MagicMock, mock_reply_with_export: MagicMock
+    ) -> None:
+        relocation_uuid = str(uuid4())
+        service = ProxyingRelocationExportService()
+
+        for payload in (b"first export", b"second export"):
+            service.reply_with_export(
+                relocation_uuid=relocation_uuid,
+                requesting_region_name="de",
+                replying_region_name="us",
+                org_slug=self.organization.slug,
+                encrypted_bytes=list(payload),
+            )
+
+        transfers = list(ControlRelocationTransfer.objects.order_by("id"))
+        assert len(transfers) == 2
+        assert transfers[0].storage_path != transfers[1].storage_path
+        assert mock_process_delay.call_count == 2
+
+        process_relocation_transfer_control(transfer_id=transfers[1].id)
+
+        assert mock_reply_with_export.call_args.kwargs["encrypted_bytes"] == list(b"second export")
+
 
 @cell_silo_test(cells=TEST_REGIONS)
 class ProcessRelocationTransferRegionTest(TestCase):
@@ -227,3 +254,19 @@ class ProcessRelocationTransferRegionTest(TestCase):
                 exporting_cell=transfer.exporting_cell,
                 requesting_cell=transfer.requesting_cell,
             ).exists()
+
+    @patch("sentry.relocation.tasks.transfer.control_relocation_export_service.reply_with_export")
+    def test_transfer_reply_state_uses_saved_path(self, mock_reply_with_export: MagicMock) -> None:
+        path = f"runs/{uuid4()}/saas_to_saas_export/{self.organization.slug}.tar"
+        relocation_storage = get_relocation_storage()
+        relocation_storage.save(path, BytesIO(b"first export"))
+        storage_path = relocation_storage.save(path, BytesIO(b"second export"))
+        transfer = create_cell_relocation_transfer(
+            organization=self.organization,
+            state=RelocationTransferState.Reply,
+            storage_path=storage_path,
+        )
+
+        process_relocation_transfer_region(transfer_id=transfer.id)
+
+        assert mock_reply_with_export.call_args.kwargs["encrypted_bytes"] == list(b"second export")

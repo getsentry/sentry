@@ -41,6 +41,12 @@ class BaseRelocationTransfer(DefaultFieldsModel):
         choices=RelocationTransferState, default=RelocationTransferState.Request
     )
     scheduled_for = models.DateTimeField(null=True, default=timezone.now)
+    storage_path = models.TextField(null=True)
+
+    def get_storage_path(self) -> str:
+        return self.storage_path or (
+            f"runs/{self.relocation_uuid}/saas_to_saas_export/{self.org_slug}.tar"
+        )
 
     class Meta:
         abstract = True
