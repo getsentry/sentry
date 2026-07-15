@@ -1,10 +1,17 @@
+import {useEffect} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {
+  AsyncSDKIntegrationContextProvider,
+  useAsyncSDKIntegrationStore,
+} from 'sentry/views/app/asyncSDKIntegrationProvider';
 
 const defaultProviderProps = {
   enableAISearch: true,
@@ -13,6 +20,29 @@ const defaultProviderProps = {
   initialQuery: '',
   searchSource: 'test',
 };
+
+const feedbackIntegration = {
+  createForm: jest.fn(),
+} as unknown as FeedbackIntegration;
+
+function FeedbackProvider({children}: {children: React.ReactNode}) {
+  return (
+    <AsyncSDKIntegrationContextProvider>
+      <InstallFeedbackIntegration />
+      <GlobalFeedbackForm>{children}</GlobalFeedbackForm>
+    </AsyncSDKIntegrationContextProvider>
+  );
+}
+
+function InstallFeedbackIntegration() {
+  const {setState} = useAsyncSDKIntegrationStore();
+
+  useEffect(() => {
+    setState({Feedback: feedbackIntegration});
+  }, [setState]);
+
+  return null;
+}
 
 function renderPollingComboBox(features: string[]) {
   const {organization} = initializeOrg({
@@ -28,7 +58,7 @@ function renderPollingComboBox(features: string[]) {
         applySeerSearchQuery={() => {}}
       />
     </SearchQueryBuilderProvider>,
-    {organization}
+    {organization, additionalWrapper: FeedbackProvider}
   );
 }
 
@@ -56,6 +86,7 @@ describe('AskSeerPollingComboBox loading state', () => {
 
     expect(await screen.findByText("I'm on it...")).toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
   });
 
   it('shows the single loading status when the rework is enabled', async () => {
@@ -64,5 +95,6 @@ describe('AskSeerPollingComboBox loading state', () => {
 
     expect(await screen.findByRole('status')).toHaveTextContent("I'm on it...");
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
   });
 });

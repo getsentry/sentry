@@ -213,6 +213,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   const inputRef = useRef<HTMLInputElement>(null);
   const hasTrackedFetchErrorRef = useRef(false);
   const organization = useOrganization();
+  const hasAskSeerUxRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
   const {projects} = useProjects();
 
   const [searchQuery, setSearchQuery] = useState(() =>
@@ -630,7 +631,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             state={state}
             onMouseLeave={onMouseLeave}
           />
-          {openForm ? (
+          {openForm && !hasAskSeerUxRework ? (
             <SeerFooter onMouseDown={e => e.preventDefault()}>
               <Button
                 size="xs"
