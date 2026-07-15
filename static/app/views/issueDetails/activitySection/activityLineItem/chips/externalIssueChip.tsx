@@ -1,7 +1,7 @@
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {InlineChip} from './inlineChip';
-import {IssueTrackerIcon} from './issueTrackerIcon';
+import {IntegrationIcon} from './integrationChip';
 
 interface ExternalIssueChipProps {
   label: string;
@@ -26,7 +26,7 @@ export function ExternalIssueChip({label, location, provider}: ExternalIssueChip
   return (
     <ExternalLink href={location}>
       <InlineChip interactive tone="accent">
-        <IssueTrackerIcon provider={provider} size="xs" />
+        <IntegrationIcon provider={provider} size="xs" />
         {getExternalIssueLabel({label, provider})}
       </InlineChip>
     </ExternalLink>
