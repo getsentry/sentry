@@ -447,6 +447,14 @@
     {% endfor %}
   </div>
   {% endif %}
+  {% if spans_chart_url and not enhanced_privacy %}
+  <div id="top-spans">
+    <h4>Top Transactions by Duration (p95)</h4>
+    <div style="margin-bottom: 16px;">
+      <img src="{{ spans_chart_url }}" width="600" height="200" alt="Top spans p95 chart" style="max-width: 100%;" />
+    </div>
+  </div>
+  {% endif %}
   {% if past_issues|length > 0 and not enhanced_privacy %}
   <div id="past-resolved-issues">
     <h4>Resolved last week</h4>
