@@ -178,7 +178,7 @@ def _backfill_project(
         group_id__isnull=False,
     )
     if cursor_dt is not None:
-        qs = qs.extra(
+        qs = qs.extra(  # type: ignore[assignment]
             where=['ROW("datetime", "id") > ROW(%s, %s)'],
             params=[cursor_dt, cursor_id],
         )
