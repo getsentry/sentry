@@ -388,6 +388,24 @@ class RecordAttributionSignalTest(TestCase):
         assert second.signal_details is not None
         assert second.signal_details["run_id"] == 1
 
+    def test_merge_treats_none_existing_details_as_incoming(self) -> None:
+        self._record_seer_signal(signal_details=None)
+        second = self._record_seer_signal(
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+        )
+
+        second.refresh_from_db()
+        assert second.signal_details == {"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+
+    def test_merge_keeps_existing_details_when_incoming_is_none(self) -> None:
+        self._record_seer_signal(
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+        )
+        second = self._record_seer_signal(signal_details=None)
+
+        second.refresh_from_db()
+        assert second.signal_details == {"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+
     def test_replaces_outright_when_existing_signal_invalid(self) -> None:
         attribution = self._record_seer_signal(
             signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}

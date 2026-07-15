@@ -303,6 +303,107 @@ class AutofixPrWebhookTest(APITestCase):
     @patch("sentry.seer.autofix.webhooks.get_agent_state_from_pr_id")
     @patch("sentry.seer.autofix.webhooks.analytics.record")
     @patch("sentry.seer.autofix.webhooks.metrics.incr")
+    def test_skips_attribution_when_pr_number_missing(
+        self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
+    ):
+        group = self.create_group(project=self.project)
+        mock_get_agent_state_from_pr_id.return_value = SeerRunState(
+            run_id=1,
+            blocks=[],
+            status="processing",
+            updated_at="2025-01-15T10:30:00Z",
+            metadata={"group_id": group.id},
+        )
+
+        with self.feature("organizations:pr-metrics-attribution"):
+            handle_github_pr_webhook_for_autofix(
+                self.organization,
+                "opened",
+                {
+                    "id": 1,
+                    "html_url": PR_URL,
+                    "merged": False,
+                    "created_at": "2025-01-15T10:30:00Z",
+                    "updated_at": "2025-01-15T10:30:00Z",
+                },
+                {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
+                self.repo.id,
+            )
+
+        # Analytics still fire even though there's no PR number to attribute against.
+        mock_metrics_incr.assert_any_call("ai.autofix.pr.opened", tags={"mode": "explorer"})
+        assert_last_analytics_event(
+            mock_analytics_record,
+            AiAutofixPrOpenedEvent(
+                organization_id=self.organization.id,
+                integration="github",
+                project_id=group.project.id,
+                group_id=group.id,
+                run_id=1,
+                github_app="seer",
+                sent_at=1736937000000,
+            ),
+        )
+        assert not PullRequestAttribution.objects.exists()
+
+    @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
+    @patch("sentry.seer.autofix.webhooks.record_attribution_signal")
+    @patch("sentry.seer.autofix.webhooks.get_agent_state_from_pr_id")
+    @patch("sentry.seer.autofix.webhooks.analytics.record")
+    @patch("sentry.seer.autofix.webhooks.metrics.incr")
+    def test_attribution_failure_does_not_block_analytics(
+        self,
+        mock_metrics_incr,
+        mock_analytics_record,
+        mock_get_agent_state_from_pr_id,
+        mock_record_attribution_signal,
+    ):
+        group = self.create_group(project=self.project)
+        mock_get_agent_state_from_pr_id.return_value = SeerRunState(
+            run_id=1,
+            blocks=[],
+            status="processing",
+            updated_at="2025-01-15T10:30:00Z",
+            metadata={"group_id": group.id},
+        )
+        mock_record_attribution_signal.side_effect = RuntimeError("boom")
+
+        with self.feature("organizations:pr-metrics-attribution"):
+            handle_github_pr_webhook_for_autofix(
+                self.organization,
+                "opened",
+                {
+                    "id": 1,
+                    "number": 42,
+                    "html_url": PR_URL,
+                    "merged": False,
+                    "created_at": "2025-01-15T10:30:00Z",
+                    "updated_at": "2025-01-15T10:30:00Z",
+                },
+                {"id": settings.SEER_AUTOFIX_GITHUB_APP_USER_ID},
+                self.repo.id,
+            )
+
+        # The analytics event already fired before the attribution write raised.
+        mock_metrics_incr.assert_any_call("ai.autofix.pr.opened", tags={"mode": "explorer"})
+        assert_last_analytics_event(
+            mock_analytics_record,
+            AiAutofixPrOpenedEvent(
+                organization_id=self.organization.id,
+                integration="github",
+                project_id=group.project.id,
+                group_id=group.id,
+                run_id=1,
+                github_app="seer",
+                sent_at=1736937000000,
+            ),
+        )
+        assert not PullRequestAttribution.objects.exists()
+
+    @override_settings(SEER_AUTOFIX_GITHUB_APP_USER_ID="12345")
+    @patch("sentry.seer.autofix.webhooks.get_agent_state_from_pr_id")
+    @patch("sentry.seer.autofix.webhooks.analytics.record")
+    @patch("sentry.seer.autofix.webhooks.metrics.incr")
     def test_no_run(
         self, mock_metrics_incr, mock_analytics_record, mock_get_agent_state_from_pr_id
     ):
