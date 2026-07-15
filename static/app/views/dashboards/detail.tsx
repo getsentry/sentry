@@ -10,6 +10,7 @@ import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Stack} from '@sentry/scraps/layout';
 
 import {
@@ -25,7 +26,6 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {BreadcrumbList} from 'sentry/components/breadcrumbList';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {

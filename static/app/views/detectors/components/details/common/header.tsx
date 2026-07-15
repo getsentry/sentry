@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
-import {BreadcrumbList} from 'sentry/components/breadcrumbList';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';

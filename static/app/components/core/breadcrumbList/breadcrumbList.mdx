@@ -2,27 +2,26 @@
 title: BreadcrumbList
 description: A typed, accessible breadcrumb trail that collapses parent links into an overflow menu in narrow containers.
 category: navigation
-source: 'sentry/components/breadcrumbList'
+source: '@sentry/scraps/breadcrumbList'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/breadcrumbList/breadcrumbList.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/breadcrumbList/breadcrumbList.tsx
   figma: https://www.figma.com/design/a638AEl7pFxj29zMODCiOB/Specs--Page-Frame-v1?node-id=1198-17420
 ---
 
 import {ProjectsSavedBadge} from '@sentry/scraps/projectsSavedBadge';
 
-import {BreadcrumbList} from 'sentry/components/breadcrumbList';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {IconEllipsis, IconGlobe, IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
-export const documentation =
-  import('!!type-loader!sentry/components/breadcrumbList/breadcrumbList');
+export const documentation = import('!!type-loader!@sentry/scraps/breadcrumbList');
 
 `BreadcrumbList` renders a horizontal breadcrumb trail as inline content. The trail itself renders no `<nav>` landmark, and its final `'page-title'` item renders the page's `<h1>`. Each slot in the trail has an explicit `type` — developers must consciously choose a variant rather than having it inferred from position. At container widths below 500px, parent link crumbs automatically collapse into a single overflow (`…`) menu via a container query, keeping the page title always visible.
 
 ## Usage
 
 ```tsx
-import {BreadcrumbList} from 'sentry/components/breadcrumbList';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 ```
 
 Pass a typed `items` array. Each entry is a discriminated union: a `type` key plus that type's own props, flattened onto the same object.

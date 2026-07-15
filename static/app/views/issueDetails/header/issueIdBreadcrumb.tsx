@@ -1,14 +1,14 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
+import type {BreadcrumbItem} from '@sentry/scraps/breadcrumbList';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {BreadcrumbItem} from 'sentry/components/breadcrumbList';
-import {BreadcrumbList} from 'sentry/components/breadcrumbList';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ShortId} from 'sentry/components/shortId';
 import {IconCopy, IconGlobe} from 'sentry/icons';

@@ -3,10 +3,11 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {BreadcrumbLeadingSlot} from 'sentry/components/breadcrumbList/items/breadcrumbLeadingSlot';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
+
+import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 
 export interface BreadcrumbItemLinkProps {
   label: string;

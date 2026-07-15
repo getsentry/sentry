@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {BreadcrumbList} from 'sentry/components/breadcrumbList';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
 function collectCssRules(): string[] {
   const rules: string[] = [];

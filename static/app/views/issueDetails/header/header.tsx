@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
+import type {BreadcrumbItem} from '@sentry/scraps/breadcrumbList';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {BreadcrumbItem} from 'sentry/components/breadcrumbList';
-import {BreadcrumbList} from 'sentry/components/breadcrumbList';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Count} from 'sentry/components/count';
 import {EventMessage} from 'sentry/components/events/eventMessage';

@@ -1,8 +1,9 @@
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {BreadcrumbLeadingSlot} from 'sentry/components/breadcrumbList/items/breadcrumbLeadingSlot';
 import {EditableText} from 'sentry/components/editableText';
+
+import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 
 export interface BreadcrumbEditableTitleProps {
   /** Accessible name for the editable input. */

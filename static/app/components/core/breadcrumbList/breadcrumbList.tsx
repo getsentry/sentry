@@ -76,7 +76,10 @@ function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
     return null;
   }
 
-  const lastItem = items[items.length - 1]!;
+  const lastItem = items.at(-1);
+  if (!lastItem) {
+    return null;
+  }
   const parentItems = items.slice(0, -1);
 
   // Collect link items for the overflow menu (narrow layout)

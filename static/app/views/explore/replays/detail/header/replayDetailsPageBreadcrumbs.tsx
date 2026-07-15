@@ -1,13 +1,13 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import type {BreadcrumbItem} from '@sentry/scraps/breadcrumbList';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {BreadcrumbItem} from 'sentry/components/breadcrumbList';
-import {BreadcrumbList} from 'sentry/components/breadcrumbList';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Placeholder} from 'sentry/components/placeholder';

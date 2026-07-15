@@ -1,5 +1,7 @@
 import {Fragment} from 'react';
 
+import type {BreadcrumbCopyActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
+import type {BreadcrumbMenuActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
 import type {ButtonProps, LinkButtonProps} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
@@ -8,10 +10,9 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {BreadcrumbCopyActionProps} from 'sentry/components/breadcrumbList/actions/breadcrumbCopyAction';
-import type {BreadcrumbMenuActionProps} from 'sentry/components/breadcrumbList/actions/breadcrumbMenuAction';
-import {BreadcrumbLeadingSlot} from 'sentry/components/breadcrumbList/items/breadcrumbLeadingSlot';
 import {IconChevron} from 'sentry/icons';
+
+import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 
 /**
  * A single trailing action for the page-title crumb. Deliberately bounded to the
