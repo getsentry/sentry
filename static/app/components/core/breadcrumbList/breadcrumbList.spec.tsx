@@ -269,13 +269,9 @@ describe('BreadcrumbList rich page-title items', () => {
       <BreadcrumbList.Title
         item={{
           type: 'editable-title',
-          title: (
-            <BreadcrumbList.EditableTitle
-              value="My Dashboard"
-              onChange={() => {}}
-              aria-label="Edit dashboard name"
-            />
-          ),
+          value: 'My Dashboard',
+          onChange: () => {},
+          'aria-label': 'Edit dashboard name',
         }}
       />
     );

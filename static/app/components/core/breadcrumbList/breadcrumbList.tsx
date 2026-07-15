@@ -15,10 +15,7 @@ import {BreadcrumbItemMenuBreadcrumbs} from './items/breadcrumbItemMenuBreadcrum
 import type {BreadcrumbItemPageTitleProps} from './items/breadcrumbItemPageTitle';
 import {BreadcrumbItemPageTitle} from './items/breadcrumbItemPageTitle';
 import type {BreadcrumbItemPageTitleEditableProps} from './items/breadcrumbItemPageTitleEditable';
-import {
-  BreadcrumbEditableTitle,
-  BreadcrumbItemPageTitleEditable,
-} from './items/breadcrumbItemPageTitleEditable';
+import {BreadcrumbItemPageTitleEditable} from './items/breadcrumbItemPageTitleEditable';
 import type {BreadcrumbItemSelectProjectsProps} from './items/breadcrumbItemSelectProjects';
 import {BreadcrumbItemSelectProjects} from './items/breadcrumbItemSelectProjects';
 import {BreadcrumbDividerCombo} from './breadcrumbDividerCombo';
@@ -158,7 +155,6 @@ function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
  */
 export const BreadcrumbList = Object.assign(BreadcrumbListRoot, {
   Title: BreadCrumbTitle,
-  EditableTitle: BreadcrumbEditableTitle,
   CopyAction: BreadcrumbCopyAction,
   MenuAction: BreadcrumbMenuAction,
 });

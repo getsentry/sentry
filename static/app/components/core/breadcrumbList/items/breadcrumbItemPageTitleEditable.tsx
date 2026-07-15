@@ -5,7 +5,7 @@ import {EditableText} from 'sentry/components/editableText';
 
 import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 
-export interface BreadcrumbEditableTitleProps {
+export interface BreadcrumbItemPageTitleEditableProps {
   /** Accessible name for the editable input. */
   'aria-label': string;
   onChange: (value: string) => void;
@@ -15,33 +15,18 @@ export interface BreadcrumbEditableTitleProps {
   autoSelect?: boolean;
   errorMessage?: React.ReactNode;
   isDisabled?: boolean;
-  maxLength?: number;
-  placeholder?: string;
-}
-
-/**
- * `BreadcrumbList.EditableTitle` — a click-to-edit current-page title. Thin
- * wrapper over `EditableText` in its `compact` variant so it inherits the crumb
- * row's font-size/weight and edits inline. Same element-slot idiom as
- * `leadingGraphic`: consumers pass a `<BreadcrumbList.EditableTitle />` element
- * as the `title` prop of the `editable-title` item.
- */
-export function BreadcrumbEditableTitle(props: BreadcrumbEditableTitleProps) {
-  return <EditableText variant="compact" {...props} />;
-}
-
-export interface BreadcrumbItemPageTitleEditableProps {
-  title: React.ReactElement<BreadcrumbEditableTitleProps>;
   /**
    * Decorative 16×16 leading graphic — a `ProjectsSavedBadge`, avatar, or icon.
    * Rendered aria-hidden inside a fixed-size slot; the label carries the meaning.
    */
   leadingGraphic?: React.ReactNode;
+  maxLength?: number;
+  placeholder?: string;
 }
 
 export function BreadcrumbItemPageTitleEditable({
-  title,
   leadingGraphic,
+  ...editableTextProps
 }: BreadcrumbItemPageTitleEditableProps) {
   return (
     // Mirrors BreadcrumbItemPageTitle's layout so the editable variant lines up
@@ -53,7 +38,7 @@ export function BreadcrumbItemPageTitleEditable({
           compact label/input inherit font-weight from this context. */}
       <Container minWidth={0}>
         <Text as="span" bold>
-          {title}
+          <EditableText variant="compact" {...editableTextProps} />
         </Text>
       </Container>
     </Flex>

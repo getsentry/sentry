@@ -1217,21 +1217,16 @@ class DashboardDetail extends Component<Props, State> {
                         <BreadcrumbList.Title
                           item={{
                             type: 'editable-title',
-                            title: (
-                              <BreadcrumbList.EditableTitle
-                                value={(modifiedDashboard ?? dashboard).title}
-                                onChange={newTitle =>
-                                  this.setModifiedDashboard({
-                                    ...(modifiedDashboard ?? dashboard),
-                                    title: newTitle,
-                                  })
-                                }
-                                isDisabled={!this.isEditingDashboard}
-                                errorMessage={t('Please set a title for this dashboard')}
-                                autoSelect
-                                aria-label={t('Edit Dashboard Name')}
-                              />
-                            ),
+                            value: (modifiedDashboard ?? dashboard).title,
+                            onChange: newTitle =>
+                              this.setModifiedDashboard({
+                                ...(modifiedDashboard ?? dashboard),
+                                title: newTitle,
+                              }),
+                            isDisabled: !this.isEditingDashboard,
+                            errorMessage: t('Please set a title for this dashboard'),
+                            autoSelect: true,
+                            'aria-label': t('Edit Dashboard Name'),
                           }}
                         />
                       </TopBar.Slot>

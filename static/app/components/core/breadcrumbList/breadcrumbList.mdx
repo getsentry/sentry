@@ -269,10 +269,10 @@ label carries the meaning.
 ## Editable titles
 
 The `editable-title` item renders the current page as a click-to-edit field for
-pages that let users rename in place. Pass a
-`<BreadcrumbList.EditableTitle />` element as the `title` prop to
-`BreadcrumbList.Title`. Unlike `page-title`, it has no `trailingActions` slot;
-`EditableText` provides its own edit affordance.
+pages that let users rename in place. Pass the editable field props directly on
+the `editable-title` item passed to `BreadcrumbList.Title`. Unlike
+`page-title`, it has no `trailingActions` slot; `EditableText` provides its own
+edit affordance.
 
 <Storybook.Demo>
   <BreadcrumbListDemo
@@ -287,13 +287,9 @@ pages that let users rename in place. Pass a
       <BreadcrumbList.Title
         item={{
           type: 'editable-title',
-          title: (
-            <BreadcrumbList.EditableTitle
-              value="Frontend Overview"
-              onChange={() => {}}
-              aria-label="Edit dashboard name"
-            />
-          ),
+          value: 'Frontend Overview',
+          onChange: () => null,
+          'aria-label': 'Edit dashboard name',
         }}
       />
     }
@@ -311,13 +307,9 @@ pages that let users rename in place. Pass a
   <BreadcrumbList.Title
     item={{
       type: 'editable-title',
-      title: (
-        <BreadcrumbList.EditableTitle
-          value={dashboard.title}
-          onChange={handleRename}
-          aria-label="Edit dashboard name"
-        />
-      ),
+      value: dashboard.title,
+      onChange: handleRename,
+      'aria-label': 'Edit dashboard name',
     }}
   />
 </TopBar.Slot>
