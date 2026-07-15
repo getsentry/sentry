@@ -37,15 +37,6 @@ BACKOFF_MAX = 5
 logger = logging.getLogger(__name__)
 
 
-class SymbolicatorPlatform(Enum):
-    """The platforms for which we want to
-    invoke Symbolicator. This is a **legacy** type used by old taskbroker tasks."""
-
-    jvm = "jvm"
-    js = "js"
-    native = "native"
-
-
 class SymbolicatorFunction(Enum):
     """The functions for which we want to
     invoke Symbolicator."""
@@ -58,6 +49,20 @@ class SymbolicatorFunction(Enum):
 
     def __call__(self, symbolicator: Symbolicator, data: Any) -> Any:
         return self.function()(symbolicator, data)
+
+    def platform_name(self) -> str:
+        """Lossy conversion to a legacy platform"""
+        match self:
+            case SymbolicatorFunction.native:
+                return "native"
+            case SymbolicatorFunction.js:
+                return "js"
+            case SymbolicatorFunction.jvm:
+                return "jvm"
+            case SymbolicatorFunction.minidump:
+                return "native"
+            case SymbolicatorFunction.applecrashreport:
+                return "native"
 
     def function(self) -> Callable[[Symbolicator, Any], Any]:
         from sentry.lang.java.processing import process_jvm_stacktraces
@@ -99,12 +104,10 @@ class SymbolicatorTaskKind:
     the platform and whether it's an existing event being reprocessed.
     """
 
-    function: SymbolicatorPlatform | SymbolicatorFunction  # platform still allowed for old tasks
+    function: SymbolicatorFunction
     is_reprocessing: bool = False
 
-    def with_function(
-        self, function: SymbolicatorPlatform | SymbolicatorFunction
-    ) -> SymbolicatorTaskKind:
+    def with_function(self, function: SymbolicatorFunction) -> SymbolicatorTaskKind:
         return dataclasses.replace(self, function=function)
 
 
@@ -114,20 +117,10 @@ class SymbolicatorPools(Enum):
     jvm = "jvm"
 
 
-def pool_for_function(function: SymbolicatorFunction | SymbolicatorPlatform) -> SymbolicatorPools:
+def pool_for_function(function: SymbolicatorFunction) -> SymbolicatorPools:
     """Returns the Symbolicator pool to use to symbolicate events for
     the given platform.
     """
-    if isinstance(function, SymbolicatorPlatform):
-        # legacy behavior for old tasks
-        match function:
-            case SymbolicatorPlatform.native:
-                return SymbolicatorPools.default
-            case SymbolicatorPlatform.js:
-                return SymbolicatorPools.js
-            case SymbolicatorPlatform.jvm:
-                return SymbolicatorPools.jvm
-
     match function:
         case SymbolicatorFunction.native:
             return SymbolicatorPools.default

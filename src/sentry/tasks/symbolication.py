@@ -257,7 +257,7 @@ def submit_symbolicate(
     event_id: str | None,
     start_time: float | None,
     has_attachments: bool = False,
-    symbolicate_functions: list[SymbolicatorFunction] | list[SymbolicatorPlatform] | None = None,
+    symbolicate_functions: list[SymbolicatorFunction] | None = None,
 ) -> None:
     # Because of `mock` usage, we cannot just save a reference to the actual function
     # into the `TASK_FNS` dict. We actually have to access it at runtime from the global scope
@@ -270,12 +270,18 @@ def submit_symbolicate(
     symbolicate_function_names = (
         None if symbolicate_functions is None else [p.name for p in symbolicate_functions]
     )
+    symbolicate_platform_names = (
+        None
+        if symbolicate_functions is None
+        else [p.platform_name() for p in symbolicate_functions]
+    )
 
     task_fn.delay(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
         has_attachments=has_attachments,
+        symbolicate_platforms=symbolicate_platform_names,  # in case an old worker picks it up
         symbolicate_functions=symbolicate_function_names,
     )
 
@@ -315,15 +321,13 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         :param string event_id: the event identifier
         """
 
-        symbolicate_function_values: (
-            list[SymbolicatorPlatform] | list[SymbolicatorFunction] | None
-        ) = None
+        symbolicate_function_values: list[SymbolicatorFunction] | None = None
         if symbolicate_platforms is not None:
-            # [legacy] Turn symbolicate_platforms back into proper enum values
+            # [legacy] Turn symbolicate_platforms back into the next best function
             symbolicate_function_values = (
                 None
                 if symbolicate_platforms is None
-                else [SymbolicatorPlatform(p) for p in symbolicate_platforms]
+                else [SymbolicatorFunction(p) for p in symbolicate_platforms]
             )
         else:
             # Turn symbolicate_functions back into proper enum values
@@ -357,15 +361,17 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
 # New tasks and metrics are welcome to use the correct naming scheme as they are not
 # burdened by aforementioned legacy concerns.
 
-symbolicate_minidump = make_task_fn(  # will not show up in TASK_FNS
+symbolicate_minidump = make_task_fn(
     name="sentry.tasks.store.symbolicate_minidump",
     queue="events.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=False),
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.minidump, is_reprocessing=False),
 )
-symbolicate_applecrashreport = make_task_fn(  # will not show up in TASK_FNS
+symbolicate_applecrashreport = make_task_fn(
     name="sentry.tasks.store.symbolicate_applecrashreport",
     queue="events.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=False),
+    task_kind=SymbolicatorTaskKind(
+        function=SymbolicatorFunction.applecrashreport, is_reprocessing=False
+    ),
 )
 symbolicate_event = make_task_fn(
     name="sentry.tasks.store.symbolicate_event",
@@ -385,15 +391,17 @@ symbolicate_jvm_event = make_task_fn(
 
 
 # Reprocessing variants, only for "native" events:
-symbolicate_minidump_from_reprocessing = make_task_fn(  # will not show up in TASK_FNS
+symbolicate_minidump_from_reprocessing = make_task_fn(
     name="sentry.tasks.store.symbolicate_minidump_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=True),
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.minidump, is_reprocessing=True),
 )
-symbolicate_applecrashreport_from_reprocessing = make_task_fn(  # will not show up in TASK_FNS
+symbolicate_applecrashreport_from_reprocessing = make_task_fn(
     name="sentry.tasks.store.symbolicate_applecrashreport_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=True),
+    task_kind=SymbolicatorTaskKind(
+        function=SymbolicatorFunction.applecrashreport, is_reprocessing=True
+    ),
 )
 symbolicate_event_from_reprocessing = make_task_fn(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing",
