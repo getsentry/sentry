@@ -1,6 +1,10 @@
 import pytest
 
-from sentry.preprod.build_distribution_utils import parse_build_number
+from sentry.preprod.build_distribution_utils import (
+    _BUILD_NUMBER_COMPONENT_WIDTH,
+    parse_build_number,
+)
+from sentry.utils.numbers import validate_bigint
 
 
 @pytest.mark.parametrize(
@@ -47,3 +51,11 @@ def test_distinguishes_builds_that_naive_concatenation_would_collide() -> None:
     # "1.2.3", "12.3", and "1.23" would all naively concatenate to "123".
     assert parse_build_number("1.2.3") != parse_build_number("12.3")
     assert parse_build_number("1.2.3") != parse_build_number("1.23")
+
+
+def test_largest_dotted_build_fits_the_bigint_column() -> None:
+    widest_component = "9" * _BUILD_NUMBER_COMPONENT_WIDTH
+    largest = f"{widest_component}.{widest_component}.{widest_component}"
+    parsed = parse_build_number(largest)
+    assert parsed is not None
+    assert validate_bigint(parsed)

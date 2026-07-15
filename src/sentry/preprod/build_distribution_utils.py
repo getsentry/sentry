@@ -40,19 +40,20 @@ def parse_build_number(build: str) -> int | None:
     # also matches chars like superscripts that make int() raise.
     if build.isdecimal():
         value = int(build)
-        return value if validate_bigint(value) else None
-
-    parts = build.split(".")
-    if 2 <= len(parts) <= 3 and all(
-        p.isdecimal() and len(p) <= _BUILD_NUMBER_COMPONENT_WIDTH for p in parts
-    ):
+    else:
+        parts = build.split(".")
+        if not (
+            2 <= len(parts) <= 3
+            and all(p.isdecimal() and len(p) <= _BUILD_NUMBER_COMPONENT_WIDTH for p in parts)
+        ):
+            return None
         parts += ["0"] * (3 - len(parts))
-        return sum(
+        value = sum(
             int(part) * 10 ** (_BUILD_NUMBER_COMPONENT_WIDTH * (2 - i))
             for i, part in enumerate(parts)
         )
 
-    return None
+    return value if validate_bigint(value) else None
 
 
 @dataclass(frozen=True)
