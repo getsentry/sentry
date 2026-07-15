@@ -48,13 +48,8 @@ class TriageVerdict(_Base):
     group_id: int
     action: TriageAction
     reason: str = ""
-    # Only meaningful when action="skip"; None for autofix/root_cause_only.
-    # Deliberately a passthrough string, not a mirrored enum: Seer can add a
-    # new category on its own schedule without a synchronized Sentry deploy.
-    # `TriageResponse.parse_obj` validates a whole batch at once, so a closed
-    # enum here would drop every verdict in a delivery over one unrecognized
-    # skip_reason value. Only branch on the specific strings this code knows
-    # about (see night_shift/delivery.py); treat anything else as opaque.
+    # Only meaningful when action="skip". A passthrough string rather than an
+    # enum, so a new category from Seer doesn't fail the whole batch to parse.
     skip_reason: str | None = None
 
 
