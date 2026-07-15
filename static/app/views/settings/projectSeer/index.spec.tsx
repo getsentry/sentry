@@ -979,6 +979,146 @@ describe('ProjectSeer', () => {
       });
     });
 
+    // Regression test for the removed `key` remount on AutoSaveForm: the toggle
+    // must re-seed when its value changes from *outside* the form. Switching the
+    // stopping point to a handoff target resets autoCreatePr to false, and the
+    // untouched toggle has to reflect that without a key-forced remount.
+    it('re-seeds the toggle when a handoff switch resets autoCreatePr', async () => {
+      MockApiClient.clearMockResponses();
+
+      const orgWithIntegrations = OrganizationFixture({features: []});
+
+      const initialProject: DetailedProject = {
+        ...project,
+        autofixAutomationTuning: 'medium',
+        seerScannerAutomation: true,
+      };
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithIntegrations.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integrationId: '123',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: true,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithIntegrations.slug}/${project.slug}/`,
+        body: initialProject,
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithIntegrations.slug}/${project.slug}/seer/repos/`,
+        method: 'GET',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithIntegrations.slug}/seer/setup-check/`,
+        method: 'GET',
+        body: {billing: {hasAutofixQuota: true, hasScannerQuota: true}},
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithIntegrations.slug}/repos/`,
+        query: {status: 'active'},
+        method: 'GET',
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithIntegrations.slug}/integrations/coding-agents/`,
+        method: 'GET',
+        body: {
+          integrations: [
+            {id: '123', name: 'Cursor', provider: 'cursor'},
+            {id: '456', name: 'Claude', provider: 'claude_code'},
+          ],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithIntegrations.slug}/${project.slug}/seer/preferences/`,
+        method: 'GET',
+        body: {
+          preference: {
+            repositories: [],
+            automated_run_stopping_point: 'root_cause',
+            automation_handoff: {
+              handoff_point: 'root_cause',
+              target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+              integration_id: 123,
+              auto_create_pr: true,
+            },
+          },
+          code_mapping_repos: [],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/${orgWithIntegrations.slug}/${project.slug}/seer/settings/`,
+        method: 'PUT',
+      });
+
+      mockSeerSettingsGet(orgWithIntegrations.slug);
+
+      render(<ProjectSeer />, {
+        organization: orgWithIntegrations,
+        outletContext: {project: initialProject},
+      });
+
+      // The toggle starts checked because the cursor handoff had autoCreatePr on.
+      const toggle = await screen.findByRole('checkbox', {
+        name: /Auto-Create Pull Requests/i,
+      });
+      expect(toggle).toBeChecked();
+
+      // The settings refetch after the handoff switch reports autoCreatePr off.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${orgWithIntegrations.slug}/seer/projects/`,
+        method: 'GET',
+        body: [
+          {
+            projectId: project.id,
+            projectSlug: project.slug,
+            agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
+            integrationId: '456',
+            stoppingPoint: 'root_cause',
+            autoCreatePr: false,
+            automationTuning: 'medium',
+            scannerAutomation: true,
+            reposCount: 0,
+          },
+        ],
+      });
+
+      const select = await screen.findByRole('textbox', {
+        name: /Where should Seer stop/i,
+      });
+      act(() => {
+        select.focus();
+      });
+      await userEvent.click(select);
+      await userEvent.click(await screen.findByText('Hand off to Claude Agent'));
+
+      // Without the key remount, the untouched toggle re-seeds to unchecked.
+      await waitFor(() => {
+        expect(
+          screen.getByRole('checkbox', {name: /Auto-Create Pull Requests/i})
+        ).not.toBeChecked();
+      });
+    });
+
     it('shows integration selector when multiple cursor integrations exist', async () => {
       MockApiClient.clearMockResponses();
 

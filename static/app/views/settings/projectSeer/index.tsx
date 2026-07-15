@@ -152,7 +152,6 @@ function CodingAgentSettings({
       {/* Only show integration selector if there are multiple integrations */}
       {codingAgentIntegrations.length > 1 ? (
         <AutoSaveForm
-          key={`integration_id-${selectedIntegrationId}`}
           name="integration_id"
           schema={integrationIdSchema}
           initialValue={String(selectedIntegrationId)}
@@ -180,7 +179,6 @@ function CodingAgentSettings({
       ) : null}
 
       <AutoSaveForm
-        key={`auto_create_pr-${autoCreatePrValue}`}
         name="auto_create_pr"
         schema={autoCreatePrSchema}
         initialValue={autoCreatePrValue}
@@ -490,7 +488,6 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
 
         {scannerAutomation && automationTuning !== 'off' ? (
           <AutoSaveForm
-            key={`automated_run_stopping_point-${stoppingPointInitialValue}`}
             name="automated_run_stopping_point"
             schema={stoppingPointSchema}
             initialValue={stoppingPointInitialValue}
