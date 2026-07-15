@@ -345,6 +345,81 @@ class RecordAttributionSignalTest(TestCase):
         attribution.refresh_from_db()
         assert attribution.is_valid is True
 
+    def test_merges_list_values_across_producers(self) -> None:
+        self._record_seer_signal(
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+        )
+        second = self._record_seer_signal(
+            signal_details={"run_id": 1, "group_ids": [3], "pr_url": "https://x/1"}
+        )
+
+        second.refresh_from_db()
+        assert second.signal_details is not None
+        assert second.signal_details["group_ids"] == [2, 3]
+
+    def test_merges_dict_values_across_producers(self) -> None:
+        first = record_attribution_signal(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.MCP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+            signal_details={"group_ids": {"1": "cursor"}},
+        )
+        second = record_attribution_signal(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.MCP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+            signal_details={"group_ids": {"2": "claude_code"}},
+        )
+
+        assert first.id == second.id
+        second.refresh_from_db()
+        assert second.signal_details is not None
+        assert second.signal_details["group_ids"] == {"1": "cursor", "2": "claude_code"}
+
+    def test_scalar_merge_keeps_existing_when_incoming_is_falsy(self) -> None:
+        self._record_seer_signal(
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+        )
+        second = self._record_seer_signal(
+            signal_details={"run_id": None, "group_ids": [], "pr_url": "https://x/1"}
+        )
+
+        second.refresh_from_db()
+        assert second.signal_details is not None
+        assert second.signal_details["run_id"] == 1
+
+    def test_merge_treats_none_existing_details_as_incoming(self) -> None:
+        self._record_seer_signal(signal_details=None)
+        second = self._record_seer_signal(
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+        )
+
+        second.refresh_from_db()
+        assert second.signal_details == {"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+
+    def test_merge_keeps_existing_details_when_incoming_is_none(self) -> None:
+        self._record_seer_signal(
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+        )
+        second = self._record_seer_signal(signal_details=None)
+
+        second.refresh_from_db()
+        assert second.signal_details == {"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+
+    def test_replaces_outright_when_existing_signal_invalid(self) -> None:
+        attribution = self._record_seer_signal(
+            signal_details={"run_id": 1, "group_ids": [2], "pr_url": "https://x/1"}
+        )
+        attribution.update(is_valid=False)
+
+        second = self._record_seer_signal(
+            signal_details={"run_id": 9, "group_ids": [3], "pr_url": "https://x/2"}
+        )
+
+        second.refresh_from_db()
+        assert second.signal_details == {"run_id": 9, "group_ids": [3], "pr_url": "https://x/2"}
+        assert second.is_valid is True
+
 
 class RecomputePullRequestAttributionTest(TestCase):
     def setUp(self) -> None:

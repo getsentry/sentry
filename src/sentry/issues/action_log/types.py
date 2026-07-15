@@ -7,7 +7,7 @@ from __future__ import annotations
 import abc
 import dataclasses
 from enum import IntEnum, StrEnum
-from typing import Any, Literal, Optional, TypedDict
+from typing import Any, Literal, NotRequired, Optional, TypedDict
 
 from pydantic import BaseModel
 
@@ -77,6 +77,9 @@ class GroupActionType(IntEnum):
     AUTOFIX_CODING_COMPLETE = 27
     PULL_REQUEST_CLOSED = 29
     RECONCILE_STATUS = 30
+    PULL_REQUEST_REOPENED = 31
+    PULL_REQUEST_MERGED = 32
+    PULL_REQUEST_UNLINKED = 33
 
     # Certain GroupActions are mirrors of Activity records.
     # (See ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE for the mapping.)
@@ -151,12 +154,30 @@ class ActionSource(StrEnum):
 class GroupAction(BaseModel, abc.ABC):
     """Typed payload for a group action log entry. Frozen after construction."""
 
+    _registry: dict[GroupActionType, type[GroupAction]] = {}
+
     class Config:
         frozen = True
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        if not getattr(cls.get_type, "__isabstractmethod__", False):
+            action_type = cls.get_type()
+            existing = cls._registry.get(action_type)
+            if existing is not None:
+                raise TypeError(
+                    f"Duplicate GroupAction registration for {action_type!r}: "
+                    f"{cls.__name__} conflicts with {existing.__name__}"
+                )
+            cls._registry[action_type] = cls
 
     @classmethod
     @abc.abstractmethod
     def get_type(cls) -> GroupActionType: ...
+
+    @classmethod
+    def by_type(cls, action_type: GroupActionType) -> type[GroupAction] | None:
+        return cls._registry.get(action_type)
 
 
 class ViewAction(GroupAction):
@@ -411,10 +432,38 @@ class SetRegressedAction(GroupAction):
 
 class PullRequestClosedAction(GroupAction):
     pull_request: int  # PullRequest model ID
+    # Whether the issue has other linked PRs still open when this one closed
+    has_other_open_prs: Optional[bool] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.PULL_REQUEST_CLOSED
+
+
+class PullRequestReopenedAction(GroupAction):
+    pull_request: int
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.PULL_REQUEST_REOPENED
+
+
+class PullRequestMergedAction(GroupAction):
+    pull_request: int
+    has_other_open_prs: Optional[bool] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.PULL_REQUEST_MERGED
+
+
+class PullRequestUnlinkedAction(GroupAction):
+    pull_request: int
+    has_other_open_prs: Optional[bool] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.PULL_REQUEST_UNLINKED
 
 
 class GroupActionLogPayload(TypedDict):
@@ -428,6 +477,7 @@ class GroupActionLogPayload(TypedDict):
     source: str
     data: dict[str, Any]
     force_async_derived: bool
+    idempotency_key: NotRequired[str]
 
 
 class SetPublicAction(GroupAction):
@@ -541,7 +591,7 @@ class AutoSetOngoingAction(GroupAction):
 class SetEscalatingAction(GroupAction):
     event_id: Optional[str] = None
     forecast: Optional[int] = None
-    expired_snooze: Optional[dict[str, int | str]] = None
+    expired_snooze: Optional[dict[str, int | str | None]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:

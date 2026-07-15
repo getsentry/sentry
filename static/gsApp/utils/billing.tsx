@@ -32,9 +32,8 @@ import type {
   BillingMetricHistory,
   BillingStatTotal,
   EventBucket,
-  InvoiceItem,
+  InvoiceItemType,
   Plan,
-  PreviewInvoiceItem,
   ProductTrial,
   Subscription,
 } from 'getsentry/types';
@@ -798,10 +797,10 @@ export const RETENTION_SETTINGS_CATEGORIES = new Set([
   DataCategory.TRANSACTIONS,
 ]);
 
-export function getCredits({
+export function getCredits<T extends {amount: number; type: InvoiceItemType}>({
   invoiceItems,
 }: {
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+  invoiceItems: T[];
 }) {
   return invoiceItems.filter(
     item =>
@@ -820,7 +819,7 @@ export function getCreditApplied({
   invoiceItems,
 }: {
   creditApplied: number;
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+  invoiceItems: Array<{amount: number; type: InvoiceItemType}>;
 }) {
   const credits = getCredits({invoiceItems});
   if (credits.some(item => item.type === 'balance_change')) {
@@ -833,10 +832,10 @@ export function getCreditApplied({
  * Returns extra fees included in the invoice or preview data, such as tax
  * or cancellation fees.
  */
-export function getFees({
+export function getFees<T extends {amount: number; type: InvoiceItemType}>({
   invoiceItems,
 }: {
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+  invoiceItems: T[];
 }) {
   return invoiceItems.filter(
     item =>
@@ -848,10 +847,10 @@ export function getFees({
 /**
  * Returns ondemand invoice items from the invoice or preview data.
  */
-export function getOnDemandItems({
+export function getOnDemandItems<T extends {amount: number; type: InvoiceItemType}>({
   invoiceItems,
 }: {
-  invoiceItems: InvoiceItem[] | PreviewInvoiceItem[];
+  invoiceItems: T[];
 }) {
   return invoiceItems.filter(item => item.type.startsWith('ondemand'));
 }

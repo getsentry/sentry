@@ -185,7 +185,7 @@ export function ChannelSelect({
       options={options}
       isLoading={isLoading}
       disabled={disabled}
-      value={value ? {label: value.label, value: value.value} : undefined}
+      value={value ? {label: value.label, value: value.value} : null}
       onChange={onChange}
       onCreateOption={onCreateOption}
       clearable

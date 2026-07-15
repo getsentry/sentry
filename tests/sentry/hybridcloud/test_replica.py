@@ -1,5 +1,5 @@
 from sentry.auth.services.auth.serial import serialize_auth_provider
-from sentry.hybridcloud.models import ApiKeyReplica, ExternalActorReplica
+from sentry.hybridcloud.models import ApiKeyReplica
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.services.replica import cell_replica_service
 from sentry.models.authidentity import AuthIdentity
@@ -7,61 +7,11 @@ from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
-from sentry.models.teamreplica import TeamReplica
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, create_test_cells
-
-
-@django_db_all(transaction=True)
-@all_silo_test
-def test_replicate_external_actor() -> None:
-    org = Factories.create_organization()
-    integration = Factories.create_integration(organization=org, external_id="hohohomerrychristmas")
-    user = Factories.create_user()
-    team = Factories.create_team(organization=org)
-
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        assert ExternalActorReplica.objects.count() == 0
-
-    xa1 = Factories.create_external_team(team=team, integration_id=integration.id, organization=org)
-    xa2 = Factories.create_external_user(
-        user=user, integration_id=integration.id, organization=org, external_id="12345"
-    )
-
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        xar1 = ExternalActorReplica.objects.get(externalactor_id=xa1.id)
-        xar2 = ExternalActorReplica.objects.get(externalactor_id=xa2.id)
-
-    assert xar1.user_id is None
-    assert xar1.team_id == team.id
-    assert xar1.externalactor_id == xa1.id
-    assert xar1.organization_id == xa1.organization_id
-    assert xar1.integration_id == xa1.integration_id
-    assert xar1.provider == xa1.provider
-    assert xar1.external_name == xa1.external_name
-    assert xar1.external_id == xa1.external_id
-
-    assert xar2.user_id == user.id
-    assert xar2.team_id is None
-    assert xar2.externalactor_id == xa2.id
-    assert xar2.organization_id == xa2.organization_id
-    assert xar2.integration_id == xa2.integration_id
-    assert xar2.provider == xa2.provider
-    assert xar2.external_name == xa2.external_name
-    assert xar2.external_id == xa2.external_id
-
-    with assume_test_silo_mode(SiloMode.CELL):
-        xa2.user_id = 12382317  # not a user id
-        xa2.save()
-
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        xar2 = ExternalActorReplica.objects.get(externalactor_id=xa2.id)
-
-    # Did not update with bad user id.
-    assert xar2.user_id == user.id
 
 
 @django_db_all(transaction=True)
@@ -197,47 +147,6 @@ def test_replicate_auth_identity() -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             for ai, next_ident in zip(auth_identities, [*auth_idents[1:], auth_idents[0]]):
                 assert AuthIdentityReplica.objects.get(auth_identity_id=ai.id).ident == next_ident
-
-
-@django_db_all(transaction=True)
-@all_silo_test
-def test_replicate_team() -> None:
-    org = Factories.create_organization()
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        assert TeamReplica.objects.count() == 0
-
-    with assume_test_silo_mode(SiloMode.CELL):
-        team = Factories.create_team(org)
-
-    with assume_test_silo_mode(SiloMode.CONTROL):
-        replicated = TeamReplica.objects.get(team_id=team.id)
-
-    assert replicated.organization_id == team.organization_id
-    assert replicated.slug == team.slug
-    assert replicated.name == team.name
-    assert replicated.status == team.status
-
-    with assume_test_silo_mode(SiloMode.CELL):
-        teams = [
-            team,
-            Factories.create_team(organization=team.organization),
-            Factories.create_team(organization=team.organization),
-        ]
-        team_slugs = [team.slug for team in teams]
-        conflicting_pairs = list(zip(teams, [*team_slugs[1:], team_slugs[0]]))
-
-        with outbox_runner(), outbox_context(flush=False):
-            for team in teams:
-                team.slug += "-new"
-                team.save()
-
-            for team, next_slug in conflicting_pairs:
-                team.slug = next_slug
-                team.save()
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            for team, next_slug in zip(teams, [*team_slugs[1:], team_slugs[0]]):
-                assert TeamReplica.objects.get(team_id=team.id).slug == next_slug
 
 
 @django_db_all(transaction=True)

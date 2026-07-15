@@ -96,11 +96,7 @@ const BREAKPOINT_ORDER: readonly BreakpointSize[] = [
   '2xl',
 ] as const;
 
-/**
- * Prefer using padding or gap instead.
- * @deprecated
- */
-export type Margin = SpaceSize | 'auto' | '0';
+type Margin = SpaceSize | 'auto' | '0';
 
 // @TODO(jonasbadalic): audit for memory usage and linting performance issues.
 // These may not be trivial to infer as we are dealing with n^4 complexity

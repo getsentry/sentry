@@ -2,7 +2,7 @@ import {Fragment, type ReactNode} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconRefresh} from 'sentry/icons';
@@ -61,9 +61,7 @@ export function ArtifactCard({
           </Flex>
         </Disclosure.Title>
         <Disclosure.Content>
-          <Flex direction="column" gap="lg">
-            {children}
-          </Flex>
+          <Stack gap="lg">{children}</Stack>
         </Disclosure.Content>
       </Disclosure>
     </Container>

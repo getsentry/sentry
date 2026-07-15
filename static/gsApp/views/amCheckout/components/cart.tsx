@@ -397,7 +397,7 @@ function SubtotalSummary({
                 budgetTerm: displayBudgetName(activePlan, {title: true}),
               })}
             </Text>
-            <Flex direction="column" gap="sm" align="end">
+            <Stack gap="sm" align="end">
               <Text align="right" variant="muted">
                 {tct('up to [pricePerMonth]', {
                   pricePerMonth: `${utils.displayPrice({
@@ -423,7 +423,7 @@ function SubtotalSummary({
                   </motion.div>
                 )}
               </AnimatePresence>
-            </Flex>
+            </Stack>
           </Flex>
         )}
       {formData.onDemandBudget?.budgetMode === OnDemandBudgetMode.PER_CATEGORY && (
@@ -950,14 +950,14 @@ export function Cart({
             />
           </Stack>
           {summaryIsOpen && (
-            <Flex direction="column" gap="lg" data-test-id="plan-summary" width="100%">
+            <Stack gap="lg" data-test-id="plan-summary" width="100%">
               {errorMessage && (
                 <Container>
                   <Alert variant="danger">{errorMessage}</Alert>
                 </Container>
               )}
               <ItemsSummary activePlan={activePlan} formData={formData} />
-            </Flex>
+            </Stack>
           )}
           <SubtotalSummary
             activePlan={activePlan}

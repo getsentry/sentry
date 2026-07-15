@@ -283,6 +283,12 @@ export function useScmProjectDetails({
     notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION) &&
     !notificationProps.channel;
 
+  // Ignore a lingering INTEGRATION selection when alerts are off: the picker is
+  // hidden, so persisting the action would wrongly force the restore gate later.
+  const hasNotificationAction =
+    alertRuleConfig.alertSetting !== RuleAction.CREATE_ALERT_LATER &&
+    notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION);
+
   const missingFields = {
     notificationChannel: isMissingNotificationChannel,
     platform: !selectedPlatform,
@@ -306,6 +312,26 @@ export function useScmProjectDetails({
 
   const submitTooltipText = getSubmitTooltipText(missingFields);
 
+  const notificationRestoreCompleteRef = useRef(!projectDetailsForm?.notificationAction);
+
+  // Blocks canSubmit until a persisted notification selection settles, then latches open
+  // so later edits don't re-block. No-op when there's no saved action.
+  // "Settled" means one of three things:
+  //   1. Integration restored — query succeeded + INTEGRATION re-added to actions
+  //   2. Integration gone    — query succeeded + picker fell back to the setup CTA
+  //   3. Query failed        — unblock unconditionally so the user isn't permanently stuck
+  //                           (the init effect never runs on error, so notificationPickerSettled
+  //                            stays false and must NOT gate the error escape hatch)
+  const notificationPickerSettled =
+    notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION) ||
+    notificationProps.shouldRenderSetupButton;
+  const notificationRestoreComplete =
+    notificationProps.queryError ||
+    (notificationProps.querySuccess && notificationPickerSettled);
+  if (!notificationRestoreCompleteRef.current && notificationRestoreComplete) {
+    notificationRestoreCompleteRef.current = true;
+  }
+
   // Block submission until teams and the projects store have loaded so the
   // reuse check below can't be bypassed by a race.
   const canSubmit =
@@ -315,7 +341,8 @@ export function useScmProjectDetails({
     !missingFields.notificationChannel &&
     !isCompleting &&
     !isLoadingTeams &&
-    projectsLoaded;
+    projectsLoaded &&
+    notificationRestoreCompleteRef.current;
 
   const existingProject = createdProjectSlug
     ? projects.find(p => p.slug === createdProjectSlug)
@@ -337,9 +364,7 @@ export function useScmProjectDetails({
     alertRuleConfig.metric === savedAlert?.metric &&
     alertRuleConfig.threshold === savedAlert?.threshold &&
     isEqual(
-      notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION)
-        ? buildIntegrationAction(notificationProps)
-        : undefined,
+      hasNotificationAction ? buildIntegrationAction(notificationProps) : undefined,
       savedForm?.notificationAction
     );
 
@@ -352,9 +377,7 @@ export function useScmProjectDetails({
 
     trackAnalytics(CREATE_CLICKED_EVENT[analyticsFlow], {organization});
 
-    const notificationAction = notificationProps.actions.includes(
-      MultipleCheckboxOptions.INTEGRATION
-    )
+    const notificationAction = hasNotificationAction
       ? buildIntegrationAction(notificationProps)
       : undefined;
     const submittedForm = {
@@ -418,6 +441,7 @@ export function useScmProjectDetails({
     createNotificationAction,
     createProjectAndRules,
     existingProject,
+    hasNotificationAction,
     isOrgMemberWithNoAccess,
     nothingChanged,
     notificationProps,

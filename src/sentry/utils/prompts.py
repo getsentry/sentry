@@ -3,6 +3,7 @@ from typing import TypedDict
 
 from django.db.models.query import QuerySet
 
+from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.promptsactivity import PromptsActivity
 
 
@@ -58,7 +59,18 @@ class PromptsConfig:
         return self.prompts[name]["required_fields"]
 
 
+def seer_monitoring_provider_dont_ask_feature(provider_type: str) -> str:
+    return f"seer_dont_ask_{provider_type}"
+
+
 prompt_config = PromptsConfig(DEFAULT_PROMPTS)
+
+# Dynamically register "don't ask again" dismissals for connecting monitoring providers to Seer.
+for provider_type in MONITORING_PROVIDERS:
+    prompt_config.add(
+        seer_monitoring_provider_dont_ask_feature(provider_type),
+        {"required_fields": ["organization_id"]},
+    )
 
 
 def get_prompt_activities_for_user(

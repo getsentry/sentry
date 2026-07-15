@@ -13,7 +13,11 @@ import {Stack} from '@sentry/scraps/layout';
 import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
 import {useCreateProjectRules} from 'sentry/components/onboarding/useCreateProjectRules';
 import {t, tct} from 'sentry/locale';
-import {IssueAlertActionType, type IntegrationAction} from 'sentry/types/alerts';
+import {
+  IssueAlertActionType,
+  type IntegrationAction,
+  type IssueAlertRuleAction,
+} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -84,6 +88,7 @@ export type IssueAlertNotificationProps = {
   integration: OrganizationIntegration | undefined;
   provider: string | undefined;
   providersToIntegrations: Record<string, OrganizationIntegration[]>;
+  queryError: boolean;
   querySuccess: boolean;
   setActions: (action: MultipleCheckboxOptions[]) => void;
   setChannel: (channel?: IntegrationChannel) => void;
@@ -172,6 +177,19 @@ export function useCreateNotificationAction({
 
   const hasInitializedSelection = useRef(false);
 
+  function getIntegrationId(action: IssueAlertRuleAction): string | undefined {
+    switch (action.id) {
+      case IssueAlertActionType.SLACK:
+        return action.workspace;
+      case IssueAlertActionType.DISCORD:
+        return action.server;
+      case IssueAlertActionType.MS_TEAMS:
+        return action.team;
+      default:
+        return undefined;
+    }
+  }
+
   // Seeds the notification picker once, after the integrations query resolves:
   // restores the provider/integration/channel from a default action when one is
   // present, otherwise auto-selects the first available integration. Guarded by
@@ -180,31 +198,32 @@ export function useCreateNotificationAction({
     if (!messagingIntegrationsQuery.isSuccess || hasInitializedSelection.current) {
       return;
     }
-    hasInitializedSelection.current = true;
 
     const firstAction = defaultActions?.[0];
     if (firstAction) {
-      // Restore from a persisted/default action (e.g. back-nav). Provider key
-      // is derived from the action's id; integration is matched by integrationId
-      // if present, falling back to the first in the list.
+      // Restore from a persisted/default action (e.g. back-nav). Provider key is
+      // derived from the action's id; integration is matched by integrationId if
+      // present, falling back to the first in the list.
       const matchedProviderKey = Object.keys(providerDetails).find(
         key =>
           providerDetails[key as keyof typeof providerDetails].action === firstAction.id
       );
-      const integrationId =
-        'workspace' in firstAction
-          ? firstAction.workspace
-          : 'server' in firstAction
-            ? firstAction.server
-            : 'team' in firstAction
-              ? firstAction.team
-              : undefined;
+      const integrationId = getIntegrationId(firstAction);
       const integrationList = matchedProviderKey
         ? (providersToIntegrations[matchedProviderKey] ?? [])
         : [];
-      const matchedIntegration =
-        (integrationId ? integrationList.find(i => i.id === integrationId) : undefined) ??
-        integrationList[0];
+      const matchedIntegration = integrationId
+        ? integrationList.find(i => i.id === integrationId)
+        : integrationList[0];
+
+      // Integration action whose integration hasn't loaded yet: show the setup CTA
+      // and wait for a refetch to deliver it. Don't latch or half-apply the
+      // restore, so the picker can't look submittable with an unresolved integration.
+      const isIntegrationAction = firstAction.id !== IssueAlertActionType.NOTIFY_EMAIL;
+      if (isIntegrationAction && !matchedIntegration) {
+        setShouldRenderSetupButton(true);
+        return;
+      }
 
       setProvider(matchedProviderKey);
       setIntegration(matchedIntegration);
@@ -221,18 +240,26 @@ export function useCreateNotificationAction({
         // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
         setChannel({label: restoredChannel, value: restoredChannel});
       }
+
+      hasInitializedSelection.current = true;
       return;
     }
 
-    // No persisted action: auto-select the first available provider/integration
-    // so the picker is pre-populated rather than blank.
+    // No persisted action: auto-select the first available provider/integration.
     const providerKeys = Object.keys(providersToIntegrations);
     const firstProvider = providerKeys[0];
-    const firstIntegration = providersToIntegrations[String(firstProvider)]?.[0];
+    if (!firstProvider) {
+      // No integrations yet: show the setup CTA and do NOT latch, so this
+      // effect re-runs after the user connects one and the query refetches.
+      setShouldRenderSetupButton(true);
+      return;
+    }
+    hasInitializedSelection.current = true;
+    const firstIntegration = providersToIntegrations[firstProvider]?.[0];
     setProvider(firstProvider);
     setIntegration(firstIntegration);
     setChannel(undefined);
-    setShouldRenderSetupButton(!firstProvider);
+    setShouldRenderSetupButton(false);
   }, [messagingIntegrationsQuery.isSuccess, providersToIntegrations, defaultActions]);
 
   const createNotificationAction = useCallback(
@@ -280,6 +307,7 @@ export function useCreateNotificationAction({
       setIntegration,
       setChannel,
       providersToIntegrations,
+      queryError: messagingIntegrationsQuery.isError,
       querySuccess: messagingIntegrationsQuery.isSuccess,
       shouldRenderSetupButton,
     },
