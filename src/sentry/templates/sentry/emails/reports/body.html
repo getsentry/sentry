@@ -335,6 +335,17 @@
     {% endwith %}
   </div>
 
+  {% if total_spans_count and not enhanced_privacy %}
+  <div id="total-spans" style="margin-bottom: 20px;">
+    <h4 class="total-count-title" style="font-weight: bold;">Total Spans</h4>
+    <h1 style="margin: 0; font-weight: bold;" class="total-count">
+      {{ total_spans_count|small_count:1 }}
+    </h1>
+    <a href="{% org_url organization '/explore/spans/' %}"
+       style="font-size: 12px; margin-bottom: 16px; display: block; font-weight: bold;">View All Spans</a>
+  </div>
+  {% endif %}
+
   <div id="events-by-issue-type">
 
     {% if issue_summary.all_issue_count > 0 %}

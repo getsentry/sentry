@@ -894,6 +894,14 @@ def render_template_context(
 
     view_all_issues_url = _multi_project_substatus_url(user_projects, "is:unresolved")
 
+    show_spans = (
+        features.has("organizations:weekly-report-spans-chart", ctx.organization)
+        and not ctx.organization.flags.enhanced_privacy
+        and ctx.total_spans_count > 0
+    )
+    if show_spans:
+        pass
+
     return {
         "organization": ctx.organization,
         "start": date_format(local_start),
@@ -912,6 +920,7 @@ def render_template_context(
             "organizations:weekly-report-week-over-week-metric", ctx.organization
         ),
         "notification_settings_link": "/settings/account/notifications/reports/",
+        "total_spans_count": ctx.total_spans_count,
     }
 
 

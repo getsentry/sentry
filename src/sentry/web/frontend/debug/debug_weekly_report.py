@@ -16,7 +16,12 @@ from sentry.issues.grouptype import (
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.tasks.summaries.utils import ONE_DAY, OrganizationReportContext, ProjectContext
+from sentry.tasks.summaries.utils import (
+    ONE_DAY,
+    SIX_HOURS,
+    OrganizationReportContext,
+    ProjectContext,
+)
 from sentry.tasks.summaries.weekly_reports import get_group_display, render_template_context
 from sentry.types.group import GroupSubStatus
 from sentry.utils import loremipsum
@@ -203,6 +208,26 @@ class DebugWeeklyReportView(MailPreviewView):
 
             ctx.projects_context_map[project.id] = project_context
 
+        span_names = ["/api/users", "/api/events", "/api/projects", "/api/issues", "/api/search"]
+        all_project_ids = set(ctx.projects_context_map.keys())
+        ctx.top_spans = [
+            {
+                "name": name,
+                "p95": random.uniform(50, 500),
+                "sum": random.uniform(10000, 100000),
+                "count": random.randint(100000, 1500000),
+            }
+            for name in span_names
+        ]
+        ctx.top_spans_projects = {name: next(iter(all_project_ids)) for name in span_names}
+        ctx.total_spans_count = sum(span.get("count", 0) for span in ctx.top_spans)
+        intervals = 28
+        for name in span_names:
+            ctx.top_spans_timeseries[name] = {
+                int(start_timestamp + i * SIX_HOURS): random.uniform(50, 500)
+                for i in range(intervals)
+            }
+
         user_id = request.user.id
         ctx.project_ownership[user_id] = {pid for pid in ctx.projects_context_map}
         context = render_template_context(ctx, user_id)
@@ -211,6 +236,7 @@ class DebugWeeklyReportView(MailPreviewView):
                 request.GET.get("show_week_over_week_metric", "1") != "0"
             )
             context["show_past_issues"] = True
+            context["total_spans_count"] = ctx.total_spans_count
             past_issues: list[dict[str, Any]] = []
             for project_ctx in ctx.projects_context_map.values():
                 for group, count, has_link in project_ctx.past_resolved_issues:
