@@ -280,39 +280,36 @@ describe('logsTableRow', () => {
     jest.useRealTimers();
   });
 
-  it.isKnownFlake(
-    'hovering an embedded row causes prefetching of the row details',
-    async () => {
-      jest.useFakeTimers();
-      expect(rowDetailsMock).toHaveBeenCalledTimes(0);
-      render(
-        <LogRowContent
-          dataRow={rowData}
-          highlightTerms={[]}
-          meta={LogFixtureMeta(rowData)}
-          sharedHoverTimeoutRef={{current: null}}
-          embedded
-          blockRowExpanding
-          onEmbeddedRowClick={jest.fn()}
-        />,
-        {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
-      );
+  it('hovering an embedded row causes prefetching of the row details', async () => {
+    jest.useFakeTimers();
+    expect(rowDetailsMock).toHaveBeenCalledTimes(0);
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{current: null}}
+        embedded
+        blockRowExpanding
+        onEmbeddedRowClick={jest.fn()}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
 
-      const row = screen.getByTestId('log-table-row');
-      await userEvent.hover(row, {delay: null});
+    const row = screen.getByTestId('log-table-row');
+    await userEvent.hover(row, {delay: null});
 
-      act(() => {
-        jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
-      });
+    act(() => {
+      jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+    });
 
-      await waitFor(() => {
-        expect(rowDetailsMock).toHaveBeenCalledTimes(1);
-      });
-      // Flush the .then() callback that reads cached data after prefetch
-      await act(async () => {});
-      jest.useRealTimers();
-    }
-  );
+    await waitFor(() => {
+      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+    });
+    // Flush the .then() callback that reads cached data after prefetch
+    await act(async () => {});
+    jest.useRealTimers();
+  });
 
   it.isKnownFlake('renders row details', async () => {
     render(
