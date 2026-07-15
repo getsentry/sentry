@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from typing import Any, Literal
+from unittest.mock import ANY, patch
 
 import pytest
 
 from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.span_first.base import SpanFirstDetector
 from sentry.issue_detection.detectors.span_first.run_detectors import (
+    _compare_fingerprint_sets,
     compare_span_first_problems_to_control_data,
     run_detector,
     run_span_first_detectors,
@@ -125,28 +127,78 @@ class RunSpanFirstDetectorsTest(TestCase):
 
 
 class CompareSpanFirstProblemsToControlDataTest(TestCase):
-    def test_compares_fingerprints_for_each_grouptype(self) -> None:
-        span_first_problems_by_grouptype = {
-            SLOW_DB_SLUG: [
-                make_problem("slow-db-fingerprint", SLOW_DB_GROUPTYPE),
-                make_problem("span-first-slow-db-fingerprint", SLOW_DB_GROUPTYPE),
-            ],
-            N_PLUS_ONE_SLUG: [
-                make_problem("n-plus-one-fingerprint", N_PLUS_ONE_GROUPTYPE),
-                make_problem("span-first-n-plus-one-fingerprint", N_PLUS_ONE_GROUPTYPE),
-            ],
+    def _get_shared_compare_kwargs(self) -> dict[str, Any]:
+        return {
+            "is_experimental_data_nullish": False,
+            "source_of_truth": "neither",
+            "exact_match_comparator": _compare_fingerprint_sets,
+            "debug_context": {
+                "org_slug": self.project.organization.slug,
+                "project_id": self.project.id,
+                "project_slug": self.project.slug,
+            },
+            # lambdas won't compare equal; we'll verify the serializer separately by seeing what
+            # gets logged
+            "data_serializer": ANY,
+            "metric_sample_rate": 1.0,
         }
-        control_problems = [
-            # One slow DB problem which matches the span-first set, one which doesn't
+
+    def _get_dummy_problem_data(self, kind: Literal["slow_db", "n_plus_one"]) -> dict[str, Any]:
+        dummy_problem_data = {
+            "cause_span_ids": [],
+            "evidence_data": {},
+            "evidence_display": [],
+            "offender_span_ids": [],
+            "op": "db",
+            "parent_span_ids": [],
+            "desc": "test problem",
+        }
+        return {**dummy_problem_data, "type": 1001 if kind == "slow_db" else 1006}
+
+    def _get_shared_logger_extras(self) -> dict[str, Any]:
+        return {
+            "rollout_name": "span_first_detectors",
+            "source_of_truth": "neither",
+            "exact_match": False,
+            "reasonable_match": None,
+            "is_null_result": False,
+            "debug_context": {
+                "org_slug": self.organization.slug,
+                "project_id": self.project.id,
+                "project_slug": self.project.slug,
+            },
+        }
+
+    def test_compares_fingerprints_for_each_grouptype(self) -> None:
+        span_first_slow_db_problems = [
+            make_problem("slow-db-fingerprint", SLOW_DB_GROUPTYPE),
+            make_problem("span-first-slow-db-fingerprint", SLOW_DB_GROUPTYPE),
+        ]
+        span_first_n_plus_one_problems = [
+            make_problem("n-plus-one-fingerprint", N_PLUS_ONE_GROUPTYPE),
+            make_problem("span-first-n-plus-one-fingerprint", N_PLUS_ONE_GROUPTYPE),
+        ]
+        span_first_problems_by_grouptype = {
+            SLOW_DB_SLUG: span_first_slow_db_problems,
+            N_PLUS_ONE_SLUG: span_first_n_plus_one_problems,
+        }
+
+        control_slow_db_problems = [
+            # One problem which matches the span-first set, one which doesn't
             make_problem("slow-db-fingerprint", SLOW_DB_GROUPTYPE),
             make_problem("control-slow-db-fingerprint", SLOW_DB_GROUPTYPE),
-            # One N+1 problem which matches the span-first set, one which doesn't
+        ]
+        control_n_plus_one_problems = [
+            # One problem which matches the span-first set, one which doesn't
             make_problem("n-plus-one-fingerprint", N_PLUS_ONE_GROUPTYPE),
             make_problem("control-n-plus-one-fingerprint", N_PLUS_ONE_GROUPTYPE),
         ]
+        control_problems = control_slow_db_problems + control_n_plus_one_problems
 
+        # First mock `compare`, to verify we're comparing the right things
         with patch.object(SpanFirstDetectorsRolloutController, "compare") as mock_compare:
             compare_span_first_problems_to_control_data(
+                self.project,
                 span_first_problems_by_grouptype,
                 control_problems,
                 get_source_of_truth=lambda _: "neither",
@@ -154,30 +206,102 @@ class CompareSpanFirstProblemsToControlDataTest(TestCase):
 
             mock_compare.assert_any_call(
                 callsite=SLOW_DB_SLUG,
-                control_data={"slow-db-fingerprint", "control-slow-db-fingerprint"},
-                experimental_data={"slow-db-fingerprint", "span-first-slow-db-fingerprint"},
-                is_experimental_data_nullish=False,
-                source_of_truth="neither",
-                metric_sample_rate=1.0,
+                control_data=control_slow_db_problems,
+                experimental_data=span_first_slow_db_problems,
+                **self._get_shared_compare_kwargs(),
             )
             mock_compare.assert_any_call(
                 callsite=N_PLUS_ONE_SLUG,
-                control_data={"n-plus-one-fingerprint", "control-n-plus-one-fingerprint"},
-                experimental_data={"n-plus-one-fingerprint", "span-first-n-plus-one-fingerprint"},
-                is_experimental_data_nullish=False,
-                source_of_truth="neither",
-                metric_sample_rate=1.0,
+                control_data=control_n_plus_one_problems,
+                experimental_data=span_first_n_plus_one_problems,
+                **self._get_shared_compare_kwargs(),
             )
 
+        # Now mock the things `compare` either directly or indirectly calls, to show that we are in
+        # fact checking the fingerprints, and that we're logging mismatches correctly
+        with (
+            patch(
+                "sentry.issue_detection.detectors.span_first.run_detectors._compare_fingerprint_sets",
+                wraps=_compare_fingerprint_sets,
+            ) as mock_compare_fingerprints,
+            patch.object(
+                SpanFirstDetectorsRolloutController, "_should_log_mismatch", lambda _: True
+            ),
+            patch("sentry.utils.rollout.logger.info") as mock_python_logger,
+            patch("sentry.utils.rollout.sdk_logger.info") as mock_sdk_logger,
+        ):
+            compare_span_first_problems_to_control_data(
+                self.project,
+                span_first_problems_by_grouptype,
+                control_problems,
+                get_source_of_truth=lambda _: "neither",
+            )
+
+            mock_compare_fingerprints.assert_any_call(
+                control_slow_db_problems, span_first_slow_db_problems
+            )
+            mock_compare_fingerprints.assert_any_call(
+                control_n_plus_one_problems, span_first_n_plus_one_problems
+            )
+
+            shared_logger_extras = self._get_shared_logger_extras()
+            dummy_slow_db_data = self._get_dummy_problem_data("slow_db")
+            dummy_n_plus_one_data = self._get_dummy_problem_data("n_plus_one")
+
+            mock_sdk_logger.assert_any_call(
+                "saferollout.mismatch",
+                attributes={
+                    "callsite": SLOW_DB_SLUG,
+                    "control_data_raw": [
+                        {**dummy_slow_db_data, "fingerprint": "slow-db-fingerprint"},
+                        {**dummy_slow_db_data, "fingerprint": "control-slow-db-fingerprint"},
+                    ],
+                    "experimental_data_raw": [
+                        {**dummy_slow_db_data, "fingerprint": "slow-db-fingerprint"},
+                        {**dummy_slow_db_data, "fingerprint": "span-first-slow-db-fingerprint"},
+                    ],
+                    **shared_logger_extras,
+                },
+            )
+            mock_sdk_logger.assert_any_call(
+                "saferollout.mismatch",
+                attributes={
+                    "callsite": N_PLUS_ONE_SLUG,
+                    "control_data_raw": [
+                        {**dummy_n_plus_one_data, "fingerprint": "n-plus-one-fingerprint"},
+                        {**dummy_n_plus_one_data, "fingerprint": "control-n-plus-one-fingerprint"},
+                    ],
+                    "experimental_data_raw": [
+                        {**dummy_n_plus_one_data, "fingerprint": "n-plus-one-fingerprint"},
+                        {
+                            **dummy_n_plus_one_data,
+                            "fingerprint": "span-first-n-plus-one-fingerprint",
+                        },
+                    ],
+                    **shared_logger_extras,
+                },
+            )
+
+            # Since problem objects can contain customer data, ensure that we're using the SDK
+            # logger (which logs only to Sentry, and which we've shown above that we use) rather
+            # than the Python logger (which logs to both Sentry and GCP).
+            mock_python_logger.assert_not_called()
+
     def test_skips_comparison_for_null_results(self) -> None:
+        span_first_slow_db_problems = [make_problem("slow-db-fingerprint", SLOW_DB_GROUPTYPE)]
+        span_first_n_plus_one_problems: list[PerformanceProblem] = []
         span_first_problems_by_grouptype = {
-            SLOW_DB_SLUG: [make_problem("slow-db-fingerprint", SLOW_DB_GROUPTYPE)],
-            N_PLUS_ONE_SLUG: [],
+            SLOW_DB_SLUG: span_first_slow_db_problems,
+            N_PLUS_ONE_SLUG: span_first_n_plus_one_problems,
         }
-        control_problems = [make_problem("slow-db-fingerprint", SLOW_DB_GROUPTYPE)]
+
+        control_slow_db_problems = [make_problem("slow-db-fingerprint", SLOW_DB_GROUPTYPE)]
+        control_n_plus_one_problems: list[PerformanceProblem] = []
+        control_problems = control_slow_db_problems + control_n_plus_one_problems
 
         with patch.object(SpanFirstDetectorsRolloutController, "compare") as mock_compare:
             compare_span_first_problems_to_control_data(
+                self.project,
                 span_first_problems_by_grouptype,
                 control_problems,
                 get_source_of_truth=lambda _: "neither",
@@ -188,9 +312,7 @@ class CompareSpanFirstProblemsToControlDataTest(TestCase):
             assert mock_compare.call_count == 1
             mock_compare.assert_any_call(
                 callsite=SLOW_DB_SLUG,
-                control_data={"slow-db-fingerprint"},
-                experimental_data={"slow-db-fingerprint"},
-                is_experimental_data_nullish=False,
-                source_of_truth="neither",
-                metric_sample_rate=1.0,
+                control_data=control_slow_db_problems,
+                experimental_data=span_first_slow_db_problems,
+                **self._get_shared_compare_kwargs(),
             )
