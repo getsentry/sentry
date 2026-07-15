@@ -316,4 +316,8 @@ def _backfill_project(
         if activation_id:
             mark_spawned(_TASK_KEY, activation_id)
     else:
+        logger.info(
+            "backfill_group_action_log.project_completed",
+            extra={"project_id": project.id},
+        )
         process_project_derived_data.delay(project_id=project.id)
