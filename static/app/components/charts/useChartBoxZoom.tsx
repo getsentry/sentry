@@ -160,11 +160,14 @@ export function useChartBoxZoom({
       // and never leave a drag half-open.
       dom.setPointerCapture(pointerId);
 
-      // We deliberately do NOT hide the tooltip with `setOption` here. On a dense
-      // heat map that re-render blocks the main thread long enough to delay the
-      // first pointermove (and the selection box's first paint) by ~300ms in
-      // Safari. Instead the tooltip formatter checks `isDraggingRef` and returns
-      // an empty string during a drag, so no tooltip renders — no re-render.
+      // Immediately hide any tooltip that's already open from hovering, so it
+      // doesn't linger over the selection box. `hideTip` only hides the tooltip
+      // element — cheap, unlike `setOption`, which re-renders the whole chart and
+      // (on a dense heat map) blocks the main thread long enough to delay the
+      // first pointermove and the box's first paint by ~300ms in Safari. Keeping
+      // the tooltip hidden for the rest of the drag is handled by the formatter,
+      // which checks `isDraggingRef` and returns an empty string while dragging.
+      chartInstance.dispatchAction({type: 'hideTip'});
 
       $overlay = createOverlay(overlayStyleRef.current);
       document.body.appendChild($overlay);

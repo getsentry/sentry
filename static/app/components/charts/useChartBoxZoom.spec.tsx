@@ -36,6 +36,7 @@ function makeChart() {
     }),
     convertFromPixel: jest.fn().mockReturnValue(0),
     setOption: jest.fn(),
+    dispatchAction: jest.fn(),
     isDisposed: () => false,
   } as unknown as ECharts;
 
