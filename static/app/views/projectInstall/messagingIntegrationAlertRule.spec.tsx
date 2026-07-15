@@ -73,6 +73,7 @@ describe('MessagingIntegrationAlertRule', () => {
     integration: slackIntegrations[0],
     provider: 'slack',
     providersToIntegrations,
+    queryError: false,
     querySuccess: true,
     shouldRenderSetupButton: false,
     setActions: jest.fn(),
@@ -409,7 +410,7 @@ describe('useMessagingIntegrationAlertRule channel label reconciliation', () => 
   });
 
   function renderRule(
-    props: Partial<IssueAlertNotificationProps>,
+    props: Omit<Partial<IssueAlertNotificationProps>, 'queryError'>,
     setChannel: jest.Mock
   ) {
     return renderHookWithProviders(
@@ -419,6 +420,7 @@ describe('useMessagingIntegrationAlertRule channel label reconciliation', () => 
           integration: undefined,
           provider: undefined,
           providersToIntegrations: {},
+          queryError: false,
           querySuccess: true,
           shouldRenderSetupButton: false,
           setActions: jest.fn(),

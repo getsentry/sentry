@@ -35,6 +35,7 @@ describe('MessagingIntegrationAlertRule', () => {
     integration: undefined,
     provider: 'slack',
     providersToIntegrations: {},
+    queryError: false,
     querySuccess: true,
     shouldRenderSetupButton: false,
     setActions: mockSetAction,

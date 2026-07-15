@@ -19,6 +19,7 @@ describe('ScmMessagingIntegrationAlertRule', () => {
     integration: slackIntegrations[0],
     provider: 'slack',
     providersToIntegrations: {slack: slackIntegrations},
+    queryError: false,
     querySuccess: true,
     shouldRenderSetupButton: false,
     setActions: jest.fn(),
