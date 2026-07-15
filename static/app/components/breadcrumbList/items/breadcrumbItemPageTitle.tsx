@@ -4,7 +4,7 @@ import type {ButtonProps, LinkButtonProps} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
+import {Text, Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {BreadcrumbCopyActionProps} from 'sentry/components/breadcrumbList/actions/breadcrumbCopyAction';
@@ -138,23 +138,15 @@ export function BreadcrumbItemPageTitle({
         </Flex>
       )}
       {leadingGraphic && <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>}
-      {/* style={{minWidth: 0}} unblocks the Tooltip's wrapper <span> so the label
-          can shrink. The visible-width floor lives on the outer Flex above. */}
-      <Tooltip title={tooltipTitle} disabled={tooltipDisabled} style={{minWidth: 0}}>
+      {/* minWidth={0} lets the heading shrink. The visible-width floor lives on the
+          outer Flex above. */}
+      <Tooltip title={tooltipTitle} disabled={tooltipDisabled} skipWrapper>
         <Container minWidth={0}>
-          {styleProps => (
-            // Rendered as inline text (a <span>), not a heading: the surrounding
-            // context (e.g. the TopBar title <h1>) owns the page heading, so the
-            // current-page crumb must be phrasing content that nests cleanly
-            // inside it.
-            <Text
-              ellipsis
-              bold
-              variant="primary"
-              data-test-id="breadcrumb-item"
-              {...styleProps}
-            >
-              {label}
+          {containerProps => (
+            <Text ellipsis bold variant="primary" {...containerProps}>
+              <Heading as="h1" variant="inherit">
+                {label}
+              </Heading>
             </Text>
           )}
         </Container>

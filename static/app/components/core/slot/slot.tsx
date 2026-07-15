@@ -48,11 +48,13 @@ function reportSlotWarning(
 }
 
 type Slot = string;
+type SlotAs = 'div';
 type ContextBridge = {context: React.Context<any>; value: unknown};
 type SlotValue = {
   contextBridges: ContextBridge[];
   counter: number;
   element: HTMLElement | null;
+  as?: SlotAs;
 };
 
 type SlotReducerState<T extends Slot> = Partial<Record<T, SlotValue>>;
@@ -82,6 +84,11 @@ type SlotReducerAction<T extends Slot> =
   | {
       name: T;
       type: 'remove context bridges';
+    }
+  | {
+      name: T;
+      type: 'set as';
+      as?: SlotAs;
     };
 
 type SlotReducer<T extends Slot> = React.Reducer<
@@ -108,6 +115,7 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
             contextBridges: currentSlot?.contextBridges ?? [],
             element: currentSlot?.element ?? null,
             counter: (currentSlot?.counter ?? 0) + 1,
+            as: currentSlot?.as,
           },
         };
       }
@@ -120,7 +128,8 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
           ...state,
           [action.name]: {
             ...currentSlot,
-            counter: (currentSlot?.counter ?? 0) - 1,
+            counter: currentSlot.counter - 1,
+            as: currentSlot.counter === 1 ? undefined : currentSlot.as,
           },
         };
       }
@@ -131,6 +140,7 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
             contextBridges: state[action.name]?.contextBridges ?? [],
             counter: state[action.name]?.counter ?? 0,
             element: action.element,
+            as: state[action.name]?.as,
           },
         };
       case 'unregister': {
@@ -144,6 +154,7 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
             contextBridges: currentSlot?.contextBridges ?? [],
             counter: currentSlot?.counter ?? 0,
             element: null,
+            as: currentSlot?.as,
           },
         };
       }
@@ -155,6 +166,7 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
             contextBridges: action.contextBridges,
             counter: currentSlot?.counter ?? 0,
             element: currentSlot?.element ?? null,
+            as: currentSlot?.as,
           },
         };
       }
@@ -166,6 +178,24 @@ function makeSlotReducer<T extends Slot>(): SlotReducer<T> {
             contextBridges: [],
             counter: currentSlot?.counter ?? 0,
             element: currentSlot?.element ?? null,
+            as: currentSlot?.as,
+          },
+        };
+      }
+      case 'set as': {
+        const currentSlot = state[action.name];
+        if (!currentSlot) {
+          return state;
+        }
+        if (currentSlot.as === action.as) {
+          return state;
+        }
+
+        return {
+          ...state,
+          [action.name]: {
+            ...currentSlot,
+            as: action.as,
           },
         };
       }
@@ -182,10 +212,15 @@ interface SlotProviderProps {
 interface SlotConsumerProps<T extends Slot> {
   children: React.ReactNode;
   name: T;
+  /** The element to use for the corresponding outlet instead of its default. */
+  as?: SlotAs;
 }
 
 interface SlotOutletProps<T extends Slot> {
-  children: (props: {ref: React.RefCallback<HTMLElement | null>}) => React.ReactNode;
+  children: (props: {
+    ref: React.RefCallback<HTMLElement | null>;
+    as?: SlotAs;
+  }) => React.ReactNode;
   name: T;
 }
 
@@ -229,7 +264,7 @@ function makeSlotConsumer<T extends Slot>(options: {
   function SlotConsumer(props: SlotConsumerProps<T>): React.ReactNode {
     const ctx = useContext(context);
     const [state, dispatch] = ctx ?? [EMPTY_STATE, NOOP_DISPATCH];
-    const {name} = props;
+    const {as, name} = props;
     const element = state[name]?.element;
 
     useLayoutEffect(() => {
@@ -237,8 +272,13 @@ function makeSlotConsumer<T extends Slot>(options: {
         return;
       }
       dispatch({type: 'increment counter', name});
+      dispatch({
+        type: 'set as',
+        name,
+        as,
+      });
       return () => dispatch({type: 'decrement counter', name});
-    }, [dispatch, name]);
+    }, [as, dispatch, name]);
 
     if (!ctx) {
       reportSlotWarning(
@@ -286,7 +326,7 @@ function makeSlotOutlet<T extends Slot>(
 ) {
   function SlotOutlet(props: SlotOutletProps<T>): React.ReactNode {
     const ctx = useContext(context);
-    const [, dispatch] = ctx ?? [EMPTY_STATE, NOOP_DISPATCH];
+    const [state, dispatch] = ctx ?? [EMPTY_STATE, NOOP_DISPATCH];
     const {name} = props;
 
     const contextBridges = useContextBridges();
@@ -322,7 +362,7 @@ function makeSlotOutlet<T extends Slot>(
 
     return (
       <outletNameContext.Provider value={name}>
-        {props.children({ref})}
+        {props.children({ref, as: state[name]?.as})}
       </outletNameContext.Provider>
     );
   }

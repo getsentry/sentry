@@ -63,8 +63,13 @@ function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
 }
 
 function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
+  const organization = useOrganization();
+
   return (
-    <TopBar.Slot name="title">
+    <TopBar.Slot
+      name="title"
+      as={organization.features.includes('ui-migration-breadcrumbs') ? 'div' : undefined}
+    >
       <DetectorDetailsBreadcrumbs detector={detector} />
     </TopBar.Slot>
   );

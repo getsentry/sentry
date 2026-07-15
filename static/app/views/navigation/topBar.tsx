@@ -5,7 +5,7 @@ import {mergeProps} from '@react-aria/utils';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {slot, withSlots} from '@sentry/scraps/slot';
-import {Heading} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
@@ -71,13 +71,14 @@ function TopBarContent() {
     >
       <SizeProvider size="sm">
         {/*
-         * The title slot is rendered as a semantic <h1> so the page title
-         * (whatever a view routes into it — breadcrumbs, text, etc.) is exposed
-         * as the page heading. The Heading uses variant="inherit" so it carries
-         * the TopBar typography (no visual weight of its own), and Flex's render
-         * function applies the layout className to that same <h1> element.
+         * The title slot is rendered as a semantic <h1> by default so the page
+         * title (whatever a view routes into it — breadcrumbs, text, etc.) is
+         * exposed as the page heading. Consumers that render a heading inside
+         * the slot can pass `as="div"` to avoid nesting headings.
+         * Flex's render function applies the layout className to that same
+         * element.
          *
-         * flexGrow={1} lets the <h1> occupy the available inline space (the
+         * flexGrow={1} lets the title occupy the available inline space (the
          * header is justify="between", so this just absorbs the empty middle;
          * content stays left-aligned, actions stay pinned right). This is
          * required by any title-slot child that establishes a container query
@@ -88,9 +89,18 @@ function TopBarContent() {
         <Slot.Outlet name="title">
           {props => (
             <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
-              {flexProps => (
-                <Heading as="h1" variant="inherit" {...mergeProps(flexProps, props)} />
-              )}
+              {flexProps => {
+                const {as, ...slotProps} = props;
+                const mergedProps = mergeProps(flexProps, slotProps);
+
+                return as ? (
+                  <Text as={as} variant="inherit" {...mergedProps}>
+                    {null}
+                  </Text>
+                ) : (
+                  <Heading as="h1" variant="inherit" {...mergedProps} />
+                );
+              }}
             </Flex>
           )}
         </Slot.Outlet>

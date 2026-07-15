@@ -107,7 +107,12 @@ function ReplayDetailsContent() {
 
   const pageFrameContent = (
     <Fragment>
-      <TopBar.Slot name="title">
+      <TopBar.Slot
+        name="title"
+        as={
+          organization.features.includes('ui-migration-breadcrumbs') ? 'div' : undefined
+        }
+      >
         <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
       </TopBar.Slot>
       <ReplayDetailsHeaderActions readerResult={readerResult} />

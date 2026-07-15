@@ -46,6 +46,37 @@ describe('slot', () => {
     );
   });
 
+  it('passes the consumer element option to the Outlet', () => {
+    const SlotModule = slot(['content'] as const);
+
+    const {rerender} = render(
+      <SlotModule.Provider>
+        <SlotModule.Outlet name="content">
+          {({as, ...props}) => (
+            <div {...props} data-slot-as={as} data-test-id="slot-target" />
+          )}
+        </SlotModule.Outlet>
+        <SlotModule name="content" as="div">
+          <span>portaled content</span>
+        </SlotModule>
+      </SlotModule.Provider>
+    );
+
+    expect(screen.getByTestId('slot-target')).toHaveAttribute('data-slot-as', 'div');
+
+    rerender(
+      <SlotModule.Provider>
+        <SlotModule.Outlet name="content">
+          {({as, ...props}) => (
+            <div {...props} data-slot-as={as} data-test-id="slot-target" />
+          )}
+        </SlotModule.Outlet>
+      </SlotModule.Provider>
+    );
+
+    expect(screen.getByTestId('slot-target')).not.toHaveAttribute('data-slot-as');
+  });
+
   it('multiple slot consumers render nothing independently when no Outlet is registered', () => {
     const SlotModule = slot(['a', 'b'] as const);
 

@@ -95,7 +95,7 @@ describe('BreadcrumbList container-query collapse', () => {
     expect(alwaysOnMediaFlex).toBe(false);
   });
 
-  it('renders the current page as inline text and hides dividers from AT', () => {
+  it('renders the current page as an h1 and hides dividers from AT', () => {
     render(
       <BreadcrumbList
         items={[
@@ -105,11 +105,12 @@ describe('BreadcrumbList container-query collapse', () => {
       />
     );
 
-    // The current-page crumb renders as inline text, not a heading — the
-    // surrounding context (e.g. the TopBar title <h1>) owns the page heading, so
-    // the crumb's label must not surface as its own heading.
-    expect(screen.getByTestId('breadcrumb-item')).toHaveTextContent('General');
-    expect(screen.queryByRole('heading', {name: 'General'})).not.toBeInTheDocument();
+    // The current-page crumb owns the page heading. When this list is rendered
+    // inside TopBar.Slot, use `as="div"` on the slot to avoid nested headings.
+    expect(screen.getByRole('heading', {name: 'General'})).toHaveAttribute(
+      'data-test-id',
+      'breadcrumb-item'
+    );
 
     // Parent links must not be marked current.
     expect(screen.getByRole('link', {name: 'Settings'})).not.toHaveAttribute(

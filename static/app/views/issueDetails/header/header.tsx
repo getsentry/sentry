@@ -95,7 +95,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            <TopBar.Slot name="title">
+            <TopBar.Slot name="title" as={useNewBreadcrumbs ? 'div' : undefined}>
               {useNewBreadcrumbs ? (
                 <BreadcrumbList items={crumbs} />
               ) : (

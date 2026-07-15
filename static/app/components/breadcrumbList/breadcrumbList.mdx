@@ -17,7 +17,7 @@ import * as Storybook from 'sentry/stories';
 export const documentation =
   import('!!type-loader!sentry/components/breadcrumbList/breadcrumbList');
 
-`BreadcrumbList` renders a horizontal breadcrumb trail as inline content. It is designed to sit inside the page's heading (e.g. the TopBar title `<h1>`), which owns the landmark and heading semantics — so the trail itself renders no `<nav>` landmark and the current-page crumb is inline text, not its own heading. Each slot in the trail has an explicit `type` — developers must consciously choose a variant rather than having it inferred from position. At container widths below 500px, parent link crumbs automatically collapse into a single overflow (`…`) menu via a container query, keeping the page title always visible.
+`BreadcrumbList` renders a horizontal breadcrumb trail as inline content. The trail itself renders no `<nav>` landmark, and its final `'page-title'` item renders the page's `<h1>`. Each slot in the trail has an explicit `type` — developers must consciously choose a variant rather than having it inferred from position. At container widths below 500px, parent link crumbs automatically collapse into a single overflow (`…`) menu via a container query, keeping the page title always visible.
 
 ## Usage
 
@@ -73,7 +73,20 @@ A clickable, muted-weight crumb that navigates to a parent page. Use for every i
 
 ### `'page-title'` — current page
 
-The final crumb — bold, non-interactive, and always visible. Represents the page the user is currently on.
+The final crumb — an `h1` that is bold, non-interactive, and always visible. Represents the page the user is currently on.
+
+When rendering a `BreadcrumbList` with a `'page-title'` item into the title slot, set the slot's `as` prop to `"div"`. The title slot renders an `h1` by default, so this keeps the page-title crumb as the only heading.
+
+```tsx
+<TopBar.Slot name="title" as="div">
+  <BreadcrumbList
+    items={[
+      {type: 'link', label: 'Issues', to: '/issues/'},
+      {type: 'page-title', label: 'Current Issue'},
+    ]}
+  />
+</TopBar.Slot>
+```
 
 <Storybook.Demo>
   <BreadcrumbList

@@ -43,7 +43,7 @@ export function BreadcrumbItemLink({
             ...to,
             query: {
               ...extractSelectionParameters(location.query),
-              ...(typeof to === 'object' && to !== null && 'query' in to ? to.query : {}),
+              ...(typeof to === 'object' && 'query' in to ? to.query : {}),
             },
           }
       : to;

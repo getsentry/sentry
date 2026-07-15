@@ -1,5 +1,7 @@
 import {Container, Flex, type Responsive} from '@sentry/scraps/layout';
 
+import {unreachable} from 'sentry/utils/unreachable';
+
 import {BreadcrumbCopyAction} from './actions/breadcrumbCopyAction';
 import {BreadcrumbMenuAction} from './actions/breadcrumbMenuAction';
 import type {BreadcrumbItemLinkProps} from './items/breadcrumbItemLink';
@@ -48,6 +50,7 @@ function renderItem(item: BreadcrumbItem) {
       return <BreadcrumbItemSelectProjects {...props} />;
     }
     default:
+      unreachable(item);
       return null;
   }
 }
@@ -92,10 +95,9 @@ function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
   const visibleWhenNarrow: Responsive<'flex' | 'none'> = {xs: 'none', '2xs': 'flex'};
 
   return (
-    // Renders as inline content (no <nav> landmark, no own heading): breadcrumbs
-    // are placed inside the page heading (e.g. the TopBar title <h1>), which owns
-    // the landmark/heading semantics. A `<nav aria-label>` here would both nest
-    // invalidly and override that <h1>'s accessible name.
+    // Renders as inline content (no <nav> landmark): the page-title item owns the
+    // page heading. A `<nav aria-label>` here would add an unnecessary landmark
+    // around the heading and its supporting parent links.
     <Container width="100%" data-test-id="breadcrumb-list" {...props}>
       {/*
        * The query container is this inner element, not the <nav> above. emotion's
