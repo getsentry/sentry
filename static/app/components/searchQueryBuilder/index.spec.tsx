@@ -1,4 +1,4 @@
-import type {ComponentProps} from 'react';
+import {Fragment, type ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 import {mutationOptions} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -6845,6 +6845,52 @@ describe('SearchQueryBuilder', () => {
       expect(
         screen.queryByRole('option', {name: /Ask AI to build your query/})
       ).not.toBeInTheDocument();
+    });
+
+    it('tabs from ask seer through the query builder actions', async () => {
+      render(
+        <Fragment>
+          <SearchQueryBuilder
+            {...defaultProps}
+            enableAISearch
+            initialQuery="browser.name:Firefox"
+            onCaseInsensitiveClick={jest.fn()}
+          />
+          <button>Next control</button>
+        </Fragment>,
+        {
+          organization: {
+            features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+          },
+        }
+      );
+
+      await userEvent.click(getLastInput());
+      const input = getLastInput();
+      await userEvent.type(input, 'query');
+      await userEvent.clear(input);
+      const askSeerButton = await screen.findByRole('button', {
+        name: /Ask AI to build your query/,
+      });
+
+      await userEvent.tab();
+      expect(askSeerButton).toHaveFocus();
+
+      await userEvent.keyboard('{ArrowDown}');
+      expect(askSeerButton).toHaveFocus();
+
+      await userEvent.tab();
+      expect(screen.getByRole('button', {name: 'Ignore case'})).toHaveFocus();
+      expect(
+        screen.queryByRole('button', {name: /Ask AI to build your query/})
+      ).not.toBeInTheDocument();
+
+      await userEvent.tab();
+      expect(screen.getByRole('button', {name: 'Clear search query'})).toHaveFocus();
+
+      await userEvent.tab();
+      expect(screen.getByRole('button', {name: 'Next control'})).toHaveFocus();
+      expect(screen.getByTestId('search-query-builder')).not.toHaveFocus();
     });
 
     it('keeps ask seer in the footer after clearing an existing filter key', async () => {

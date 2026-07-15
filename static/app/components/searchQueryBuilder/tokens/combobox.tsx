@@ -132,11 +132,13 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
 type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
 
 export type CustomComboboxMenuProps<T> = {
+  askSeerButtonRef: React.RefObject<HTMLButtonElement | null>;
   filterValue: string;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<T>;
   listBoxRef: React.RefObject<HTMLUListElement | null>;
+  onMenuExit: () => void;
   overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<T>;
@@ -282,6 +284,7 @@ function useUpdateOverlayPositionOnContentChange({
 }
 
 function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
+  askSeerButtonRef,
   customMenu,
   filterValue,
   hiddenOptions,
@@ -289,17 +292,20 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   isLoading,
   listBoxProps,
   listBoxRef,
+  onMenuExit,
   popoverRef,
   state,
   overlayProps,
   portalTarget,
   totalOptions,
 }: {
+  askSeerButtonRef: React.RefObject<HTMLButtonElement | null>;
   filterValue: string;
   hiddenOptions: Set<SelectKey>;
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<any>;
   listBoxRef: React.RefObject<HTMLUListElement | null>;
+  onMenuExit: () => void;
   overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<any>;
@@ -321,10 +327,12 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
       isOpen,
       hiddenOptions,
       listBoxProps,
+      onMenuExit,
       state,
       overlayProps,
       filterValue,
       portalTarget,
+      askSeerButtonRef,
     });
   }
 
@@ -355,7 +363,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
         ) : null}
         {showAskSeerFooter ? (
           <Flex padding="sm" borderTop="muted">
-            <OpenAskSeerButton />
+            <OpenAskSeerButton ref={askSeerButtonRef} onTab={onMenuExit} />
           </Flex>
         ) : enableAISearch ? (
           <AskSeer state={state} />
@@ -412,6 +420,7 @@ export function SearchQueryBuilderCombobox<
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
+  const askSeerButtonRef = useRef<HTMLButtonElement>(null);
 
   const {hiddenOptions, disabledKeys} = useHiddenItems({
     items,
@@ -464,6 +473,7 @@ export function SearchQueryBuilderCombobox<
       listBoxRef,
       inputRef,
       popoverRef,
+      focusOnTabRef: askSeerButtonRef,
       shouldFocusWrap: true,
       onFocus: e => {
         if (openOnFocus) {
@@ -678,6 +688,7 @@ export function SearchQueryBuilderCombobox<
         </StyledPositionWrapper>
       ) : null}
       <OverlayContent
+        askSeerButtonRef={askSeerButtonRef}
         customMenu={customMenu}
         filterValue={filterValue}
         hiddenOptions={hiddenOptions}
@@ -685,6 +696,11 @@ export function SearchQueryBuilderCombobox<
         isLoading={incomingIsLoading}
         listBoxProps={listBoxProps}
         listBoxRef={listBoxRef}
+        onMenuExit={() => {
+          state.close();
+          state.setFocused(false);
+          onOpenChange?.(false);
+        }}
         popoverRef={popoverRef}
         state={state}
         overlayProps={overlayProps}
