@@ -5,18 +5,13 @@ from sentry.auth.services.orgauthtoken.model import RpcOrgAuthToken
 from sentry.hybridcloud.rpc.resolvers import ByCellName
 from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method, rpc_method
 from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
-from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
+from sentry.organizations.services.organization import RpcOrganizationMemberTeam
 from sentry.silo.base import SiloMode
 
 
 class ControlReplicaService(RpcService):
     key = "control_replica"
     local_mode = SiloMode.CONTROL
-
-    @rpc_method
-    @abc.abstractmethod
-    def upsert_replicated_team(self, *, team: RpcTeam) -> None:
-        pass
 
     @rpc_method
     @abc.abstractmethod

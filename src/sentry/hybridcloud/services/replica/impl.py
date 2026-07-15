@@ -31,9 +31,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.projectkeymapping import ProjectKeyMapping
-from sentry.models.team import Team
-from sentry.models.teamreplica import TeamReplica
-from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
+from sentry.organizations.services.organization import RpcOrganizationMemberTeam
 from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
@@ -295,17 +293,6 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
         )
 
         handle_replication(OrganizationMemberTeam, destination, fk="organizationmemberteam_id")
-
-    def upsert_replicated_team(self, *, team: RpcTeam) -> None:
-        destination = TeamReplica(
-            team_id=team.id,
-            organization_id=team.organization_id,
-            slug=team.slug,
-            name=team.name,
-            status=team.status,
-        )
-
-        handle_replication(Team, destination)
 
     def upsert_project_key_mapping(self, *, project_key: RpcProjectKeyMapping) -> bool:
         try:
