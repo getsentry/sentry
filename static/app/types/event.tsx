@@ -227,9 +227,6 @@ export type EventMetadata = {
 export enum EventOrGroupType {
   ERROR = 'error',
   CSP = 'csp',
-  HPKP = 'hpkp',
-  EXPECTCT = 'expectct',
-  EXPECTSTAPLE = 'expectstaple',
   NEL = 'nel',
   DEFAULT = 'default',
   TRANSACTION = 'transaction',
@@ -247,9 +244,6 @@ export enum EntryType {
   STACKTRACE = 'stacktrace',
   TEMPLATE = 'template',
   CSP = 'csp',
-  EXPECTCT = 'expectct',
-  EXPECTSTAPLE = 'expectstaple',
-  HPKP = 'hpkp',
   BREADCRUMBS = 'breadcrumbs',
   THREADS = 'threads',
   THREAD_STATE = 'thread-state',
@@ -358,11 +352,6 @@ type EntryCsp = {
   type: EntryType.CSP;
 };
 
-type EntryGeneric = {
-  data: Record<string, any>;
-  type: EntryType.EXPECTCT | EntryType.EXPECTSTAPLE | EntryType.HPKP;
-};
-
 type EntryResources = {
   data: any; // Data is unused here
   type: EntryType.RESOURCES;
@@ -379,7 +368,6 @@ export type Entry =
   | EntryRequest
   | EntryTemplate
   | EntryCsp
-  | EntryGeneric
   | EntryResources;
 
 /** Maps each EntryType to its corresponding Entry subtype. */
@@ -769,12 +757,7 @@ interface EventBase {
   size: number;
   tags: EventTag[];
   title: string;
-  type:
-    | EventOrGroupType.CSP
-    | EventOrGroupType.DEFAULT
-    | EventOrGroupType.EXPECTCT
-    | EventOrGroupType.EXPECTSTAPLE
-    | EventOrGroupType.HPKP;
+  type: EventOrGroupType.CSP | EventOrGroupType.DEFAULT;
   user: EventUser | null;
   _meta?: Record<string, any>;
   context?: Record<string, any>;

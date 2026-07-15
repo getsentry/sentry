@@ -33,10 +33,7 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 const EVENT_TYPES_WITH_LOG_LEVEL = new Set([
   EventOrGroupType.ERROR,
   EventOrGroupType.CSP,
-  EventOrGroupType.EXPECTCT,
   EventOrGroupType.DEFAULT,
-  EventOrGroupType.EXPECTSTAPLE,
-  EventOrGroupType.HPKP,
   EventOrGroupType.NEL,
 ]);
 
@@ -68,10 +65,6 @@ export function getMessage(
       return metadata.value;
     case EventOrGroupType.CSP:
       return metadata.message;
-    case EventOrGroupType.EXPECTCT:
-    case EventOrGroupType.EXPECTSTAPLE:
-    case EventOrGroupType.HPKP:
-      return '';
     case EventOrGroupType.GENERIC:
       return metadata.value;
     default:
@@ -102,16 +95,6 @@ export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper | Simpl
       return {
         title: customTitle ?? metadata.directive ?? '',
         subtitle: metadata.uri ?? '',
-      };
-    case EventOrGroupType.EXPECTCT:
-    case EventOrGroupType.EXPECTSTAPLE:
-    case EventOrGroupType.HPKP:
-      // Due to a regression some reports did not have message persisted
-      // (https://github.com/getsentry/sentry/pull/19794) so we need to fall
-      // back to the computed title for these.
-      return {
-        title: customTitle ?? (metadata.message || title),
-        subtitle: metadata.origin ?? '',
       };
     case EventOrGroupType.DEFAULT:
       return {
