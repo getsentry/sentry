@@ -84,10 +84,7 @@ def get_group_global_count(group: Group) -> str:
     return str(group.times_seen_with_pending)
 
 
-# Maps a concrete Group model status to the derived open/closed status. Transient
-# statuses (pending deletion/merge, reprocessing) are intentionally omitted: they
-# don't map cleanly to open/closed and shouldn't be reconciled.
-_MODEL_STATUS_TO_DERIVED_STATUS = {
+_GROUP_STATUS_TO_DERIVED_STATUS = {
     GroupStatus.UNRESOLVED: IssueStatus.OPEN,
     GroupStatus.RESOLVED: IssueStatus.CLOSED,
     GroupStatus.IGNORED: IssueStatus.CLOSED,
@@ -130,7 +127,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
     def _reconcile_status(self, request: Request, group: Group) -> None:
         """Detect divergence between the Group model status (source of truth) and
-        the action-log-derived status, and publish a ReconcileStatusAction to fix it.
+        the action-log-derived status and publish a ReconcileStatusAction to fix it.
 
         This is a best-effort, non-essential side effect on a read path; callers
         must ensure a failure here never breaks the group view.
@@ -138,13 +135,15 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if not features.has("projects:issue-status-reconciliation", group.project):
             return
 
-        expected_status = _MODEL_STATUS_TO_DERIVED_STATUS.get(group.status)
+        expected_status = _GROUP_STATUS_TO_DERIVED_STATUS.get(group.status)
         if expected_status is None:
+            # XXX: some statuses like pending deletion, merge, etc. are skipped
+            # as they don't map to a derived status
             return
 
         derived = GroupDerivedData.objects.filter(group_id=group.id).first()
         if derived is None:
-            # Not tracked by the derived system yet; nothing to reconcile against.
+            # nothing to reconcile against
             return
 
         raw = derived.data.get(STATUS.name)
