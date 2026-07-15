@@ -86,6 +86,17 @@ function useRegisterServiceWorker() {
         if (error instanceof Error && error.name === 'AbortError') {
           return;
         }
+        // WebKit (Safari/Chrome iOS) throws a generic "Script <url> load failed"
+        // TypeError when it cannot fetch or parse the service worker script.
+        // This is a browser-engine-level failure that cannot be recovered from in
+        // the catch block, so we log the metric but do not report it to Sentry.
+        if (
+          error instanceof TypeError &&
+          error.message.includes('service-worker.js load failed')
+        ) {
+          log('script-load-failed');
+          return;
+        }
         log('error');
         Sentry.captureException(error);
       });
