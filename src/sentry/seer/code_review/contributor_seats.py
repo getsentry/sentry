@@ -135,7 +135,7 @@ def get_or_create_contributor(
         hostname = instance_hostname(integration)
     except InstanceHostnameError as e:
         sentry_sdk.capture_exception(e)
-        return
+        return None
 
     if contributor := get_canonical_contributor(
         organization_id=organization.id,
@@ -181,9 +181,7 @@ def track_contributor_seat(
         external_identifier=str(user_id),
         alias=user_username,
     )
-    if contributor is None:
-        return
-    if not should_increment_contributor_seat(organization, repo, contributor):
+    if not contributor or not should_increment_contributor_seat(organization, repo, contributor):
         return
 
     logger.info(
@@ -224,10 +222,12 @@ def record_contributor_action(
         external_identifier=str(user_id),
         alias=user_username,
     )
-    if contributor is None:
-        return
 
-    if not is_opened or not should_increment_contributor_seat(organization, repo, contributor):
+    if (
+        not contributor
+        or not is_opened
+        or not should_increment_contributor_seat(organization, repo, contributor)
+    ):
         return
 
     with transaction.atomic(router.db_for_write(OrganizationContributors)):
