@@ -7,7 +7,7 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/userBubble.tsx
 ---
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {UserBubble} from '@sentry/scraps/chat';
 
 import * as Storybook from 'sentry/stories';
@@ -42,14 +42,12 @@ never spans the full conversation width. Override `maxWidth` for narrower or
 wider surfaces.
 
 <Storybook.Demo>
-  <Stack gap="md" width="100%">
-    <Flex justify="end" width="100%">
-      <UserBubble maxWidth="60%">
-        A longer question that wraps onto multiple lines once it reaches the max width of
-        the bubble.
-      </UserBubble>
-    </Flex>
-  </Stack>
+  <Flex justify="end" width="100%">
+    <UserBubble maxWidth="60%">
+      A longer question that wraps onto multiple lines once it reaches the max width of
+      the bubble.
+    </UserBubble>
+  </Flex>
 </Storybook.Demo>
 
 ```jsx
