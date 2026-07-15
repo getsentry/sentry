@@ -431,10 +431,6 @@ def _min_ts(current: str | None, candidate: str | None) -> str | None:
 
 
 # --- readers: pure projections of a stored document -----------------------
-#
-# These mirror the legacy row-based readers (``emit``/``utils``/``judge``),
-# sourced from the document instead. They stay pure so they're unit-testable
-# without a database; the callers load the document and route by its presence.
 
 # The judge forward collapses each checks group into one synthesized event and
 # caps the number forwarded, mirroring the legacy row cap. The write-time group
