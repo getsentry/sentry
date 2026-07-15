@@ -58,7 +58,11 @@ function useRegisterServiceWorker() {
 
     navigator.serviceWorker
       // https://rspack.rs/guide/features/web-workers
-      .register(getWorkerUrl(), {scope: '/'})
+      // type: 'module' is required because the bundle is output as an ES module.
+      // Safari 26 (WebKit 26) strictly rejects classic service worker registrations
+      // that contain ES module syntax; Chrome/Firefox are more lenient. Module
+      // service workers are supported since Safari 16.4.
+      .register(getWorkerUrl(), {scope: '/', type: 'module'})
       .then(registration => {
         log('registered', {
           attributes: {
@@ -84,17 +88,6 @@ function useRegisterServiceWorker() {
         // AbortErrors from registration are expected (e.g. user navigates away
         // during the initial register call) and produce no stack trace.
         if (error instanceof Error && error.name === 'AbortError') {
-          return;
-        }
-        // WebKit (Safari/Chrome iOS) throws a generic "Script <url> load failed"
-        // TypeError when it cannot fetch or parse the service worker script.
-        // This is a browser-engine-level failure that cannot be recovered from in
-        // the catch block, so we log the metric but do not report it to Sentry.
-        if (
-          error instanceof TypeError &&
-          error.message.includes('service-worker.js load failed')
-        ) {
-          log('script-load-failed');
           return;
         }
         log('error');
