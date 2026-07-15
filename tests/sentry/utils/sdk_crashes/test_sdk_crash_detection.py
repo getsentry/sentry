@@ -42,7 +42,11 @@ def test_get_hybrid_sdk_parent(sdk_name: str) -> None:
         }
     }
 
-    assert get_hybrid_sdk_parent(sdk_name, event_data) == ("sentry.dart.flutter", "9.24.0")
+    assert get_hybrid_sdk_parent(sdk_name, event_data) == (
+        "sentry.dart.flutter",
+        "pub:sentry_flutter",
+        "9.24.0",
+    )
 
 
 @pytest.mark.parametrize(
@@ -177,7 +181,9 @@ def test_sdks_detected(
 @django_db_all
 @pytest.mark.snuba
 @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
+@patch("sentry.utils.metrics.incr")
 def test_flutter_sdk_version_attributed_without_replacing_native_version(
+    incr: MagicMock,
     mock_sdk_crash_reporter: MagicMock,
     store_event: Callable[[dict[str, Collection[str]]], Event],
 ) -> None:
@@ -198,13 +204,31 @@ def test_flutter_sdk_version_attributed_without_replacing_native_version(
     sdk_crash_detection.detect_sdk_crash(event=event, configs=build_sdk_configs())
 
     reported_event_data = mock_sdk_crash_reporter.report.call_args.args[0]
-    assert reported_event_data["sdk"] == {"name": "sentry.cocoa.flutter", "version": "8.2.0"}
-    assert reported_event_data["release"] == "8.2.0"
-    assert reported_event_data["tags"] == {
-        "sdk_crash.native_version": "8.2.0",
-        "sdk_crash.parent_name": "sentry.dart.flutter",
-        "sdk_crash.parent_version": "9.24.0",
+    assert reported_event_data["sdk"] == {
+        "name": "sentry.cocoa.flutter",
+        "version": "8.2.0",
+        "packages": [{"name": "pub:sentry_flutter", "version": "9.24.0"}],
     }
+    assert reported_event_data["release"] == "8.2.0"
+    metric_tags = {
+        "sdk_name": "sentry.cocoa.flutter",
+        "sdk_version": "8.2.0",
+        "is_anr_or_apphang": "false",
+        "parent_sdk_name": "sentry.dart.flutter",
+        "parent_sdk_version": "9.24.0",
+    }
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.sdk_event",
+        tags=metric_tags,
+    )
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.detecting_sdk_crash",
+        tags=metric_tags,
+    )
+    incr.assert_any_call(
+        "post_process.sdk_crash_monitoring.sdk_crash_detected",
+        tags=metric_tags,
+    )
 
 
 class SDKCrashReportTestMixin(BaseSDKCrashDetectionMixin, SnubaTestCase):

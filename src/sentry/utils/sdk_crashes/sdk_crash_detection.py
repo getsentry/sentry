@@ -21,7 +21,9 @@ HYBRID_SDK_PARENT_PACKAGES = {
 }
 
 
-def get_hybrid_sdk_parent(sdk_name: str, event_data: Mapping[str, Any]) -> tuple[str, str] | None:
+def get_hybrid_sdk_parent(
+    sdk_name: str, event_data: Mapping[str, Any]
+) -> tuple[str, str, str] | None:
     parent_sdk = HYBRID_SDK_PARENT_PACKAGES.get(sdk_name)
     if parent_sdk is None:
         return None
@@ -49,7 +51,7 @@ def get_hybrid_sdk_parent(sdk_name: str, event_data: Mapping[str, Any]) -> tuple
     except InvalidVersion:
         return None
 
-    return parent_sdk_name, parent_sdk_version
+    return parent_sdk_name, parent_package_name, parent_sdk_version
 
 
 class SDKCrashReporter:
@@ -112,6 +114,12 @@ class SDKCrashDetection:
             "sdk_version": sdk_version,
             "is_anr_or_apphang": "true" if mechanism in ("ANR", "AppExitInfo") else "false",
         }
+        if hybrid_sdk_parent is not None:
+            parent_sdk_name, _, parent_sdk_version = hybrid_sdk_parent
+            metric_tags.update(
+                parent_sdk_name=parent_sdk_name,
+                parent_sdk_version=parent_sdk_version,
+            )
         sdk_detectors = list(map(lambda config: SDKCrashDetector(config=config), configs))
 
         num_supported_detectors = sum(
@@ -197,15 +205,12 @@ class SDKCrashDetection:
             set_path(sdk_crash_event_data, "release", value=sdk_version)
 
             if hybrid_sdk_parent is not None:
-                parent_sdk_name, parent_sdk_version = hybrid_sdk_parent
+                _, parent_package_name, parent_sdk_version = hybrid_sdk_parent
                 set_path(
                     sdk_crash_event_data,
-                    "tags",
-                    value={
-                        "sdk_crash.native_version": sdk_version,
-                        "sdk_crash.parent_name": parent_sdk_name,
-                        "sdk_crash.parent_version": parent_sdk_version,
-                    },
+                    "sdk",
+                    "packages",
+                    value=[{"name": parent_package_name, "version": parent_sdk_version}],
                 )
 
             # So Sentry can tell how many projects are impacted by this SDK crash
