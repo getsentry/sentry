@@ -790,16 +790,18 @@ class RPCBase:
             else:
                 query = timeseries_filter
 
+        # Deduplicate aggregate expressions by public_alias. Snuba rejects a
+        # TimeSeriesRequest with two expressions sharing the same label, which can
+        # happen when the same y-axis function is requested more than once.
+        aggregates = [fn for fn in (functions + equations) if fn.is_aggregate]
+        deduped = {fn.public_alias: fn for fn in aggregates}.values()
+        expressions = [cls.categorize_aggregate(fn) for fn in deduped]
+
         return (
             TimeSeriesRequest(
                 meta=meta,
                 filter=query,
-                expressions=[
-                    cls.categorize_aggregate(fn)
-                    for fn in {
-                        fn.public_alias: fn for fn in (functions + equations) if fn.is_aggregate
-                    }.values()
-                ],
+                expressions=expressions,
                 group_by=[
                     groupby.proto_definition
                     for groupby in groupbys
