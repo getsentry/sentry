@@ -13,7 +13,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 
 
-class OrganizationTraceItemsStatsEndpointTest(
+class OrganizationTraceItemStatsEndpointTest(
     APITransactionTestCase,
     SnubaTestCase,
     SpanTestCase,
@@ -127,7 +127,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
         device_data = attribute_distribution["sentry.device"]
         assert {"label": "mobile", "value": 3.0} in device_data
         assert {"label": "desktop", "value": 1.0} in device_data
@@ -151,7 +151,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
 
         assert "browser.name" in attribute_distribution
         assert "device" not in attribute_distribution
@@ -179,7 +179,7 @@ class OrganizationTraceItemsStatsEndpointTest(
 
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
 
         assert "browser" in attribute_distribution
         assert "device" not in attribute_distribution
@@ -214,7 +214,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
 
         assert "span.op" in attribute_distribution
         description_labels = [item["label"] for item in attribute_distribution["span.op"]]
@@ -242,7 +242,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
 
         device_data = attribute_distribution.get("sentry.device", [])
         assert any(item["label"] == "desktop" for item in device_data)
@@ -266,7 +266,7 @@ class OrganizationTraceItemsStatsEndpointTest(
             }
         )
         assert response.status_code == 200, response.data
-        first_page = response.data["data"][0]["attribute_distributions"]["data"]
+        first_page = response.data["data"][0]["attributeDistributions"]["data"]
         assert len(first_page) == 2
 
         links = self._parse_links(response)
@@ -276,7 +276,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         # Second page: the remaining 2 attributes, with no further pages.
         next_response = self.client.get(links["next"]["href"], format="json")
         assert next_response.status_code == 200, next_response.content
-        second_page = next_response.data["data"][0]["attribute_distributions"]["data"]
+        second_page = next_response.data["data"][0]["attributeDistributions"]["data"]
         assert len(second_page) == 2
 
         next_links = self._parse_links(next_response)
@@ -309,7 +309,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         assert response.status_code == 200, response.data
 
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
         assert len(attribute_distribution) == 1
 
         if "Link" in response:
@@ -328,7 +328,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
         assert "level" in attribute_distribution
         level_buckets = attribute_distribution["level"]
         labels = {bucket["label"] for bucket in level_buckets}
@@ -343,7 +343,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
         for excluded in ["id", "trace", "group_id", "issue_occurrence_id", "primary_hash"]:
             assert excluded not in attribute_distribution
 
@@ -360,7 +360,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
         assert "level" in attribute_distribution
         labels = {bucket["label"] for bucket in attribute_distribution["level"]}
         assert "error" in labels
@@ -390,7 +390,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
         city_data = attribute_distribution["tags[user.geo.city,string]"]
         assert {"label": "world", "value": 4.0} in city_data
         assert {"label": "foobar", "value": 3.0} in city_data

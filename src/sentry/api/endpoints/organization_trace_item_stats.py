@@ -113,7 +113,7 @@ class TraceItemStatsPaginator:
         )
 
 
-class OrganizationTraceItemsStatsSerializer(serializers.Serializer):
+class OrganizationTraceItemStatsSerializer(serializers.Serializer):
     query = serializers.CharField(required=False)
     statsType = serializers.ListField(
         child=serializers.ChoiceField(list(SUPPORTED_STATS_TYPES)), required=True
@@ -134,7 +134,7 @@ class OrganizationTraceItemsStatsSerializer(serializers.Serializer):
 
 
 @cell_silo_endpoint
-class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
+class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -146,7 +146,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response({"data": []})
 
-        serializer = OrganizationTraceItemsStatsSerializer(data=request.GET)
+        serializer = OrganizationTraceItemStatsSerializer(data=request.GET)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
@@ -214,7 +214,7 @@ class OrganizationTraceItemsStatsEndpoint(OrganizationEventsEndpointBase):
             preflight_stats = run_stats_query_with_item_ids(f"id:[{item_id_list}]")
             try:
                 internal_alias_attr_keys = list(
-                    preflight_stats[0]["attribute_distributions"]["data"].keys()
+                    preflight_stats[0]["attributeDistributions"]["data"].keys()
                 )
             except (IndexError, KeyError):
                 return {"data": []}, 0
