@@ -38,7 +38,14 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
                 "html_url": "",
                 "pull_request_ids": [],
             },
-            subscription_event={"event": orjson.dumps(raw or {}).decode()},
+            subscription_event={
+                "event": orjson.dumps(raw or {}).decode(),
+                "event_type_hint": "check_suite",
+                "extra": {},
+                "received_at": 0,
+                "sentry_meta": None,
+                "type": "github",
+            },
         )
 
     def _raw(self, *, pull_requests: list[dict] | None = None) -> dict:
