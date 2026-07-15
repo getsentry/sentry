@@ -1186,6 +1186,7 @@ class DashboardDetail extends Component<Props, State> {
       hasUnsavedFilterChanges(dashboard, location);
 
     const eventView = generatePerformanceEventView(location, projects, {});
+    const hasNewBreadcrumbs = organization.features.includes('ui-migration-breadcrumbs');
 
     const pageContent = (
       <Stack flex={1}>
@@ -1194,8 +1195,8 @@ class DashboardDetail extends Component<Props, State> {
             <NoProjectMessage organization={organization}>
               {this.isEmbedded ? null : (
                 <Fragment>
-                  <TopBar.Slot name="title">
-                    {organization.features.includes('ui-migration-breadcrumbs') ? (
+                  <TopBar.Slot name="title" as={hasNewBreadcrumbs ? 'div' : undefined}>
+                    {hasNewBreadcrumbs ? (
                       <BreadcrumbList
                         items={[
                           {

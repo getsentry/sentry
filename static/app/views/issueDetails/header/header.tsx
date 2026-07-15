@@ -78,7 +78,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const useNewBreadcrumbs = organization.features.includes('ui-migration-breadcrumbs');
+  const hasNewBreadcrumbs = organization.features.includes('ui-migration-breadcrumbs');
   const issueItem = useIssueIdBreadcrumbItem({project, group});
 
   return (
@@ -86,8 +86,8 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            <TopBar.Slot name="title" as={useNewBreadcrumbs ? 'div' : undefined}>
-              {useNewBreadcrumbs ? (
+            <TopBar.Slot name="title" as={hasNewBreadcrumbs ? 'div' : undefined}>
+              {hasNewBreadcrumbs ? (
                 <BreadcrumbList
                   items={[
                     {
