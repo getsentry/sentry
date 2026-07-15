@@ -140,12 +140,33 @@ def compare_span_first_problems_to_control_data(
             )
             continue  # Skip running the comparison for this grouptype
 
+        # What follows is a little bit of a hack. In the  rollout controller's `compare` method, the
+        # `exact_match_comparator` parameter expects a function returning a boolean, and the
+        # `debug_context` parameter expects a static value, which `compare` doesn't modify. Thus if
+        # we want to include any differences we find as a result of the comparison in the debug
+        # context, we have to do the real comparison here and pass a dummy comparator which just
+        # returns the result we already found.
+        debug_context = {
+            "org_slug": project.organization.slug,
+            "project_id": project.id,
+            "project_slug": project.slug,
+        }
+
+        diffs = _compare_problem_sets(control_problems, span_first_problems)
+        if diffs:
+            debug_context["diffs"] = diffs
+            comparator = lambda _, __: False
+        else:
+            comparator = lambda _, __: True
+
         SpanFirstDetectorsRolloutController.compare(
             callsite=grouptype,
             control_data=control_problems,
             experimental_data=span_first_problems,
             is_experimental_data_nullish=not bool(span_first_problems),
             source_of_truth=get_source_of_truth(grouptype),
+            exact_match_comparator=comparator,
+            debug_context=debug_context,
             data_serializer=lambda problems: [problem.to_dict() for problem in problems],
             metric_sample_rate=1.0,
         )
