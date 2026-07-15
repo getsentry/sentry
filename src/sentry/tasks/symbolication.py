@@ -314,7 +314,15 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         """
 
         symbolicate_function_values: list[SymbolicatorFunction] | None = None
-        if symbolicate_platforms is not None:
+        derive_native = False
+        if symbolicate_functions is not None:
+            # Turn symbolicate_functions back into proper enum values
+            symbolicate_function_values = (
+                None
+                if symbolicate_functions is None
+                else [SymbolicatorFunction(p) for p in symbolicate_functions]
+            )
+        elif symbolicate_platforms is not None:
             # [legacy] Turn symbolicate_platforms back into the next best function
             derive_native = task_kind.function == SymbolicatorFunction.native
             symbolicate_function_values = (
@@ -322,14 +330,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
                 if symbolicate_platforms is None
                 else [SymbolicatorFunction(p) for p in symbolicate_platforms]
             )
-        else:
-            derive_native = False
-            # Turn symbolicate_functions back into proper enum values
-            symbolicate_function_values = (
-                None
-                if symbolicate_functions is None
-                else [SymbolicatorFunction(p) for p in symbolicate_functions]
-            )
+
         return _do_symbolicate_event(
             task_kind=task_kind,
             cache_key=cache_key,
