@@ -120,7 +120,7 @@ def handle_webhook_event(
             )
 
         if organization.slug == "sentry":
-            preflight_logs_extra = dict(tags)
+            preflight_logs_extra: dict[str, Any] = dict(tags)
             preflight_logs_extra["allowed"] = preflight.allowed
             if preflight.denial_reason:
                 sentry_sdk.set_tag("denial_reason", preflight.denial_reason)
