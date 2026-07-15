@@ -1,6 +1,6 @@
 import {controlsiloUrlPatterns} from 'sentry/data/controlsiloUrlPatterns';
 import {getClientConfigFromCache} from 'sentry/serviceWorker/worker/client-config';
-import {type Config} from 'sentry/serviceWorker/worker/client-config';
+import {type ClientConfig} from 'sentry/serviceWorker/worker/client-config';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 type ApiUrl = ReturnType<typeof getApiUrl>;
@@ -18,13 +18,17 @@ export async function workerFetch(
     url.searchParams.set(key, value);
   });
 
-  return fetch(url, {
+  const response = await fetch(url, {
     credentials: 'include',
     headers: {'Content-Type': 'application/json'},
   });
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText}`);
+  }
+  return response;
 }
 
-function resolveHost(config: Config, path: ApiUrl): [string, string] {
+function resolveHost(config: ClientConfig, path: ApiUrl): [string, string] {
   const {links: configLinks, features: systemFeatures} = config;
 
   // We're on a domain that is not the organization's domain, probably via a

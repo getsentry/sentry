@@ -19,7 +19,10 @@ export interface AutofixStartStepData {
     project: {
       avatar: string;
     };
-    title: string;
+    title: {
+      error: string;
+      success: string;
+    };
   };
   organizationIdOrSlug: string;
   step: AutofixExplorerStep;
@@ -118,7 +121,7 @@ export async function handleAutofixStartStep(
         }
 
         await showNotification(sw, {
-          title: notification.title,
+          title: notification.title[status === 'error' ? 'error' : 'success'],
           options: {
             body: notification.body[status === 'error' ? 'error' : 'success'],
             icon: notification.project.avatar,

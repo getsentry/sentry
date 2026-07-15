@@ -629,7 +629,10 @@ export function useExplorerAutofix(
                   project: {
                     avatar: 'https://sentry.io/favicon.ico', // TODO(ryan953): Use the project avatar url or base64 encoded bytes
                   },
-                  title: `${group.shortId} - ${step.replace('_', ' ')} completed`,
+                  title: {
+                    success: `${group.shortId} - ${step.replace('_', ' ')} completed`,
+                    error: `${group.shortId} - ${step.replace('_', ' ')} had a problem`,
+                  },
                   body: {
                     success: `Click to see the ${step.replace('_', ' ')} results.`,
                     error: 'The autofix run ended with an error.',

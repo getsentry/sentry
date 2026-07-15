@@ -2,7 +2,7 @@ const CACHE_NAME = 'v1_client-config';
 const CACHE_KEY = '/api/client-config/';
 
 // A subset of the Config interface. (see: sentry/static/app/types/system.tsx)
-export interface Config {
+export interface ClientConfig {
   apmSampling: number;
   customerDomain: {
     organizationUrl: string | undefined;
@@ -36,14 +36,17 @@ export interface Config {
 // We'll kick off a network request to fetch the config
 // and we'll either return the cached (old) value if it exists, or return the
 // fresh response from the network.
-export async function fetchClientConfig(): Promise<Config> {
+export async function fetchClientConfig(): Promise<ClientConfig> {
   const cache = await caches.open(CACHE_NAME);
 
-  const fetchAndCachePromise: Promise<Config> = fetch('/api/client-config/', {
+  const fetchAndCachePromise: Promise<ClientConfig> = fetch('/api/client-config/', {
     credentials: 'include',
     headers: {'Content-Type': 'application/json'},
   })
     .then(response => {
+      if (!response.ok) {
+        throw new Error(`${response.status} ${response.statusText}`);
+      }
       cache.put(CACHE_KEY, response.clone());
       return response.json();
     })
@@ -62,7 +65,7 @@ export async function fetchClientConfig(): Promise<Config> {
   return fetchAndCachePromise;
 }
 
-export async function getClientConfigFromCache(): Promise<Config> {
+export async function getClientConfigFromCache(): Promise<ClientConfig> {
   const cache = await caches.open(CACHE_NAME);
   return cache.match(CACHE_KEY).then(response => response?.json());
 }

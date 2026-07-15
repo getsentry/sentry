@@ -9,7 +9,7 @@ import {
   SPA_MODE_ALLOW_URLS,
   SPA_MODE_TRACE_PROPAGATION_TARGETS,
 } from 'sentry/constants/sdk';
-import type {Config} from 'sentry/serviceWorker/worker/client-config';
+import type {ClientConfig} from 'sentry/serviceWorker/worker/client-config';
 
 let lastEventId: string | undefined;
 
@@ -27,7 +27,7 @@ export function initializeSentry({
   dsn,
   sentryConfig,
   userIdentity,
-}: Config) {
+}: ClientConfig) {
   Sentry.init({
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig.allowUrls,
     dsn: SPA_DSN || dsn,
