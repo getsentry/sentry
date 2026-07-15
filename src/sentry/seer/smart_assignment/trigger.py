@@ -166,8 +166,7 @@ def _stamp_activity(activity: Activity, run: SeerRun, activity_type: ActivityTyp
     Written under the `seer_smart_assignment` key so an action (assignment, PR,
     resolution) can be traced to the run it kicked off. `data` is unindexed text JSON,
     so this is for display/traceability, not querying -- to list runs (and their
-    triggering activity ids) use the `SeerAgentRun` mirror. Uses a queryset `.update`
-    to avoid re-firing activity-created side effects.
+    triggering activity ids) use the `SeerAgentRun` mirror.
     """
     data = {**(activity.data or {})}
     data["seer_smart_assignment"] = {
@@ -175,5 +174,5 @@ def _stamp_activity(activity: Activity, run: SeerRun, activity_type: ActivityTyp
         "run_uuid": str(run.uuid),
         "trigger": activity_type.name,
     }
-    Activity.objects.filter(id=activity.id).update(data=data)
     activity.data = data
+    activity.save()
