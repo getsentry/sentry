@@ -157,16 +157,22 @@ describe('ColumnEditorModal', () => {
 
     expect(await screen.findByRole('button', {name: 'Apply'})).toBeInTheDocument();
 
-    const idColumnButton = screen.getByRole('button', {
-      name: 'Column id string',
+    const allColumnButtons = screen.getAllByRole('button', {
+      name: /^Column.*string$/,
       hidden: true,
     });
+
+    const idColumnButton = allColumnButtons.find(
+      btn => btn.getAttribute('aria-label') === 'Column id string'
+    );
+    const projectColumnButton = allColumnButtons.find(
+      btn => btn.getAttribute('aria-label') === 'Column project string'
+    );
+
+    expect(idColumnButton).toBeDefined();
     expect(idColumnButton).toHaveAttribute('aria-disabled', 'true');
 
-    const projectColumnButton = screen.getByRole('button', {
-      name: 'Column project string',
-      hidden: true,
-    });
+    expect(projectColumnButton).toBeDefined();
     expect(projectColumnButton).not.toHaveAttribute('aria-disabled', 'true');
 
     expect(screen.getAllByLabelText('Remove Column')[0]).toBeDisabled();
