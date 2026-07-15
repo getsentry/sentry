@@ -212,10 +212,13 @@ def _backfill_project(
     activities = list(qs.order_by("datetime", "id")[:batch_size])
 
     if not activities:
+        from sentry.issues.derived.tasks import process_project_derived_data
+
         logger.info(
             "backfill_group_action_log.project_completed",
             extra={"project_id": project.id},
         )
+        process_project_derived_data.delay(project_id=project.id)
         return
 
     logger.info(
