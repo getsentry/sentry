@@ -5,6 +5,7 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
 import type {Meta} from 'sentry/types/group';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 type Props = {
   isHexadecimal: boolean;
@@ -46,13 +47,15 @@ export function FrameRegisterValue({isHexadecimal, meta, value}: Props) {
       >
         <AnnotatedText value={formattedValue} meta={meta} />
       </Text>
-      <CopyToClipboardButton
-        text={String(formattedValue)}
-        size="zero"
-        variant="transparent"
-        aria-label={t('Copy register value to clipboard')}
-        tooltipProps={{title: t('Copy register value')}}
-      />
+      {isEmptyObject(meta) ? (
+        <CopyToClipboardButton
+          text={String(formattedValue)}
+          size="zero"
+          variant="transparent"
+          aria-label={t('Copy register value to clipboard')}
+          tooltipProps={{title: t('Copy register value')}}
+        />
+      ) : null}
     </Grid>
   );
 }

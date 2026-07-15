@@ -48,4 +48,27 @@ describe('FrameRegisters', () => {
 
     expect(screen.getByText('xyz')).toBeInTheDocument();
   });
+
+  it('does not offer to copy an annotated register value', () => {
+    render(
+      <FrameRegisters
+        {...defaultProps}
+        registers={{r0: '0x000000000000000a', r1: ''}}
+        meta={{
+          r1: {
+            '': {
+              chunks: [{type: 'redaction', text: '', rule_id: 'project:0'}],
+              len: 16,
+              rem: [['project:0', 's', 0, 0]],
+            },
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByText(/redacted/)).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', {name: 'Copy register value to clipboard'})
+    ).toHaveLength(1);
+  });
 });
