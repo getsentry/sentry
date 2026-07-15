@@ -29,7 +29,6 @@ export function AskSeerLoadingStatus({
   return (
     <Flex
       align="center"
-      background="primary"
       gap="md"
       padding="md xl"
       width="100%"
