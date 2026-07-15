@@ -216,4 +216,42 @@ describe('useCreateNotificationAction', () => {
     );
     expect(result.current.notificationProps.channel?.value).toBe('#eng');
   });
+
+  it('restores the channel from channel_id for a Discord defaultAction', async () => {
+    const discordIntegration = OrganizationIntegrationsFixture({
+      id: '3',
+      name: 'my-server',
+      status: 'active',
+      provider: {
+        key: 'discord',
+        slug: 'discord',
+        name: 'Discord',
+        canAdd: true,
+        canDisable: false,
+        features: [],
+        aspects: {},
+      },
+    });
+    addIntegrationsResponse([discordIntegration]);
+
+    // Stable reference; see comment in the preceding test.
+    const defaultActions = [
+      {
+        id: IssueAlertActionType.DISCORD,
+        server: discordIntegration.id,
+        channel_id: '2',
+      },
+    ];
+
+    const {result} = renderHookWithProviders(
+      () => useCreateNotificationAction({actions: defaultActions}),
+      {organization}
+    );
+
+    await act(async () => {});
+
+    // Discord actions store the channel under `channel_id`, not `channel`.
+    expect(result.current.notificationProps.provider).toBe('discord');
+    expect(result.current.notificationProps.channel?.value).toBe('2');
+  });
 });
