@@ -106,8 +106,11 @@ function useServiceWorkerUpdateCheck() {
       log('update-check');
       navigator.serviceWorker.ready
         .then(registration => registration.update())
-        .catch(error => {
-          Sentry.captureException(error);
+        .catch(_error => {
+          // Service worker update failures (e.g. network errors fetching the SW
+          // script, or Chrome InvalidStateError) are transient and not actionable.
+          // Track via metric instead of creating noisy error issues.
+          log('update-error');
         });
     };
 
