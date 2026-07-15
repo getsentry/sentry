@@ -277,7 +277,6 @@ describe('logsTableRow', () => {
       timestamp: Math.trunc(rowDataTimestamp),
     });
     expect(rowDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
-    jest.useRealTimers();
   });
 
   it('hovering an embedded row causes prefetching of the row details', async () => {
@@ -308,7 +307,6 @@ describe('logsTableRow', () => {
     });
     // Flush the .then() callback that reads cached data after prefetch
     await act(async () => {});
-    jest.useRealTimers();
   });
 
   it.isKnownFlake('renders row details', async () => {
