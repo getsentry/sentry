@@ -140,14 +140,23 @@ class AutomaticDynamicSamplingConfiguration(BaseDynamicSamplingConfiguration):
         return self.sample_rate is not None
 
     def get_sample_rate(self) -> TargetSampleRate:
-        # Mirror the legacy serving path (get_guarded_project_sample_rate): a blended
-        # (reserved-based) rate of 100% takes precedence over the usage-based sliding-window
-        # rate. Reproduced intentionally so the new pipeline matches the legacy one.
-        if self.sample_rate == 1.0:
-            return self.sample_rate
+        # The usage-based rate. It mirrors the legacy *cache* (boost_low_volume_projects, via
+        # get_org_sample_rate), which is what project balancing and the comparison logging run
+        # against. The blended-100% gate is intentionally NOT applied here: the legacy cache is
+        # ungated too, so applying it would make the logged rates diverge for orgs under their
+        # reserved quota. That gate lives in get_serving_sample_rate, matching legacy serving.
         if self.sliding_window_sample_rate is not None:
             return self.sliding_window_sample_rate
         return self.sample_rate
+
+    def get_serving_sample_rate(self) -> TargetSampleRate:
+        # Serving-time parity with the legacy path (get_guarded_project_sample_rate): a blended
+        # (reserved-based) rate of 100% serves at 100%, bypassing the usage-based sliding-window
+        # rate. Kept out of get_sample_rate so the gate does not leak into the balancing and
+        # comparison path, which must stay aligned with the (ungated) legacy cache.
+        if self.sample_rate == 1.0:
+            return self.sample_rate
+        return self.get_sample_rate()
 
     def _get_sliding_window_sample_rate(self) -> TargetSampleRate:
         """
