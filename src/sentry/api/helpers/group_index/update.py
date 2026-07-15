@@ -28,11 +28,10 @@ from sentry.issues.action_log import (
     action_context_scope,
     get_action_context,
     publish_action,
-    publish_action_from_context,
     resolve_action_actor,
     resolve_action_source,
 )
-from sentry.issues.action_log.types import MergeFromOtherAction, MergeIntoOtherAction, ResolveAction
+from sentry.issues.action_log.types import MergeIntoOtherAction
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import MergedGroup, handle_merge
@@ -656,12 +655,6 @@ def process_group_resolution(
 
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
 
-        publish_action_from_context(
-            ResolveAction(),
-            group_id=group.id,
-            project=group.project,
-        )
-
         # TODO(dcramer): we need a solution for activity rollups
         # before sending notifications on bulk changes
         if not len(group_list) > 1:
@@ -840,14 +833,6 @@ def prepare_response(
             primary_id = int(merged["parent"])
             child_ids = [int(c) for c in merged["children"]]
             group_by_id = {g.id: g for g in group_list}
-            primary = group_by_id[primary_id]
-            publish_action(
-                MergeFromOtherAction(counterpart_group_ids=child_ids),
-                source=ctx.source,
-                group_id=primary_id,
-                project=primary.project,
-                actor=ctx.actor,
-            )
             for child_id in child_ids:
                 child = group_by_id[child_id]
                 publish_action(

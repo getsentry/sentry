@@ -17,7 +17,10 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import json, metrics
-from sentry.utils.action_log.activity_translator import activity_to_action
+from sentry.utils.action_log.activity_translator import (
+    activity_action_idempotency_key,
+    activity_to_action,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -231,7 +234,7 @@ def _backfill_project(
                 json.dumps(action.dict()),
                 activity.datetime,
                 activity.datetime,  # date_updated
-                f"activity:{activity.id}",
+                activity_action_idempotency_key(activity),
             ]
         )
         num_entries += 1

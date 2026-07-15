@@ -106,7 +106,9 @@ class TestBuildActivityData(BaseWorkflowTest):
             result = _build_activity_data(activity)
             assert result["details"] == {}, f"Expected empty details for {activity_type}"
 
-    def test_unrecognized_activity_type_raises(self) -> None:
+    @mock.patch("sentry.models.activity.activity_to_action")
+    def test_unrecognized_activity_type_raises(self, mock_act2act: mock.MagicMock) -> None:
+        mock_act2act.return_value = None
         activity = self.create_group_activity(
             group=self.create_group(),
             type=999,

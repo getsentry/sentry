@@ -393,7 +393,7 @@ class AutofixPrCreatedAction(GroupAction):
 
 
 class ResolvedInPullRequestAction(GroupAction):
-    pull_request: int  # PullRequest model ID
+    pull_request: Optional[int] = None  # PullRequest model ID
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -431,7 +431,7 @@ class SetRegressedAction(GroupAction):
 
 
 class PullRequestClosedAction(GroupAction):
-    pull_request: int  # PullRequest model ID
+    pull_request: Optional[int | str] = None  # PullRequest model ID
     # Whether the issue has other linked PRs still open when this one closed
     has_other_open_prs: Optional[bool] = None
 
@@ -509,7 +509,7 @@ class CreateIssueAction(GroupAction):
 
 
 class SetResolvedInReleaseAction(GroupAction):
-    version: str
+    version: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -517,7 +517,7 @@ class SetResolvedInReleaseAction(GroupAction):
 
 
 class SetResolvedByAgeAction(GroupAction):
-    auto_resolve_age_threshold: int
+    auto_resolve_age_threshold: Optional[int] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -525,7 +525,7 @@ class SetResolvedByAgeAction(GroupAction):
 
 
 class SetResolvedInCommitAction(GroupAction):
-    commit: int
+    commit: Optional[int] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -571,9 +571,9 @@ class UnmergeDestinationAction(GroupAction):
 
 
 class ReprocessAction(GroupAction):
-    event_count: int
-    old_group_id: int
-    new_group_id: int
+    event_count: Optional[int] = None
+    old_group_id: Optional[int] = None
+    new_group_id: Optional[int] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -623,7 +623,7 @@ class SeerRCAStartedAction(GroupAction):
 
 
 class SeerRCACompletedAction(GroupAction):
-    run_id: Optional[int] = None
+    run_id: Optional[int | str] = None
     summary: Optional[str] = None
     # TODO Break out as separate model?
     root_cause: Optional[dict[str, str | list[str]]] = None
