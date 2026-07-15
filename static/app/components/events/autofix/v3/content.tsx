@@ -26,6 +26,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 interface SeerDrawerContentProps {
@@ -92,6 +93,7 @@ interface SeerDrawerArtifactsProps {
 }
 
 function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsProps) {
+  const organization = useOrganization();
   return (
     <Fragment>
       {sections.map(section => {
@@ -135,9 +137,10 @@ function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsPr
         return null;
       })}
 
-      {sections.some(section => section.status === 'processing') && (
-        <SeerEnableNotifications />
-      )}
+      {organization.features.includes('autofix-browser-notifications') &&
+        sections.some(section => section.status === 'processing') && (
+          <SeerEnableNotifications />
+        )}
     </Fragment>
   );
 }
