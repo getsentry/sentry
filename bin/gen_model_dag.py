@@ -19,7 +19,7 @@ import argparse
 from enum import StrEnum
 import json
 import os
-from collections import deque
+from collections import Counter, deque
 from dataclasses import dataclass, field
 
 from sentry.runner import configure
@@ -51,14 +51,6 @@ class DatabaseConnection:
     alias: str
 
 
-@dataclass
-class RootModel:
-    model_name: str
-    table_name: str
-    database_connection: DatabaseConnection
-    special_fields: list[SpecialFieldAnnotation] = field(default_factory=list)
-
-
 class FieldType(StrEnum):
     ENCRYPTED_COLUMN = "encrypted_column"
 
@@ -80,8 +72,16 @@ class ModelRelationship:
 class ModelNode:
     model_name: str
     table_name: str
+    primary_key: str
     root_paths: dict[str, list[ModelRelationship]] = field(default_factory=dict)
     special_fields: list[SpecialFieldAnnotation] = field(default_factory=list)
+    number_of_dependents: int = 0
+
+
+@dataclass
+class RootModel:
+    database_connection: DatabaseConnection
+    model_node: ModelNode
 
 
 class ModelGraph:
@@ -93,14 +93,15 @@ class ModelGraph:
         return {
             "roots": [
                 {
-                    "model_name": r.model_name,
-                    "table_name": r.table_name,
+                    "model_name": r.model_node.model_name,
+                    "table_name": r.model_node.table_name,
+                    "primary_key": r.model_node.primary_key,
                     "special_fields": [
                         {
                             "field_name": field.field_name,
                             "field_type": field.field_type.value,
                         }
-                        for field in r.special_fields
+                        for field in r.model_node.special_fields
                     ],
                     "database_connection": {
                         "name": r.database_connection.name,
@@ -115,7 +116,9 @@ class ModelGraph:
                 name: {
                     "model_name": node.model_name,
                     "table_name": node.table_name,
-                    "scary_fields": [
+                    "primary_key": node.primary_key,
+                    "number_of_dependents": node.number_of_dependents,
+                    "special_fields": [
                         {
                             "field_name": field.field_name,
                             "field_type": field.field_type.value,
@@ -219,32 +222,48 @@ class ModelGraphBuilder:
             alias=alias,
         )
 
+    def _find_primary_key(self, model_name: str) -> str:
+        model = self.model_map[NormalizedModelName(model_name)]
+        if model is None:
+            raise ValueError(f"Model {model_name} not found")
+        return model._meta.get_field(model._meta.pk.name).name
+
     def build_graph(self) -> ModelGraph:
         deps = dependencies()
         adjacency = self._build_adjacency()
         roots = {name for name, edges in adjacency.items() if not edges}
 
+        dependent_counts: Counter[str] = Counter()
+        for edges in adjacency.values():
+            for edge in edges:
+                dependent_counts[edge.to_model] += 1
+
         root_models = sorted(
             (
                 RootModel(
-                    model_name=name,
-                    table_name=deps[NormalizedModelName(name)].table_name,
                     database_connection=self._connection_for_silos(
                         deps[NormalizedModelName(name)].silos
                     ),
-                    special_fields=self._find_special_fields(name),
+                    model_node=ModelNode(
+                        model_name=name,
+                        table_name=deps[NormalizedModelName(name)].table_name,
+                        primary_key=self._find_primary_key(name),
+                        special_fields=self._find_special_fields(name),
+                    ),
                 )
                 for name in roots
             ),
-            key=lambda r: r.model_name,
+            key=lambda r: r.model_node.model_name,
         )
 
         nodes = {
             name: ModelNode(
                 model_name=name,
                 table_name=deps[NormalizedModelName(name)].table_name,
+                primary_key=self._find_primary_key(name),
                 root_paths=self._shortest_paths_to_roots(name, adjacency, roots),
                 special_fields=self._find_special_fields(name),
+                number_of_dependents=dependent_counts.get(name, 0),
             )
             for name in sorted(adjacency)
         }
@@ -253,7 +272,7 @@ class ModelGraphBuilder:
 
 
 def print_summary(model_graph: ModelGraphBuilder) -> None:
-    roots = {r.model_name for r in model_graph.root_models}
+    roots = {r.model_node.model_name for r in model_graph.root_models}
     roots_by_alias: dict[str, int] = {}
     for r in model_graph.root_models:
         alias = r.database_connection.alias
