@@ -17,6 +17,7 @@ const DEFAULT_STORAGE_KEY = 'conversation-split-size';
 
 const CONTENT_MIN_WIDTH = 400;
 const DETAIL_MIN_WIDTH = 400;
+const MAX_CONTENT_WIDTH = 2000;
 const SPLIT_LAYOUT_STORAGE_KEY = 'conversation-split-layout-size';
 
 /**
@@ -160,8 +161,6 @@ export function ConversationContentLayout({
     </Flex>
   );
 }
-
-const MAX_CONTENT_WIDTH = 2000;
 
 function MeasuredContentSplit({
   content,
