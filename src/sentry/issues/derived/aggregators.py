@@ -10,6 +10,9 @@ from sentry.issues.action_log.types import (
     ResolvedInPullRequestAction,
     RootCauseIdentifiedAction,
     SetRegressedAction,
+    SetResolvedByAgeAction,
+    SetResolvedInCommitAction,
+    SetResolvedInReleaseAction,
     UnassignAction,
     UnresolveAction,
     ViewAction,
@@ -44,6 +47,9 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
     (STATUS,),
     scope=(
         ResolveAction,
+        SetResolvedInReleaseAction,
+        SetResolvedByAgeAction,
+        SetResolvedInCommitAction,
         ArchiveAction,
         UnresolveAction,
         SetRegressedAction,
@@ -58,7 +64,13 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
             new_status = IssueStatus(raw_status)
             if new_status != current:
                 return emit(STATUS.value(new_status))
-        case ResolveAction() | ArchiveAction() if current == IssueStatus.OPEN:
+        case (
+            ResolveAction()
+            | SetResolvedInReleaseAction()
+            | SetResolvedByAgeAction()
+            | SetResolvedInCommitAction()
+            | ArchiveAction()
+        ) if current == IssueStatus.OPEN:
             return emit(STATUS.value(IssueStatus.CLOSED))
         case UnresolveAction() | SetRegressedAction() if current == IssueStatus.CLOSED:
             return emit(STATUS.value(IssueStatus.OPEN))
