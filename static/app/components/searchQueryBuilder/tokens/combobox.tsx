@@ -30,6 +30,7 @@ import {Overlay} from 'sentry/components/overlay';
 import {AskSeer} from 'sentry/components/searchQueryBuilder/askSeer/askSeer';
 import {ASK_SEER_CONSENT_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerConsentOption';
 import {ASK_SEER_ITEM_KEY} from 'sentry/components/searchQueryBuilder/askSeer/askSeerOption';
+import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {
   useSearchQueryBuilderAI,
   useSearchQueryBuilderConfig,
@@ -44,6 +45,7 @@ import {
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
@@ -307,7 +309,12 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   portalTarget?: HTMLElement | null;
 }) {
   const {enableAISearch} = useSearchQueryBuilderAI();
+  const organization = useOrganization();
   const anyItemsShowing = totalOptions > hiddenOptions.size;
+  const showAskSeerFooter =
+    enableAISearch &&
+    Boolean(filterValue) &&
+    organization.features.includes('gen-ai-ask-seer-ux-rework');
 
   if (customMenu) {
     return customMenu({
@@ -348,7 +355,13 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
             <LoadingIndicator size={24} style={{margin: 0}} />
           </Flex>
         ) : null}
-        {enableAISearch ? <AskSeer state={state} /> : null}
+        {showAskSeerFooter ? (
+          <ListBoxFooter>
+            <OpenAskSeerButton />
+          </ListBoxFooter>
+        ) : enableAISearch ? (
+          <AskSeer state={state} />
+        ) : null}
       </ListBoxOverlay>
     </StyledPositionWrapper>
   );
@@ -722,6 +735,12 @@ const ListBoxPane = styled('div')`
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+`;
+
+const ListBoxFooter = styled('div')`
+  display: flex;
+  padding: ${p => p.theme.space.sm};
+  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const DescriptionOverlay = styled(Overlay)`
