@@ -41,7 +41,7 @@ class OrganizationTraceItemMetricContextEndpointTest(
         if features is None:
             features = self.feature_flags
         if query is None:
-            query = {"project": self.project.id, "statsPeriod": "7d"}
+            query = {"project": self.project.id}
         url = reverse(
             self.viewname,
             kwargs={"organization_id_or_slug": self.organization.slug, "metric": metric},
@@ -219,7 +219,7 @@ class OrganizationTraceItemMetricContextEndpointTest(
                 "metricType": "counter",
                 "brief": "Checkout requests",
             },
-            query={"project": -1, "statsPeriod": "7d"},
+            query={"project": -1},
         )
 
         assert response.status_code == 201, response.data
@@ -237,7 +237,7 @@ class OrganizationTraceItemMetricContextEndpointTest(
                 "metricType": "counter",
                 "brief": "Checkout requests",
             },
-            query={"project": "$all", "statsPeriod": "7d"},
+            query={"project": "$all"},
         )
 
         assert response.status_code == 201, response.data
