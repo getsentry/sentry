@@ -7,7 +7,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {usePrompts} from 'sentry/actionCreators/prompts';
+import {usePrompt} from 'sentry/actionCreators/prompts';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {IconSubscribed} from 'sentry/icons/iconSubscribed';
 import {t} from 'sentry/locale';
@@ -29,8 +29,8 @@ export function SeerEnableNotifications() {
 
   const analyticsArea = useAnalyticsArea();
 
-  const {isPromptDismissed, snoozePrompt} = usePrompts({
-    features: [PROMPT_FEATURE],
+  const {isPromptDismissed, snoozePrompt} = usePrompt({
+    feature: PROMPT_FEATURE,
     organization,
   });
 
@@ -62,7 +62,11 @@ export function SeerEnableNotifications() {
     supportsNotifications,
   ]);
 
-  if (!isServiceWorkerSupported || !supportsNotifications || isPromptDismissed) {
+  if (
+    !isServiceWorkerSupported ||
+    !supportsNotifications ||
+    isPromptDismissed !== false
+  ) {
     return null;
   }
 
@@ -122,7 +126,7 @@ export function SeerEnableNotifications() {
               analyticsEventKey="seer-enable-notifications.notify-me.clicked"
               analyticsParams={{surface: analyticsArea}}
               variant="primary"
-              size="md"
+              size="sm"
               onClick={() => {
                 askNotificationPermission().then(() => {
                   setIsSuccessVisible(true);
@@ -139,8 +143,8 @@ export function SeerEnableNotifications() {
               analyticsEventKey="seer-enable-notifications.snooze.clicked"
               analyticsParams={{surface: analyticsArea}}
               variant="transparent"
-              size="md"
-              onClick={() => snoozePrompt(PROMPT_FEATURE)}
+              size="sm"
+              onClick={() => snoozePrompt()}
             >
               {t("Don't ask again")}
             </Button>
