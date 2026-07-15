@@ -88,6 +88,7 @@ export type IssueAlertNotificationProps = {
   integration: OrganizationIntegration | undefined;
   provider: string | undefined;
   providersToIntegrations: Record<string, OrganizationIntegration[]>;
+  queryError: boolean;
   querySuccess: boolean;
   setActions: (action: MultipleCheckboxOptions[]) => void;
   setChannel: (channel?: IntegrationChannel) => void;
@@ -306,6 +307,7 @@ export function useCreateNotificationAction({
       setIntegration,
       setChannel,
       providersToIntegrations,
+      queryError: messagingIntegrationsQuery.isError,
       querySuccess: messagingIntegrationsQuery.isSuccess,
       shouldRenderSetupButton,
     },

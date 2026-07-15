@@ -410,6 +410,36 @@ describe('useScmProjectDetails', () => {
       expect(result.current.canSubmit).toBe(true);
     });
 
+    it('unblocks submit when the messaging query fails permanently', async () => {
+      // Override the default empty-body mock with a server error so the query
+      // never succeeds.
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/`,
+        statusCode: 500,
+        match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+      });
+
+      const persistedAction = {
+        id: IssueAlertActionType.SLACK as const,
+        workspace: slackIntegration.id,
+        channel: '#eng',
+      };
+
+      const {result} = renderDetails({
+        projectDetailsForm: {
+          projectName: 'my-project',
+          teamSlug: adminTeam.slug,
+          alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+          notificationAction: persistedAction,
+        },
+        selectedPlatform: pythonPlatform,
+      });
+
+      // With a persisted action and no prior submission the ref inits false.
+      // After the query errors, the gate must release so the user isn't stuck.
+      await waitFor(() => expect(result.current.canSubmit).toBe(true));
+    });
+
     it('creates a new project when the notification channel changes on return', async () => {
       const existingProject = ProjectFixture({slug: 'my-project', platform: 'python'});
       ProjectsStore.loadInitialData([existingProject]);

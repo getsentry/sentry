@@ -312,8 +312,9 @@ export function useScmProjectDetails({
   const notificationRestoreCompleteRef = useRef(!projectDetailsForm?.notificationAction);
   if (
     !notificationRestoreCompleteRef.current &&
-    notificationProps.querySuccess &&
-    notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION)
+    ((notificationProps.querySuccess &&
+      notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION)) ||
+      notificationProps.queryError)
   ) {
     notificationRestoreCompleteRef.current = true;
   }
