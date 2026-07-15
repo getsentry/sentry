@@ -468,7 +468,7 @@ function FeedbackAttribution({item}: {item: IterationFeedback}) {
         <Tooltip title={item.githubUsername ?? t('GitHub PR comment')} skipWrapper>
           <ExternalLink href={item.commentUrl}>
             <Flex align="center">
-              <IconGithub size="md" />
+              <IconGithub size="md" data-test-id="icon-github" />
             </Flex>
           </ExternalLink>
         </Tooltip>
