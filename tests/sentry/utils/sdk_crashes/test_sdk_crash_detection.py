@@ -44,7 +44,6 @@ def test_get_hybrid_sdk_parent(sdk_name: str) -> None:
 
     assert get_hybrid_sdk_parent(sdk_name, event_data) == (
         "sentry.dart.flutter",
-        "pub:sentry_flutter",
         "9.24.0",
     )
 
@@ -207,7 +206,10 @@ def test_flutter_sdk_version_attributed_without_replacing_native_version(
     assert reported_event_data["sdk"] == {
         "name": "sentry.cocoa.flutter",
         "version": "8.2.0",
-        "packages": [{"name": "pub:sentry_flutter", "version": "9.24.0"}],
+    }
+    assert reported_event_data["tags"] == {
+        "parent_sdk_name": "sentry.dart.flutter",
+        "parent_sdk_version": "9.24.0",
     }
     assert reported_event_data["release"] == "8.2.0"
     metric_tags = {

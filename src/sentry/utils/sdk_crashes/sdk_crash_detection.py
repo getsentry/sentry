@@ -23,7 +23,7 @@ HYBRID_SDK_PARENT_PACKAGES = {
 
 def get_hybrid_sdk_parent(
     sdk_name: str, event_data: Mapping[str, Any]
-) -> tuple[str, str, str] | None:
+) -> tuple[str, str] | None:
     parent_sdk = HYBRID_SDK_PARENT_PACKAGES.get(sdk_name)
     if parent_sdk is None:
         return None
@@ -51,7 +51,7 @@ def get_hybrid_sdk_parent(
     except InvalidVersion:
         return None
 
-    return parent_sdk_name, parent_package_name, parent_sdk_version
+    return parent_sdk_name, parent_sdk_version
 
 
 class SDKCrashReporter:
@@ -115,7 +115,7 @@ class SDKCrashDetection:
             "is_anr_or_apphang": "true" if mechanism in ("ANR", "AppExitInfo") else "false",
         }
         if hybrid_sdk_parent is not None:
-            parent_sdk_name, _, parent_sdk_version = hybrid_sdk_parent
+            parent_sdk_name, parent_sdk_version = hybrid_sdk_parent
             metric_tags.update(
                 parent_sdk_name=parent_sdk_name,
                 parent_sdk_version=parent_sdk_version,
@@ -205,12 +205,14 @@ class SDKCrashDetection:
             set_path(sdk_crash_event_data, "release", value=sdk_version)
 
             if hybrid_sdk_parent is not None:
-                _, parent_package_name, parent_sdk_version = hybrid_sdk_parent
+                parent_sdk_name, parent_sdk_version = hybrid_sdk_parent
                 set_path(
                     sdk_crash_event_data,
-                    "sdk",
-                    "packages",
-                    value=[{"name": parent_package_name, "version": parent_sdk_version}],
+                    "tags",
+                    value={
+                        "parent_sdk_name": parent_sdk_name,
+                        "parent_sdk_version": parent_sdk_version,
+                    },
                 )
 
             # So Sentry can tell how many projects are impacted by this SDK crash
