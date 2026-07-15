@@ -8,11 +8,11 @@ from __future__ import annotations
 import logging
 
 from sentry.models.organization import Organization
+from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.autofix.utils import (
     CodingAgentProviderType,
     CodingAgentResult,
     CodingAgentState,
-    CodingAgentStatus,
     update_coding_agent_state,
 )
 from sentry.seer.endpoints.utils import get_seer_run
