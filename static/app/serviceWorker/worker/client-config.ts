@@ -47,8 +47,7 @@ export async function fetchClientConfig(): Promise<ClientConfig> {
       if (!response.ok) {
         throw new Error(`${response.status} ${response.statusText}`);
       }
-      cache.put(CACHE_KEY, response.clone());
-      return response.json();
+      return cache.put(CACHE_KEY, response.clone()).then(() => response.json());
     })
     .catch(() => {
       /* Nothing we can do, without this Sentry.init can't be called */
