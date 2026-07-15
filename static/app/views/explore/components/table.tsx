@@ -67,7 +67,7 @@ export function useTableStyles(
   options?: {
     minimumColumnWidth?: number;
     prefixColumnWidth?: 'min-content' | number;
-    staticColumnWidths?: Record<string, number | 'minmax(90px,1fr)'>;
+    staticColumnWidths?: Record<string, number | string>;
   }
 ) {
   const minimumColumnWidth = options?.minimumColumnWidth ?? MINIMUM_COLUMN_WIDTH;
@@ -75,6 +75,7 @@ export function useTableStyles(
     defined(options?.prefixColumnWidth) && typeof options.prefixColumnWidth === 'number'
       ? `${options.prefixColumnWidth}px`
       : options?.prefixColumnWidth;
+  const staticColumnWidths = options?.staticColumnWidths;
 
   const resizingColumnIndex = useRef<number | null>(null);
   const columnWidthsRef = useRef<Array<number | null>>(fields.map(_ => null));
@@ -85,21 +86,33 @@ export function useTableStyles(
     );
   }, [fields]);
 
-  const initialTableStyles = useMemo(() => {
-    const gridTemplateColumns = fields.map(field => {
-      const staticWidth = options?.staticColumnWidths?.[field];
+  const getColumnTemplateWidth = useCallback(
+    (field: string, index: number) => {
+      const resizedWidth = columnWidthsRef.current[index];
+      if (typeof resizedWidth === 'number') {
+        return `${resizedWidth}px`;
+      }
+      const staticWidth = staticColumnWidths?.[field];
       if (staticWidth) {
         return typeof staticWidth === 'number' ? `${staticWidth}px` : staticWidth;
       }
       return `minmax(${minimumColumnWidth}px, auto)`;
-    });
+    },
+    [minimumColumnWidth, staticColumnWidths]
+  );
+
+  const buildGridTemplateColumns = useCallback(() => {
+    const tracks = fields.map(getColumnTemplateWidth);
     if (defined(prefixColumnWidth)) {
-      gridTemplateColumns.unshift(prefixColumnWidth);
+      tracks.unshift(prefixColumnWidth);
     }
-    return {
-      gridTemplateColumns: gridTemplateColumns.join(' '),
-    };
-  }, [fields, minimumColumnWidth, prefixColumnWidth, options?.staticColumnWidths]);
+    return tracks.join(' ');
+  }, [fields, prefixColumnWidth, getColumnTemplateWidth]);
+
+  const initialTableStyles = useMemo(
+    () => ({gridTemplateColumns: buildGridTemplateColumns()}),
+    [buildGridTemplateColumns]
+  );
 
   const onResizeMouseDown = useCallback(
     (event: React.MouseEvent<HTMLDivElement>, index: number) => {
@@ -130,16 +143,7 @@ export function useTableStyles(
 
         columnWidthsRef.current[index] = newWidth;
 
-        // Updating the grid's `gridTemplateColumns` directly
-        const gridTemplateColumns = columnWidthsRef.current.map(width => {
-          return typeof width === 'number'
-            ? `${width}px`
-            : `minmax(${minimumColumnWidth}px, auto)`;
-        });
-        if (defined(prefixColumnWidth)) {
-          gridTemplateColumns.unshift(prefixColumnWidth);
-        }
-        gridElement.style.gridTemplateColumns = gridTemplateColumns.join(' ');
+        gridElement.style.gridTemplateColumns = buildGridTemplateColumns();
       }
 
       function onMouseUp() {
@@ -153,7 +157,7 @@ export function useTableStyles(
       window.addEventListener('mousemove', onMouseMove);
       window.addEventListener('mouseup', onMouseUp);
     },
-    [tableRef, minimumColumnWidth, prefixColumnWidth]
+    [buildGridTemplateColumns, minimumColumnWidth, tableRef]
   );
 
   return {initialTableStyles, onResizeMouseDown};
