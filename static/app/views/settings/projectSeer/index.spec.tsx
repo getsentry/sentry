@@ -491,6 +491,92 @@ describe('ProjectSeer', () => {
     }
   });
 
+  // Regression test for the removed `key` remount: the stopping-point field's
+  // initialValue depends on the seer settings infinite query, which resolves
+  // after mount. The select must reflect a loaded handoff without interaction —
+  // TanStack re-seeds the untouched field once the async value arrives.
+  it('reflects a handoff loaded after mount without interaction', async () => {
+    MockApiClient.clearMockResponses();
+
+    const org = OrganizationFixture({features: []});
+    const initialProject: DetailedProject = {
+      ...project,
+      autofixAutomationTuning: 'medium',
+      seerScannerAutomation: true,
+    };
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/seer/projects/`,
+      method: 'GET',
+      body: [
+        {
+          projectId: project.id,
+          projectSlug: project.slug,
+          agent: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+          integrationId: '123',
+          stoppingPoint: 'root_cause',
+          autoCreatePr: false,
+          automationTuning: 'medium',
+          scannerAutomation: true,
+          reposCount: 0,
+        },
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      body: initialProject,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/seer/repos/`,
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/seer/setup-check/`,
+      method: 'GET',
+      body: {billing: {hasAutofixQuota: true, hasScannerQuota: true}},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/repos/`,
+      query: {status: 'active'},
+      method: 'GET',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/integrations/coding-agents/`,
+      method: 'GET',
+      body: {integrations: [{id: '123', name: 'Cursor', provider: 'cursor'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/seer/preferences/`,
+      method: 'GET',
+      body: {
+        preference: {
+          repositories: [],
+          automated_run_stopping_point: 'root_cause',
+          automation_handoff: {
+            handoff_point: 'root_cause',
+            target: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+            integration_id: 123,
+            auto_create_pr: false,
+          },
+        },
+        code_mapping_repos: [],
+      },
+    });
+    mockSeerSettingsGet(org.slug);
+
+    render(<ProjectSeer />, {
+      organization: org,
+      outletContext: {project: initialProject},
+    });
+
+    // The loaded handoff shows without any user interaction...
+    expect(await screen.findByText('Hand off to Cursor Cloud Agent')).toBeInTheDocument();
+    // ...and the field is not stuck on the pre-load default.
+    expect(screen.queryByText('Root Cause (default)')).not.toBeInTheDocument();
+  });
+
   it('can enable automation handoff to Cursor when Cursor integration is available', async () => {
     const orgWithCursorFeature = OrganizationFixture({
       features: [],
