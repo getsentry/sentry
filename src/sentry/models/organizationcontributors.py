@@ -70,10 +70,6 @@ class OrganizationContributors(DefaultFieldsModel):
                 fields=["organization_id", "date_updated"],
                 name="sentry_oc_org_date_upd_idx",
             ),
-            models.Index(
-                fields=["organization_id", "provider", "hostname", "external_identifier"],
-                name="sentry_orgcont_lookup_idx",
-            ),
         ]
 
     @property
