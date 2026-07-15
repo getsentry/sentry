@@ -18,7 +18,7 @@ export async function showNotification(
     });
     await sw.registration.showNotification(data.title, data.options);
     log('showNotification.success', {
-      attributes: {title: data.title, options: data.options},
+      attributes: {title: data.title},
     });
     return 'Notification Sent';
   }

@@ -109,7 +109,7 @@ sw.addEventListener('notificationclick', (event: NotificationEvent) => {
         event.notification.close();
 
         if (!('data' in event.notification)) {
-          log('onMessage', {attributes: {data: 'isUndefined'}});
+          log('onNotificationclick', {attributes: {data: 'isUndefined'}});
           return;
         }
 
@@ -122,7 +122,7 @@ sw.addEventListener('notificationclick', (event: NotificationEvent) => {
           for (const windowClient of windowClients) {
             const windowUrl = new URL(windowClient.url);
             if (windowUrl.pathname === pathname && 'focus' in windowClient) {
-              log('onMessage.navigateTo', {
+              log('onNotificationclick.navigateTo', {
                 attributes: {client: 'focus', url: windowClient.url},
               });
               return windowClient.focus();
@@ -134,7 +134,7 @@ sw.addEventListener('notificationclick', (event: NotificationEvent) => {
             targetUrl.searchParams.set(key, value);
           });
 
-          log('onMessage.navigateTo', {
+          log('onNotificationclick.navigateTo', {
             attributes: {client: 'openWindow', url: targetUrl.toString()},
           });
           return sw.clients.openWindow(targetUrl);

@@ -100,7 +100,7 @@ export function SeerEnableNotifications() {
               {t('Send a test notification')}
             </Button>
             <InfoTip
-              title={t('Check your OS settings to ensure notifications are delivered')}
+              title={t('Check your OS settings to ensure notifications are allowed')}
             />
           </Flex>
         }
