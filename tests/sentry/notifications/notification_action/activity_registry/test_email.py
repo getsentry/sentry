@@ -67,7 +67,7 @@ class TestEmailActivityHandler(BaseWorkflowTest):
         "sentry.notifications.notification_action.activity_registry.email.NotificationService"
     )
     @mock.patch(
-        "sentry.notifications.notification_action.activity_registry.email.build_activity_data"
+        "sentry.notifications.notification_action.activity_registry.email.build_activity_notification_data"
     )
     def test_invoke_action_issue_owners(
         self,
