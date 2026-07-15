@@ -106,7 +106,7 @@ def get_canonical_contributor(
         hostname = instance_hostname(integration)
     except InstanceHostnameError as e:
         sentry_sdk.capture_exception(e)
-        return
+        return None
 
     return (
         OrganizationContributors.objects.filter(
