@@ -19,7 +19,7 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.pr_metrics.contracts import CLOSE_ACTION_ABANDONED
-from sentry.pr_metrics.emit import emit_pr_metrics_row
+from sentry.pr_metrics.emit import NO_REVIEWER_ENGAGEMENT, emit_pr_metrics_row
 from sentry.pr_metrics.tasks import detect_stale_pull_requests_task, find_stale_pull_requests
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -277,6 +277,17 @@ class DetectStalePullRequestsTaskTest(TestCase):
         metrics = PullRequestMetrics.objects.get(pull_request=pr)
         assert metrics.verdict == PullRequestVerdict.ABANDONED
         mock_emit.assert_called_once()
+
+    def test_tags_stale_emission_with_no_reviewer_engagement(self) -> None:
+        self._make_tracked_stale_pr()
+        with (
+            self.feature({"organizations:pr-metrics-activity": True}),
+            patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit,
+        ):
+            mock_emit.return_value = True
+            detect_stale_pull_requests_task()
+
+        assert mock_emit.call_args.kwargs["diagnosis_labels"] == [NO_REVIEWER_ENGAGEMENT]
 
     def test_emits_abandoned_when_pr_has_historical_activity(self) -> None:
         pr = self._make_tracked_stale_pr()

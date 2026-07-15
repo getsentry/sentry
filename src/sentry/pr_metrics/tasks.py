@@ -23,7 +23,7 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.models.repository import Repository
-from sentry.pr_metrics.emit import emit_pr_metrics_row
+from sentry.pr_metrics.emit import NO_REVIEWER_ENGAGEMENT, emit_pr_metrics_row
 from sentry.pr_metrics.judge import forward_pr_to_seer_judge, reap_stuck_judge_verdicts
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -243,9 +243,12 @@ def find_stale_pull_requests(*, cutoff: datetime) -> list[int]:
 def detect_stale_pull_requests_task() -> None:
     """Find and settle tracked PRs with no engaging activity since ``cutoff``.
 
-    Each candidate is claimed as ``abandoned`` and emitted directly. The judge
-    path does not support open PRs (requires ``closed_at``), so all stale PRs
-    are settled here regardless of historical engagement.
+    Each candidate is claimed as ``abandoned`` and emitted directly, tagged with
+    the ``NO_REVIEWER_ENGAGEMENT`` diagnosis label — unconditional here, since
+    ``find_stale_pull_requests`` already filtered to PRs with zero engaging
+    activity in the detection window. The judge path does not support open PRs
+    (requires ``closed_at``), so all stale PRs are settled here regardless of
+    historical engagement.
 
     Each candidate is guarded by a compare-and-set claim before any action, so
     an overlapping run or redelivery won't double-process.
@@ -293,7 +296,7 @@ def detect_stale_pull_requests_task() -> None:
             if not _claim_terminal_event(pr, PullRequestVerdict.ABANDONED):
                 metrics.incr("pr_metrics.stale.skipped", tags={"reason": "already_claimed"})
                 continue
-            if emit_pr_metrics_row(pull_request=pr):
+            if emit_pr_metrics_row(pull_request=pr, diagnosis_labels=[NO_REVIEWER_ENGAGEMENT]):
                 emitted += 1
 
     metrics.incr("pr_metrics.stale.emitted", amount=emitted)

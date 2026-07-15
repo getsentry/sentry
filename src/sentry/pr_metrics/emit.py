@@ -216,6 +216,13 @@ def select_fallback_verdict(pull_request: PullRequest) -> PullRequestVerdict:
 # the PR's own check-suite activity rather than a judge's opinion.
 CI_FAILING_AT_CLOSE = "ci_failing_at_close"
 
+# Diagnosis label for the stale-detection path: unconditional, not read off any
+# activity row. find_stale_pull_requests already filters to PRs with zero
+# engaging activity (no commits, reviews, review requests) in the detection
+# window, so every PR the cron settles as ABANDONED satisfies this by
+# construction — there's nothing left to check at emit time.
+NO_REVIEWER_ENGAGEMENT = "no_reviewer_engagement"
+
 # Conclusions that unambiguously mean the check errored out, as opposed to
 # cancelled/skipped/stale (never ran to completion, not a failure verdict),
 # neutral (a soft pass), or action_required (blocked on approval, not broken).
