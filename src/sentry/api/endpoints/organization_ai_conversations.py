@@ -1,4 +1,5 @@
 import logging
+import re
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, TypedDict
@@ -33,6 +34,15 @@ from sentry.utils.ai_message_normalizer import (
 from sentry.utils.tracing import set_span_data, start_span, trace
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
+
+
+# Matches a query that is exactly a single gen_ai.conversation.id filter, e.g.
+# `gen_ai.conversation.id:abc` or `gen_ai.conversation.id:"slack:1234"`.
+_CONVERSATION_ID_LOOKUP_RE = re.compile(r'^gen_ai\.conversation\.id:(?:"[^"]+"|\S+)$')
+
+
+def _is_conversation_id_lookup(user_query: str) -> bool:
+    return bool(_CONVERSATION_ID_LOOKUP_RE.match(user_query.strip()))
 
 
 def _build_conversation_query(base_query: str, user_query: str) -> str:
@@ -220,13 +230,23 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             )
 
         with handle_query_errors():
-            return self.paginate(
+            response = self.paginate(
                 request=request,
                 paginator=GenericOffsetPaginator(data_fn=data_fn),
                 on_results=lambda results: results,
                 default_per_page=10,
                 max_per_page=100,
             )
+
+        # A search for a single conversation ID that resolves to exactly one
+        # conversation signals the client to redirect straight to the detail view.
+        if (
+            _is_conversation_id_lookup(validated_data.get("query") or "")
+            and len(response.data) == 1
+        ):
+            response["X-Sentry-Direct-Hit"] = "1"
+
+        return response
 
     @trace
     def _get_conversations(

@@ -1750,21 +1750,52 @@ describe('ActivitySection', () => {
     expect(screen.queryByText('sentry[bot]')).not.toBeInTheDocument();
   });
 
-  it('does not attribute a PR closure to the pull request author', async () => {
-    const pullRequest = PullRequestFixture({
-      id: '1234',
-      author: {name: 'Shashank N Jarmale', email: 'shash@sentry.io'},
-    });
+  it.each([
+    [GroupActivityType.PULL_REQUEST_CLOSED, 'Pull Request Closed'],
+    [GroupActivityType.PULL_REQUEST_REOPENED, 'Pull Request Reopened'],
+    [GroupActivityType.PULL_REQUEST_MERGED, 'Pull Request Merged'],
+    [GroupActivityType.PULL_REQUEST_UNLINKED, 'Pull Request Unlinked'],
+  ] as const)('renders %s in the legacy activity UI', async (type, title) => {
+    const pullRequest = PullRequestFixture();
     const prGroup = GroupFixture({
-      id: '1348',
       activity: [
         {
-          type: GroupActivityType.PULL_REQUEST_CLOSED,
-          id: 'pr-author-4',
+          type,
+          id: `pr-${type}`,
           dateCreated: '2020-01-01T00:00:00',
-          data: {
-            pullRequest,
-          },
+          data: {pullRequest},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={prGroup} project={prGroup.project}>
+        <ActivitySection group={prGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByText(title)).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: 'example/repo-name #3: Fix first issue'})
+    ).toHaveAttribute('href', pullRequest.externalUrl);
+  });
+
+  it.each([
+    [GroupActivityType.PULL_REQUEST_CLOSED, 'closed'],
+    [GroupActivityType.PULL_REQUEST_REOPENED, 'reopened'],
+    [GroupActivityType.PULL_REQUEST_MERGED, 'merged'],
+    [GroupActivityType.PULL_REQUEST_UNLINKED, 'unlinked'],
+  ] as const)('renders %s in the new activity UI', async (type, action) => {
+    const pullRequest = PullRequestFixture();
+    const prGroup = GroupFixture({
+      activity: [
+        {
+          type,
+          id: `pr-${type}`,
+          dateCreated: '2020-01-01T00:00:00',
+          data: {pullRequest},
           user: null,
         },
       ],
@@ -1781,8 +1812,11 @@ describe('ActivitySection', () => {
     );
 
     expect(await screen.findByTestId('activity-timeline')).toHaveTextContent(
-      'Pull request #1234 closed on GitHub'
+      `Pull request #3 ${action} on GitHub`
     );
-    expect(screen.queryByText('Shashank N Jarmale')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '#3'})).toHaveAttribute(
+      'href',
+      pullRequest.externalUrl
+    );
   });
 });

@@ -6,17 +6,25 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LOGS_FIELDS_KEY,
   LOGS_QUERY_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
+import {
+  LOGS_AGGREGATE_SORT_BYS_KEY,
+  LOGS_SORT_BYS_KEY,
+} from 'sentry/views/explore/contexts/logs/sortBys';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
+import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import * as QueryParamsContext from 'sentry/views/explore/queryParams/context';
+import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 function LogsTabContentHarness({
   datePageFilterProps,
@@ -240,6 +248,219 @@ describe('LogsTabContent', () => {
     await screen.findByText('some log message1');
     expect(table).toHaveTextContent(/some log message1/);
     expect(table).toHaveTextContent(/some log message2/);
+  });
+
+  it('removes invalid selected columns after validation', async () => {
+    const validationBody: EventValidationData = {
+      dataset: [],
+      environment: [],
+      field: [
+        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
+        {attrType: 'boolean', error: null, name: 'custom.enabled', valid: true},
+        {
+          attrType: null,
+          error: 'unknown attribute',
+          name: 'invalid.attribute',
+          valid: false,
+        },
+      ],
+      orderby: [],
+      projects: [],
+      query: {error: null, fields: [], valid: true},
+      valid: false,
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validationBody,
+    });
+
+    const customColumnsRouterConfig = structuredClone(initialRouterConfig);
+    customColumnsRouterConfig.location.query[LOGS_FIELDS_KEY] = [
+      'custom.duration',
+      'custom.enabled',
+      'invalid.attribute',
+    ];
+    customColumnsRouterConfig.location.query[LOGS_SORT_BYS_KEY] = ['invalid.attribute'];
+    localStorageWrapper.setItem(
+      'logs-params-v2',
+      JSON.stringify({
+        fields: customColumnsRouterConfig.location.query[LOGS_FIELDS_KEY],
+        sortBys: [{field: 'invalid.attribute', kind: 'asc'}],
+      })
+    );
+
+    const {router} = render(
+      <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+      {
+        initialRouterConfig: customColumnsRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_FIELDS_KEY]).toEqual([
+        'custom.duration',
+        'custom.enabled',
+      ]);
+      expect(router.location.query[LOGS_SORT_BYS_KEY]).toBeUndefined();
+    });
+    expect(JSON.parse(localStorageWrapper.getItem('logs-params-v2')!)).toMatchObject({
+      fields: ['custom.duration', 'custom.enabled'],
+      sortBys: [],
+    });
+
+    await waitFor(() => {
+      expect(eventTableMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            field: expect.not.arrayContaining(['invalid.attribute']),
+            sort: expect.not.stringContaining('invalid.attribute'),
+          }),
+        })
+      );
+    });
+  });
+
+  it('retries invalid column cleanup when fields remain stale after refetch', async () => {
+    const setQueryParams = jest.fn();
+    const setQueryParamsSpy = jest
+      .spyOn(QueryParamsContext, 'useSetQueryParams')
+      .mockReturnValue(setQueryParams);
+    const validationBody: EventValidationData = {
+      dataset: [],
+      environment: [],
+      field: [
+        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
+        {
+          attrType: null,
+          error: 'unknown attribute',
+          name: 'invalid.attribute',
+          valid: false,
+        },
+        {
+          attrType: null,
+          error: 'unknown attribute',
+          name: 'other.invalid.attribute',
+          valid: false,
+        },
+      ],
+      orderby: [],
+      projects: [],
+      query: {error: null, fields: [], valid: true},
+      valid: false,
+    };
+    const validationMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validationBody,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: {},
+    });
+    const customColumnsRouterConfig = structuredClone(initialRouterConfig);
+    customColumnsRouterConfig.location.query[LOGS_FIELDS_KEY] = [
+      'custom.duration',
+      'invalid.attribute',
+    ];
+
+    try {
+      const {router} = render(
+        <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+        {
+          initialRouterConfig: customColumnsRouterConfig,
+          organization,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
+
+      await waitFor(() => {
+        expect(setQueryParams).toHaveBeenCalledTimes(1);
+      });
+
+      const nextSearch = new URLSearchParams();
+      nextSearch.append(LOGS_FIELDS_KEY, 'custom.duration');
+      nextSearch.append(LOGS_FIELDS_KEY, 'other.invalid.attribute');
+      nextSearch.set(LOGS_QUERY_KEY, 'severity:warning');
+      router.navigate(
+        `/organizations/${organization.slug}/explore/logs/?${nextSearch.toString()}`
+      );
+
+      await waitFor(() => {
+        expect(validationMock).toHaveBeenCalledTimes(2);
+      });
+      await waitFor(() => {
+        expect(setQueryParams).toHaveBeenCalledTimes(2);
+      });
+    } finally {
+      setQueryParamsSpy.mockRestore();
+    }
+  });
+
+  it('removes invalid sample and aggregate columns together after validation', async () => {
+    const validationBody: EventValidationData = {
+      dataset: [],
+      environment: [],
+      field: [
+        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
+        {
+          attrType: null,
+          error: 'unknown attribute',
+          name: 'invalid.attribute',
+          valid: false,
+        },
+      ],
+      orderby: [],
+      projects: [],
+      query: {error: null, fields: [], valid: true},
+      valid: false,
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validationBody,
+    });
+    const aggregateRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        query: {
+          ...initialRouterConfig.location.query,
+          mode: Mode.AGGREGATE,
+          [LOGS_FIELDS_KEY]: ['custom.duration', 'invalid.attribute'],
+          [LOGS_SORT_BYS_KEY]: ['invalid.attribute'],
+          [LOGS_AGGREGATE_FIELD_KEY]: [
+            JSON.stringify({groupBy: 'invalid.attribute'}),
+            JSON.stringify({groupBy: 'severity'}),
+            JSON.stringify({yAxes: ['count(message)']}),
+          ],
+          [LOGS_AGGREGATE_SORT_BYS_KEY]: ['invalid.attribute'],
+        },
+      },
+    };
+
+    const {router} = render(
+      <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+      {
+        initialRouterConfig: aggregateRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_FIELDS_KEY]).toBe('custom.duration');
+      expect(router.location.query[LOGS_SORT_BYS_KEY]).toBeUndefined();
+      expect(router.location.query[LOGS_AGGREGATE_FIELD_KEY]).toEqual([
+        JSON.stringify({groupBy: 'severity'}),
+        JSON.stringify({yAxes: ['count(message)']}),
+      ]);
+      expect(router.location.query[LOGS_AGGREGATE_SORT_BYS_KEY]).toBeUndefined();
+    });
   });
 
   it('should switch between modes', async () => {
