@@ -38,6 +38,7 @@ import type {
   SearchConfig,
   SearchMatchResult,
   SelectKey,
+  SelectOption,
   SelectOptionOrSection,
   SelectOptionWithKey,
 } from './types';
@@ -435,15 +436,25 @@ export function Control({
    * selected, then a count badge will appear.
    */
   const triggerLabel: React.ReactNode = useMemo(() => {
-    const values = Array.isArray(value) ? value : [value];
-    const options = items
-      .flatMap(item => {
-        if ('options' in item) {
-          return item.options;
+    const values = Array.isArray(value) ? value : value === undefined ? [] : [value];
+    if (values.length === 0) {
+      return <TriggerLabel>{t('None')}</TriggerLabel>;
+    }
+
+    const selectedValues = new Set(values);
+    const options: Array<SelectOption<SelectKey>> = [];
+
+    findSelectedOptions: for (const item of items) {
+      const itemOptions = 'options' in item ? item.options : [item];
+      for (const option of itemOptions) {
+        if (selectedValues.has(option.value)) {
+          options.push(option);
+          if (options.length === selectedValues.size) {
+            break findSelectedOptions;
+          }
         }
-        return item;
-      })
-      .filter(item => values.includes(item.value));
+      }
+    }
 
     if (options.length === 0) {
       return <TriggerLabel>{t('None')}</TriggerLabel>;

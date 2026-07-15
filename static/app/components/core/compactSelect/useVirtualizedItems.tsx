@@ -44,6 +44,8 @@ export function useVirtualizedItems<T extends ObjectLike>({
       return heightEstimation.regular;
     },
     enabled: virtualized,
+    // Keep rich grid rows buffered so fast scrolling does not expose blank space.
+    overscan: 5,
   });
 
   if (virtualized) {

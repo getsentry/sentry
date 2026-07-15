@@ -22,6 +22,9 @@ import type {
   SelectSectionWithKey,
 } from './types';
 
+const EMPTY_HIDDEN_OPTIONS = new Set<SelectKey>();
+const EMPTY_SEARCH_SCORES = new Map<SelectKey, number>();
+
 /**
  * Normalises the `search` prop into a plain config object (or `undefined` if
  * search is disabled). Accepts `true` as shorthand for `{}` and treats
@@ -163,6 +166,10 @@ export function getHiddenOptions<Value extends SelectKey>(
     search: string
   ) => SearchMatchResult
 ): {hidden: Set<SelectKey>; scores: Map<SelectKey, number>} {
+  if (!search && limit === Infinity) {
+    return {hidden: EMPTY_HIDDEN_OPTIONS, scores: EMPTY_SEARCH_SCORES};
+  }
+
   const scores = new Map<SelectKey, number>();
   const matcher = searchMatcher ?? defaultSearchMatcher;
 
