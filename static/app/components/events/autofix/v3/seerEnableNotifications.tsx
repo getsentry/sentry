@@ -62,32 +62,26 @@ export function SeerEnableNotifications({status}: Props) {
     return () => {};
   }, [isSuccessVisible, permission]);
 
-  useEffect(() => {
-    if (!isServiceWorkerSupported || !supportsNotifications || isPromptDismissed) {
-      return;
-    }
-    trackAnalytics('seer-enable-notifications.rendered', {
-      organization,
-      surface: analyticsArea,
-    });
-  }, [
-    analyticsArea,
-    controller,
-    isPromptDismissed,
-    isServiceWorkerSupported,
-    organization,
-    supportsNotifications,
-  ]);
-
-  if (
+  const shouldNotRender =
     !organization.features.includes('autofix-browser-notifications') ||
     !isServiceWorkerSupported ||
     !supportsNotifications ||
     isLoadingPromptDismissed ||
     isPromptDismissed === true ||
     isPromptError ||
-    status !== 'processing'
-  ) {
+    status !== 'processing';
+
+  useEffect(() => {
+    if (shouldNotRender) {
+      return;
+    }
+    trackAnalytics('seer-enable-notifications.rendered', {
+      organization,
+      surface: analyticsArea,
+    });
+  }, [analyticsArea, organization, shouldNotRender]);
+
+  if (shouldNotRender) {
     return null;
   }
 
