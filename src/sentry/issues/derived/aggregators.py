@@ -9,6 +9,7 @@ from sentry.issues.action_log.types import (
     ResolveAction,
     ResolvedInPullRequestAction,
     RootCauseIdentifiedAction,
+    SeerRCACompletedAction,
     SetRegressedAction,
     SetResolvedByAgeAction,
     SetResolvedInCommitAction,
@@ -118,17 +119,18 @@ def track_assignment(state: StateView, entry: GroupActionLogEntry) -> Aggregator
     (HAS_ROOT_CAUSE,),
     scope=(
         RootCauseIdentifiedAction,
+        SeerRCACompletedAction,
         SetRegressedAction,
     ),
 )
 def track_root_cause(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     """Track whether the issue has a root cause identified (i.e. is diagnosed).
 
-    Set by ROOT_CAUSE_IDENTIFIED and cleared on regression (SET_REGRESSED), since
-    a regressed issue is a fresh occurrence that needs re-diagnosing. A manual
-    reopen (UNRESOLVE) preserves the diagnosis.
+    Set by ROOT_CAUSE_IDENTIFIED or SEER_RCA_COMPLETED and cleared on regression
+    (SET_REGRESSED), since a regressed issue is a fresh occurrence that needs
+    re-diagnosing. A manual reopen (UNRESOLVE) preserves the diagnosis.
     """
-    has_root_cause = isinstance(entry.action, RootCauseIdentifiedAction)
+    has_root_cause = isinstance(entry.action, (RootCauseIdentifiedAction, SeerRCACompletedAction))
     if has_root_cause != state[HAS_ROOT_CAUSE]:
         return emit(HAS_ROOT_CAUSE.value(has_root_cause))
     return None

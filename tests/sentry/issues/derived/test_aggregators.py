@@ -374,12 +374,19 @@ def test_assign_advances_to_assigned() -> None:
     )
 
 
-def test_root_cause_identified_advances_to_diagnosed() -> None:
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.ROOT_CAUSE_IDENTIFIED,
+        GroupActionType.SEER_RCA_COMPLETED,
+    ],
+)
+def test_root_cause_advances_to_diagnosed(action_type: GroupActionType) -> None:
     assert (
         _run_for_feature(
             PROGRESS,
             [
-                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
+                FakeEntry(type=action_type),
             ],
         )
         == IssueProgressState.DIAGNOSED
