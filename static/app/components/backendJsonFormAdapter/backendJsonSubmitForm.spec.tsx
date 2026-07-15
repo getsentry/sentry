@@ -338,6 +338,7 @@ describe('BackendJsonSubmitForm', () => {
       [{non_field_errors: ['Issues are disabled']}, 'Issues are disabled'],
       [{nonFieldErrors: ['Issues are disabled']}, 'Issues are disabled'],
       [{title: ['Title is invalid']}, 'Title is invalid'],
+      [{repo: 'Organization not found'}, 'Organization not found'],
       [{detail: 'Something went wrong'}, 'Something went wrong'],
       [{detail: {message: 'Something went wrong'}}, 'Something went wrong'],
       [{}, 'An error occurred while submitting'],

@@ -241,10 +241,14 @@ export function BackendJsonSubmitForm({
       } catch (err) {
         if (err instanceof RequestError) {
           const response = err.responseJSON;
-          const getFirstError = (errors: unknown) =>
-            Array.isArray(errors) && typeof errors[0] === 'string'
+          const getFirstError = (errors: unknown) => {
+            if (typeof errors === 'string') {
+              return errors;
+            }
+            return Array.isArray(errors) && typeof errors[0] === 'string'
               ? errors[0]
               : undefined;
+          };
           const nonFieldError = getFirstError(
             response?.non_field_errors ?? response?.nonFieldErrors
           );
