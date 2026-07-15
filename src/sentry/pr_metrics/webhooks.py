@@ -1327,9 +1327,7 @@ def _write_mcp_attribution(pr: PullRequest) -> None:
     )
 
 
-# Cutover switch (registered in options/defaults.py). When on, each PR's activity
-# writes route to the reduced document or the legacy rows by which store the PR
-# already uses; off means every PR keeps writing legacy rows (today's behavior).
+# Cutover switch for the reduced activity document; registered in options/defaults.py.
 _ACTIVITY_DOCUMENT_OPTION = "pr_metrics.activity_document.enabled"
 
 
