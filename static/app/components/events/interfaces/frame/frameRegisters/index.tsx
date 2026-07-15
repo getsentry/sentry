@@ -1,4 +1,5 @@
 import {useMemo, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
@@ -34,66 +35,55 @@ export function FrameRegisters({registers, deviceArch, meta}: Props) {
 
   return (
     <Container padding={{'screen:2xs': 'xs lg', 'screen:sm': 'md 2xl xl'}}>
-      <Container padding="sm 0">
-        {({className}) => (
-          <ClippedBox className={className} clipHeight={CLIPPED_HEIGHT}>
-            <Stack gap="md">
-              <Flex
-                align="center"
-                justify="between"
-                gap="md"
-                wrap="wrap"
-                paddingLeft="sm"
-              >
-                <Text as="div" size="md">
-                  {t('Registers')}
-                </Text>
-                <SegmentedControl
-                  aria-label={t('Register value format')}
-                  size="xs"
-                  value={registerFormat}
-                  onChange={handleRegisterFormatChange}
-                >
-                  <SegmentedControl.Item key="hexadecimal">
-                    {t('Hexadecimal')}
-                  </SegmentedControl.Item>
-                  <SegmentedControl.Item key="decimal">
-                    {t('Decimal')}
-                  </SegmentedControl.Item>
-                </SegmentedControl>
-              </Flex>
-              <Grid
-                columns="repeat(auto-fit, minmax(min(100%, 16rem), 1fr))"
-                gap="lg 2xl"
-              >
-                {sortedRegisters.map(([name, value]) => {
-                  if (!defined(value)) {
-                    return null;
-                  }
+      <StyledClippedBox clipHeight={CLIPPED_HEIGHT}>
+        <Stack gap="md">
+          <Flex align="center" justify="between" gap="md" wrap="wrap" paddingLeft="sm">
+            <Text as="div" size="md">
+              {t('Registers')}
+            </Text>
+            <SegmentedControl
+              aria-label={t('Register value format')}
+              size="xs"
+              value={registerFormat}
+              onChange={handleRegisterFormatChange}
+            >
+              <SegmentedControl.Item key="hexadecimal">
+                {t('Hexadecimal')}
+              </SegmentedControl.Item>
+              <SegmentedControl.Item key="decimal">{t('Decimal')}</SegmentedControl.Item>
+            </SegmentedControl>
+          </Flex>
+          <Grid columns="repeat(auto-fit, minmax(min(100%, 14rem), 1fr))" gap="lg 2xl">
+            {sortedRegisters.map(([name, value]) => {
+              if (!defined(value)) {
+                return null;
+              }
 
-                  return (
-                    <Grid
-                      key={name}
-                      columns="minmax(1.5rem, max-content) minmax(0, 1fr)"
-                      align="center"
-                      gap="md"
-                    >
-                      <Text monospace align="right" variant="muted">
-                        {name}
-                      </Text>
-                      <FrameRegisterValue
-                        value={value}
-                        meta={meta?.[name]?.['']}
-                        isHexadecimal={registerFormat === 'hexadecimal'}
-                      />
-                    </Grid>
-                  );
-                })}
-              </Grid>
-            </Stack>
-          </ClippedBox>
-        )}
-      </Container>
+              return (
+                <Grid
+                  key={name}
+                  columns="minmax(1.5rem, max-content) minmax(0, 1fr)"
+                  align="center"
+                  gap="md"
+                >
+                  <Text monospace align="right" variant="muted">
+                    {name}
+                  </Text>
+                  <FrameRegisterValue
+                    value={value}
+                    meta={meta?.[name]?.['']}
+                    isHexadecimal={registerFormat === 'hexadecimal'}
+                  />
+                </Grid>
+              );
+            })}
+          </Grid>
+        </Stack>
+      </StyledClippedBox>
     </Container>
   );
 }
+
+const StyledClippedBox = styled(ClippedBox)`
+  padding: ${p => p.theme.space.sm} 0;
+`;
