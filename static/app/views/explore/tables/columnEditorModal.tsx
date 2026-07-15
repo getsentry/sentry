@@ -95,28 +95,24 @@ export function ColumnEditorModal({
     closeModal();
   }
 
-  function handleTempColumnsChange(
-    nextColumns: string[],
-    operation: 'insert' | 'update' | 'delete' | 'reorder'
-  ) {
-    if (operation !== 'reorder' || !requiredTags?.length) {
-      setTempColumns(nextColumns);
-      return;
+  function canReorderColumn(oldIndex: number, newIndex: number) {
+    if (!requiredTags?.length) {
+      return true;
     }
 
-    setTempColumns(currentColumns => {
-      const reorderedColumns = nextColumns.filter(column => !requiredTags.includes(column));
-      currentColumns.forEach((column, index) => {
-        if (requiredTags.includes(column)) {
-          reorderedColumns.splice(index, 0, column);
-        }
-      });
-      return reorderedColumns;
-    });
+    const startIndex = Math.min(oldIndex, newIndex);
+    const endIndex = Math.max(oldIndex, newIndex);
+    return !tempColumns
+      .slice(startIndex, endIndex + 1)
+      .some(column => requiredTags.includes(column));
   }
 
   return (
-    <DragNDropContext columns={tempColumns} setColumns={handleTempColumnsChange}>
+    <DragNDropContext
+      columns={tempColumns}
+      setColumns={setTempColumns}
+      canReorder={canReorderColumn}
+    >
       {({insertColumn, updateColumnAtIndex, deleteColumnAtIndex, editableColumns}) => (
         <Fragment>
           <Header closeButton data-test-id="editor-header">
