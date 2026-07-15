@@ -235,8 +235,14 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.repositories = repositories
         len_repos = len(repositories)
         api_url = f"{self.base_url}/installation/repositories"
+        # Only pages 1-3 (foo, bar, baz) are registered below, so Github's
+        # rel="last" points at page 3. It must match the real final page:
+        # callers read the last page number from the first response to fetch
+        # the remaining pages in parallel, so an inflated value would request
+        # pages that do not exist.
+        last_page = 3
         first = f'<{api_url}?per_page={pp}&page=1>; rel="first"'
-        last = f'<{api_url}?per_page={pp}&page={len_repos}>; rel="last"'
+        last = f'<{api_url}?per_page={pp}&page={last_page}>; rel="last"'
 
         def gen_link(page: int, text: str) -> str:
             return f'<{api_url}?per_page={pp}&page={page}>; rel="{text}"'
@@ -546,7 +552,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         with patch.object(client.GitHubBaseClient, "page_size", 1):
-            result = installation.get_repositories()
+            result = installation.get_repositories(parallel=True)
             assert result == [
                 {
                     "name": "foo",
@@ -583,7 +589,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             patch.object(client.GitHubBaseClient, "page_number_limit", 1),
             patch.object(client.GitHubBaseClient, "page_size", 1),
         ):
-            result = installation.get_repositories()
+            result = installation.get_repositories(parallel=True)
             assert result == [
                 {
                     "name": "foo",

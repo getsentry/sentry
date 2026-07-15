@@ -1,5 +1,5 @@
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -37,7 +37,7 @@ export function AiConfigureSeerQuotaSidebar({
   const hasBillingPerms = hasAccessToSubscriptionOverview(subscription, organization);
 
   return (
-    <Flex direction="column" border="muted" radius="md" padding="lg" gap="lg">
+    <Stack border="muted" radius="md" padding="lg" gap="lg">
       <Text bold>{t('Meet Seer, your AI assistant')}</Text>
       <Text>
         {t(
@@ -60,6 +60,6 @@ export function AiConfigureSeerQuotaSidebar({
           </LinkButton>
         </Tooltip>
       </Flex>
-    </Flex>
+    </Stack>
   );
 }

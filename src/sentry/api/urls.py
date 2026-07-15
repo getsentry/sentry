@@ -280,9 +280,6 @@ from sentry.integrations.api.endpoints.organization_repository_details import (
 from sentry.integrations.api.endpoints.organization_repository_platforms import (
     OrganizationRepositoryPlatformsEndpoint,
 )
-from sentry.integrations.api.endpoints.organization_repository_platforms_test import (
-    OrganizationRepositoryPlatformsTestEndpoint,
-)
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
@@ -705,6 +702,7 @@ from .endpoints.internal import (
     InternalBeaconEndpoint,
     InternalEnvironmentEndpoint,
     InternalFeatureFlagsEndpoint,
+    InternalLlmProxyKeyEndpoint,
     InternalMailEndpoint,
     InternalPackagesEndpoint,
     InternalRpcServiceEndpoint,
@@ -2203,11 +2201,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-repository-platforms",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/platforms-test/$",
-        OrganizationRepositoryPlatformsTestEndpoint.as_view(),
-        name="sentry-api-0-organization-repository-platforms-test",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/legacy-webhooks/$",
         OrganizationLegacyWebhooksEndpoint.as_view(),
         name="sentry-api-0-organization-legacy-webhooks",
@@ -3577,6 +3570,11 @@ INTERNAL_URLS = [
         r"^seer-rpc/(?P<method_name>\w+)/$",
         SeerRpcServiceEndpoint.as_view(),
         name="sentry-api-0-seer-rpc-service",
+    ),
+    re_path(
+        r"^llm-proxy/key/$",
+        InternalLlmProxyKeyEndpoint.as_view(),
+        name="sentry-api-0-internal-llm-proxy-key",
     ),
     re_path(
         r"^feature-flags/$",

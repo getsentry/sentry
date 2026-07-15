@@ -20,6 +20,7 @@ from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.utils.sdk import Scope, bind_organization_context
+from sentry.viewer_context import set_viewer_context_project
 
 from .organization import OrganizationPermission
 
@@ -208,6 +209,7 @@ class ProjectEndpoint(Endpoint):
         sentry_sdk.set_attribute("project", project.id)
 
         bind_organization_context(project.organization)
+        set_viewer_context_project(project.id)
 
         request._request.organization = (
             project.organization

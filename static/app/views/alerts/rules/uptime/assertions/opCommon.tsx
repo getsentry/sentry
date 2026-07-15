@@ -4,7 +4,7 @@ import {motion, type MotionProps} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DragReorderButton} from 'sentry/components/dnd/dragReorderButton';
@@ -79,7 +79,7 @@ export function OpContainer({
     });
 
   return (
-    <Flex direction="column" gap="sm">
+    <Stack gap="sm">
       {flexProps => (
         <AnimatedOp op={op} isDragging={isDragging} ref={setNodeRef} {...flexProps}>
           <Flex gap="xs" align="center">
@@ -109,7 +109,7 @@ export function OpContainer({
           </Grid>
         </AnimatedOp>
       )}
-    </Flex>
+    </Stack>
   );
 }
 

@@ -1,10 +1,11 @@
+import logging
 from datetime import datetime
 from typing import Any, Literal
 
 import sentry_sdk
 from django.conf import settings
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.ai_autofix_pr_events import (
     AiAutofixPrClosedEvent,
     AiAutofixPrEvent,
@@ -14,8 +15,16 @@ from sentry.analytics.events.ai_autofix_pr_events import (
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestAttributionSignalType,
+    PullRequestAttributionSource,
+)
+from sentry.pr_metrics.attribution import SentryAppSignalDetails, record_attribution_signal
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
 from sentry.utils import metrics
+
+logger = logging.getLogger("sentry.webhooks")
 
 AnalyticAction = Literal["opened", "closed", "merged"]
 
@@ -33,7 +42,11 @@ ACTION_TO_TIMESTAMP_FIELD: dict[AnalyticAction, str] = {
 
 
 def handle_github_pr_webhook_for_autofix(
-    org: Organization, action: str, pull_request: dict[str, Any], github_user: dict[str, Any]
+    org: Organization,
+    action: str,
+    pull_request: dict[str, Any],
+    github_user: dict[str, Any],
+    repo_id: int,
 ) -> None:
     seer_app_id = getattr(settings, "SEER_AUTOFIX_GITHUB_APP_USER_ID", None)
     sentry_app_id = getattr(settings, "SENTRY_GITHUB_APP_USER_ID", None)
@@ -52,13 +65,13 @@ def handle_github_pr_webhook_for_autofix(
         return None
 
     try:
-        record_pr_action_analytic(org, action, pull_request, github_app)
+        record_pr_action_analytic(org, action, pull_request, github_app, repo_id)
     except Exception as e:
         sentry_sdk.capture_exception(e)
 
 
 def record_pr_action_analytic(
-    org: Organization, action: str, pull_request: dict[str, Any], github_app: str
+    org: Organization, action: str, pull_request: dict[str, Any], github_app: str, repo_id: int
 ) -> None:
     analytic_action: AnalyticAction = "opened" if action == "opened" else "closed"
     if pull_request["merged"]:
@@ -87,7 +100,69 @@ def record_pr_action_analytic(
         )
 
         metrics.incr(f"ai.autofix.pr.{analytic_action}", tags={"mode": "explorer"})
+
+        try:
+            _record_pr_attribution(
+                org=org,
+                repo_id=repo_id,
+                pull_request=pull_request,
+                group_id=group.id,
+                run_id=agent_state.run_id,
+            )
+        except Exception:
+            logger.exception(
+                "seer.autofix.pr_attribution.failed",
+                extra={
+                    "organization_id": org.id,
+                    "group_id": group.id,
+                    "run_id": agent_state.run_id,
+                },
+            )
+
         return
+
+
+def _record_pr_attribution(
+    *,
+    org: Organization,
+    repo_id: int,
+    pull_request: dict[str, Any],
+    group_id: int,
+    run_id: int,
+) -> None:
+    """Write a SEER_DATA attribution signal from the same live Seer lookup that
+    powers the ai.autofix.pr.opened/closed/merged analytics, so a PR is attributed
+    as soon as any of those events fire — a backstop for (and independent of) the
+    ``seer.pr_created`` callback that normally attributes it, which can race the
+    GitHub webhook or be missed entirely.
+
+    Shares the ``SEER_DATA``/``SENTRY_APP`` row with
+    ``attribute_seer_created_pull_requests``; ``record_attribution_signal`` merges
+    the two writes rather than one clobbering the other.
+    """
+    if not features.has("organizations:pr-metrics-attribution", org):
+        return
+
+    number = pull_request.get("number")
+    if number is None:
+        return
+
+    pr, _ = PullRequest.objects.get_or_create(
+        organization_id=org.id,
+        repository_id=repo_id,
+        key=str(number),
+    )
+
+    record_attribution_signal(
+        pull_request=pr,
+        signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+        source=PullRequestAttributionSource.SEER_DATA,
+        signal_details=SentryAppSignalDetails(
+            pr_url=pull_request.get("html_url") or "",
+            group_ids=[group_id],
+            run_id=run_id,
+        ).dict(),
+    )
 
 
 def _get_pr_timestamp_ms(pull_request: dict[str, Any], action: AnalyticAction) -> int:

@@ -527,12 +527,17 @@ function VirtualizedRepoList({
     return sortBy(filtered, [r => !hasMapping(r.id), r => r.name]);
   }, [repositories, repoMatches, mappedProjectSlugsByRepoId]);
 
+  const getItemKey = useCallback(
+    (index: number) => visibleRepos[index]!.id,
+    [visibleRepos]
+  );
+
   const virtualizer = useVirtualizer({
     count: visibleRepos.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ESTIMATED_REPO_ROW_HEIGHT,
     overscan: 6,
-    getItemKey: i => visibleRepos[i]!.id,
+    getItemKey,
   });
 
   const renderEmptyMessage = () => {

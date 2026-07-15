@@ -34,6 +34,7 @@ from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -271,6 +272,9 @@ def create_feedback_issue(
 
     feedback_message = event["contexts"]["feedback"]["message"]
 
+    _seer_vc = ViewerContext(
+        organization_id=project.organization_id, project_id=project.id, actor_type=ActorType.SYSTEM
+    )
     viewer_context = SeerViewerContext(organization_id=project.organization_id)
 
     # Spam detection.
@@ -278,9 +282,10 @@ def create_feedback_issue(
     is_spam_enabled = spam_detection_enabled(project)
     if is_spam_enabled:
         # Will be None if the request fails
-        is_message_spam = is_spam_seer(
-            feedback_message, project.organization_id, viewer_context=viewer_context
-        )
+        with viewer_context_scope(_seer_vc):
+            is_message_spam = is_spam_seer(
+                feedback_message, project.organization_id, viewer_context=viewer_context
+            )
 
         metrics.incr(
             "feedback.create_feedback_issue.seer_spam_detection",
@@ -304,14 +309,15 @@ def create_feedback_issue(
     issue_fingerprint = [uuid4().hex]
 
     use_ai_title = should_query_seer
-    title = truncate_feedback_title(
-        get_feedback_title(
-            feedback_message,
-            project.organization_id,
-            use_ai_title,
-            viewer_context=viewer_context,
+    with viewer_context_scope(_seer_vc):
+        title = truncate_feedback_title(
+            get_feedback_title(
+                feedback_message,
+                project.organization_id,
+                use_ai_title,
+                viewer_context=viewer_context,
+            )
         )
-    )
 
     # Set feedback summary to the title without the "User Feedback: " prefix
     evidence_data["summary"] = title
@@ -345,9 +351,10 @@ def create_feedback_issue(
     # Generating labels using Seer, which will later be used to categorize feedbacks
     if should_query_seer:
         try:
-            labels = generate_labels(
-                feedback_message, project.organization_id, viewer_context=viewer_context
-            )
+            with viewer_context_scope(_seer_vc):
+                labels = generate_labels(
+                    feedback_message, project.organization_id, viewer_context=viewer_context
+                )
             # This will rarely happen unless the user writes a really long feedback message
             if len(labels) > MAX_AI_LABELS:
                 logger.info(

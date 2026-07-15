@@ -17,11 +17,15 @@ from sentry.models.pullrequest import (
 )
 from sentry.pr_metrics.contracts import PrConversationAnalysis
 from sentry.pr_metrics.emit import (
+    VerdictDeferral,
     _activity_derived_metrics,
     active_attributions,
     build_pr_metrics_row,
+    ci_failing_at_close,
     emit_pr_metrics_row,
     is_pr_tracked,
+    resolve_autofix_referrers,
+    select_fallback_verdict,
     select_verdict,
 )
 from sentry.pr_metrics.utils import _commit_shas_from_activity, resolved_group_ids
@@ -138,6 +142,16 @@ class PrMetricsEmissionTest(TestCase):
             payload={},
         )
 
+    def _add_check_suite(
+        self, *, app_slug: str = "github-actions", conclusion: str = "success", webhook_id: str
+    ) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id=webhook_id,
+            event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED,
+            payload={"conclusion": conclusion, "app_slug": app_slug, "check_runs_count": 1},
+        )
+
     def test_select_verdict_merged_without_later_commits_is_unchanged(self) -> None:
         # Merged with no SYNCHRONIZED activity: merge head == opened head.
         assert (
@@ -147,7 +161,7 @@ class PrMetricsEmissionTest(TestCase):
 
     def test_select_verdict_merged_with_later_commits_needs_judge(self) -> None:
         self._add_synchronize()
-        assert select_verdict(self.pull_request, self.organization) is None
+        assert select_verdict(self.pull_request, self.organization) == VerdictDeferral.NEEDS_JUDGE
 
     def test_select_verdict_closed_without_engagement_is_unmerged(self) -> None:
         self.pull_request.merged_at = None
@@ -162,14 +176,18 @@ class PrMetricsEmissionTest(TestCase):
     def test_select_verdict_closed_with_comments_needs_judge(self) -> None:
         # setUp's metrics row carries comments_count=5, i.e. engagement to analyze.
         self.pull_request.merged_at = None
-        assert select_verdict(self.pull_request, self.organization) is None
+        assert select_verdict(self.pull_request, self.organization) == VerdictDeferral.NEEDS_JUDGE
 
-    def test_select_verdict_merged_without_metrics_row_needs_judge(self) -> None:
-        # A missing row is an error state for a merge too: defer rather than emit a
-        # row with zeroed counters.
+    def test_select_verdict_merged_without_metrics_row_is_indeterminate(self) -> None:
+        # A missing row is an error state for a merge too: there's no reliable
+        # activity/engagement data to decide from, so it's indeterminate rather
+        # than a genuine needs-judge ambiguity — and never emit zeroed counters.
         PullRequestMetrics.objects.filter(pull_request=self.pull_request).delete()
         with patch("sentry.pr_metrics.emit.logger") as mock_logger:
-            assert select_verdict(self.pull_request, self.organization) is None
+            assert (
+                select_verdict(self.pull_request, self.organization)
+                == VerdictDeferral.INDETERMINATE
+            )
         mock_logger.warning.assert_called_once_with(
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
@@ -179,13 +197,16 @@ class PrMetricsEmissionTest(TestCase):
             },
         )
 
-    def test_select_verdict_closed_without_metrics_row_needs_judge(self) -> None:
+    def test_select_verdict_closed_without_metrics_row_is_indeterminate(self) -> None:
         # A missing row is an error state (handle_metrics failed): warn, and defer
-        # to a judge rather than guess "abandoned".
+        # as indeterminate rather than guess "abandoned".
         self.pull_request.merged_at = None
         PullRequestMetrics.objects.filter(pull_request=self.pull_request).delete()
         with patch("sentry.pr_metrics.emit.logger") as mock_logger:
-            assert select_verdict(self.pull_request, self.organization) is None
+            assert (
+                select_verdict(self.pull_request, self.organization)
+                == VerdictDeferral.INDETERMINATE
+            )
         mock_logger.warning.assert_called_once_with(
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
@@ -201,15 +222,80 @@ class PrMetricsEmissionTest(TestCase):
             comments_count=0, review_comments_count=0
         )
         self._add_synchronize()
-        assert select_verdict(self.pull_request, self.organization) is None
+        assert select_verdict(self.pull_request, self.organization) == VerdictDeferral.NEEDS_JUDGE
 
-    def test_select_verdict_needs_judge_when_activity_tracking_disabled(self) -> None:
+    def test_select_verdict_indeterminate_when_activity_tracking_disabled(self) -> None:
         # The commits-after-open signal comes from activity rows the org isn't
-        # recording, so an otherwise-clean merge can't be settled deterministically.
+        # recording, so an otherwise-clean merge can't be settled deterministically
+        # — and isn't a genuine needs-judge ambiguity either, since there's no
+        # activity data at all to have found ambiguous.
         with self.feature({"organizations:pr-metrics-activity": False}):
             with patch("sentry.pr_metrics.emit.metrics") as mock_metrics:
-                assert select_verdict(self.pull_request, self.organization) is None
+                assert (
+                    select_verdict(self.pull_request, self.organization)
+                    == VerdictDeferral.INDETERMINATE
+                )
         mock_metrics.incr.assert_called_once_with("pr_metrics.select_verdict.activity_disabled")
+
+    def test_ci_failing_at_close_no_check_activity_is_false(self) -> None:
+        assert ci_failing_at_close(self.pull_request) is False
+
+    def test_ci_failing_at_close_all_success_is_false(self) -> None:
+        self._add_check_suite(conclusion="success", webhook_id="check-1")
+        assert ci_failing_at_close(self.pull_request) is False
+
+    def test_ci_failing_at_close_failure_is_true(self) -> None:
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        assert ci_failing_at_close(self.pull_request) is True
+
+    def test_ci_failing_at_close_timed_out_is_true(self) -> None:
+        self._add_check_suite(conclusion="timed_out", webhook_id="check-1")
+        assert ci_failing_at_close(self.pull_request) is True
+
+    def test_ci_failing_at_close_startup_failure_is_true(self) -> None:
+        self._add_check_suite(conclusion="startup_failure", webhook_id="check-1")
+        assert ci_failing_at_close(self.pull_request) is True
+
+    def test_ci_failing_at_close_non_failure_conclusions_are_false(self) -> None:
+        # neutral/cancelled/skipped/stale/action_required never ran to a failure
+        # verdict, so none of them should trip the label.
+        for conclusion in ("neutral", "cancelled", "skipped", "stale", "action_required"):
+            PullRequestActivity.objects.filter(pull_request=self.pull_request).delete()
+            self._add_check_suite(conclusion=conclusion, webhook_id="check-1")
+            assert ci_failing_at_close(self.pull_request) is False, conclusion
+
+    def test_ci_failing_at_close_one_app_failing_among_others_is_true(self) -> None:
+        self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-1")
+        self._add_check_suite(app_slug="codecov", conclusion="failure", webhook_id="check-2")
+        assert ci_failing_at_close(self.pull_request) is True
+
+    def test_ci_failing_at_close_rerun_success_after_failure_is_false(self) -> None:
+        # A rerun with no new push (no SYNCHRONIZED row) still writes another
+        # CHECK_SUITE_COMPLETED row for the same app; the latest one wins.
+        self._add_check_suite(app_slug="github-actions", conclusion="failure", webhook_id="check-1")
+        self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-2")
+        assert ci_failing_at_close(self.pull_request) is False
+
+    def test_ci_failing_at_close_rerun_failure_after_success_is_true(self) -> None:
+        self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-1")
+        self._add_check_suite(app_slug="github-actions", conclusion="failure", webhook_id="check-2")
+        assert ci_failing_at_close(self.pull_request) is True
+
+    def test_select_fallback_verdict_merged_without_later_commits_is_unchanged(self) -> None:
+        assert select_fallback_verdict(self.pull_request) == PullRequestVerdict.MERGED_UNCHANGED
+
+    def test_select_fallback_verdict_merged_with_later_commits_is_iteration(self) -> None:
+        self._add_synchronize()
+        assert (
+            select_fallback_verdict(self.pull_request) == PullRequestVerdict.MERGED_WITH_ITERATION
+        )
+
+    def test_select_fallback_verdict_closed_is_unmerged(self) -> None:
+        # setUp's metrics row carries engagement (comments_count=5), which would
+        # need a judge under select_verdict — the fallback has no judge to defer
+        # to, so it settles CLOSED_UNMERGED unconditionally.
+        self.pull_request.merged_at = None
+        assert select_fallback_verdict(self.pull_request) == PullRequestVerdict.CLOSED_UNMERGED
 
     def test_build_row_for_merge(self) -> None:
         row = build_pr_metrics_row(
@@ -368,6 +454,75 @@ class PrMetricsEmissionTest(TestCase):
                 "signal_details": {"group_ids": [7]},
             },
         ]
+
+    def test_resolve_autofix_referrers_empty_without_run_id(self) -> None:
+        assert resolve_autofix_referrers(self.pull_request, [SENTRY_APP_ATTRIBUTION]) == []
+
+    def test_resolve_autofix_referrers_resolves_seer_run(self) -> None:
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=555, referrer="slack"
+        )
+        attributions = [
+            {
+                "signal_type": "sentry_app",
+                "source": "seer_data",
+                "signal_details": {"run_id": seer_run.seer_run_state_id},
+            }
+        ]
+        assert resolve_autofix_referrers(self.pull_request, attributions) == ["slack"]
+
+    def test_resolve_autofix_referrers_dedupes_repeated_run_ids(self) -> None:
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=556, referrer="night_shift"
+        )
+        details = {"run_id": seer_run.seer_run_state_id}
+        attributions = [
+            {"signal_type": "sentry_app", "source": "seer_data", "signal_details": details},
+            {
+                "signal_type": "seer_delegated:claude_code",
+                "source": "seer_data",
+                "signal_details": details,
+            },
+        ]
+        assert resolve_autofix_referrers(self.pull_request, attributions) == ["night_shift"]
+
+    def test_resolve_autofix_referrers_skips_run_ids_with_no_matching_seer_run(self) -> None:
+        attributions = [
+            {
+                "signal_type": "seer_delegated:cursor",
+                "source": "seer_data",
+                # Cursor's delegated-agent path doesn't record a run_id today.
+                "signal_details": {"run_id": None},
+            }
+        ]
+        assert resolve_autofix_referrers(self.pull_request, attributions) == []
+
+    def test_build_row_carries_autofix_referrers(self) -> None:
+        seer_run = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=557, referrer="night_shift"
+        )
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[
+                {
+                    "signal_type": "sentry_app",
+                    "source": "seer_data",
+                    "signal_details": {"run_id": seer_run.seer_run_state_id},
+                }
+            ],
+            group_ids=[],
+        )
+        assert row.autofix_referrers == ["night_shift"]
+
+    def test_build_row_autofix_referrers_empty_by_default(self) -> None:
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        assert row.autofix_referrers == []
 
     def test_resolved_group_ids_returns_sorted_resolving_links(self) -> None:
         ids = sorted([self._link_group(), self._link_group()])

@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import orjson
 from django.conf import settings
 from django.core.cache import cache
 
@@ -67,9 +68,12 @@ class HandleWebhookForPrMetricsTest(TestCase):
         action: str = "opened",
         user_id: int = 999,
         changes: dict[str, Any] | None = None,
+        html_url: str | None = None,
     ) -> None:
         payload = dict(self.base_pr_payload)
         payload["user"] = {"id": user_id, "login": "testbot"}
+        if html_url is not None:
+            payload["html_url"] = html_url
         event: dict[str, Any] = {"action": action, "pull_request": payload}
         if changes is not None:
             event["changes"] = changes
@@ -165,6 +169,84 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
         assert attr.is_valid is True
+
+    # --- Local Seer run lookup (supplements the regex-based GroupLink match) ---
+
+    def test_app_attribution_includes_seer_run_group_id(self) -> None:
+        group = self.create_group(project=self.project)
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        self.create_seer_agent_run(run=run, group=group)
+        self.create_seer_run_pull_request(run=run, pull_request=self.pr)
+
+        self._call(
+            user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID,
+            html_url="https://github.com/org/repo/pull/42",
+        )
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details == {
+            "pr_url": "https://github.com/org/repo/pull/42",
+            "group_ids": [group.id],
+            "run_id": 555,
+        }
+
+    def test_app_attribution_unions_regex_and_seer_run_group_ids(self) -> None:
+        regex_group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=regex_group.id,
+            project_id=regex_group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+        seer_group = self.create_group(project=self.project)
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=777)
+        self.create_seer_agent_run(run=run, group=seer_group)
+        self.create_seer_run_pull_request(run=run, pull_request=self.pr)
+
+        self._call(
+            user_id=settings.SENTRY_GITHUB_APP_USER_ID,
+            html_url="https://github.com/org/repo/pull/42",
+        )
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details is not None
+        assert attr.signal_details["group_ids"] == sorted([regex_group.id, seer_group.id])
+        assert attr.signal_details["run_id"] == 777
+
+    def test_app_attribution_without_seer_run_link_falls_back_to_regex(self) -> None:
+        regex_group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=regex_group.id,
+            project_id=regex_group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+
+        self._call(
+            user_id=settings.SENTRY_GITHUB_APP_USER_ID,
+            html_url="https://github.com/org/repo/pull/42",
+        )
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details is not None
+        assert attr.signal_details["group_ids"] == [regex_group.id]
+        assert attr.signal_details["run_id"] is None
+
+    def test_app_attribution_seer_run_without_agent_row_yields_no_group_id(self) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=888)
+        self.create_seer_run_pull_request(run=run, pull_request=self.pr)
+
+        self._call(
+            user_id=settings.SENTRY_GITHUB_APP_USER_ID,
+            html_url="https://github.com/org/repo/pull/42",
+        )
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details is not None
+        assert attr.signal_details["group_ids"] == []
+        assert attr.signal_details["run_id"] == 888
 
     # --- MCP attribution ---
 
@@ -368,6 +450,45 @@ class HandleWebhookForPrMetricsEmissionTest(TestCase):
         row = mock_record.call_args_list[-1].args[0]
         assert row.close_action == "closed"
         assert row.verdict == "closed_unmerged"
+        assert row.diagnosis_labels is None
+
+    def _add_check_suite(self, *, conclusion: str, webhook_id: str) -> None:
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id=webhook_id,
+            event_type=PullRequestActivityType.CHECK_SUITE_COMPLETED,
+            payload={"conclusion": conclusion, "app_slug": "github-actions", "check_runs_count": 1},
+        )
+
+    @patch("sentry.analytics.record")
+    def test_closed_unmerged_with_failing_ci_sets_diagnosis_label(
+        self, mock_record: MagicMock
+    ) -> None:
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        self._call(merged=False)
+        row = mock_record.call_args_list[-1].args[0]
+        assert row.verdict == "closed_unmerged"
+        assert row.diagnosis_labels == ["ci_failing_at_close"]
+
+    @patch("sentry.analytics.record")
+    def test_closed_unmerged_with_passing_ci_has_no_diagnosis_label(
+        self, mock_record: MagicMock
+    ) -> None:
+        self._add_check_suite(conclusion="success", webhook_id="check-1")
+        self._call(merged=False)
+        row = mock_record.call_args_list[-1].args[0]
+        assert row.verdict == "closed_unmerged"
+        assert row.diagnosis_labels is None
+
+    @patch("sentry.analytics.record")
+    def test_merged_with_failing_ci_has_no_diagnosis_label(self, mock_record: MagicMock) -> None:
+        # The deterministic CI-failure label is scoped to CLOSED_UNMERGED; a clean
+        # merge never carries it even if a check suite failed along the way.
+        self._add_check_suite(conclusion="failure", webhook_id="check-1")
+        self._call(merged=True)
+        row = mock_record.call_args_list[-1].args[0]
+        assert row.verdict == "merged_unchanged"
+        assert row.diagnosis_labels is None
 
     def _add_synchronize(self) -> None:
         # A push to the PR branch after it opened — makes a merge non-deterministic.
@@ -631,12 +752,40 @@ class HandleWebhookForPrMetricsCooldownTest(TestCase):
 
     @patch("sentry.analytics.record")
     def test_task_drops_when_pull_request_gone(self, mock_record: MagicMock) -> None:
+        # The lookup is scoped by (id, organization_id, repository_id) together, so
+        # a real PR whose repository_id no longer matches (e.g. re-parented between
+        # enqueue and run) is indistinguishable from one that vanished outright —
+        # both raise PullRequest.DoesNotExist on this compound filter. No PR, no
+        # PullRequestMetrics row to release: the sentinel is left untouched rather
+        # than guessed at from pull_request_id alone.
+        self.pull_request.metrics.update(verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN)
+
         emit_pr_metrics_cooldown_task(
-            pull_request_id=self.pull_request.id + 999,
+            pull_request_id=self.pull_request.id,
             organization_id=self.organization.id,
+            repository_id=self.repo.id + 999,
+        )
+
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert self._verdict() == "waiting_event_cooldown"
+
+    @patch("sentry.analytics.record")
+    def test_task_drops_when_organization_gone(self, mock_record: MagicMock) -> None:
+        # The PR lookup is itself scoped by organization_id, so to reach the
+        # Organization lookup (rather than failing the PR lookup first), the PR's
+        # own organization_id must point at the now-missing org.
+        missing_organization_id = self.organization.id + 999
+        self.pull_request.update(organization_id=missing_organization_id)
+        self.pull_request.metrics.update(verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN)
+
+        emit_pr_metrics_cooldown_task(
+            pull_request_id=self.pull_request.id,
+            organization_id=missing_organization_id,
             repository_id=self.repo.id,
         )
+
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
+        assert self._verdict() is None
 
 
 @with_feature("organizations:pr-metrics-emit")
@@ -1861,10 +2010,40 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
+    def test_check_suite_cooldown_verdict_allows_late_check(self) -> None:
+        PullRequestMetrics.objects.create(
+            pull_request=self.pr,
+            verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN,
+        )
+
+        self._call_suite()
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
     def test_check_run_verdict_claimed_skips(self) -> None:
         PullRequestMetrics.objects.create(pull_request=self.pr, verdict="closed_unmerged")
 
         self._call_run()
+
+        assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_run_cooldown_verdict_allows_late_check(self) -> None:
+        PullRequestMetrics.objects.create(
+            pull_request=self.pr,
+            verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN,
+        )
+
+        self._call_run()
+
+        assert PullRequestActivity.objects.filter(pull_request=self.pr).exists()
+
+    def test_check_suite_judge_in_progress_skips(self) -> None:
+        PullRequestMetrics.objects.create(
+            pull_request=self.pr,
+            verdict=PullRequestVerdict.JUDGE_IN_PROGRESS,
+        )
+
+        self._call_suite()
 
         assert not PullRequestActivity.objects.filter(pull_request=self.pr).exists()
 
@@ -2018,17 +2197,75 @@ class HandleWebhookForPrMetricsJudgeForwardTest(TestCase):
 
     @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
     @patch("sentry.analytics.record")
-    def test_ineligible_attribution_skips_judge(
+    def test_ineligible_attribution_emits_merged_with_iteration(
         self, mock_record: MagicMock, mock_delay: MagicMock
     ) -> None:
         # Only SENTRY_APP and SEER_DELEGATED_* attributions qualify for the judge.
-        # A PR tracked only via MCP or REFERENCED_ISSUE is skipped.
+        # A PR tracked only via MCP or REFERENCED_ISSUE settles locally instead of
+        # being dropped: merged with a later commit becomes MERGED_WITH_ITERATION,
+        # the same label the judge would use, even though no judge looked at it.
         PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(
             signal_type=PullRequestAttributionSignalType.MCP
         )
         self._call()
         assert mock_delay.call_count == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_with_iteration"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
+    def test_ineligible_attribution_emits_without_seer_access(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # The fallback never talks to Seer, so an org's Seer-access consent gate
+        # (gen-ai-features / hide_ai_features) must not block it — only the actual
+        # forward-to-Seer branch, reached for judge-eligible attribution, needs it.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(
+            signal_type=PullRequestAttributionSignalType.MCP
+        )
+        with self.feature({"organizations:gen-ai-features": False}):
+            self._call()
+        assert mock_delay.call_count == 0
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_with_iteration"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
+    def test_ineligible_attribution_redelivery_emits_once(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # The same NULL-verdict claim that guards the deterministic path also
+        # guards the fallback emit, so a redelivered close/merge settles once.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(
+            signal_type=PullRequestAttributionSignalType.MCP
+        )
+        self._call()
+        self._call()
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch(f"{MODULE}.forward_pr_to_seer_task.delay")
+    @patch("sentry.analytics.record")
+    def test_ineligible_attribution_stays_unemitted_when_indeterminate(
+        self, mock_record: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        # Without activity tracking, select_verdict can't tell whether push
+        # activity happened at all (INDETERMINATE), not just that it's genuinely
+        # ambiguous (NEEDS_JUDGE). The fallback only trusts the latter, so an
+        # ineligible-attribution PR here is left unemitted, same as before the
+        # fallback existed — guessing would risk mislabeling an iterated PR as
+        # unchanged.
+        PullRequestAttribution.objects.filter(pull_request=self.pull_request).update(
+            signal_type=PullRequestAttributionSignalType.MCP
+        )
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            self._call()
+        assert mock_delay.call_count == 0
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 0
 
 
 MATCH_RPC = "sentry.pr_metrics.webhooks.make_match_coding_agent_pr_request"
@@ -2080,9 +2317,10 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             repo=self.repo,
         )
 
-    def _mock_seer(self, status: int = 202) -> Any:
+    def _mock_seer(self, status: int = 202, body: dict[str, Any] | None = None) -> Any:
         mock_response = MagicMock()
         mock_response.status = status
+        mock_response.data = orjson.dumps(body) if body is not None else b""
         return patch(MATCH_RPC, return_value=mock_response)
 
     def _mock_org_check(self) -> Any:
@@ -2148,6 +2386,94 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             "outcome": "sent",
         }
 
+    # --- Synchronous match (200) ---
+
+    def test_sync_match_records_attribution_in_process(self) -> None:
+        body = {
+            "run_id": 123,
+            "agent_id": "agent-1",
+            "signal_type": PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE.value,
+            "match_path": "some/path",
+        }
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=200, body=body),
+            patch(f"{MODULE}.metrics.incr") as mock_incr,
+        ):
+            self._call(head_ref="claude/fix")
+
+        attribution = PullRequestAttribution.objects.get(
+            pull_request=self.pr,
+            signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+            source=PullRequestAttributionSource.SEER_DATA,
+        )
+        assert attribution.signal_details == {
+            "agent_id": "agent-1",
+            "pr_url": "https://github.com/org/repo/pull/42",
+            "run_id": 123,
+        }
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "sync_matched",
+        }
+
+    def test_sync_match_bad_body_records_error_outcome(self) -> None:
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=200, body={"not": "a match"}),
+            patch(f"{MODULE}.metrics.incr") as mock_incr,
+        ):
+            self._call(head_ref="claude/fix")
+
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "seer_error_bad_body",
+        }
+        assert not PullRequestAttribution.objects.filter(
+            pull_request=self.pr, source=PullRequestAttributionSource.SEER_DATA
+        ).exists()
+
+    def test_sync_match_bad_signal_type_records_error_outcome(self) -> None:
+        body = {
+            "run_id": 123,
+            "agent_id": "agent-1",
+            "signal_type": "not_a_real_signal_type",
+            "match_path": "some/path",
+        }
+        with (
+            self._mock_org_check(),
+            self._mock_seer(status=200, body=body),
+            patch(f"{MODULE}.metrics.incr") as mock_incr,
+        ):
+            self._call(head_ref="claude/fix")
+
+        assert self._candidate_outcome(mock_incr) == {
+            "provider": "claude_code",
+            "outcome": "seer_error_bad_body",
+        }
+
+    def test_sync_match_idempotent_across_open_then_close(self) -> None:
+        # Re-checked on close, like the SENTRY_APP case — a PR matched on open
+        # must not gain a second attribution row when re-matched on close.
+        body = {
+            "run_id": 123,
+            "agent_id": "agent-1",
+            "signal_type": PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE.value,
+            "match_path": "some/path",
+        }
+        with self._mock_org_check(), self._mock_seer(status=200, body=body):
+            self._call(action="opened", head_ref="claude/fix")
+            self._call(action="closed", head_ref="claude/fix")
+
+        assert (
+            PullRequestAttribution.objects.filter(
+                pull_request=self.pr,
+                signal_type=PullRequestAttributionSignalType.SEER_DELEGATED_CLAUDE_CODE,
+                source=PullRequestAttributionSource.SEER_DATA,
+            ).count()
+            == 1
+        )
+
     # --- Error handling ---
 
     def test_seer_non_2xx_logs_warning_and_error_metric(self) -> None:
@@ -2188,11 +2514,20 @@ class HandleDelegatedAgentDetectionTest(TestCase):
 
         mock_rpc.assert_not_called()
 
-    def test_non_opened_action_does_not_call_seer(self) -> None:
-        for action in ("synchronize", "closed", "labeled", "assigned"):
+    def test_non_opened_or_closed_action_does_not_call_seer(self) -> None:
+        for action in ("synchronize", "labeled", "assigned"):
             with self._mock_seer() as mock_rpc:
                 self._call(action=action, head_ref="claude/fix")
                 mock_rpc.assert_not_called()
+
+    def test_closed_action_sends_to_seer(self) -> None:
+        # Re-checked on close, mirroring the SENTRY_APP author attribution — an
+        # out-of-order or missed "opened" webhook shouldn't lose the match.
+        with self._mock_org_check(), self._mock_seer() as mock_rpc:
+            self._call(action="closed", head_ref="claude/fix")
+
+        mock_rpc.assert_called_once()
+        assert mock_rpc.call_args.args[0].provider == "claude_code"
 
     # --- Gating ---
 

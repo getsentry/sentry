@@ -1,5 +1,5 @@
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -28,16 +28,10 @@ export function BillingInfoCard({
     <SubscriptionHeaderCard
       title={t('Billing information')}
       sections={[
-        <Flex
-          key="billing-info"
-          direction="column"
-          gap="md"
-          align="start"
-          maxWidth="100%"
-        >
+        <Stack key="billing-info" gap="md" align="start" maxWidth="100%">
           <BillingDetailsInfo subscription={subscription} />
           <PaymentSourceInfo subscription={subscription} />
-        </Flex>,
+        </Stack>,
         <LinkButton
           key="edit-billing-information"
           aria-label={t('Edit billing information')}
@@ -61,10 +55,10 @@ function BillingDetailsInfo({subscription}: {subscription: Subscription}) {
 
   if (isLoading) {
     return (
-      <Flex direction="column" gap="sm">
+      <Stack gap="sm">
         <Placeholder height="14px" />
         <Placeholder height="14px" />
-      </Flex>
+      </Stack>
     );
   }
 
@@ -105,12 +99,7 @@ function BillingDetailsInfo({subscription}: {subscription: Subscription}) {
       : formatCurrency(subscription.accountBalance);
 
   return (
-    <Flex
-      overflow="hidden"
-      direction="column"
-      gap="sm"
-      maxWidth={isMobile ? MAX_WIDTH : '100%'}
-    >
+    <Stack overflow="hidden" gap="sm" maxWidth={isMobile ? MAX_WIDTH : '100%'}>
       {!!subscription.accountBalance && (
         <Text ellipsis size="sm" variant="muted">
           {tct('Account balance: [balance]', {
@@ -128,7 +117,7 @@ function BillingDetailsInfo({subscription}: {subscription: Subscription}) {
           ? secondaryDetails.join('. ')
           : t('No billing email or tax number on file')}
       </Text>
-    </Flex>
+    </Stack>
   );
 }
 

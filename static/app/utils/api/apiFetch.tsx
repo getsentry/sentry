@@ -10,6 +10,7 @@ export type ApiResponse<TResponseData = unknown> = {
     Link?: string;
     'X-Hits'?: number;
     'X-Max-Hits'?: number;
+    'X-Sentry-Direct-Hit'?: string;
   };
   json: TResponseData;
 };
@@ -36,6 +37,8 @@ export async function apiFetch<TQueryFnData = unknown>(
       Link: response?.getResponseHeader('Link') ?? undefined,
       'X-Hits': typeof hits === 'string' ? Number(hits) : undefined,
       'X-Max-Hits': typeof maxHits === 'string' ? Number(maxHits) : undefined,
+      'X-Sentry-Direct-Hit':
+        response?.getResponseHeader('X-Sentry-Direct-Hit') ?? undefined,
     },
     json: json as TQueryFnData,
   };
@@ -66,6 +69,8 @@ export async function apiFetchInfinite<TQueryFnData = unknown>(
       Link: response?.getResponseHeader('Link') ?? undefined,
       'X-Hits': typeof hits === 'string' ? Number(hits) : undefined,
       'X-Max-Hits': typeof maxHits === 'string' ? Number(maxHits) : undefined,
+      'X-Sentry-Direct-Hit':
+        response?.getResponseHeader('X-Sentry-Direct-Hit') ?? undefined,
     },
     json: json as TQueryFnData,
   };
