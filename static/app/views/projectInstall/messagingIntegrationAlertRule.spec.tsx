@@ -410,7 +410,7 @@ describe('useMessagingIntegrationAlertRule channel label reconciliation', () => 
   });
 
   function renderRule(
-    props: Omit<Partial<IssueAlertNotificationProps>, 'queryError'>,
+    props: Partial<IssueAlertNotificationProps>,
     setChannel: jest.Mock
   ) {
     return renderHookWithProviders(
@@ -428,7 +428,7 @@ describe('useMessagingIntegrationAlertRule channel label reconciliation', () => 
           setIntegration: jest.fn(),
           setProvider: jest.fn(),
           ...props,
-        }),
+        } as IssueAlertNotificationProps),
       {organization}
     );
   }
