@@ -6,6 +6,8 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isScmProvider} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {sortByScmProviderOrder} from './scmProviderOrder';
+
 type ScmProvidersData = {
   // First active SCM integration, if any. Kept for callers that only support a
   // single integration (the onboarding connect step).
@@ -42,7 +44,13 @@ export function useScmProviders(): ScmProvidersData {
   );
 
   const scmProviders = useMemo(
-    () => (providersQuery.data?.providers ?? []).filter(isScmProvider),
+    () =>
+      // Order providers the same way ScmProviderPills displays them (primary
+      // providers first, then the rest) so every consumer lists them alike.
+      sortByScmProviderOrder(
+        (providersQuery.data?.providers ?? []).filter(isScmProvider),
+        p => p.key
+      ),
     [providersQuery.data]
   );
 
@@ -59,8 +67,13 @@ export function useScmProviders(): ScmProvidersData {
 
   const activeIntegrations = useMemo(
     () =>
-      (integrationsQuery.data ?? []).filter(
-        i => i.organizationIntegrationStatus === 'active' && i.status === 'active'
+      // Same provider order as scmProviders, so activeIntegrationExisting (the
+      // first one) prioritizes the primary providers too.
+      sortByScmProviderOrder(
+        (integrationsQuery.data ?? []).filter(
+          i => i.organizationIntegrationStatus === 'active' && i.status === 'active'
+        ),
+        i => i.provider.key
       ),
     [integrationsQuery.data]
   );

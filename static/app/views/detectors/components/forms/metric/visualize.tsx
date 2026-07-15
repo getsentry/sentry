@@ -405,7 +405,7 @@ function GenericVisualize() {
   const lockedOption = lockSpanOptions ? LOCKED_SPAN_AGGREGATES[aggregate] : null;
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <Flex gap="md" align="end">
         <Stack flex="1" gap="xs" maxWidth="425px">
           <div>
@@ -490,7 +490,7 @@ function GenericVisualize() {
           );
         })}
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 

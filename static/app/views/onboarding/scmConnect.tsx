@@ -70,7 +70,7 @@ export function ScmConnect({
   const effectiveIntegration = selectedIntegration ?? activeIntegrationExisting;
 
   return (
-    <Flex direction="column" align="center" gap="3xl" flexGrow={1}>
+    <Stack align="center" gap="3xl" flexGrow={1}>
       <ScmStepHeader
         heading={t('Connect your code')}
         subtitle={t(
@@ -180,7 +180,7 @@ export function ScmConnect({
           </Flex>
         </MotionFlex>
       </LayoutGroup>
-    </Flex>
+    </Stack>
   );
 }
 

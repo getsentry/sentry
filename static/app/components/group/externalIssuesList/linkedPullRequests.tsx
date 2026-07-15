@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Avatar, UserAvatar} from '@sentry/scraps/avatar';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -115,7 +115,7 @@ function LinkedPullRequestRow({
               variant="muted"
             />
           </Flex>
-          <Flex direction="column" gap="xs" minWidth={0}>
+          <Stack gap="xs" minWidth={0}>
             <PullRequestTitle>
               <Text as="span" bold textWrap="nowrap">
                 {pullRequestLabel}
@@ -140,7 +140,7 @@ function LinkedPullRequestRow({
                 />
               </Text>
             </Flex>
-          </Flex>
+          </Stack>
         </Grid>
       </PullRequestRow>
     </Tooltip>
@@ -260,10 +260,9 @@ export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsPr
   }
 
   return (
-    <Flex
+    <Stack
       as="ul"
       aria-label={t('Linked pull requests')}
-      direction="column"
       border="primary"
       radius="md"
       overflow="hidden"
@@ -280,7 +279,7 @@ export function LinkedPullRequests({group, showEmptyState}: LinkedPullRequestsPr
           <LinkedPullRequestRow group={group} pullRequest={pullRequest} />
         </Container>
       ))}
-    </Flex>
+    </Stack>
   );
 }
 

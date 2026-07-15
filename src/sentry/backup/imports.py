@@ -8,7 +8,6 @@ from uuid import uuid4
 
 import orjson
 from django.apps import apps
-from django.core import serializers
 from django.core.exceptions import FieldDoesNotExist
 from django.db import DatabaseError, connections, router, transaction
 from sentry_sdk import capture_exception
@@ -43,6 +42,7 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
+from sentry.utils import json
 from sentry.utils.env import is_split_db
 
 __all__ = (
@@ -190,22 +190,18 @@ def _import(
             user_filter: Filter[int] = Filter[int](model=User, field="pk")
             filters.append(user_filter)
 
-            # TODO(getsentry#team-ospo/190): It turns out that Django's "streaming" JSON
-            # deserializer does no such thing, and actually loads the entire JSON into memory! If we
-            # don't want to choke on large imports, we'll need use a truly "chunkable" JSON
-            # importing library like ijson for this.
-            for obj in serializers.deserialize("json", content):
-                o = obj.object
-                model_name = get_model_name(o)
+            record_data = json.loads(content)
+            for item in record_data:
+                model_name = NormalizedModelName(item.get("model"))
                 if model_name == org_model_name:
-                    pk = getattr(o, "pk", None)
-                    slug = getattr(o, "slug", None)
+                    pk = item["pk"]
+                    slug = item["fields"].get("slug", None)
                     if pk is not None and slug in filter_by.values:
                         filtered_org_pks.add(pk)
                 elif model_name == org_member_model_name:
                     seen_first_org_member_model = True
-                    user = getattr(o, "user_id", None)
-                    org = getattr(o, "organization_id", None)
+                    user = item["fields"].get("user_id", None)
+                    org = item["fields"].get("organization", None)
                     if user is not None and org in filtered_org_pks:
                         user_filter.values.add(user)
                 elif seen_first_org_member_model:

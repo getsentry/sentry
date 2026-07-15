@@ -78,6 +78,7 @@ from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -154,6 +155,7 @@ from sentry.seer.models.run import (
     SeerAgentRun,
     SeerRun,
     SeerRunCodingAgentHandoff,
+    SeerRunPullRequest,
     SeerRunType,
 )
 from sentry.sentry_apps.installations import (
@@ -1315,6 +1317,11 @@ class Factories:
             team=team,
             **kwargs,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_derived_data(group, **kwargs) -> GroupDerivedData:
+        return GroupDerivedData.objects.create(group=group, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -3011,3 +3018,8 @@ class Factories:
         return SeerRunCodingAgentHandoff.objects.create(
             seer_run=seer_run, provider=provider, agent_id=agent_id, status=status, **kwargs
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_seer_run_pull_request(run: SeerRun, pull_request, **kwargs) -> SeerRunPullRequest:
+        return SeerRunPullRequest.objects.create(seer_run=run, pull_request=pull_request, **kwargs)

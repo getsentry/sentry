@@ -50,20 +50,19 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
   const theme = useTheme();
 
   return (
-    <Flex
+    <Stack
       as="nav"
       aria-label={t('Primary Navigation')}
       width={`${PRIMARY_SIDEBAR_WIDTH}px`}
       padding="0"
       borderRight="primary"
       background="primary"
-      direction="column"
       align="center"
       style={{zIndex: theme.zIndex.sidebarPanel}}
       {...props}
     >
       {children}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -74,9 +73,8 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
 
   return (
     <SizeProvider size="sm">
-      <Flex
+      <Stack
         as="header"
-        direction="column"
         align="center"
         justify="center"
         borderBottom="primary"
@@ -94,7 +92,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         {...props}
       >
         {props.children}
-      </Flex>
+      </Stack>
     </SizeProvider>
   );
 }
@@ -293,11 +291,9 @@ interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
   icon?: React.ReactNode;
   indicator?: 'accent' | 'danger' | 'warning';
   onOpen?: MouseEventHandler<HTMLButtonElement>;
-  triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
 }
 
 function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
-  const TriggerWrap = props.triggerWrap ?? Fragment;
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const {layout} = usePrimaryNavigation();
@@ -322,42 +318,40 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
       minMenuWidth={200}
       trigger={triggerProps => {
         return (
-          <TriggerWrap>
-            <Tooltip
-              title={props.label}
-              disabled={layout === 'mobile'}
-              position="right"
-              skipWrapper
-            >
-              <NavigationButton
-                {...triggerProps}
-                aria-label={layout === 'mobile' ? undefined : props.label}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                  if (organization) {
-                    trackAnalytics('navigation.primary_item_clicked', {
-                      item: props.analyticsKey,
-                      organization,
-                      ...props.analyticsParams,
-                    });
-                  }
-                  triggerProps.onClick?.(event);
-                  props.onOpen?.(event);
-                }}
-                icon={
-                  props.indicator ? (
-                    <Fragment>
-                      {props.icon}
-                      <PrimaryNavigationUnreadIndicator variant={props.indicator} />
-                    </Fragment>
-                  ) : (
-                    props.icon
-                  )
+          <Tooltip
+            title={props.label}
+            disabled={layout === 'mobile'}
+            position="right"
+            skipWrapper
+          >
+            <NavigationButton
+              {...triggerProps}
+              aria-label={layout === 'mobile' ? undefined : props.label}
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                if (organization) {
+                  trackAnalytics('navigation.primary_item_clicked', {
+                    item: props.analyticsKey,
+                    organization,
+                    ...props.analyticsParams,
+                  });
                 }
-              >
-                {layout === 'mobile' ? null : props.children}
-              </NavigationButton>
-            </Tooltip>
-          </TriggerWrap>
+                triggerProps.onClick?.(event);
+                props.onOpen?.(event);
+              }}
+              icon={
+                props.indicator ? (
+                  <Fragment>
+                    {props.icon}
+                    <PrimaryNavigationUnreadIndicator variant={props.indicator} />
+                  </Fragment>
+                ) : (
+                  props.icon
+                )
+              }
+            >
+              {layout === 'mobile' ? null : props.children}
+            </NavigationButton>
+          </Tooltip>
         );
       }}
       items={props.items}
@@ -426,17 +420,16 @@ function PrimaryNavigationFooterItems(props: PrimaryNavigationFooterItemsProps) 
 
 const DesktopPageFrameNavigationLink = styled((props: LinkProps) => {
   return (
-    <Flex
+    <Stack
       position="relative"
       width="100%"
       align="center"
-      direction="column"
       justify="center"
       gap="xs"
       padding="xs xs md xs"
     >
       {p => <Link {...mergeProps(p, props)} />}
-    </Flex>
+    </Stack>
   );
 })`
   outline: none;

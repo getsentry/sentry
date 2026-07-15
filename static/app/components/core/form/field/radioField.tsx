@@ -2,7 +2,7 @@ import {createContext, useContext, useId} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {useFieldContext} from '@sentry/scraps/form/formContext';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
@@ -95,14 +95,14 @@ function RadioItem({children, value, description}: RadioItemProps) {
         checked={selectedValue === value}
         onChange={() => onChange(value)}
       />
-      <Flex direction="column" gap="xs" paddingTop="xs">
+      <Stack gap="xs" paddingTop="xs">
         <Text>{children}</Text>
         {description && (
           <Text size="sm" variant="muted" id={descriptionId}>
             {description}
           </Text>
         )}
-      </Flex>
+      </Stack>
     </Flex>
   );
 }
