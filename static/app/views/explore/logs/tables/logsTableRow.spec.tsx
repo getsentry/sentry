@@ -436,6 +436,44 @@ describe('logsTableRow', () => {
     ]);
   });
 
+  it('does not show string filter actions for numeric fields', async () => {
+    const numericField = 'custom.duration';
+    const numericRowData = LogFixture({
+      ...rowData,
+      [numericField]: 123,
+    });
+    const numericFieldRouterConfig = structuredClone(initialRouterConfig);
+    numericFieldRouterConfig.location.query[LOGS_FIELDS_KEY] = [numericField];
+
+    render(
+      <LogRowContent
+        dataRow={numericRowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(numericRowData)}
+        sharedHoverTimeoutRef={{current: null}}
+      />,
+      {
+        organization,
+        initialRouterConfig: numericFieldRouterConfig,
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.hover(await screen.findByTestId('log-table-row'));
+    const numericCell = await screen.findByTestId(`log-table-cell-${numericField}`);
+    await userEvent.click(within(numericCell).getByRole('button', {name: 'Actions'}));
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Copy to clipboard'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to filter'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Exclude from filter'})
+    ).not.toBeInTheDocument();
+  });
+
   it('uses the message template for the message cell action filter when available', async () => {
     const rowDataWithTemplate = LogFixture({
       [OurLogKnownFieldKey.ID]: '1',

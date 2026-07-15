@@ -17,6 +17,7 @@ import {
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {FieldValueType} from 'sentry/utils/fields';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
@@ -27,7 +28,10 @@ import {
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
+import {
+  addValidatedFieldTypesToLogsMeta,
+  LogsInfiniteTable,
+} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 jest.mock('@tanstack/react-virtual', () => {
@@ -63,6 +67,29 @@ jest.mock('@tanstack/react-virtual', () => {
       isScrolling: false,
     }),
   };
+});
+
+describe('addValidatedFieldTypesToLogsMeta', () => {
+  it('preserves known field definitions and response metadata over validation types', () => {
+    const meta = addValidatedFieldTypesToLogsMeta({
+      meta: {
+        fields: {
+          [OurLogKnownFieldKey.PAYLOAD_SIZE]: FieldValueType.NUMBER,
+          'custom.duration': FieldValueType.STRING,
+        },
+        units: {},
+      },
+      validatedFieldTypes: {
+        [OurLogKnownFieldKey.PAYLOAD_SIZE]: FieldValueType.NUMBER,
+        'custom.duration': FieldValueType.NUMBER,
+      },
+    });
+
+    expect(meta.fields).toEqual({
+      [OurLogKnownFieldKey.PAYLOAD_SIZE]: FieldValueType.SIZE,
+      'custom.duration': FieldValueType.STRING,
+    });
+  });
 });
 
 describe('LogsInfiniteTable', () => {

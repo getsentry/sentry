@@ -1,4 +1,4 @@
-import {memo, useCallback, useEffect, useMemo, useState} from 'react';
+import {memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 
@@ -43,7 +43,6 @@ import {
   useLogsPageData,
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
-import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useLogAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
@@ -76,6 +75,7 @@ import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsS
 import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
 import {useSaveAsItems} from 'sentry/views/explore/logs/useSaveAsItems';
+import {useValidatedLogsTabColumns} from 'sentry/views/explore/logs/useValidatedLogsTabColumns';
 import {useValidateLogsTab} from 'sentry/views/explore/logs/useValidateLogsTab';
 import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {
@@ -87,7 +87,6 @@ import {
   useQueryParamsSortBys,
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
-  useSetQueryParamsFields,
   useSetQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -225,7 +224,6 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const setMode = useSetQueryParamsMode();
-  const setFields = useSetQueryParamsFields();
   const tableData = useLogsPageDataQueryResult();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const searchQuery = useQueryParamsSearch().formatString();
@@ -247,7 +245,6 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const [timeseriesIngestDelay, setTimeseriesIngestDelay] = useState(
     getMaxIngestDelayTimestamp()
   );
-  const [_, setPersistentParams] = usePersistedLogsPageParams();
   usePersistentLogsPageParameters(); // persist the columns you chose last time
 
   // always use the smallest interval possible (the most bars)
@@ -278,21 +275,17 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     limit: 50,
   });
 
-  const {attributes: stringAttributes} = useLogItemAttributes(
-    {},
-    'string',
-    HiddenLogSearchFields
-  );
-  const {attributes: numberAttributes} = useLogItemAttributes(
-    {},
-    'number',
-    HiddenLogSearchFields
-  );
-  const {attributes: booleanAttributes} = useLogItemAttributes(
-    {},
-    'boolean',
-    HiddenLogSearchFields
-  );
+  const {
+    attributes: {
+      boolean: validatedBooleanAttributes,
+      number: validatedNumberAttributes,
+      string: validatedStringAttributes,
+    },
+    fieldTypes: validatedFieldTypes,
+    fields: validatedFields,
+    isValidatingColumns,
+    onColumnsChange,
+  } = useValidatedLogsTabColumns();
 
   const averageLogsPerSecond = calculateAverageLogsPerSecond(timeseriesResult);
 
@@ -324,27 +317,17 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     await tableData.refetch();
   };
 
-  const onColumnsChange = useCallback(
-    (newFields: string[]) => {
-      setPersistentParams(prev => ({
-        ...prev,
-        fields: newFields,
-      }));
-      setFields(newFields);
-    },
-    [setFields, setPersistentParams]
-  );
-
   const openColumnEditor = () => {
     openModal(
       modalProps => (
         <ColumnEditorModal
           {...modalProps}
-          columns={fields.slice()}
+          columns={validatedFields.slice()}
           onColumnsChange={onColumnsChange}
-          stringTags={stringAttributes}
-          numberTags={numberAttributes}
-          booleanTags={booleanAttributes}
+          stringTags={validatedStringAttributes}
+          numberTags={validatedNumberAttributes}
+          booleanTags={validatedBooleanAttributes}
+          validatedFieldTypes={validatedFieldTypes}
           hiddenKeys={HiddenColumnEditorLogFields}
           traceItemType={TraceItemDataset.LOGS}
           handleReset={() => {
@@ -498,6 +481,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                   <TableActionButton
                     mobile={
                       <Button
+                        disabled={isValidatingColumns}
                         onClick={openColumnEditor}
                         icon={<IconEdit />}
                         size="sm"
@@ -506,6 +490,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                     }
                     desktop={
                       <Button
+                        disabled={isValidatingColumns}
                         onClick={openColumnEditor}
                         icon={<IconEdit />}
                         size="sm"
@@ -522,12 +507,16 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
               {tableTab === 'logs' ? (
                 <LogsInfiniteTable
                   analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
-                  booleanAttributes={booleanAttributes}
-                  stringAttributes={stringAttributes}
-                  numberAttributes={numberAttributes}
+                  booleanAttributes={validatedBooleanAttributes}
+                  stringAttributes={validatedStringAttributes}
+                  numberAttributes={validatedNumberAttributes}
+                  validatedFieldTypes={validatedFieldTypes}
                 />
               ) : (
-                <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />
+                <LogsAggregateTable
+                  aggregatesTableResult={aggregatesTableResult}
+                  validatedFieldTypes={validatedFieldTypes}
+                />
               )}
             </LogsItemContainer>
           </ExploreContentSection>

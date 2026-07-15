@@ -1,9 +1,13 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {EventView} from 'sentry/utils/discover/eventView';
+import {FieldValueType} from 'sentry/utils/fields';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
@@ -40,15 +44,20 @@ describe('LogsAggregateTable', () => {
   });
   function LogsAggregateTableWithParamsProvider({
     aggregatesTableResult,
+    validatedFieldTypes = {},
   }: {
     aggregatesTableResult: LogsAggregatesTableResult;
+    validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
   }) {
     return (
       <LogsQueryParamsProvider
         analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         source="location"
       >
-        <LogsAggregateTable aggregatesTableResult={aggregatesTableResult} />
+        <LogsAggregateTable
+          aggregatesTableResult={aggregatesTableResult}
+          validatedFieldTypes={validatedFieldTypes}
+        />
       </LogsQueryParamsProvider>
     );
   }
@@ -247,5 +256,106 @@ describe('LogsAggregateTable', () => {
     );
 
     expect(screen.queryByTestId('top-results-indicator')).not.toBeInTheDocument();
+  });
+
+  it('uses validated field types when aggregate metadata is missing', async () => {
+    const eventView = EventView.fromLocation(
+      LocationFixture({
+        query: {
+          field: ['custom.duration', 'count()'],
+        },
+      })
+    );
+
+    render(
+      <LogsAggregateTableWithParamsProvider
+        validatedFieldTypes={{'custom.duration': FieldValueType.NUMBER}}
+        aggregatesTableResult={createAggregatesTableResult({
+          eventView,
+          data: {
+            data: [
+              {
+                'custom.duration': 123,
+                'count()': 10,
+              },
+            ],
+            meta: {
+              fields: {
+                'count()': FieldValueType.INTEGER,
+              },
+              units: {},
+            },
+          },
+        })}
+      />,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_GROUP_BY_KEY]: 'custom.duration',
+              [LOGS_AGGREGATE_FN_KEY]: 'count',
+              [LOGS_AGGREGATE_PARAM_KEY]: '',
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    await userEvent.click(screen.getByText('123'));
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Show values greater than'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to filter'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('preserves compact count rendering and the user-facing aggregate label', () => {
+    const aggregate = 'count(message)';
+    const eventView = EventView.fromLocation(
+      LocationFixture({query: {field: ['message.template', aggregate]}})
+    );
+
+    render(
+      <LogsAggregateTableWithParamsProvider
+        validatedFieldTypes={{[aggregate]: FieldValueType.NUMBER}}
+        aggregatesTableResult={createAggregatesTableResult({
+          eventView,
+          data: {
+            data: [{'message.template': 'message', [aggregate]: 7_800_800}],
+            meta: {
+              fields: {
+                'message.template': FieldValueType.STRING,
+                [aggregate]: FieldValueType.INTEGER,
+              },
+              units: {},
+            },
+          },
+        })}
+      />,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_AGGREGATE_FN_KEY]: 'count',
+              [LOGS_AGGREGATE_PARAM_KEY]: '',
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    expect(screen.getByText('count(logs)')).toBeInTheDocument();
+    expect(screen.queryByText(aggregate)).not.toBeInTheDocument();
+    expect(screen.getByText('7.8M')).toBeInTheDocument();
   });
 });
