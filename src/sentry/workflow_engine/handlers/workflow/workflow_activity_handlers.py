@@ -2,7 +2,7 @@ import logging
 
 from sentry.models.activity import Activity
 from sentry.models.group import Group
-from sentry.seer.smart_assignment.models import RESOLUTION_ACTIVITIES, SEER_STARTED_ACTIVITIES
+from sentry.seer.smart_assignment.models import RESOLUTION_ACTIVITIES
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.workflow_engine.models import Detector
@@ -39,8 +39,13 @@ SUPPORTED_ACTIVITIES = [
 # assignment, or a resolution. Each triggers a prediction (deduped to one per group)
 # and records ground truth; gating lives in maybe_trigger_smart_assignment. The exact
 # ActivityType is forwarded through as the trigger (see smart_assignment.models).
-_SMART_ASSIGNMENT_ACTIVITIES = (
-    SEER_STARTED_ACTIVITIES | RESOLUTION_ACTIVITIES | frozenset({ActivityType.ASSIGNED})
+_SMART_ASSIGNMENT_ACTIVITIES = RESOLUTION_ACTIVITIES | frozenset(
+    {
+        ActivityType.SEER_RCA_STARTED,
+        ActivityType.SEER_SOLUTION_STARTED,
+        ActivityType.SEER_CODING_STARTED,
+        ActivityType.ASSIGNED,
+    }
 )
 
 

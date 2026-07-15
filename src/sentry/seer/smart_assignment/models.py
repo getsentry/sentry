@@ -24,26 +24,9 @@ from sentry.types.activity import ActivityType
 FEATURE_ID = "smart_assignment"
 
 
-# Activity types the smart assignment feature triggers on, grouped by how scoring
-# treats them. We pass the raw `ActivityType` around (rather than condensing it into
-# a bespoke enum) so the exact provenance is kept in metrics and the run mirror's
-# `extras`; these sets are just the behavioral buckets that scoring branches on.
-
-# Seer autofix steps that kick off an AI response -- a clean pre-outcome signal,
-# fired before any human acts. The first to fire triggers the (deduped) prediction.
-# SEER_ITERATION_STARTED is intentionally excluded: it re-runs an already-started
-# autofix, so dedup would only ever make it redundant with one of these.
-SEER_STARTED_ACTIVITIES = frozenset(
-    {
-        ActivityType.SEER_RCA_STARTED,
-        ActivityType.SEER_SOLUTION_STARTED,
-        ActivityType.SEER_CODING_STARTED,
-    }
-)
-
 # Resolutions we treat as ground truth: a human resolving an issue is a signal for
-# who should have owned it. SET_RESOLVED_BY_AGE is excluded (auto-resolve cron, no
-# acting user, so no signal).
+# who should have owned it.
+# SET_RESOLVED_BY_AGE is excluded (auto-resolve cron, no acting user, so no signal).
 RESOLUTION_ACTIVITIES = frozenset(
     {
         ActivityType.SET_RESOLVED,
