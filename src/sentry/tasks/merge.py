@@ -30,10 +30,13 @@ delete_logger = logging.getLogger("sentry.deletions.async")
 _TASK_KEY = "merge_groups"
 
 
+_START_TASK_KEY = "start_merge_groups"
+
+
 @instrumented_task(
     name="sentry.tasks.merge.start_merge_groups",
     namespace=issues_merge_tasks,
-    at_most_once=True,
+    retry=Retry(delay=60 * 5),
     silo_mode=SiloMode.CELL,
 )
 def start_merge_groups(
@@ -45,6 +48,16 @@ def start_merge_groups(
     if not (from_object_ids and to_object_id):
         logger.error("merge.start.missing_params", extra={"transaction_id": transaction_id})
         return False
+
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(_START_TASK_KEY, activation_id):
+        logger.info(
+            "merge.start.duplicate_redelivery.skipped",
+            extra={"transaction_id": transaction_id, "activation_id": activation_id},
+        )
+        metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _START_TASK_KEY})
+        return True
 
     logger.info(
         "merge.start",
@@ -63,6 +76,8 @@ def start_merge_groups(
         transaction_id=transaction_id,
         eventstream_state=eventstream_state,
     )
+    if activation_id:
+        mark_spawned(_START_TASK_KEY, activation_id)
     return True
 
 

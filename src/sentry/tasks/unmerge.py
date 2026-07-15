@@ -502,10 +502,13 @@ def unlock_hashes(project_id: int, locked_primary_hashes: Sequence[str]) -> None
     ).update(state=GroupHash.State.UNLOCKED)
 
 
+_START_TASK_KEY = "start_unmerge"
+
+
 @instrumented_task(
     name="sentry.tasks.unmerge.start_unmerge",
     namespace=issues_merge_tasks,
-    at_most_once=True,
+    processing_deadline_duration=300,
     silo_mode=SiloMode.CELL,
 )
 def start_unmerge(
@@ -516,6 +519,20 @@ def start_unmerge(
     actor_id: int | None,
     batch_size: int = 500,
 ) -> None:
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(_START_TASK_KEY, activation_id):
+        logger.info(
+            "unmerge.start.duplicate_redelivery.skipped",
+            extra={
+                "project_id": project_id,
+                "source_id": source_id,
+                "activation_id": activation_id,
+            },
+        )
+        metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _START_TASK_KEY})
+        return
+
     logger.info(
         "unmerge.start",
         extra={
@@ -530,6 +547,8 @@ def start_unmerge(
     unmerge.delay(
         project_id, source_id, destination_id, fingerprints, actor_id, batch_size=batch_size
     )
+    if activation_id:
+        mark_spawned(_START_TASK_KEY, activation_id)
 
 
 @instrumented_task(
