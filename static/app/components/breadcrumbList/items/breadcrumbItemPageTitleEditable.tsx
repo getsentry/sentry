@@ -50,7 +50,7 @@ export function BreadcrumbItemPageTitleEditable({
       {leadingGraphic && <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>}
       {/* Bold wrapper matches BreadcrumbItemPageTitle's weight; EditableText's
           compact label/input inherit font-weight from this context. */}
-      <Container minWidth={0} data-test-id="breadcrumb-item">
+      <Container minWidth={0}>
         <Text as="div" bold>
           {title}
         </Text>

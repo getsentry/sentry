@@ -41,8 +41,7 @@ describe('ConversationsLayout', () => {
     );
 
     const topBar = screen.getByTestId('top-bar-container');
-    expect(await within(topBar).findByTestId('breadcrumb-list')).toBeInTheDocument();
-    expect(within(topBar).getByText('6c5b72fc')).toBeInTheDocument();
+    expect(await within(topBar).findByText('6c5b72fc')).toBeInTheDocument();
     expect(within(topBar).getByRole('link', {name: 'Conversations'})).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/explore/conversations/?environment=prod&project=1&referrer=conversations-breadcrumb&statsPeriod=24h`

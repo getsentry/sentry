@@ -49,7 +49,6 @@ export function Breadcrumbs({crumbs, as, ...props}: BreadcrumbsProps) {
       gap="xs"
       align="center"
       padding="md 0"
-      data-test-id="breadcrumb-list"
       {...props}
     >
       {crumbs.map((crumb, index) => {
@@ -90,7 +89,6 @@ function BreadCrumbItem(props: BreadCrumbItemProps) {
           <BreadcrumbLink
             to={props.crumb.to}
             preservePageFilters={props.crumb.preservePageFilters}
-            data-test-id="breadcrumb-link"
             onClick={onBreadcrumbLinkClick}
             {...styleProps}
           >
@@ -99,12 +97,7 @@ function BreadCrumbItem(props: BreadCrumbItemProps) {
             </Text>
           </BreadcrumbLink>
         ) : (
-          <Text
-            ellipsis
-            variant={props.variant}
-            data-test-id="breadcrumb-item"
-            {...styleProps}
-          >
+          <Text ellipsis variant={props.variant} {...styleProps}>
             {props.crumb.label}
           </Text>
         );

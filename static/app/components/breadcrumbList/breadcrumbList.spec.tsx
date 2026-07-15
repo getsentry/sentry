@@ -73,8 +73,8 @@ describe('BreadcrumbList container-query collapse', () => {
       />
     );
 
-    // Presence check — the list renders (as inline content, not a landmark).
-    expect(screen.getByTestId('breadcrumb-list')).toBeInTheDocument();
+    // The list renders as an ordered list (as inline content, not a landmark).
+    expect(screen.getByRole('list')).toBeInTheDocument();
 
     const rules = collectCssRules();
 
@@ -107,10 +107,7 @@ describe('BreadcrumbList container-query collapse', () => {
 
     // The current-page crumb owns the page heading. When this list is rendered
     // inside TopBar.Slot, use `as="div"` on the slot to avoid nested headings.
-    expect(screen.getByRole('heading', {name: 'General'})).toHaveAttribute(
-      'data-test-id',
-      'breadcrumb-item'
-    );
+    expect(screen.getByRole('heading', {name: 'General'})).toBeInTheDocument();
 
     // Parent links must not be marked current.
     expect(screen.getByRole('link', {name: 'Settings'})).not.toHaveAttribute(
@@ -176,7 +173,7 @@ describe('BreadcrumbList container-query collapse', () => {
     expect(hidesBelowSm(selectItem!)).toBe(true);
 
     // The last crumb is not wrapped in a hiding <li> — it always stays visible.
-    const current = screen.getByTestId('breadcrumb-item');
+    const current = screen.getByRole('heading', {name: 'Client Keys'});
     expect(current).toHaveTextContent('Client Keys');
     expect(hidesBelowSm(current.closest('li')!)).toBe(false);
   });
@@ -191,8 +188,8 @@ describe('BreadcrumbList container-query collapse', () => {
       />
     );
 
-    const link = screen.getByTestId('breadcrumb-link');
-    const current = screen.getByTestId('breadcrumb-item');
+    const link = screen.getByRole('link', {name: 'Settings'});
+    const current = screen.getByRole('heading', {name: 'General'});
     const parentLi = link.closest('li')!;
 
     // The fixed max-width caps are gone, so labels size to content when there's

@@ -612,7 +612,7 @@ describe('Dashboards > Detail', () => {
         }
       );
 
-      const breadcrumbs = await screen.findByTestId('breadcrumb-list');
+      const breadcrumbs = await screen.findByRole('list');
       expect(within(breadcrumbs).getByRole('link', {name: 'Dashboards'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/dashboards/'
@@ -649,12 +649,11 @@ describe('Dashboards > Detail', () => {
 
       // Without the flag, the legacy Breadcrumbs render: the Dashboards link and
       // the (view-only) title are still present.
-      const breadcrumbs = await screen.findByTestId('breadcrumb-list');
-      expect(within(breadcrumbs).getByRole('link', {name: 'Dashboards'})).toHaveAttribute(
+      expect(await screen.findByRole('link', {name: 'Dashboards'})).toHaveAttribute(
         'href',
         '/organizations/org-slug/dashboards/'
       );
-      expect(within(breadcrumbs).getByText('Custom Errors')).toBeInTheDocument();
+      expect(await screen.findByText('Custom Errors')).toBeInTheDocument();
     });
 
     it('hides add widget option', async () => {

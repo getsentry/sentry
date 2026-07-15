@@ -58,12 +58,7 @@ export function BreadcrumbItemLink({
             Here the label just fills that floored space and ellipsizes within it. */}
         <Container minWidth={0}>
           {styleProps => (
-            <Link
-              to={toWithQuery}
-              onClick={handleClick}
-              data-test-id="breadcrumb-link"
-              {...styleProps}
-            >
+            <Link to={toWithQuery} onClick={handleClick} {...styleProps}>
               <Text ellipsis variant="muted">
                 {label}
               </Text>

@@ -98,7 +98,7 @@ function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
     // Renders as inline content (no <nav> landmark): the page-title item owns the
     // page heading. A `<nav aria-label>` here would add an unnecessary landmark
     // around the heading and its supporting parent links.
-    <Container width="100%" data-test-id="breadcrumb-list" {...props}>
+    <Container width="100%" {...props}>
       {/*
        * The query container is this inner element, not the <nav> above. emotion's
        * `as` swap on a styled component bypasses the wrapper that strips
