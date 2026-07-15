@@ -30,6 +30,7 @@ from sentry.tasks.unmerge import (
     get_group_backfill_attributes,
     get_group_creation_attributes,
     repair_denormalizations,
+    start_unmerge,
     unmerge,
 )
 from sentry.taskworker.selfchain_idempotency import mark_spawned
@@ -657,3 +658,18 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         repair_denormalizations(get_caches(), project, [event])
 
         mock_similarity.record.assert_called_once_with(project, [event])
+
+
+class StartUnmergeTest(TestCase):
+    def test_delegates_to_unmerge(self) -> None:
+        with patch.object(unmerge, "delay") as mock_delay:
+            start_unmerge(
+                project_id=1,
+                source_id=2,
+                destination_id=None,
+                fingerprints=["abc", "def"],
+                actor_id=3,
+                batch_size=500,
+            )
+
+        mock_delay.assert_called_once_with(1, 2, None, ["abc", "def"], 3, batch_size=500)

@@ -12,7 +12,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.tasks.merge import merge_groups
+from sentry.tasks.merge import start_merge_groups
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -75,7 +75,7 @@ def handle_merge(
     )
 
     transaction_id = uuid4().hex
-    merge_groups.delay(
+    start_merge_groups.delay(
         from_object_ids=group_ids_to_merge,
         to_object_id=primary_group.id,
         transaction_id=transaction_id,

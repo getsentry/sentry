@@ -28,7 +28,7 @@ class HandleIssueMergeTest(TestCase):
             add_group_to_inbox(group, GroupInboxReason.NEW)
             self.groups.append(group)
 
-    @patch("sentry.tasks.merge.merge_groups.delay")
+    @patch("sentry.tasks.merge.start_merge_groups.delay")
     def test_handle_merge(self, merge_groups: MagicMock) -> None:
         Activity.objects.all().delete()
         merge = handle_merge(self.groups, self.project_lookup, self.user)
@@ -50,7 +50,7 @@ class HandleIssueMergeTest(TestCase):
         assert primary_group.status == GroupStatus.UNRESOLVED
         assert primary_group.substatus == GroupSubStatus.ONGOING
 
-    @patch("sentry.tasks.merge.merge_groups.delay")
+    @patch("sentry.tasks.merge.start_merge_groups.delay")
     def test_handle_merge_rejects_large_groups(self, merge_groups: MagicMock) -> None:
         self.groups[0].update(times_seen=10001)
         self.groups[0].refresh_from_db()
@@ -62,7 +62,7 @@ class HandleIssueMergeTest(TestCase):
         assert "temporarily restricted" in str(exc_info.value.detail)
         assert not merge_groups.called
 
-    @patch("sentry.tasks.merge.merge_groups.delay")
+    @patch("sentry.tasks.merge.start_merge_groups.delay")
     def test_handle_merge_allows_groups_at_threshold(self, merge_groups: MagicMock) -> None:
         for group in self.groups:
             group.update(times_seen=10000)
@@ -72,7 +72,7 @@ class HandleIssueMergeTest(TestCase):
             handle_merge(self.groups, self.project_lookup, self.user)
         assert merge_groups.called
 
-    @patch("sentry.tasks.merge.merge_groups.delay")
+    @patch("sentry.tasks.merge.start_merge_groups.delay")
     def test_handle_merge_respects_custom_threshold(self, merge_groups: MagicMock) -> None:
         self.groups[0].update(times_seen=500)
         self.groups[0].refresh_from_db()
@@ -83,7 +83,7 @@ class HandleIssueMergeTest(TestCase):
 
         assert not merge_groups.called
 
-    @patch("sentry.tasks.merge.merge_groups.delay")
+    @patch("sentry.tasks.merge.start_merge_groups.delay")
     def test_handle_merge_disabled_with_zero_threshold(self, merge_groups: MagicMock) -> None:
         self.groups[0].update(times_seen=999999)
         self.groups[0].refresh_from_db()
