@@ -72,8 +72,10 @@ def handle_webhook_event(
         }
         if github_delivery_id:
             logs_extra["github_delivery_id"] = github_delivery_id
+
         if integration is not None:
             logs_extra["sentry_integration_id"] = str(integration.id)
+
         logger.info("github.webhook.code_review.received", extra=logs_extra)
 
     if integration is None:
