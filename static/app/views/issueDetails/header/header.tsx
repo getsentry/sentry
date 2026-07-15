@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
-import type {BreadcrumbItem} from '@sentry/scraps/breadcrumbList';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -81,14 +80,6 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
 
   const useNewBreadcrumbs = organization.features.includes('ui-migration-breadcrumbs');
   const issueItem = useIssueIdBreadcrumbItem({project, group});
-  const crumbs: BreadcrumbItem[] = [
-    {
-      type: 'link',
-      label: t('Issues'),
-      to: {pathname: `/organizations/${organization.slug}/issues/`, query},
-    },
-    ...(issueItem ? [issueItem] : []),
-  ];
 
   return (
     <Fragment>
@@ -97,7 +88,19 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
           <Flex align="center" gap="md">
             <TopBar.Slot name="title" as={useNewBreadcrumbs ? 'div' : undefined}>
               {useNewBreadcrumbs ? (
-                <BreadcrumbList items={crumbs} />
+                <BreadcrumbList
+                  items={[
+                    {
+                      type: 'link',
+                      label: t('Issues'),
+                      to: {
+                        pathname: `/organizations/${organization.slug}/issues/`,
+                        query,
+                      },
+                    },
+                    issueItem,
+                  ]}
+                />
               ) : (
                 <StyledBreadcrumbs
                   crumbs={[

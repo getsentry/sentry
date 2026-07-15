@@ -33,10 +33,7 @@ interface ShortIdBreadcrumbProps {
  * null when the issue has no short-id (nothing to show). Used by the issue
  * details header trail (`GroupHeader`).
  */
-export function useIssueIdBreadcrumbItem({
-  project,
-  group,
-}: ShortIdBreadcrumbProps): BreadcrumbItem | null {
+export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProps) {
   const {openModal} = useModal();
   const organization = useOrganization();
   const shareUrl = group?.shareId ? getShareUrl(organization, group) : null;
@@ -48,10 +45,6 @@ export function useIssueIdBreadcrumbItem({
       streamline: true,
     });
   }, [organization, group]);
-
-  if (!group.shortId) {
-    return null;
-  }
 
   return {
     type: 'page-title',
@@ -108,7 +101,7 @@ export function useIssueIdBreadcrumbItem({
         />
       ) : null,
     ],
-  };
+  } as const satisfies BreadcrumbItem;
 }
 
 /**

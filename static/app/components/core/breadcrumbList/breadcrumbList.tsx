@@ -18,14 +18,23 @@ import type {BreadcrumbItemSelectProjectsProps} from './items/breadcrumbItemSele
 import {BreadcrumbItemSelectProjects} from './items/breadcrumbItemSelectProjects';
 import {BreadcrumbDividerCombo} from './breadcrumbDividerCombo';
 
-export type BreadcrumbItem =
-  | ({type: 'link'} & BreadcrumbItemLinkProps)
-  | ({type: 'page-title'} & BreadcrumbItemPageTitleProps)
-  | ({type: 'editable-title'} & BreadcrumbItemPageTitleEditableProps)
-  | ({type: 'select-projects'} & BreadcrumbItemSelectProjectsProps);
+type LinkBreadcrumbItem = {type: 'link'} & BreadcrumbItemLinkProps;
+type PageTitleBreadcrumbItem = {type: 'page-title'} & BreadcrumbItemPageTitleProps;
+type EditableTitleBreadcrumbItem = {
+  type: 'editable-title';
+} & BreadcrumbItemPageTitleEditableProps;
+type SelectProjectsBreadcrumbItem = {
+  type: 'select-projects';
+} & BreadcrumbItemSelectProjectsProps;
+
+type AlwaysAllowedBreadcrumbItem = LinkBreadcrumbItem | SelectProjectsBreadcrumbItem;
+type LastBreadcrumbItem = PageTitleBreadcrumbItem | EditableTitleBreadcrumbItem;
+
+export type BreadcrumbItem = AlwaysAllowedBreadcrumbItem | LastBreadcrumbItem;
+type BreadcrumbItems = [...AlwaysAllowedBreadcrumbItem[], LastBreadcrumbItem];
 
 export interface BreadcrumbListProps extends React.HTMLAttributes<HTMLElement> {
-  items: BreadcrumbItem[];
+  items: BreadcrumbItems;
 }
 
 function renderItem(item: BreadcrumbItem) {

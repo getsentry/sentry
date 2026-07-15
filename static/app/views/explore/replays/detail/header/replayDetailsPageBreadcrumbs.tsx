@@ -1,7 +1,6 @@
 import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import type {BreadcrumbItem} from '@sentry/scraps/breadcrumbList';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -73,98 +72,99 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const {copy} = useCopyToClipboard();
 
   if (organization.features.includes('ui-migration-breadcrumbs')) {
-    const items: BreadcrumbItem[] = [
-      {
-        type: 'link',
-        label: t('Session Replay'),
-        to: {
-          pathname: makeReplaysPathname({path: '/', organization}),
-          query: {
-            ...eventView.generateQueryStringObject(),
-            project: replayRecord?.project_id,
+    return (
+      <BreadcrumbList
+        items={[
+          {
+            type: 'link',
+            label: t('Session Replay'),
+            to: {
+              pathname: makeReplaysPathname({path: '/', organization}),
+              query: {
+                ...eventView.generateQueryStringObject(),
+                project: replayRecord?.project_id,
+              },
+            },
           },
-        },
-      },
-    ];
-
-    if (replayRecord) {
-      items.push({
-        type: 'page-title',
-        label: getShortEventId(replayRecord.id),
-        leadingGraphic: project ? (
-          <ProjectBadge disableLink project={project} avatarSize={16} hideName />
-        ) : (
-          <Placeholder width="16px" height="16px" />
-        ),
-        pagination: {
-          previous: {
-            ariaLabel: t('Previous replay based on search query'),
-            tooltip: previousReplay
-              ? t('Previous replay based on search query')
-              : undefined,
-            to: previousReplay
-              ? {
-                  pathname: makeReplaysPathname({
-                    path: `/${previousReplay.id}/`,
+          {
+            type: 'page-title',
+            label: replayRecord?.id
+              ? getShortEventId(replayRecord.id)
+              : t('Unknown Replay'),
+            leadingGraphic: project ? (
+              <ProjectBadge disableLink project={project} avatarSize={16} hideName />
+            ) : (
+              <Placeholder width="16px" height="16px" />
+            ),
+            pagination: {
+              previous: {
+                ariaLabel: t('Previous replay based on search query'),
+                tooltip: previousReplay
+                  ? t('Previous replay based on search query')
+                  : undefined,
+                to: previousReplay
+                  ? {
+                      pathname: makeReplaysPathname({
+                        path: `/${previousReplay.id}/`,
+                        organization,
+                      }),
+                      query: initialLocation.current.query,
+                    }
+                  : undefined,
+                onClick: () =>
+                  trackAnalytics('replay.details-playlist-clicked', {
+                    direction: 'previous',
                     organization,
                   }),
-                  query: initialLocation.current.query,
-                }
-              : undefined,
-            onClick: () =>
-              trackAnalytics('replay.details-playlist-clicked', {
-                direction: 'previous',
-                organization,
-              }),
-          },
-          next: {
-            ariaLabel: t('Next replay based on search query'),
-            tooltip: nextReplay ? t('Next replay based on search query') : undefined,
-            to: nextReplay
-              ? {
-                  pathname: makeReplaysPathname({
-                    path: `/${nextReplay.id}/`,
+              },
+              next: {
+                ariaLabel: t('Next replay based on search query'),
+                tooltip: nextReplay ? t('Next replay based on search query') : undefined,
+                to: nextReplay
+                  ? {
+                      pathname: makeReplaysPathname({
+                        path: `/${nextReplay.id}/`,
+                        organization,
+                      }),
+                      query: initialLocation.current.query,
+                    }
+                  : undefined,
+                onClick: () =>
+                  trackAnalytics('replay.details-playlist-clicked', {
+                    direction: 'next',
                     organization,
                   }),
-                  query: initialLocation.current.query,
-                }
-              : undefined,
-            onClick: () =>
-              trackAnalytics('replay.details-playlist-clicked', {
-                direction: 'next',
-                organization,
-              }),
+              },
+            },
+            trailingActions: [
+              <BreadcrumbList.CopyAction
+                key="copy"
+                text={replayUrlWithTimestamp}
+                label={t('Copy link to replay at current timestamp')}
+                tooltip={t('Copy link to replay at current timestamp')}
+              />,
+              shouldShowRefreshButton ? (
+                <Button
+                  key="refresh"
+                  tooltipProps={{
+                    title: t('Replay is outdated. Refresh for latest activity.'),
+                  }}
+                  data-test-id="refresh-button"
+                  size="zero"
+                  variant="link"
+                  onClick={doRefresh}
+                  icon={<IconRefresh size="xs" variant="accent" />}
+                >
+                  <Text size="md" variant="accent">
+                    {t('Update')}
+                  </Text>
+                </Button>
+              ) : null,
+            ],
           },
-        },
-        trailingActions: [
-          <BreadcrumbList.CopyAction
-            key="copy"
-            text={replayUrlWithTimestamp}
-            label={t('Copy link to replay at current timestamp')}
-            tooltip={t('Copy link to replay at current timestamp')}
-          />,
-          shouldShowRefreshButton ? (
-            <Button
-              key="refresh"
-              tooltipProps={{
-                title: t('Replay is outdated. Refresh for latest activity.'),
-              }}
-              data-test-id="refresh-button"
-              size="zero"
-              variant="link"
-              onClick={doRefresh}
-              icon={<IconRefresh size="xs" variant="accent" />}
-            >
-              <Text size="md" variant="accent">
-                {t('Update')}
-              </Text>
-            </Button>
-          ) : null,
-        ],
-      });
-    }
-
-    return <BreadcrumbList items={items} />;
+        ]}
+      />
+    );
   }
 
   // Legacy breadcrumbs (flag off).
