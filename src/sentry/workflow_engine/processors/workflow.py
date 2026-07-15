@@ -329,10 +329,11 @@ def evaluate_workflows_action_filters(
             # Only accumulate taint for triggered workflows (not those with slow WHEN conditions)
             if workflow.id in workflow_to_result:
                 workflow_to_result[workflow.id] = TriggerResult.choose_tainted(
-                    workflow_to_result[workflow.id], group_evaluation.logic_result
+                    workflow_to_result[workflow.id],
+                    group_evaluation.outcome,
                 )
 
-            if group_evaluation.logic_result.triggered:
+            if group_evaluation.outcome.triggered:
                 if delayed_workflow_item := queue_items_by_workflow.get(workflow):
                     if delayed_workflow_item.delayed_when_group_id:
                         # If there are already delayed when conditions,

@@ -19,10 +19,12 @@ from sentry.workflow_engine.models import Action, DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.processors.data_condition_group import (
-    ProcessedDataConditionGroup,
     get_data_conditions_for_group,
 )
-from sentry.workflow_engine.processors.evaluations import TriggerResult
+from sentry.workflow_engine.processors.evaluations import (
+    DataConditionGroupEvaluation,
+    TriggerResult,
+)
 from sentry.workflow_engine.processors.workflow import (
     EvaluationStats,
     enqueue_workflows,
@@ -687,10 +689,7 @@ class TestTaintTracking(BaseWorkflowTest):
     @patch("sentry.workflow_engine.processors.data_condition_group.process_data_condition_group")
     def test_trigger_stats_tainted_not_triggered(self, mock_process: MagicMock) -> None:
         mock_process.return_value = (
-            ProcessedDataConditionGroup(
-                logic_result=TriggerResult.FALSE.with_error(ERR),
-                condition_results=[],
-            ),
+            DataConditionGroupEvaluation(result=[], error=ERR),
             [],
         )
 
@@ -714,10 +713,7 @@ class TestTaintTracking(BaseWorkflowTest):
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
     def test_action_filter_stats_tainted_from_action_filter(self, mock_process: MagicMock) -> None:
         mock_process.return_value = (
-            ProcessedDataConditionGroup(
-                logic_result=TriggerResult.TRUE.with_error(ERR),
-                condition_results=[],
-            ),
+            DataConditionGroupEvaluation(result=[], error=ERR),
             [],
         )
 
