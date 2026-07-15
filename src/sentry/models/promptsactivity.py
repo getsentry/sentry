@@ -3,7 +3,14 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
+    Model,
+    cell_silo_model,
+    sane_repr,
+)
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 
@@ -14,9 +21,17 @@ class PromptsActivity(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the prompt activity is scoped to",
+    )
     # Not a Foreign Key because it's no longer safe to take out lock on Project table in Prod
-    project_id = BoundedBigIntegerField(db_index=True)
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project the prompt activity is scoped to",
+    )
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
     feature = models.CharField(max_length=64, null=False)
     # typically will include a dismissed/snoozed timestamp or something similar

@@ -17,6 +17,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
     FlexibleForeignKey,
     Model,
     cell_silo_model,
@@ -67,9 +69,17 @@ class ReleaseFile(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization that owns this release file",
+    )
     # DEPRECATED
-    project_id = BoundedBigIntegerField(null=True)
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(null=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="Deprecated ID of the Project the release file was associated with",
+    )
     release_id = BoundedBigIntegerField(db_index=True)
     file = FlexibleForeignKey("sentry.File")
     ident = models.CharField(max_length=40)

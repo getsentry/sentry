@@ -9,7 +9,14 @@ from django.db.models.functions import Now
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
+    Model,
+    cell_silo_model,
+    sane_repr,
+)
 from sentry.objectstore import default_attachment_retention
 
 
@@ -31,7 +38,11 @@ class ProfileChunkAttachment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     # the things we look attachments up by:
-    project_id = BoundedBigIntegerField()
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project the profile chunk was ingested into",
+    )
     profiler_id = models.CharField(max_length=36)
     chunk_id = models.CharField(max_length=36)
 
@@ -41,7 +52,11 @@ class ProfileChunkAttachment(Model):
     # The Objectstore key the blob was stored under by Relay (under the
     # "profile_attachments" usecase). Read back via
     # ``get_profile_attachments_session(org, project).get(stored_id)``.
-    stored_id = models.TextField()
+    stored_id = ExternalDataMappingField(
+        models.TextField(),
+        mapping_type=ExternalMappingType.OBJECTSTORE,
+        description="Objectstore key of the attachment blob stored by Relay",
+    )
 
     date_added = models.DateTimeField(default=timezone.now)
     date_expires = models.DateTimeField(

@@ -4,6 +4,8 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
     FlexibleForeignKey,
     Model,
     cell_silo_model,
@@ -15,7 +17,11 @@ from sentry.db.models import (
 class Distribution(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the release distribution belongs to",
+    )
     release = FlexibleForeignKey("sentry.Release")
     name = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)

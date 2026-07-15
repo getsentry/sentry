@@ -6,7 +6,14 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
+    Model,
+    cell_silo_model,
+    sane_repr,
+)
 from sentry.db.models.manager.base import BaseManager
 
 if TYPE_CHECKING:
@@ -28,7 +35,11 @@ class CommitAuthorManager(BaseManager["CommitAuthor"]):
 class CommitAuthor(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the commit author was observed in",
+    )
     # display name
     name = models.CharField(max_length=128, null=True)
     email = models.CharField(max_length=200)

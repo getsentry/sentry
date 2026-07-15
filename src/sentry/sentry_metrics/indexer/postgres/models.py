@@ -8,6 +8,10 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, cell_silo_model
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
+from sentry.db.models.fields.externaldatamapping import (
+    ExternalDataMappingField,
+    ExternalMappingType,
+)
 from sentry.db.models.manager.base import BaseManager
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH, UseCaseKey
 
@@ -16,7 +20,11 @@ logger = logging.getLogger(__name__)
 
 class BaseIndexer(Model):
     string = models.CharField(max_length=MAX_INDEXED_COLUMN_LENGTH)
-    organization_id = BoundedBigIntegerField()
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the indexed metric string belongs to",
+    )
     date_added = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     retention_days = models.IntegerField(default=90)

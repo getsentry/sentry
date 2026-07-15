@@ -7,6 +7,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
     Model,
     cell_silo_model,
     sane_repr,
@@ -31,7 +33,11 @@ class GroupActionLogEntry(Model):
     # The id of the Group currently associated with this action.
     group_id = BoundedBigIntegerField()
     # The project the group belongs to.
-    project_id = BoundedBigIntegerField()
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project the acted-on group belongs to",
+    )
     # The group_id before any merges, if this entry was migrated.
     original_group_id = BoundedBigIntegerField(null=True)
 

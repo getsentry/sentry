@@ -8,7 +8,12 @@ from django.utils import timezone
 
 from sentry import roles
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
+    sane_repr,
+)
 from sentry.db.models.base import Model, control_silo_model
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
@@ -36,7 +41,11 @@ class OrganizationMapping(Model):
         cache_ttl=60 * 60,  # 1 hour
     )
 
-    organization_id = BoundedBigIntegerField(db_index=True, unique=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True, unique=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization in the cell this control-silo mapping points to",
+    )
     slug = models.SlugField(unique=True)
     name = models.CharField(max_length=64)
     date_created = models.DateTimeField(default=timezone.now)

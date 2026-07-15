@@ -8,6 +8,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     DefaultFieldsModel,
+    ExternalDataMappingField,
+    ExternalMappingType,
     FlexibleForeignKey,
     Model,
     cell_silo_model,
@@ -30,8 +32,16 @@ class ReplayDeletionJobModel(DefaultFieldsModel):
     range_start = models.DateTimeField()
     range_end = models.DateTimeField()
     environments = ArrayField(models.TextField(), default=list)
-    organization_id = BoundedBigIntegerField(db_index=True)
-    project_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization whose replays are being deleted",
+    )
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project whose replays are being deleted",
+    )
     status = models.CharField(choices=DeletionJobStatus.choices, default=DeletionJobStatus.PENDING)
     query = models.TextField()
     offset = models.IntegerField(default=0)
@@ -46,7 +56,11 @@ class ReplayDeletionJobModel(DefaultFieldsModel):
 class ReplayRecordingSegment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    project_id = BoundedBigIntegerField()
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project the replay was recorded in",
+    )
     replay_id = models.CharField(max_length=32, db_index=True)
     file_id = BoundedBigIntegerField(db_index=True)
     segment_id = BoundedIntegerField(db_column="sequence_id")

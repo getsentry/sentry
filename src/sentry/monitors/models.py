@@ -23,6 +23,8 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
     FlexibleForeignKey,
     LegacyTextJSONField,
     Model,
@@ -215,8 +217,16 @@ class Monitor(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     date_added = models.DateTimeField(default=timezone.now)
-    organization_id = BoundedBigIntegerField(db_index=True)
-    project_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization that owns this monitor",
+    )
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project that owns this monitor",
+    )
 
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
@@ -476,7 +486,11 @@ class MonitorCheckIn(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
-    project_id = BoundedBigIntegerField(db_index=True)
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project the monitor belongs to",
+    )
     monitor = FlexibleForeignKey("monitors.Monitor", db_index=False)
     monitor_environment = FlexibleForeignKey("monitors.MonitorEnvironment", db_index=False)
     """

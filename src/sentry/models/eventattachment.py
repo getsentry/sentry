@@ -18,7 +18,14 @@ from objectstore_client import TimeToLive
 
 from sentry.attachments.base import CachedAttachment
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
+    Model,
+    cell_silo_model,
+    sane_repr,
+)
 from sentry.db.models.fields.bounded import BoundedIntegerField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.files.utils import get_size_and_checksum, get_storage
@@ -90,7 +97,11 @@ class EventAttachment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     # the things we want to look up attachments by:
-    project_id = BoundedBigIntegerField()
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project the attachment's event was ingested into",
+    )
     group_id = BoundedBigIntegerField(null=True, db_index=True)
     event_id = models.CharField(max_length=32, db_index=True)
 
@@ -108,7 +119,14 @@ class EventAttachment(Model):
     )
 
     # storage:
-    blob_path = models.TextField(null=True)
+    blob_path = ExternalDataMappingField(
+        models.TextField(null=True),
+        mapping_type=ExternalMappingType.FILESTORE,
+        description=(
+            "Attachment blob locator: inline data after a ':' prefix, or a path "
+            "in the default filestore under 'eventattachments/v1/'"
+        ),
+    )
 
     class Meta:
         app_label = "sentry"

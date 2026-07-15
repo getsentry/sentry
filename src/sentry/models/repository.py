@@ -14,6 +14,8 @@ from sentry.constants import DEFAULT_CODE_REVIEW_TRIGGERS, ObjectStatus
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
     Model,
     cell_silo_model,
     sane_repr,
@@ -83,7 +85,11 @@ class RepositoryManager(BaseManager["Repository"]):
 class Repository(Model):
     __relocation_scope__ = RelocationScope.Global
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization that owns this repository",
+    )
     name = models.CharField(max_length=REPOSITORY_NAME_LENGTH)
     url = models.URLField(null=True, max_length=REPOSITORY_URL_LENGTH)
     provider = models.CharField(max_length=64, null=True)

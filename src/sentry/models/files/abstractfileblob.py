@@ -10,7 +10,12 @@ from django.utils import timezone
 from taskbroker_client.task import Task
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, WrappingU32IntegerField
+from sentry.db.models import (
+    ExternalDataMappingField,
+    ExternalMappingType,
+    Model,
+    WrappingU32IntegerField,
+)
 from sentry.models.files.abstractfileblobowner import AbstractFileBlobOwner
 from sentry.models.files.utils import (
     get_and_optionally_update_blob,
@@ -42,7 +47,11 @@ else:
 class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
     __relocation_scope__ = RelocationScope.Excluded
 
-    path = models.TextField(null=True)
+    path = ExternalDataMappingField(
+        models.TextField(null=True),
+        mapping_type=ExternalMappingType.FILESTORE,
+        description="Path of the blob's contents within the filestore storage backend",
+    )
     size = WrappingU32IntegerField(null=True)
     checksum = models.CharField(max_length=40, unique=True)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)

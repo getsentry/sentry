@@ -3,6 +3,10 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models.base import DefaultFieldsModel, cell_silo_model
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
+from sentry.db.models.fields.externaldatamapping import (
+    ExternalDataMappingField,
+    ExternalMappingType,
+)
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
@@ -16,7 +20,11 @@ class CommitComparison(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the compared commits belong to",
+    )
 
     # Core commit information
     head_sha = models.CharField(max_length=64)

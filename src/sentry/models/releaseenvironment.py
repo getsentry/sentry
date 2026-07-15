@@ -4,6 +4,8 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
     FlexibleForeignKey,
     Model,
     cell_silo_model,
@@ -20,7 +22,11 @@ class ReleaseEnvironment(Model):
 
     organization = FlexibleForeignKey("sentry.Organization", db_index=True, db_constraint=False)
     # DEPRECATED
-    project_id = BoundedBigIntegerField(null=True)
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(null=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="Deprecated ID of the Project the release environment was associated with",
+    )
     release = FlexibleForeignKey("sentry.Release", db_index=True, db_constraint=False)
     environment = FlexibleForeignKey("sentry.Environment", db_index=True, db_constraint=False)
     first_seen = models.DateTimeField(default=timezone.now)

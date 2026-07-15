@@ -5,6 +5,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     DefaultFieldsModelExisting,
+    ExternalDataMappingField,
+    ExternalMappingType,
     FlexibleForeignKey,
     cell_silo_model,
 )
@@ -20,7 +22,11 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
     organization_integration_id = HybridCloudForeignKey(
         "sentry.OrganizationIntegration", on_delete="CASCADE"
     )
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization that owns this code mapping",
+    )
     # From a cell point of view, you really only have per organization scoping.
     integration_id = BoundedBigIntegerField(db_index=False)
     stack_root = models.TextField()

@@ -2,6 +2,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
     FlexibleForeignKey,
     Model,
     cell_silo_model,
@@ -13,9 +15,17 @@ from sentry.db.models import (
 class ReleaseCommit(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the release and commit belong to",
+    )
     # DEPRECATED
-    project_id = BoundedBigIntegerField(null=True)
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(null=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="Deprecated ID of the Project the release commit was associated with",
+    )
     release = FlexibleForeignKey("sentry.Release")
     commit = FlexibleForeignKey("sentry.Commit", db_constraint=False)
     order = BoundedPositiveIntegerField()

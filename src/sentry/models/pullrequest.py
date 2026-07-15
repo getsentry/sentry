@@ -16,6 +16,8 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     DefaultFieldsModel,
+    ExternalDataMappingField,
+    ExternalMappingType,
     FlexibleForeignKey,
     Model,
     cell_silo_model,
@@ -216,7 +218,11 @@ class PullRequestManager(BaseManager["PullRequest"]):
 class PullRequest(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the pull request's repository belongs to",
+    )
     repository_id = BoundedPositiveIntegerField()
 
     key = models.CharField(max_length=64)  # example, 5131 on github

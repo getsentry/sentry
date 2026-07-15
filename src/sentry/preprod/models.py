@@ -17,6 +17,10 @@ from sentry.db.models.fields.bounded import (
     BoundedPositiveBigIntegerField,
     BoundedPositiveIntegerField,
 )
+from sentry.db.models.fields.externaldatamapping import (
+    ExternalDataMappingField,
+    ExternalMappingType,
+)
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
@@ -741,7 +745,11 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
         related_name="size_comparisons_base_size_analysis",
     )
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the compared preprod artifacts belong to",
+    )
 
     # File id of the size diff json in filestore
     file_id = BoundedBigIntegerField(db_index=True, null=True)

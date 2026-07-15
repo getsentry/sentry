@@ -1,6 +1,12 @@
 from django.db import models
 
-from sentry.db.models import BoundedBigIntegerField, cell_silo_model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
+    cell_silo_model,
+    sane_repr,
+)
 from sentry.models.deletedentry import DeletedEntry
 
 
@@ -18,7 +24,11 @@ class DeletedTeam(DeletedEntry):
     name = models.CharField(max_length=64, null=True)
     slug = models.CharField(max_length=50, null=True)
 
-    organization_id = BoundedBigIntegerField(null=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(null=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the deleted team belonged to",
+    )
     organization_name = models.CharField(max_length=64, null=True)
     organization_slug = models.CharField(max_length=50, null=True)
 

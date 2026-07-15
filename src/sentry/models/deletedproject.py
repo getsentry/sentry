@@ -1,7 +1,13 @@
 from django.db import models
 
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH
-from sentry.db.models import BoundedBigIntegerField, cell_silo_model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
+    cell_silo_model,
+    sane_repr,
+)
 from sentry.models.deletedentry import DeletedEntry
 
 
@@ -19,7 +25,11 @@ class DeletedProject(DeletedEntry):
     slug = models.CharField(max_length=PROJECT_SLUG_MAX_LENGTH, null=True)
     name = models.CharField(max_length=200, null=True)
 
-    organization_id = BoundedBigIntegerField(null=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(null=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the deleted project belonged to",
+    )
     organization_name = models.CharField(max_length=64, null=True)
     organization_slug = models.CharField(max_length=50, null=True)
 

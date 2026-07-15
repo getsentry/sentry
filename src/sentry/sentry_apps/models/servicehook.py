@@ -21,6 +21,10 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
+from sentry.db.models.fields.externaldatamapping import (
+    ExternalDataMappingField,
+    ExternalMappingType,
+)
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.sentry_apps.services.app import app_service
@@ -39,7 +43,11 @@ class ServiceHookProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     service_hook = FlexibleForeignKey("sentry.ServiceHook")
-    project_id = BoundedBigIntegerField(db_index=True)
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project subscribed to the service hook",
+    )
 
     class Meta:
         app_label = "sentry"
@@ -64,8 +72,16 @@ class ServiceHook(Model):
     installation_id = HybridCloudForeignKey(
         "sentry.SentryAppInstallation", null=True, on_delete="CASCADE"
     )
-    project_id = BoundedBigIntegerField(db_index=True, null=True)
-    organization_id = BoundedBigIntegerField(db_index=True, null=True)
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True, null=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project this hook is scoped to, if any",
+    )
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True, null=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization this hook is scoped to, if any",
+    )
     url = models.URLField(max_length=512)
     secret = models.TextField(default=generate_secret)
     events = ArrayField(models.TextField(), default=list)

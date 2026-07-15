@@ -15,6 +15,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
     FlexibleForeignKey,
     Model,
     cell_silo_model,
@@ -63,7 +65,11 @@ class ArtifactBundleIndexingState(Enum):
 class ArtifactBundle(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization that owns this artifact bundle",
+    )
     # We use 00000000-00000000-00000000-00000000 in place of NULL because the uniqueness constraint doesn't play well
     # with nullable fields, since NULL != NULL.
     bundle_id = models.UUIDField(default=NULL_UUID, db_index=True)
@@ -138,7 +144,11 @@ post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
 class ArtifactBundleIndex(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization that owns the indexed artifact bundle",
+    )
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     url = models.TextField()
     date_added = models.DateTimeField(default=timezone.now)
@@ -154,7 +164,11 @@ class ArtifactBundleIndex(Model):
 class ReleaseArtifactBundle(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the release and artifact bundle belong to",
+    )
     release_name = models.CharField(max_length=250)
     # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
     # NULL != NULL.
@@ -179,7 +193,11 @@ class ReleaseArtifactBundle(Model):
 class DebugIdArtifactBundle(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the debug id and artifact bundle belong to",
+    )
     debug_id = models.UUIDField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     source_file_type = models.IntegerField(choices=SourceFileType.choices())
@@ -196,8 +214,16 @@ class DebugIdArtifactBundle(Model):
 class ProjectArtifactBundle(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
-    project_id = BoundedBigIntegerField()
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the project and artifact bundle belong to",
+    )
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project the artifact bundle is associated with",
+    )
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
 

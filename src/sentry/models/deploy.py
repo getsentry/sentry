@@ -5,6 +5,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
     FlexibleForeignKey,
     Model,
     cell_silo_model,
@@ -19,7 +21,11 @@ from sentry.utils.retries import TimedRetryPolicy
 class Deploy(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the deployed release belongs to",
+    )
     release = FlexibleForeignKey("sentry.Release")
     environment_id = BoundedPositiveIntegerField(db_index=True)
     date_finished = models.DateTimeField(default=timezone.now, db_index=True)

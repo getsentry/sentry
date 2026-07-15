@@ -2,14 +2,25 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
+    Model,
+    cell_silo_model,
+    sane_repr,
+)
 
 
 @cell_silo_model
 class UserReport(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    project_id = BoundedBigIntegerField(db_index=True)
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project the user report was submitted to",
+    )
     group_id = BoundedBigIntegerField(null=True, db_index=True)
     event_id = models.CharField(max_length=32)
     environment_id = BoundedBigIntegerField(null=True, db_index=True)

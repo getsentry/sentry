@@ -11,6 +11,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
     FlexibleForeignKey,
     Model,
     cell_silo_model,
@@ -37,7 +39,11 @@ class CommitManager(BaseManager["Commit"]):
 class Commit(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the commit's repository belongs to",
+    )
     repository_id = BoundedPositiveIntegerField()
     key = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)

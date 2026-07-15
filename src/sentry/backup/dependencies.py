@@ -365,6 +365,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
         BoundedIntegerField,
         BoundedPositiveIntegerField,
     )
+    from sentry.db.models.fields.externaldatamapping import ExternalDataMappingField
     from sentry.db.models.fields.foreignkey import FlexibleForeignKey
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
     from sentry.db.models.fields.onetoone import OneToOneCascadeDeletes
@@ -460,13 +461,20 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                         raise RuntimeError("Unknown one to kind")
 
             # Use some heuristics to grab numeric-only unlinked dependencies.
-            simple_integer_fields = [
-                field
-                for field in model._meta.get_fields()
-                if isinstance(field, BoundedIntegerField)
-                or isinstance(field, BoundedBigIntegerField)
-                or isinstance(field, BoundedPositiveIntegerField)
-            ]
+            simple_integer_fields: list[models.Field] = []
+            for field in model._meta.get_fields():
+                # ExternalDataMappingField is a migration-transparent annotation
+                # wrapper; classify by the wrapped column so annotating a field
+                # never changes the dependency graph. The wrapped field's
+                # name/null/unique are identical to the wrapper's.
+                unwrapped = (
+                    field.wrapped_field if isinstance(field, ExternalDataMappingField) else field
+                )
+                if isinstance(
+                    unwrapped,
+                    (BoundedIntegerField, BoundedBigIntegerField, BoundedPositiveIntegerField),
+                ):
+                    simple_integer_fields.append(unwrapped)
             for field in simple_integer_fields:
                 is_nullable = getattr(field, "null", False)
                 if getattr(field, "unique", False):

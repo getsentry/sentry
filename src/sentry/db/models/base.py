@@ -18,6 +18,7 @@ from sentry.backup.dependencies import (
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
+from sentry.db.models.fields.externaldatamapping import ExternalDataMappingField
 from sentry.db.models.fields.uuid import UUIDField
 from sentry.db.models.manager.base import BaseManager, create_silo_limited_copy
 from sentry.silo.base import SiloLimit, SiloMode
@@ -223,6 +224,11 @@ class BaseModel(models.Model):
             sanitizer.set_name(json, SanitizableField(model_name, "name"))
 
         for f in fields:
+            # ExternalDataMappingField is a migration-transparent annotation
+            # wrapper; sanitize based on the wrapped column's type.
+            if isinstance(f, ExternalDataMappingField):
+                f = f.wrapped_field
+
             # Auto-sanitize all `models.DateTimeField` fields on this class.
             if isinstance(f, models.DateTimeField):
                 sanitizer.set_datetime(json, SanitizableField(model_name, f.name))

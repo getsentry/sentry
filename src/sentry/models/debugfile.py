@@ -33,6 +33,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import (
     BoundedBigIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
     FlexibleForeignKey,
     Model,
     cell_silo_model,
@@ -166,7 +168,11 @@ class ProjectDebugFile(Model):
     checksum = models.CharField(max_length=40, null=True, db_index=True)
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
-    project_id = BoundedBigIntegerField(null=True, db_index=True)
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(null=True, db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project this debug information file was uploaded to",
+    )
     debug_id = models.CharField(max_length=64, db_column="uuid")
     code_id = models.CharField(max_length=64, null=True)
     data = LegacyTextJSONField(default=dict, null=True)
@@ -660,8 +666,16 @@ def build_proguard_reupload_dif_meta(source_dif: ProjectDebugFile, debug_id: str
 class ProguardArtifactRelease(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField()
-    project_id = BoundedBigIntegerField()
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization that owns this proguard release",
+    )
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project this proguard release belongs to",
+    )
     release_name = models.CharField(max_length=250)
     proguard_uuid = models.UUIDField(db_index=True)
     project_debug_file = FlexibleForeignKey("sentry.ProjectDebugFile")

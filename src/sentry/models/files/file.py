@@ -5,7 +5,7 @@ from django.core.files.base import ContentFile
 from django.db import models
 from taskbroker_client.task import Task
 
-from sentry.db.models import FlexibleForeignKey
+from sentry.db.models import ExternalDataMappingField, ExternalMappingType, FlexibleForeignKey
 from sentry.db.models.base import cell_silo_model
 from sentry.models.files.abstractfile import AbstractFile
 from sentry.models.files.fileblob import FileBlob
@@ -20,8 +20,11 @@ class File(AbstractFile[FileBlobIndex, FileBlob]):
     # <Legacy fields>
     # Remove in 8.1
     blob = FlexibleForeignKey("sentry.FileBlob", null=True, related_name="legacy_blob")
-    path = models.TextField(null=True)
-    # path = ExternalDataMapping(models.TextField(null=True), description="What the hell is this?", )
+    path = ExternalDataMappingField(
+        models.TextField(null=True),
+        mapping_type=ExternalMappingType.FILESTORE,
+        description="Legacy direct filestore path of the file's contents, predating FileBlob storage",
+    )
     # </Legacy fields>
 
     class Meta:

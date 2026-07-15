@@ -5,7 +5,14 @@ from django.db import models, router, transaction
 from django.db.models.signals import post_save
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
+    Model,
+    cell_silo_model,
+    sane_repr,
+)
 from sentry.db.models.manager.base import BaseManager
 
 COMMIT_FILE_CHANGE_TYPES = frozenset(("A", "D", "M"))
@@ -25,7 +32,11 @@ class CommitFileChangeManager(BaseManager["CommitFileChange"]):
 class CommitFileChange(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the changed commit belongs to",
+    )
     commit_id = BoundedBigIntegerField(db_index=True)
     filename = models.TextField()
     type = models.CharField(

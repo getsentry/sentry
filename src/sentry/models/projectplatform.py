@@ -2,7 +2,14 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
+    Model,
+    cell_silo_model,
+    sane_repr,
+)
 
 
 @cell_silo_model
@@ -15,7 +22,11 @@ class ProjectPlatform(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    project_id = BoundedBigIntegerField()
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project whose platform usage is tracked",
+    )
     platform = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now)

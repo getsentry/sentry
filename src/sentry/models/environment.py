@@ -9,6 +9,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.constants import ENVIRONMENT_NAME_MAX_LENGTH, ENVIRONMENT_NAME_PATTERN
 from sentry.db.models import (
     BoundedBigIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
     FlexibleForeignKey,
     Model,
     cell_silo_model,
@@ -40,7 +42,11 @@ class EnvironmentProject(Model):
 class Environment(Model):
     __relocation_scope__ = RelocationScope.Organization
 
-    organization_id = BoundedBigIntegerField()
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization that owns this environment",
+    )
     projects = models.ManyToManyField("sentry.Project", through=EnvironmentProject)
     name = models.CharField(max_length=ENVIRONMENT_NAME_MAX_LENGTH)
     date_added = models.DateTimeField(default=timezone.now)

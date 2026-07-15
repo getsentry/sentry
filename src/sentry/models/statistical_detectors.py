@@ -8,6 +8,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
     Model,
     cell_silo_model,
     sane_repr,
@@ -57,7 +59,11 @@ class RegressionGroup(Model):
     # propagate from the issue group to here.
     active = models.BooleanField(default=True)
 
-    project_id = BoundedBigIntegerField(db_index=True)
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project the regression was detected in",
+    )
 
     type = BoundedIntegerField(choices=RegressionType.as_choices())
 

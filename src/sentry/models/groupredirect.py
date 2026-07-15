@@ -6,6 +6,8 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
     FlexibleForeignKey,
     Model,
     cell_silo_model,
@@ -23,7 +25,11 @@ class GroupRedirect(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(null=True)
+    organization_id = ExternalDataMappingField(
+        BoundedBigIntegerField(null=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Organization the redirected group belongs to",
+    )
     group = FlexibleForeignKey(
         "sentry.Group", related_name="primary_group_of_redirect", db_constraint=False
     )

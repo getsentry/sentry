@@ -7,6 +7,8 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    ExternalDataMappingField,
+    ExternalMappingType,
     Model,
     cell_silo_model,
     sane_repr,
@@ -20,7 +22,11 @@ from sentry.utils.hashlib import md5_text
 class GroupRelease(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    project_id = BoundedBigIntegerField(db_index=True)
+    project_id = ExternalDataMappingField(
+        BoundedBigIntegerField(db_index=True),
+        mapping_type=ExternalMappingType.POSTGRES,
+        description="ID of the Project the group and release belong to",
+    )
     group_id = BoundedBigIntegerField()
     # TODO: Should be BoundedBigIntegerField
     release_id = BoundedPositiveIntegerField(db_index=True)

@@ -12,9 +12,11 @@ __all__ = ("ExternalDataMappingField", "ExternalMappingType")
 class ExternalMappingType(StrEnum):
     """External system a column implicitly references."""
 
-    # Abstraction layers (sentry.models.files / sentry.nodestore).
+    # Abstraction layers (sentry.models.files / sentry.nodestore /
+    # sentry.objectstore).
     FILESTORE = "filestore"
     NODESTORE = "nodestore"
+    OBJECTSTORE = "objectstore"
     # Concrete stores.
     GCS = "gcs"
     S3 = "s3"
