@@ -124,21 +124,28 @@ for i = 0, 100 do -- Theoretic maximum depth of redirects is 100
     set_span_id = new_set_span
 end
 
-local function insert_metric(t, key, value)
-    -- This is only reliable for dense tables. If the table is sparse this behavior is undefined.
-    t[#t + 1] = key
-    t[#t + 1] = value
-end
-
 -- latency_table and metrics_table are flattened lists of [key1, value1, key2, value2, ...]
 -- so that the result is a flat array that is trivial to parse in Python, rather than a list
 -- of nested {key, value} pair tables.
 local latency_table = {}
+local latency_table_len = 0
+local function insert_latency(key, value)
+    latency_table[latency_table_len + 1] = key
+    latency_table[latency_table_len + 2] = value
+    latency_table_len = latency_table_len + 2
+end
+
 local metrics_table = {}
+local metrics_table_len = 0
+local function insert_metrics(key, value)
+    metrics_table[metrics_table_len + 1] = key
+    metrics_table[metrics_table_len + 2] = value
+    metrics_table_len = metrics_table_len + 2
+end
 
 if sample_metrics then
-    insert_metric(metrics_table, "redirect_table_size", redis.call("hlen", main_redirect_key))
-    insert_metric(metrics_table, "redirect_depth", redirect_depth)
+    insert_metrics("redirect_table_size", redis.call("hlen", main_redirect_key))
+    insert_metrics("redirect_depth", redirect_depth)
 end
 
 -- Precompute prefixes once per invocation. These key builders are used in the span loops below,
@@ -174,7 +181,7 @@ redis.call("expire", main_redirect_key, set_timeout)
 local redirect_end_time_us = 0
 if sample_metrics then
     redirect_end_time_us = get_time_us()
-    insert_metric(latency_table, "redirect_step_latency_us", redirect_end_time_us - start_time_us)
+    insert_latency("redirect_step_latency_us", redirect_end_time_us - start_time_us)
 end
 
 local ingested_byte_count_key = ibc_prefix .. set_span_id
@@ -224,8 +231,8 @@ if segment_too_large or segment_locked then
     ingested_byte_count_key = ibc_prefix .. salt
 end
 if sample_metrics then
-    insert_metric(metrics_table, "detached_segment_too_large", segment_too_large and 1 or 0)
-    insert_metric(metrics_table, "detached_segment_locked", segment_locked and 1 or 0)
+    insert_metrics("detached_segment_too_large", segment_too_large and 1 or 0)
+    insert_metrics("detached_segment_locked", segment_locked and 1 or 0)
 end
 
 local ingested_count_key = ic_prefix .. set_span_id
@@ -269,7 +276,7 @@ end
 local merge_payload_keys_end_time_us = 0
 if sample_metrics then
     merge_payload_keys_end_time_us = get_time_us()
-    insert_metric(latency_table, "merge_payload_keys_step_latency_us",
+    insert_latency("merge_payload_keys_step_latency_us",
         merge_payload_keys_end_time_us - redirect_end_time_us)
 end
 
@@ -287,10 +294,10 @@ redis.call("expire", ingested_byte_count_key, set_timeout)
 local latency_us = -1
 if sample_metrics then
     local counter_merge_end_time_us = get_time_us()
-    insert_metric(latency_table, "counter_merge_step_latency_us",
+    insert_latency("counter_merge_step_latency_us",
         counter_merge_end_time_us - merge_payload_keys_end_time_us)
     latency_us = counter_merge_end_time_us - start_time_us
-    insert_metric(latency_table, "total_step_latency_us", latency_us)
+    insert_latency("total_step_latency_us", latency_us)
 end
 
 return { set_key, has_root_span, latency_us, latency_table, metrics_table, merged_segment_span_ids }
