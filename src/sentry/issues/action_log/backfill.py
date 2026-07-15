@@ -47,7 +47,7 @@ def bulk_insert_action_log_entries(params: list[int | str | datetime], num_rows:
 
     *params* is a flat list of values for *num_rows* rows, each with 10 columns:
     (group_id, project_id, type, actor_type, actor_id, source, data,
-     date_added, date_updated, idempotency_key).
+     date_added, idempotency_key).
 
     Returns the number of rows actually inserted (via RETURNING).
     """
@@ -57,7 +57,7 @@ def bulk_insert_action_log_entries(params: list[int | str | datetime], num_rows:
     sql = """
         INSERT INTO sentry_groupactionlogentry
             (group_id, project_id, type, actor_type, actor_id, source, data,
-             date_added, date_updated, idempotency_key)
+             date_added, idempotency_key)
         VALUES %s
         ON CONFLICT (group_id, idempotency_key)
             WHERE idempotency_key IS NOT NULL
