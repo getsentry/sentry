@@ -124,6 +124,10 @@ class ActivityManager(BaseManager["Activity"]):
 
     def create(self, **kwargs: Any) -> Activity:
         activity: Activity = super().create(**kwargs)
+
+        if not options.get("group_action_log.activity.double-write") and not in_test_environment():
+            return activity
+
         group_id = kwargs.get("group_id")
         if group_id is None:
             group = kwargs.get("group")
@@ -149,6 +153,8 @@ class ActivityManager(BaseManager["Activity"]):
 
     def bulk_create(self, *args: Any) -> list[Activity]:
         activities: list[Activity] = super().bulk_create(*args)
+        if not options.get("group_action_log.activity.double-write") and not in_test_environment():
+            return activities
         try:
             actions_with_activities = [
                 (activity_to_action(activity), activity) for activity in activities
