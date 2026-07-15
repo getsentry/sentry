@@ -36,8 +36,7 @@ def parse_build_number(build: str) -> int | None:
     """
     build = build.strip()
 
-    # isdecimal() (not isdigit()) is the subset int() can always parse; isdigit()
-    # also matches chars like superscripts that make int() raise.
+    # isdecimal(), not isdigit(): isdigit() matches chars like "²" that int() rejects.
     if build.isdecimal():
         value = int(build)
     else:
