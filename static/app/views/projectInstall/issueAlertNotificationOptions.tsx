@@ -131,9 +131,16 @@ export function useCreateNotificationAction({
     undefined
   );
   const [channel, setChannel] = useState<IntegrationChannel | undefined>(undefined);
-  const [shouldRenderSetupButton, setShouldRenderSetupButton] = useState(false);
 
   const hasInitializedSelection = useRef(false);
+
+  // Derived rather than state so it stays in sync with the query instead of
+  // freezing at its first-success value: if the first fetch has no
+  // integrations, connecting one via SetupMessagingIntegrationButton
+  // refetches this query and should reveal the integration checkbox.
+  const shouldRenderSetupButton =
+    messagingIntegrationsQuery.isSuccess &&
+    Object.keys(providersToIntegrations).length === 0;
 
   useEffect(() => {
     // Initializes form state based on the first default action and available integrations.
@@ -154,8 +161,6 @@ export function useCreateNotificationAction({
 
     setProvider(matchedProviderKey);
     setIntegration(matchedIntegration);
-
-    setShouldRenderSetupButton(!matchedIntegration);
 
     const newActions =
       firstAction.id === IssueAlertActionType.NOTIFY_EMAIL
@@ -179,14 +184,21 @@ export function useCreateNotificationAction({
     if (!messagingIntegrationsQuery.isSuccess || hasInitializedSelection.current) {
       return;
     }
-    hasInitializedSelection.current = true;
     const providerKeys = Object.keys(providersToIntegrations);
     const firstProvider = providerKeys[0];
+
+    // If the first fetch returned no integrations, don't mark as initialized yet.
+    // A subsequent refetch (e.g. after connecting via SetupMessagingIntegrationButton)
+    // may deliver integrations and must be allowed to auto-select provider/integration.
+    if (!firstProvider) {
+      return;
+    }
+
+    hasInitializedSelection.current = true;
     const firstIntegration = providersToIntegrations[String(firstProvider)]?.[0];
     setProvider(firstProvider);
     setIntegration(firstIntegration);
     setChannel(undefined);
-    setShouldRenderSetupButton(!firstProvider);
   }, [messagingIntegrationsQuery.isSuccess, providersToIntegrations]);
 
   const createNotificationAction = useCallback(

@@ -97,6 +97,21 @@ describe('MessagingIntegrationAlertRule', () => {
     expect(screen.getAllByRole('textbox')).toHaveLength(3);
   });
 
+  it('clears the channel select when channel prop becomes undefined', () => {
+    const {rerender} = render(getComponent(), {organization});
+
+    // The initial channel value label is visible.
+    expect(screen.getByText('channel')).toBeInTheDocument();
+
+    // Parent state clears channel (e.g. after provider or integration change).
+    rerender(
+      <MessagingIntegrationAlertRule {...notificationProps} channel={undefined} />
+    );
+
+    // The stale channel label must no longer be shown; the select is empty.
+    expect(screen.queryByText('channel')).not.toBeInTheDocument();
+  });
+
   it('calls setter when new integration is selected', async () => {
     render(getComponent());
     await selectEvent.select(
