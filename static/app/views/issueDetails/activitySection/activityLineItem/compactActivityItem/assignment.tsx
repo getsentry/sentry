@@ -1,4 +1,4 @@
-import {Text} from '@sentry/scraps/text';
+import {InfoText} from '@sentry/scraps/info';
 
 import {t, tct} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
@@ -64,7 +64,11 @@ function AssignedActivityDetails({activity}: {activity: GroupActivityAssigned}) 
   if (integrationName) {
     return tct('to [assignee] due to [rule]', {
       assignee,
-      rule: integrationName,
+      rule: data.rule ? (
+        <InfoText title={data.rule}>{integrationName}</InfoText>
+      ) : (
+        integrationName
+      ),
     });
   }
 
@@ -76,20 +80,8 @@ export function getAssignedActivityItem({
 }: {
   activity: GroupActivityAssigned;
 }): CompactGroupActivityItem {
-  const integrationName = getAssignmentIntegrationName(activity.data.integration);
-  let subtext: React.ReactNode = null;
-
-  if (integrationName && activity.data.rule) {
-    subtext = (
-      <Text variant="inherit" monospace wordBreak="break-all">
-        {activity.data.rule}
-      </Text>
-    );
-  }
-
   return {
     title: t('Assigned'),
     details: <AssignedActivityDetails activity={activity} />,
-    subtext,
   };
 }
