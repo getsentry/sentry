@@ -100,10 +100,6 @@ class CommentCreatedPayload(BaseActivityPayload, SenderMixin):
 
 @dataclass
 class CommentDeletedPayload(BaseActivityPayload, SenderMixin):
-    # Unlike comment_created (folded into participants only), a deletion is stored
-    # as a discrete entry: it's the only record of a removed discussion element —
-    # deleted comments are invisible to the judge-time SCM fetch. Captured for human
-    # senders only; sticky-comment bots that delete+recreate per push are churn.
     action: str = "comment_deleted"
     # True for an inline (pull_request_review_comment) deletion, False for a
     # top-level issue_comment deletion.

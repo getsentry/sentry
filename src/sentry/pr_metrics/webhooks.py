@@ -1625,8 +1625,6 @@ def _build_activity_payload(
         case "reopened":
             return asdict(ReopenedPayload(**sender_kw))
         case "edited":
-            # Field NAMES only (keys of the webhook ``changes`` object); the values
-            # are the old title/body text, which the structural-only posture drops.
             changed_fields = sorted((event.get("changes") or {}).keys())
             return asdict(EditedPayload(**sender_kw, changed_fields=changed_fields))
         case "labeled":
