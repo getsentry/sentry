@@ -311,6 +311,43 @@ class TestDeliverNightShiftResult(TestCase):
         result_row = SeerNightShiftRunResult.objects.get(run=run)
         assert "skip_reason" not in result_row.extras
 
+    def test_unrecognized_skip_reason_does_not_fail_delivery(self) -> None:
+        """skip_reason is a passthrough string, not a mirrored enum: a category
+        Seer added that this code doesn't know about yet must still parse and
+        persist, not fail the whole batch. See TriageVerdict.skip_reason."""
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        group = self.create_group(project=project)
+        run = self._create_night_shift_run(organization=org)
+
+        result = {
+            "verdicts": [
+                {
+                    "group_id": group.id,
+                    "action": TriageAction.SKIP.value,
+                    "reason": "test appears flaky",
+                    "skip_reason": "flaky_test",
+                }
+            ]
+        }
+
+        with patch("sentry.seer.night_shift.delivery.logger") as mock_logger:
+            deliver_night_shift_result(
+                organization_id=org.id,
+                run_uuid=self._run_uuid(run),
+                status="completed",
+                result=result,
+                error=None,
+            )
+
+            mock_logger.exception.assert_not_called()
+
+        redis = redis_clusters.get("default")
+        redis.delete(skip_cache_key(group.id))
+
+        result_row = SeerNightShiftRunResult.objects.get(run=run)
+        assert result_row.extras["skip_reason"] == "flaky_test"
+
     def test_dry_run_skips_autofix(self) -> None:
         """Dry run mode should not trigger autofix but still persist verdict rows."""
         org = self.create_organization()

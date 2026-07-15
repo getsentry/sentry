@@ -44,15 +44,18 @@ class NightShiftPayload(_Base):
 # Result payload (Seer -> Sentry): the triage verdicts pushed back.
 
 
-SkipReason = Literal["duplicate", "insufficient_info", "environmental", "ambiguous_root_cause"]
-
-
 class TriageVerdict(_Base):
     group_id: int
     action: TriageAction
     reason: str = ""
     # Only meaningful when action="skip"; None for autofix/root_cause_only.
-    skip_reason: SkipReason | None = None
+    # Deliberately a passthrough string, not a mirrored enum: Seer can add a
+    # new category on its own schedule without a synchronized Sentry deploy.
+    # `TriageResponse.parse_obj` validates a whole batch at once, so a closed
+    # enum here would drop every verdict in a delivery over one unrecognized
+    # skip_reason value. Only branch on the specific strings this code knows
+    # about (see night_shift/delivery.py); treat anything else as opaque.
+    skip_reason: str | None = None
 
 
 class TriageResponse(_Base):
