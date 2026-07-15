@@ -1,14 +1,21 @@
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from time import time
 from typing import Any
 
 from django.conf import settings
 
 from sentry.killswitches import killswitch_matches_context
-from sentry.lang.javascript.processing import process_js_stacktraces
-from sentry.lang.native.processing import get_native_symbolication_function
-from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorPlatform, SymbolicatorTaskKind
+from sentry.lang.native.processing import (
+    get_native_symbolication_function,
+    get_native_symbolication_functions,
+)
+from sentry.lang.native.symbolicator import (
+    Symbolicator,
+    SymbolicatorFunction,
+    SymbolicatorPlatform,
+    SymbolicatorTaskKind,
+)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services.eventstore import processing
@@ -30,16 +37,14 @@ def get_symbolication_function_for_platform(
     platform: SymbolicatorPlatform,
     data: Mapping[str, Any],
     stacktraces: list[StacktraceInfo],
-) -> Callable[[Symbolicator, Any], Any]:
+) -> SymbolicatorFunction:
     """Returns the symbolication function for the given platform
-    and event data."""
-
-    from sentry.lang.java.processing import process_jvm_stacktraces
+    and event data. This is a **legacy** function used for old tasks."""
 
     if platform == SymbolicatorPlatform.js:
-        return process_js_stacktraces
+        return SymbolicatorFunction.js
     elif platform == SymbolicatorPlatform.jvm:
-        return process_jvm_stacktraces
+        return SymbolicatorFunction.jvm
     else:
         symbolication_function = get_native_symbolication_function(data, stacktraces)
         # get_native_symbolication_function already returned something in
@@ -48,25 +53,25 @@ def get_symbolication_function_for_platform(
         return symbolication_function
 
 
-def get_symbolication_platforms(
+def get_symbolication_functions(
     data: Mapping[str, Any], stacktraces: list[StacktraceInfo]
-) -> list[SymbolicatorPlatform]:
+) -> list[SymbolicatorFunction]:
     """Returns a list of Symbolicator platforms
     that apply to this event."""
 
     from sentry.lang.java.utils import is_jvm_event
     from sentry.lang.javascript.utils import is_js_event
 
-    platforms = []
+    functions = []
 
     if is_jvm_event(data, stacktraces):
-        platforms.append(SymbolicatorPlatform.jvm)
+        functions.append(SymbolicatorFunction.jvm)
     if is_js_event(data, stacktraces):
-        platforms.append(SymbolicatorPlatform.js)
-    if get_native_symbolication_function(data, stacktraces) is not None:
-        platforms.append(SymbolicatorPlatform.native)
+        functions.append(SymbolicatorFunction.js)
 
-    return platforms
+    functions.extend(get_native_symbolication_functions(data, stacktraces))
+
+    return functions
 
 
 class SymbolicationTimeout(Exception):
@@ -74,13 +79,14 @@ class SymbolicationTimeout(Exception):
 
 
 def _do_symbolicate_event(
+    *,
     task_kind: SymbolicatorTaskKind,
     cache_key: str,
     start_time: float | None,
     event_id: str | None,
     data: Event | None = None,
     has_attachments: bool = False,
-    symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
+    symbolicate_functions: list[SymbolicatorPlatform] | list[SymbolicatorFunction] | None = None,
 ) -> None:
     if data is None:
         data = processing.event_processing_store.get(cache_key)
@@ -99,18 +105,18 @@ def _do_symbolicate_event(
     set_current_event_project(project_id)
 
     def _continue_to_process_event(was_killswitched: bool = False) -> None:
-        # Go through the remaining symbolication platforms
+        # Go through the remaining symbolication platforms/functions
         # and submit the next one.
-        if not was_killswitched and symbolicate_platforms:
-            next_platform = symbolicate_platforms.pop(0)
+        if not was_killswitched and symbolicate_functions:
+            next_function = symbolicate_functions.pop(0)
 
             submit_symbolicate(
-                task_kind=task_kind.with_platform(next_platform),
+                task_kind=task_kind.with_function(next_function),
                 cache_key=cache_key,
                 event_id=event_id,
                 start_time=start_time,
                 has_attachments=has_attachments,
-                symbolicate_platforms=symbolicate_platforms,
+                symbolicate_functions=symbolicate_functions,
             )
             return
         # else:
@@ -124,15 +130,23 @@ def _do_symbolicate_event(
             has_attachments=has_attachments,
         )
 
-    try:
-        stacktraces = find_stacktraces_in_data(data)
-        symbolication_function = get_symbolication_function_for_platform(
-            task_kind.platform, data, stacktraces
-        )
-    except AssertionError:
-        symbolication_function = None
-
-    symbolication_function_name = getattr(symbolication_function, "__name__", "none")
+    if isinstance(task_kind.function, SymbolicatorPlatform):
+        # Legacy behavior for old tasks.
+        try:
+            stacktraces = find_stacktraces_in_data(data)
+            symbolication_function = get_symbolication_function_for_platform(
+                task_kind.function, data, stacktraces
+            )
+        except AssertionError:
+            symbolication_function = None
+    else:
+        # New behavior
+        symbolication_function = task_kind.function
+    symbolication_function_name = (
+        None
+        if symbolication_function is None
+        else getattr(symbolication_function.function(), "__name__", "none")
+    )
 
     if symbolication_function is None or killswitch_matches_context(
         "store.load-shed-symbolicate-event-projects",
@@ -243,7 +257,7 @@ def submit_symbolicate(
     event_id: str | None,
     start_time: float | None,
     has_attachments: bool = False,
-    symbolicate_platforms: list[SymbolicatorPlatform] | None = None,
+    symbolicate_functions: list[SymbolicatorFunction] | list[SymbolicatorPlatform] | None = None,
 ) -> None:
     # Because of `mock` usage, we cannot just save a reference to the actual function
     # into the `TASK_FNS` dict. We actually have to access it at runtime from the global scope
@@ -251,10 +265,10 @@ def submit_symbolicate(
     task_fn_name = TASK_FNS.get(task_kind, "symbolicate_event")
     task_fn = globals()[task_fn_name]
 
-    # Pass symbolicate_platforms as strings—apparently we're not allowed to pickle
+    # Pass symbolicate_functions as strings—apparently we're not allowed to pickle
     # custom classes.
-    symbolicate_platform_names = (
-        None if symbolicate_platforms is None else [p.name for p in symbolicate_platforms]
+    symbolicate_function_names = (
+        None if symbolicate_functions is None else [p.name for p in symbolicate_functions]
     )
 
     task_fn.delay(
@@ -262,7 +276,7 @@ def submit_symbolicate(
         start_time=start_time,
         event_id=event_id,
         has_attachments=has_attachments,
-        symbolicate_platforms=symbolicate_platform_names,
+        symbolicate_functions=symbolicate_function_names,
     )
 
 
@@ -289,7 +303,8 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         event_id: str | None = None,
         data: Event | None = None,
         has_attachments: bool = False,
-        symbolicate_platforms: list[str] | None = None,
+        symbolicate_platforms: list[str] | None = None,  # legacy
+        symbolicate_functions: list[str] | None = None,
         **kwargs: Any,
     ) -> None:
         """
@@ -300,12 +315,23 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         :param string event_id: the event identifier
         """
 
-        # Turn symbolicate_platforms back into proper enum values
-        symbolicate_platform_values = (
-            None
-            if symbolicate_platforms is None
-            else [SymbolicatorPlatform(p) for p in symbolicate_platforms]
-        )
+        symbolicate_function_values: (
+            list[SymbolicatorPlatform] | list[SymbolicatorFunction] | None
+        ) = None
+        if symbolicate_platforms is not None:
+            # [legacy] Turn symbolicate_platforms back into proper enum values
+            symbolicate_function_values = (
+                None
+                if symbolicate_platforms is None
+                else [SymbolicatorPlatform(p) for p in symbolicate_platforms]
+            )
+        else:
+            # Turn symbolicate_functions back into proper enum values
+            symbolicate_function_values = (
+                None
+                if symbolicate_functions is None
+                else [SymbolicatorFunction(p) for p in symbolicate_functions]
+            )
         return _do_symbolicate_event(
             task_kind=task_kind,
             cache_key=cache_key,
@@ -313,7 +339,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
             event_id=event_id,
             data=data,
             has_attachments=has_attachments,
-            symbolicate_platforms=symbolicate_platform_values,
+            symbolicate_functions=symbolicate_function_values,
         )
 
     fn_name = name.split(".")[-1]
@@ -334,17 +360,29 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
 symbolicate_event = make_task_fn(
     name="sentry.tasks.store.symbolicate_event",
     queue="events.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=False),
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.native, is_reprocessing=False),
+)
+symbolicate_minidump = make_task_fn(
+    name="sentry.tasks.store.symbolicate_minidump",
+    queue="events.symbolicate_event",
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.minidump, is_reprocessing=False),
+)
+symbolicate_applecrashreport = make_task_fn(
+    name="sentry.tasks.store.symbolicate_applecrashreport",
+    queue="events.symbolicate_event",
+    task_kind=SymbolicatorTaskKind(
+        function=SymbolicatorFunction.applecrashreport, is_reprocessing=False
+    ),
 )
 symbolicate_js_event = make_task_fn(
     name="sentry.tasks.symbolicate_js_event",
     queue="events.symbolicate_js_event",
-    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.js, is_reprocessing=False),
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.js, is_reprocessing=False),
 )
 symbolicate_jvm_event = make_task_fn(
     name="sentry.tasks.symbolicate_jvm_event",
     queue="events.symbolicate_jvm_event",
-    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.jvm, is_reprocessing=False),
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.jvm, is_reprocessing=False),
 )
 
 
@@ -352,5 +390,40 @@ symbolicate_jvm_event = make_task_fn(
 symbolicate_event_from_reprocessing = make_task_fn(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=True),
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.native, is_reprocessing=True),
+)
+symbolicate_minidump_from_reprocessing = make_task_fn(
+    name="sentry.tasks.store.symbolicate_minidump_from_reprocessing",
+    queue="events.reprocessing.symbolicate_event",
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.minidump, is_reprocessing=True),
+)
+symbolicate_applecrashreport_from_reprocessing = make_task_fn(
+    name="sentry.tasks.store.symbolicate_applecrashreport_from_reprocessing",
+    queue="events.reprocessing.symbolicate_event",
+    task_kind=SymbolicatorTaskKind(
+        function=SymbolicatorFunction.applecrashreport, is_reprocessing=True
+    ),
+)
+
+# LEGACY functions, only used for in-flight tasks that still use `SymbolicatorPlatform.native`
+
+symbolicate_event_legacy = make_task_fn(
+    name="sentry.tasks.store.symbolicate_event_legacy",
+    queue="events.symbolicate_event",
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorPlatform.native, is_reprocessing=False),
+)
+symbolicate_js_event_legacy = make_task_fn(
+    name="sentry.tasks.symbolicate_js_event_legacy",
+    queue="events.symbolicate_js_event",
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorPlatform.js, is_reprocessing=False),
+)
+symbolicate_jvm_event_legacy = make_task_fn(
+    name="sentry.tasks.symbolicate_jvm_event_legacy",
+    queue="events.symbolicate_jvm_event",
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorPlatform.jvm, is_reprocessing=False),
+)
+symbolicate_event_from_reprocessing_legacy = make_task_fn(
+    name="sentry.tasks.store.symbolicate_event_from_reprocessing_legacy",
+    queue="events.reprocessing.symbolicate_event",
+    task_kind=SymbolicatorTaskKind(function=SymbolicatorPlatform.native, is_reprocessing=True),
 )

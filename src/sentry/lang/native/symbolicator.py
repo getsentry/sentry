@@ -39,11 +39,46 @@ logger = logging.getLogger(__name__)
 
 class SymbolicatorPlatform(Enum):
     """The platforms for which we want to
+    invoke Symbolicator. This is a **legacy** type used by old taskbroker tasks."""
+
+    jvm = "jvm"
+    js = "js"
+    native = "native"
+
+
+class SymbolicatorFunction(Enum):
+    """The functions for which we want to
     invoke Symbolicator."""
 
     jvm = "jvm"
     js = "js"
     native = "native"
+    minidump = "minidump"
+    applecrashreport = "applecrashreport"
+
+    def __call__(self, symbolicator: Symbolicator, data: Any) -> Any:
+        return self.function()(symbolicator, data)
+
+    def function(self) -> Callable[[Symbolicator, Any], Any]:
+        from sentry.lang.java.processing import process_jvm_stacktraces
+        from sentry.lang.javascript.processing import process_js_stacktraces
+        from sentry.lang.native.processing import (
+            process_applecrashreport,
+            process_minidump,
+            process_native_stacktraces,
+        )
+
+        match self:
+            case SymbolicatorFunction.native:
+                return process_native_stacktraces
+            case SymbolicatorFunction.js:
+                return process_js_stacktraces
+            case SymbolicatorFunction.jvm:
+                return process_jvm_stacktraces
+            case SymbolicatorFunction.minidump:
+                return process_minidump
+            case SymbolicatorFunction.applecrashreport:
+                return process_applecrashreport
 
 
 class FrameOrder(Enum):
@@ -64,11 +99,13 @@ class SymbolicatorTaskKind:
     the platform and whether it's an existing event being reprocessed.
     """
 
-    platform: SymbolicatorPlatform
+    function: SymbolicatorPlatform | SymbolicatorFunction  # platform still allowed for old tasks
     is_reprocessing: bool = False
 
-    def with_platform(self, platform: SymbolicatorPlatform) -> SymbolicatorTaskKind:
-        return dataclasses.replace(self, platform=platform)
+    def with_function(
+        self, function: SymbolicatorPlatform | SymbolicatorFunction
+    ) -> SymbolicatorTaskKind:
+        return dataclasses.replace(self, function=function)
 
 
 class SymbolicatorPools(Enum):
@@ -77,17 +114,31 @@ class SymbolicatorPools(Enum):
     jvm = "jvm"
 
 
-def pool_for_platform(platform: SymbolicatorPlatform) -> SymbolicatorPools:
+def pool_for_function(function: SymbolicatorFunction | SymbolicatorPlatform) -> SymbolicatorPools:
     """Returns the Symbolicator pool to use to symbolicate events for
     the given platform.
     """
-    match platform:
-        case SymbolicatorPlatform.native:
+    if isinstance(function, SymbolicatorPlatform):
+        # legacy behavior for old tasks
+        match function:
+            case SymbolicatorPlatform.native:
+                return SymbolicatorPools.default
+            case SymbolicatorPlatform.js:
+                return SymbolicatorPools.js
+            case SymbolicatorPlatform.jvm:
+                return SymbolicatorPools.jvm
+
+    match function:
+        case SymbolicatorFunction.native:
             return SymbolicatorPools.default
-        case SymbolicatorPlatform.js:
+        case SymbolicatorFunction.js:
             return SymbolicatorPools.js
-        case SymbolicatorPlatform.jvm:
+        case SymbolicatorFunction.jvm:
             return SymbolicatorPools.jvm
+        case SymbolicatorFunction.minidump:
+            return SymbolicatorPools.default
+        case SymbolicatorFunction.applecrashreport:
+            return SymbolicatorPools.default
 
 
 class Symbolicator:
@@ -99,7 +150,7 @@ class Symbolicator:
         event_id: str,
     ):
         URLS = settings.SYMBOLICATOR_POOL_URLS
-        pool = pool_for_platform(task_kind.platform)
+        pool = pool_for_function(task_kind.function)
 
         base_url = (
             URLS.get(pool.value)
