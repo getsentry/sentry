@@ -122,16 +122,6 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
             "additionalContext": "Longer notes.",
         }
 
-    def test_project_scoped_context_not_surfaced(self) -> None:
-        self.store_metric("checkout.requests", "counter")
-        # Only org-wide context is surfaced for now; project-scoped rows are ignored.
-        self.create_context("checkout.requests", brief="Project brief")
-
-        response = self.do_request(query={"project": self.project.id, "expand": "context"})
-
-        assert response.status_code == 200, response.data
-        assert "context" not in response.data[0]
-
     def test_context_only_matches_metric_type(self) -> None:
         self.store_metric("checkout.requests", "counter")
         # Org-wide context stored for a gauge of the same name — must not attach

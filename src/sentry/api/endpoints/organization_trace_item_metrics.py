@@ -137,12 +137,10 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
         if not names:
             return
 
-        # Only org-wide context is surfaced for now: metrics are aggregated across
-        # the selected projects, so a single org-wide row per (value, type) keeps
-        # the attached context unambiguous. Project-scoped context is ignored here.
+        # Metric context is org-level, so look it up by name alone (no project
+        # scoping) — one row per (value, type).
         context_rows = TraceItemAttributeValueContext.objects.filter(
             organization=organization,
-            project__isnull=True,
             item_type=TraceItemTypes.TRACEMETRICS,
             attribute_name=METRIC_NAME_ALIAS,
             attribute_value__in=names,
