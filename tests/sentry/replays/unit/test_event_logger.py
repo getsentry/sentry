@@ -28,6 +28,7 @@ from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 _ARROYO_PRODUCER_OPTIONS = {
     "arroyo.producer.record_poll_metrics": [],
     "arroyo.producer.poll_metric_frequency": 10,
+    "tasks.producer.replays-eap-items.rollout": 0.0,
 }
 
 
