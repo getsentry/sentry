@@ -11,6 +11,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+import sentry_sdk
 from django.db import router, transaction
 from django.db.models import F
 
@@ -18,7 +19,7 @@ from sentry import features, quotas
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.utils.hostname import instance_hostname
+from sentry.integrations.utils.hostname import InstanceHostnameError, instance_hostname
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
@@ -103,17 +104,9 @@ def track_contributor_seat(
     """Informational logging for the legacy seat-charging path."""
     try:
         hostname = instance_hostname(integration)
-    except Exception:
-        logger.warning(
-            "scm.webhook.organization_contributor.hostname_error",
-            extra={
-                "provider": integration.provider,
-                "organization_id": organization.id,
-                "integration_id": integration.id,
-            },
-            exc_info=True,
-        )
-        hostname = None
+    except InstanceHostnameError as e:
+        sentry_sdk.capture_exception(e)
+        return
 
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,
@@ -162,17 +155,9 @@ def record_contributor_action(
     """Seed a contributor and record the contributor's PR-opened action."""
     try:
         hostname = instance_hostname(integration)
-    except Exception:
-        logger.warning(
-            "scm.webhook.organization_contributor.hostname_error",
-            extra={
-                "provider": integration.provider,
-                "organization_id": organization.id,
-                "integration_id": integration.id,
-            },
-            exc_info=True,
-        )
-        hostname = None
+    except InstanceHostnameError as e:
+        sentry_sdk.capture_exception(e)
+        return
 
     contributor, _ = OrganizationContributors.objects.get_or_create(
         organization_id=organization.id,

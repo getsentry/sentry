@@ -46,17 +46,19 @@ from sentry.issues.action_log import (
     resolve_action_actor,
     resolve_action_source,
 )
-from sentry.issues.action_log.types import ViewAction
+from sentry.issues.action_log.types import ReconcileStatusAction, ViewAction
 from sentry.issues.constants import (
     ISSUE_VIEW_CACHE_KEY_TTL,
     cache_key_for_issue_view,
     get_issue_tsdb_group_model,
 )
+from sentry.issues.derived.features import STATUS, IssueStatus
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
@@ -80,6 +82,13 @@ logger = logging.getLogger(__name__)
 def get_group_global_count(group: Group) -> str:
     fetch_buffered_group_stats(group)
     return str(group.times_seen_with_pending)
+
+
+_GROUP_STATUS_TO_DERIVED_STATUS = {
+    GroupStatus.UNRESOLVED: IssueStatus.OPEN,
+    GroupStatus.RESOLVED: IssueStatus.CLOSED,
+    GroupStatus.IGNORED: IssueStatus.CLOSED,
+}
 
 
 @extend_schema(tags=["Events"])
@@ -115,6 +124,51 @@ class GroupDetailsEndpoint(GroupEndpoint):
     def _get_seen_by(self, request: Request, group: Group) -> list[dict[str, Any]]:
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return [seen for seen in serialize(seen_by, request.user) if seen is not None]
+
+    def _reconcile_status(self, request: Request, group: Group) -> None:
+        """Detect divergence between the Group model status (source of truth) and
+        the action-log-derived status and publish a ReconcileStatusAction to fix it.
+
+        This is a best-effort, non-essential side effect on a read path; callers
+        must ensure a failure here never breaks the group view.
+        """
+        if not features.has("projects:issue-status-reconciliation", group.project):
+            return
+
+        expected_status = _GROUP_STATUS_TO_DERIVED_STATUS.get(group.status)
+        if expected_status is None:
+            # XXX: some statuses like pending deletion, merge, etc. are skipped
+            # as they don't map to a derived status
+            return
+
+        derived = GroupDerivedData.objects.filter(group_id=group.id).first()
+        if derived is None:
+            # nothing to reconcile against
+            return
+
+        raw = derived.data.get(STATUS.name)
+        derived_status = STATUS.from_json(raw) if raw is not None else STATUS.initial_value()
+        if derived_status == expected_status:
+            return
+
+        metrics.incr(
+            "issues.status_reconciliation.diverged",
+            sample_rate=1.0,
+            tags={
+                "derived_status": derived_status.value,
+                "expected_status": expected_status.value,
+            },
+        )
+        publish_action(
+            ReconcileStatusAction(
+                status=expected_status.value,
+                reason=f"derived status {derived_status.value} does not match expected status {expected_status.value}",
+            ),
+            source=resolve_action_source(request),
+            group_id=group.id,
+            project=group.project,
+            actor=resolve_action_actor(request),
+        )
 
     @staticmethod
     def __group_hourly_daily_stats(
@@ -339,6 +393,11 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 project=group.project,
                 actor=resolve_action_actor(request),
             )
+
+            try:
+                self._reconcile_status(request, group)
+            except Exception:
+                logger.exception("group.details.get.reconcile_status_failed")
 
             metrics.incr(
                 "group.get.http_response",
