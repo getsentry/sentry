@@ -77,9 +77,11 @@ from sentry.pr_metrics.attribution import (
 )
 from sentry.pr_metrics.emit import (
     CI_FAILING_AT_CLOSE,
+    VerdictDeferral,
     ci_failing_at_close,
     emit_pr_metrics_row,
     is_pr_tracked,
+    select_fallback_verdict,
     select_verdict,
 )
 from sentry.pr_metrics.tasks import emit_pr_metrics_cooldown_task, forward_pr_to_seer_task
@@ -205,9 +207,11 @@ def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
     close and later merged is thus recorded by its first close — an accepted loss
     on the rare reopened PR.
 
-    Only called once a deterministic ``verdict`` is in hand. A PR that needs a
-    judge is guarded the same way once the forward path lands — it claims the
-    event with a sentinel verdict before forwarding — but that isn't wired yet.
+    Only called once a deterministic ``verdict`` is in hand — either
+    ``select_verdict``'s outcome or, for judge-ineligible attribution,
+    ``select_fallback_verdict``'s. A PR actually forwarded to a judge is guarded
+    the same way but with the ``JUDGE_IN_PROGRESS`` sentinel via
+    ``_claim_for_judge`` instead.
     """
     claimed = PullRequestMetrics.objects.filter(pull_request=pr, verdict__isnull=True).update(
         verdict=verdict
@@ -227,19 +231,67 @@ def _claim_for_judge(pr: PullRequest) -> bool:
     return _claim_terminal_event(pr, PullRequestVerdict.JUDGE_IN_PROGRESS)
 
 
-def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
+def _forward_to_judge(
+    pr: PullRequest, organization: Organization, deferral: VerdictDeferral
+) -> None:
     """Hand a needs-judge terminal event to Seer, guarded against redelivery.
 
 
-    * Only PRs in orgs that have seer access are forwarded to the judge.
     * Only PRs with attribution in JUDGE_ELIGIBLE_SIGNAL_TYPES are forwarded to
-    the judge.
+    the judge; anything else (e.g. MCP) is settled here directly via
+    ``select_fallback_verdict`` instead, but only when ``deferral`` is
+    ``NEEDS_JUDGE`` — real activity/engagement data backs that verdict. An
+    ``INDETERMINATE`` deferral has no reliable data to fall back on either, so
+    it's skipped exactly as before this fallback existed.
+    * Only PRs in orgs that have seer access are forwarded to the judge. Checked
+    after the eligibility branch above: the fallback never talks to Seer, so it
+    must not be blocked by an org's Seer-access consent gate.
 
     Gated on ``pr-metrics-judge`` independently of emission: until it's enabled
     (and Seer's endpoint exists), a needs-judge PR is skipped — today's behavior.
     Claims the sentinel via the redelivery guard before enqueuing the forward, so
     a redelivered terminal event can't forward to Seer twice.
     """
+    if not PullRequestAttribution.objects.filter(
+        pull_request=pr,
+        is_valid=True,
+        signal_type__in=JUDGE_ELIGIBLE_SIGNAL_TYPES,
+    ).exists():
+        if deferral is not VerdictDeferral.NEEDS_JUDGE:
+            # Only reachable with an INDETERMINATE deferral (the other member,
+            # NEEDS_JUDGE, is handled by the fallback-verdict branch below) — no
+            # eligible attribution to forward to a real judge, and no reliable
+            # local data to settle a fallback verdict from either. Tag both
+            # facts: attribution alone doesn't explain why this stays unemitted.
+            metrics.incr(
+                "pr_metrics.emit.skipped",
+                tags={"reason": "no_eligible_attribution_indeterminate"},
+            )
+            logger.warning(
+                "pr_metrics.emit.needs_judge",
+                extra={
+                    "organization_id": organization.id,
+                    "repository_id": pr.repository_id,
+                    "pull_request_id": pr.id,
+                    "reason": "not_agent_attribution_indeterminate",
+                },
+            )
+            return
+
+        verdict = select_fallback_verdict(pr)
+        metrics.incr("pr_metrics.emit.fallback_verdict", tags={"verdict": verdict})
+        logger.info(
+            "pr_metrics.emit.fallback_verdict",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": pr.repository_id,
+                "pull_request_id": pr.id,
+                "verdict": verdict,
+            },
+        )
+        _claim_and_emit(pr, verdict, "pr_metrics.emit.fallback_emitted")
+        return
+
     if not has_seer_access(organization):
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "no_seer_access"})
         logger.info(
@@ -249,23 +301,6 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
                 "repository_id": pr.repository_id,
                 "pull_request_id": pr.id,
                 "reason": "no_seer_access",
-            },
-        )
-        return
-
-    if not PullRequestAttribution.objects.filter(
-        pull_request=pr,
-        is_valid=True,
-        signal_type__in=JUDGE_ELIGIBLE_SIGNAL_TYPES,
-    ).exists():
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "no_eligible_attribution"})
-        logger.info(
-            "pr_metrics.emit.needs_judge",
-            extra={
-                "organization_id": organization.id,
-                "repository_id": pr.repository_id,
-                "pull_request_id": pr.id,
-                "reason": "not_agent_attribution",
             },
         )
         return
@@ -437,10 +472,23 @@ def run_deferred_emission(pull_request: PullRequest, organization: Organization)
         return
 
     verdict = select_verdict(pull_request, organization)
-    if verdict is None:
-        _forward_to_judge(pull_request, organization)
+    if isinstance(verdict, VerdictDeferral):
+        _forward_to_judge(pull_request, organization, verdict)
         return
 
+    _claim_and_emit(pull_request, verdict, "pr_metrics.cooldown.emitted")
+
+
+def _claim_and_emit(
+    pull_request: PullRequest, verdict: PullRequestVerdict, emitted_metric: str
+) -> None:
+    """Claim a deterministic verdict and emit its row, guarded against redelivery.
+
+    Shared by the cooldown task's deterministic path and ``_forward_to_judge``'s
+    judge-ineligible fallback — both settle a verdict Sentry decided on its own
+    (no Seer round trip) and must emit exactly once under the same NULL-verdict
+    claim. ``emitted_metric`` lets each caller keep its own success counter.
+    """
     if not _claim_terminal_event(pull_request, verdict):
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
         return
@@ -460,7 +508,7 @@ def run_deferred_emission(pull_request: PullRequest, organization: Organization)
     # claim still stands and the row is forgone — an acceptable loss for telemetry,
     # not worth a rollback that would reopen the redelivery race.
     emit_pr_metrics_row(pull_request=pull_request, diagnosis_labels=diagnosis_labels)
-    metrics.incr("pr_metrics.cooldown.emitted")
+    metrics.incr(emitted_metric)
 
 
 def handle_metrics(
