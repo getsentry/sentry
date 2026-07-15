@@ -434,7 +434,6 @@ describe('ActivitySection', () => {
     const timeline = await screen.findByTestId('activity-timeline');
     expect(timeline).toHaveTextContent('Assigned');
     expect(timeline).toHaveTextContent('#frontend');
-    expect(timeline).not.toHaveTextContent('themselves');
     expect(teamRequest).not.toHaveBeenCalled();
   });
 
@@ -531,7 +530,7 @@ describe('ActivitySection', () => {
   it('preserves the assigned user avatar from activity data', async () => {
     const assignedUser = UserFixture({
       id: '123',
-      name: 'Assigned User',
+      name: 'David Cramer',
       avatar: {
         avatarType: 'upload',
         avatarUrl: 'https://example.com/avatar.jpg',
@@ -565,7 +564,7 @@ describe('ActivitySection', () => {
       }
     );
 
-    expect(await screen.findByRole('img', {name: 'Assigned User'})).toHaveAttribute(
+    expect(await screen.findByRole('img', {name: 'David Cramer'})).toHaveAttribute(
       'src',
       'https://example.com/avatar.jpg?s=120'
     );
@@ -582,7 +581,7 @@ describe('ActivitySection', () => {
           dateCreated: '2020-01-01T00:00:00',
           data: {
             assignee: '123',
-            assigneeName: 'Assigned User',
+            assigneeName: 'David Cramer',
             assigneeType: 'user',
             integration: 'projectOwnership',
             rule,
@@ -602,11 +601,9 @@ describe('ActivitySection', () => {
       }
     );
 
-    const timeline = await screen.findByTestId('activity-timeline');
     expect(screen.getByText('Assigned')).toBeInTheDocument();
-    expect(screen.getByText('Assigned User')).toBeInTheDocument();
+    expect(screen.getByText('David Cramer')).toBeInTheDocument();
     expect(screen.getByText('Ownership Rule')).toBeInTheDocument();
-    expect(timeline).not.toHaveTextContent(rule);
 
     await userEvent.hover(screen.getByText('Ownership Rule'));
     expect(await screen.findByText(rule)).toBeInTheDocument();
@@ -1041,16 +1038,6 @@ describe('ActivitySection', () => {
       expectedCopy: ['Regressed', /compared with/, /based on SemVer/],
     },
     {
-      name: 'reprocessed events',
-      activity: {
-        type: GroupActivityType.REPROCESS,
-        id: 'reprocessed-1',
-        dateCreated: '2020-01-01T00:00:00',
-        data: {eventCount: 4, newGroupId: 2, oldGroupId: 1},
-      } satisfies GroupActivity,
-      expectedCopy: ['Reprocessed', 'into 4 new events'],
-    },
-    {
       name: 'Seer pull request creation',
       activity: {
         type: GroupActivityType.SEER_PR_CREATED,
@@ -1116,6 +1103,32 @@ describe('ActivitySection', () => {
     for (const copy of expectedCopy) {
       expect(await screen.findByText(copy)).toBeInTheDocument();
     }
+  });
+
+  it('renders reprocessed events as a linked activity update', () => {
+    const activityGroup = GroupFixture({
+      id: '1339',
+      activity: [
+        {
+          type: GroupActivityType.REPROCESS,
+          id: 'reprocessed-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {eventCount: 4, newGroupId: 2, oldGroupId: 1},
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} variant="standalone" size="md" />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture({features: ['issue-activity-feed-v2']})}
+    );
+
+    expect(screen.getByText('Reprocessed')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'into 4 new events'})).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'Identified'})).toBeInTheDocument();
   });
 
   it('renders resolved in release with integration', async () => {

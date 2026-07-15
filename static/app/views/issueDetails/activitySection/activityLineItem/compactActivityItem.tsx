@@ -19,12 +19,12 @@ import {formatDuration} from 'sentry/utils/duration/formatDuration';
 
 import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
+import {getIntegrationChip} from './chips/integrationChip';
 import {ActivityPriorityChip} from './chips/priorityChip';
 import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
 import {getAssignedActivityItem} from './compactActivityItem/assignment';
 import {getResolvedInCommitDetails} from './compactActivityItem/commitDetails';
-import {getIntegrationChip} from './compactActivityItem/integrationChip';
 import {getProviderName} from './compactActivityItem/provider';
 import {getResolvedInReleaseDetails} from './compactActivityItem/releaseDetails';
 import type {CompactGroupActivityItem} from './compactActivityItem/types';

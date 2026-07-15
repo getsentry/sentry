@@ -7,10 +7,9 @@ import type {Commit} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {CommitChip} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/commitChip';
+import {getIntegrationChip} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/integrationChip';
 import {PullRequestChip} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/pullRequestChip';
 import {ActivityRelease} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/releaseChip';
-
-import {getIntegrationChip} from './integrationChip';
 
 function getReleaseResolutionSource(commit: Commit | null | undefined) {
   if (commit?.pullRequest) {
