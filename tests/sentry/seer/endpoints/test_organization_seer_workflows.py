@@ -64,6 +64,27 @@ class OrganizationSeerWorkflowsTest(APITestCase):
         # No result_seer_run FK is set on this result, so no PRs resolve.
         assert issue["pullRequests"] == []
 
+    def test_skip_reason_surfaces_on_issue(self) -> None:
+        group = self.create_group()
+        run = SeerNightShiftRun.objects.create(organization=self.organization)
+        SeerNightShiftRunResult.objects.create(
+            run=run,
+            kind="agentic_triage",
+            group=group,
+            extras={
+                "action": "skip",
+                "reason": "plausible root cause but not confident",
+                "skip_reason": "ambiguous_root_cause",
+            },
+        )
+
+        with self.feature("organizations:seer-night-shift"):
+            response = self.get_success_response(self.organization.slug)
+
+        issue = response.data[0]["issues"][0]
+        assert issue["action"] == "skip"
+        assert issue["skipReason"] == "ambiguous_root_cause"
+
     def test_issue_with_missing_group_has_null_title(self) -> None:
         # group FK is db_constraint=False, so a stale group_id is possible in
         # prod; can't use create+delete since Django still cascades that.

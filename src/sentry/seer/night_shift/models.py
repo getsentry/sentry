@@ -48,6 +48,9 @@ class TriageVerdict(_Base):
     group_id: int
     action: TriageAction
     reason: str = ""
+    # Only meaningful when action="skip". A passthrough string rather than an
+    # enum, so a new category from Seer doesn't fail the whole batch to parse.
+    skip_reason: str | None = None
 
 
 class TriageResponse(_Base):
