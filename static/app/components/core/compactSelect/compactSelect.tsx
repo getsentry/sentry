@@ -16,6 +16,7 @@ import type {
   SelectOption,
   SelectOptionOrSection,
   SelectOptionOrSectionWithKey,
+  SelectOptionWithKey,
   SelectSection,
 } from './types';
 import {getDuplicateOptionKeysInfo, getItemsWithKeys, shouldCloseOnSelect} from './utils';
@@ -201,6 +202,12 @@ export function CompactSelect<Value extends SelectKey>({
       mode={mode}
       size={size}
       items={allItemsWithKey}
+      isOptionDisabled={
+        isOptionDisabled
+          ? (option: SelectOptionWithKey<SelectKey>) =>
+              isOptionDisabled(option as SelectOptionWithKey<Value>)
+          : undefined
+      }
       value={value}
       clearable={clearable}
       onOpenChange={newOpenState => {

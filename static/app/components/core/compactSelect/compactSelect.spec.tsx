@@ -540,6 +540,79 @@ describe('CompactSelect', () => {
       expect(onChange).not.toHaveBeenCalled();
     });
 
+    it('does not auto-select when matching options are hidden by sizeLimit', async () => {
+      const onChange = jest.fn();
+      render(
+        <CompactSelect
+          search
+          sizeLimit={1}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search…');
+      await waitFor(() => expect(searchInput).toHaveFocus());
+      await userEvent.keyboard('{Enter}');
+
+      expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('does not auto-select based on the rendered virtualized options', async () => {
+      const onChange = jest.fn();
+      render(
+        <CompactSelect
+          search
+          virtualizeThreshold={1}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search…');
+      await waitFor(() => expect(searchInput).toHaveFocus());
+      await userEvent.keyboard('{Enter}');
+
+      expect(screen.getByRole('listbox')).toHaveFocus();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('does not count disabled options as selectable', async () => {
+      const onChange = jest.fn();
+      render(
+        <CompactSelect
+          search
+          options={[
+            {value: 'opt_disabled', label: 'Disabled', disabled: true},
+            {value: 'opt_enabled', label: 'Enabled'},
+          ]}
+          value={undefined}
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search…');
+      await waitFor(() => expect(searchInput).toHaveFocus());
+      await userEvent.keyboard('{Enter}');
+
+      expect(onChange).toHaveBeenCalledWith({
+        value: 'opt_enabled',
+        label: 'Enabled',
+      });
+    });
+
     it('highlights the matched substring when search.highlight is enabled', async () => {
       render(
         <CompactSelect
