@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
 from django.db.models import F, Q
 from django.utils import timezone
 from sentry_sdk import capture_exception
@@ -218,8 +217,6 @@ def _handle_release_adoption(
                     )[0]
                 else:
                     release = Release.objects.get(organization_id=org_id, version=release_version)
-            except IntegrityError:
-                release = Release.objects.get(organization_id=org_id, version=release_version)
             except Release.DoesNotExist:
                 release = None
                 metrics.incr(
