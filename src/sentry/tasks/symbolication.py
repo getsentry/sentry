@@ -372,18 +372,6 @@ symbolicate_event = make_task_fn(
     queue="events.symbolicate_event",
     task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.native, is_reprocessing=False),
 )
-symbolicate_minidump = make_task_fn(
-    name="sentry.tasks.store.symbolicate_minidump",
-    queue="events.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.minidump, is_reprocessing=False),
-)
-symbolicate_applecrashreport = make_task_fn(
-    name="sentry.tasks.store.symbolicate_applecrashreport",
-    queue="events.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(
-        function=SymbolicatorFunction.applecrashreport, is_reprocessing=False
-    ),
-)
 symbolicate_js_event = make_task_fn(
     name="sentry.tasks.symbolicate_js_event",
     queue="events.symbolicate_js_event",
@@ -411,39 +399,4 @@ symbolicate_event_from_reprocessing = make_task_fn(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
     task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.native, is_reprocessing=True),
-)
-symbolicate_minidump_from_reprocessing = make_task_fn(
-    name="sentry.tasks.store.symbolicate_minidump_from_reprocessing",
-    queue="events.reprocessing.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.minidump, is_reprocessing=True),
-)
-symbolicate_applecrashreport_from_reprocessing = make_task_fn(
-    name="sentry.tasks.store.symbolicate_applecrashreport_from_reprocessing",
-    queue="events.reprocessing.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(
-        function=SymbolicatorFunction.applecrashreport, is_reprocessing=True
-    ),
-)
-
-# LEGACY functions, only used for in-flight tasks that still use `SymbolicatorPlatform.native`
-
-symbolicate_event_legacy = make_task_fn(
-    name="sentry.tasks.store.symbolicate_event_legacy",
-    queue="events.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(function=SymbolicatorPlatform.native, is_reprocessing=False),
-)
-symbolicate_js_event_legacy = make_task_fn(
-    name="sentry.tasks.symbolicate_js_event_legacy",
-    queue="events.symbolicate_js_event",
-    task_kind=SymbolicatorTaskKind(function=SymbolicatorPlatform.js, is_reprocessing=False),
-)
-symbolicate_jvm_event_legacy = make_task_fn(
-    name="sentry.tasks.symbolicate_jvm_event_legacy",
-    queue="events.symbolicate_jvm_event",
-    task_kind=SymbolicatorTaskKind(function=SymbolicatorPlatform.jvm, is_reprocessing=False),
-)
-symbolicate_event_from_reprocessing_legacy = make_task_fn(
-    name="sentry.tasks.store.symbolicate_event_from_reprocessing_legacy",
-    queue="events.reprocessing.symbolicate_event",
-    task_kind=SymbolicatorTaskKind(function=SymbolicatorPlatform.native, is_reprocessing=True),
 )
