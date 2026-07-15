@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from collections.abc import Mapping
 from typing import Any, TypedDict, cast
 
@@ -9,7 +10,9 @@ from rest_framework.fields import CharField
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.base import (
+    FeatureDescription,
     IntegrationData,
+    IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
@@ -26,9 +29,16 @@ Connect your Datadog organization so Seer can pull in infrastructure telemetry
 while investigating issues — shared across everyone in your organization.
 """
 
+FEATURES = [
+    FeatureDescription(
+        "Give Seer access to your Datadog telemetry (logs, metrics, traces) while investigating issues.",
+        IntegrationFeatures.MONITORING,
+    ),
+]
+
 metadata = IntegrationMetadata(
     description=DESCRIPTION.strip(),
-    features=[],
+    features=FEATURES,
     author="The Sentry Team",
     noun=_("Organization"),
     issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Datadog%20Integration%20Problem",
@@ -94,7 +104,7 @@ class DatadogIntegrationProvider(IntegrationProvider):
     name = "Datadog"
     metadata = metadata
     integration_cls = DatadogIntegration
-    features = frozenset()
+    features = frozenset([IntegrationFeatures.MONITORING])
     requires_feature_flag = True
     allow_multiple = False
 
@@ -112,8 +122,13 @@ class DatadogIntegrationProvider(IntegrationProvider):
         user = validate_datadog_credentials(api_key, app_key, site)
         credentials: DatadogCredentials = {"api_key": api_key, "app_key": app_key, "site": site}
 
+        assert self.pipeline.organization is not None
+        external_id = hashlib.sha256(
+            f"{self.pipeline.organization.id}:{user['org_uuid']}".encode()
+        ).hexdigest()
+
         return {
-            "external_id": user["org_uuid"],
+            "external_id": external_id,
             "name": f"Datadog ({site})",
             "metadata": dict(credentials),
         }

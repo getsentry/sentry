@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from requests import HTTPError
+from requests import HTTPError, RequestException
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.identity.datadog.provider import DatadogWhoami, _mcp_base_url_for_site, mcp_whoami
@@ -29,13 +29,18 @@ def validate_datadog_credentials(api_key: str, app_key: str, site: str) -> Datad
         raise IntegrationConfigurationError(
             "Unable to validate Datadog credentials. Please try again."
         )
+    except RequestException:
+        raise IntegrationConfigurationError(
+            "Could not reach Datadog to validate credentials. Please try again."
+        )
     except IdentityNotValid:
         raise IntegrationConfigurationError(
             "Datadog returned an unexpected response while validating credentials."
         )
 
-    if "org_uuid" not in user:
+    if "user_uuid" not in user or "org_uuid" not in user:
         raise IntegrationConfigurationError(
-            "Datadog credentials are missing an organization; check the application key."
+            "Datadog credentials are missing expected user/organization info; "
+            "check the application key."
         )
     return user
