@@ -197,6 +197,35 @@ class FindReferencedGroupsTest(TestCase):
         assert serialized_data["commit"]["id"] == commit.key
         assert serialized_data["commit"]["pullRequest"]["id"] == pr.key
 
+    def test_pull_request_resolves_only_when_released_to_issue_project(self) -> None:
+        frontend_project = self.project
+        backend_project = self.create_project(organization=frontend_project.organization)
+        group = self.create_group(project=frontend_project)
+        repo = self.create_repo(project=frontend_project, name="example-monorepo")
+        merge_commit_sha = sha1(uuid4().hex.encode("utf-8")).hexdigest()
+        pull_request = self.create_pull_request(
+            repository_id=repo.id,
+            organization_id=frontend_project.organization_id,
+            message=f"Fixes {group.qualified_short_id}",
+        )
+        pull_request.update(merge_commit_sha=merge_commit_sha)
+        backend_release = self.create_release(project=backend_project, version="backend@1.0.0")
+
+        backend_release.set_commits([{"id": merge_commit_sha, "repository": repo.name}])
+
+        assert not GroupResolution.objects.filter(group=group, release=backend_release).exists()
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+
+        frontend_release = self.create_release(project=frontend_project, version="frontend@1.0.0")
+        frontend_release.set_commits([{"id": merge_commit_sha, "repository": repo.name}])
+
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == frontend_release
+        assert resolution.status == GroupResolution.Status.resolved
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
 
 class PullRequestRetentionTest(TestCase):
     def setUp(self) -> None:

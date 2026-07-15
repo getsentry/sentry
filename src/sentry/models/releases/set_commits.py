@@ -187,9 +187,11 @@ def update_group_resolutions(release, commit_author_by_commit):
         .select_related("commit")
         .values("commit_id", "commit__key", "commit__repository_id")
     )
+    release_project_ids = list(release.projects.values_list("id", flat=True))
 
     commit_resolutions = list(
         GroupLink.objects.filter(
+            project_id__in=release_project_ids,
             linked_type=GroupLink.LinkedType.commit,
             linked_id__in=[rc["commit_id"] for rc in release_commits],
         ).values_list("group_id", "linked_id")
@@ -212,6 +214,7 @@ def update_group_resolutions(release, commit_author_by_commit):
 
     pull_request_resolutions = list(
         GroupLink.objects.filter(
+            project_id__in=release_project_ids,
             relationship=GroupLink.Relationship.resolves,
             linked_type=GroupLink.LinkedType.pull_request,
             linked_id__in=pr_ids_by_merge_commit,
