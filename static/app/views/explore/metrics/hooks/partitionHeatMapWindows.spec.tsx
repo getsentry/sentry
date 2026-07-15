@@ -52,26 +52,40 @@ describe('partitionDateTimeIntoHeatMapWindows', () => {
 
   describe('Absolute ranges', () => {
     it('Partitions into aligned, non-overlapping, progressive windows', () => {
-      // 720 buckets (30d @ 1h), progressive → widths [55, 166, 499].
+      // 720 buckets (30d @ 1h). Asserts the invariants of a progressive
+      // partition rather than the exact widths, so the sizing constants can be
+      // retuned without rewriting the test.
+      const totalHours = 720;
       const {windows, timeDomain} = partitionDateTimeIntoHeatMapWindows(
-        absolute(BASE_MS, BASE_MS + 720 * HOUR),
+        absolute(BASE_MS, BASE_MS + totalHours * HOUR),
         '1h',
         'progressive'
       );
 
-      expect(timeDomain).toEqual({start: BASE_MS, end: BASE_MS + 720 * HOUR});
+      expect(timeDomain).toEqual({start: BASE_MS, end: BASE_MS + totalHours * HOUR});
       const absoluteWindows = windows as Array<{end: string; start: string}>;
+      const spans = absoluteWindows.map(spanHours);
 
-      expect(absoluteWindows.map(spanHours)).toEqual([499, 166, 55]);
+      // Split into multiple windows.
+      expect(absoluteWindows.length).toBeGreaterThan(1);
 
       // Contiguous (no overlap), covering the whole range.
       expect(moment.utc(absoluteWindows[0]!.start).valueOf()).toBe(BASE_MS);
       expect(moment.utc(absoluteWindows.at(-1)!.end).valueOf()).toBe(
-        BASE_MS + 720 * HOUR
+        BASE_MS + totalHours * HOUR
       );
       for (let i = 1; i < absoluteWindows.length; i++) {
         expect(absoluteWindows[i]!.start).toBe(absoluteWindows[i - 1]!.end);
       }
+
+      // Progressive: windows shrink toward the present (oldest first, so spans
+      // are non-increasing).
+      for (let i = 1; i < spans.length; i++) {
+        expect(spans[i]!).toBeLessThanOrEqual(spans[i - 1]!);
+      }
+
+      // The rebalance goal: no single chunk is more than half the grid.
+      expect(Math.max(...spans)).toBeLessThan(totalHours / 2);
     });
 
     it('Partitions equally when asked', () => {
@@ -96,17 +110,44 @@ describe('partitionDateTimeIntoHeatMapWindows', () => {
     });
 
     it('Partitions into statsPeriod offsets that overlap the newer neighbor', () => {
+      // Asserts the structure of a relative partition (newest-first, bounded
+      // older windows that overlap their newer neighbor) rather than the exact
+      // offsets, so the sizing constants can be retuned freely.
       const {windows} = partitionDateTimeIntoHeatMapWindows(
         relative('30d'),
         '1h',
         'progressive'
       );
 
-      expect(windows).toEqual([
-        {statsPeriod: '198000s'}, //                                 [55h ago, now]
-        {statsPeriodStart: '795600s', statsPeriodEnd: '190800s'}, //  [221h, 53h]
-        {statsPeriodStart: '2592000s', statsPeriodEnd: '788400s'}, // [720h, 219h]
-      ]);
+      const parsed = windows as Array<{
+        statsPeriod?: string;
+        statsPeriodEnd?: string;
+        statsPeriodStart?: string;
+      }>;
+      const secondsAgo = (value: string) => parseInt(value, 10);
+
+      expect(parsed.length).toBeGreaterThan(1);
+
+      // The newest window runs to now: a bare statsPeriod with no explicit end.
+      expect(parsed[0]).toEqual({statsPeriod: expect.any(String)});
+
+      // Older windows are bounded ranges.
+      for (const window of parsed.slice(1)) {
+        expect(window.statsPeriodStart).toEqual(expect.any(String));
+        expect(window.statsPeriodEnd).toEqual(expect.any(String));
+      }
+
+      // Each window's older edge ("seconds ago"), and its newer edge (0 for the
+      // live window that runs to now).
+      const olderEdge = parsed.map(w => secondsAgo((w.statsPeriodStart ?? w.statsPeriod)!));
+      const newerEdge = parsed.map(w => (w.statsPeriodEnd ? secondsAgo(w.statsPeriodEnd) : 0));
+
+      for (let i = 1; i < parsed.length; i++) {
+        // Newest-first: each window reaches further into the past.
+        expect(olderEdge[i]!).toBeGreaterThan(olderEdge[i - 1]!);
+        // ...and overlaps its newer neighbor (its newer edge sits inside it).
+        expect(newerEdge[i]!).toBeLessThan(olderEdge[i - 1]!);
+      }
     });
   });
 });
