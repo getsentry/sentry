@@ -3,8 +3,11 @@ from io import BytesIO
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import pytest
 from django.utils import timezone
 
+from sentry.models.files.file import File
+from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.utils import get_relocation_storage
 from sentry.models.organization import Organization
 from sentry.relocation.models.relocation import Relocation, RelocationFile
@@ -13,6 +16,7 @@ from sentry.relocation.models.relocationtransfer import (
     RegionRelocationTransfer,
     RelocationTransferState,
 )
+from sentry.relocation.services.relocation_export.impl import DBBackedRelocationExportService
 from sentry.relocation.tasks.transfer import (
     find_relocation_transfer_control,
     find_relocation_transfer_region,
@@ -171,7 +175,8 @@ class ProcessRelocationTransferControlTest(TestCase):
             BytesIO(b"export data"),
         )
 
-        process_relocation_transfer_control(transfer_id=transfer.id)
+        with self.capture_on_commit_callbacks(execute=True):
+            process_relocation_transfer_control(transfer_id=transfer.id)
 
         assert mock_uploading_complete.apply_async.called, "task should be spawned"
         # Should be removed on completion.
@@ -179,6 +184,49 @@ class ProcessRelocationTransferControlTest(TestCase):
         # the relocation RPC call should create a file on the cell
         with assume_test_silo_mode(SiloMode.CELL):
             assert RelocationFile.objects.filter(relocation=relocation).exists()
+
+    @patch("sentry.relocation.tasks.process.uploading_complete")
+    def test_duplicate_reply_retries_continuation(self, mock_uploading_complete: MagicMock) -> None:
+        encrypted_bytes = list(b"export data")
+        mock_uploading_complete.apply_async.side_effect = [
+            RuntimeError("task broker unavailable"),
+            None,
+        ]
+        with assume_test_silo_mode(SiloMode.CELL):
+            relocation = Relocation.objects.create(
+                creator_id=self.user.id,
+                owner_id=self.user.id,
+                want_org_slugs=["acme-org"],
+                step=Relocation.Step.UPLOADING.value,
+            )
+            service = DBBackedRelocationExportService()
+
+            with (
+                pytest.raises(RuntimeError, match="task broker unavailable"),
+                self.capture_on_commit_callbacks(execute=True),
+            ):
+                service.reply_with_export(
+                    relocation_uuid=str(relocation.uuid),
+                    requesting_region_name="de",
+                    replying_region_name="us",
+                    org_slug=self.organization.slug,
+                    encrypted_bytes=encrypted_bytes,
+                )
+
+            with self.capture_on_commit_callbacks(execute=True):
+                service.reply_with_export(
+                    relocation_uuid=str(relocation.uuid),
+                    requesting_region_name="de",
+                    replying_region_name="us",
+                    org_slug=self.organization.slug,
+                    encrypted_bytes=encrypted_bytes,
+                )
+
+            relocation_file = RelocationFile.objects.get(relocation=relocation)
+            assert File.objects.count() == 1
+            assert FileBlob.objects.filter(file=relocation_file.file_id).count() == 1
+            assert RelocationFile.objects.filter(relocation=relocation).count() == 1
+            assert mock_uploading_complete.apply_async.call_count == 2
 
 
 @cell_silo_test(cells=TEST_REGIONS)

@@ -7,7 +7,7 @@ import logging
 from datetime import UTC, datetime
 from io import BytesIO
 
-from django.db import router
+from django.db import router, transaction
 from django.db.utils import IntegrityError
 from django.utils import timezone
 from sentry_sdk import capture_exception
@@ -106,30 +106,42 @@ class DBBackedRelocationExportService(CellRelocationExportService):
                 capture_exception(e)
                 return
 
-            # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
-            fp = BytesIO(bytes(encrypted_bytes or []))
-            file = File.objects.create(name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE)
-            file.putfile(fp, blob_size=RELOCATION_BLOB_SIZE, logger=logger)
-            logger.info("SaaS -> SaaS relocation underlying File created", extra=logger_data)
-
-            # This write ensures that the entire chain triggered by `uploading_start` remains
-            # idempotent, since only one (relocation_uuid, relocation_file_kind) pairing can exist
-            # in that database's table at a time. If we try to write a second, it will fail due to
-            # that unique constraint.
+            # Claim this relocation file before uploading its blob. The inner transaction keeps a
+            # duplicate claim from marking the outer transaction for rollback and also rolls back
+            # the duplicate's placeholder File.
             try:
-                RelocationFile.objects.create(
-                    relocation=relocation,
-                    file=file,
-                    kind=RelocationFile.Kind.RAW_USER_DATA.value,
-                )
+                with transaction.atomic(using=router.db_for_write(RelocationFile)):
+                    file = File.objects.create(
+                        name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE
+                    )
+                    RelocationFile.objects.create(
+                        relocation=relocation,
+                        file=file,
+                        kind=RelocationFile.Kind.RAW_USER_DATA.value,
+                    )
             except IntegrityError:
-                # We already have the file, we can proceed.
-                pass
+                if RelocationFile.objects.filter(
+                    relocation=relocation,
+                    kind=RelocationFile.Kind.RAW_USER_DATA.value,
+                ).exists():
+                    logger.info(
+                        "SaaS -> SaaS relocation reply already processed", extra=logger_data
+                    )
+                else:
+                    raise
+            else:
+                # TODO(azaslavsky): finish transfer from `encrypted_contents` -> `encrypted_bytes`.
+                fp = BytesIO(bytes(encrypted_bytes or []))
+                file.putfile(fp, blob_size=RELOCATION_BLOB_SIZE, logger=logger)
+                logger.info("SaaS -> SaaS relocation underlying File created", extra=logger_data)
 
-            logger.info("SaaS -> SaaS relocation RelocationFile saved", extra=logger_data)
+                logger.info("SaaS -> SaaS relocation RelocationFile saved", extra=logger_data)
 
-            uploading_complete.apply_async(args=[str(relocation.uuid)])
-            logger.info("SaaS -> SaaS relocation next task scheduled", extra=logger_data)
+            transaction.on_commit(
+                lambda: uploading_complete.apply_async(args=[str(relocation.uuid)]),
+                using=router.db_for_write(Relocation),
+            )
+            logger.info("SaaS -> SaaS relocation next task registered", extra=logger_data)
 
 
 class ProxyingRelocationExportService(ControlRelocationExportService):
