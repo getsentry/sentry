@@ -210,6 +210,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
         )
 
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details is not None
         assert attr.signal_details["group_ids"] == sorted([regex_group.id, seer_group.id])
         assert attr.signal_details["run_id"] == 777
 
@@ -229,6 +230,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
         )
 
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details is not None
         assert attr.signal_details["group_ids"] == [regex_group.id]
         assert attr.signal_details["run_id"] is None
 
@@ -242,6 +244,7 @@ class HandleWebhookForPrMetricsTest(TestCase):
         )
 
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details is not None
         assert attr.signal_details["group_ids"] == []
         assert attr.signal_details["run_id"] == 888
 
