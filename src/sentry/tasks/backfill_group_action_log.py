@@ -1,26 +1,20 @@
+from __future__ import annotations
+
 import logging
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from taskbroker_client.state import current_task
 
 from sentry import options
-from sentry.issues.action_log.backfill import (
-    BACKFILL_ACTIVITY_SOURCE,
-    bulk_insert_action_log_entries,
-)
-from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
-from sentry.models.activity import Activity
-from sentry.models.group import Group
-from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
-from sentry.utils import json, metrics
-from sentry.utils.action_log.activity_translator import (
-    activity_action_idempotency_key,
-    activity_to_action,
-)
+from sentry.utils import metrics
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +31,7 @@ def backfill_group_action_log_for_group(
     **kwargs: object,
 ) -> None:
     from sentry.issues.action_log.backfill import backfill_group_activities
+    from sentry.models.group import Group
 
     try:
         group = Group.objects.get(id=group_id)
@@ -80,6 +75,7 @@ def reset_and_backfill_group_action_log(
 ) -> None:
     from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
     from sentry.issues.models.groupderiveddata import GroupDerivedData
+    from sentry.models.group import Group
 
     try:
         group = Group.objects.get(id=group_id)
@@ -136,6 +132,8 @@ def backfill_group_action_log_for_project(
         logger.info("backfill_group_action_log.killswitch_enabled")
         return
 
+    from sentry.models.project import Project
+
     try:
         project = Project.objects.get(id=project_id)
     except Project.DoesNotExist:
@@ -160,6 +158,7 @@ def backfill_group_action_log_for_project(
 
 
 def _reset_project(project: Project) -> None:
+    from sentry.issues.action_log.backfill import BACKFILL_ACTIVITY_SOURCE
     from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
     from sentry.issues.models.groupderiveddata import GroupDerivedData
 
@@ -187,6 +186,18 @@ def _backfill_project(
     cursor_dt: datetime | None,
     activation_id: str | None = None,
 ) -> None:
+    from sentry.issues.action_log.backfill import (
+        BACKFILL_ACTIVITY_SOURCE,
+        bulk_insert_action_log_entries,
+    )
+    from sentry.issues.action_log.types import SYSTEM_ACTOR, GroupActionActor
+    from sentry.models.activity import Activity
+    from sentry.utils import json
+    from sentry.utils.action_log.activity_translator import (
+        activity_action_idempotency_key,
+        activity_to_action,
+    )
+
     batch_size: int = options.get("issues.backfill_group_action_log.batch_size")
     inter_batch_delay_s: int = options.get("issues.backfill_group_action_log.inter_batch_delay_s")
 
