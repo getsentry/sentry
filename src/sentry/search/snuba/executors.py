@@ -1332,7 +1332,11 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 op="search.postgres_sort.native_order_by",
                 name="search.postgres_sort.native_order_by",
             ):
-                ordered_queryset, order_by = strategy.native_order_by(group_queryset)
+                # Skipping Snuba means we must apply the upper window bound ourselves; the
+                # in-memory path below gets it from Snuba's event window instead.
+                ordered_queryset, order_by = strategy.native_order_by(
+                    group_queryset.filter(last_seen__lte=end)
+                )
                 return Paginator(
                     ordered_queryset.using_replica(), order_by=order_by, **paginator_options
                 ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)

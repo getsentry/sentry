@@ -97,7 +97,7 @@ class PostgresSortTestBase(TestCase, SnubaTestCase):
             self.store_group(group)
             self.groups.append(group)
 
-    def make_query(self, sort_by, query=None, limit=None, cursor=None):
+    def make_query(self, sort_by, query=None, limit=None, cursor=None, date_to=None):
         search_filters: list[Any] = []
         if query:
             search_filters = list(
@@ -113,7 +113,7 @@ class PostgresSortTestBase(TestCase, SnubaTestCase):
             count_hits=False,
             sort_by=sort_by,
             date_from=None,
-            date_to=None,
+            date_to=date_to,
             cursor=cursor,
             referrer=Referrer.TESTING_TEST,
             **kwargs,
@@ -629,6 +629,18 @@ class TestProgressSort(PostgresSortTestBase):
         assert list(page1) == [self.groups[1], self.groups[0]]
         page2 = self.make_query(sort_by="progress", limit=2, cursor=page1.next)
         assert list(page2) == [self.groups[2]]
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_native_ordering_respects_window_end(self):
+        # The native path skips Snuba, so it must apply the upper time bound itself. groups[2]
+        # is the newest (last_seen == base_datetime); a date_to before it must exclude it.
+        self.create_group_derived_data(group=self.groups[2], progress="fix_applied")
+        results = self.make_query(
+            sort_by="progress", date_to=self.base_datetime - timedelta(days=1)
+        )
+        assert self.groups[2] not in set(results)
+        assert set(results) == {self.groups[0], self.groups[1]}
 
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
     def test_snuba_filter_over_cap_does_not_use_native_ordering(self):
