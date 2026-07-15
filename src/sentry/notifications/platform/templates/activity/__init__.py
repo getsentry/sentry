@@ -1,4 +1,9 @@
-from .base import ACTIVITY_TYPE_TO_SOURCE, ActivityAlertAction
+from .base import (
+    ACTIVITY_TYPE_TO_SOURCE,
+    ActivityNotificationData,
+    SetResolvedInCommitNotificationData,
+    SetResolvedInReleaseNotificationData,
+)
 from .seer.coding_completed import SeerCodingCompletedActivityTemplate
 from .seer.coding_started import SeerCodingStartedActivityTemplate
 from .seer.iteration_completed import SeerIterationCompletedActivityTemplate
@@ -15,7 +20,9 @@ from .set_resolved.set_resolved_in_release import SetResolvedInReleaseActivityTe
 
 __all__ = (
     "ACTIVITY_TYPE_TO_SOURCE",
-    "ActivityAlertAction",
+    "ActivityNotificationData",
+    "SetResolvedInCommitNotificationData",
+    "SetResolvedInReleaseNotificationData",
     "SeerRcaStartedActivityTemplate",
     "SeerRcaCompletedActivityTemplate",
     "SeerSolutionStartedActivityTemplate",

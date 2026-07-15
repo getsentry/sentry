@@ -277,7 +277,36 @@ describe('logsTableRow', () => {
       timestamp: Math.trunc(rowDataTimestamp),
     });
     expect(rowDetailsMock.mock.calls[0]![1].query).not.toHaveProperty('statsPeriod');
-    jest.useRealTimers();
+  });
+
+  it('hovering an embedded row causes prefetching of the row details', async () => {
+    jest.useFakeTimers();
+    expect(rowDetailsMock).toHaveBeenCalledTimes(0);
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{current: null}}
+        embedded
+        blockRowExpanding
+        onEmbeddedRowClick={jest.fn()}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const row = screen.getByTestId('log-table-row');
+    await userEvent.hover(row, {delay: null});
+
+    act(() => {
+      jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
+    });
+
+    await waitFor(() => {
+      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+    });
+    // Flush the .then() callback that reads cached data after prefetch
+    await act(async () => {});
   });
 
   it.isKnownFlake('renders row details', async () => {
