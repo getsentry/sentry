@@ -13,6 +13,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from django.db import router, transaction
 from pydantic import BaseModel
 
 from sentry import features
@@ -130,33 +131,38 @@ def record_attribution_signal(
     details via ``_merge_signal_details`` rather than replaced outright, so two
     independent producers of the same signal/source (e.g. Seer's
     ``pr_created`` callback and the live-RPC autofix lookup) accumulate onto the
-    same row instead of clobbering each other on redelivery/race. A previously
+    same row instead of clobbering each other on redelivery/race. Reading the
+    existing row with ``select_for_update`` inside the transaction is what
+    makes that merge race-safe: it blocks a concurrent writer until this one
+    commits, so the concurrent writer's merge starts from an up-to-date
+    snapshot instead of a stale one it would otherwise clobber. A previously
     invalidated row is replaced outright and revived, since the source is
     reporting it as present again.
     """
     details = dict(signal_details) if signal_details is not None else None
 
-    attribution, created = PullRequestAttribution.objects.get_or_create(
-        pull_request=pull_request,
-        signal_type=signal_type,
-        source=source,
-        defaults={"signal_details": details, "is_valid": True},
-    )
+    with transaction.atomic(using=router.db_for_write(PullRequestAttribution)):
+        attribution, created = PullRequestAttribution.objects.select_for_update().get_or_create(
+            pull_request=pull_request,
+            signal_type=signal_type,
+            source=source,
+            defaults={"signal_details": details, "is_valid": True},
+        )
 
-    if created:
+        if created:
+            return attribution
+
+        new_details = (
+            details
+            if not attribution.is_valid
+            else _merge_signal_details(attribution.signal_details, details)
+        )
+        if new_details != attribution.signal_details or not attribution.is_valid:
+            attribution.signal_details = new_details
+            attribution.is_valid = True
+            attribution.save(update_fields=["signal_details", "is_valid", "date_updated"])
+
         return attribution
-
-    new_details = (
-        details
-        if not attribution.is_valid
-        else _merge_signal_details(attribution.signal_details, details)
-    )
-    if new_details != attribution.signal_details or not attribution.is_valid:
-        attribution.signal_details = new_details
-        attribution.is_valid = True
-        attribution.save(update_fields=["signal_details", "is_valid", "date_updated"])
-
-    return attribution
 
 
 def recompute_pull_request_attribution(pull_request: PullRequest) -> str | None:
