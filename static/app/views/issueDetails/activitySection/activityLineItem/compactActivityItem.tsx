@@ -19,12 +19,12 @@ import {formatDuration} from 'sentry/utils/duration/formatDuration';
 
 import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
+import {getIntegrationChip} from './chips/integrationChip';
 import {ActivityPriorityChip} from './chips/priorityChip';
 import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
 import {getAssignedActivityItem} from './compactActivityItem/assignment';
 import {getResolvedInCommitDetails} from './compactActivityItem/commitDetails';
-import {getIntegrationLink} from './compactActivityItem/integrationLink';
 import {getProviderName} from './compactActivityItem/provider';
 import {getResolvedInReleaseDetails} from './compactActivityItem/releaseDetails';
 import type {CompactGroupActivityItem} from './compactActivityItem/types';
@@ -146,11 +146,11 @@ export function getCompactGroupActivityItem({
         title: getNoteAuthorName(activity),
       };
     case GroupActivityType.SET_RESOLVED: {
-      const integrationLink = getIntegrationLink({data: activity.data, organization});
+      const integrationChip = getIntegrationChip({data: activity.data, organization});
       return {
         title: t('Resolved'),
-        details: integrationLink
-          ? tct('via [integration]', {integration: integrationLink})
+        details: integrationChip
+          ? tct('via [integration]', {integration: integrationChip})
           : undefined,
       };
     }
@@ -281,11 +281,11 @@ export function getCompactGroupActivityItem({
         };
       }
 
-      const integrationLink = getIntegrationLink({data: activity.data, organization});
+      const integrationChip = getIntegrationChip({data: activity.data, organization});
       return {
         title: t('Marked as unresolved'),
-        details: integrationLink
-          ? tct('via [integration]', {integration: integrationLink})
+        details: integrationChip
+          ? tct('via [integration]', {integration: integrationChip})
           : null,
       };
     }
@@ -309,7 +309,7 @@ export function getCompactGroupActivityItem({
       const {data} = activity;
       const comparison =
         data.version && data.resolved_in_version && 'follows_semver' in data
-          ? tct('Compared with resolved version [resolvedVersion] using [comparison]', {
+          ? tct(' compared with [resolvedVersion] based on [comparison]', {
               resolvedVersion: (
                 <ActivityRelease
                   organization={organization}
@@ -323,8 +323,9 @@ export function getCompactGroupActivityItem({
 
       return {
         title: t('Regressed'),
-        details: data.version
-          ? tct('in [version]', {
+        details: data.version ? (
+          <Fragment>
+            {tct('in [version]', {
               version: (
                 <ActivityRelease
                   organization={organization}
@@ -332,9 +333,10 @@ export function getCompactGroupActivityItem({
                   version={data.version}
                 />
               ),
-            })
-          : undefined,
-        subtext: comparison,
+            })}
+            {comparison}
+          </Fragment>
+        ) : undefined,
       };
     }
     case GroupActivityType.CREATE_ISSUE:
