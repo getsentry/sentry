@@ -144,7 +144,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   // The heat map's readable time/value axes sit at index 1; index 0 is the
   // hidden category axis that positions the cells.
-  const {onChartReady} = useChartBoxZoom({
+  const {onChartReady, isDraggingRef} = useChartBoxZoom({
     onZoom: onZoom ? handleZoom : undefined,
     xAxisIndex: 1,
     yAxisIndex: 1,
@@ -186,6 +186,15 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = params => {
+    // Don't render the tooltip during a drag selection. ECharts calls this on
+    // every mousemove, and building the tooltip mounts a whole React root via
+    // `renderToString` — expensive enough to stall the drag on a dense heat map.
+    // This replaces hiding the tooltip with `setOption`, which forced a chart
+    // re-render that delayed the selection box's first paint (see useChartBoxZoom).
+    if (isDraggingRef.current) {
+      return '';
+    }
+
     // Only show the tooltip of the current chart. Otherwise, all tooltips
     // in the chart group appear.
     if (!isChartHovered(chartRef?.current)) {
