@@ -19,7 +19,7 @@ from sentry.notifications.platform.templates.activity import (
     SetResolvedInReleaseNotificationData,
 )
 from sentry.notifications.platform.types import NotificationTarget
-from sentry.types.activity import ActivityType
+from sentry.types.activity import SEER_ACTIVITY_TYPES, ActivityType
 from sentry.users.services.user.service import user_service
 from sentry.utils.http import absolute_uri
 from sentry.workflow_engine.models import Action, Workflow
@@ -78,12 +78,16 @@ def build_activity_notification_data(
     except Workflow.DoesNotExist:
         raise ValueError(f"Workflow not found: {invocation.workflow_id}")
 
+    issue_url_params: dict[str, str] = {}
+    if ActivityType(activity.type) in SEER_ACTIVITY_TYPES:
+        issue_url_params.update({"seerDrawer": "true"})
+
     action_data = dict(
         source=source,
         activity_type=activity.type,
         notification_uuid=invocation.notification_uuid,
         issue_short_id=group.qualified_short_id,
-        issue_url=absolute_uri(group.get_absolute_url()),
+        issue_url=absolute_uri(group.get_absolute_url(params=issue_url_params)),
         issue_title=build_attachment_title(group) or "",
         issue_culprit=group.culprit,
         issue_description=build_attachment_text(group),

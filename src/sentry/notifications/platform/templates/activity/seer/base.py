@@ -7,7 +7,6 @@ from sentry.notifications.platform.templates.activity.base import (
 )
 from sentry.notifications.platform.types import (
     CodeTextBlock,
-    NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationSection,
     NotificationTextBlock,
@@ -22,11 +21,6 @@ def get_subject(label: str, data: ActivityNotificationData) -> list[Notification
         return [PlainTextBlock(text=f"{label} for a Sentry Issue")]
 
 
-def get_view_autofix_button(data: ActivityNotificationData) -> NotificationRenderedAction:
-    link = f"{data.issue_url}?seerDrawer=true"
-    return NotificationRenderedAction(label="View Autofix", link=link)
-
-
 def build_template(
     data: ActivityNotificationData,
     subject: list[NotificationTextBlock],
@@ -37,6 +31,4 @@ def build_template(
         footer.append(PlainTextBlock(text=FOOTER_DELIMITER))
         footer.append(PlainTextBlock(text=f"Run ID: {data.activity_data.get('run_id')}"))
 
-    return NotificationRenderedTemplate(
-        subject=subject, body=body, actions=[get_view_autofix_button(data)], footer=footer
-    )
+    return NotificationRenderedTemplate(subject=subject, body=body, footer=footer)
