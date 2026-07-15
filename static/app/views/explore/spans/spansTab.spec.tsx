@@ -17,12 +17,16 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
+  useQueryParamsAggregateFields,
+  useQueryParamsAggregateSortBys,
   useQueryParamsFields,
   useQueryParamsGroupBys,
 } from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {SpansTabContent} from 'sentry/views/explore/spans/spansTab';
+import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 
 function Wrapper({children}: {children: ReactNode}) {
@@ -40,6 +44,23 @@ const datePageFilterProps: DatePageFilterProps = {
     '24h': 'Last 24 hours',
     '7d': 'Last 7 days',
   }),
+};
+
+const invalidAttributeValidationBody: EventValidationData = {
+  dataset: [],
+  environment: [],
+  field: [
+    {
+      attrType: null,
+      error: 'unknown attribute',
+      name: 'invalid.attribute',
+      valid: false,
+    },
+  ],
+  orderby: [],
+  projects: [],
+  query: {error: null, fields: [], valid: true},
+  valid: false,
 };
 
 describe('SpansTabContent', () => {
@@ -188,6 +209,83 @@ describe('SpansTabContent', () => {
       const data = node?.data as Record<string, unknown>;
       expect(data.activeTab).toBe('aggregate');
       expect(data.sortBys).toEqual(['-count(span.duration)']);
+    });
+  });
+
+  it('removes invalid selected columns and sorts after validation', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: invalidAttributeValidationBody,
+    });
+
+    const {router} = render(
+      <SpansTabContent datePageFilterProps={datePageFilterProps} />,
+      {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/explore/traces/',
+            query: {
+              field: ['span.name', 'invalid.attribute'],
+              sort: 'invalid.attribute',
+            },
+          },
+        },
+      }
+    );
+
+    await waitFor(() => {
+      expect(router.location.query.field).toBe('span.name');
+      expect(router.location.query.sort).toBeUndefined();
+    });
+  });
+
+  it('removes invalid aggregate columns and sorts after validation', async () => {
+    let aggregateFields: ReturnType<typeof useQueryParamsAggregateFields> = [];
+    let aggregateSortBys: ReturnType<typeof useQueryParamsAggregateSortBys> = [];
+    function Component() {
+      aggregateFields = useQueryParamsAggregateFields();
+      aggregateSortBys = useQueryParamsAggregateSortBys();
+      return <SpansTabContent datePageFilterProps={datePageFilterProps} />;
+    }
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: invalidAttributeValidationBody,
+    });
+
+    render(<Component />, {
+      organization,
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            mode: Mode.AGGREGATE,
+            aggregateField: [
+              JSON.stringify({groupBy: 'invalid.attribute'}),
+              JSON.stringify({groupBy: 'span.op'}),
+              JSON.stringify({yAxes: ['count(span.duration)']}),
+            ],
+            aggregateSort: 'invalid.attribute',
+          },
+        },
+      },
+    });
+
+    await waitFor(() => {
+      expect(aggregateFields).not.toContainEqual({
+        groupBy: 'invalid.attribute',
+      });
+      expect(aggregateSortBys).toEqual([
+        {
+          field: 'count(span.duration)',
+          kind: 'desc',
+        },
+      ]);
     });
   });
 

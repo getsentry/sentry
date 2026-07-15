@@ -58,7 +58,11 @@ function useRegisterServiceWorker() {
 
     navigator.serviceWorker
       // https://rspack.rs/guide/features/web-workers
-      .register(getWorkerUrl(), {scope: '/'})
+      // type: 'module' is required because the bundle is output as an ES module.
+      // Safari 26 (WebKit 26) strictly rejects classic service worker registrations
+      // that contain ES module syntax; Chrome/Firefox are more lenient. Module
+      // service workers are supported since Safari 16.4.
+      .register(getWorkerUrl(), {scope: '/', type: 'module'})
       .then(registration => {
         log('registered', {
           attributes: {
