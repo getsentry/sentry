@@ -237,6 +237,18 @@ class DebugWeeklyReportView(MailPreviewView):
             )
             context["show_past_issues"] = True
             context["total_spans_count"] = ctx.total_spans_count
+            project_by_id = {pid: pctx.project for pid, pctx in ctx.projects_context_map.items()}
+            context["top_spans_table"] = [
+                {
+                    "name": span["name"],
+                    "p95": span["p95"],
+                    "sum": span["sum"],
+                    "project_slugs": project_by_id[ctx.top_spans_projects[span["name"]]].slug
+                    if ctx.top_spans_projects.get(span["name"]) in project_by_id
+                    else "",
+                }
+                for span in ctx.top_spans
+            ]
             past_issues: list[dict[str, Any]] = []
             for project_ctx in ctx.projects_context_map.values():
                 for group, count, has_link in project_ctx.past_resolved_issues:

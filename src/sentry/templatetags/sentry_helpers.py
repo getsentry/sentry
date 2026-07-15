@@ -218,6 +218,27 @@ def small_count(v, precision=1):
 
 
 @register.filter
+def format_duration_ms(v):
+    """Format a duration in milliseconds to a human-readable string."""
+    try:
+        v = float(v)
+    except (TypeError, ValueError):
+        return "0ms"
+    if v < 1:
+        return "0ms"
+    if v < 1000:
+        return f"{v:.0f}ms"
+    seconds = v / 1000
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    minutes = seconds / 60
+    if minutes < 60:
+        return f"{minutes:.1f}min"
+    hours = minutes / 60
+    return f"{hours:.1f}hr"
+
+
+@register.filter
 def as_tag_alias(v):
     return {"sentry:release": "release", "sentry:dist": "dist", "sentry:user": "user"}.get(v, v)
 

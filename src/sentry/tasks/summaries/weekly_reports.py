@@ -899,8 +899,23 @@ def render_template_context(
         and not ctx.organization.flags.enhanced_privacy
         and ctx.total_spans_count > 0
     )
+    top_spans_table: list[dict[str, Any]] = []
     if show_spans:
-        pass
+        user_project_ids = {p.project.id for p in user_projects}
+        project_by_id = {p.project.id: p.project for p in user_projects}
+        for span in ctx.top_spans:
+            span_project_id = ctx.top_spans_projects.get(span["name"])
+            if span_project_id not in user_project_ids:
+                continue
+            project = project_by_id.get(span_project_id)
+            top_spans_table.append(
+                {
+                    "name": span["name"],
+                    "p95": span["p95"],
+                    "sum": span["sum"],
+                    "project_slugs": project.slug if project else "",
+                }
+            )
 
     return {
         "organization": ctx.organization,
@@ -921,6 +936,7 @@ def render_template_context(
         ),
         "notification_settings_link": "/settings/account/notifications/reports/",
         "total_spans_count": ctx.total_spans_count,
+        "top_spans_table": top_spans_table,
     }
 
 
