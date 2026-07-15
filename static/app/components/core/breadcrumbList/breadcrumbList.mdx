@@ -14,6 +14,8 @@ import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {IconEllipsis, IconGlobe} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
+import {BreadcrumbListDemo} from './__stories__/breadcrumbListDemo';
+
 export const documentation = import('!!type-loader!@sentry/scraps/breadcrumbList');
 
 `BreadcrumbList` renders the parent portion of a horizontal breadcrumb trail. It
@@ -25,6 +27,7 @@ page's single `<h1>`.
 
 ```tsx
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {TopBar} from 'sentry/views/navigation/topBar';
 ```
 
 Pass parent crumbs in a typed `items` array. Each entry is a discriminated union:
@@ -32,24 +35,38 @@ a `type` key plus that type's own props, flattened onto the same object. The
 current page is a separate `BreadcrumbList.Title` item.
 
 <Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[
+      {type: 'link', label: 'Organization', to: '/organizations/org-slug/'},
+      {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
+      {
+        type: 'link',
+        label: 'javascript',
+        to: '/settings/org-slug/projects/javascript/',
+      },
+    ]}
+    title={
+      <BreadcrumbList.Title item={{type: 'page-title', label: 'General Settings'}} />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="breadcrumbs">
   <BreadcrumbList
     items={[
       {type: 'link', label: 'Organization', to: '/organizations/org-slug/'},
       {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
-      {type: 'link', label: 'javascript', to: '/settings/org-slug/projects/javascript/'},
+      {
+        type: 'link',
+        label: 'javascript',
+        to: '/settings/org-slug/projects/javascript/',
+      },
     ]}
   />
+</TopBar.Slot>
+<TopBar.Slot name="title">
   <BreadcrumbList.Title item={{type: 'page-title', label: 'General Settings'}} />
-</Storybook.Demo>
-```tsx
-<BreadcrumbList
-  items={[
-    {type: 'link', label: 'Organization', to: '/organizations/org-slug/'},
-    {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
-    {type: 'link', label: 'javascript', to: '/settings/org-slug/projects/javascript/'},
-  ]}
-/>
-<BreadcrumbList.Title item={{type: 'page-title', label: 'General Settings'}} />
+</TopBar.Slot>
 ```
 
 ## TopBar composition
@@ -61,6 +78,7 @@ always the page's `<h1>`.
 
 ```tsx
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
 <TopBar.Slot name="breadcrumbs">
   <BreadcrumbList
@@ -85,20 +103,31 @@ A clickable, muted-weight crumb that navigates to a parent page. Set
 navigation.
 
 <Storybook.Demo>
-  <BreadcrumbList
+  <BreadcrumbListDemo
     items={[
       {
         type: 'link',
         label: 'A very long project name that will be truncated',
         to: '/organizations/org-slug/projects/',
       },
-      {type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/', preservePageFilters: true},
+      {
+        type: 'link',
+        label: 'Issues',
+        to: '/organizations/org-slug/issues/',
+        preservePageFilters: true,
+      },
     ]}
   />
 </Storybook.Demo>
 ```tsx
-{type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'}
-{type: 'link', label: 'Issues', to: '/issues/', preservePageFilters: true}
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
+      {type: 'link', label: 'Issues', to: '/issues/', preservePageFilters: true},
+    ]}
+  />
+</TopBar.Slot>
 ```
 
 ### `'select-projects'` — project picker
@@ -108,7 +137,7 @@ between projects inline. It accepts standard `options`, `value`, and `onChange`
 props.
 
 <Storybook.Demo>
-  <BreadcrumbList
+  <BreadcrumbListDemo
     items={[
       {type: 'link', label: 'Settings', to: '/settings/'},
       {
@@ -125,35 +154,58 @@ props.
   />
 </Storybook.Demo>
 ```tsx
-{
-  type: 'select-projects',
-  value: 'javascript',
-  options: [{value: 'javascript', label: 'javascript'}, {value: 'python', label: 'python'}],
-  onChange: option => navigate(`/settings/${org.slug}/projects/${option.value}/`),
-}
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {type: 'link', label: 'Settings', to: '/settings/'},
+      {
+        type: 'select-projects',
+        value: 'javascript',
+        options: [
+          {value: 'javascript', label: 'javascript'},
+          {value: 'python', label: 'python'},
+        ],
+        onChange: option => navigate(`/settings/${org.slug}/projects/${option.value}/`),
+      },
+    ]}
+  />
+</TopBar.Slot>
 ```
 
 ## Page titles
 
 The `page-title` item is rendered with `BreadcrumbList.Title`, not in the
 `BreadcrumbList.items` array. It is bold, non-interactive, and renders as inline
-content. The surrounding `TopBar.Slot name="title"` provides the `<h1>`.
+content. The surrounding `TopBar.Slot name="title"` provides the `<h1>`; the
+demo below mirrors that heading and flex layout.
 
 <Storybook.Demo>
-  <BreadcrumbList.Title
-    item={{
-      type: 'page-title',
-      label: 'TypeError: Cannot read properties of undefined',
-    }}
+  <BreadcrumbListDemo
+    items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Issue details',
+        }}
+      />
+    }
   />
 </Storybook.Demo>
 ```tsx
-<BreadcrumbList.Title
-  item={{
-    type: 'page-title',
-    label: 'TypeError: Cannot read properties of undefined',
-  }}
-/>
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
+  />
+</TopBar.Slot>
+<TopBar.Slot name="title">
+  <BreadcrumbList.Title
+    item={{
+      type: 'page-title',
+      label: 'Issue details',
+    }}
+  />
+</TopBar.Slot>
 ```
 
 ## Leading graphics
@@ -164,6 +216,32 @@ Sentry icon. It is rendered as decorative content in a fixed 16×16 slot, so the
 label carries the meaning.
 
 <Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[
+      {
+        type: 'link',
+        label: 'My Projects',
+        to: '/settings/org-slug/projects/',
+        leadingGraphic: (
+          <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
+        ),
+      },
+    ]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Client Keys (DSN)',
+          leadingGraphic: (
+            <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
+          ),
+        }}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="breadcrumbs">
   <BreadcrumbList
     items={[
       {
@@ -176,6 +254,8 @@ label carries the meaning.
       },
     ]}
   />
+</TopBar.Slot>
+<TopBar.Slot name="title">
   <BreadcrumbList.Title
     item={{
       type: 'page-title',
@@ -183,15 +263,7 @@ label carries the meaning.
       leadingGraphic: <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />,
     }}
   />
-</Storybook.Demo>
-```tsx
-<BreadcrumbList.Title
-  item={{
-    type: 'page-title',
-    label: 'Client Keys (DSN)',
-    leadingGraphic: <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />,
-  }}
-/>
+</TopBar.Slot>
 ```
 
 ## Editable titles
@@ -203,7 +275,7 @@ pages that let users rename in place. Pass a
 `EditableText` provides its own edit affordance.
 
 <Storybook.Demo>
-  <BreadcrumbList
+  <BreadcrumbListDemo
     items={[
       {
         type: 'link',
@@ -211,33 +283,44 @@ pages that let users rename in place. Pass a
         to: '/organizations/org-slug/dashboards/',
       },
     ]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'editable-title',
+          title: (
+            <BreadcrumbList.EditableTitle
+              value="Frontend Overview"
+              onChange={() => {}}
+              aria-label="Edit dashboard name"
+            />
+          ),
+        }}
+      />
+    }
   />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {type: 'link', label: 'Dashboards', to: '/organizations/org-slug/dashboards/'},
+    ]}
+  />
+</TopBar.Slot>
+<TopBar.Slot name="title">
   <BreadcrumbList.Title
     item={{
       type: 'editable-title',
       title: (
         <BreadcrumbList.EditableTitle
-          value="Frontend Overview"
-          onChange={() => {}}
+          value={dashboard.title}
+          onChange={handleRename}
           aria-label="Edit dashboard name"
         />
       ),
     }}
   />
-</Storybook.Demo>
-```tsx
-<BreadcrumbList.Title
-  item={{
-    type: 'editable-title',
-    title: (
-      <BreadcrumbList.EditableTitle
-        value={dashboard.title}
-        onChange={handleRename}
-        aria-label="Edit dashboard name"
-      />
-    ),
-  }}
-/>
+</TopBar.Slot>
 ```
 
 ## Pagination
@@ -248,28 +331,40 @@ direction has an `ariaLabel`, an optional `to` URL, an optional `disabled` flag,
 and an optional rich `tooltip`. When `to` is omitted, that chevron is disabled.
 
 <Storybook.Demo>
-  <BreadcrumbList.Title
-    item={{
-      type: 'page-title',
-      label: 'TypeError: Cannot read properties of undefined',
-      pagination: {
-        previous: {ariaLabel: 'Previous issue', to: '/issues/122/'},
-        next: {ariaLabel: 'Next issue', to: '/issues/124/', disabled: true},
-      },
-    }}
+  <BreadcrumbListDemo
+    items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Issue details',
+          pagination: {
+            previous: {ariaLabel: 'Previous issue', to: '/issues/122/'},
+            next: {ariaLabel: 'Next issue', to: '/issues/124/', disabled: true},
+          },
+        }}
+      />
+    }
   />
 </Storybook.Demo>
 ```tsx
-<BreadcrumbList.Title
-  item={{
-    type: 'page-title',
-    label: group.shortId,
-    pagination: {
-      previous: {ariaLabel: 'Previous issue', to: previousIssueUrl},
-      next: {ariaLabel: 'Next issue', to: nextIssueUrl},
-    },
-  }}
-/>
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
+  />
+</TopBar.Slot>
+<TopBar.Slot name="title">
+  <BreadcrumbList.Title
+    item={{
+      type: 'page-title',
+      label: group.shortId,
+      pagination: {
+        previous: {ariaLabel: 'Previous issue', to: previousIssueUrl},
+        next: {ariaLabel: 'Next issue', to: nextIssueUrl},
+      },
+    }}
+  />
+</TopBar.Slot>
 ```
 
 ## Trailing actions
@@ -282,51 +377,58 @@ consumers can inline conditionals. Actions are always visible and keyboard
 accessible.
 
 <Storybook.Demo>
-  <BreadcrumbList.Title
-    item={{
-      type: 'page-title',
-      label: 'JAVASCRIPT-2X9',
-      trailingActions: [
-        <BreadcrumbList.CopyAction
-          key="copy"
-          text="JAVASCRIPT-2X9"
-          label="Copy Short-ID"
-        />,
-        <BreadcrumbList.MenuAction
-          key="menu"
-          triggerLabel="More actions"
-          triggerIcon={<IconEllipsis />}
-          items={[{key: 'share', label: 'Share', leadingItems: <IconGlobe />}]}
-        />,
-      ],
-    }}
+  <BreadcrumbListDemo
+    items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'JAVASCRIPT-2X9',
+          trailingActions: [
+            <BreadcrumbList.CopyAction
+              key="copy"
+              text="JAVASCRIPT-2X9"
+              label="Copy Short-ID"
+            />,
+            <BreadcrumbList.MenuAction
+              key="menu"
+              triggerLabel="More actions"
+              triggerIcon={<IconEllipsis />}
+              items={[{key: 'share', label: 'Share', leadingItems: <IconGlobe />}]}
+            />,
+          ],
+        }}
+      />
+    }
   />
 </Storybook.Demo>
 ```tsx
-<BreadcrumbList.Title
-  item={{
-    type: 'page-title',
-    label: group.shortId,
-    trailingActions: [
-      <BreadcrumbList.CopyAction
-        key="copy"
-        text={group.shortId}
-        label="Copy Short-ID"
-        onCopy={handleCopy}
-      />,
-      isPublic && shareUrl ? (
-        <Button
-          key="share"
-          size="zero"
-          variant="transparent"
-          icon={<IconGlobe />}
-          aria-label="Share"
-          onClick={openShareModal}
-        />
-      ) : null,
-    ],
-  }}
-/>
+<TopBar.Slot name="title">
+  <BreadcrumbList.Title
+    item={{
+      type: 'page-title',
+      label: group.shortId,
+      trailingActions: [
+        <BreadcrumbList.CopyAction
+          key="copy"
+          text={group.shortId}
+          label="Copy Short-ID"
+          onCopy={handleCopy}
+        />,
+        isPublic && shareUrl ? (
+          <Button
+            key="share"
+            size="zero"
+            variant="transparent"
+            icon={<IconGlobe />}
+            aria-label="Share"
+            onClick={openShareModal}
+          />
+        ) : null,
+      ],
+    }}
+  />
+</TopBar.Slot>
 ```
 
 ## Overflow (container query)
@@ -342,7 +444,7 @@ visible there.
 Drag the sizing handle below to see the transition:
 
 <Storybook.SizingWindow display="block">
-  <BreadcrumbList
+  <BreadcrumbListDemo
     items={[
       {type: 'link', label: 'Settings', to: '/settings/'},
       {
@@ -359,19 +461,21 @@ Drag the sizing handle below to see the transition:
   />
 </Storybook.SizingWindow>
 ```tsx
-<BreadcrumbList
-  items={[
-    {type: 'link', label: 'Settings', to: '/settings/'},
-    {
-      type: 'link',
-      label: 'javascript',
-      to: '/settings/org-slug/projects/javascript/',
-    },
-    {
-      type: 'link',
-      label: 'Client Keys (DSN)',
-      to: '/settings/org-slug/projects/javascript/keys/',
-    },
-  ]}
-/>
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {type: 'link', label: 'Settings', to: '/settings/'},
+      {
+        type: 'link',
+        label: 'javascript',
+        to: '/settings/org-slug/projects/javascript/',
+      },
+      {
+        type: 'link',
+        label: 'Client Keys (DSN)',
+        to: '/settings/org-slug/projects/javascript/keys/',
+      },
+    ]}
+  />
+</TopBar.Slot>
 ```
