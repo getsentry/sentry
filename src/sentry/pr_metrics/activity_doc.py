@@ -1,30 +1,13 @@
-"""Pure reducer for the per-PR activity document.
+"""One versioned JSONB document per PR, updated in place by webhook events
+instead of per-event ``PullRequestActivity`` rows.
 
-One versioned JSONB document per PR, folded in place at webhook time, replacing
-the per-event ``PullRequestActivity`` rows. There is no I/O here: every function
-takes and mutates a plain ``dict``, so the reduction laws are trivially
-unit-testable. The write path in ``webhooks.py`` extracts the provider fields
-from each webhook and calls :func:`apply_activity`; the readers in
-``emit``/``utils``/``judge`` project the document back into the counters and
-timeline they used to derive from rows.
-
-Three event families, which :func:`apply_activity` dispatches on ``event_type``,
-reduce differently:
-
-- **entries** (stored under the ``events`` key) — low-volume lifecycle events
-  (opened, synchronized, reviews, labels, the close itself, ...). Appended to
-  ``events`` in arrival order, deduped by ``webhook_id`` containment, and counted
-  once per delivery in ``counts``. Synchronize entries additionally fold their
-  before/after link into the bounded ``sync_chain`` list, so the commit-chain walk
-  survives the entries cap.
-- **checks** — every ``check_run_completed`` / ``check_suite_completed`` collapses
-  into a per-``(head_sha, app_slug)`` rollup. A pure monotone reducer: latest-wins
-  on provider timestamps, ``min()`` for ``first_failure_at``, ``max()`` for counts,
-  ``failed_attempts`` incremented only on failing conclusions. Redelivery- and
-  reorder-safe without ``webhook_id`` dedup (a redelivered failing event double
-  counts only the magnitude signal, which is accepted).
-- **comments** — folded solely into the ``participants`` map; never stored as
-  entries and never counted.
+No DB access in this module: functions take and mutate plain dicts, so stored
+docs can be re-folded through the same reducer (emit-time parity check, corpus
+rebuilds). :func:`apply_activity` dispatches three event families: lifecycle
+**entries** (appended to ``events`` in arrival order, deduped by ``webhook_id``,
+synchronize links folded into ``sync_chain``), **checks** (collapsed into
+per-``(head_sha, app_slug)`` rollups), and **comments** (folded into
+``participants`` only, never stored).
 """
 
 from __future__ import annotations
@@ -146,14 +129,7 @@ def extract_event_at(event_type: PullRequestActivityType, event: Mapping[str, An
 
     GitHub has no delivery sequence number and most ``pull_request`` actions carry
     no event timestamp, so only these four types have a real event time worth
-    storing alongside the arrival ``ts``:
-
-    - ``opened`` → ``pull_request.created_at``
-    - ``closed`` → ``pull_request.closed_at``
-    - ``merged`` → ``pull_request.merged_at``
-    - ``review_submitted`` → ``review.submitted_at``
-
-    Pure: reads only the passed webhook ``event`` mapping.
+    storing alongside the arrival ``ts``.
     """
     pull_request = event.get("pull_request") or {}
     if event_type == PullRequestActivityType.OPENED:
@@ -343,6 +319,8 @@ def _apply_check_run(
     non-failing run updates an existing (previously-failing) entry in place so a
     fail→rerun-green at the same head reads as recovered rather than vanishing.
     Latest-wins on ``completed_at`` keeps out-of-order deliveries convergent.
+    Redelivery-safe without ``webhook_id`` dedup: a redelivered failing event
+    double counts only the magnitude signal, which is accepted.
     """
     group = _get_or_create_group(doc, payload)
 
