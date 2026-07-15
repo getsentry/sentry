@@ -447,6 +447,99 @@ describe('CompactSelect', () => {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
 
+    it('selects the only matching option when Enter is pressed in the search input', async () => {
+      function Component() {
+        const [value, setValue] = useState<string>();
+
+        return (
+          <CompactSelect
+            search={{placeholder: 'Search here…'}}
+            options={[
+              {value: 'opt_one', label: 'Option One'},
+              {value: 'opt_two', label: 'Option Two'},
+            ]}
+            value={value}
+            onChange={option => setValue(option.value)}
+          />
+        );
+      }
+
+      render(<Component />);
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search here…');
+      await userEvent.type(searchInput, 'Two');
+      await userEvent.keyboard('{Enter}');
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', {name: 'Option Two'})).toBeInTheDocument();
+      });
+      expect(screen.queryByPlaceholderText('Search here…')).not.toBeInTheDocument();
+    });
+
+    it('moves focus to the option list when Enter is pressed with multiple matches', async () => {
+      render(
+        <CompactSelect
+          search
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+          ]}
+          value={undefined}
+          onChange={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search…');
+      await waitFor(() => expect(searchInput).toHaveFocus());
+      await userEvent.keyboard('{Enter}');
+
+      expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+    });
+
+    it('keeps focus in the search input when there are no matches', async () => {
+      const onChange = jest.fn();
+      render(
+        <CompactSelect
+          search
+          options={[{value: 'opt_one', label: 'Option One'}]}
+          value={undefined}
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search…');
+      await userEvent.type(searchInput, 'missing');
+      await userEvent.keyboard('{Enter}');
+
+      expect(searchInput).toHaveFocus();
+      expect(screen.getByText('No options found')).toBeInTheDocument();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('moves focus to the option list instead of selecting while loading', async () => {
+      const onChange = jest.fn();
+      render(
+        <CompactSelect
+          search
+          loading
+          options={[{value: 'opt_one', label: 'Option One'}]}
+          value={undefined}
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      const searchInput = screen.getByPlaceholderText('Search…');
+      await waitFor(() => expect(searchInput).toHaveFocus());
+      await userEvent.keyboard('{Enter}');
+
+      expect(screen.getByRole('option', {name: 'Option One'})).toHaveFocus();
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
     it('highlights the matched substring when search.highlight is enabled', async () => {
       render(
         <CompactSelect

@@ -286,9 +286,26 @@ export function Control({
           ?.focus();
       }
 
-      // Prevent form submissions on Enter key press in search box
       if (e.key === 'Enter') {
         e.preventDefault();
+
+        const options = Array.from(
+          overlayRef.current?.querySelectorAll<HTMLLIElement>(
+            `li[role="${mode === 'grid' ? 'row' : 'option'}"]`
+          ) ?? []
+        ).filter(option => option.getAttribute('aria-disabled') !== 'true');
+
+        if (options.length > 0) {
+          if (options.length === 1 && !loading) {
+            // Trigger the same press behavior as if the user had focused the option and
+            // pressed Enter.
+            options[0]?.click();
+          } else {
+            // Move focus to the first option, matching the next focus target when tabbing
+            // out of the search input.
+            options[0]?.focus();
+          }
+        }
       }
 
       // Continue propagation, otherwise the overlay won't close on Esc key press
