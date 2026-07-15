@@ -86,11 +86,6 @@ function useRegisterServiceWorker() {
         if (error instanceof Error && error.name === 'AbortError') {
           return;
         }
-        // InvalidStateError means the registration context became invalid
-        // (e.g. document is being unloaded) — unactionable, ignore it.
-        if (error instanceof Error && error.name === 'InvalidStateError') {
-          return;
-        }
         log('error');
         Sentry.captureException(error);
       });
