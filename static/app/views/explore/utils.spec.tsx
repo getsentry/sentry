@@ -173,6 +173,81 @@ describe('viewSamplesTarget', () => {
     });
   });
 
+  it('drill down with numeric group by value', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: ['org_id'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
+        org_id: 123,
+        'count(span.duration)': 10,
+      },
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'org_id:123',
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
+  it('drill down replaces existing filter for the same key', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: 'bar:old_value',
+      fields: ['foo'],
+      groupBys: ['bar'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
+        bar: 'new_value',
+        'count(span.duration)': 10,
+      },
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'bar:new_value',
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
+  it('drill down preserves existing filters for different keys', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: 'existing_key:existing_value',
+      fields: ['foo'],
+      groupBys: ['bar'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
+        bar: 'bar',
+        'count(span.duration)': 10,
+      },
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'existing_key:existing_value bar:bar',
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
   it('drill down with no value group by uses !has filter', () => {
     const location = LocationFixture();
     const target = viewSamplesTarget({

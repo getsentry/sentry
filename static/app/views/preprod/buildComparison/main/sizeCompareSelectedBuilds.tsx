@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconClose, IconCommit, IconFocus, IconLock, IconTelescope} from 'sentry/icons';
@@ -81,7 +81,7 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
     >
       <ContentWrapper>
         <ClippedContent>
-          <Flex direction="column" gap="xs">
+          <Stack gap="xs">
             <Flex align="center" gap="sm">
               {icon}
               <Text size="sm" variant="accent" bold>
@@ -113,7 +113,7 @@ function BuildButton({buildDetails, icon, label, onRemove, slot}: BuildButtonPro
                 {metadataParts.join(' • ')}
               </Text>
             </Flex>
-          </Flex>
+          </Stack>
         </ClippedContent>
         {onRemove && (
           <CloseButtonWrapper>

@@ -97,9 +97,9 @@ export default function OrganizationDataForwarding() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Data Forwarding')} />
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Flex align="center" justify="between" gap="2xl">
-          <Flex direction="column" gap="sm">
+          <Stack gap="sm">
             <SettingsPageHeader
               title={t('Data Forwarding')}
               subtitle={tct(
@@ -118,7 +118,7 @@ export default function OrganizationDataForwarding() {
                 }
               )}
             />
-          </Flex>
+          </Stack>
         </Flex>
         {isLoading ? (
           <LoadingIndicator />
@@ -127,7 +127,7 @@ export default function OrganizationDataForwarding() {
         ) : (
           pageContent
         )}
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }

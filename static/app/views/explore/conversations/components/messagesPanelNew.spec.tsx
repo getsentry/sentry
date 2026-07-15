@@ -63,7 +63,6 @@ describe('MessagesPanelNew', () => {
         nodes={[]}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
-        nodeTraceMap={new Map()}
       />
     );
 
@@ -86,7 +85,6 @@ describe('MessagesPanelNew', () => {
         nodes={[node] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
-        nodeTraceMap={new Map()}
       />
     );
 
@@ -112,7 +110,6 @@ describe('MessagesPanelNew', () => {
         nodes={[node] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
-        nodeTraceMap={new Map()}
       />
     );
 
@@ -139,7 +136,6 @@ describe('MessagesPanelNew', () => {
         nodes={[node] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
-        nodeTraceMap={new Map()}
       />
     );
 
@@ -175,7 +171,6 @@ describe('MessagesPanelNew', () => {
         nodes={[generationNode1, toolNode1, generationNode2] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
-        nodeTraceMap={new Map()}
       />
     );
 
@@ -198,7 +193,6 @@ describe('MessagesPanelNew', () => {
         nodes={[node] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
-        nodeTraceMap={new Map()}
       />
     );
 
@@ -239,7 +233,6 @@ describe('MessagesPanelNew', () => {
         nodes={[node] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
-        nodeTraceMap={new Map()}
       />
     );
 

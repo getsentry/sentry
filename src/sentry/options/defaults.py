@@ -1214,6 +1214,25 @@ register(
 )
 
 register(
+    "issues.backfill_group_action_log.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.batch_size",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.inter_batch_delay_s",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "seer.supergroups_backfill_lightweight.killswitch",
     type=Bool,
     default=False,
@@ -1554,10 +1573,10 @@ register(
 )
 
 # Brownout schedule for the deprecated alerts API endpoints.
-# 2 minute blackout 12 times a day (every 2 hours, on the hour, UTC).
+# 2 minute blackout 24 times a day (every hour, on the hour, UTC).
 register(
     "api.deprecation.alerts-cron",
-    default="0 */2 * * *",
+    default="0 * * * *",
     type=String,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3120,6 +3139,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate for resolution activity notifications via the notification platform
+register(
+    "notifications.platform.resolution-notifications.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch list of NotificationSource values that should be blocked from being
 # dispatched by the notification platform's NotificationService. Values must match
 # the string values of `sentry.notifications.platform.types.NotificationSource`.
@@ -3836,6 +3863,24 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# List of producer names to roll out poll metrics to. Enables everywhere if
+# list contains "all".
+register(
+    "arroyo.producer.record_poll_metrics",
+    type=Sequence,
+    default=None,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+# Arroyo producer poll metrics should be logged every X poll iterations.
+register(
+    "arroyo.producer.poll_metric_frequency",
+    type=Int,
+    default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "github-enterprise.disallow-domain-mismatch",
     type=Bool,
@@ -3847,5 +3892,21 @@ register(
     "error-embeds.control-silo-address",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Issues derived data — process_project_derived_data task
+# Number of groups per batch task when fanning out project-wide processing.
+register(
+    "issues.derived.project-batch-size",
+    default=500,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of batch tasks to schedule; aborts if exceeded.
+register(
+    "issues.derived.project-max-tasks",
+    default=1000,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

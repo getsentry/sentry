@@ -2,6 +2,8 @@ from typing import Any
 
 from symbolic.proguard import ProguardMapper
 
+from sentry.profiles.utils import Profile, is_android_trace_format, is_jvm_frame
+
 JAVA_BASE_TYPES = {
     "Z": "boolean",
     "B": "byte",
@@ -114,22 +116,47 @@ def deobfuscate_signature(
     return parameter_java_types, return_java_type
 
 
-def convert_android_methods_to_jvm_frames(methods: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def convert_android_methods_to_jvm_frames(profile: Profile) -> list[dict[str, Any]]:
     frames = []
-    for i, m in enumerate(methods):
-        f = {
-            "function": m["name"],
-            "index": i,
-            "module": m["class_name"],
-        }
-        if "signature" in m:
-            f["signature"] = m["signature"]
-        if "source_line" in m:
-            f["lineno"] = m["source_line"]
-        if "source_file" in m:
-            f["filename"] = m["source_file"]
-        frames.append(f)
-    return frames
+
+    if is_android_trace_format(profile):
+        methods = profile["profile"]["methods"]
+        for i, m in enumerate(methods):
+            f = {
+                "function": m["name"],
+                "index": i,
+                "module": m["class_name"],
+            }
+            if "signature" in m:
+                f["signature"] = m["signature"]
+            if "source_line" in m:
+                f["lineno"] = m["source_line"]
+            if "source_file" in m:
+                f["filename"] = m["source_file"]
+            frames.append(f)
+        return frames
+    else:
+        # sample v2: JVM frames live in profile["profile"]["frames"] and are
+        # identified via is_jvm_frame. `index` records each JVM frame's position
+        # in the original frames list so the results can be merged back.
+        for i, f in enumerate(profile["profile"]["frames"]):
+            if not is_jvm_frame(f, profile):
+                continue
+            # function and module are optional on sample format frames; keep
+            # frames missing one of them so the other still gets deobfuscated
+            jvm_frame = {
+                "function": f.get("function", ""),
+                "index": i,
+                "module": f.get("module", ""),
+            }
+            if "signature" in f:
+                jvm_frame["signature"] = f["signature"]
+            if "lineno" in f:
+                jvm_frame["lineno"] = f["lineno"]
+            if "filename" in f:
+                jvm_frame["filename"] = f["filename"]
+            frames.append(jvm_frame)
+        return frames
 
 
 def _merge_jvm_frame_and_android_method(f: dict[str, Any], m: dict[str, Any]) -> None:
@@ -146,20 +173,69 @@ def _merge_jvm_frame_and_android_method(f: dict[str, Any], m: dict[str, Any]) ->
         m["in_app"] = f["in_app"]
 
 
-def merge_jvm_frames_with_android_methods(
-    frames: list[dict[str, Any]], methods: list[dict[str, Any]]
-) -> None:
-    for f in frames:
-        m = methods[f["index"]]
-        # Update the method if it's the first time we see it.
-        if m.get("data", {}).get("deobfuscation_status", "") != "deobfuscated":
-            _merge_jvm_frame_and_android_method(f, m)
-        # Otherwise, it's an additional method returned, we add it to the inline frames.
-        else:
-            # We copy the frame triggering the inline ones so we only have to
-            # look at this field later one to construct a stack trace.
-            if "inline_frames" not in m:
-                m["inline_frames"] = [m.copy()]
-            im: dict[str, Any] = {}
-            _merge_jvm_frame_and_android_method(f, im)
-            m["inline_frames"].append(im)
+def _apply_jvm_frame_to_sample_v2_frame(f: dict[str, Any], frame: dict[str, Any]) -> None:
+    frame["module"] = f["module"]
+    frame["function"] = f["function"]
+    frame["data"] = {"deobfuscation_status": "deobfuscated"}
+    if "signature" in f:
+        frame["signature"] = f["signature"]
+    if "filename" in f:
+        frame["filename"] = f["filename"]
+    if "lineno" in f and f["lineno"] != 0:
+        frame["lineno"] = f["lineno"]
+    if "in_app" in f:
+        frame["in_app"] = f["in_app"]
+
+
+def merge_jvm_frames_with_android_methods(frames: list[dict[str, Any]], profile: Profile) -> None:
+    if is_android_trace_format(profile):
+        methods = profile["profile"]["methods"]
+        for f in frames:
+            m = methods[f["index"]]
+            # Update the method if it's the first time we see it.
+            if m.get("data", {}).get("deobfuscation_status", "") != "deobfuscated":
+                _merge_jvm_frame_and_android_method(f, m)
+            # Otherwise, it's an additional method returned, we add it to the inline frames.
+            else:
+                # We copy the frame triggering the inline ones so we only have to
+                # look at this field later one to construct a stack trace.
+                if "inline_frames" not in m:
+                    m["inline_frames"] = [m.copy()]
+                im: dict[str, Any] = {}
+                _merge_jvm_frame_and_android_method(f, im)
+                m["inline_frames"].append(im)
+    else:
+        _merge_jvm_frames_with_sample_v2(frames, profile)
+
+
+def _merge_jvm_frames_with_sample_v2(jvm_frames: list[dict[str, Any]], profile: Profile) -> None:
+    # Symbolicator may return several frames for a single input frame (inlines).
+    # Sample v2 has no per-frame `inline_frames`; inlining is expressed by
+    # expanding the frame list and remapping the stacks that reference it.
+    deobf_by_index: dict[int, list[dict[str, Any]]] = {}
+    for f in jvm_frames:
+        deobf_by_index.setdefault(f["index"], []).append(f)
+
+    original_frames = profile["profile"]["frames"]
+    new_frames: list[dict[str, Any]] = []
+    # original frame index -> list of indices in the rebuilt frame list
+    index_map: dict[int, list[int]] = {}
+    for old_index, frame in enumerate(original_frames):
+        deobf = deobf_by_index.get(old_index)
+        if not deobf:
+            index_map[old_index] = [len(new_frames)]
+            new_frames.append(frame)
+            continue
+        new_indices = []
+        for jvm_frame in deobf:
+            merged = dict(frame)
+            _apply_jvm_frame_to_sample_v2_frame(jvm_frame, merged)
+            new_indices.append(len(new_frames))
+            new_frames.append(merged)
+        index_map[old_index] = new_indices
+
+    profile["profile"]["stacks"] = [
+        [new_index for old_index in stack for new_index in index_map.get(old_index, [old_index])]
+        for stack in profile["profile"]["stacks"]
+    ]
+    profile["profile"]["frames"] = new_frames

@@ -1,6 +1,6 @@
 import {css, useTheme} from '@emotion/react';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -13,14 +13,18 @@ import {TurnMeta} from 'sentry/views/explore/conversations/components/turnMeta';
 import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {useToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/useToolOutputBytes';
 
 interface MessageToolCallsNewProps {
   nodeMap: Map<string, AITraceSpanNode>;
-  nodeTraceMap: Map<string, string>;
   onSelectNode: (node: AITraceSpanNode) => void;
-  selectedNodeId: string | null;
+  /**
+   * The selected node id when it matches one of these tool calls, otherwise
+   * null — scoped by the parent turn so the prop is stable when the selection
+   * lands elsewhere.
+   */
+  selectedToolCallId: string | null;
   toolCalls: ToolCall[];
 }
 
@@ -31,9 +35,8 @@ interface MessageToolCallsNewProps {
  */
 export function MessageToolCallsNew({
   toolCalls,
-  selectedNodeId,
+  selectedToolCallId,
   nodeMap,
-  nodeTraceMap,
   onSelectNode,
 }: MessageToolCallsNewProps) {
   const organization = useOrganization();
@@ -51,10 +54,10 @@ export function MessageToolCallsNew({
   `;
 
   return (
-    <Flex direction="column" gap="xs" width="100%">
+    <Stack gap="xs" width="100%">
       {toolCalls.map(tool => {
         const toolNode = nodeMap.get(tool.nodeId);
-        const isToolSelected = tool.nodeId === selectedNodeId;
+        const isToolSelected = tool.nodeId === selectedToolCallId;
         const selectTool = () => {
           trackAnalytics('conversations.message.click-tool-call', {
             organization,
@@ -105,14 +108,7 @@ export function MessageToolCallsNew({
                 {toolNode && <ToolInputPreview node={toolNode} />}
               </Flex>
               <TurnMeta
-                metric={
-                  toolNode ? (
-                    <ToolOutputSize
-                      node={toolNode}
-                      traceId={nodeTraceMap.get(tool.nodeId)}
-                    />
-                  ) : null
-                }
+                metric={toolNode ? <ToolOutputSize node={toolNode} /> : null}
                 duration={
                   tool.duration === undefined || tool.duration <= 0 ? null : (
                     <Text size="xs" variant="muted" tabular align="right">
@@ -125,18 +121,12 @@ export function MessageToolCallsNew({
           </Container>
         );
       })}
-    </Flex>
+    </Stack>
   );
 }
 
-function ToolOutputSize({
-  node,
-  traceId,
-}: {
-  node: AITraceSpanNode;
-  traceId: string | undefined;
-}) {
-  const bytes = useToolOutputBytes(node, traceId);
+function ToolOutputSize({node}: {node: AITraceSpanNode}) {
+  const bytes = getToolOutputBytes(node);
   return (
     <Text size="xs" variant="muted" tabular align="right">
       {formatBytesBase10(bytes)}

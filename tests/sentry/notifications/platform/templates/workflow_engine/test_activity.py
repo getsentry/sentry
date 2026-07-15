@@ -1,5 +1,3 @@
-import pytest
-
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.notifications.platform.templates.workflow_engine.activity import (
@@ -42,7 +40,6 @@ class ActivityAlertBaseTest(TestCase):
         for activity_type in seer_types:
             assert activity_type.value in ACTIVITY_TYPE_TO_SOURCE
 
-    @pytest.mark.skip(reason="Resolution activity renderers will be enabled in a follow-up commit")
     def test_all_resolved_activity_types_mapped(self) -> None:
         resolved_types = [
             ActivityType.SET_RESOLVED,

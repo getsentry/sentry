@@ -75,33 +75,34 @@ class SentryRouter(LibraryRouter):
                 routes = json.loads(settings.TASKWORKER_ROUTES)
             except Exception as err:
                 capture_exception(err)
-        self._route_map = routes
+
+        self._route_map: dict[str, str] = routes
+        self._default_topic: str = Topic.TASKWORKER.value
+
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            # Control silos always use the control topic; the region default
-            # topic override never applies to them.
-            self._default_topic = Topic.TASKWORKER_CONTROL
+            # Control silos always use the control topic
+            # The region default topic override never applies to them
+            self._default_topic = Topic.TASKWORKER_CONTROL.value
         elif settings.TASKWORKER_DEFAULT_TOPIC:
-            self._default_topic = Topic(settings.TASKWORKER_DEFAULT_TOPIC)
-        else:
-            self._default_topic = Topic.TASKWORKER
+            self._default_topic = settings.TASKWORKER_DEFAULT_TOPIC
 
     def route_namespace(self, name: str) -> str:
         # Check local overrides
         if name in _route_overrides:
-            return Topic(_route_overrides[name]).value
+            return _route_overrides[name]
 
         # Check global overrides
         overrides = options.get("taskworker.route.overrides")
 
         if name in overrides:
-            return Topic(overrides[name]).value
+            return overrides[name]
 
         # Check for configured mapping
         if name in self._route_map:
-            return Topic(self._route_map[name]).value
+            return self._route_map[name]
 
         # Fall back onto the default topic
-        return self._default_topic.value
+        return self._default_topic
 
 
 class ViewerContextHook:
@@ -157,7 +158,7 @@ def make_producer(topic: str) -> SingletonProducer:
     if topic not in _producer_local.producers:
 
         def factory() -> KafkaProducer:
-            return get_arroyo_producer(f"sentry.taskworker.{topic}", Topic(topic))
+            return get_arroyo_producer(f"sentry.taskworker.{topic}", topic)
 
         _producer_local.producers[topic] = SingletonProducer(
             factory, max_futures=options.get("taskworker.producer.max_futures")

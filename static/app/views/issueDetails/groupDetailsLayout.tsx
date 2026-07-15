@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -108,9 +108,8 @@ export function GroupDetailsLayout({
             >
               {tourProps => (
                 <div {...tourProps}>
-                  <Flex
+                  <Stack
                     as="section"
-                    direction="column"
                     background="secondary"
                     borderRight={{'2xs': 'none', lg: 'primary'}}
                     borderBottom={{'2xs': 'primary', lg: 'none'}}
@@ -124,7 +123,7 @@ export function GroupDetailsLayout({
                         </NavigationSidebarWrapper>
                       )}
                     <ContentPadding>{children}</ContentPadding>
-                  </Flex>
+                  </Stack>
                 </div>
               )}
             </SharedTourElement>

@@ -3,7 +3,7 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -232,14 +232,7 @@ export function SnapshotMainContent({
 
   if (viewMode === 'list') {
     return (
-      <Flex
-        direction="column"
-        gap="0"
-        padding="0"
-        height="100%"
-        width="100%"
-        background="secondary"
-      >
+      <Stack gap="0" padding="0" height="100%" width="100%" background="secondary">
         <ToolbarContainer
           toggle={toggle}
           sortDropdown={sortDropdown}
@@ -262,13 +255,13 @@ export function SnapshotMainContent({
           diffImageBaseUrl={diffImageBaseUrl}
           onVisibleGroupChange={onVisibleGroupChange}
         />
-      </Flex>
+      </Stack>
     );
   }
 
   if (!selectedItem) {
     return (
-      <Flex direction="column" gap="0" padding="0" height="100%" width="100%">
+      <Stack gap="0" padding="0" height="100%" width="100%">
         <ToolbarContainer
           toggle={toggle}
           sortDropdown={sortDropdown}
@@ -278,7 +271,7 @@ export function SnapshotMainContent({
         <Flex align="center" justify="center" padding="3xl" width="100%" flex="1">
           <Text variant="muted">{t('Select an image from the sidebar.')}</Text>
         </Flex>
-      </Flex>
+      </Stack>
     );
   }
 
@@ -545,14 +538,13 @@ function SingleViewLayout({
         showBottomBorder={false}
       />
       {banner}
-      <Flex direction="column" flex="1" minHeight="0">
+      <Stack flex="1" minHeight="0">
         {body}
-      </Flex>
+      </Stack>
     </SnapshotVariantFrame>
   );
   return (
-    <Flex
-      direction="column"
+    <Stack
       gap="0"
       padding="0"
       height="100%"
@@ -569,13 +561,13 @@ function SingleViewLayout({
       />
       <SingleViewScroll ref={scrollRef}>
         <Flex direction="row" gap="xl" flex="1" minHeight="0" align="stretch">
-          <Flex direction="column" flex="1" minWidth="0">
+          <Stack flex="1" minWidth="0">
             <DarkAware isDark={isDark}>
               <SnapshotCardFrame groupName={groupName} fillHeight>
                 {card}
               </SnapshotCardFrame>
             </DarkAware>
-          </Flex>
+          </Stack>
           <Container
             flexShrink={0}
             onClick={e => e.stopPropagation()}
@@ -606,7 +598,7 @@ function SingleViewLayout({
           </Container>
         </Flex>
       </SingleViewScroll>
-    </Flex>
+    </Stack>
   );
 }
 

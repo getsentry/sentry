@@ -9,12 +9,10 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.timestamp_pb2 import Timestamp as ProtobufTimestamp
 from pydantic import BaseModel
 from requests.exceptions import RequestException
-from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import (
     APIException,
     AuthenticationFailed,
@@ -41,6 +39,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
+from sentry.api.endpoints.internal.llm_proxy_key import make_llm_proxy_key
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
 from sentry.auth.exceptions import IdentityNotValid
@@ -94,7 +93,6 @@ from sentry.seer.agent.tools import (
     execute_timeseries_query,
     execute_trace_table_query,
     get_baseline_tag_distribution,
-    get_comparative_attribute_distributions,
     get_dsn,
     get_event_details,
     get_issue_and_event_details_v2,
@@ -106,7 +104,6 @@ from sentry.seer.agent.tools import (
     get_replay_metadata,
     get_repository_definition,
     get_team_members,
-    get_trace_item_attributes,
     rpc_get_profile_flamegraph,
     rpc_get_trace_waterfall,
 )
@@ -125,11 +122,9 @@ from sentry.seer.assisted_query.traces_tools import (
     get_attribute_names,
     get_attribute_values_with_substring,
 )
+from sentry.seer.auth import SeerRpcViewerContextAuthentication
 from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profile_details
-from sentry.seer.autofix.utils import (
-    bulk_read_preferences_from_sentry_db,
-    read_preference_from_sentry_db,
-)
+from sentry.seer.autofix.utils import read_preference_from_sentry_db
 from sentry.seer.constants import SeerSCMProvider
 from sentry.seer.endpoints.registry import SeerRpcMethod, seer_rpc
 from sentry.seer.entrypoints.operator import SeerAutofixOperator, process_autofix_updates
@@ -141,7 +136,6 @@ from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.seer.sentry_data_models import (
     AttributeBucket,
     AttributesAndValuesResponse,
-    BulkProjectPreferencesResponse,
     GetRepoInstallationIdErrorResponse,
     GetRepoInstallationIdSuccessResponse,
     GitHubEnterpriseConfigErrorResponse,
@@ -150,21 +144,16 @@ from sentry.seer.sentry_data_models import (
     MonitoringProviderConnectionsResponse,
     OrganizationAutofixConsentResponse,
     OrganizationFeaturesResponse,
-    OrganizationProject,
     OrganizationProjectDetail,
-    OrganizationProjectIdsResponse,
     OrganizationProjectsResponse,
     OrganizationSlugResponse,
     PrAttributionResponse,
     RefreshMonitoringProviderTokenErrorResponse,
     RefreshMonitoringProviderTokenSuccessResponse,
-    RepositoryIntegrationsStatusResponse,
     SendSeerWebhookErrorResponse,
     SendSeerWebhookSuccessResponse,
     SpanAttribute,
     SpanAttributesResponse,
-    ValidateRepoErrorResponse,
-    ValidateRepoSuccessResponse,
 )
 from sentry.seer.utils import encrypt_access_token_for_seer, filter_repo_by_provider
 from sentry.sentry_apps.event_types import SentryAppEventType
@@ -180,7 +169,6 @@ from sentry.utils.tracing import start_span, trace
 from sentry.viewer_context import (
     get_viewer_context,
     observe_viewer_context_propagation,
-    viewer_context_from_header,
 )
 
 logger = logging.getLogger(__name__)
@@ -252,12 +240,12 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
     Requests are sent with an HMAC signed by a shared private key.
 
     DEPRECATED: this HMAC mechanism (backed by ``SEER_RPC_SHARED_SECRET``) is
-    slated for removal. Seer↔Sentry auth is consolidating onto the signed
+    slated for removal. Seer<->Sentry auth is consolidating onto the signed
     ``X-Viewer-Context`` header (see ``SeerRpcViewerContextAuthentication``).
     Removal order: (1) this endpoint accepts viewer context [done],
     (2) Seer stops sending ``Rpcsignature``, (3) delete this class +
     ``compare_signature``, (4) retire ``SEER_RPC_SHARED_SECRET`` (only after
-    step 2 — an inbound signature with the secret unset raises).
+    step 2 --- an inbound signature with the secret unset raises).
     """
 
     token_name = b"rpcsignature"
@@ -275,58 +263,6 @@ class SeerRpcSignatureAuthentication(StandardAuthentication):
         sentry_sdk.get_isolation_scope().set_attribute("seer_rpc_auth", True)
 
         return (AnonymousUser(), token)
-
-
-@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
-class SeerRpcViewerContextAuthentication(BaseAuthentication):
-    """
-    Authentication for seer RPC requests via a signed ``X-Viewer-Context`` JWT.
-
-    A co-equal alternative to :class:`SeerRpcSignatureAuthentication` (HMAC). The
-    JWT is verified with ``SEER_API_SHARED_SECRET`` using the shared
-    ``sentry.viewer_context`` verification logic — the same trust envelope the
-    rest of the Sentry API already relies on.
-
-    Unlike the REST ``ViewerContextAuthentication``, this accepts org-only
-    contexts (no ``user_id``) — the common near-term case for RPC callers — and
-    returns a truthy ``auth`` value so the endpoint's ``_is_authorized`` gate
-    passes. The user is resolved opportunistically when a ``user_id`` is present.
-    """
-
-    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
-        header = request.META.get("HTTP_X_VIEWER_CONTEXT")
-        if not header:
-            # No viewer context: leave authentication to the HMAC authenticator.
-            return None
-
-        vc = viewer_context_from_header(header)
-        if vc is None or vc.organization_id is None:
-            # Reject a viewer context that is unverifiable OR carries no
-            # organization: every seer RPC call acts on behalf of an org, so a
-            # VC used for auth MUST name one. We fall through (do not raise) so a
-            # valid HMAC on the same request can still win; otherwise the
-            # endpoint denies via _is_authorized. This guarantees every
-            # VC-authenticated call carries an attested org to enforce against.
-            return None
-
-        user: Any = AnonymousUser()
-        if vc.user_id is not None:
-            resolved = user_service.get_user(user_id=vc.user_id)
-            if resolved is not None:
-                user = resolved
-
-        sentry_sdk.get_isolation_scope().set_tag("seer_rpc_viewer_context_auth", True)
-        sentry_sdk.get_isolation_scope().set_attribute("seer_rpc_viewer_context_auth", True)
-
-        # Stash the verified context so the org-binding guard reads the signed
-        # value directly. (The middleware contextvar can drop organization_id when
-        # it resolves the user and prefers the request context, so it is not a
-        # reliable source for the binding check.)
-        setattr(request, "_seer_rpc_viewer_context", vc)
-
-        # Return the raw header as a truthy ``auth`` so ``_is_authorized`` passes,
-        # mirroring the HMAC authenticator's (user, token) shape.
-        return (user, header)
 
 
 @internal_cell_silo_endpoint
@@ -463,23 +399,6 @@ class SeerRpcServiceEndpoint(Endpoint):
 def get_organization_slug(*, org_id: int) -> OrganizationSlugResponse:
     org: Organization = Organization.objects.get(id=org_id)
     return OrganizationSlugResponse(slug=org.slug)
-
-
-def get_organization_project_ids(*, org_id: int) -> OrganizationProjectIdsResponse:
-    """Get all active projects (IDs and slugs) for an organization"""
-    try:
-        organization = Organization.objects.get(id=org_id)
-    except Organization.DoesNotExist:
-        return OrganizationProjectIdsResponse(projects=[])
-
-    projects = [
-        OrganizationProject(id=row["id"], slug=row["slug"])
-        for row in Project.objects.filter(
-            organization=organization, status=ObjectStatus.ACTIVE
-        ).values("id", "slug")
-    ]
-
-    return OrganizationProjectIdsResponse(projects=projects)
 
 
 def get_organization_projects(*, org_id: int) -> OrganizationProjectsResponse:
@@ -835,40 +754,6 @@ def has_repo_code_mappings(
     )
 
 
-def validate_repo(
-    *,
-    organization_id: int,
-    provider: str,
-    external_id: str,
-    owner: str,
-    name: str,
-) -> ValidateRepoSuccessResponse | ValidateRepoErrorResponse:
-    """
-    Validate that a repository exists and belongs to the given organization.
-
-    Args:
-        organization_id: The Sentry organization ID
-        provider: The SCM provider (e.g., "github", "github_enterprise")
-        external_id: The repository's external ID in the provider's system
-        owner: The repository owner (e.g., "getsentry")
-        name: The repository name (e.g., "sentry")
-    """
-    repo = filter_repo_by_provider(organization_id, provider, external_id, owner, name).first()
-
-    if not repo:
-        return ValidateRepoErrorResponse(reason="repository_not_found")
-
-    try:
-        organization = Organization.objects.get_from_cache(id=organization_id)
-    except Organization.DoesNotExist:
-        return ValidateRepoErrorResponse(reason="organization_not_found")
-    if repo.provider not in get_supported_scm_providers(organization):
-        logger.warning("seer.scm.unsupported_provider", extra={"provider": repo.provider})
-        return ValidateRepoErrorResponse(reason="unsupported_provider")
-
-    return ValidateRepoSuccessResponse(integration_id=repo.integration_id)
-
-
 def get_repo_installation_id(
     *,
     organization_id: int,
@@ -926,109 +811,6 @@ def get_repo_installation_id(
     )
 
 
-def check_repository_integrations_status(
-    *, repository_integrations: list[dict[str, Any]]
-) -> RepositoryIntegrationsStatusResponse:
-    """
-    Check whether repository integrations exist and are active.
-
-    Args:
-        repository_integrations: List of dicts, each containing:
-            - organization_id: Organization ID (required)
-            - external_id: External repository ID (required)
-            - provider: Provider identifier (required, e.g., "github", "github_enterprise")
-                       Supports both with and without "integrations:" prefix
-
-    Returns:
-        dict: {
-            "integration_ids": list of integration IDs (as integers) from the database,
-                              or None if repository doesn't exist/isn't active/doesn't have an integration id
-        }
-        e.g., {"integration_ids": [123, None, 456]}
-        None indicates repository not found, inactive, or has unsupported SCM provider.
-        The integration_ids are returned so Seer can store them for future reference.
-
-    Note:
-        - Repositories are matched by (organization_id, provider, external_id) which has a unique constraint
-        - integration_id is NOT required in the request and NOT used in matching
-        - integration_id from the database is returned as an integer so Seer can store it for future reference
-    """
-
-    if not repository_integrations:
-        return RepositoryIntegrationsStatusResponse(integration_ids=[])
-
-    logger.info(
-        "seer_rpc.check_repository_integrations_status.called",
-        extra={
-            "repository_integrations_count": len(repository_integrations),
-            "repository_integrations_sample": repository_integrations[:10],
-        },
-    )
-
-    q_objects = Q()
-
-    for item in repository_integrations:
-        # Match only by organization_id, provider, and external_id
-        q_objects |= Q(
-            organization_id=item["organization_id"],
-            provider=f"integrations:{item['provider']}",
-            external_id=item["external_id"],
-        ) | Q(
-            organization_id=item["organization_id"],
-            provider=item["provider"],
-            external_id=item["external_id"],
-        )
-
-    org_ids = {item["organization_id"] for item in repository_integrations}
-    orgs_by_id = {org.id: org for org in Organization.objects.filter(id__in=org_ids)}
-    supported_by_org: dict[int, set[str]] = {
-        org_id: set(get_supported_scm_providers(org)) for org_id, org in orgs_by_id.items()
-    }
-    all_supported_providers: set[str] = set()
-    for providers in supported_by_org.values():
-        all_supported_providers.update(providers)
-
-    existing_repos = Repository.objects.filter(
-        q_objects, status=ObjectStatus.ACTIVE, provider__in=all_supported_providers
-    ).values_list("organization_id", "provider", "integration_id", "external_id")
-
-    existing_map: dict[tuple, int | None] = {}
-
-    for org_id, provider, integration_id, external_id in existing_repos:
-        if provider not in supported_by_org.get(org_id, set()):
-            continue
-        key = (org_id, provider, external_id)
-        if key not in existing_map:
-            existing_map[key] = integration_id
-
-    integration_ids = []
-
-    for item in repository_integrations:
-        repo_tuple_with_prefix = (
-            item["organization_id"],
-            f"integrations:{item['provider']}",
-            item["external_id"],
-        )
-        repo_tuple_without_prefix = (
-            item["organization_id"],
-            item["provider"],
-            item["external_id"],
-        )
-
-        found_integration_id = existing_map.get(repo_tuple_with_prefix) or existing_map.get(
-            repo_tuple_without_prefix
-        )
-
-        integration_ids.append(found_integration_id)
-
-    logger.info(
-        "seer_rpc.check_repository_integrations_status.completed",
-        extra={"integration_ids": integration_ids},
-    )
-
-    return RepositoryIntegrationsStatusResponse(integration_ids=integration_ids)
-
-
 def get_project_preferences(*, organization_id: int, project_id: int) -> SeerProjectPreference:
     """Get Seer project preferences for a single project.
 
@@ -1039,18 +821,6 @@ def get_project_preferences(*, organization_id: int, project_id: int) -> SeerPro
         raise Project.DoesNotExist
 
     return read_preference_from_sentry_db(project)
-
-
-def bulk_get_project_preferences(
-    *, organization_id: int, project_ids: list[int]
-) -> BulkProjectPreferencesResponse:
-    """Bulk get Seer project preferences, keyed by stringified project ID.
-
-    Projects not belonging to the given organization are silently skipped."""
-    preferences = bulk_read_preferences_from_sentry_db(organization_id, project_ids)
-    return BulkProjectPreferencesResponse(
-        __root__={str(project_id): pref.dict() for project_id, pref in preferences.items()}
-    )
 
 
 def deliver_feature_result(
@@ -1130,13 +900,18 @@ def refresh_monitoring_provider_token(
 
     try:
         provider.refresh_identity(identity)
-    except IdentityNotValid:
+    except IdentityNotValid as exc:
+        upstream_error = ""
+        cause = exc.__cause__
+        if cause is not None and hasattr(cause, "response") and cause.response is not None:
+            upstream_error = cause.response.text[:512]
         logger.exception(
             "monitoring_provider.refresh.identity_not_valid",
             extra={
                 "identity_id": identity_id,
                 "provider": idp.type,
                 "has_refresh_token": "refresh_token" in identity.data,
+                "upstream_error": upstream_error,
             },
         )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
@@ -1245,14 +1020,6 @@ def record_pr_attribution(
     return PrAttributionResponse(attribution_id=attribution.id)
 
 
-class ValidateLlmProxyKeyResponse(BaseModel):
-    valid: bool
-
-
-def validate_llm_proxy_key(api_key: str) -> ValidateLlmProxyKeyResponse:
-    return ValidateLlmProxyKeyResponse(valid=True)
-
-
 # Every value below MUST be a function returning a `pydantic.BaseModel` (or
 # a union of `BaseModel` subclasses, optionally with `None`). Two complementary
 # guards enforce this:
@@ -1269,11 +1036,8 @@ def validate_llm_proxy_key(api_key: str) -> ValidateLlmProxyKeyResponse:
 seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serialized
     # Common to Seer features
     "get_github_enterprise_integration_config": seer_rpc(get_github_enterprise_integration_config),
-    "get_organization_project_ids": seer_rpc(get_organization_project_ids),
     "get_organization_projects": seer_rpc(get_organization_projects),
     "get_organization_features": seer_rpc(get_organization_features),
-    "check_repository_integrations_status": seer_rpc(check_repository_integrations_status),
-    "validate_repo": seer_rpc(validate_repo),
     "get_repo_installation_id": seer_rpc(get_repo_installation_id),
     #
     # Autofix
@@ -1284,7 +1048,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "send_seer_webhook": seer_rpc(send_seer_webhook),
     "get_attributes_for_span": seer_rpc(get_attributes_for_span),
     "get_project_preferences": seer_rpc(get_project_preferences),
-    "bulk_get_project_preferences": seer_rpc(bulk_get_project_preferences),
     #
     # Bug prediction
     "has_repo_code_mappings": seer_rpc(has_repo_code_mappings),
@@ -1322,7 +1085,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "execute_trace_table_query": seer_rpc(execute_trace_table_query),
     "execute_replays_query": seer_rpc(execute_replays_query),
     "execute_issues_query": seer_rpc(execute_issues_query),
-    "get_trace_item_attributes": seer_rpc(get_trace_item_attributes),
     "get_repository_definition": seer_rpc(get_repository_definition),
     "call_custom_tool": seer_rpc(call_custom_tool),
     "call_on_completion_hook": seer_rpc(call_on_completion_hook),
@@ -1331,7 +1093,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "get_log_attributes_for_trace": seer_rpc(get_log_attributes_for_trace),
     "get_metric_attributes_for_trace": seer_rpc(get_metric_attributes_for_trace),
     "get_baseline_tag_distribution": seer_rpc(get_baseline_tag_distribution),
-    "get_comparative_attribute_distributions": seer_rpc(get_comparative_attribute_distributions),
     "get_dsn": seer_rpc(get_dsn),
     #
     # Replays
@@ -1349,7 +1110,7 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "refresh_monitoring_provider_token": seer_rpc(refresh_monitoring_provider_token),
     #
     # LLM Proxy
-    "validate_llm_proxy_key": seer_rpc(validate_llm_proxy_key),
+    "make_llm_proxy_key": seer_rpc(make_llm_proxy_key),
 }
 
 

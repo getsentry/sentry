@@ -7,24 +7,16 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivityLineActor} from './actor';
 import {ActivityLineBody} from './body';
 import {getCompactGroupActivityItem} from './compactActivityItem';
-import {ActivityLineHeadline, ActivityLineRow, type ActivityLineVariant} from './layout';
+import {ActivityLineHeadline, ActivityLineRow} from './layout';
 import {ActivityLineMarker} from './progressMarker';
-
-export {ActivityLineNote, isActivityNote} from './note';
 
 interface ActivityLineProps {
   group: Group;
-  inputVariant: ActivityLineVariant;
   item: GroupActivity;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
-export function ActivityLine({
-  item,
-  group,
-  inputVariant,
-  timestampUnitStyle,
-}: ActivityLineProps) {
+export function ActivityLine({item, group, timestampUnitStyle}: ActivityLineProps) {
   const organization = useOrganization();
   const {issueCategory, project} = group;
   const compactItem = useMemo(
@@ -40,14 +32,13 @@ export function ActivityLine({
   const timestamp = <TimeSince date={item.dateCreated} unitStyle={timestampUnitStyle} />;
 
   return (
-    <ActivityLineRow variant={inputVariant}>
+    <ActivityLineRow>
       <ActivityLineMarker item={item} />
       <ActivityLineActor item={item} />
       <ActivityLineHeadline
         title={compactItem.title}
         details={compactItem.details}
         timestamp={timestamp}
-        variant={inputVariant}
       />
       <ActivityLineBody subtext={compactItem.subtext} />
     </ActivityLineRow>

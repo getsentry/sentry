@@ -1,5 +1,5 @@
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {PanelItem} from 'sentry/components/panels/panelItem';
@@ -44,10 +44,10 @@ export function ConnectorRow({
     <PanelItem center>
       <Flex align="center" gap="md" flex="1">
         <PluginIcon size={36} pluginId={pluginId} />
-        <Flex direction="column">
+        <Stack>
           <Text bold>{provider.name}</Text>
           <ConnectorStatus status={status} />
-        </Flex>
+        </Stack>
       </Flex>
       {status === 'connected' ? (
         <Button
