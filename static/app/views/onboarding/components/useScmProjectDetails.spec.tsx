@@ -440,6 +440,57 @@ describe('useScmProjectDetails', () => {
       await waitFor(() => expect(result.current.canSubmit).toBe(true));
     });
 
+    it('unblocks submit and falls back to email-only when saved integration is deleted', async () => {
+      // The saved action points to workspace '999', which is not in the current
+      // integration list (only slackIntegration with id '10' is present). This
+      // simulates the integration being deleted after the form was first submitted.
+      const persistedAction = {
+        id: IssueAlertActionType.SLACK as const,
+        workspace: '999',
+        channel: '#eng',
+      };
+
+      const createdProject = ProjectFixture({slug: 'my-project', platform: 'python'});
+      const createMock = MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: createdProject,
+      });
+
+      const onComplete = jest.fn();
+      const {result} = renderDetails({
+        projectDetailsForm: {
+          projectName: 'my-project',
+          teamSlug: adminTeam.slug,
+          alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+          notificationAction: persistedAction,
+        },
+        selectedPlatform: pythonPlatform,
+        onComplete,
+      });
+
+      // Gate starts blocked while query is in flight.
+      expect(result.current.canSubmit).toBe(false);
+
+      // Once the query resolves and the picker shows the setup CTA (because the
+      // saved integration is absent), the gate must release.
+      await waitFor(() =>
+        expect(result.current.notificationProps.shouldRenderSetupButton).toBe(true)
+      );
+      expect(result.current.canSubmit).toBe(true);
+
+      // Submitting falls back to email-only: no messaging rule is created and
+      // onComplete receives notificationAction === undefined.
+      act(() => {
+        result.current.submit();
+      });
+
+      await waitFor(() => expect(onComplete).toHaveBeenCalled());
+      expect(createMock).toHaveBeenCalled();
+      const {projectDetailsForm: submittedForm} = onComplete.mock.calls[0][0];
+      expect(submittedForm.notificationAction).toBeUndefined();
+    });
+
     it('creates a new project when the notification channel changes on return', async () => {
       const existingProject = ProjectFixture({slug: 'my-project', platform: 'python'});
       ProjectsStore.loadInitialData([existingProject]);

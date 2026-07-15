@@ -306,18 +306,29 @@ export function useScmProjectDetails({
 
   const submitTooltipText = getSubmitTooltipText(missingFields);
 
-  // Blocks canSubmit until a persisted notification selection is restored (query
-  // resolved + INTEGRATION re-added by the init effect), then latches open so
-  // unchecking integration later doesn't re-block. No-op when there's no saved action.
   const notificationRestoreCompleteRef = useRef(!projectDetailsForm?.notificationAction);
+
+  const notificationQuerySettled =
+    notificationProps.querySuccess || notificationProps.queryError;
+
+  const notificationPickerSettled =
+    notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION) ||
+    notificationProps.shouldRenderSetupButton;
+
+  // Blocks canSubmit until a persisted notification selection settles, then latches open
+  // so later edits don't re-block. No-op when there's no saved action.
+  // "Settled" means one of three things happened after the query resolved:
+  //   1. Integration restored   — INTEGRATION re-added to actions by the init effect
+  //   2. Integration gone       — picker fell back to the setup CTA (deleted integration)
+  //   3. Query failed           — unblock so the user isn't permanently stuck
   if (
     !notificationRestoreCompleteRef.current &&
-    ((notificationProps.querySuccess &&
-      notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION)) ||
-      notificationProps.queryError)
+    notificationQuerySettled &&
+    notificationPickerSettled
   ) {
     notificationRestoreCompleteRef.current = true;
   }
+
   // Block submission until teams and the projects store have loaded so the
   // reuse check below can't be bypassed by a race.
   const canSubmit =
