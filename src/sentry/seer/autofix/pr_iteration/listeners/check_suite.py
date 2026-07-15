@@ -11,7 +11,6 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.queue import try_enqueue_autofix_feedback
 from sentry.seer.models import SeerApiError
-from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +88,11 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
                 "run_id": agent_state.run_id,
             },
         )
+        # Lazy: tasks.seer.pr_iteration → scm.factory → github → jira client
+        # which calls absolute_uri() at import time (needs options cache).
+        # stream.py is loaded in AppConfig.ready before options init.
+        from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
+
         trigger_consume_pr_iteration_feedback(
             run_id=agent_state.run_id,
             organization_id=organization_id,

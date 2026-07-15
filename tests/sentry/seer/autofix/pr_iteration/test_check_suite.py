@@ -19,6 +19,8 @@ from sentry.testutils.cases import TestCase
 
 CHECK_PATH = "sentry.seer.autofix.pr_iteration.listeners.check_suite"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
+# Lazy-imported inside the listener (must not load at AppConfig.ready).
+TRIGGER_CONSUME_PATH = "sentry.tasks.seer.pr_iteration.trigger_consume_pr_iteration_feedback"
 
 
 class PrIterationFromCheckSuiteListenerTest(TestCase):
@@ -121,7 +123,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
         mock_enqueue.assert_not_called()
 
-    @patch(f"{CHECK_PATH}.trigger_consume_pr_iteration_feedback")
+    @patch(TRIGGER_CONSUME_PATH)
     @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=False)
     @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
@@ -140,7 +142,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
         mock_trigger_consume.assert_not_called()
 
-    @patch(f"{CHECK_PATH}.trigger_consume_pr_iteration_feedback")
+    @patch(TRIGGER_CONSUME_PATH)
     @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
@@ -166,7 +168,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_trigger_consume.assert_called_once()
 
     @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
-    @patch(f"{CHECK_PATH}.trigger_consume_pr_iteration_feedback")
+    @patch(TRIGGER_CONSUME_PATH)
     @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
