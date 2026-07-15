@@ -262,7 +262,7 @@ def process_event(
                     project_id=project_id,
                 )
             else:
-                metrics.incr("feedback.ingest.denylist")
+                metrics.incr("feedback.ingest.filtered", tags={"reason": "org.denylist"})
         else:
             # Preprocess this event, which spawns either process_event or
             # save_event. Pass data explicitly to avoid fetching it again from the
