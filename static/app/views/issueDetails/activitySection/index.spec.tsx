@@ -946,7 +946,11 @@ describe('ActivitySection', () => {
     }
   });
 
-  it.each([
+  it.each<{
+    activity: GroupActivity;
+    expectedCopy: Array<RegExp | string>;
+    name: string;
+  }>([
     {
       name: 'automatic ongoing',
       activity: {
@@ -1048,7 +1052,27 @@ describe('ActivitySection', () => {
         dateCreated: '2020-01-01T00:00:00',
         data: {eventCount: 4, newGroupId: 2, oldGroupId: 1},
       } satisfies GroupActivity,
-      expectedCopy: ['Reprocessed', 'into 4 new events'],
+      expectedCopy: ['Reprocessed', 'into', '4 new events'],
+    },
+    {
+      name: 'deleted attachment',
+      activity: {
+        type: GroupActivityType.DELETED_ATTACHMENT,
+        id: 'deleted-attachment-1',
+        dateCreated: '2020-01-01T00:00:00',
+        data: {},
+      } satisfies GroupActivity,
+      expectedCopy: ['Deleted an attachment'],
+    },
+    {
+      name: 'reviewed',
+      activity: {
+        type: GroupActivityType.MARK_REVIEWED,
+        id: 'reviewed-1',
+        dateCreated: '2020-01-01T00:00:00',
+        data: {},
+      } satisfies GroupActivity,
+      expectedCopy: ['Reviewed'],
     },
     {
       name: 'Seer pull request creation',
@@ -1115,6 +1139,18 @@ describe('ActivitySection', () => {
 
     for (const copy of expectedCopy) {
       expect(await screen.findByText(copy)).toBeInTheDocument();
+    }
+
+    if (activity.type === GroupActivityType.REPROCESS) {
+      expect(screen.getByRole('link', {name: '4 new events'})).toBeInTheDocument();
+      expect(screen.getByRole('img', {name: 'Activity update'})).toBeInTheDocument();
+    }
+
+    if (
+      activity.type === GroupActivityType.DELETED_ATTACHMENT ||
+      activity.type === GroupActivityType.MARK_REVIEWED
+    ) {
+      expect(screen.getByRole('img', {name: 'Activity update'})).toBeInTheDocument();
     }
   });
 
