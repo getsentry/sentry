@@ -2,9 +2,10 @@ import {Fragment} from 'react';
 
 import type {ButtonProps, LinkButtonProps} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
-import {Text, Heading} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {BreadcrumbCopyActionProps} from 'sentry/components/breadcrumbList/actions/breadcrumbCopyAction';
@@ -82,7 +83,7 @@ export interface BreadcrumbItemPageTitleProps {
    * when text is truncated; `false` disables it; a ReactNode renders an always-on
    * custom tooltip (e.g. an issue short-id).
    */
-  labelTooltip?: boolean | React.ReactNode;
+  labelTooltip?: React.ReactNode;
   /**
    * Decorative 16×16 leading graphic — a `ProjectsSavedBadge`, avatar, or icon.
    * Rendered aria-hidden inside a fixed-size slot; the label carries the meaning.
@@ -96,14 +97,11 @@ export interface BreadcrumbItemPageTitleProps {
 
 export function BreadcrumbItemPageTitle({
   label,
-  labelTooltip = true,
+  labelTooltip,
   leadingGraphic,
   pagination,
   trailingActions,
 }: BreadcrumbItemPageTitleProps) {
-  // boolean → tooltip shows the label (or is disabled); ReactNode → always-on custom tooltip.
-  const tooltipTitle = typeof labelTooltip === 'boolean' ? label : labelTooltip;
-  const tooltipDisabled = labelTooltip === false;
   const actions = renderTrailingActions(trailingActions);
 
   return (
@@ -140,17 +138,15 @@ export function BreadcrumbItemPageTitle({
       {leadingGraphic && <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>}
       {/* minWidth={0} lets the heading shrink. The visible-width floor lives on the
           outer Flex above. */}
-      <Tooltip title={tooltipTitle} disabled={tooltipDisabled} skipWrapper>
-        <Container minWidth={0}>
-          {containerProps => (
-            <Text ellipsis bold variant="primary" {...containerProps}>
-              <Heading as="h1" variant="inherit">
-                {label}
-              </Heading>
-            </Text>
-          )}
-        </Container>
-      </Tooltip>
+      <Container minWidth={0}>
+        {containerProps => (
+          <InfoText title={labelTooltip} bold {...containerProps}>
+            <Heading as="h1" ellipsis variant="inherit">
+              {label}
+            </Heading>
+          </InfoText>
+        )}
+      </Container>
       {actions}
     </Flex>
   );
