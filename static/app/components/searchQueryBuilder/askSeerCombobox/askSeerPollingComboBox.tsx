@@ -13,6 +13,7 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import {AskSeerLoadingStatus} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerLoadingStatus';
 import {AskSeerProgressBlocks} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerProgressBlocks';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
 import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
@@ -128,6 +129,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   const inputRef = useRef<HTMLInputElement>(null);
   const hasTrackedFetchErrorRef = useRef(false);
   const organization = useOrganization();
+  const hasAskSeerUxRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
   const {projects} = useProjects();
 
   const [searchQuery, setSearchQuery] = useState(() =>
@@ -534,13 +536,20 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
           overlayProps={overlayProps}
         >
           {showLoading ? (
-            <SeerContent>
-              <AskSeerSearchHeader title={t("I'm on it...")} loading />
-              <AskSeerProgressBlocks
+            hasAskSeerUxRework ? (
+              <AskSeerLoadingStatus
                 completedSteps={completedSteps}
                 currentStep={currentStep}
               />
-            </SeerContent>
+            ) : (
+              <SeerContent>
+                <AskSeerSearchHeader title={t("I'm on it...")} loading />
+                <AskSeerProgressBlocks
+                  completedSteps={completedSteps}
+                  currentStep={currentStep}
+                />
+              </SeerContent>
+            )
           ) : isSessionError ? (
             <SeerContent>
               <AskSeerSearchHeader
