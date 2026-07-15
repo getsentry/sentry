@@ -6,11 +6,11 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 
+import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {CreateSampleEventButton} from 'sentry/views/onboarding/createSampleEventButton';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 type Props = {

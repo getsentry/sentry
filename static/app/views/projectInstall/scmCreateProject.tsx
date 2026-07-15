@@ -14,6 +14,17 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
+import {ScmAlertFrequencySection} from 'sentry/components/onboarding/scm/scmAlertFrequencySection';
+import {ScmFeatureSelectionPanel} from 'sentry/components/onboarding/scm/scmFeatureSelectionPanel';
+import {ScmIntegrationConnect} from 'sentry/components/onboarding/scm/scmIntegrationConnect';
+import {ScmPlatformFeaturesCore} from 'sentry/components/onboarding/scm/scmPlatformFeaturesCore';
+import {ScmProjectDetailsCore} from 'sentry/components/onboarding/scm/scmProjectDetailsCore';
+import {useScmPlatformDetection} from 'sentry/components/onboarding/scm/useScmPlatformDetection';
+import {
+  type ScmProjectDetailsCompletion,
+  useScmProjectDetails,
+} from 'sentry/components/onboarding/scm/useScmProjectDetails';
+import {useScmProviders} from 'sentry/components/onboarding/scm/useScmProviders';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -26,17 +37,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage, writeStorageValue} from 'sentry/utils/useSessionStorage';
-import {ScmAlertFrequencySection} from 'sentry/views/onboarding/components/scmAlertFrequencySection';
-import {ScmFeatureSelectionPanel} from 'sentry/views/onboarding/components/scmFeatureSelectionPanel';
-import {ScmIntegrationConnect} from 'sentry/views/onboarding/components/scmIntegrationConnect';
-import {ScmPlatformFeaturesCore} from 'sentry/views/onboarding/components/scmPlatformFeaturesCore';
-import {ScmProjectDetailsCore} from 'sentry/views/onboarding/components/scmProjectDetailsCore';
-import {useScmPlatformDetection} from 'sentry/views/onboarding/components/useScmPlatformDetection';
-import {
-  type ScmProjectDetailsCompletion,
-  useScmProjectDetails,
-} from 'sentry/views/onboarding/components/useScmProjectDetails';
-import {useScmProviders} from 'sentry/views/onboarding/components/useScmProviders';
 import {
   WIZARD_STORAGE_KEY,
   type WizardState,

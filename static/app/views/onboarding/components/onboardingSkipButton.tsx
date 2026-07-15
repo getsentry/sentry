@@ -1,11 +1,11 @@
 import {LinkButton} from '@sentry/scraps/button';
 
+import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {QuickStartEventParameters} from 'sentry/utils/analytics/quickStartAnalyticsEvents';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OnboardingStepId} from 'sentry/views/onboarding/types';
-import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 type SidebarSource = QuickStartEventParameters['quick_start.opened']['source'];
 
