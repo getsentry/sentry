@@ -1,7 +1,6 @@
 import {Activity, Fragment, useRef, useState} from 'react';
 import type {DraggableAttributes} from '@dnd-kit/core';
 import type {SyntheticListenerMap} from '@dnd-kit/core/dist/hooks/utilities';
-import {useQuery} from '@tanstack/react-query';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
@@ -21,7 +20,6 @@ import {
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {calculateHeatMapBucketDimensions} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/calculateHeatMapBucketDimensions';
-import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
@@ -32,8 +30,8 @@ import {
   TraceSamplesTableColumns,
 } from 'sentry/views/explore/metrics/constants';
 import {unresolveExpression} from 'sentry/views/explore/metrics/equationBuilder/utils';
-import {metricHeatmapApiOptions} from 'sentry/views/explore/metrics/hooks/metricHeatmapApiOptions';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
+import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import {
@@ -181,7 +179,7 @@ export function MetricPanel({
     intervalOptions.map(intervalOption => intervalOption.value)
   );
 
-  const heatmapApiOptions = metricHeatmapApiOptions({
+  const heatMapData = useMetricHeatMapData({
     organization,
     selection,
     traceMetric,
@@ -189,14 +187,6 @@ export function MetricPanel({
     interval: heatMapBucketDimensions?.interval,
     yBuckets: heatMapBucketDimensions?.yBuckets,
     enabled: areHeatMapsEnabled && isHeatmap && !isMetricOptionsEmpty,
-  });
-
-  const heatmapResult = useQuery({
-    ...heatmapApiOptions,
-    select: data => {
-      const series = heatmapApiOptions.select!(data);
-      return mergeMetricUnit(series, traceMetric.unit ?? undefined);
-    },
   });
 
   useMetricsPanelAnalytics({
@@ -324,7 +314,7 @@ export function MetricPanel({
                     <Container minWidth="0" ref={chartContainerRef}>
                       {areHeatMapsEnabled && isHeatmap ? (
                         <MetricsHeatMap
-                          heatmapResult={heatmapResult}
+                          heatMapData={heatMapData}
                           actions={actions}
                           title={title}
                           queryLabel={queryLabel}
