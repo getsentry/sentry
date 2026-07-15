@@ -4,6 +4,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -220,7 +221,10 @@ describe('ScmCreateProject', () => {
 
   it('forwards the selected products to getting-started as the product query', async () => {
     persistWizardSession({
-      selectedFeatures: ['performance-monitoring', 'session-replay'],
+      selectedFeatures: [
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.SESSION_REPLAY,
+      ],
     });
 
     MockApiClient.addMockResponse({
@@ -253,8 +257,56 @@ describe('ScmCreateProject', () => {
     });
     // The upfront product selection seeds the setup docs via the product query.
     expect(router.location.query.product).toEqual([
-      'performance-monitoring',
-      'session-replay',
+      ProductSolution.PERFORMANCE_MONITORING,
+      ProductSolution.SESSION_REPLAY,
+    ]);
+  });
+
+  it('forwards synced-back product selection to getting-started on the next project creation', async () => {
+    // Simulate a round-trip: getting-started already patched selectedFeatures in
+    // the session via useScmCreateProjectProductSync. On return, the wizard reads
+    // the updated selection from session and forwards it to getting-started again.
+    persistWizardSession({
+      selectedFeatures: [
+        ProductSolution.PERFORMANCE_MONITORING,
+        ProductSolution.SESSION_REPLAY,
+      ],
+      projectDetailsForm: {projectName: 'my-project', teamSlug: adminTeam.slug},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+      method: 'POST',
+      body: ProjectFixture({slug: 'python', name: 'python'}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [adminTeam],
+    });
+
+    const {router} = render(<ScmCreateProject />, {
+      organization,
+      initialRouterConfig: returningRouterConfig,
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(router.location.pathname).toContain('/python/getting-started/');
+    });
+    // The synced-back selection is forwarded through the product query, closing
+    // the round-trip.
+    expect(router.location.query.product).toEqual([
+      ProductSolution.PERFORMANCE_MONITORING,
+      ProductSolution.SESSION_REPLAY,
     ]);
   });
 

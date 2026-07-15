@@ -4,6 +4,7 @@ import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
+import type {ScmAnalyticsFlow} from 'sentry/components/onboarding/scm/scmAnalyticsFlow';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
@@ -17,7 +18,6 @@ import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
-import type {ScmAnalyticsFlow} from 'sentry/views/onboarding/components/scmAnalyticsFlow';
 import {
   buildIntegrationAction,
   type IssueAlertNotificationProps,
