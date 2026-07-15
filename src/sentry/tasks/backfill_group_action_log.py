@@ -190,6 +190,8 @@ def _backfill_project(
     cursor_id: int = 0,
     activation_id: str | None = None,
 ) -> None:
+    from sentry.issues.derived.tasks import process_project_derived_data
+
     batch_size: int = options.get("issues.backfill_group_action_log.batch_size")
     inter_batch_delay_s: int = options.get("issues.backfill_group_action_log.inter_batch_delay_s")
 
@@ -210,8 +212,6 @@ def _backfill_project(
             params=[cursor_dt, cursor_id],
         )
     activities = list(qs.order_by("datetime", "id")[:batch_size])
-
-    from sentry.issues.derived.tasks import process_project_derived_data
 
     if not activities:
         logger.info(
