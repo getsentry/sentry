@@ -5,6 +5,7 @@ from sentry.explore.models import (
     TraceItemTypes,
     TraceMetricTypes,
 )
+from sentry.search.eap.trace_metrics.types import TraceMetricType
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TraceMetricsTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -24,7 +25,7 @@ class OrganizationTraceItemMetricContextEndpointTest(
         super().setUp()
         self.login_as(user=self.user)
 
-    def store_metric(self, metric_name: str, metric_type: str = "counter") -> None:
+    def store_metric(self, metric_name: str, metric_type: TraceMetricType = "counter") -> None:
         self.store_eap_items(
             [
                 self.create_trace_metric(
