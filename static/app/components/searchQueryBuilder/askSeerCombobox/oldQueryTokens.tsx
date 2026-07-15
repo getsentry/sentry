@@ -12,25 +12,12 @@ import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
-import {OldQueryTokens} from './oldQueryTokens';
-
 const MAX_PROJECT_CHIPS = 3;
 
-export function QueryTokens(props: QueryTokensProps) {
-  const organization = useOrganization();
-
-  if (!organization.features.includes('gen-ai-ask-seer-ux-rework')) {
-    return <OldQueryTokens {...props} />;
-  }
-
-  return <NewQueryTokens {...props} />;
-}
-
-function NewQueryTokens({
+export function OldQueryTokens({
   groupBys,
   interval,
   query,
