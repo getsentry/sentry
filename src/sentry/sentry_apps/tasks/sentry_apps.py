@@ -562,7 +562,7 @@ def workflow_notification(
 
         install, issue, user = webhook_data
         data = kwargs.get("data", {})
-        data.update({"issue": serialize(issue)})
+        data.update({"issue": _webhook_issue_data(group=issue, serialized_group=serialize(issue))})
 
     send_webhooks(installation=install, event=event, data=data, actor=user)
 
