@@ -22,7 +22,12 @@ from sentry.models.pullrequest import (
     PullRequestMetrics,
     PullRequestVerdict,
 )
-from sentry.pr_metrics.emit import _activity_derived_metrics, ci_failing_at_close, select_verdict
+from sentry.pr_metrics.emit import (
+    VerdictDeferral,
+    _activity_derived_metrics,
+    ci_failing_at_close,
+    select_verdict,
+)
 from sentry.pr_metrics.judge import _pr_activity_timeline
 from sentry.pr_metrics.tasks import cleanup_pr_activity_task
 from sentry.pr_metrics.utils import load_activity_document, resolved_group_ids
@@ -97,7 +102,7 @@ class ActivityDocumentReadersTest(TestCase):
         PullRequestMetrics.objects.create(pull_request=self.pr)
         # A push landed after open → merged-with-later-commits → defer to a judge.
         self._write_doc(_doc(counts={"synchronized": 1}))
-        assert select_verdict(self.pr, self.organization) is None
+        assert select_verdict(self.pr, self.organization) is VerdictDeferral.NEEDS_JUDGE
 
     def test_select_verdict_merged_unchanged_from_empty_doc(self) -> None:
         PullRequestMetrics.objects.create(pull_request=self.pr)
@@ -121,7 +126,7 @@ class ActivityDocumentReadersTest(TestCase):
         # The legacy SYNCHRONIZED row wins the routing fallback, so the reader sees
         # the push and defers to the judge — not the wrong MERGED_UNCHANGED it would
         # emit if the empty {} doc were read as a real (zeroed) document.
-        assert select_verdict(self.pr, self.organization) is None
+        assert select_verdict(self.pr, self.organization) is VerdictDeferral.NEEDS_JUDGE
 
     # --- _activity_derived_metrics ----------------------------------------
 
