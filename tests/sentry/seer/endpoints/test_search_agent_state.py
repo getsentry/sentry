@@ -14,7 +14,6 @@ class SearchAgentStateEndpointTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
         self.features = {
-            "organizations:gen-ai-search-agent-translate": True,
             "organizations:gen-ai-features": True,
         }
 

@@ -8,7 +8,6 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -82,15 +81,6 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 }
             }
         """
-        has_feature = features.has(
-            "organizations:gen-ai-search-agent-translate", organization, actor=request.user
-        )
-        if not has_feature:
-            return Response(
-                {"detail": "Feature flag not enabled"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         has_seer_access, detail = has_seer_access_with_detail(organization, actor=request.user)
         if not has_seer_access:
             return Response(
