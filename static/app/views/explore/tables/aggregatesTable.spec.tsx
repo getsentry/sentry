@@ -210,7 +210,7 @@ describe('AggregatesTable', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('uses validated field types for aggregate table actions', async () => {
+  it('uses validated field types when aggregate metadata is missing', async () => {
     const eventView = EventView.fromLocation(
       LocationFixture({
         query: {
@@ -233,7 +233,6 @@ describe('AggregatesTable', () => {
             ],
             meta: {
               fields: {
-                'sentry.duration': FieldValueType.STRING,
                 'count()': FieldValueType.INTEGER,
               },
               units: {},
@@ -313,5 +312,46 @@ describe('AggregatesTable', () => {
 
     expect(screen.getByText('count(spans)')).toBeInTheDocument();
     expect(screen.queryByText(aggregate)).not.toBeInTheDocument();
+  });
+
+  it('abbreviates span counts when validation returns a less specific type', () => {
+    const aggregate = 'count(span.duration)';
+    const eventView = EventView.fromLocation(
+      LocationFixture({query: {field: ['span.op', aggregate]}})
+    );
+
+    render(
+      <AggregatesTableWithParamsProvider
+        validatedFieldTypes={{[aggregate]: FieldValueType.NUMBER}}
+        aggregatesTableResult={createAggregatesTableResult({
+          eventView,
+          result: {
+            data: [{'span.op': 'http', [aggregate]: 7_800_800}],
+            meta: {
+              fields: {
+                'span.op': FieldValueType.STRING,
+                [aggregate]: FieldValueType.INTEGER,
+              },
+              units: {},
+            },
+          },
+        })}
+      />,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              visualize: JSON.stringify({yAxes: [aggregate]}),
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    expect(screen.getByText('7.8M')).toBeInTheDocument();
   });
 });

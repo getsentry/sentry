@@ -25,10 +25,16 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.issues.action_log import publish_action_from_context, publish_actions_from_context_bulk
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, STATUS_CHANGE_ACTIVITY_TYPES, ActivityType
 from sentry.types.group import PriorityLevel
+from sentry.utils.action_log.activity_translator import (
+    activity_action_idempotency_key,
+    activity_to_action,
+)
+from sentry.utils.env import in_test_environment
 from sentry.workflow_engine.handlers.registry import invoke_workflow_activity_handlers
 from sentry.workflow_engine.types import DetectorId
 
@@ -112,6 +118,62 @@ class ActivityManager(BaseManager["Activity"]):
         invoke_workflow_activity_handlers(group, activity, detector_id)
 
         return activity
+
+    def create_without_group_action(self, **kwargs: Any) -> Activity:
+        return super().create(**kwargs)
+
+    def create(self, **kwargs: Any) -> Activity:
+        activity: Activity = super().create(**kwargs)
+        group_id = kwargs.get("group_id")
+        if group_id is None:
+            group = kwargs.get("group")
+            if group is not None:
+                group_id = group.id
+
+        if group_id is not None:
+            try:
+                group_action = activity_to_action(activity)
+                if group_action is not None:
+                    publish_action_from_context(
+                        group_action,
+                        group_id=group_id,
+                        project=activity.project,
+                        idempotency_key=activity_action_idempotency_key(activity),
+                    )
+            except Exception:
+                _default_logger.info("Failed to translate activity %d to GALE", activity.id)
+                if in_test_environment():
+                    raise
+
+        return activity
+
+    def bulk_create(self, *args: Any) -> list[Activity]:
+        activities: list[Activity] = super().bulk_create(*args)
+        try:
+            actions_with_activities = [
+                (activity_to_action(activity), activity) for activity in activities
+            ]
+            group_actions = [
+                # This loads the group just to fetch the ID, which isn't ideal... but we need the
+                # group ID for each activity, which can be different. No real way around it.
+                # Thankfully, this function is rarely-used (and isn't in any perf-sensitive paths)
+                (aa[0], aa[1].project, aa[1].group.id, activity_action_idempotency_key(aa[1]))
+                for aa in actions_with_activities
+                if aa[0] is not None and aa[1].group is not None
+            ]
+            publish_actions_from_context_bulk(
+                group_actions,
+            )
+
+        except Exception:
+            _default_logger.info(
+                "Failed to translate activities %s to GALE",
+                ", ".join([str(a.id) for a in activities]),
+            )
+            if in_test_environment():
+                raise
+
+        return activities
 
 
 @cell_silo_model

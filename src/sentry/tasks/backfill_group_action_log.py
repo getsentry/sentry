@@ -17,7 +17,10 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import json, metrics
-from sentry.utils.action_log.activity_translator import activity_to_action
+from sentry.utils.action_log.activity_translator import (
+    activity_action_idempotency_key,
+    activity_to_action,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +119,7 @@ def backfill_group_action_log_for_project(
     project_id: int,
     last_activity_id: int = 0,
     reset: bool = False,
+    cursor_datetime: str | None = None,
     **kwargs: object,
 ) -> None:
     task_state = current_task()
@@ -140,14 +144,16 @@ def backfill_group_action_log_for_project(
     if reset and last_activity_id == 0:
         _reset_project(project)
 
+    parsed_cursor = datetime.fromisoformat(cursor_datetime) if cursor_datetime else None
+
     try:
-        _backfill_project(project, last_activity_id, activation_id)
+        _backfill_project(project, parsed_cursor, activation_id)
     except Exception:
         logger.exception(
             "backfill_group_action_log.task_failed",
             extra={
                 "project_id": project_id,
-                "last_activity_id": last_activity_id,
+                "cursor_datetime": cursor_datetime,
             },
         )
         raise
@@ -178,7 +184,7 @@ def _reset_project(project: Project) -> None:
 
 def _backfill_project(
     project: Project,
-    last_activity_id: int,
+    cursor_dt: datetime | None,
     activation_id: str | None = None,
 ) -> None:
     batch_size: int = options.get("issues.backfill_group_action_log.batch_size")
@@ -191,13 +197,16 @@ def _backfill_project(
         )
         return
 
-    activities = list(
-        Activity.objects.filter(
-            project_id=project.id,
-            id__gt=last_activity_id,
-            group_id__isnull=False,
-        ).order_by("id")[:batch_size]
+    qs = Activity.objects.filter(
+        project_id=project.id,
+        group_id__isnull=False,
     )
+    if cursor_dt is not None:
+        # gte not gt: may re-fetch the last row from the previous batch, but the
+        # idempotency key (ON CONFLICT DO NOTHING) makes that a no-op. Avoids
+        # skipping rows that share a timestamp at the batch boundary.
+        qs = qs.filter(datetime__gte=cursor_dt)
+    activities = list(qs.order_by("datetime")[:batch_size])
 
     if not activities:
         logger.info(
@@ -210,7 +219,7 @@ def _backfill_project(
         "backfill_group_action_log.batch_starting",
         extra={
             "project_id": project.id,
-            "last_activity_id": last_activity_id,
+            "cursor_datetime": cursor_dt.isoformat() if cursor_dt else None,
             "batch_size": len(activities),
             "first_activity_id": activities[0].id,
             "last_activity_id_in_batch": activities[-1].id,
@@ -252,7 +261,7 @@ def _backfill_project(
                 json.dumps(action.dict()),
                 activity.datetime,
                 activity.datetime,  # date_updated
-                f"activity:{activity.id}",
+                activity_action_idempotency_key(activity),
             ]
         )
         num_entries += 1
@@ -274,6 +283,8 @@ def _backfill_project(
         tags={"reason": "translation_error"},
     )
 
+    next_cursor = activities[-1].datetime.isoformat()
+
     logger.info(
         "backfill_group_action_log.batch_complete",
         extra={
@@ -281,7 +292,7 @@ def _backfill_project(
             "converted_count": converted_count,
             "skipped_count": skipped_count,
             "error_count": error_count,
-            "last_activity_id_in_batch": activities[-1].id,
+            "next_cursor_datetime": next_cursor,
         },
     )
 
@@ -289,7 +300,7 @@ def _backfill_project(
         backfill_group_action_log_for_project.apply_async(
             kwargs={
                 "project_id": project.id,
-                "last_activity_id": activities[-1].id,
+                "cursor_datetime": next_cursor,
             },
             countdown=inter_batch_delay_s,
             headers={"sentry-propagate-traces": False},

@@ -360,12 +360,19 @@ export function ScmPlatformFeaturesCore({
       key="detected"
       initial={{opacity: 0}}
       animate={{opacity: 1}}
-      gap="md"
+      gap="lg"
       width="100%"
     >
-      <Flex justify="between" align="center">
+      <Flex
+        justify="between"
+        align={{'screen:xs': 'start', 'screen:sm': 'center'}}
+        gap="md"
+        direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
+      >
         <Flex align="center" gap="sm">
-          <IconBroadcast size="sm" />
+          <Flex flexShrink={0}>
+            <IconBroadcast size="sm" />
+          </Flex>
           <Heading as="h4">{t('Auto-detected from your repository')}</Heading>
         </Flex>
         <Button size="xs" variant="link" onClick={handleChangePlatformClick}>

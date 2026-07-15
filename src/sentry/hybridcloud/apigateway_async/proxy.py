@@ -135,7 +135,8 @@ async def proxy_cell_request(
     header_dict[PROXY_APIGATEWAY_HEADER] = "true"
 
     assert request.method is not None
-    query_params = request.GET
+    query_string = request.META.get("QUERY_STRING")
+    request_url = f"{target_url}?{query_string}" if query_string else target_url
 
     timeout = ENDPOINT_TIMEOUT_OVERRIDE.get(url_name, settings.GATEWAY_PROXY_TIMEOUT)
 
@@ -163,9 +164,8 @@ async def proxy_cell_request(
                 with metrics.timer("apigateway.proxy_request.duration", tags=metric_tags):
                     req = proxy_client.build_request(
                         request.method,
-                        target_url,
+                        request_url,
                         headers=header_dict,
-                        params=dict(query_params) if query_params is not None else None,
                         content=_stream_request(data) if data else None,  # type: ignore[arg-type]
                         timeout=timeout or httpx.USE_CLIENT_DEFAULT,
                     )

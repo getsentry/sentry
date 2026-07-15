@@ -575,7 +575,7 @@ const appConfig: Configuration = {
       new rspack.SwcJsMinimizerRspackPlugin(),
     ],
   },
-  devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
+  devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-source-map',
 };
 
 /**

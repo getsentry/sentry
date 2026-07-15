@@ -91,11 +91,18 @@ export function ConversationViewContainer({children}: {children: React.ReactNode
       overflow="hidden"
       border={hasConversationsRedesign ? undefined : 'primary'}
       radius={hasConversationsRedesign ? undefined : 'md'}
-      maxWidth={hasConversationsRedesign ? '1340px' : undefined}
       background="primary"
       display="flex"
     >
-      <Flex flex={1} minWidth="0" minHeight="0" height="100%">
+      {/*
+       * No explicit `height: 100%` here: the parent Container is a flex row
+       * with the default `align-items: stretch`, so this pane already fills the
+       * available height. A `height: 100%` would resolve against the parent's
+       * height, which is indefinite when the app is in its mobile (column)
+       * layout — every browser then collapses this subtree to zero height,
+       * leaving the conversation detail view blank. (TET-2690)
+       */}
+      <Flex flex={1} minWidth="0" minHeight="0">
         {children}
       </Flex>
     </Container>
