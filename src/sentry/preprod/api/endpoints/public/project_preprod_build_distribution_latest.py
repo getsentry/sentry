@@ -78,9 +78,8 @@ class ProjectPreprodBuildDistributionLatestEndpoint(ProjectEndpoint):
                 name="buildNumber",
                 description=(
                     "Current build number. Accepts a plain integer (e.g. 42) or a "
-                    "dotted build code (e.g. Apple CFBundleVersion 1.2.3), which is "
-                    "expanded to the sortable integer used internally. Either this or "
-                    "mainBinaryIdentifier must be provided when buildVersion is set."
+                    "dotted build code (e.g. Apple CFBundleVersion 1.2.3). Either this "
+                    "or mainBinaryIdentifier must be provided when buildVersion is set."
                 ),
                 required=False,
                 type=str,
