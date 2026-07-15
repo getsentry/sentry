@@ -52,7 +52,7 @@ describe('partitionDateTimeIntoHeatMapWindows', () => {
 
   describe('Absolute ranges', () => {
     it('Partitions into aligned, non-overlapping, progressive windows', () => {
-      // 720 buckets (30d @ 1h), progressive → widths [55, 166, 499].
+      // 720 buckets (30d @ 1h), progressive → widths [341, 227, 152].
       const {windows, timeDomain} = partitionDateTimeIntoHeatMapWindows(
         absolute(BASE_MS, BASE_MS + 720 * HOUR),
         '1h',
@@ -62,7 +62,7 @@ describe('partitionDateTimeIntoHeatMapWindows', () => {
       expect(timeDomain).toEqual({start: BASE_MS, end: BASE_MS + 720 * HOUR});
       const absoluteWindows = windows as Array<{end: string; start: string}>;
 
-      expect(absoluteWindows.map(spanHours)).toEqual([499, 166, 55]);
+      expect(absoluteWindows.map(spanHours)).toEqual([341, 227, 152]);
 
       // Contiguous (no overlap), covering the whole range.
       expect(moment.utc(absoluteWindows[0]!.start).valueOf()).toBe(BASE_MS);
@@ -103,9 +103,9 @@ describe('partitionDateTimeIntoHeatMapWindows', () => {
       );
 
       expect(windows).toEqual([
-        {statsPeriod: '198000s'}, //                                 [55h ago, now]
-        {statsPeriodStart: '795600s', statsPeriodEnd: '190800s'}, //  [221h, 53h]
-        {statsPeriodStart: '2592000s', statsPeriodEnd: '788400s'}, // [720h, 219h]
+        {statsPeriod: '547200s'}, //                                  [152h ago, now]
+        {statsPeriodStart: '1364400s', statsPeriodEnd: '540000s'}, //  [379h, 150h]
+        {statsPeriodStart: '2592000s', statsPeriodEnd: '1357200s'}, // [720h, 377h]
       ]);
     });
   });

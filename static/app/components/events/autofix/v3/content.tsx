@@ -20,11 +20,13 @@ import {CodingAgentsCard} from 'sentry/components/events/autofix/v3/codingAgents
 import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
 import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
 import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
+import {SeerEnableNotifications} from 'sentry/components/events/autofix/v3/seerEnableNotifications';
 import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 interface SeerDrawerContentProps {
@@ -91,6 +93,7 @@ interface SeerDrawerArtifactsProps {
 }
 
 function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsProps) {
+  const organization = useOrganization();
   return (
     <Fragment>
       {sections.map(section => {
@@ -133,6 +136,11 @@ function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsPr
         // TODO: maybe send a log?
         return null;
       })}
+
+      {organization.features.includes('autofix-browser-notifications') &&
+        sections.some(section => section.status === 'processing') && (
+          <SeerEnableNotifications />
+        )}
     </Fragment>
   );
 }

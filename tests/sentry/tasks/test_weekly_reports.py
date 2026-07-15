@@ -1618,40 +1618,30 @@ class WeeklyReportsTest(
             },
         )
 
-    @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
-    def test_dry_run_simple(self, message_builder: mock.MagicMock, record: mock.MagicMock) -> None:
-        org = self.create_organization()
-        proj = self.create_project(organization=org)
-        # fill with data so report not skipped
-        self.store_event_outcomes(org.id, proj.id, self.two_days_ago, num_times=2)
+    def test_dry_run_without_email_override_blocks_send(
+        self, message_builder: mock.MagicMock
+    ) -> None:
+        """dry_run=True without email_override should not send."""
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
+        self._set_option_value("always")
 
         prepare_organization_report(
             self.timestamp,
             ONE_DAY * 7,
-            org.id,
+            self.organization.id,
             self._dummy_batch_id,
             dry_run=True,
-            target_user=None,
-            email_override="doesntmatter@smad.com",
         )
 
-        with pytest.raises(AssertionError):
-            assert_any_analytics_event(
-                record,
-                WeeklyReportSent(
-                    user_id=None,
-                    organization_id=self.organization.id,
-                    notification_uuid="mock.ANY",
-                    user_project_count=1,
-                ),
-            )
-
         message_builder.return_value.send.assert_not_called()
+        message_builder.return_value.send_async.assert_not_called()
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
-    def test_dry_run_does_not_block_subsequent_send(self, message_builder: mock.MagicMock) -> None:
-        """A dry_run send should not poison the duplicate delivery check."""
+    def test_dry_run_with_email_override_still_sends(self, message_builder: mock.MagicMock) -> None:
+        """Admin sends (email_override) deliver the email even when dry_run=True."""
         user = self.create_user(email="dio@speedwagon.org")
         self.create_member(teams=[self.team], user=user, organization=self.organization)
         self.store_event_outcomes(
@@ -1667,9 +1657,32 @@ class WeeklyReportsTest(
             target_user=user.id,
             email_override="dio@speedwagon.org",
         )
-        message_builder.return_value.send.assert_not_called()
+
+        message_builder.return_value.send.assert_called_once_with(to=("dio@speedwagon.org",))
+
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    def test_email_override_bypasses_duplicate_check(self, message_builder: mock.MagicMock) -> None:
+        """Admin sends should not be blocked by a prior delivery."""
+        user = self.create_user(email="dio@speedwagon.org")
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.two_days_ago, num_times=2
+        )
+        self._set_option_value("always")
+
+        # First: normal send (records delivery in duplicate check)
+        prepare_organization_report(
+            self.timestamp,
+            ONE_DAY * 7,
+            self.organization.id,
+            self._dummy_batch_id,
+            dry_run=False,
+        )
+        assert message_builder.return_value.send_async.called
 
         message_builder.reset_mock()
+
+        # Second: admin send for the same user — should still deliver
         prepare_organization_report(
             self.timestamp,
             ONE_DAY * 7,
@@ -1677,9 +1690,9 @@ class WeeklyReportsTest(
             self._dummy_batch_id,
             dry_run=False,
             target_user=user.id,
-            email_override="dio@speedwagon.org",
+            email_override="admin@example.com",
         )
-        message_builder.return_value.send.assert_called_once_with(to=("dio@speedwagon.org",))
+        message_builder.return_value.send.assert_called_once_with(to=("admin@example.com",))
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.logger")
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_template_context")
