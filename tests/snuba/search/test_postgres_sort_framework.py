@@ -610,6 +610,35 @@ class TestProgressSort(PostgresSortTestBase):
         # groups[2] has no derived data -> identified (lowest rank), sorts last.
         assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
 
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_native_ordering_past_candidate_cap(self):
+        # With the cap at 0, the in-memory path overflows and (pre-Tier-1) would degrade to a
+        # plain last_seen sort. The native ORDER BY must instead rank correctly, exercising all
+        # three derived-data states: a normal row, a null-progress row (closed -> fix_applied),
+        # and a missing row (-> identified).
+        self.create_group_derived_data(group=self.groups[0], progress="diagnosed")
+        self.create_group_derived_data(group=self.groups[1], progress=None)
+        # groups[2] intentionally has no derived row -> identified (lowest rank).
+
+        # fix_applied (g1) > diagnosed (g0) > identified (g2), independent of last_seen order.
+        assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
+
+        # Paginating the native path must not overlap or drop rows across pages.
+        page1 = self.make_query(sort_by="progress", limit=2)
+        assert list(page1) == [self.groups[1], self.groups[0]]
+        page2 = self.make_query(sort_by="progress", limit=2, cursor=page1.next)
+        assert list(page2) == [self.groups[2]]
+
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_snuba_filter_over_cap_does_not_use_native_ordering(self):
+        # A Snuba-side filter disqualifies the native path, so over the cap the sort still
+        # falls through to the chunked recency path rather than ranking by progress.
+        with self.feature("projects:issue-stream-derived-progress"):
+            self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
+            results = self.make_query(sort_by="progress", query="issue 1")
+        assert list(results) == [self.groups[1]]
+
 
 class TestDefaultPostgresSortStrategies(TestCase):
     def test_recommended_v2_registered(self):

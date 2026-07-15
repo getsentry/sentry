@@ -14,6 +14,7 @@ from math import floor
 from typing import Any, TypedDict, cast
 
 import sentry_sdk
+from django.db.models import F
 from django.utils import timezone
 from snuba_sdk.query import Query
 
@@ -109,6 +110,12 @@ class PostgresSortStrategy:
     # Snuba recommended value) so it still appears, just without the boosts score_fn adds.
     fallback_score_fn: Callable[[dict[str, Any]], float] = lambda data: 0.0
     exclude_null_postgres: bool = True
+    # Optional cap-free path: given the candidate queryset, return (queryset, order_by_key)
+    # for a native Postgres ORDER BY so the sort can page past the in-memory candidate cap.
+    # Only usable when the score can be reproduced as SQL and the query has no Snuba-side
+    # filters (the ordering columns must live in Postgres). Left None for Snuba-blended
+    # strategies like recommended_v2, which have no all-Postgres ordering.
+    native_order_by: Callable[[BaseQuerySet], tuple[BaseQuerySet, str]] | None = None
 
 
 # we cannot use snuba for these fields because they require a join with tables that don't exist there
@@ -1096,10 +1103,7 @@ def resolve_progress_signal(
     scope has the ``projects:issue-stream-derived-progress`` flag enabled, progress is read
     from the materialized GroupDerivedData.progress column; otherwise it's derived from the
     same Activity records as the ``issue.progress`` filter. Every group gets a rank."""
-    if projects and all(
-        features.has("projects:issue-stream-derived-progress", project, actor=actor)
-        for project in projects
-    ):
+    if _has_derived_progress(actor, projects):
         states = _get_group_progress_states_from_derived_data(group_ids)
     else:
         states = get_group_progress_states(group_ids)
@@ -1115,15 +1119,72 @@ def _resolve_last_progressed_at(
     """Epoch-millisecond timestamp of the last progress change per group, read from
     GroupDerivedData.last_progressed_at. Groups without a value are omitted; score_fn
     falls through to last_seen for them."""
-    if not all(
-        features.has("projects:issue-stream-derived-progress", project, actor=actor)
-        for project in projects
-    ):
+    if not _has_derived_progress(actor, projects):
         return {}
     rows = GroupDerivedData.objects.filter(
         group_id__in=group_ids, last_progressed_at__isnull=False
     ).values_list("group_id", "last_progressed_at")
     return {group_id: ts.timestamp() * 1000 for group_id, ts in rows if ts is not None}
+
+
+def _has_derived_progress(actor: Any | None, projects: Sequence[Project]) -> bool:
+    """Whether progress should be read from the materialized GroupDerivedData columns
+    (rather than the Activity derivation) for every project in scope. The native ORDER BY
+    and both signal resolvers gate on this: the SQL score only matches the in-memory score
+    when the derived columns are the source of truth."""
+    return bool(projects) and all(
+        features.has("projects:issue-stream-derived-progress", project, actor=actor)
+        for project in projects
+    )
+
+
+# SQL for the progress sort score, matching progress_strategy().score_fn but computed in
+# Postgres so the sort can ORDER BY it natively (no in-memory candidate cap). The primary
+# term is the fix-cycle rank scaled by LAST_SEEN_TIEBREAK_DIVISOR; the secondary term is
+# last_progressed_at's epoch-ms (falling back to last_seen's), which is < the divisor, so
+# rank stays the primary key and the timestamp only breaks ties. Kept an integer so the
+# stock cursor Paginator (which floors the cursor value) pages it exactly.
+_PROGRESS_SORT_SCORE_SQL = (
+    "((CASE"
+    " WHEN {gdd}.group_id IS NULL THEN %s"  # no derived row -> identified
+    " WHEN {gdd}.progress IS NULL THEN %s"  # null column (closed) -> fix_applied
+    "{when_states}"
+    " ELSE %s"  # unknown string -> identified base
+    " END) * {divisor}"
+    " + CASE"
+    " WHEN {gdd}.last_progressed_at IS NOT NULL"
+    " THEN EXTRACT(EPOCH FROM {gdd}.last_progressed_at) * 1000"
+    " ELSE EXTRACT(EPOCH FROM {grp}.last_seen) * 1000"
+    " END)"
+)
+
+
+def _progress_native_order_by(queryset: BaseQuerySet) -> tuple[BaseQuerySet, str]:
+    """Attach the progress sort score as an ``.extra(select=)`` alias and return the
+    queryset + order-by key. ``.extra`` (not ``.annotate``) is required so the cursor
+    Paginator can reuse the alias SQL in its WHERE clause (see BasePaginator.build_queryset).
+    A LEFT OUTER JOIN to GroupDerivedData is forced via the reverse relation so groups with
+    no derived row still score (as identified)."""
+    identified = PROGRESS_STATE_SORT_RANK[IssueProgressState.IDENTIFIED]
+    fix_applied = PROGRESS_STATE_SORT_RANK[IssueProgressState.FIX_APPLIED]
+    when_states = ""
+    params: list[Any] = [identified, fix_applied]
+    for state, rank in PROGRESS_STATE_SORT_RANK.items():
+        when_states += f" WHEN {GroupDerivedData._meta.db_table}.progress = %s THEN %s"
+        params.extend([state.value, rank])
+    params.append(identified)
+
+    sql = _PROGRESS_SORT_SCORE_SQL.format(
+        gdd=GroupDerivedData._meta.db_table,
+        grp=Group._meta.db_table,
+        when_states=when_states,
+        divisor=LAST_SEEN_TIEBREAK_DIVISOR,
+    )
+    # F() on the nullable reverse OneToOne forces the LEFT OUTER JOIN the raw SQL relies on.
+    queryset = queryset.annotate(_gdd_join=F("groupderiveddata__progress")).extra(
+        select={"progress_sort_score": sql}, select_params=params
+    )
+    return queryset, "-progress_sort_score"
 
 
 def progress_strategy() -> PostgresSortStrategy:
@@ -1151,6 +1212,7 @@ def progress_strategy() -> PostgresSortStrategy:
             "last_progressed_at": _resolve_last_progressed_at,
         },
         score_fn=score_fn,
+        native_order_by=_progress_native_order_by,
     )
 
 
@@ -1255,6 +1317,25 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         has_snuba_filters = any(
             sf.key.name not in non_snuba_fields for sf in (search_filters or ())
         )
+
+        # Cap-free path: when the strategy can express its ordering entirely in Postgres and
+        # the query has no Snuba-side filters, ORDER BY the score natively and page it with a
+        # cursor paginator instead of scoring in memory. This lifts the max-candidates cap for
+        # the common issue-stream queries (no event-level filters), so the sort stays correct
+        # past the point where the in-memory path degrades to a plain last_seen sort.
+        if (
+            strategy.native_order_by is not None
+            and not has_snuba_filters
+            and _has_derived_progress(actor, projects)
+        ):
+            with start_span(
+                op="search.postgres_sort.native_order_by",
+                name="search.postgres_sort.native_order_by",
+            ):
+                ordered_queryset, order_by = strategy.native_order_by(group_queryset)
+                return Paginator(
+                    ordered_queryset.using_replica(), order_by=order_by, **paginator_options
+                ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
 
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
         with start_span(
