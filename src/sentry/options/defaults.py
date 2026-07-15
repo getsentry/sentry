@@ -340,6 +340,21 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Idempotency guard for self-chaining tasks (merge_groups / unmerge): dedupe the chain-step
+# spawn keyed on the broker activation id so a broker re-pend cannot fork the chain.
+register(
+    "taskworker.selfchain_idempotency.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "taskworker.selfchain_idempotency.ttl",
+    default=3600,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "cleanup.abort_execution",
@@ -611,6 +626,13 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Cooldown (seconds) between a PR's terminal close/merge webhook and emitting its
+# scm.pr.closed metrics row, so late attribution and activity can settle first.
+register(
+    "pr_metrics.emit_cooldown_seconds",
+    default=3600,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # GitHub Integration
@@ -1192,6 +1214,25 @@ register(
 )
 
 register(
+    "issues.backfill_group_action_log.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.batch_size",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.inter_batch_delay_s",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "seer.supergroups_backfill_lightweight.killswitch",
     type=Bool,
     default=False,
@@ -1532,10 +1573,10 @@ register(
 )
 
 # Brownout schedule for the deprecated alerts API endpoints.
-# 2 minute blackout 12 times a day (every 2 hours, on the hour, UTC).
+# 2 minute blackout 24 times a day (every hour, on the hour, UTC).
 register(
     "api.deprecation.alerts-cron",
-    default="0 */2 * * *",
+    default="0 * * * *",
     type=String,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3098,6 +3139,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate for resolution activity notifications via the notification platform
+register(
+    "notifications.platform.resolution-notifications.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch list of NotificationSource values that should be blocked from being
 # dispatched by the notification platform's NotificationService. Values must match
 # the string values of `sentry.notifications.platform.types.NotificationSource`.
@@ -3697,13 +3746,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Global flag to enable API token async flush
-register(
-    "api-token-async-flush",
-    default=False,
-    type=Bool,
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Cells
 
@@ -3788,14 +3830,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Rolls out the new TaskProducer to track_outcome in tasks
-register(
-    "tasks.producer.track_outcome.rollout",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Rolls out the new TaskProducer to preprod tasks
 register(
     "tasks.producer.preprod.rollout",
@@ -3840,5 +3874,21 @@ register(
     "error-embeds.control-silo-address",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Issues derived data — process_project_derived_data task
+# Number of groups per batch task when fanning out project-wide processing.
+register(
+    "issues.derived.project-batch-size",
+    default=500,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of batch tasks to schedule; aborts if exceeded.
+register(
+    "issues.derived.project-max-tasks",
+    default=1000,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

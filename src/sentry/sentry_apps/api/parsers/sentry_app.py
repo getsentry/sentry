@@ -12,7 +12,11 @@ from sentry.apidocs.parameters import build_typed_list
 from sentry.integrations.models.integration_feature import Feature
 from sentry.models.apiscopes import ApiScopes
 from sentry.sentry_apps.api.parsers.schema import validate_ui_element_schema
-from sentry.sentry_apps.models.sentry_app import REQUIRED_EVENT_PERMISSIONS, UUID_CHARS_IN_SLUG
+from sentry.sentry_apps.models.sentry_app import (
+    UUID_CHARS_IN_SLUG,
+    VALID_EVENTS,
+    required_scope_for_subscription,
+)
 from sentry.sentry_apps.utils.webhooks import VALID_EVENT_RESOURCES
 from sentry.utils.display_name_filter import is_spam_display_name
 
@@ -64,11 +68,11 @@ class EventListField(serializers.Field):
         if data is None:
             return
 
-        if not set(data).issubset(VALID_EVENT_RESOURCES):
+        # Individual events (vs whole resources) are flag-gated at the endpoint.
+        valid = set(VALID_EVENT_RESOURCES) | set(VALID_EVENTS)
+        if not set(data).issubset(valid):
             raise ValidationError(
-                "Invalid event subscription: {}".format(
-                    ", ".join(set(data).difference(VALID_EVENT_RESOURCES))
-                )
+                "Invalid event subscription: {}".format(", ".join(set(data).difference(valid)))
             )
         return data
 
@@ -310,11 +314,13 @@ class SentryAppParser(Serializer):
     def validate(self, attrs):
         # validates events against scopes
         if attrs.get("scopes"):
-            for resource in attrs.get("events", []):
-                needed_scope = REQUIRED_EVENT_PERMISSIONS[resource]
+            for subscription in attrs.get("events", []):
+                needed_scope = required_scope_for_subscription(subscription)
                 if needed_scope not in attrs["scopes"]:
                     raise ValidationError(
-                        {"events": f"{resource} webhooks require the {needed_scope} permission."}
+                        {
+                            "events": f"{subscription} webhooks require the {needed_scope} permission."
+                        }
                     )
 
         get_current_value = self.get_current_value_wrapper(attrs)

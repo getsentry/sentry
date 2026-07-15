@@ -2,10 +2,12 @@ from unittest.mock import Mock, patch
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.issues.search import group_types_from
 from sentry.models.group import Group
 from sentry.models.organization import OrganizationStatus
+from sentry.processing_errors.grouptype import LowValueSpanConfigurationType
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
-from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.autofix.utils import AutofixStoppingPoint, bulk_read_preferences_from_sentry_db
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunResult,
@@ -20,7 +22,11 @@ from sentry.tasks.seer.night_shift.cron import (
     schedule_night_shift,
 )
 from sentry.tasks.seer.night_shift.models import TriageAction
-from sentry.tasks.seer.night_shift.simple_triage import ScoredCandidate, fixability_score_strategy
+from sentry.tasks.seer.night_shift.simple_triage import (
+    ScoredCandidate,
+    fixability_score_strategy,
+    fixability_score_strategy_per_project,
+)
 from sentry.tasks.seer.night_shift.skip_cache import key as skip_cache_key
 from sentry.tasks.seer.night_shift.skip_cache import mark_skipped
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -277,7 +283,9 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         # Eligible on every gate.
         eligible = self._make_eligible(self.create_project(organization=org))
 
-        # Automation off (even with a connected repo).
+        # Automation off (even with a connected repo), and never given a
+        # stopping point (defaults to code_changes, not open_pr) — fails two
+        # gates at once, so the resulting log call should list both reasons.
         off = self.create_project(organization=org)
         off.update_option("sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF)
         off_repo = self.create_repo(project=off, provider="github", name="owner/off-repo")
@@ -286,10 +294,18 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
         # No connected repo.
         self.create_project(organization=org)
 
-        result = _get_eligible_projects(org, "manual")
+        with patch("sentry.tasks.seer.night_shift.cron.logger") as mock_logger:
+            result = _get_eligible_projects(org, "manual")
 
         assert [ep.project for ep in result] == [eligible]
         assert result[0].tweaks.enabled is True
+
+        off_extra = next(
+            call.kwargs["extra"]
+            for call in mock_logger.info.call_args_list
+            if call.kwargs["extra"]["project_id"] == off.id
+        )
+        assert off_extra["reasons"] == ["automation_tuning_off", "not_pr_producing"]
 
     def test_carries_each_projects_connected_repos(self) -> None:
         org = self.create_organization()
@@ -356,6 +372,27 @@ class TestGetEligibleProjects(NightShiftFixtures, TestCase):
 
         assert [ep.project.slug for ep in cron_result] == ["keep"]
         assert sorted(ep.project.slug for ep in manual_result) == ["drop", "keep"]
+
+    def test_skips_project_missing_from_preferences_lookup(self) -> None:
+        """project_map and preferences come from separate queries, so a
+        project absent from the preferences result (e.g. deleted in the gap
+        between the two queries) must be skipped, not raise a KeyError."""
+        org = self.create_organization()
+        present = self._make_eligible(self.create_project(organization=org))
+        missing = self._make_eligible(self.create_project(organization=org))
+
+        real_preferences = bulk_read_preferences_from_sentry_db(org.id, [present.id, missing.id])
+        stale_preferences = {
+            pid: pref for pid, pref in real_preferences.items() if pid != missing.id
+        }
+
+        with patch(
+            "sentry.tasks.seer.night_shift.cron.bulk_read_preferences_from_sentry_db",
+            return_value=stale_preferences,
+        ):
+            result = _get_eligible_projects(org, "manual")
+
+        assert [ep.project for ep in result] == [present]
 
 
 @django_db_all
@@ -615,7 +652,7 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
 
         with (
             self.feature("organizations:gen-ai-features"),
-            patch("sentry.tasks.seer.night_shift.cron.trigger_autofix_agent") as mock_autofix,
+            patch("sentry.seer.night_shift.delivery.trigger_autofix_agent") as mock_autofix,
         ):
             run_night_shift_for_org(org.id)
 
@@ -644,6 +681,44 @@ class TestRunNightShiftFeatureDelivery(NightShiftFixtures, TestCase, SnubaTestCa
         assert run.extras.get("error_message") is None
         # Verdicts and autofix are Seer's responsibility now; no result rows here.
         assert not SeerNightShiftRunResult.objects.filter(run=run).exists()
+
+    def test_allowed_project_slugs_gives_each_project_its_own_quota(self) -> None:
+        org = self.create_organization()
+        noisy = self._make_eligible(self.create_project(organization=org, slug="noisy"))
+        quiet = self._make_eligible(self.create_project(organization=org, slug="quiet"))
+
+        for i in range(3):
+            self._store_event_and_update_group(
+                noisy, f"noisy-{i}", seer_fixability_score=0.9, times_seen=5
+            )
+        quiet_issue = self._store_event_and_update_group(
+            quiet, "quiet-issue", seer_fixability_score=0.5, times_seen=1
+        )
+
+        with (
+            self.feature("organizations:gen-ai-features"),
+            self.options(
+                {
+                    "seer.night_shift.org_tweaks": {
+                        str(org.id): {
+                            "max_candidates": 1,
+                            "allowed_project_slugs": ["noisy", "quiet"],
+                        }
+                    }
+                }
+            ),
+        ):
+            run_night_shift_for_org(org.id)
+
+        run = SeerNightShiftRun.objects.get(organization=org)
+        shard = run.shards.get()
+        candidate_group_ids = self._shard_group_ids(shard)
+
+        # max_candidates=1 would only leave room for one of noisy's higher-scored
+        # issues under the combined strategy; per-project quotas give quiet a
+        # guaranteed slot too.
+        assert len(candidate_group_ids) == 2
+        assert quiet_issue.id in candidate_group_ids
 
     def test_shards_candidates_across_feature_runs(self) -> None:
         org = self.create_organization()
@@ -863,6 +938,7 @@ class TestRunNightShiftForOrgManualPath(NightShiftFixtures, TestCase):
                 "extra_triage_instructions": "",
             },
             "target_project_ids": [project.id],
+            "num_eligible_projects": 0,
         }
 
     def test_extras_contain_triggering_user_id_when_provided(self) -> None:
@@ -923,6 +999,53 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
         assert null.id in result_ids
         # Low-scored issue (below threshold) is excluded entirely
         assert len(result) == 3
+
+    def test_includes_low_value_span_issues_in_search(self) -> None:
+        project = self.create_project()
+        error_group = self.create_group(project=project)
+        lvs_group = self.create_group(project=project, type=LowValueSpanConfigurationType.type_id)
+
+        with patch(
+            "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
+        ) as mock_query:
+            mock_query.return_value = Mock(results=[error_group, lvs_group])
+            result = fixability_score_strategy([project], max_candidates=10)
+
+        assert {c.group.id for c in result} == {error_group.id, lvs_group.id}
+
+        mock_query.assert_called_once()
+        type_filters = [
+            sf
+            for sf in mock_query.call_args.kwargs["search_filters"]
+            if sf.key.name == "issue.type"
+        ]
+        assert len(type_filters) == 1
+        # The default type set is widened to include low-value-span, not replaced by it.
+        assert set(type_filters[0].value.raw_value) == group_types_from([]) | {
+            LowValueSpanConfigurationType.type_id
+        }
+
+    def test_per_project_fetch_limit_scales_with_max_candidates(self) -> None:
+        project = self.create_project()
+
+        with patch(
+            "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
+        ) as mock_query:
+            mock_query.return_value = Mock(results=[])
+            fixability_score_strategy_per_project([project], max_candidates=5)
+
+        assert mock_query.call_args.kwargs["limit"] == 15
+
+    def test_per_project_fetch_limit_caps_at_global_fetch_limit(self) -> None:
+        project = self.create_project()
+
+        with patch(
+            "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
+        ) as mock_query:
+            mock_query.return_value = Mock(results=[])
+            fixability_score_strategy_per_project([project], max_candidates=40)
+
+        assert mock_query.call_args.kwargs["limit"] == 100
 
 
 class TestTriageActionFromFixabilityScore:

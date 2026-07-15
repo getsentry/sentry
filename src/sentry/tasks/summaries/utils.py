@@ -1,9 +1,10 @@
 import logging
 from collections.abc import Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from django.db.models import Count
+from django.db.models.functions import TruncDay
 from snuba_sdk import Request
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -33,7 +34,6 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.occurrences_rpc import OccurrenceCategory, Occurrences
-from sentry.types.group import GroupSubStatus
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
@@ -73,15 +73,14 @@ class OrganizationReportContext:
 
 class ProjectContext:
     accepted_error_count = 0
-    accepted_transaction_count = 0
     prev_week_accepted_error_count = 0
-    prev_week_accepted_transaction_count = 0
 
     new_substatus_count = 0
     ongoing_substatus_count = 0
     escalating_substatus_count = 0
     regression_substatus_count = 0
     total_substatus_count = 0
+    prev_week_total_substatus_count = 0
 
     def __init__(self, project):
         self.project = project
@@ -98,14 +97,13 @@ class ProjectContext:
         # Dictionary of { timestamp: count }
         self.error_count_by_day = {}
         # Dictionary of { timestamp: count }
-        self.transaction_count_by_day = {}
+        self.issue_count_by_day = {}
 
     def __repr__(self) -> str:
         return "\n".join(
             [
                 f"{self.key_errors_by_group}, ",
                 f"Errors: [Accepted {self.accepted_error_count}]",
-                f"Transactions: [Accepted {self.accepted_transaction_count}]",
             ]
         )
 
@@ -115,7 +113,6 @@ class ProjectContext:
             and not self.key_performance_issues
             and not self.past_resolved_issues
             and not self.accepted_error_count
-            and not self.accepted_transaction_count
         )
 
 
@@ -216,7 +213,7 @@ def _project_key_errors_snuba(
         ],
         groupby=[Column("group_id", entity=events_entity)],
         orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limit=Limit(3),
+        limit=Limit(5),
     )
 
     request = Request(
@@ -236,7 +233,7 @@ def _org_key_errors_snuba(
     ctx: OrganizationReportContext,
     project_ids: Sequence[int],
     referrer: str,
-    per_project_limit: int = 3,
+    per_project_limit: int = 5,
 ) -> dict[int, list[dict[str, Any]]]:
     if not project_ids:
         return {}
@@ -399,7 +396,7 @@ def _project_key_errors_eap(
         {"events.group_id": row["group_id"], "count()": row["count()"]}
         for row in normalized_rows
         if row["group_id"] in unresolved_group_ids
-    ][:3]
+    ][:5]
 
     return filtered_rows
 
@@ -497,7 +494,7 @@ def _project_key_performance_issues_snuba(
         ],
         groupby=[Column("group_id")],
         orderby=[OrderBy(Function("count", []), Direction.DESC)],
-        limit=Limit(3),
+        limit=Limit(5),
     )
     request = Request(
         dataset=Dataset.IssuePlatform.value,
@@ -533,7 +530,7 @@ def _project_key_performance_issues_eap(
             selected_columns=["group_id", "count()"],
             orderby=["-count()"],
             offset=0,
-            limit=3,
+            limit=5,
             referrer=referrer,
             config=SearchResolverConfig(),
             occurrence_category=OccurrenceCategory.ISSUE_PLATFORM,
@@ -634,7 +631,7 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
             Condition(
                 Column("category"),
                 Op.IN,
-                [*DataCategory.error_categories(), DataCategory.TRANSACTION],
+                [*DataCategory.error_categories()],
             ),
         ],
         groupby=[Column("outcome"), Column("category"), Column("project_id"), Column("time")],
@@ -652,29 +649,24 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
     return data
 
 
-def organization_project_issue_substatus_summaries(ctx: OrganizationReportContext) -> None:
-    substatus_counts = (
+def organization_project_issue_summaries(
+    start: datetime, end: datetime, ctx: OrganizationReportContext
+) -> list[dict[str, Any]]:
+    """Query unresolved issues grouped by (project, substatus, day).
+
+    Returns raw rows; callers roll up by substatus or by day as needed.
+    """
+    return list(
         Group.objects.filter(
             project__organization_id=ctx.organization.id,
-            last_seen__gte=ctx.start,
-            last_seen__lt=ctx.end,
+            last_seen__gte=start,
+            last_seen__lt=end,
             status=GroupStatus.UNRESOLVED,
         )
-        .select_related("project")
-        .values("project_id", "substatus")
-        .annotate(total=Count("substatus"))
+        .annotate(day=TruncDay("last_seen"))
+        .values("project_id", "substatus", "day")
+        .annotate(total=Count("id"))
     )
-    for item in substatus_counts:
-        project_ctx = ctx.projects_context_map[item["project_id"]]
-        if item["substatus"] == GroupSubStatus.NEW:
-            project_ctx.new_substatus_count = item["total"]
-        if item["substatus"] == GroupSubStatus.ESCALATING:
-            project_ctx.escalating_substatus_count = item["total"]
-        if item["substatus"] == GroupSubStatus.ONGOING:
-            project_ctx.ongoing_substatus_count = item["total"]
-        if item["substatus"] == GroupSubStatus.REGRESSED:
-            project_ctx.regression_substatus_count = item["total"]
-        project_ctx.total_substatus_count += item["total"]
 
 
 PAST_ISSUES_CANDIDATE_LIMIT = 50

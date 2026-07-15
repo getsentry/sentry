@@ -24,50 +24,23 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {isUUID} from 'sentry/utils/string/isUUID';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
 import {ToolTags} from 'sentry/views/explore/conversations/components/toolTags';
+import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   useConversations,
   type Conversation,
   type ConversationUser,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/utils/features';
 import {getConversationsListLocationState} from 'sentry/views/explore/conversations/utils/listNavigation';
+import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
-
-const ONE_HOUR_MS = 60 * 60 * 1000;
-
-export function getConversationDetailUrl(
-  orgSlug: string,
-  conversation: Conversation,
-  projects: number[],
-  referrer = 'conversations-table'
-): string {
-  const basePath = `/organizations/${orgSlug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/${encodeURIComponent(conversation.conversationId)}/`;
-  const params = new URLSearchParams();
-  if (conversation.startTimestamp) {
-    params.set(
-      'start',
-      new Date(conversation.startTimestamp - ONE_HOUR_MS).toISOString()
-    );
-  }
-  if (conversation.endTimestamp) {
-    params.set('end', new Date(conversation.endTimestamp + ONE_HOUR_MS).toISOString());
-  }
-  for (const project of projects) {
-    params.append('project', String(project));
-  }
-  params.set('referrer', referrer);
-  const qs = params.toString();
-  return normalizeUrl(qs ? `${basePath}?${qs}` : basePath);
-}
 
 export function ConversationsTable() {
   const organization = useOrganization();
@@ -99,10 +72,11 @@ function ConversationsTableInner() {
     columns: defaultColumnOrder,
   });
 
-  const {data, isLoading, error, pageLinks, setCursor} = useConversations();
+  const {data, isFetching, error, pageLinks, setCursor, isDirectHit} = useConversations();
+  useConversationDirectHitRedirect({isDirectHit, conversations: data});
 
   const showMissingMessagesAlert =
-    !isLoading &&
+    !isFetching &&
     !error &&
     data.length > 0 &&
     data.every(conversation => !conversation.firstInput && !conversation.lastOutput);
@@ -152,7 +126,7 @@ function ConversationsTableInner() {
       {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
       <Container>
         <GridEditable
-          isLoading={isLoading}
+          isLoading={isFetching}
           error={error}
           data={data}
           columnOrder={columnOrder}
@@ -213,10 +187,7 @@ export function CellContent({text, ref, ...props}: CellContentProps) {
   const cleanedText = cleanMarkdownForCell(text);
   return (
     <SingleLineMarkdown ref={ref} {...props}>
-      {/* inline: no block <p>/<pre> children, so white-space:nowrap clamps to
-          one line without relying on `* {display:inline}` (Safari drops it on
-          MarkedText's async innerHTML swap, growing rows on back-nav). */}
-      <MarkedText inline text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
+      <MarkedText text={ellipsize(cleanedText, CELL_MAX_CHARS)} />
     </SingleLineMarkdown>
   );
 }
@@ -357,7 +328,7 @@ const BodyCell = memo(function BodyCell({
     case 'timestamp':
       return (
         <Text as="div" align="right">
-          <TimeSince unitStyle="extraShort" date={new Date(dataRow.endTimestamp)} />
+          <TimeSince unitStyle="extraShort" date={dataRow.endTimestamp} />
         </Text>
       );
     default:

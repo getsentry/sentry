@@ -12,7 +12,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.issues.action_log import publish_action_from_context
+from sentry.issues.action_log.publish import publish_action_from_context
 from sentry.issues.action_log.types import MarkReviewedAction
 from sentry.models.activity import Activity
 from sentry.models.group import Group
