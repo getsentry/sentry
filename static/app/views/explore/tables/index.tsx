@@ -69,6 +69,7 @@ export function ExploreTables(props: ExploreTablesProps) {
           stringTags={validatedStringTags}
           numberTags={validatedNumberTags}
           booleanTags={validatedBooleanTags}
+          requiredTags={['id']}
           validatedFieldTypes={validatedFieldTypes}
         />
       ),

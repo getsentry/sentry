@@ -95,8 +95,24 @@ export function ColumnEditorModal({
     closeModal();
   }
 
+  function canReorderColumn(oldIndex: number, newIndex: number) {
+    if (!requiredTags?.length) {
+      return true;
+    }
+
+    const startIndex = Math.min(oldIndex, newIndex);
+    const endIndex = Math.max(oldIndex, newIndex);
+    return !tempColumns
+      .slice(startIndex, endIndex + 1)
+      .some(column => requiredTags.includes(column));
+  }
+
   return (
-    <DragNDropContext columns={tempColumns} setColumns={setTempColumns}>
+    <DragNDropContext
+      columns={tempColumns}
+      setColumns={setTempColumns}
+      canReorder={canReorderColumn}
+    >
       {({insertColumn, updateColumnAtIndex, deleteColumnAtIndex, editableColumns}) => (
         <Fragment>
           <Header closeButton data-test-id="editor-header">
@@ -183,6 +199,7 @@ function ColumnEditorRow({
 }: ColumnEditorRowProps) {
   const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
     id: column.id,
+    disabled: required,
   });
 
   const [search, setSearch] = useState('');
@@ -314,7 +331,12 @@ function ColumnEditorRow({
       }}
       {...attributes}
     >
-      <StyledDragReorderButton size="sm" iconSize="sm" {...listeners} />
+      <StyledDragReorderButton
+        size="sm"
+        iconSize="sm"
+        disabled={required}
+        {...listeners}
+      />
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
