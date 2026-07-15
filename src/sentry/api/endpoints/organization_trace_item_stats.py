@@ -4,6 +4,7 @@ from concurrent.futures import as_completed
 from dataclasses import dataclass
 from typing import Literal, get_args
 
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -14,9 +15,15 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.endpoints.organization_trace_item_stats_types import TraceItemStatsResponse
 from sentry.api.event_search import translate_escape_sequences
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import handle_query_errors
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.examples.trace_item_stats_examples import TraceItemStatsExamples
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
@@ -133,14 +140,92 @@ class OrganizationTraceItemStatsSerializer(serializers.Serializer):
     )
 
 
+STATS_TYPE_QUERY_PARAM = OpenApiParameter(
+    name="statsType",
+    location="query",
+    required=True,
+    many=True,
+    type=str,
+    enum=sorted(SUPPORTED_STATS_TYPES),
+    description="The statistics to compute over the matching trace items.",
+)
+
+ITEM_TYPE_QUERY_PARAM = OpenApiParameter(
+    name="itemType",
+    location="query",
+    required=False,
+    type=str,
+    enum=list(SUPPORTED_ITEM_TYPES),
+    description="The trace item dataset to compute statistics for. Defaults to `spans`.",
+)
+
+SEARCH_QUERY_PARAM = OpenApiParameter(
+    name="query",
+    location="query",
+    required=False,
+    type=str,
+    description="Sentry [search syntax](https://docs.sentry.io/concepts/search/) to filter trace items before computing statistics.",
+)
+
+SUBSTRING_MATCH_QUERY_PARAM = OpenApiParameter(
+    name="substringMatch",
+    location="query",
+    required=False,
+    type=str,
+    description="Restrict results to attribute names containing this substring (case-sensitive).",
+)
+
+TRACE_ITEMS_LIMIT_QUERY_PARAM = OpenApiParameter(
+    name="traceItemsLimit",
+    location="query",
+    required=False,
+    type=int,
+    description="Maximum number of trace items to sample when computing statistics. Defaults to `1000`, which is also the maximum.",
+)
+
+
+@extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.DATA_BROWSING
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="Retrieve Trace Item Statistics",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            STATS_TYPE_QUERY_PARAM,
+            ITEM_TYPE_QUERY_PARAM,
+            SEARCH_QUERY_PARAM,
+            SUBSTRING_MATCH_QUERY_PARAM,
+            TRACE_ITEMS_LIMIT_QUERY_PARAM,
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "TraceItemStatsResponse", TraceItemStatsResponse
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=TraceItemStatsExamples.TRACE_ITEM_STATS,
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[TraceItemStatsResponse] | Response[ValidationErrorResponse]:
+        """
+        Compute statistics, such as attribute value distributions, over the trace
+        items (spans or occurrences) matching the given query within the requested
+        time range.
+        """
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
@@ -148,7 +233,7 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
 
         serializer = OrganizationTraceItemStatsSerializer(data=request.GET)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
         serialized = serializer.validated_data
 
         stats_config = get_trace_item_stats_config(serialized.get("itemType", "spans"))
