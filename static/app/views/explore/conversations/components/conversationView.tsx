@@ -1,7 +1,7 @@
 import {memo, useEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
@@ -128,7 +128,7 @@ function ConversationView({
     <ConversationSplitLayout
       left={
         <ConversationLeftPanel>
-          <Flex direction="column" flex="1" minHeight="0" width="100%" overflow="hidden">
+          <Stack flex="1" minHeight="0" width="100%" overflow="hidden">
             <Flex
               flexShrink={0}
               align="center"
@@ -186,7 +186,7 @@ function ConversationView({
                 </Container>
               )}
             </Flex>
-          </Flex>
+          </Stack>
         </ConversationLeftPanel>
       }
       right={

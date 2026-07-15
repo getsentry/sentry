@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -27,13 +27,13 @@ import {normalizeUserField} from 'sentry/views/explore/conversations/components/
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
   getNumberAttr,
   getStringAttr,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
@@ -189,7 +189,7 @@ export function ConversationAggregatesBar({
           aggregates.totalCost < 0 ? (
             <NegativeCostInfo cost={aggregates.totalCost} />
           ) : (
-            formatLLMCosts(aggregates.totalCost)
+            <LLMCosts cost={aggregates.totalCost} />
           )
         }
         isLoading={isLoading}
@@ -287,7 +287,7 @@ export function ConversationSummary({
   }, [nodeTraceMap]);
 
   return (
-    <Flex direction="column" gap="md" flex={1}>
+    <Stack gap="md" flex={1}>
       <Flex align="center" gap="sm" minWidth={0}>
         <Tooltip
           title={conversationId}
@@ -375,7 +375,7 @@ export function ConversationSummary({
           })
         }
       />
-    </Flex>
+    </Stack>
   );
 }
 

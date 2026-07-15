@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
 
 import {HighlightComponent} from 'sentry/components/highlight';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
@@ -89,7 +89,8 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
       }
     `}
 
-  &[data-row-hover-linked='true']:not(thead > &) {
+  &[data-row-hover-linked='true']:not(thead > &),
+  &[data-row-linked='true']:not(thead > &) {
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.active};
 
@@ -376,15 +377,7 @@ export function TableActionsContainer(props: FlexProps) {
 }
 
 export function LogsItemContainer(props: FlexProps) {
-  return (
-    <Flex
-      direction="column"
-      minHeight="0"
-      overflow="hidden"
-      position="relative"
-      {...props}
-    />
-  );
+  return <Stack minHeight="0" overflow="hidden" position="relative" {...props} />;
 }
 
 export function LogsTableActionsContainer(props: FlexProps) {
@@ -400,9 +393,7 @@ export function LogsTableActionsContainer(props: FlexProps) {
 }
 
 export function LogsGraphContainer(props: FlexProps) {
-  return (
-    <Flex direction="column" flex="0 0 auto" overflow="visible" gap="md" {...props} />
-  );
+  return <Stack flex="0 0 auto" overflow="visible" gap="md" {...props} />;
 }
 
 export const AutoRefreshLabel = styled('label')`

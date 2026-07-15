@@ -5,7 +5,7 @@ import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
 import {Button} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -49,7 +49,7 @@ export function AutofixStartCard({
   };
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <Flex
         border="muted"
         radius="md"
@@ -88,7 +88,7 @@ export function AutofixStartCard({
       >
         {t('Start Analysis')}
       </Button>
-    </Flex>
+    </Stack>
   );
 }
 

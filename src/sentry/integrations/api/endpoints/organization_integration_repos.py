@@ -73,10 +73,16 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
             accessible_only = request.GET.get("accessibleOnly", "false").lower() == "true"
 
             try:
+                # This endpoint backs interactive repo pickers (the onboarding
+                # repo selector and the code-mappings path config form), so opt
+                # into parallel pagination for the latency win. Providers that
+                # don't implement it ignore the flag; internal/background callers
+                # of get_repositories keep the serial default.
                 repositories = install.get_repositories(
                     search,
                     accessible_only=accessible_only,
                     use_cache=accessible_only and bool(search),
+                    parallel=True,
                 )
             except (IntegrationError, IdentityNotValid) as e:
                 return self.respond({"detail": str(e)}, status=400)

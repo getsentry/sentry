@@ -8,7 +8,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -21,6 +28,7 @@ import {
   DEFAULT_QUERY,
   getStoredIssueSort,
   IssueSortOptions,
+  setStoredIssueSort,
 } from 'sentry/views/issueList/utils';
 
 const DEFAULT_LINKS_HEADER =
@@ -373,10 +381,79 @@ describe('IssueList', () => {
       });
       render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Recommended'}));
+      await userEvent.click(await screen.findByRole('button', {name: /Recommended/}));
       await userEvent.click(screen.getByRole('option', {name: 'Events'}));
 
       expect(getStoredIssueSort(featureOrg.slug)).toBe(IssueSortOptions.FREQ);
+    });
+
+    it('does not read or write the stored sort on a view page', async () => {
+      const featureOrg = OrganizationFixture({
+        ...organization,
+        features: ['issue-stream-recommended-sort-default'],
+      });
+      setStoredIssueSort(featureOrg.slug, IssueSortOptions.FREQ);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/group-search-views/1/',
+        body: GroupSearchViewFixture({querySort: IssueSortOptions.DATE}),
+      });
+
+      render(<IssueListOverview />, {
+        organization: featureOrg,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            pathname: '/organizations/org-slug/issues/views/1/',
+          },
+        },
+      });
+
+      // The view's saved sort applies, not the stored feed sort
+      await userEvent.click(await screen.findByRole('button', {name: 'Last Seen'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Users'}));
+
+      // Changing the sort within a view does not overwrite the feed's stored sort
+      expect(getStoredIssueSort(featureOrg.slug)).toBe(IssueSortOptions.FREQ);
+    });
+
+    it('shows the new-feature badge next to the sort dropdown with the recommended-sort-default feature', async () => {
+      const featureOrg = OrganizationFixture({
+        ...organization,
+        features: ['issue-stream-recommended-sort-default'],
+      });
+      render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
+
+      expect(
+        await screen.findByRole('button', {name: /Recommended/})
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText('new')).toBeInTheDocument();
+
+      // The Recommended option inside the dropdown carries the badge too
+      await userEvent.click(screen.getByRole('button', {name: /Recommended/}));
+      const recommendedOption = screen.getByRole('option', {name: /Recommended/});
+      expect(within(recommendedOption).getByLabelText('new')).toBeInTheDocument();
+    });
+
+    it('hides the trigger badge once the user has chosen a sort', async () => {
+      const featureOrg = OrganizationFixture({
+        ...organization,
+        features: ['issue-stream-recommended-sort-default'],
+      });
+      // An explicitly chosen sort (even Recommended itself) means the user has
+      // seen the dropdown, so the announcement badge no longer shows
+      setStoredIssueSort(featureOrg.slug, IssueSortOptions.RECOMMENDED);
+      render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
+
+      expect(
+        await screen.findByRole('button', {name: /Recommended/})
+      ).toBeInTheDocument();
+      expect(screen.queryByLabelText('new')).not.toBeInTheDocument();
+
+      // The Recommended option inside the dropdown keeps its badge
+      await userEvent.click(screen.getByRole('button', {name: /Recommended/}));
+      const recommendedOption = screen.getByRole('option', {name: /Recommended/});
+      expect(within(recommendedOption).getByLabelText('new')).toBeInTheDocument();
     });
   });
 

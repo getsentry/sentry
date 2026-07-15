@@ -78,7 +78,6 @@ function ActionsBarPriority({
   toggleSelectAllVisible,
   selectedProjectSlug,
   onSelectStatsPeriod,
-  isSavedSearchesOpen,
   statsPeriod,
   selection,
   withColumns,
@@ -89,7 +88,6 @@ function ActionsBarPriority({
   handleDelete: () => void;
   handleMerge: () => void;
   handleUpdate: (data: IssueUpdateData) => void;
-  isSavedSearchesOpen: boolean;
   multiSelected: boolean;
   narrowViewport: boolean;
   onSelectStatsPeriod: (period: string) => void;
@@ -148,7 +146,6 @@ function ActionsBarPriority({
               selection={selection}
               statsPeriod={statsPeriod}
               isReprocessingQuery={displayReprocessingActions}
-              isSavedSearchesOpen={isSavedSearchesOpen}
               withColumns={withColumns}
             />
           </AnimatedHeaderItemsContainer>
@@ -300,7 +297,6 @@ export function IssueListActions({
         multiSelected={multiSelected}
         narrowViewport={disableActions}
         selectedProjectSlug={selectedProjectSlug}
-        isSavedSearchesOpen={isSavedSearchesOpen}
         anySelected={anySelected}
         onSelectStatsPeriod={onSelectStatsPeriod}
         withColumns={withColumns}

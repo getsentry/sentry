@@ -21,7 +21,6 @@ import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {
   EQUATION_PREFIX,
   parseFunction,
@@ -35,7 +34,6 @@ import {
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
@@ -85,8 +83,6 @@ export function AggregateColumnEditorModal({
   numberTags,
   stringTags,
 }: AggregateColumnEditorModalProps) {
-  const organization = useOrganization();
-
   // We keep a temporary state for the columns so that we can apply the changes
   // only when the user clicks on the apply button.
   const [tempColumns, setTempColumns] = useState(columns);
@@ -129,12 +125,10 @@ export function AggregateColumnEditorModal({
               return (
                 <ColumnEditorRow
                   key={column.uniqueId}
-                  organization={organization}
                   canDelete={
                     isGroupBy(column.column) ? canDeleteGroupBy : canDeleteVisualize
                   }
                   column={column}
-                  options={[]}
                   onColumnChange={c => updateColumnAtIndex(i, c)}
                   onColumnDelete={() => deleteColumnAtIndex(i)}
                   booleanTags={booleanTags}
@@ -205,13 +199,10 @@ interface ColumnEditorRowProps {
   numberTags: TagCollection;
   onColumnChange: (column: AggregateField) => void;
   onColumnDelete: () => void;
-  options: Array<SelectOption<string>>;
-  organization: Organization;
   stringTags: TagCollection;
 }
 
 function ColumnEditorRow({
-  organization,
   canDelete,
   column,
   groupBys,
@@ -248,7 +239,6 @@ function ColumnEditorRow({
         />
       ) : (
         <VisualizeSelector
-          organization={organization}
           visualize={column.column}
           onChange={onColumnChange}
           booleanTags={booleanTags}
@@ -403,7 +393,6 @@ interface VisualizeSelectorProps {
   booleanTags: TagCollection;
   numberTags: TagCollection;
   onChange: (visualize: Visualize) => void;
-  organization: Organization;
   stringTags: TagCollection;
   visualize: Visualize;
 }

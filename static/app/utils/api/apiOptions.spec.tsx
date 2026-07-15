@@ -164,6 +164,7 @@ describe('apiOptions', () => {
       Link?: string;
       'X-Hits'?: number;
       'X-Max-Hits'?: number;
+      'X-Sentry-Direct-Hit'?: string;
     }>();
   });
 

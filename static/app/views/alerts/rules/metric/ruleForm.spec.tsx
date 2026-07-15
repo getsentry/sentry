@@ -638,8 +638,6 @@ describe('Incident Rules Form', () => {
         ...organization.features,
         'performance-view',
         'tracemetrics-enabled',
-        'tracemetrics-equations-in-explore',
-        'tracemetrics-equations-in-alerts',
       ];
       location = {
         ...location,

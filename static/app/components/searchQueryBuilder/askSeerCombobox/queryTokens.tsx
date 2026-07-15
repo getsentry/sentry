@@ -4,7 +4,10 @@ import styled from '@emotion/styled';
 import {Flex} from '@sentry/scraps/layout';
 
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {formatDateRange} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
+import {
+  formatDateRange,
+  resolveSeerProjectSelection,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
@@ -29,8 +32,14 @@ export function QueryTokens({
   const tokens = [];
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {projects} = useProjects();
-  const parsedQuery = query ? parseQueryBuilderValue(query, getFieldDefinition) : null;
-  if (query && parsedQuery?.length) {
+  // Project is applied to the page-level project selector, so surface it as the
+  // `Projects` chip below rather than duplicating it in the filter query.
+  const {query: displayQuery, projectIds: selectedProjectIds} =
+    resolveSeerProjectSelection(query ?? '', projects, expandedProjectIds);
+  const parsedQuery = displayQuery
+    ? parseQueryBuilderValue(displayQuery, getFieldDefinition)
+    : null;
+  if (displayQuery && parsedQuery?.length) {
     tokens.push(
       <Flex as="span" align="center" wrap="wrap" gap="xs" overflow="hidden" key="filter">
         <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
@@ -123,11 +132,11 @@ export function QueryTokens({
     );
   }
 
-  if (expandedProjectIds && expandedProjectIds.length > 0) {
-    const shownSlugs = expandedProjectIds
+  if (selectedProjectIds && selectedProjectIds.length > 0) {
+    const shownSlugs = selectedProjectIds
       .slice(0, MAX_PROJECT_CHIPS)
       .map(id => projects.find(project => project.id === String(id))?.slug ?? String(id));
-    const overflowCount = expandedProjectIds.length - shownSlugs.length;
+    const overflowCount = selectedProjectIds.length - shownSlugs.length;
     tokens.push(
       <Flex
         as="span"

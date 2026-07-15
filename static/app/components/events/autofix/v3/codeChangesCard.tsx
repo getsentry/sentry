@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Prose, Text} from '@sentry/scraps/text';
@@ -80,19 +80,25 @@ type IterationFeedback = ParsedFeedback & {
 };
 
 function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
-  const base = {text: parsed.text, timestamp: parsed.timestamp};
-  switch (parsed.source?.type) {
+  // `ui_text` is the short display label the backend derives per source; fall
+  // back to the raw prompt `text` for feedback serialized before it existed.
+  const base = {
+    text: parsed.ui_text ?? parsed.text,
+    timestamp: parsed.timestamp,
+  };
+  const source = parsed.source;
+  switch (source?.type) {
     case 'user-ui':
-      return {...base, sourceType: 'user-ui', user: parsed.source?.user};
+      return {...base, sourceType: 'user-ui', user: source.user};
     case 'github-pr-comment': {
-      const commentUrl = parsed.source?.comment?.html_url;
+      const commentUrl = source.comment?.html_url;
       if (!commentUrl) {
         return null;
       }
       return {
         ...base,
         sourceType: 'github-pr-comment',
-        githubUsername: parsed.source?.comment?.user?.login,
+        githubUsername: source.comment?.user?.login,
         commentUrl,
       };
     }
@@ -125,12 +131,10 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   const organization = useOrganization();
   const hasPrIterationFeature = organization.features.includes('autofix-pr-iteration');
 
-  const hasQueuedFeedback = (autofix.runState?.queued_feedback ?? []).length > 0;
-
   const isIterating =
     hasPrIterationFeature &&
-    (hasQueuedFeedback ||
-      (section.status === 'processing' && section.blocks.some(isPrIterationBlock)));
+    section.status === 'processing' &&
+    section.blocks.some(isPrIterationBlock);
 
   const currentStepStart = useMemo(
     () => section.blocks.findLastIndex(block => defined(block.message.metadata?.step)),
@@ -274,7 +278,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
   }, [patchesByRepo]);
 
-  const isProcessing = section.status === 'processing' || hasQueuedFeedback;
+  const isProcessing = section.status === 'processing';
 
   const showPrIterationForm = hasPRs && prIterationEnabled;
   const prIterationForm = (
@@ -387,10 +391,10 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
     content = (
       <ArtifactDetails gap="lg">
-        <Flex direction="column" gap="md">
+        <Stack gap="md">
           <Text bold>{t("Seer proposed a fix but couldn't apply it automatically")}</Text>
           <Markdown raw={explanation} />
-        </Flex>
+        </Stack>
         {resetSection}
       </ArtifactDetails>
     );

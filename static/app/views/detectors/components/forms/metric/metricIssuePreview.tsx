@@ -1,9 +1,9 @@
 import {t} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {getDuration} from 'sentry/utils/duration/getDuration';
+import {parseActorString} from 'sentry/utils/parseActorString';
 import {DetectorIssuePreview} from 'sentry/views/detectors/components/forms/common/detectorIssuePreview';
 import {IssuePreviewSection} from 'sentry/views/detectors/components/forms/common/issuePreviewSection';
-import {ownerToActor} from 'sentry/views/detectors/components/forms/common/ownerToActor';
 import {useDetectorFormProject} from 'sentry/views/detectors/components/forms/common/useDetectorFormProject';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
@@ -80,7 +80,7 @@ export function MetricIssuePreview({step}: {step?: number}) {
   const name = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.name);
   const owner = useMetricDetectorFormField(METRIC_DETECTOR_FORM_FIELDS.owner);
   const subtitle = useMetricIssuePreviewSubtitle();
-  const assignee = ownerToActor(owner);
+  const assignee = parseActorString(owner);
   const project = useDetectorFormProject();
 
   return (

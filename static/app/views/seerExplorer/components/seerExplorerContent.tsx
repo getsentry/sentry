@@ -527,16 +527,8 @@ export function SeerExplorerContent({
       onCopyLinkClick={runId === null ? undefined : handleCopyLink}
       overrideCtxEngEnable={overrideCtxEngEnable}
       onOverrideCtxEngEnableToggle={() => setOverrideCtxEngEnable(v => !v)}
-      showContextEngineToggle={
-        !!organization?.features.includes(
-          'seer-explorer-context-engine-fe-override-ui-flag'
-        )
-      }
       showThinking={showThinking}
       onShowThinkingToggle={() => setShowThinking(v => !v)}
-      showThinkingToggle={
-        !!organization?.features.includes('seer-explorer-thinking-blocks')
-      }
       isPipSupported={isPipSupported}
       isPoppedOut={isPoppedOut}
       onTogglePictureInPicture={handleTogglePictureInPicture}
@@ -546,15 +538,15 @@ export function SeerExplorerContent({
   );
 
   return (
-    <ContentContainer
+    <Stack
       ref={rootRef}
       data-seer-explorer-root=""
-      direction="column"
       width="100%"
       height="100%"
+      position="relative"
       background="primary"
       overflow="hidden"
-      contain="inline-size"
+      containerType="inline-size"
     >
       {renderHeader ? (
         renderHeader({children: headerContent, isPoppedOut, onClose: handleClose})
@@ -640,7 +632,6 @@ export function SeerExplorerContent({
         canSendMessage={canSendMessage}
         interruptState={interruptState}
         isTimedOut={isTimedOut}
-        onClear={clearInput}
         onCreatePR={createPR}
         onInputChange={handleInputChange}
         onInputClick={handleInputClick}
@@ -675,7 +666,7 @@ export function SeerExplorerContent({
             : undefined
         }
       />
-    </ContentContainer>
+    </Stack>
   );
 }
 
@@ -684,13 +675,4 @@ const BlocksContainer = styled(Stack)`
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
-`;
-
-// Establishes the container query context used by the header's responsive
-// controls (`@container seer-explorer-root`). The query-container CSS has no
-// layout-primitive prop, so it stays in `styled`; everything else is passed as
-// `Flex` props.
-const ContentContainer = styled(Flex)`
-  container-type: inline-size;
-  container-name: seer-explorer-root;
 `;

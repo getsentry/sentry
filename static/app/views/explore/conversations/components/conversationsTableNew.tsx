@@ -1,7 +1,7 @@
 import {Fragment, memo, useCallback, useMemo, useState} from 'react';
+import {css, type Theme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
-import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
@@ -31,12 +31,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
 import {
   CellContent,
-  getConversationDetailUrl,
   getUserDisplayName,
   UserNotInstrumentedTooltip,
 } from 'sentry/views/explore/conversations/components/conversationsTable';
 import {ConversationsTableEditModal} from 'sentry/views/explore/conversations/components/conversationsTableEditModal';
 import {ConversationToolCallsBreakdown} from 'sentry/views/explore/conversations/components/conversationToolCallsBreakdown';
+import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   useConversations,
   type Conversation,
@@ -49,6 +49,7 @@ import {
   CONVERSATION_COLUMNS,
   RIGHT_ALIGNED_CONVERSATION_COLUMNS,
 } from 'sentry/views/explore/conversations/utils/tableColumns';
+import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 
@@ -59,7 +60,8 @@ export function ConversationsTableNew() {
   const {selection} = usePageFilters();
   const {openModal} = useModal();
   const {columns, setColumns} = useConversationsTableColumns();
-  const {data, isLoading, error, pageLinks, setCursor} = useConversations();
+  const {data, isFetching, error, pageLinks, setCursor, isDirectHit} = useConversations();
+  useConversationDirectHitRedirect({isDirectHit, conversations: data});
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
 
   const columnOrder = useMemo<Array<GridColumnOrder<ConversationColumnKey>>>(
@@ -97,7 +99,7 @@ export function ConversationsTableNew() {
   );
 
   const showMissingMessagesAlert =
-    !isLoading &&
+    !isFetching &&
     !error &&
     data.length > 0 &&
     data.every(conversation => !conversation.firstInput && !conversation.lastOutput);
@@ -179,7 +181,7 @@ export function ConversationsTableNew() {
         </Button>
       </Flex>
       <GridEditable
-        isLoading={isLoading}
+        isLoading={isFetching}
         error={error}
         data={data}
         columnOrder={columnOrder}
@@ -306,7 +308,7 @@ const BodyCell = memo(function BodyCell({
     case 'timestamp':
       return (
         <Text as="div" align="right">
-          <TimeSince unitStyle="extraShort" date={new Date(dataRow.endTimestamp)} />
+          <TimeSince unitStyle="extraShort" date={dataRow.endTimestamp} />
         </Text>
       );
     case 'input':
@@ -358,14 +360,43 @@ function ToolCallsCell({
     return <Text as="div">{formatAbbreviatedNumber(dataRow.toolCalls)}</Text>;
   }
 
+  // The number itself is the tooltip trigger, so the card stays anchored over
+  // it (`position="top"`). To make the whole cell a hover target without moving
+  // that anchor, the trigger carries a transparent `::before` that fills the
+  // (relative) cell: pointer events over the pseudo-element dispatch to the
+  // trigger, driving the tooltip's native hover — while popper measures only the
+  // number's own box, so the anchor and the hoverable-card handoff are unchanged.
   return (
-    <Text as="div">
-      <InfoText
+    <Flex flex="1" align="center" position="relative">
+      <Tooltip
+        isHoverable
+        skipWrapper
+        position="top"
         maxWidth={400}
         title={<ConversationToolCallsBreakdown conversationId={dataRow.conversationId} />}
       >
-        {formatAbbreviatedNumber(dataRow.toolCalls)}
-      </InfoText>
-    </Text>
+        <Text
+          tabIndex={0}
+          css={(theme: Theme) => css`
+            text-decoration: underline dotted ${theme.tokens.content.secondary};
+            text-decoration-thickness: 0.75px;
+            text-underline-offset: 1.25px;
+            outline: none;
+
+            &::before {
+              content: '';
+              position: absolute;
+              inset: 0;
+            }
+
+            &:focus-visible {
+              ${theme.focusRing()}
+            }
+          `}
+        >
+          {formatAbbreviatedNumber(dataRow.toolCalls)}
+        </Text>
+      </Tooltip>
+    </Flex>
   );
 }

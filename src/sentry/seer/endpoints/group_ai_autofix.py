@@ -43,7 +43,6 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
     UNKNOWN_RUN_ID_FOR_GROUP,
     AutofixStep,
-    Feedback,
     NoSeerQuotaException,
     get_autofix_agent_state,
     get_autofix_run_state,
@@ -57,12 +56,13 @@ from sentry.seer.autofix.coding_agent import (
     poll_github_copilot_agents,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.feedback_queue import (
-    enqueue_autofix_feedback,
-    peek_queued_autofix_feedback,
-)
 from sentry.seer.autofix.github_perms import (
     get_out_of_date_github_permissions,
+)
+from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.queue import (
+    peek_queued_autofix_feedback,
+    try_enqueue_autofix_feedback,
 )
 from sentry.seer.autofix.types import (
     AutofixHandoffResponse,
@@ -76,7 +76,7 @@ from sentry.seer.autofix.utils import (
 )
 from sentry.seer.endpoints.utils import get_seer_run, resolve_seer_run
 from sentry.seer.models import SeerPermissionError
-from sentry.tasks.seer.autofix import consume_queued_autofix_feedback
+from sentry.tasks.seer.pr_iteration import consume_queued_autofix_feedback
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils.http import is_mcp_request
@@ -362,27 +362,27 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                     filter={"user_ids": [request.user.id]},
                 )
                 feedback = Feedback(
-                    text=user_context,
                     source={
                         "type": "user-ui",
                         "user_id": request.user.id,
                         "user": serialized_users[0] if serialized_users else None,
+                        "user_feedback": user_context,
                     },
                 )
 
-                enqueue_autofix_feedback(
+                try_enqueue_autofix_feedback(
                     run_id=resolved_run_id,
                     organization_id=group.organization.id,
                     group_id=group.id,
                     feedback=feedback,
                     referrer=referrer,
+                    run_state=run_state,
                 )
 
                 consume_queued_autofix_feedback.apply_async(
                     kwargs={
                         "run_id": resolved_run_id,
                         "organization_id": group.organization.id,
-                        "group_id": group.id,
                     }
                 )
 
@@ -400,6 +400,7 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
                         run_id=resolved_run_id,
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
+                        user=request.user,
                     )
                 except NoSeerQuotaException:
                     return Response(

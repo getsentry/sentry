@@ -1,7 +1,7 @@
 import {useCallback, useImperativeHandle, useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {Container, Flex, type Responsive} from '@sentry/scraps/layout';
+import {Container, Flex, type Responsive, Stack} from '@sentry/scraps/layout';
 import {useResponsivePropValue} from '@sentry/scraps/layout/styles';
 
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -80,8 +80,7 @@ function getDividerCursor(
 function Pane({size, children}: {children: React.ReactNode; size: number | null}) {
   const isFilling = size === null;
   return (
-    <Flex
-      direction="column"
+    <Stack
       minHeight="0"
       minWidth="0"
       flexGrow={isFilling ? 1 : 0}
@@ -89,7 +88,7 @@ function Pane({size, children}: {children: React.ReactNode; size: number | null}
       flexBasis={isFilling ? 0 : `${size}px`}
     >
       {children}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -344,14 +343,14 @@ const DividerLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
   &::before {
     content: '';
     position: absolute;
-    z-index: 1;
+    z-index: ${p => p.theme.zIndex.drawer};
   }
 
   /* Accent bar that lights up on hover/drag */
   &::after {
     content: '';
     position: absolute;
-    z-index: 1;
+    z-index: ${p => p.theme.zIndex.drawer};
     opacity: 0.8;
     background: transparent;
     transition: background ${p => p.theme.motion.smooth.slow} 0.1s;
@@ -364,7 +363,8 @@ const DividerLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
 
   &[data-orientation='horizontal'] {
     width: 0;
-    height: 100%;
+    height: auto;
+    align-self: stretch;
     border-left: 1px solid ${p => p.theme.tokens.border.primary};
 
     &::before {

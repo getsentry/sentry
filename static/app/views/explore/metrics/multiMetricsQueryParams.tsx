@@ -9,6 +9,7 @@ import {
 import type {Location} from 'history';
 
 import {defined} from 'sentry/utils/defined';
+import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -49,13 +50,11 @@ function useMultiMetricsQueryParamsContext(): MetricQueriesControllerValue {
 interface MultiMetricsQueryParamsProviderProps {
   children: ReactNode;
   allowUpTo?: number;
-  hasEquations?: boolean;
 }
 
 export function MultiMetricsQueryParamsProvider({
   children,
   allowUpTo,
-  hasEquations,
 }: MultiMetricsQueryParamsProviderProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -69,12 +68,12 @@ export function MultiMetricsQueryParamsProvider({
     (nextQueries: BaseMetricQuery[]) => {
       const target = {...location, query: {...location.query}};
       target.query.metric = encodeMetricQueries(nextQueries);
-      navigate(target);
+      navigateIfQueryChanged(navigate, location, target);
     },
     [location, navigate]
   );
 
-  const value = useMetricQueriesController({queries, setQueries, hasEquations});
+  const value = useMetricQueriesController({queries, setQueries});
 
   return (
     <MultiMetricsQueryParamsContext value={value}>
@@ -107,10 +106,6 @@ interface LocalMultiMetricsQueryParamsProviderProps {
    * provider's behavior on an empty URL).
    */
   initialQueries: BaseMetricQuery[];
-  /**
-   * Gates insert-before-equation behavior in `addMetricQuery`.
-   */
-  hasEquations?: boolean;
 }
 
 /**
@@ -129,13 +124,12 @@ interface LocalMultiMetricsQueryParamsProviderProps {
 export function LocalMultiMetricsQueryParamsProvider({
   children,
   initialQueries,
-  hasEquations,
 }: LocalMultiMetricsQueryParamsProviderProps) {
   const [queries, setQueries] = useState<BaseMetricQuery[]>(() =>
     initialQueries.length > 0 ? initialQueries : [defaultMetricQuery()]
   );
 
-  const value = useMetricQueriesController({queries, setQueries, hasEquations});
+  const value = useMetricQueriesController({queries, setQueries});
 
   return (
     <MultiMetricsQueryParamsContext value={value}>

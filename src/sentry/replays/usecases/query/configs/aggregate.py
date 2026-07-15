@@ -133,6 +133,7 @@ search_config: dict[str, FieldProtocol] = {
     "tap.view_class": string_field("tap_view_class"),
     "tap.view_id": string_field("tap_view_id"),
     "trace_ids": UUIDColumnField("trace_ids", parse_uuid, SumOfUUIDArray),
+    "segment_names": array_string_field("segment_names"),
     "urls": array_string_field("urls"),
     "user.email": string_field("user_email"),
     "user.id": string_field("user_id"),
