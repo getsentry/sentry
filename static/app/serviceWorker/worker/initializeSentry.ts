@@ -11,6 +11,8 @@ import {
 } from 'sentry/constants/sdk';
 import type {ClientConfig} from 'sentry/serviceWorker/worker/client-config';
 
+let isInitialized = false;
+
 let lastEventId: string | undefined;
 
 /**
@@ -28,6 +30,10 @@ export function initializeSentry({
   sentryConfig,
   userIdentity,
 }: ClientConfig) {
+  if (isInitialized) {
+    return;
+  }
+  isInitialized = true;
   Sentry.init({
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig.allowUrls,
     dsn: SPA_DSN || dsn,
