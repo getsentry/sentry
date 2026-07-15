@@ -21,6 +21,7 @@ from sentry.explore.models import (
     TraceMetricTypes,
 )
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.trace_metrics import TraceMetrics
@@ -93,7 +94,24 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
         include_context = "context" in serialized.get("expand", set()) and features.has(
             "organizations:data-browsing-attribute-context", organization, actor=request.user
         )
-        project_ids = [project.id for project in snuba_params.projects]
+
+        # Context is stored as either project-scoped or org-wide, so it can only
+        # be attached for a single, unambiguous scope: one project, or org-wide
+        # for the all-projects sentinel (`-1`/`$all`). Mirrors the write endpoint.
+        scope_project = None
+        if include_context:
+            if self.get_requested_project_params_unchecked(request).has_all_projects_sentinel:
+                scope_project = None
+            elif len(snuba_params.projects) == 1:
+                scope_project = snuba_params.projects[0]
+            else:
+                return Response(
+                    {
+                        "detail": "Pass a single `project`, or all projects "
+                        "(`-1`/`$all`), to include context."
+                    },
+                    status=400,
+                )
 
         def data_fn(offset: int, limit: int) -> list[TraceMetricItem]:
             with handle_query_errors():
@@ -119,7 +137,7 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
                 for row in results["data"]
             ]
             if include_context:
-                self._attach_context(metrics, organization, project_ids)
+                self._attach_context(metrics, organization, scope_project)
             return metrics
 
         return self.paginate(
@@ -134,33 +152,28 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
         self,
         metrics: list[TraceMetricItem],
         organization: Organization,
-        project_ids: list[int],
+        scope_project: Project | None,
     ) -> None:
         """Attach authored context to a page of metrics with a single lookup (no N+1)."""
         names = [metric["name"] for metric in metrics]
         if not names:
             return
 
-        # Project-scoped rows for the requested projects plus org-wide rows
-        # (null project), in one query.
+        # A single scope — org-wide (null project) or one project — so the unique
+        # constraint guarantees at most one row per (value, type).
+        project_filter = (
+            Q(project__isnull=True) if scope_project is None else Q(project=scope_project)
+        )
         context_rows = TraceItemAttributeValueContext.objects.filter(
-            Q(project__isnull=True) | Q(project_id__in=project_ids),
+            project_filter,
             organization=organization,
             item_type=TraceItemTypes.TRACEMETRICS,
             attribute_name=METRIC_NAME_ALIAS,
             attribute_value__in=names,
         )
-
-        # Key by (value, type). Prefer a project-scoped row over an org-wide one,
-        # and pick deterministically (lowest project id) when a multi-project
-        # request has project-scoped rows in more than one project.
-        ordered_rows = sorted(
-            context_rows,
-            key=lambda row: (row.project_id is None, row.project_id or 0),
-        )
-        context_by_key: dict[tuple[str, int], TraceItemAttributeValueContext] = {}
-        for row in ordered_rows:
-            context_by_key.setdefault((row.attribute_value, row.attribute_type), row)
+        context_by_key: dict[tuple[str, int], TraceItemAttributeValueContext] = {
+            (row.attribute_value, row.attribute_type): row for row in context_rows
+        }
 
         for metric in metrics:
             type_id = TraceMetricTypes.get_id_for_type_name(metric["type"])

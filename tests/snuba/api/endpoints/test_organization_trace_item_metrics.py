@@ -125,12 +125,38 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         self.store_metric("checkout.requests", "counter")
         self.create_context("checkout.requests", project=None, brief="Org-wide brief")
 
-        response = self.do_request(
-            query={"project": self.project.id, "expand": "context"},
-        )
+        # Org-wide context is read for the all-projects sentinel.
+        response = self.do_request(query={"project": -1, "expand": "context"})
 
         assert response.status_code == 200, response.data
         assert response.data[0]["context"] == {"brief": "Org-wide brief"}
+
+    def test_single_project_ignores_org_wide_context(self) -> None:
+        self.store_metric("checkout.requests", "counter")
+        # Only org-wide context exists; a single-project request must not surface it
+        # (context is one scope or the other, never mixed).
+        self.create_context("checkout.requests", project=None, brief="Org-wide brief")
+
+        response = self.do_request(query={"project": self.project.id, "expand": "context"})
+
+        assert response.status_code == 200, response.data
+        assert "context" not in response.data[0]
+
+    def test_multi_project_context_returns_400(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        self.store_metric("checkout.requests", "counter")
+
+        url = reverse(self.viewname, kwargs={"organization_id_or_slug": self.organization.slug})
+        with self.feature(self.feature_flags):
+            response = self.client.get(
+                url,
+                QUERY_STRING=(
+                    f"project={self.project.id}&project={other_project.id}&expand=context"
+                ),
+            )
+
+        assert response.status_code == 400, response.data
+        assert "single" in response.data["detail"]
 
     def test_context_only_matches_metric_type(self) -> None:
         self.store_metric("checkout.requests", "counter")
