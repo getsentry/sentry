@@ -10,16 +10,13 @@ from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
-    ExistsFilter,
-    OrFilter,
-    TraceItemFilter,
-)
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, OrFilter, TraceItemFilter
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase, UnknownEnvironments
 from sentry.api.utils import handle_query_errors
+from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap import constants
@@ -348,6 +345,7 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
         # Validate orderby
         orderby_validity = []
         orderby_columns = self.get_orderby(request)
+        equation_list = self.get_equation_list(organization, request)
         if orderby_columns:
             for orderby in orderby_columns:
                 stripped_orderby = orderby.lstrip("-")
@@ -364,6 +362,13 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
                         )
                         found = True
                         break
+                if not found and is_equation(stripped_orderby):
+                    equation_body = strip_equation(stripped_orderby)
+                    if equation_body in equation_list:
+                        orderby_validity.append(
+                            AttributeValidation(attrType=None, error=None, name=orderby, valid=True)
+                        )
+                        found = True
                 if not found:
                     response.valid = False
                     orderby_validity.append(
