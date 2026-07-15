@@ -117,6 +117,11 @@ function useServiceWorkerUpdateCheck() {
           if (error instanceof Error && error.name === 'AbortError') {
             return;
           }
+          // InvalidStateError occurs when the service worker registration
+          // becomes stale/invalid while the tab was backgrounded — unactionable.
+          if (error instanceof Error && error.name === 'InvalidStateError') {
+            return;
+          }
           Sentry.captureException(error);
         });
     };
