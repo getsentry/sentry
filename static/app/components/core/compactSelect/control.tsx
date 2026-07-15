@@ -286,7 +286,7 @@ export function Control({
           ?.focus();
       }
 
-      if (e.key === 'Enter') {
+      if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
         e.preventDefault();
 
         const options = Array.from(
