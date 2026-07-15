@@ -101,6 +101,62 @@ class DatadogIntegrationProviderTest(IntegrationTestCase):
         integration.refresh_from_db()
         assert integration.debug_data == {"site": "datadoghq.com"}
 
+    def test_get_organization_config_and_config_data(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="datadog",
+            external_id="dd-ext",
+            metadata={"api_key": "api", "app_key": "app", "site": "datadoghq.com"},
+        )
+        installation = integration.get_installation(organization_id=self.organization.id)
+
+        assert [f["name"] for f in installation.get_organization_config()] == [
+            "site",
+            "api_key",
+            "app_key",
+        ]
+        assert installation.get_config_data()["site"] == "datadoghq.com"
+
+    @responses.activate
+    def test_update_organization_config_revalidates_and_persists(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="datadog",
+            external_id="dd-ext",
+            metadata={"api_key": "old-api", "app_key": "old-app", "site": "datadoghq.com"},
+        )
+        installation = integration.get_installation(organization_id=self.organization.id)
+        _mock_whoami({"user_uuid": "u-1", "org_uuid": "org-123"})
+
+        installation.update_organization_config(
+            {"api_key": "new-api", "app_key": "new-app", "site": "datadoghq.com"}
+        )
+
+        integration.refresh_from_db()
+        assert integration.metadata == {
+            "api_key": "new-api",
+            "app_key": "new-app",
+            "site": "datadoghq.com",
+        }
+        assert responses.calls[0].request.headers["DD-API-KEY"] == "new-api"
+
+    @responses.activate
+    def test_update_organization_config_keeps_omitted_secrets(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="datadog",
+            external_id="dd-ext",
+            metadata={"api_key": "api", "app_key": "app", "site": "datadoghq.com"},
+        )
+        installation = integration.get_installation(organization_id=self.organization.id)
+        _mock_whoami({"user_uuid": "u-1", "org_uuid": "org-123"})
+
+        installation.update_organization_config({"site": "datadoghq.com"})
+
+        integration.refresh_from_db()
+        assert integration.metadata == {"api_key": "api", "app_key": "app", "site": "datadoghq.com"}
+        assert responses.calls[0].request.headers["DD-API-KEY"] == "api"
+
     def test_provider_is_single_install_and_flagged(self) -> None:
         provider = self.provider()
         assert provider.key == "datadog"
