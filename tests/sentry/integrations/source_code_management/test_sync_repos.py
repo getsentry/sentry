@@ -322,6 +322,59 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             assert Repository.objects.count() == 0
 
+    @responses.activate
+    def test_skips_create_for_pending_deletion_repos(self, _: MagicMock) -> None:
+        # A repo in PENDING_DELETION state should be treated as already known;
+        # the sync must not re-create it just because the provider still lists it.
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/sentry",
+                external_id="1",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.PENDING_DELETION,
+            )
+
+        # Provider still returns this repo.
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            # Still exactly one row, still in PENDING_DELETION — not duplicated.
+            repos = Repository.objects.filter(organization_id=self.organization.id, external_id="1")
+            assert repos.count() == 1
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.PENDING_DELETION
+
+    @responses.activate
+    def test_skips_create_for_deletion_in_progress_repos(self, _: MagicMock) -> None:
+        # A repo in DELETION_IN_PROGRESS state must also be excluded so the
+        # sync doesn't race with an ongoing deletion and re-create the row.
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/sentry",
+                external_id="1",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.DELETION_IN_PROGRESS,
+            )
+
+        # Provider still returns this repo.
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repos = Repository.objects.filter(organization_id=self.organization.id, external_id="1")
+            assert repos.count() == 1
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.DELETION_IN_PROGRESS
+
     @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
     def test_truncated_fetch_skips_disable(self, mock_get_repos: MagicMock, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):

@@ -7,9 +7,11 @@ import {SubscriptionBox} from 'sentry/views/settings/organizationDeveloperSettin
 
 describe('SubscriptionBox', () => {
   const onChange = jest.fn();
+  const onEventChange = jest.fn();
 
   beforeEach(() => {
     onChange.mockReset();
+    onEventChange.mockReset();
   });
   function renderComponent(
     props: Partial<ComponentProps<typeof SubscriptionBox>> = {},
@@ -19,8 +21,10 @@ describe('SubscriptionBox', () => {
       <SubscriptionBox
         resource="issue"
         checked={false}
+        selectedEvents={[]}
         disabledFromPermissions={false}
         onChange={onChange}
+        onEventChange={onEventChange}
         isNew={false}
         {...props}
       />,
@@ -85,6 +89,34 @@ describe('SubscriptionBox', () => {
         'Cannot enable webhook subscription without specifying a webhook url'
       )
     ).toBeInTheDocument();
+  });
+
+  describe('granular event subscriptions', () => {
+    const organization = OrganizationFixture({
+      features: ['sentry-apps-granular-events'],
+    });
+
+    it('renders a checkbox per event', () => {
+      renderComponent({selectedEvents: ['issue.created']}, {organization});
+
+      expect(screen.getAllByRole('checkbox')).toHaveLength(6);
+      expect(screen.getByRole('checkbox', {name: 'issue.created'})).toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'issue.resolved'})).not.toBeChecked();
+    });
+
+    it('calls onEventChange when toggling an event', async () => {
+      renderComponent({}, {organization});
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'issue.resolved'}));
+      expect(onEventChange).toHaveBeenCalledWith('issue.resolved', true);
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it('does not render event checkboxes without the flag', () => {
+      renderComponent({selectedEvents: ['issue.created']});
+
+      expect(screen.getAllByRole('checkbox')).toHaveLength(1);
+    });
   });
 
   describe('preprod_artifact resource subscription', () => {

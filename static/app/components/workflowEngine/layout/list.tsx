@@ -1,4 +1,4 @@
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -39,10 +39,10 @@ export function WorkflowEngineListLayout({
         <TopBar.Slot name="actions">{actions}</TopBar.Slot>
         <Layout.Body>
           <Layout.Main width="full">
-            <Flex direction="column" gap="lg">
+            <Stack gap="lg">
               <OnboardingBanner />
               {children}
-            </Flex>
+            </Stack>
           </Layout.Main>
         </Layout.Body>
       </NoProjectMessage>

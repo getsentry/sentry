@@ -126,14 +126,31 @@ export function isCodingAgentsArtifact(
  * State returned from the Explorer autofix endpoint.
  * This extends the SeerExplorer types with autofix-specific data.
  */
+/**
+ * Feedback source wire types, mirroring the pydantic discriminated union in
+ * `src/sentry/seer/autofix/pr_iteration/types.py` (`FeedbackSource`). Each
+ * member is keyed by `type`; narrow on it before reading member fields.
+ */
+interface UserUiFeedbackSource {
+  type: 'user-ui';
+  user?: User;
+  user_feedback?: string;
+  user_id?: number;
+}
+
+interface GithubPrCommentFeedbackSource {
+  type: 'github-pr-comment';
+  comment?: {html_url?: string; user?: {login: string}};
+}
+
+type RawFeedbackSource = UserUiFeedbackSource | GithubPrCommentFeedbackSource;
+
 export interface RawFeedback {
   text: string;
-  source?: {
-    type: string;
-    comment?: {html_url?: string; user?: {login: string}};
-    user?: User;
-  };
+  source?: RawFeedbackSource;
   timestamp?: string;
+  // Short display label derived from the source, serialized on `Feedback`.
+  ui_text?: string;
 }
 
 export interface ExplorerAutofixState {

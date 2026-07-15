@@ -1,7 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
@@ -105,7 +105,7 @@ function BuildItemDetails({
   const versionInfo = formatVersionInfo(version, buildNumber);
 
   return (
-    <Flex direction="column" gap="sm" flex={1}>
+    <Stack gap="sm" flex={1}>
       {(hasGitInfo || versionInfo) && (
         <Flex align="center" gap="md">
           {(prNumber || branchName) && <IconBranch size="xs" variant="muted" />}
@@ -160,7 +160,7 @@ function BuildItemDetails({
           </Flex>
         )}
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 

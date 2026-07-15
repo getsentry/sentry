@@ -8,9 +8,11 @@ import type {DropdownButtonProps} from 'sentry/components/dropdownButton';
 import {IconSort} from 'sentry/icons/iconSort';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {
   FOR_REVIEW_QUERIES,
   getSortLabel,
+  getStoredIssueSort,
   IssueSortOptions,
 } from 'sentry/views/issueList/utils';
 
@@ -38,9 +40,9 @@ function getSortTooltip(key: IssueSortOptions) {
     case IssueSortOptions.RECOMMENDED:
     case IssueSortOptions.RECOMMENDED_V1:
     case IssueSortOptions.RECOMMENDED_EXPERIMENTAL:
-      return t('Issues ranked by combined recency, severity, and impact signals.');
+      return t('Relevance and impact.');
     case IssueSortOptions.PROGRESS:
-      return t('Issues ranked by how far along they are toward a fix.');
+      return t('Progress toward a fix.');
     case IssueSortOptions.DATE:
     default:
       return t('Last time the issue occurred.');
@@ -56,9 +58,13 @@ export function IssueListSortOptions({
   showIcon = true,
 }: Props) {
   const organization = useOrganization();
+  const {viewId} = useParams<{viewId?: string}>();
   const hasRecommendedSortDefault = organization.features.includes(
     'issue-stream-recommended-sort-default'
   );
+  // The trigger badge announces the Recommended default. A stored sort means
+  // the user has already made an explicit choice, so stop announcing.
+  const hasChosenSort = getStoredIssueSort(organization.slug) !== null;
   const hasProgressSort =
     organization.features.includes('issue-stream-progress-sort') ||
     sort === IssueSortOptions.PROGRESS;
@@ -108,7 +114,10 @@ export function IssueListSortOptions({
           size={triggerSize}
           icon={showIcon && <IconSort />}
         >
-          {hasRecommendedSortDefault && sortKey === IssueSortOptions.RECOMMENDED ? (
+          {hasRecommendedSortDefault &&
+          !hasChosenSort &&
+          !viewId &&
+          sortKey === IssueSortOptions.RECOMMENDED ? (
             <Flex as="span" gap="sm" align="center">
               {triggerProps.children}
               <FeatureBadge

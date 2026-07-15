@@ -1,7 +1,9 @@
 import zipfile
 from io import BytesIO
+from unittest.mock import patch
 from uuid import uuid4
 
+import requests
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
@@ -12,6 +14,7 @@ from sentry.models.releasefile import ReleaseFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.objectstore import debug_files_test_both_backends
+from sentry.testutils.skips import requires_objectstore
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -50,6 +53,27 @@ class DebugFilesTestCases(APITestCase):
             },
             format="multipart",
         )
+
+    def _assert_successful_download(self, response, content: bytes, filename=None) -> None:
+        if response.status_code == 302:
+            location = response["Location"]
+            # In dev/test the host may be rewritten to the Docker-internal `objectstore` hostname
+            # (so Symbolicator can reach it); rewrite it back so this host-side test can follow it.
+            location = location.replace("://objectstore:", "://127.0.0.1:")
+            response = requests.get(location)
+            assert response.status_code == 200, response.text
+            assert response.content == content
+            if filename is not None:
+                assert (
+                    response.headers["Content-Disposition"] == f'attachment; filename="{filename}"'
+                )
+        else:
+            assert response.status_code == 200, response.content
+            if filename is not None:
+                assert response.get("Content-Disposition") == f'attachment; filename="{filename}"'
+                assert response.get("Content-Length") == str(len(content))
+            assert response.get("Content-Type") == "application/octet-stream"
+            assert content == close_streaming_response(response)
 
 
 @debug_files_test_both_backends
@@ -137,8 +161,7 @@ class DebugFilesTest(DebugFilesTestCases):
 
         # `self.user` has access to these files
         response = self.client.get(f"{self.url}?id={download_id}")
-        assert response.status_code == 200, response.content
-        assert PROGUARD_SOURCE == close_streaming_response(response)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
 
         # with another user on a different org
         other_user = self.create_user()
@@ -177,21 +200,13 @@ class DebugFilesTest(DebugFilesTestCases):
         # Download as a user with sufficient role
         self.organization.update_option("sentry:debug_files_role", "admin")
         response = self.client.get(self.url + "?id=" + download_id)
-        assert response.status_code == 200, response.content
-        assert (
-            response.get("Content-Disposition")
-            == 'attachment; filename="' + PROGUARD_UUID + '.txt"'
-        )
-        assert response.get("Content-Length") == str(len(PROGUARD_SOURCE))
-        assert response.get("Content-Type") == "application/octet-stream"
-        assert PROGUARD_SOURCE == close_streaming_response(response)
+        self._assert_successful_download(response, PROGUARD_SOURCE, filename=f"{PROGUARD_UUID}.txt")
 
         # Download as a superuser
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
         response = self.client.get(self.url + "?id=" + download_id)
-        assert response.get("Content-Type") == "application/octet-stream"
-        close_streaming_response(response)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
 
         # Download as a user without sufficient role
         self.organization.update_option("sentry:debug_files_role", "owner")
@@ -284,9 +299,7 @@ class DebugFilesTest(DebugFilesTestCases):
         self.login_as(team_admin)
         # Team admin with project access can download
         response = self.client.get(self.url + "?id=" + download_id)
-        assert response.status_code == 200, response.content
-        assert response.get("Content-Type") == "application/octet-stream"
-        close_streaming_response(response)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
 
         # Team admin with project access can delete
         response = self.client.delete(self.url + "?id=" + download_id)
@@ -315,9 +328,7 @@ class DebugFilesTest(DebugFilesTestCases):
         # Set project debug_files_role to "member" - member should now be able to download
         self.project.update_option("sentry:debug_files_role", "member")
         response = self.client.get(f"{self.url}?id={download_id}")
-        assert response.status_code == 200, response.content
-        assert response.get("Content-Type") == "application/octet-stream"
-        close_streaming_response(response)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
 
         # Remove project option - should fall back to organization setting (owner)
         self.project.delete_option("sentry:debug_files_role")
@@ -327,9 +338,48 @@ class DebugFilesTest(DebugFilesTestCases):
         # Set organization to "member" - member should be able to download
         self.organization.update_option("sentry:debug_files_role", "member")
         response = self.client.get(f"{self.url}?id={download_id}")
-        assert response.status_code == 200, response.content
-        assert response.get("Content-Type") == "application/octet-stream"
-        close_streaming_response(response)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+
+
+@requires_objectstore
+class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
+    """Explicit coverage of both redirect branches for Objectstore-backed debug files."""
+
+    def _upload_and_get_download_id(self) -> str:
+        with self.feature({"organizations:objectstore-debugfiles-write": True}):
+            response = self._upload_proguard(self.url, PROGUARD_UUID)
+        assert response.status_code == 201, response.content
+        return self.client.get(self.url).data[0]["id"]
+
+    def test_internal_request_redirects_to_objectstore(self) -> None:
+        download_id = self._upload_and_get_download_id()
+
+        with (
+            self.feature("organizations:objectstore-debugfiles-direct-read"),
+            patch("sentry.auth.system.is_internal_ip", return_value=True),
+        ):
+            response = self.client.get(f"{self.url}?id={download_id}")
+
+        assert response.status_code == 302
+        # Internal callers are redirected straight to Objectstore, not through the cell proxy.
+        assert "/organizations/" not in response["Location"]
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+
+    def test_external_request_redirects_to_cell_proxy(self) -> None:
+        download_id = self._upload_and_get_download_id()
+
+        with (
+            self.feature("organizations:objectstore-debugfiles-direct-read"),
+            patch("sentry.auth.system.is_internal_ip", return_value=False),
+        ):
+            response = self.client.get(f"{self.url}?id={download_id}")
+
+        assert response.status_code == 302
+        location = response["Location"]
+        assert (
+            f"/organizations/{self.organization.id}/objectstore/v1/objects/debug_files/" in location
+        )
+        assert "os_sig=" in location
 
 
 @debug_files_test_both_backends

@@ -19,10 +19,13 @@ from sentry.sentry_apps.metrics import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.tasks.sentry_apps import WebhookGroupResponse, _webhook_issue_data
-from sentry.types.activity import SEER_ACTIVITY_TYPES
+from sentry.types.activity import SEER_ACTIVITY_TYPES, STATUS_CHANGE_ACTIVITY_TYPES
+from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.workflow_engine.models import Action, Workflow
 from sentry.workflow_engine.types import ActionInvocation
+
+REGISTERED_SENTRY_APP_ACTIVITY_TYPES = [*SEER_ACTIVITY_TYPES, *STATUS_CHANGE_ACTIVITY_TYPES]
 
 
 class ActivityAlertType(StrEnum):
@@ -35,10 +38,21 @@ class ActivityAlertType(StrEnum):
     SEER_PR_CREATED = "seer_pr_created"
     SEER_ITERATION_STARTED = "seer_pr_iteration_started"
     SEER_ITERATION_COMPLETED = "seer_pr_iteration_completed"
+    SET_RESOLVED = "status_resolved"
+    SET_UNRESOLVED = "status_unresolved"
+    SET_IGNORED = "status_ignored"
+    SET_REGRESSION = "status_regression"
+    SET_RESOLVED_IN_RELEASE = "status_resolved_in_release"
+    SET_RESOLVED_BY_AGE = "status_resolved_by_age"
+    SET_RESOLVED_IN_COMMIT = "status_resolved_in_commit"
+    # This ActivityType is sort of a misnomer, since it is created when a pull request links to the
+    # group, and has nothing to do with resolving it.
+    SET_RESOLVED_IN_PULL_REQUEST = "appeared_in_pull_request"
+    SET_ESCALATING = "status_escalating"
 
 
 ACTIVITY_TYPE_TO_ACTIVITY_ALERT_TYPE: dict[int, ActivityAlertType] = {
-    at.value: ActivityAlertType[at.name] for at in SEER_ACTIVITY_TYPES
+    at.value: ActivityAlertType[at.name] for at in REGISTERED_SENTRY_APP_ACTIVITY_TYPES
 }
 
 
@@ -97,13 +111,23 @@ def _build_activity_data(activity: Activity) -> ActivityData:
     if activity_alert_type is None:
         raise ValueError(f"Unrecognized activity type: {activity.type} for activity {activity.id}")
 
+    details: dict[str, Any] = {}
+
+    if activity.user_id:
+        if user := user_service.get_user(user_id=activity.user_id):
+            details["user"] = {
+                "id": user.id,
+                "name": user.get_display_name(),
+                "username": user.username,
+            }
+
     if not activity.data:
-        return ActivityData(type=activity_alert_type, details={})
+        return ActivityData(type=activity_alert_type, details=details)
 
     match activity_alert_type:
         case ActivityAlertType.SEER_RCA_COMPLETED | ActivityAlertType.SEER_SOLUTION_COMPLETED:
             summary = activity.data.get("summary", "")
-            return ActivityData(type=activity_alert_type, details={"summary": summary})
+            details["summary"] = summary
         case ActivityAlertType.SEER_PR_CREATED:
             pull_requests_data = activity.data.get("pull_requests", [])
             pull_requests = [
@@ -113,9 +137,8 @@ def _build_activity_data(activity: Activity) -> ActivityData:
                 }
                 for pull_request in pull_requests_data
             ]
-            return ActivityData(type=activity_alert_type, details={"pull_requests": pull_requests})
+            details["pull_requests"] = pull_requests
         case ActivityAlertType.SEER_ITERATION_COMPLETED:
-            details: dict[str, Any] = {}
             pull_requests_data = activity.data.get("pull_requests", [])
             if pull_requests_data:
                 details["pull_requests"] = [
@@ -131,9 +154,7 @@ def _build_activity_data(activity: Activity) -> ActivityData:
             iteration_index = activity.data.get("iteration_index")
             if iteration_index is not None:
                 details["iteration_index"] = iteration_index
-            return ActivityData(type=activity_alert_type, details=details)
-        case _:
-            return ActivityData(type=activity_alert_type, details={})
+    return ActivityData(type=activity_alert_type, details=details)
 
 
 def _build_workflow_data(
@@ -164,7 +185,7 @@ def _build_workflow_data(
 @activity_handler_registry.register(Action.Type.SENTRY_APP)
 @activity_handler_registry.register(Action.Type.WEBHOOK)
 class SentryAppActivityHandler(ActivityHandler):
-    compatible_activity_types = list(SEER_ACTIVITY_TYPES)
+    compatible_activity_types = REGISTERED_SENTRY_APP_ACTIVITY_TYPES
 
     @classmethod
     def invoke_action(cls, invocation: ActionInvocation, activity: Activity) -> None:

@@ -346,7 +346,7 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         }
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_push_changes.assert_not_called()
-        mock_consume.assert_called_once_with(self.organization, 123, self.group)
+        mock_consume.assert_called_once_with(self.organization, 123)
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
     def test_push_changes_skips_when_all_unsynced_repos_errored(self, mock_push_changes):

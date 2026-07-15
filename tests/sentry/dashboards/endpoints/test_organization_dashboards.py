@@ -2125,6 +2125,134 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         ]
         assert len(prebuilt_in_response) == 1
 
+    def test_endpoint_creates_pre_favorited_prebuilt_dashboards(self) -> None:
+        assert (
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization, user_id=self.user.id
+            ).count()
+            == 0
+        )
+
+        pre_favorited_prebuilt_ids = {
+            d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("pre_favorited")
+        }
+
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                "organizations:dashboards-starred",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        favorites = DashboardFavoriteUser.objects.filter(
+            organization=self.organization, user_id=self.user.id
+        )
+        favorited_prebuilt_ids = set(
+            Dashboard.objects.filter(
+                id__in=favorites.values_list("dashboard_id", flat=True)
+            ).values_list("prebuilt_id", flat=True)
+        )
+        assert favorited_prebuilt_ids == pre_favorited_prebuilt_ids
+
+    def test_endpoint_does_not_create_favorites_without_starred_flag(self) -> None:
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        assert (
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization, user_id=self.user.id
+            ).count()
+            == 0
+        )
+
+    def test_endpoint_does_not_re_favorite_unstarred_prebuilt_dashboards(self) -> None:
+        pre_favorited_prebuilt_ids = {
+            d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("pre_favorited")
+        }
+
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                "organizations:dashboards-starred",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+            assert response.status_code == 200
+
+            # The user deliberately unstars one of the pre-favorited prebuilt dashboards.
+            unstarred_prebuilt_id = next(iter(pre_favorited_prebuilt_ids))
+            unstarred_dashboard = Dashboard.objects.get(
+                organization=self.organization, prebuilt_id=unstarred_prebuilt_id
+            )
+            DashboardFavoriteUser.objects.unfavorite_dashboard(
+                organization=self.organization,
+                user_id=self.user.id,
+                dashboard=unstarred_dashboard,
+            )
+
+            # A subsequent load must not silently re-star it.
+            response = self.do_request("get", self.url)
+            assert response.status_code == 200
+
+        favorites = DashboardFavoriteUser.objects.filter(
+            organization=self.organization, user_id=self.user.id, favorited=True
+        )
+        favorited_prebuilt_ids = set(
+            Dashboard.objects.filter(
+                id__in=favorites.values_list("dashboard_id", flat=True)
+            ).values_list("prebuilt_id", flat=True)
+        )
+        assert favorited_prebuilt_ids == pre_favorited_prebuilt_ids - {unstarred_prebuilt_id}
+
+    def test_endpoint_preserves_existing_stars_and_appends_prebuilts(self) -> None:
+        # User already has a starred (non-prebuilt) dashboard before rollout.
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard=self.dashboard_2,
+        )
+
+        pre_favorited_prebuilt_ids = {
+            d["prebuilt_id"] for d in PREBUILT_DASHBOARDS if d.get("pre_favorited")
+        }
+
+        with self.feature(
+            [
+                "organizations:dashboards-prebuilt-insights-dashboards",
+                "organizations:dashboards-sync-all-registered-prebuilt-dashboards",
+                "organizations:dashboards-starred",
+            ]
+        ):
+            response = self.do_request("get", self.url)
+        assert response.status_code == 200
+
+        favorites = list(
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization, user_id=self.user.id, favorited=True
+            ).order_by("position")
+        )
+        # Existing star is retained and kept at the front; prebuilts appended after.
+        assert favorites[0].dashboard_id == self.dashboard_2.id
+        assert favorites[0].position == 0
+
+        favorited_prebuilt_ids = set(
+            Dashboard.objects.filter(
+                id__in=[f.dashboard_id for f in favorites],
+                prebuilt_id__isnull=False,
+            ).values_list("prebuilt_id", flat=True)
+        )
+        assert favorited_prebuilt_ids == pre_favorited_prebuilt_ids
+
     def test_post_with_text_widget(self) -> None:
         data = {
             "title": "Dashboard from Post",
