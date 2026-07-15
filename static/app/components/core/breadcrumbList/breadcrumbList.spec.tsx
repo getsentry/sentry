@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
@@ -65,12 +67,7 @@ describe('BreadcrumbList container-query collapse', () => {
 
   it('emits an @container display rule for link crumbs, not an always-on @media shadow', () => {
     render(
-      <BreadcrumbList
-        items={[
-          {type: 'link', label: 'Settings', to: '/settings/'},
-          {type: 'page-title', label: 'General'},
-        ]}
-      />
+      <BreadcrumbList items={[{type: 'link', label: 'Settings', to: '/settings/'}]} />
     );
 
     // The list renders as an ordered list (as inline content, not a landmark).
@@ -95,19 +92,18 @@ describe('BreadcrumbList container-query collapse', () => {
     expect(alwaysOnMediaFlex).toBe(false);
   });
 
-  it('renders the current page as an h1 and hides dividers from AT', () => {
+  it('renders title content without a heading and hides dividers from AT', () => {
     render(
-      <BreadcrumbList
-        items={[
-          {type: 'link', label: 'Settings', to: '/settings/'},
-          {type: 'page-title', label: 'General'},
-        ]}
-      />
+      <Fragment>
+        <BreadcrumbList items={[{type: 'link', label: 'Settings', to: '/settings/'}]} />
+        <BreadcrumbList.Title item={{type: 'page-title', label: 'General'}} />
+      </Fragment>
     );
 
-    // The current-page crumb owns the page heading. When this list is rendered
-    // inside TopBar.Slot, use `as="div"` on the slot to avoid nested headings.
-    expect(screen.getByRole('heading', {name: 'General'})).toBeInTheDocument();
+    // TopBar owns the page heading. BreadcrumbList.Title only renders the title
+    // content so it can be placed inside that heading without nesting one.
+    expect(screen.queryByRole('heading', {name: 'General'})).not.toBeInTheDocument();
+    expect(screen.getByText('General')).toBeInTheDocument();
 
     // Parent links must not be marked current.
     expect(screen.getByRole('link', {name: 'Settings'})).not.toHaveAttribute(
@@ -133,7 +129,6 @@ describe('BreadcrumbList container-query collapse', () => {
             ],
             onChange: () => {},
           },
-          {type: 'page-title', label: 'Client Keys'},
         ]}
       />
     );
@@ -141,7 +136,9 @@ describe('BreadcrumbList container-query collapse', () => {
     // The trigger names both its purpose and the current selection.
     // findBy lets CompactSelect's deferred mount-time state update flush in act.
     expect(
-      await screen.findByRole('button', {name: 'Selected Project: javascript'})
+      await screen.findByRole('button', {
+        name: 'Selected Project: javascript',
+      })
     ).toBeInTheDocument();
   });
 
@@ -159,7 +156,6 @@ describe('BreadcrumbList container-query collapse', () => {
             ],
             onChange: () => {},
           },
-          {type: 'page-title', label: 'Client Keys'},
         ]}
       />
     );
@@ -171,31 +167,19 @@ describe('BreadcrumbList container-query collapse', () => {
     const selectItem = trigger.closest('li');
     expect(selectItem).not.toBeNull();
     expect(hidesBelowSm(selectItem!)).toBe(true);
-
-    // The last crumb is not wrapped in a hiding <li> — it always stays visible.
-    const current = screen.getByRole('heading', {name: 'Client Keys'});
-    expect(current).toHaveTextContent('Client Keys');
-    expect(hidesBelowSm(current.closest('li')!)).toBe(false);
   });
 
   it('gives crumbs a visible-width floor and never collapses them to 0', () => {
     render(
-      <BreadcrumbList
-        items={[
-          {type: 'link', label: 'Settings', to: '/settings/'},
-          {type: 'page-title', label: 'General'},
-        ]}
-      />
+      <BreadcrumbList items={[{type: 'link', label: 'Settings', to: '/settings/'}]} />
     );
 
     const link = screen.getByRole('link', {name: 'Settings'});
-    const current = screen.getByRole('heading', {name: 'General'});
     const parentLi = link.closest('li')!;
 
     // The fixed max-width caps are gone, so labels size to content when there's
     // room. (jsdom can't compute layout — this guards the CSS intent, not pixels.)
     expect(rulesForElement(link).some(r => /max-width:\s*132px/.test(r))).toBe(false);
-    expect(rulesForElement(current).some(r => /max-width:\s*200px/.test(r))).toBe(false);
 
     // Regression guard: the parent <li> must not carry min-width:0 — that let it
     // collapse to 0 width when the current page's label was very long.
@@ -212,18 +196,15 @@ describe('BreadcrumbList container-query collapse', () => {
 describe('BreadcrumbList rich page-title items', () => {
   it('renders a pagination chevron disabled when it has no destination', () => {
     render(
-      <BreadcrumbList
-        items={[
-          {
-            type: 'page-title',
-            label: 'Issue',
-            pagination: {
-              previous: {ariaLabel: 'Previous issue', to: '/issues/1/'},
-              // No `to` — this is the last item in the list, so it disables.
-              next: {ariaLabel: 'Next issue'},
-            },
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Issue',
+          pagination: {
+            previous: {ariaLabel: 'Previous issue', to: '/issues/1/'},
+            next: {ariaLabel: 'Next issue'},
           },
-        ]}
+        }}
       />
     );
 
@@ -240,17 +221,14 @@ describe('BreadcrumbList rich page-title items', () => {
 
   it('renders an always-visible copy trailing action', () => {
     render(
-      <BreadcrumbList
-        items={[
-          {type: 'link', label: 'Issues', to: '/issues/'},
-          {
-            type: 'page-title',
-            label: 'JAVASCRIPT-2X9',
-            trailingActions: (
-              <BreadcrumbList.CopyAction text="JAVASCRIPT-2X9" label="Copy Short-ID" />
-            ),
-          },
-        ]}
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'JAVASCRIPT-2X9',
+          trailingActions: (
+            <BreadcrumbList.CopyAction text="JAVASCRIPT-2X9" label="Copy Short-ID" />
+          ),
+        }}
       />
     );
 
@@ -260,27 +238,25 @@ describe('BreadcrumbList rich page-title items', () => {
   it('drops falsy entries in a trailing-actions array', () => {
     const isPublic = false;
     render(
-      <BreadcrumbList
-        items={[
-          {
-            type: 'page-title',
-            label: 'JAVASCRIPT-2X9',
-            trailingActions: [
-              <BreadcrumbList.CopyAction
-                key="copy"
-                text="JAVASCRIPT-2X9"
-                label="Copy Short-ID"
-              />,
-              isPublic && (
-                <BreadcrumbList.MenuAction
-                  key="menu"
-                  triggerLabel="More actions"
-                  items={[]}
-                />
-              ),
-            ],
-          },
-        ]}
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'JAVASCRIPT-2X9',
+          trailingActions: [
+            <BreadcrumbList.CopyAction
+              key="copy"
+              text="JAVASCRIPT-2X9"
+              label="Copy Short-ID"
+            />,
+            isPublic && (
+              <BreadcrumbList.MenuAction
+                key="menu"
+                triggerLabel="More actions"
+                items={[]}
+              />
+            ),
+          ],
+        }}
       />
     );
 
@@ -290,20 +266,17 @@ describe('BreadcrumbList rich page-title items', () => {
 
   it('renders an editable-title as a click-to-edit field', async () => {
     render(
-      <BreadcrumbList
-        items={[
-          {type: 'link', label: 'Dashboards', to: '/dashboards/'},
-          {
-            type: 'editable-title',
-            title: (
-              <BreadcrumbList.EditableTitle
-                value="My Dashboard"
-                onChange={() => {}}
-                aria-label="Edit dashboard name"
-              />
-            ),
-          },
-        ]}
+      <BreadcrumbList.Title
+        item={{
+          type: 'editable-title',
+          title: (
+            <BreadcrumbList.EditableTitle
+              value="My Dashboard"
+              onChange={() => {}}
+              aria-label="Edit dashboard name"
+            />
+          ),
+        }}
       />
     );
 

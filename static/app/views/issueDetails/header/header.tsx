@@ -86,22 +86,28 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            <TopBar.Slot name="title" as={hasNewBreadcrumbs ? 'div' : undefined}>
-              {hasNewBreadcrumbs ? (
-                <BreadcrumbList
-                  items={[
-                    {
-                      type: 'link',
-                      label: t('Issues'),
-                      to: {
-                        pathname: `/organizations/${organization.slug}/issues/`,
-                        query,
+            {hasNewBreadcrumbs ? (
+              <Fragment>
+                <TopBar.Slot name="breadcrumbs">
+                  <BreadcrumbList
+                    items={[
+                      {
+                        type: 'link',
+                        label: t('Issues'),
+                        to: {
+                          pathname: `/organizations/${organization.slug}/issues/`,
+                          query,
+                        },
                       },
-                    },
-                    issueItem,
-                  ]}
-                />
-              ) : (
+                    ]}
+                  />
+                </TopBar.Slot>
+                <TopBar.Slot name="title">
+                  <BreadcrumbList.Title item={issueItem} />
+                </TopBar.Slot>
+              </Fragment>
+            ) : (
+              <TopBar.Slot name="title">
                 <StyledBreadcrumbs
                   crumbs={[
                     {
@@ -111,11 +117,13 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                         query,
                       },
                     },
-                    {label: <IssueIdBreadcrumb project={project} group={group} />},
+                    {
+                      label: <IssueIdBreadcrumb project={project} group={group} />,
+                    },
                   ]}
                 />
-              )}
-            </TopBar.Slot>
+              </TopBar.Slot>
+            )}
             {hasErrorUpsampling && (
               <Tooltip
                 title={t(

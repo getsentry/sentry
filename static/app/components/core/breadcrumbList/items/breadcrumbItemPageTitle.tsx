@@ -7,7 +7,6 @@ import {LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
-import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
@@ -133,14 +132,18 @@ export function BreadcrumbItemPageTitle({
         </Flex>
       )}
       {leadingGraphic && <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>}
-      {/* minWidth={0} lets the heading shrink. The visible-width floor lives on the
-          outer Flex above. */}
+      {/* minWidth={0} lets the title content shrink. The visible-width floor lives
+          on the outer Flex above. */}
       <Container minWidth={0}>
         {containerProps => (
-          <InfoText title={labelTooltip} bold {...containerProps}>
-            <Heading as="h1" ellipsis variant="inherit">
-              {label}
-            </Heading>
+          <InfoText
+            title={labelTooltip}
+            bold
+            ellipsis
+            variant="inherit"
+            {...containerProps}
+          >
+            {label}
           </InfoText>
         )}
       </Container>

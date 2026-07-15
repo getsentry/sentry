@@ -102,19 +102,20 @@ function ReplayDetailsContent() {
   });
 
   const title = replayRecord
-    ? `${replayRecord.user.display_name ?? t('Anonymous User')} — Session Replay — ${orgSlug}`
+    ? `${
+        replayRecord.user.display_name ?? t('Anonymous User')
+      } — Session Replay — ${orgSlug}`
     : `Session Replay — ${orgSlug}`;
 
   const pageFrameContent = (
     <Fragment>
-      <TopBar.Slot
-        name="title"
-        as={
-          organization.features.includes('ui-migration-breadcrumbs') ? 'div' : undefined
-        }
-      >
+      {organization.features.includes('ui-migration-breadcrumbs') ? (
         <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-      </TopBar.Slot>
+      ) : (
+        <TopBar.Slot name="title">
+          <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+        </TopBar.Slot>
+      )}
       <ReplayDetailsHeaderActions readerResult={readerResult} />
       <Flex
         justify="between"

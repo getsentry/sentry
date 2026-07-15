@@ -119,7 +119,9 @@ describe('Dashboards > Detail', () => {
    * Note that this bypasses hover state to avoid overlays intercepting clicks.
    */
   async function activateDashboardEditMode() {
-    const button = await screen.findByRole('button', {name: 'edit-dashboard'});
+    const button = await screen.findByRole('button', {
+      name: 'edit-dashboard',
+    });
     act(() => {
       button.click();
     });
@@ -156,7 +158,10 @@ describe('Dashboards > Detail', () => {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
-        body: DashboardFixture([], {id: 'default-overview', title: 'Default'}),
+        body: DashboardFixture([], {
+          id: 'default-overview',
+          title: 'Default',
+        }),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/visit/',
@@ -466,7 +471,10 @@ describe('Dashboards > Detail', () => {
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
-        body: DashboardFixture([widgets[0]!], {id: '1', title: 'Custom Errors'}),
+        body: DashboardFixture([widgets[0]!], {
+          id: '1',
+          title: 'Custom Errors',
+        }),
       });
       render(
         <OrganizationContext value={initialData.organization}>
@@ -603,7 +611,10 @@ describe('Dashboards > Detail', () => {
           <TopBar />
           <DashboardDetail
             initialState={DashboardState.VIEW}
-            dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              title: 'Custom Errors',
+            })}
             onDashboardUpdate={jest.fn()}
           />
         </TopBar.Slot.Provider>,
@@ -617,14 +628,14 @@ describe('Dashboards > Detail', () => {
         'href',
         '/organizations/org-slug/dashboards/'
       );
-      expect(within(breadcrumbs).getByText('Custom Errors')).toBeInTheDocument();
+      expect(
+        screen.getByRole('heading', {name: 'Custom Errors', level: 1})
+      ).toBeInTheDocument();
+      expect(within(breadcrumbs).queryByText('Custom Errors')).not.toBeInTheDocument();
       // The redesigned BreadcrumbList hides its slash dividers from the a11y tree
       // (unlike the legacy breadcrumbs, whose divider surfaced as a visible img),
       // so there are no visible imgs in this view-only crumb.
       expect(within(breadcrumbs).queryAllByRole('img')).toHaveLength(0);
-      expect(
-        screen.queryByRole('heading', {name: 'Custom Errors'})
-      ).not.toBeInTheDocument();
     });
 
     it('renders the legacy dashboard breadcrumb in the top bar (flag off)', async () => {
@@ -638,7 +649,10 @@ describe('Dashboards > Detail', () => {
           <TopBar />
           <DashboardDetail
             initialState={DashboardState.VIEW}
-            dashboard={DashboardFixture([], {id: '1', title: 'Custom Errors'})}
+            dashboard={DashboardFixture([], {
+              id: '1',
+              title: 'Custom Errors',
+            })}
             onDashboardUpdate={jest.fn()}
           />
         </TopBar.Slot.Provider>,
@@ -1294,8 +1308,16 @@ describe('Dashboards > Detail', () => {
 
     it('ignores the order of selection of page filters to render unsaved filters', async () => {
       const testProjects = [
-        ProjectFixture({id: '1', name: 'first', environments: ['alpha', 'beta']}),
-        ProjectFixture({id: '2', name: 'second', environments: ['alpha', 'beta']}),
+        ProjectFixture({
+          id: '1',
+          name: 'first',
+          environments: ['alpha', 'beta'],
+        }),
+        ProjectFixture({
+          id: '2',
+          name: 'second',
+          environments: ['alpha', 'beta'],
+        }),
       ];
 
       act(() => ProjectsStore.loadInitialData(testProjects));
@@ -1594,7 +1616,10 @@ describe('Dashboards > Detail', () => {
         '/organizations/org-slug/dashboards/1/',
         expect.objectContaining({
           data: expect.objectContaining({
-            permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
+            permissions: {
+              isEditableByEveryone: false,
+              teamsWithEditAccess: [],
+            },
           }),
         })
       );
@@ -1650,7 +1675,10 @@ describe('Dashboards > Detail', () => {
         '/organizations/org-slug/dashboards/1/',
         expect.objectContaining({
           data: expect.objectContaining({
-            permissions: {isEditableByEveryone: true, teamsWithEditAccess: []},
+            permissions: {
+              isEditableByEveryone: true,
+              teamsWithEditAccess: [],
+            },
           }),
         })
       );
@@ -1722,7 +1750,10 @@ describe('Dashboards > Detail', () => {
         '/organizations/org-slug/dashboards/1/',
         expect.objectContaining({
           data: expect.objectContaining({
-            permissions: {isEditableByEveryone: false, teamsWithEditAccess: [1, 2]},
+            permissions: {
+              isEditableByEveryone: false,
+              teamsWithEditAccess: [1, 2],
+            },
           }),
         })
       );
@@ -1838,7 +1869,11 @@ describe('Dashboards > Detail', () => {
     it('renders favorite button in unstarred state', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: DashboardFixture([], {id: '1', title: 'Custom Errors', isFavorited: false}),
+        body: DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+          isFavorited: false,
+        }),
       });
       render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
@@ -1859,7 +1894,11 @@ describe('Dashboards > Detail', () => {
     it('renders favorite button in favorited state', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: DashboardFixture([], {id: '1', title: 'Custom Errors', isFavorited: true}),
+        body: DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+          isFavorited: true,
+        }),
       });
       render(<ViewEditDashboard />, {
         ...makeDashboardRouterConfig({
@@ -1880,7 +1919,11 @@ describe('Dashboards > Detail', () => {
     it('toggles favorite button', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
-        body: DashboardFixture([], {id: '1', title: 'Custom Errors', isFavorited: true}),
+        body: DashboardFixture([], {
+          id: '1',
+          title: 'Custom Errors',
+          isFavorited: true,
+        }),
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/favorite/',
@@ -1966,7 +2009,9 @@ describe('Dashboards > Detail', () => {
         );
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+          await screen.findByRole('menuitemradio', {
+            name: 'Create Custom Widget',
+          })
         );
         expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
       });
@@ -1984,7 +2029,9 @@ describe('Dashboards > Detail', () => {
         );
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {name: 'From Widget Library'})
+          await screen.findByRole('menuitemradio', {
+            name: 'From Widget Library',
+          })
         );
         expect(await screen.findByText('Widget Library')).toBeInTheDocument();
       });
@@ -2002,7 +2049,9 @@ describe('Dashboards > Detail', () => {
         );
         await userEvent.click(await screen.findByLabelText('Add Widget'));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+          await screen.findByRole('menuitemradio', {
+            name: 'Create Custom Widget',
+          })
         );
         expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
       });
@@ -2020,7 +2069,9 @@ describe('Dashboards > Detail', () => {
         );
         await userEvent.click(await screen.findByLabelText('Add Widget'));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {name: 'From Widget Library'})
+          await screen.findByRole('menuitemradio', {
+            name: 'From Widget Library',
+          })
         );
         expect(await screen.findByText('Widget Library')).toBeInTheDocument();
       });
@@ -2106,7 +2157,9 @@ describe('Dashboards > Detail', () => {
 
         await userEvent.click(await screen.findByLabelText('Add Widget'));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+          await screen.findByRole('menuitemradio', {
+            name: 'Create Custom Widget',
+          })
         );
 
         expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();
@@ -2216,7 +2269,9 @@ describe('Dashboards > Detail', () => {
 
         await userEvent.click(await screen.findByRole('button', {name: 'Add Widget'}));
         await userEvent.click(
-          await screen.findByRole('menuitemradio', {name: 'Create Custom Widget'})
+          await screen.findByRole('menuitemradio', {
+            name: 'Create Custom Widget',
+          })
         );
 
         expect(await screen.findByText('Custom Widget Builder')).toBeInTheDocument();

@@ -52,7 +52,7 @@ export function BreadcrumbItemPageTitleEditable({
       {/* Bold wrapper matches BreadcrumbItemPageTitle's weight; EditableText's
           compact label/input inherit font-weight from this context. */}
       <Container minWidth={0}>
-        <Text as="div" bold>
+        <Text as="span" bold>
           {title}
         </Text>
       </Container>

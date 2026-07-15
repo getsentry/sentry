@@ -57,7 +57,6 @@ function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
           label: getDetectorTypeLabel(detector.type),
           to: makeMonitorTypePathname(organization.slug, detector.type),
         },
-        {type: 'page-title', label: detector.name},
       ]}
     />
   );
@@ -66,11 +65,21 @@ function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
 function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
   const organization = useOrganization();
 
+  if (organization.features.includes('ui-migration-breadcrumbs')) {
+    return (
+      <Fragment>
+        <TopBar.Slot name="breadcrumbs">
+          <DetectorDetailsBreadcrumbs detector={detector} />
+        </TopBar.Slot>
+        <TopBar.Slot name="title">
+          <BreadcrumbList.Title item={{type: 'page-title', label: detector.name}} />
+        </TopBar.Slot>
+      </Fragment>
+    );
+  }
+
   return (
-    <TopBar.Slot
-      name="title"
-      as={organization.features.includes('ui-migration-breadcrumbs') ? 'div' : undefined}
-    >
+    <TopBar.Slot name="title">
       <DetectorDetailsBreadcrumbs detector={detector} />
     </TopBar.Slot>
   );

@@ -1,4 +1,9 @@
-import {Container, Flex, type Responsive} from '@sentry/scraps/layout';
+import {
+  Container,
+  Flex,
+  type Responsive,
+  useHasContainerQuery,
+} from '@sentry/scraps/layout';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -19,7 +24,9 @@ import {BreadcrumbItemSelectProjects} from './items/breadcrumbItemSelectProjects
 import {BreadcrumbDividerCombo} from './breadcrumbDividerCombo';
 
 type LinkBreadcrumbItem = {type: 'link'} & BreadcrumbItemLinkProps;
-type PageTitleBreadcrumbItem = {type: 'page-title'} & BreadcrumbItemPageTitleProps;
+type PageTitleBreadcrumbItem = {
+  type: 'page-title';
+} & BreadcrumbItemPageTitleProps;
 type EditableTitleBreadcrumbItem = {
   type: 'editable-title';
 } & BreadcrumbItemPageTitleEditableProps;
@@ -27,14 +34,15 @@ type SelectProjectsBreadcrumbItem = {
   type: 'select-projects';
 } & BreadcrumbItemSelectProjectsProps;
 
-type AlwaysAllowedBreadcrumbItem = LinkBreadcrumbItem | SelectProjectsBreadcrumbItem;
-type LastBreadcrumbItem = PageTitleBreadcrumbItem | EditableTitleBreadcrumbItem;
-
-export type BreadcrumbItem = AlwaysAllowedBreadcrumbItem | LastBreadcrumbItem;
-type BreadcrumbItems = [...AlwaysAllowedBreadcrumbItem[], LastBreadcrumbItem];
+type BreadcrumbItem = LinkBreadcrumbItem | SelectProjectsBreadcrumbItem;
+export type BreadcrumbTitleItem = PageTitleBreadcrumbItem | EditableTitleBreadcrumbItem;
 
 export interface BreadcrumbListProps extends React.HTMLAttributes<HTMLElement> {
-  items: BreadcrumbItems;
+  items: BreadcrumbItem[];
+}
+
+interface BreadcrumbListTitleProps {
+  item: BreadcrumbTitleItem;
 }
 
 function renderItem(item: BreadcrumbItem) {
@@ -44,6 +52,18 @@ function renderItem(item: BreadcrumbItem) {
       const {type: _type, ...props} = item;
       return <BreadcrumbItemLink {...props} />;
     }
+    case 'select-projects': {
+      const {type: _type, ...props} = item;
+      return <BreadcrumbItemSelectProjects {...props} />;
+    }
+    default:
+      unreachable(item);
+      return null;
+  }
+}
+
+function BreadCrumbTitle({item}: BreadcrumbListTitleProps) {
+  switch (item.type) {
     case 'page-title': {
       const {type: _type, ...props} = item;
       return <BreadcrumbItemPageTitle {...props} />;
@@ -51,10 +71,6 @@ function renderItem(item: BreadcrumbItem) {
     case 'editable-title': {
       const {type: _type, ...props} = item;
       return <BreadcrumbItemPageTitleEditable {...props} />;
-    }
-    case 'select-projects': {
-      const {type: _type, ...props} = item;
-      return <BreadcrumbItemSelectProjects {...props} />;
     }
     default:
       unreachable(item);
@@ -67,34 +83,30 @@ function renderItem(item: BreadcrumbItem) {
  * parent link crumbs into an overflow (…) menu when the container is narrow
  * (below the 'xs' breakpoint — 500px).
  *
- * Consumers pass a typed `items` array so each breadcrumb slot has an explicit
- * variant — no implicit inference based on position.
+ * Consumers pass parent crumbs in `items` and render the final page title with
+ * `BreadcrumbList.Title`. Keeping those concerns separate means the TopBar can
+ * own the page's single heading.
  *
  * Overflow behaviour:
- * - Wide (≥ 500px): all items render individually
- * - Narrow (< 500px): every parent item is hidden, leaving only the last crumb.
- *   'link' parents additionally collapse into a single BreadcrumbItemMenuBreadcrumbs
- *   overflow button; non-link parents (e.g. 'select-projects') just hide.
+ * - Wide (≥ 500px): all parent items render individually
+ * - Narrow (< 500px): parent items hide and link parents collapse into a single
+ *   BreadcrumbItemMenuBreadcrumbs overflow button; non-link parents (e.g.
+ *   'select-projects') just hide.
  */
 function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
+  const hasParentQueryContainer = useHasContainerQuery();
+
   if (items.length === 0) {
     return null;
   }
 
-  const lastItem = items.at(-1);
-  if (!lastItem) {
-    return null;
-  }
-  const parentItems = items.slice(0, -1);
-
   // Collect link items for the overflow menu (narrow layout)
-  const collapsibleLinkItems = parentItems.filter(
-    (item): item is Extract<BreadcrumbItem, {type: 'link'}> => item.type === 'link'
-  );
-  const menuItems = collapsibleLinkItems.map(item => ({
-    label: item.label,
-    to: item.to,
-  }));
+  const menuItems = items
+    .filter(item => item.type === 'link')
+    .map(item => ({
+      label: item.label,
+      to: item.to,
+    }));
 
   // Responsive display values using container queries (bare breakpoint keys):
   //   '2xs' is the smallest breakpoint → applies as the base
@@ -103,23 +115,23 @@ function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
   const visibleWhenNarrow: Responsive<'flex' | 'none'> = {xs: 'none', '2xs': 'flex'};
 
   return (
-    // Renders as inline content (no <nav> landmark): the page-title item owns the
-    // page heading. A `<nav aria-label>` here would add an unnecessary landmark
-    // around the heading and its supporting parent links.
+    // Renders parent links as inline content (no <nav> landmark). The TopBar
+    // title slot owns the page heading, so this list only contains supporting
+    // parent links.
     <Container width="100%" {...props}>
       {/*
-       * The query container is this inner element, not the <nav> above. emotion's
-       * `as` swap on a styled component bypasses the wrapper that strips
-       * `containerType`, so pairing `as="nav"` with `containerType` would leak the
-       * prop onto the DOM node. Keeping `containerType` on an un-swapped Container
-       * (rendered as a plain div) lets the primitive strip it as intended while
-       * still establishing the container at full width — the @container collapse
-       * below resolves against it either way.
+       * When there is already a query container (for example, the flexible
+       * content region in TopBar), use it instead of introducing inline-size
+       * containment into the content-sized breadcrumbs flex item. Standalone
+       * BreadcrumbLists establish their own container here.
        */}
-      <Container containerType="inline-size" width="100%">
+      <Container
+        containerType={hasParentQueryContainer ? 'normal' : 'inline-size'}
+        width="100%"
+      >
         <Flex as="ol" align="center" gap="xs" padding="md 0" margin="0" wrap="nowrap">
-          {parentItems.map((item, index) => (
-            // Wide: show every parent item. Narrow: hide them all — 'link' parents
+          {items.map((item, index) => (
+            // Wide: show every item. Narrow: hide them all — 'link' parents
             // reappear in the overflow menu below; other types (e.g. 'select-projects')
             // simply collapse out of view.
             <BreadcrumbDividerCombo key={index} display={visibleWhenWide}>
@@ -133,11 +145,6 @@ function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
               <BreadcrumbItemMenuBreadcrumbs items={menuItems} />
             </BreadcrumbDividerCombo>
           )}
-
-          {/* Page title — always visible, no divider after it */}
-          <Container as="li" display="contents">
-            {renderItem(lastItem)}
-          </Container>
         </Flex>
       </Container>
     </Container>
@@ -145,11 +152,12 @@ function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
 }
 
 /**
- * Compound component. Element-slot parts (`EditableTitle`) and trailing-action
- * parts (`CopyAction`, `MenuAction`) are attached here so consumers pass typed
- * elements into item props rather than arbitrary ReactNodes.
+ * Compound component. The title renderer and trailing-action parts are attached
+ * here so consumers can compose parent breadcrumbs and the page title while the
+ * TopBar owns the heading semantics.
  */
 export const BreadcrumbList = Object.assign(BreadcrumbListRoot, {
+  Title: BreadCrumbTitle,
   EditableTitle: BreadcrumbEditableTitle,
   CopyAction: BreadcrumbCopyAction,
   MenuAction: BreadcrumbMenuAction,

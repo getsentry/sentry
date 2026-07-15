@@ -110,7 +110,9 @@ export const UNSAVED_FILTERS_MESSAGE = t(
   'You have unsaved dashboard filters. You can save or discard them.'
 );
 
-const OverrideHeader = OverrideOrDefault({overrideName: 'component:dashboards-header'});
+const OverrideHeader = OverrideOrDefault({
+  overrideName: 'component:dashboards-header',
+});
 
 const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.EVENTS]: WidgetType.DISCOVER,
@@ -502,7 +504,10 @@ class DashboardDetail extends Component<Props, State> {
           ...modifiedDashboard,
           widgets: modifiedDashboard?.widgets.map(widget => omit(widget, 'layout')),
         },
-        {...dashboard, widgets: dashboard.widgets.map(widget => omit(widget, 'layout'))}
+        {
+          ...dashboard,
+          widgets: dashboard.widgets.map(widget => omit(widget, 'layout')),
+        }
       );
     }
 
@@ -1195,16 +1200,22 @@ class DashboardDetail extends Component<Props, State> {
             <NoProjectMessage organization={organization}>
               {this.isEmbedded ? null : (
                 <Fragment>
-                  <TopBar.Slot name="title" as={hasNewBreadcrumbs ? 'div' : undefined}>
-                    {hasNewBreadcrumbs ? (
-                      <BreadcrumbList
-                        items={[
-                          {
-                            type: 'link',
-                            label: t('Dashboards'),
-                            to: `/organizations/${organization.slug}/dashboards/`,
-                          },
-                          {
+                  {hasNewBreadcrumbs ? (
+                    <Fragment>
+                      <TopBar.Slot name="breadcrumbs">
+                        <BreadcrumbList
+                          items={[
+                            {
+                              type: 'link',
+                              label: t('Dashboards'),
+                              to: `/organizations/${organization.slug}/dashboards/`,
+                            },
+                          ]}
+                        />
+                      </TopBar.Slot>
+                      <TopBar.Slot name="title">
+                        <BreadcrumbList.Title
+                          item={{
                             type: 'editable-title',
                             title: (
                               <BreadcrumbList.EditableTitle
@@ -1221,10 +1232,12 @@ class DashboardDetail extends Component<Props, State> {
                                 aria-label={t('Edit Dashboard Name')}
                               />
                             ),
-                          },
-                        ]}
-                      />
-                    ) : (
+                          }}
+                        />
+                      </TopBar.Slot>
+                    </Fragment>
+                  ) : (
+                    <TopBar.Slot name="title">
                       <Breadcrumbs
                         crumbs={[
                           {
@@ -1242,8 +1255,8 @@ class DashboardDetail extends Component<Props, State> {
                           },
                         ]}
                       />
-                    )}
-                  </TopBar.Slot>
+                    </TopBar.Slot>
+                  )}
                   <TopBar.Slot name="actions">
                     <Controls
                       organization={organization}
@@ -1325,7 +1338,9 @@ class DashboardDetail extends Component<Props, State> {
                                     widgets: undefined,
                                   }),
                                 };
-                                this.setState({isSavingDashboardFilters: true});
+                                this.setState({
+                                  isSavingDashboardFilters: true,
+                                });
                                 addLoadingMessage(t('Saving dashboard filters'));
                                 await updateDashboard(
                                   api,
@@ -1373,7 +1388,9 @@ class DashboardDetail extends Component<Props, State> {
                                     }
 
                                     navigateToDashboard();
-                                    this.setState({isSavingDashboardFilters: false});
+                                    this.setState({
+                                      isSavingDashboardFilters: false,
+                                    });
                                   },
                                   // `updateDashboard` does its own error handling
                                   () => {}

@@ -1,7 +1,7 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
-import type {BreadcrumbItem} from '@sentry/scraps/breadcrumbList';
+import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -101,7 +101,7 @@ export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProp
         />
       ) : null,
     ],
-  } as const satisfies BreadcrumbItem;
+  } as const satisfies BreadcrumbTitleItem;
 }
 
 /**
@@ -119,7 +119,9 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
   const {copy} = useCopyToClipboard();
 
   const handleCopyShortId = useCallback(() => {
-    copy(group.shortId, {successMessage: t('Copied Short-ID to clipboard')}).then(() => {
+    copy(group.shortId, {
+      successMessage: t('Copied Short-ID to clipboard'),
+    }).then(() => {
       trackAnalytics('issue_details.copy_issue_short_id_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),

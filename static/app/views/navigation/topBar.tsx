@@ -5,7 +5,7 @@ import {mergeProps} from '@react-aria/utils';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {slot, withSlots} from '@sentry/scraps/slot';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Heading} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
@@ -26,7 +26,7 @@ import {
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
 
-const Slot = slot(['title', 'search', 'actions', 'feedback'] as const);
+const Slot = slot(['breadcrumbs', 'title', 'search', 'actions', 'feedback'] as const);
 
 function TopBarContent() {
   const theme = useTheme();
@@ -71,39 +71,38 @@ function TopBarContent() {
     >
       <SizeProvider size="sm">
         {/*
-         * The title slot is rendered as a semantic <h1> by default so the page
-         * title (whatever a view routes into it — breadcrumbs, text, etc.) is
-         * exposed as the page heading. Consumers that render a heading inside
-         * the slot can pass `as="div"` to avoid nesting headings.
-         * Flex's render function applies the layout className to that same
-         * element.
+         * Breadcrumbs and the title are separate slots so the title slot always
+         * owns the page heading. BreadcrumbList.Title renders title content
+         * without a heading, while this outlet supplies the single <h1>.
          *
-         * flexGrow={1} lets the title occupy the available inline space (the
-         * header is justify="between", so this just absorbs the empty middle;
-         * content stays left-aligned, actions stay pinned right). This is
-         * required by any title-slot child that establishes a container query
-         * (e.g. BreadcrumbList's `container-type: inline-size`): without a
-         * definite inline size to resolve against, size containment collapses
-         * the child to 0 width and its container queries always read as narrow.
+         * The title occupies the remaining inline space (the header is
+         * justify="between", so this absorbs the empty middle; content stays
+         * left-aligned and actions stay pinned right). This is required by any
+         * title-slot child that establishes a container query.
          */}
-        <Slot.Outlet name="title">
-          {props => (
-            <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
-              {flexProps => {
-                const {as, ...slotProps} = props;
-                const mergedProps = mergeProps(flexProps, slotProps);
+        <Flex
+          align="center"
+          gap="sm"
+          minWidth="0"
+          flexGrow={1}
+          containerType="inline-size"
+        >
+          <Slot.Outlet name="breadcrumbs">
+            {props => (
+              <Flex {...props} align="center" gap="sm" minWidth="0" flex="0 1 auto" />
+            )}
+          </Slot.Outlet>
 
-                return as ? (
-                  <Text as={as} variant="inherit" {...mergedProps}>
-                    {null}
-                  </Text>
-                ) : (
-                  <Heading as="h1" variant="inherit" {...mergedProps} />
-                );
-              }}
-            </Flex>
-          )}
-        </Slot.Outlet>
+          <Slot.Outlet name="title">
+            {props => (
+              <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
+                {flexProps => (
+                  <Heading as="h1" variant="inherit" {...mergeProps(flexProps, props)} />
+                )}
+              </Flex>
+            )}
+          </Slot.Outlet>
+        </Flex>
 
         <Flex align="center" gap="sm">
           <Slot.Outlet name="search">
