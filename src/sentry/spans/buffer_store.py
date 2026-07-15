@@ -25,6 +25,11 @@ from sentry.utils import metrics, redis
 
 add_buffer_script = redis.load_redis_script("spans/add-buffer.lua")
 
+# add-buffer.lua collects observability metrics for only 1 in N calls to keep
+# the hot path cheap. The sampled metrics are distributions/gauges, so the
+# subset stays statistically representative.
+METRICS_SAMPLE_RATE = 100
+
 type RedisClient = RedisCluster[bytes] | StrictRedis[bytes]
 type DecompressPayload = Callable[[bytes], list[bytes]]
 type GetDebugTraceLogger = Callable[[], Any]
@@ -178,6 +183,7 @@ class SpansBufferStore:
                         max_segment_bytes,
                         subsegment.salt,
                         check_flush_lock,
+                        METRICS_SAMPLE_RATE,
                         *subsegment.span_ids,
                     )
 
@@ -193,7 +199,6 @@ class SpansBufferStore:
 
     def update_queue(
         self,
-        trees: dict[tuple[str, str], list[Span]],
         inserted_subsegments: Sequence[InsertedSubsegment],
         *,
         now: int,
@@ -233,8 +238,8 @@ class SpansBufferStore:
                 delete_set = queue_deletes.setdefault(queue_key, set())
                 if not inserted_subsegment.is_detached_segment:
                     delete_set.update(
-                        self.get_span_key(subsegment.project_and_trace, span.span_id)
-                        for span in trees[subsegment.key]
+                        self.get_span_key(subsegment.project_and_trace, span_id.decode("ascii"))
+                        for span_id in result.merged_segment_span_ids
                     )
                 delete_set.discard(result.segment_key)
 

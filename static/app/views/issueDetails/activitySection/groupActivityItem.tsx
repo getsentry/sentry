@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -25,6 +26,10 @@ import type {User} from 'sentry/types/user';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
+import {
+  getAssignmentIntegrationName,
+  isAutoAssignmentIntegration,
+} from 'sentry/views/issueDetails/activitySection/assignmentIntegration';
 
 function getAuthorName(item: GroupActivity) {
   if (item.sentry_app) {
@@ -34,7 +39,11 @@ function getAuthorName(item: GroupActivity) {
     return item.user.name;
   }
   if (
-    item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST &&
+    (item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST ||
+      item.type === GroupActivityType.PULL_REQUEST_CLOSED ||
+      item.type === GroupActivityType.PULL_REQUEST_REOPENED ||
+      item.type === GroupActivityType.PULL_REQUEST_MERGED ||
+      item.type === GroupActivityType.PULL_REQUEST_UNLINKED) &&
     item.data.pullRequest?.author?.name &&
     !item.data.pullRequest.author.email?.endsWith('@localhost')
   ) {
@@ -51,6 +60,7 @@ export function getGroupActivityItem(
   teams: Team[]
 ) {
   const author = <strong>{getAuthorName(activity)}</strong>;
+  const activityContext = {id: activity.id, type: activity.type};
   const issuesLink = `/organizations/${organization.slug}/issues/`;
   const isFeedback = issueCategory === IssueCategoryEnum.FEEDBACK;
 
@@ -159,31 +169,17 @@ export function getGroupActivityItem(
       assignee = t('an unknown user');
     }
 
-    const isAutoAssigned = [
-      'projectOwnership',
-      'codeowners',
-      'suspectCommitter',
-    ].includes(data.integration as string);
-
-    const integrationName: Record<
-      NonNullable<GroupActivityAssigned['data']['integration']>,
-      string
-    > = {
-      msteams: t('Microsoft Teams'),
-      slack: t('Slack'),
-      projectOwnership: t('Ownership Rule'),
-      codeowners: t('Codeowners Rule'),
-      suspectCommitter: t('Suspect Commit'),
-    };
+    const isAutoAssigned = isAutoAssignmentIntegration(data.integration);
+    const integrationName = getAssignmentIntegrationName(data.integration);
 
     return {
       title: isAutoAssigned ? t('Auto-Assigned') : t('Assigned'),
       message: tct('by [author] to [assignee]. [assignedReason]', {
         author,
         assignee,
-        assignedReason: data.integration && integrationName[data.integration] && (
+        assignedReason: integrationName && (
           <CodeWrapper>
-            {t('Assigned via %s', integrationName[data.integration])}
+            {t('Assigned via %s', integrationName)}
             {data.rule && (
               <Fragment>
                 : <StyledRuleSpan>{data.rule}</StyledRuleSpan>
@@ -501,6 +497,63 @@ export function getGroupActivityItem(
           }),
         };
       }
+      case GroupActivityType.PULL_REQUEST_CLOSED: {
+        const {data} = activity;
+        const {pullRequest} = data;
+        return {
+          title: t('Pull Request Closed'),
+          message: pullRequest ? (
+            <PullRequestLink
+              pullRequest={pullRequest}
+              repository={pullRequest.repository}
+            />
+          ) : (
+            t('PR not available')
+          ),
+        };
+      }
+      case GroupActivityType.PULL_REQUEST_REOPENED: {
+        const {pullRequest} = activity.data;
+        return {
+          title: t('Pull Request Reopened'),
+          message: pullRequest ? (
+            <PullRequestLink
+              pullRequest={pullRequest}
+              repository={pullRequest.repository}
+            />
+          ) : (
+            t('PR not available')
+          ),
+        };
+      }
+      case GroupActivityType.PULL_REQUEST_MERGED: {
+        const {pullRequest} = activity.data;
+        return {
+          title: t('Pull Request Merged'),
+          message: pullRequest ? (
+            <PullRequestLink
+              pullRequest={pullRequest}
+              repository={pullRequest.repository}
+            />
+          ) : (
+            t('PR not available')
+          ),
+        };
+      }
+      case GroupActivityType.PULL_REQUEST_UNLINKED: {
+        const {pullRequest} = activity.data;
+        return {
+          title: t('Pull Request Unlinked'),
+          message: pullRequest ? (
+            <PullRequestLink
+              pullRequest={pullRequest}
+              repository={pullRequest.repository}
+            />
+          ) : (
+            t('PR not available')
+          ),
+        };
+      }
       case GroupActivityType.SET_UNRESOLVED: {
         // TODO(nisanthan): Remove after migrating records to SET_ESCALATING
         const {data} = activity;
@@ -804,7 +857,32 @@ export function getGroupActivityItem(
           message: t('Seer created a pull request'),
         };
       }
+      case GroupActivityType.SEER_ITERATION_STARTED:
+        return {
+          title: t('PR Iteration'),
+          message: t('Seer started iterating on the pull request'),
+        };
+      case GroupActivityType.SEER_ITERATION_COMPLETED: {
+        const {data: iterationData} = activity;
+        const pr = iterationData.pull_requests?.[0];
+        if (pr) {
+          return {
+            title: t('PR Iteration'),
+            message: tct('Seer updated the [link:pull request] in [repo]', {
+              link: <ExternalLink href={pr.pull_request.pr_url} />,
+              repo: pr.repo_name,
+            }),
+          };
+        }
+        return {
+          title: t('PR Iteration'),
+          message: t('Seer finished iterating on the pull request'),
+        };
+      }
       default:
+        Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {
+          contexts: {activity: activityContext},
+        });
         return {title: '', message: ''}; // should never hit (?)
     }
   }

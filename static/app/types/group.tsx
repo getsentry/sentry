@@ -3,7 +3,6 @@ import type {LocationDescriptor} from 'history';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
 import type {ParsedOwnershipRule} from 'sentry/types/ownership';
-import type {TitledPlugin} from 'sentry/types/plugins';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -608,6 +607,12 @@ export enum GroupActivityType {
   SEER_CODING_STARTED = 'seer_coding_started',
   SEER_CODING_COMPLETED = 'seer_coding_completed',
   SEER_PR_CREATED = 'seer_pr_created',
+  SEER_ITERATION_STARTED = 'seer_iteration_started',
+  SEER_ITERATION_COMPLETED = 'seer_iteration_completed',
+  PULL_REQUEST_CLOSED = 'pull_request_closed',
+  PULL_REQUEST_REOPENED = 'pull_request_reopened',
+  PULL_REQUEST_MERGED = 'pull_request_merged',
+  PULL_REQUEST_UNLINKED = 'pull_request_unlinked',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -618,6 +623,8 @@ export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_CODING_STARTED,
   GroupActivityType.SEER_CODING_COMPLETED,
   GroupActivityType.SEER_PR_CREATED,
+  GroupActivityType.SEER_ITERATION_STARTED,
+  GroupActivityType.SEER_ITERATION_COMPLETED,
 ]);
 
 interface GroupActivityBase {
@@ -629,7 +636,13 @@ interface GroupActivityBase {
   user?: null | User;
 }
 
-export interface GroupActivityNote extends GroupActivityBase {
+export interface GroupActivityIntegrationData {
+  integration_id?: number | string;
+  provider?: string;
+  provider_key?: string;
+}
+
+interface GroupActivityNote extends GroupActivityBase {
   data: {
     text: string;
   };
@@ -637,7 +650,7 @@ export interface GroupActivityNote extends GroupActivityBase {
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {
-  data: Record<string, string>;
+  data: GroupActivityIntegrationData & Record<string, string>;
   type: GroupActivityType.SET_RESOLVED;
 }
 
@@ -660,12 +673,12 @@ interface GroupActivitySetResolvedIntegration extends GroupActivityBase {
 }
 
 interface GroupActivitySetUnresolved extends GroupActivityBase {
-  data: Record<string, string>;
+  data: GroupActivityIntegrationData & Record<string, string>;
   type: GroupActivityType.SET_UNRESOLVED;
 }
 
 interface GroupActivitySetUnresolvedForecast extends GroupActivityBase {
-  data: {
+  data: GroupActivityIntegrationData & {
     forecast: number;
   };
   type: GroupActivityType.SET_UNRESOLVED;
@@ -738,48 +751,75 @@ interface GroupActivityRegression extends GroupActivityBase {
   type: GroupActivityType.SET_REGRESSION;
 }
 
-interface GroupActivitySetByResolvedInNextSemverRelease extends GroupActivityBase {
-  data: {
-    // Set for semver releases
-    current_release_version: string;
-    inNextRelease?: boolean;
-    integration_id?: number;
-    provider?: string;
-    provider_key?: string;
-  };
-  type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
+interface GroupActivityResolvedInReleaseData extends GroupActivityIntegrationData {
+  /** The commit that caused the release to resolve the issue. */
+  commit?: Commit | null;
+  inNextRelease?: boolean;
+}
+
+interface GroupActivityResolvedAfterCurrentReleaseData extends GroupActivityResolvedInReleaseData {
+  /** The current release; later releases resolve the issue. */
+  current_release_version: string;
+}
+
+interface GroupActivityResolvedInSpecificReleaseData extends GroupActivityResolvedInReleaseData {
+  version?: string;
 }
 
 interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
-  data: {
-    inNextRelease?: boolean;
-    integration_id?: number;
-    provider?: string;
-    provider_key?: string;
-    version?: string;
-  };
+  data:
+    | GroupActivityResolvedAfterCurrentReleaseData
+    | GroupActivityResolvedInSpecificReleaseData;
   type: GroupActivityType.SET_RESOLVED_IN_RELEASE;
 }
 
 interface GroupActivitySetByResolvedInCommit extends GroupActivityBase {
   data: {
-    commit?: Commit;
+    commit?: Commit | null;
   };
   type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
 }
 
 interface GroupActivityReferencedInCommit extends GroupActivityBase {
   data: {
-    commit?: Commit;
+    commit?: Commit | null;
   };
   type: GroupActivityType.REFERENCED_IN_COMMIT;
 }
 
-interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
+export interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
   data: {
-    pullRequest?: PullRequest;
+    pullRequest?: PullRequest | null;
   };
   type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST;
+}
+
+export interface GroupActivityPullRequestClosed extends GroupActivityBase {
+  data: {
+    pullRequest?: PullRequest | null;
+  };
+  type: GroupActivityType.PULL_REQUEST_CLOSED;
+}
+
+interface GroupActivityPullRequestReopened extends GroupActivityBase {
+  data: {
+    pullRequest?: PullRequest | null;
+  };
+  type: GroupActivityType.PULL_REQUEST_REOPENED;
+}
+
+interface GroupActivityPullRequestMerged extends GroupActivityBase {
+  data: {
+    pullRequest?: PullRequest | null;
+  };
+  type: GroupActivityType.PULL_REQUEST_MERGED;
+}
+
+interface GroupActivityPullRequestUnlinked extends GroupActivityBase {
+  data: {
+    pullRequest?: PullRequest | null;
+  };
+  type: GroupActivityType.PULL_REQUEST_UNLINKED;
 }
 
 export interface GroupActivitySetIgnored extends GroupActivityBase {
@@ -867,8 +907,8 @@ export interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
     assigneeType: string;
-    user: Team | User;
     assigneeEmail?: string;
+    assigneeName?: string;
     /**
      * If the user was assigned via an integration
      */
@@ -880,6 +920,7 @@ export interface GroupActivityAssigned extends GroupActivityBase {
       | 'suspectCommitter';
     /** Codeowner or Project owner rule as a string */
     rule?: string;
+    user?: Team | User;
   };
   type: GroupActivityType.ASSIGNED;
 }
@@ -889,6 +930,7 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
     location: string;
     provider: string;
     title: string;
+    label?: string;
     new?: boolean;
   };
   type: GroupActivityType.CREATE_ISSUE;
@@ -958,6 +1000,31 @@ interface GroupActivitySeerPrCreated extends GroupActivityBase {
   type: GroupActivityType.SEER_PR_CREATED;
 }
 
+interface GroupActivitySeerIterationStarted extends GroupActivityBase {
+  data: {
+    iteration_index?: number;
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_ITERATION_STARTED;
+}
+
+interface GroupActivitySeerIterationCompleted extends GroupActivityBase {
+  data: {
+    code_changes?: unknown;
+    iteration_index?: number;
+    pull_requests?: Array<{
+      provider: string;
+      pull_request: {
+        pr_number: number;
+        pr_url: string;
+      };
+      repo_name: string;
+    }>;
+    run_id?: number;
+  };
+  type: GroupActivityType.SEER_ITERATION_COMPLETED;
+}
+
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
@@ -968,7 +1035,6 @@ export type GroupActivity =
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
   | GroupActivitySetByResolvedInRelease
-  | GroupActivitySetByResolvedInNextSemverRelease
   | GroupActivitySetByResolvedInCommit
   | GroupActivityReferencedInCommit
   | GroupActivitySetByResolvedInPullRequest
@@ -994,7 +1060,13 @@ export type GroupActivity =
   | GroupActivitySeerSolutionCompleted
   | GroupActivitySeerCodingStarted
   | GroupActivitySeerCodingCompleted
-  | GroupActivitySeerPrCreated;
+  | GroupActivitySeerPrCreated
+  | GroupActivitySeerIterationStarted
+  | GroupActivitySeerIterationCompleted
+  | GroupActivityPullRequestClosed
+  | GroupActivityPullRequestReopened
+  | GroupActivityPullRequestMerged
+  | GroupActivityPullRequestUnlinked;
 
 export type Activity = GroupActivity;
 
@@ -1125,9 +1197,6 @@ export interface BaseGroup {
   participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
-  pluginActions: Array<[title: string, actionLink: string]>;
-  pluginContexts: any[]; // TODO(ts)
-  pluginIssues: TitledPlugin[];
   priority: PriorityLevel;
   priorityLockedAt: string | null;
   project: Project;

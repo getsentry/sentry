@@ -21,6 +21,7 @@ from sentry.models.projectsdk import EventType, ProjectSDK
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.profiles.task import (
+    UnknownProfileTypeException,
     _calculate_profile_duration_ms,
     _deobfuscate,
     _deobfuscate_using_symbolicator,
@@ -29,6 +30,7 @@ from sentry.profiles.task import (
     _process_symbolicator_results_for_sample,
     _set_frames_platform,
     _symbolicate_profile,
+    determine_profile_type,
     process_profile_from_kafka,
     process_profile_task,
 )
@@ -37,6 +39,7 @@ from sentry.signals import first_profile_received
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.helpers import Feature, override_options
+from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_symbolicator
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
@@ -533,6 +536,44 @@ def test_decode_signature(project, android_profile) -> None:
     assert frames[1]["signature"] == "(): boolean"
 
 
+def test_determine_profile_type() -> None:
+    assert determine_profile_type({"version": "1"}) == EventType.PROFILE
+    assert determine_profile_type({"version": "2"}) == EventType.PROFILE_CHUNK
+
+    # legacy android trace: a profiler_id marks a continuous profiling chunk,
+    # otherwise it is a (transaction-based) profile.
+    assert (
+        determine_profile_type(
+            {"version": "2.android-trace", "platform": "android", "profiler_id": "abc"}
+        )
+        == EventType.PROFILE_CHUNK
+    )
+    assert (
+        determine_profile_type({"version": "2.android-trace", "platform": "android"})
+        == EventType.PROFILE
+    )
+    # fallback path: the trace format is detected from the profile structure,
+    # even when a (faulty) sample version is set
+    assert (
+        determine_profile_type({"platform": "android", "profile": {"methods": []}})
+        == EventType.PROFILE
+    )
+    assert (
+        determine_profile_type(
+            {
+                "version": "2",
+                "platform": "android",
+                "profiler_id": "abc",
+                "profile": {"methods": []},
+            }
+        )
+        == EventType.PROFILE_CHUNK
+    )
+
+    with pytest.raises(UnknownProfileTypeException):
+        determine_profile_type({"platform": "cocoa"})
+
+
 @django_db_all
 @pytest.mark.parametrize(
     "profile, duration_ms",
@@ -549,8 +590,16 @@ def test_calculate_profile_duration(profile, duration_ms, request) -> None:
     assert _calculate_profile_duration_ms(request.getfixturevalue(profile)) == duration_ms
 
 
+def test_calculate_profile_duration_faulty_version(android_profile) -> None:
+    # android trace profiles may arrive with a wrongly set sample version;
+    # the duration must still be calculated from the trace format
+    android_profile["version"] = "2"
+    assert _calculate_profile_duration_ms(android_profile) == 2020
+
+
 @pytest.mark.django_db(transaction=True)
 @thread_leak_allowlist(reason="django dev server", issue=97036)
+@debug_files_test_both_backends
 class DeobfuscationViaSymbolicator(TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, set_sentry_option, live_server):
@@ -733,6 +782,183 @@ class DeobfuscationViaSymbolicator(TransactionTestCase):
                 "source_line": 40,
             },
         ]
+
+    @requires_symbolicator
+    def test_basic_resolving_sample_v2(self) -> None:
+        self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
+        profile: dict[str, Any] = {
+            "version": "2",
+            "platform": "android",
+            "project_id": self.project.id,
+            "event_id": "a" * 32,
+            "build_id": PROGUARD_UUID,
+            "profile": {
+                "frames": [
+                    {"function": "a", "module": "org.a.b.g$a", "signature": "()V", "lineno": 67},
+                    {"function": "a", "module": "org.a.b.g$a", "signature": "()Z", "lineno": 69},
+                    # a non-JVM frame must survive deobfuscation untouched
+                    {"function": "memcpy", "platform": "native"},
+                ],
+                "stacks": [[0, 1, 2], [2, 1, 0]],
+            },
+        }
+
+        _deobfuscate_using_symbolicator(self.project, profile, PROGUARD_UUID)
+
+        assert profile["profile"]["frames"] == [
+            {
+                "module": "org.slf4j.helpers.Util$ClassContextSecurityManager",
+                "function": "getClassContext",
+                "data": {"deobfuscation_status": "deobfuscated"},
+                "signature": "()",
+                "filename": "Util.java",
+                "lineno": 67,
+            },
+            {
+                "module": "org.slf4j.helpers.Util$ClassContextSecurityManager",
+                "function": "getExtraClassContext",
+                "data": {"deobfuscation_status": "deobfuscated"},
+                "signature": "(): boolean",
+                "filename": "Util.java",
+                "lineno": 69,
+            },
+            {"function": "memcpy", "platform": "native"},
+        ]
+        # no inlines, so the frame count is unchanged and stacks are untouched
+        assert profile["profile"]["stacks"] == [[0, 1, 2], [2, 1, 0]]
+
+    @requires_symbolicator
+    def test_inline_resolving_sample_v2(self) -> None:
+        self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
+        profile: dict[str, Any] = {
+            "version": "2",
+            "platform": "android",
+            "project_id": self.project.id,
+            "event_id": "b" * 32,
+            "build_id": PROGUARD_INLINE_UUID,
+            "profile": {
+                "frames": [
+                    {"function": "onClick", "module": "e.a.c.a", "signature": "()V", "lineno": 2},
+                    # this frame expands into 3 inline frames
+                    {
+                        "function": "t",
+                        "module": "io.sentry.sample.MainActivity",
+                        "signature": "()V",
+                        "lineno": 1,
+                    },
+                    # a non-JVM frame must survive and be re-indexed
+                    {"function": "memcpy", "platform": "native"},
+                ],
+                "stacks": [[0, 1, 2]],
+            },
+        }
+
+        _deobfuscate_using_symbolicator(self.project, profile, PROGUARD_INLINE_UUID)
+
+        assert profile["profile"]["frames"] == [
+            {
+                "module": "io.sentry.sample.-$$Lambda$r3Avcbztes2hicEObh02jjhQqd4",
+                "function": "onClick",
+                "data": {"deobfuscation_status": "deobfuscated"},
+                "signature": "()",
+                "filename": "-.java",
+                "lineno": 2,
+            },
+            {
+                "module": "io.sentry.sample.MainActivity",
+                "function": "onClickHandler",
+                "data": {"deobfuscation_status": "deobfuscated"},
+                "signature": "()",
+                "filename": "MainActivity.java",
+                "lineno": 40,
+            },
+            {
+                "module": "io.sentry.sample.MainActivity",
+                "function": "foo",
+                "data": {"deobfuscation_status": "deobfuscated"},
+                "signature": "()",
+                "filename": "MainActivity.java",
+                "lineno": 44,
+            },
+            {
+                "module": "io.sentry.sample.MainActivity",
+                "function": "bar",
+                "data": {"deobfuscation_status": "deobfuscated"},
+                "signature": "()",
+                "filename": "MainActivity.java",
+                "lineno": 54,
+            },
+            {"function": "memcpy", "platform": "native"},
+        ]
+        # frame index 1 expanded into new indices [1, 2, 3]; the native frame
+        # (old index 2) shifts to new index 4.
+        assert profile["profile"]["stacks"] == [[0, 1, 2, 3, 4]]
+
+    @requires_symbolicator
+    def test_process_profile_task_deobfuscates_sample_v2(self) -> None:
+        # Full pipeline via the real entry point: symbolicate (a no-op for
+        # android) -> deobfuscate (real, via symbolicator) -> normalize ->
+        # set frame platform. Only the infra tail (vroomrs/kafka/outcomes) and
+        # the orthogonal SDK-deprecation gate are stubbed.
+        self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
+        profile: dict[str, Any] = {
+            "version": "2",
+            "platform": "android",
+            "organization_id": self.project.organization_id,
+            "project_id": self.project.id,
+            "event_id": "a" * 32,
+            "build_id": PROGUARD_UUID,
+            "client_sdk": {"name": "sentry.java.android", "version": "8.0.0"},
+            "profile": {
+                "frames": [
+                    {"function": "a", "module": "org.a.b.g$a", "signature": "()V", "lineno": 67},
+                    {"function": "a", "module": "org.a.b.g$a", "signature": "()Z", "lineno": 69},
+                    # a non-JVM frame must survive the whole pipeline untouched
+                    {"function": "memcpy", "platform": "native"},
+                ],
+                "stacks": [[0, 1, 2], [2, 1, 0]],
+                "samples": [
+                    {"stack_id": 0, "thread_id": "1", "timestamp": 1710958503.629},
+                    {"stack_id": 1, "thread_id": "1", "timestamp": 1710958504.629},
+                ],
+                "thread_metadata": {"1": {"priority": 31}},
+            },
+        }
+
+        with (
+            patch("sentry.profiles.task._process_vroomrs_profile", return_value=True),
+            patch("sentry.profiles.task._track_outcome"),
+            patch("sentry.profiles.task._track_duration_outcome"),
+            patch("sentry.profiles.task._is_deprecated", return_value=False),
+        ):
+            process_profile_task(profile=profile)
+
+        assert profile["deobfuscated"] is True
+        # JVM frames are deobfuscated and pick up the profile platform via
+        # _set_frames_platform; the native frame keeps its own platform.
+        assert profile["profile"]["frames"] == [
+            {
+                "module": "org.slf4j.helpers.Util$ClassContextSecurityManager",
+                "function": "getClassContext",
+                "data": {"deobfuscation_status": "deobfuscated"},
+                "signature": "()",
+                "filename": "Util.java",
+                "lineno": 67,
+                "platform": "android",
+            },
+            {
+                "module": "org.slf4j.helpers.Util$ClassContextSecurityManager",
+                "function": "getExtraClassContext",
+                "data": {"deobfuscation_status": "deobfuscated"},
+                "signature": "(): boolean",
+                "filename": "Util.java",
+                "lineno": 69,
+                "platform": "android",
+            },
+            {"function": "memcpy", "platform": "native"},
+        ]
+        # no inlines, so stack indices are unchanged
+        assert profile["profile"]["stacks"] == [[0, 1, 2], [2, 1, 0]]
 
     @requires_symbolicator
     def test_error_on_resolving(self) -> None:
@@ -1070,6 +1296,109 @@ def test_track_latest_sdk_with_payload(
         )
         is not None
     )
+
+
+@patch("sentry.profiles.task._symbolicate_profile")
+@patch("sentry.profiles.task._process_vroomrs_profile")
+@django_db_all
+def test_process_profile_task_tracks_chunk_attachments(
+    _process_vroomrs_profile: Any,
+    _symbolicate_profile: Any,
+    organization: Organization,
+    project: Project,
+    request: Any,
+) -> None:
+    from sentry.models.profilechunkattachment import ProfileChunkAttachment
+
+    _process_vroomrs_profile.return_value = True
+    _symbolicate_profile.return_value = True
+
+    profiler_id = "abfecec9b81a401fa26705dc595814ba"
+    chunk_id = "11111111111111111111111111111111"
+
+    profile = request.getfixturevalue("sample_v2_profile")
+    profile["organization_id"] = organization.id
+    profile["project_id"] = project.id
+    profile["profiler_id"] = profiler_id
+    profile["chunk_id"] = chunk_id
+
+    kafka_payload = {
+        "organization_id": organization.id,
+        "project_id": project.id,
+        "received": "2024-01-02T03:04:05",
+        "retention_days": 90,
+        "payload": json.dumps(profile),
+        "attachments": [
+            {
+                "name": "trace.perfetto",
+                "content_type": "application/x-perfetto",
+                "stored_id": "objectstore-key-1",
+            }
+        ],
+    }
+    payload = msgpack.packb(kafka_payload)
+
+    with Feature({"organizations:continuous-profiling-perfetto": True}):
+        # Process twice to confirm reprocessing the same chunk message does not
+        # create duplicate rows (deduped by the unique constraint).
+        process_profile_task(payload=payload)
+        process_profile_task(payload=payload)
+
+    attachments = list(
+        ProfileChunkAttachment.objects.filter(
+            project_id=project.id, profiler_id=profiler_id, chunk_id=chunk_id
+        )
+    )
+    assert len(attachments) == 1
+    assert attachments[0].name == "trace.perfetto"
+    assert attachments[0].content_type == "application/x-perfetto"
+    assert attachments[0].stored_id == "objectstore-key-1"
+
+
+@patch("sentry.profiles.task._symbolicate_profile")
+@patch("sentry.profiles.task._process_vroomrs_profile")
+@django_db_all
+def test_process_profile_task_skips_attachments_without_feature(
+    _process_vroomrs_profile: Any,
+    _symbolicate_profile: Any,
+    organization: Organization,
+    project: Project,
+    request: Any,
+) -> None:
+    from sentry.models.profilechunkattachment import ProfileChunkAttachment
+
+    _process_vroomrs_profile.return_value = True
+    _symbolicate_profile.return_value = True
+
+    profiler_id = "abfecec9b81a401fa26705dc595814ba"
+    chunk_id = "22222222222222222222222222222222"
+
+    profile = request.getfixturevalue("sample_v2_profile")
+    profile["organization_id"] = organization.id
+    profile["project_id"] = project.id
+    profile["profiler_id"] = profiler_id
+    profile["chunk_id"] = chunk_id
+
+    kafka_payload = {
+        "organization_id": organization.id,
+        "project_id": project.id,
+        "received": "2024-01-02T03:04:05",
+        "payload": json.dumps(profile),
+        "attachments": [
+            {
+                "name": "trace.perfetto",
+                "content_type": "application/x-perfetto",
+                "stored_id": "objectstore-key-2",
+            }
+        ],
+    }
+    payload = msgpack.packb(kafka_payload)
+
+    process_profile_task(payload=payload)
+
+    assert not ProfileChunkAttachment.objects.filter(
+        project_id=project.id, profiler_id=profiler_id, chunk_id=chunk_id
+    ).exists()
 
 
 @patch("sentry.profiles.task._symbolicate_profile")

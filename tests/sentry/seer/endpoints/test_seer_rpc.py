@@ -20,20 +20,17 @@ from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.pullrequest import PullRequestAttribution, PullRequestAttributionSignalType
 from sentry.models.repository import Repository
-from sentry.seer.agent.tools import get_trace_item_attributes
 from sentry.seer.endpoints.seer_rpc import (
-    bulk_get_project_preferences,
-    check_repository_integrations_status,
     generate_request_signature,
     get_attributes_for_span,
     get_github_enterprise_integration_config,
+    get_monitoring_provider_connections,
     get_organization_features,
     get_project_preferences,
     get_repo_installation_id,
     has_repo_code_mappings,
     record_pr_attribution,
     refresh_monitoring_provider_token,
-    validate_repo,
 )
 from sentry.seer.sentry_data_models import (
     GitHubEnterpriseConfigErrorResponse,
@@ -41,12 +38,13 @@ from sentry.seer.sentry_data_models import (
     PrAttributionResponse,
     SendSeerWebhookSuccessResponse,
 )
-from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 from sentry.users.models.identity import Identity
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
+from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
@@ -91,14 +89,17 @@ class TestSeerRpc(APITestCase):
         assert "features" in response.data
         assert isinstance(response.data["features"], list)
 
-    def test_validate_llm_proxy_key(self) -> None:
-        path = self._get_path("validate_llm_proxy_key")
-        data: dict[str, Any] = {"args": {"api_key": "test-key"}}
+    def test_get_organization_projects_registered_on_internal_rpc(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        path = self._get_path("get_organization_projects")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
         response = self.client.post(
             path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
         )
         assert response.status_code == 200
-        assert response.data["valid"] is True
+        assert "projects" in response.data
+        assert project.id in [p["id"] for p in response.data["projects"]]
 
     def test_snuba_rate_limit_returns_429(self) -> None:
         """Test that SnubaRPCRateLimitExceeded returns 429 to Seer for retry."""
@@ -203,40 +204,6 @@ class TestSeerRpcMethods(APITestCase):
         assert span_attribute.value == "example"
         assert span_attribute.name in {"span.description", "tags[span.description,string]"}
         mock_rpc.assert_called_once()
-
-    def test_get_trace_item_attributes_metric(self) -> None:
-        """Test get_trace_item_attributes with metric item_type"""
-        project = self.create_project(organization=self.organization)
-
-        mock_response_data = {
-            "itemId": "b582741a4a35039b",
-            "timestamp": "2025-11-16T19:14:12Z",
-            "attributes": [
-                {"name": "metric.name", "type": "str", "value": "http.request.duration"},
-                {"name": "value", "type": "float", "value": 123.45},
-            ],
-        }
-
-        with patch("sentry.seer.agent.tools.client.get") as mock_get:
-            mock_get.return_value.data = mock_response_data
-            result = get_trace_item_attributes(
-                org_id=self.organization.id,
-                project_id=project.id,
-                trace_id="23eef78c77a94766ac941cce6510c057",
-                item_id="b582741a4a35039b",
-                item_type="tracemetrics",
-            )
-
-        assert len(result.attributes) == 2
-        # Check that we have both types (order may vary)
-        types = {attr["type"] for attr in result.attributes}
-        assert types == {"str", "float"}
-        mock_get.assert_called_once()
-
-        # Verify the correct parameters were passed
-        call_kwargs = mock_get.call_args[1]
-        assert call_kwargs["params"]["item_type"] == "tracemetrics"
-        assert call_kwargs["params"]["trace_id"] == "23eef78c77a94766ac941cce6510c057"
 
     @responses.activate
     @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
@@ -498,7 +465,7 @@ class TestSeerRpcMethods(APITestCase):
     def test_send_seer_webhook_all_valid_event_names(self, mock_delay) -> None:
         """Test that send_seer_webhook works with all valid seer event names"""
         from sentry.seer.endpoints.seer_rpc import send_seer_webhook
-        from sentry.sentry_apps.metrics import SentryAppEventType
+        from sentry.sentry_apps.event_types import SentryAppEventType
 
         # Get all seer event types
         seer_events = [
@@ -561,515 +528,6 @@ class TestSeerRpcMethods(APITestCase):
             },
         )
         mock_broadcast.assert_called_once()
-
-    def test_check_repository_integrations_status_empty_list(self) -> None:
-        """Test with empty input list"""
-        result = check_repository_integrations_status(repository_integrations=[])
-        assert result.dict() == {"integration_ids": []}
-
-    def test_check_repository_integrations_status_single_existing_repo(self) -> None:
-        """Test when a single repository exists and is active"""
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        Repository.objects.create(
-            name="test/repo",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        result = check_repository_integrations_status(
-            repository_integrations=[
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": integration.id,
-                    "external_id": "123",
-                    "provider": "github",
-                }
-            ]
-        )
-
-        assert result.dict() == {"integration_ids": [integration.id]}
-
-    def test_check_repository_integrations_status_single_non_existing_repo(self) -> None:
-        """Test when repository does not exist"""
-        result = check_repository_integrations_status(
-            repository_integrations=[
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": 999,
-                    "external_id": "nonexistent",
-                    "provider": "github",
-                }
-            ]
-        )
-
-        assert result.dict() == {"integration_ids": [None]}
-
-    def test_check_repository_integrations_status_mixed_existing_and_non_existing(self) -> None:
-        """Test with a mix of existing and non-existing repositories (integration_id ignored)"""
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        # Create two repositories
-        Repository.objects.create(
-            name="test/repo1",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-        Repository.objects.create(
-            name="test/repo2",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="456",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        # Check 3 repos: 2 exist, 1 doesn't
-        result = check_repository_integrations_status(
-            repository_integrations=[
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": integration.id,
-                    "external_id": "123",
-                    "provider": "github",
-                },  # exists
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": integration.id,
-                    "external_id": "999",
-                    "provider": "github",
-                },  # doesn't exist
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": integration.id,
-                    "external_id": "456",
-                    "provider": "github",
-                },  # exists
-            ]
-        )
-
-        assert result.dict() == {
-            "integration_ids": [integration.id, None, integration.id],
-        }
-
-    def test_check_repository_integrations_status_inactive_repo(self) -> None:
-        """Test that inactive repositories are not matched"""
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        # Create a repository with DISABLED status
-        Repository.objects.create(
-            name="test/repo",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123",
-            status=ObjectStatus.DISABLED,
-            integration_id=integration.id,
-        )
-
-        result = check_repository_integrations_status(
-            repository_integrations=[
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": integration.id,
-                    "external_id": "123",
-                    "provider": "github",
-                }
-            ]
-        )
-
-        assert result.dict() == {"integration_ids": [None]}
-
-    def test_check_repository_integrations_status_wrong_organization_id(self) -> None:
-        """Test that repositories from different organizations are not matched"""
-        org2 = self.create_organization(owner=self.user)
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        # Create repository in org1
-        Repository.objects.create(
-            name="test/repo",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        # Try to find it with org2's ID
-        result = check_repository_integrations_status(
-            repository_integrations=[
-                {
-                    "organization_id": org2.id,
-                    "integration_id": integration.id,
-                    "external_id": "123",
-                    "provider": "github",
-                }
-            ]
-        )
-
-        assert result.dict() == {"integration_ids": [None]}
-
-    def test_check_repository_integrations_status_wrong_integration_id(self) -> None:
-        """Test that integration_id in request is ignored - only (org, provider, external_id) matter"""
-        integration1 = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-        integration2 = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:2"
-        )
-
-        # Create repository with integration1
-        Repository.objects.create(
-            name="test/repo",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration1.id,
-        )
-
-        # Query with integration2's ID - should still find the repo and return integration1's ID
-        result = check_repository_integrations_status(
-            repository_integrations=[
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": integration2.id,  # Different from DB, but ignored
-                    "external_id": "123",
-                    "provider": "github",
-                }
-            ]
-        )
-
-        # Should find the repo and return the ACTUAL integration_id from the database
-        assert result.dict() == {"integration_ids": [integration1.id]}
-
-    def test_check_repository_integrations_status_wrong_external_id(self) -> None:
-        """Test that repositories with different external_id are not matched"""
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        # Create repository with external_id="123"
-        Repository.objects.create(
-            name="test/repo",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        # Try to find it with external_id="456"
-        result = check_repository_integrations_status(
-            repository_integrations=[
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": integration.id,
-                    "external_id": "456",
-                    "provider": "github",
-                }
-            ]
-        )
-
-        assert result.dict() == {"integration_ids": [None]}
-
-    def test_check_repository_integrations_status_multiple_all_exist(self) -> None:
-        """Test when all queried repositories exist"""
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        # Create 3 repositories
-        Repository.objects.create(
-            name="test/repo1",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="111",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-        Repository.objects.create(
-            name="test/repo2",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="222",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-        Repository.objects.create(
-            name="test/repo3",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="333",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        result = check_repository_integrations_status(
-            repository_integrations=[
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": integration.id,
-                    "external_id": "111",
-                    "provider": "github",
-                },
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": integration.id,
-                    "external_id": "222",
-                    "provider": "github",
-                },
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": integration.id,
-                    "external_id": "333",
-                    "provider": "github",
-                },
-            ]
-        )
-
-        assert result.dict() == {
-            "integration_ids": [integration.id, integration.id, integration.id],
-        }
-
-    def test_check_repository_integrations_status_multiple_orgs(self) -> None:
-        """Test with repositories from multiple organizations"""
-        org2 = self.create_organization(owner=self.user)
-        integration1 = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-        integration2 = self.create_integration(
-            organization=org2, provider="github", external_id="github:2"
-        )
-
-        # Create repository in org1
-        Repository.objects.create(
-            name="test/repo1",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration1.id,
-        )
-
-        # Create repository in org2
-        Repository.objects.create(
-            name="test/repo2",
-            organization_id=org2.id,
-            provider="integrations:github",
-            external_id="456",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration2.id,
-        )
-
-        # Check both repositories
-        result = check_repository_integrations_status(
-            repository_integrations=[
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": integration1.id,
-                    "external_id": "123",
-                    "provider": "github",
-                },
-                {
-                    "organization_id": org2.id,
-                    "integration_id": integration2.id,
-                    "external_id": "456",
-                    "provider": "github",
-                },
-            ]
-        )
-
-        assert result.dict() == {
-            "integration_ids": [integration1.id, integration2.id],
-        }
-
-    def test_check_repository_integrations_status_unsupported_provider(self) -> None:
-        """Test that repositories with unsupported providers are not matched"""
-        integration = self.create_integration(
-            organization=self.organization, provider="gitlab", external_id="gitlab:1"
-        )
-
-        # Create repository with unsupported provider (GitLab)
-        Repository.objects.create(
-            name="test/repo",
-            organization_id=self.organization.id,
-            provider="integrations:gitlab",
-            external_id="123",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        # Try to find it - should return False because GitLab is not in SEER_SUPPORTED_SCM_PROVIDERS
-        result = check_repository_integrations_status(
-            repository_integrations=[
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": integration.id,
-                    "external_id": "123",
-                    "provider": "gitlab",
-                }
-            ]
-        )
-
-        assert result.dict() == {"integration_ids": [None]}
-
-    def test_check_repository_integrations_status_mixed_supported_and_unsupported_providers(
-        self,
-    ) -> None:
-        """Test with a mix of supported and unsupported provider repositories"""
-        github_integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-        gitlab_integration = self.create_integration(
-            organization=self.organization, provider="gitlab", external_id="gitlab:1"
-        )
-
-        # Create GitHub repository (supported)
-        Repository.objects.create(
-            name="test/repo-github",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="111",
-            status=ObjectStatus.ACTIVE,
-            integration_id=github_integration.id,
-        )
-
-        # Create GitLab repository (unsupported)
-        Repository.objects.create(
-            name="test/repo-gitlab",
-            organization_id=self.organization.id,
-            provider="integrations:gitlab",
-            external_id="222",
-            status=ObjectStatus.ACTIVE,
-            integration_id=gitlab_integration.id,
-        )
-
-        # Check both - GitHub should be found, GitLab should not
-        result = check_repository_integrations_status(
-            repository_integrations=[
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": github_integration.id,
-                    "external_id": "111",
-                    "provider": "github",
-                },  # GitHub - supported
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": gitlab_integration.id,
-                    "external_id": "222",
-                    "provider": "gitlab",
-                },  # GitLab - unsupported
-            ]
-        )
-
-        assert result.dict() == {
-            "integration_ids": [github_integration.id, None],
-        }
-
-    def test_check_repository_integrations_status_integration_id_as_string(self) -> None:
-        """Test that integration_id as string is properly handled (type mismatch)"""
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        # Create repository with integration_id as integer
-        Repository.objects.create(
-            name="test/repo",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        # Query with integration_id as string (like from Seer)
-        result = check_repository_integrations_status(
-            repository_integrations=[
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": str(integration.id),  # String instead of int
-                    "external_id": "123",
-                    "provider": "github",
-                }
-            ]
-        )
-
-        assert result.dict() == {"integration_ids": [integration.id]}
-
-    def test_check_repository_integrations_status_integration_id_none(self) -> None:
-        """Test that integration_id=None is ignored in matching"""
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        # Create repository with an integration_id
-        Repository.objects.create(
-            name="test/repo",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="456",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        # Query with integration_id=None should still match by org_id, provider, external_id
-        # and return the actual integration_id from the database
-        result = check_repository_integrations_status(
-            repository_integrations=[
-                {
-                    "organization_id": self.organization.id,
-                    "integration_id": None,
-                    "external_id": "456",
-                    "provider": "github",
-                }
-            ]
-        )
-
-        assert result.dict() == {"integration_ids": [integration.id]}
-
-    def test_check_repository_integrations_status_no_integration_id_in_request(self) -> None:
-        """Test that integration_id is completely optional - Seer doesn't need to send it"""
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        # Create repository with an integration_id
-        Repository.objects.create(
-            name="test/repo",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="789",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        # Query WITHOUT integration_id field at all - should still match and return it
-        result = check_repository_integrations_status(
-            repository_integrations=[
-                {
-                    "organization_id": self.organization.id,
-                    "external_id": "789",
-                    "provider": "github",
-                    # No integration_id field at all
-                }
-            ]
-        )
-
-        assert result.dict() == {"integration_ids": [integration.id]}
 
     def test_has_repo_code_mappings_repo_not_found(self) -> None:
         """Test when repository does not exist"""
@@ -1143,265 +601,6 @@ class TestSeerRpcMethods(APITestCase):
             "has_code_mappings": True,
             "project_slug_to_id": {project.slug: project.id},
         }
-
-    def test_validate_repo_valid(self) -> None:
-        """Test when repository exists and matches all fields"""
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        Repository.objects.create(
-            name="getsentry/sentry",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123456",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        result = validate_repo(
-            organization_id=self.organization.id,
-            provider="github",
-            external_id="123456",
-            owner="getsentry",
-            name="sentry",
-        )
-
-        assert result.dict() == {"valid": True, "integration_id": integration.id}
-
-    def test_validate_repo_valid_with_integrations_prefix(self) -> None:
-        """Test when provider is passed with integrations: prefix"""
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        Repository.objects.create(
-            name="getsentry/sentry",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123456",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        result = validate_repo(
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123456",
-            owner="getsentry",
-            name="sentry",
-        )
-
-        assert result.dict() == {"valid": True, "integration_id": integration.id}
-
-    def test_validate_repo_not_found(self) -> None:
-        """Test when repository does not exist"""
-        result = validate_repo(
-            organization_id=self.organization.id,
-            provider="github",
-            external_id="nonexistent",
-            owner="getsentry",
-            name="sentry",
-        )
-
-        assert result.dict() == {"valid": False, "reason": "repository_not_found"}
-
-    def test_validate_repo_wrong_org_id(self) -> None:
-        """Test that wrong organization_id returns not found (IDOR prevention)"""
-        org2 = self.create_organization(owner=self.user)
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        Repository.objects.create(
-            name="getsentry/sentry",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123456",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        result = validate_repo(
-            organization_id=org2.id,
-            provider="github",
-            external_id="123456",
-            owner="getsentry",
-            name="sentry",
-        )
-
-        assert result.dict() == {"valid": False, "reason": "repository_not_found"}
-
-    def test_validate_repo_wrong_owner(self) -> None:
-        """Test that wrong owner returns not found"""
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        Repository.objects.create(
-            name="getsentry/sentry",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123456",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        result = validate_repo(
-            organization_id=self.organization.id,
-            provider="github",
-            external_id="123456",
-            owner="wrong-owner",
-            name="sentry",
-        )
-
-        assert result.dict() == {"valid": False, "reason": "repository_not_found"}
-
-    def test_validate_repo_wrong_name(self) -> None:
-        """Test that wrong name returns not found"""
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        Repository.objects.create(
-            name="getsentry/sentry",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123456",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        result = validate_repo(
-            organization_id=self.organization.id,
-            provider="github",
-            external_id="123456",
-            owner="getsentry",
-            name="wrong-name",
-        )
-
-        assert result.dict() == {"valid": False, "reason": "repository_not_found"}
-
-    def test_validate_repo_wrong_external_id(self) -> None:
-        """Test that wrong external_id returns not found"""
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        Repository.objects.create(
-            name="getsentry/sentry",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123456",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        result = validate_repo(
-            organization_id=self.organization.id,
-            provider="github",
-            external_id="wrong-external-id",
-            owner="getsentry",
-            name="sentry",
-        )
-
-        assert result.dict() == {"valid": False, "reason": "repository_not_found"}
-
-    def test_validate_repo_inactive(self) -> None:
-        """Test that inactive repository returns not found"""
-        integration = self.create_integration(
-            organization=self.organization, provider="github", external_id="github:1"
-        )
-
-        Repository.objects.create(
-            name="getsentry/sentry",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123456",
-            status=ObjectStatus.DISABLED,
-            integration_id=integration.id,
-        )
-
-        result = validate_repo(
-            organization_id=self.organization.id,
-            provider="github",
-            external_id="123456",
-            owner="getsentry",
-            name="sentry",
-        )
-
-        assert result.dict() == {"valid": False, "reason": "repository_not_found"}
-
-    def test_validate_repo_unsupported_provider(self) -> None:
-        """Test that unsupported provider returns appropriate error"""
-        integration = self.create_integration(
-            organization=self.organization, provider="gitlab", external_id="gitlab:1"
-        )
-
-        Repository.objects.create(
-            name="getsentry/sentry",
-            organization_id=self.organization.id,
-            provider="integrations:gitlab",
-            external_id="123456",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        result = validate_repo(
-            organization_id=self.organization.id,
-            provider="gitlab",
-            external_id="123456",
-            owner="getsentry",
-            name="sentry",
-        )
-
-        assert result.dict() == {"valid": False, "reason": "unsupported_provider"}
-
-    def test_validate_repo_no_integration_id(self) -> None:
-        """Test when repository has no integration_id set"""
-        Repository.objects.create(
-            name="getsentry/sentry",
-            organization_id=self.organization.id,
-            provider="integrations:github",
-            external_id="123456",
-            status=ObjectStatus.ACTIVE,
-            integration_id=None,
-        )
-
-        result = validate_repo(
-            organization_id=self.organization.id,
-            provider="github",
-            external_id="123456",
-            owner="getsentry",
-            name="sentry",
-        )
-
-        assert result.dict() == {"valid": True, "integration_id": None}
-
-    def test_validate_repo_github_enterprise(self) -> None:
-        """Test that github_enterprise provider works correctly"""
-        integration = self.create_integration(
-            organization=self.organization, provider="github_enterprise", external_id="ghe:1"
-        )
-
-        Repository.objects.create(
-            name="mycompany/internal-repo",
-            organization_id=self.organization.id,
-            provider="integrations:github_enterprise",
-            external_id="789",
-            status=ObjectStatus.ACTIVE,
-            integration_id=integration.id,
-        )
-
-        result = validate_repo(
-            organization_id=self.organization.id,
-            provider="github_enterprise",
-            external_id="789",
-            owner="mycompany",
-            name="internal-repo",
-        )
-
-        assert result.dict() == {"valid": True, "integration_id": integration.id}
 
     def test_get_repo_installation_id_github(self) -> None:
         """Test returns external_id as installation_id for GitHub repos"""
@@ -1612,34 +811,6 @@ class TestSeerRpcMethods(APITestCase):
                 project_id=project.id,
             )
 
-    def test_bulk_get_project_preferences_returns_preferences(self) -> None:
-        project1 = self.create_project(organization=self.organization)
-        project2 = self.create_project(organization=self.organization)
-        repo1 = self.create_repo(
-            project=project1,
-            provider="integrations:github",
-            external_id="111",
-            name="getsentry/p1",
-        )
-        self.create_seer_project_repository(project=project1, repository=repo1)
-
-        result = bulk_get_project_preferences(
-            organization_id=self.organization.id,
-            project_ids=[project1.id, project2.id],
-        )
-
-        assert set(result) == {str(project1.id), str(project2.id)}
-        assert len(result[str(project1.id)]["repositories"]) == 1
-        assert result[str(project1.id)]["repositories"][0]["external_id"] == "111"
-        assert result[str(project2.id)]["repositories"] == []
-
-    def test_bulk_get_project_preferences_returns_empty_for_no_projects(self) -> None:
-        result = bulk_get_project_preferences(
-            organization_id=self.organization.id,
-            project_ids=[],
-        )
-        assert result == {}
-
 
 # Two real api_expose=True flags used as a controlled feature set for
 # get_organization_features tests. Mocking features.all to this subset keeps
@@ -1695,6 +866,60 @@ class TestGetOrganizationFeatures(APITestCase):
         with self.feature("organizations:seer-agent-source-code-search"):
             result = get_organization_features(org_id=self.organization.id, user_id=0)
         assert result.dict() == {"features": ["seer-agent-source-code-search"]}
+
+
+@override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
+@with_feature("organizations:seer-infra-telemetry")
+@cell_silo_test
+class TestGetMonitoringProviderConnections(APITestCase):
+    def test_returns_connections(self) -> None:
+        idp = self.create_identity_provider(type="datadog", external_id="org-uuid-1")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-1",
+            data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+        self.create_organization_identity(
+            organization=self.organization,
+            identity=identity,
+        )
+
+        result = get_monitoring_provider_connections(
+            organization_id=self.organization.id, user_id=self.user.id
+        )
+
+        assert len(result.connections) == 1
+        connection = result.connections[0]
+        assert connection.provider_key == "datadog"
+        assert connection.url == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
+        assert connection.identity_id == identity.id
+        assert connection.auth_method == "oauth"
+        decrypted = Fernet(TEST_FERNET_KEY.encode("utf-8")).decrypt(
+            connection.encrypted_access_token.encode("utf-8")
+        )
+        assert decrypted.decode("utf-8") == "access-token"
+
+    def test_unknown_organization_returns_empty(self) -> None:
+        result = get_monitoring_provider_connections(organization_id=999999, user_id=self.user.id)
+
+        assert result.connections == []
+
+    def test_non_member_returns_empty(self) -> None:
+        other_org = self.create_organization()
+        idp = self.create_identity_provider(type="datadog", external_id="org-uuid-2")
+        self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-2",
+            data={"access_token": "access-token", "site": "datadoghq.com"},
+        )
+
+        result = get_monitoring_provider_connections(
+            organization_id=other_org.id, user_id=self.user.id
+        )
+
+        assert result.connections == []
 
 
 @override_settings(SEER_GHE_ENCRYPT_KEY=TEST_FERNET_KEY)
@@ -1961,3 +1186,199 @@ class TestRecordPrAttribution(APITestCase):
 
         assert result == {"attribution_id": None}
         assert not PullRequestAttribution.objects.filter(pull_request=self.pr).exists()
+
+
+@override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
+@override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+class TestSeerRpcViewerContextAuth(APITestCase):
+    """The Seer RPC endpoint accepts a signed X-Viewer-Context JWT as a co-equal
+    credential to the HMAC Rpcsignature."""
+
+    @staticmethod
+    def _get_path(method_name: str) -> str:
+        return reverse(
+            "sentry-api-0-seer-rpc-service",
+            kwargs={"method_name": method_name},
+        )
+
+    def _hmac_header(self, path: str, data: dict[str, Any]) -> str:
+        body = orjson.dumps(data).decode()
+        return f"rpcsignature {generate_request_signature(path, body.encode())}"
+
+    def _vc_header(self, *, organization_id: int | None, user_id: int | None = None) -> str:
+        vc = ViewerContext(
+            organization_id=organization_id,
+            user_id=user_id,
+            actor_type=ActorType.USER,
+        )
+        return encode_viewer_context(vc)
+
+    def test_org_only_viewer_context_authenticates(self) -> None:
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=org.id),
+        )
+        assert response.status_code == 200
+        assert "features" in response.data
+
+    def test_org_less_viewer_context_is_rejected(self) -> None:
+        # A validly-signed but org-less viewer context carries no org to enforce
+        # against, so it must not authenticate on signature alone. Every seer RPC
+        # call acts on behalf of an organization.
+        org = self.create_organization(owner=self.user)
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=None, user_id=self.user.id),
+        )
+        assert response.status_code == 403
+
+    def test_org_only_viewer_context_scopes_to_the_arg_org(self) -> None:
+        # An org-only viewer context (no user_id — e.g. an org background job or,
+        # later, a service-account viewer) must dispatch and return data scoped to
+        # the org passed in args. org_id reaches the method via request args, not
+        # auth, so filtering is unchanged; the org-binding guard only requires the
+        # arg org to equal the signed context's org.
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        other_org = self.create_organization()
+        self.create_project(organization=other_org)
+
+        path = self._get_path("get_organization_projects")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=org.id),
+        )
+        assert response.status_code == 200
+        returned_ids = {p["id"] for p in response.data["projects"]}
+        assert returned_ids == {project.id}
+
+    def test_user_scoped_viewer_context_authenticates(self) -> None:
+        org = self.create_organization(owner=self.user)
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=org.id, user_id=self.user.id),
+        )
+        assert response.status_code == 200
+
+    def test_invalid_viewer_context_signature_denied(self) -> None:
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT="invalid.jwt.token",
+        )
+        assert response.status_code == 403
+
+    def test_no_credentials_denied(self) -> None:
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(path, data=data)
+        assert response.status_code == 403
+
+    def test_malformed_org_id_arg_is_bad_request_not_server_error(self) -> None:
+        # A non-numeric org_id on the viewer-context path must 400, not 500 —
+        # the org-binding guard coerces caller-supplied input defensively.
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": "not-a-number"}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=org.id),
+        )
+        assert response.status_code == 400
+
+    def test_hmac_only_still_authenticates(self) -> None:
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, data),
+        )
+        assert response.status_code == 200
+
+    def test_hmac_takes_precedence_and_is_not_org_bound(self) -> None:
+        # Valid HMAC + a viewer context scoped to a DIFFERENT org. If the viewer
+        # context authenticator had won, the org-binding guard would reject the
+        # mismatch (403). A 200 proves HMAC won and skipped the binding check.
+        org = self.create_organization()
+        other_org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, data),
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=other_org.id),
+        )
+        assert response.status_code == 200
+
+    def test_hmac_works_with_empty_viewer_context_header(self) -> None:
+        # Invariant: an HMAC-authenticated request behaves as it does today no
+        # matter the X-Viewer-Context header. An empty header is inert — once
+        # HMAC succeeds the VC authenticator is never consulted.
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, data),
+            HTTP_X_VIEWER_CONTEXT="",
+        )
+        assert response.status_code == 200
+
+    def test_hmac_works_with_malformed_viewer_context_header(self) -> None:
+        # Same invariant: a malformed/garbage VC header does not affect an
+        # HMAC-authenticated request.
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=self._hmac_header(path, data),
+            HTTP_X_VIEWER_CONTEXT="not-a-valid-jwt",
+        )
+        assert response.status_code == 200
+
+    def test_viewer_context_org_binding_matches(self) -> None:
+        org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=org.id),
+        )
+        assert response.status_code == 200
+
+    def test_viewer_context_org_binding_mismatch_denied(self) -> None:
+        org = self.create_organization()
+        other_org = self.create_organization()
+        path = self._get_path("get_organization_features")
+        # Argument targets `org`, but the signed viewer context is for `other_org`.
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=other_org.id),
+        )
+        assert response.status_code == 403

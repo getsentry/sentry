@@ -1,4 +1,4 @@
-import {useMemo, useRef, useState} from 'react';
+import {useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
 import type {Modifier} from '@popperjs/core';
@@ -257,6 +257,15 @@ export function useOverlay({
     placement: position,
     strategy,
   });
+
+  useLayoutEffect(() => {
+    // Controlled overlays, such as submenus, can open without calling
+    // useOverlayTriggerState's onOpenChange callback. Update after the overlay
+    // has been mounted so Popper accounts for its measured size on first open.
+    if (openState.isOpen) {
+      popperUpdate?.();
+    }
+  }, [openState.isOpen, popperUpdate]);
 
   // Get props for trigger button
   const {triggerProps, overlayProps: overlayTriggerAriaProps} = useOverlayTriggerAria(

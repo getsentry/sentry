@@ -382,11 +382,6 @@ def pytest_configure(config: pytest.Config) -> None:
 
 
 def register_extensions() -> None:
-    from sentry.plugins.base import plugins
-    from sentry.plugins.utils import TestIssuePlugin2
-
-    plugins.register(TestIssuePlugin2)
-
     from sentry.integrations.example import (
         AlertRuleIntegrationProvider,
         AliasedIntegrationProvider,
@@ -404,9 +399,7 @@ def register_extensions() -> None:
     integrations.register(AlertRuleIntegrationProvider)
 
     from sentry.plugins.base import bindings
-    from sentry.plugins.providers.dummy import DummyRepositoryProvider
 
-    bindings.add("repository.provider", DummyRepositoryProvider, id="dummy")
     bindings.add(
         "integration-repository.provider", ExampleRepositoryProvider, id="integrations:example"
     )
@@ -421,7 +414,7 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     # Prevent tests from producing real Kafka messages via the taskworker pipeline.
     # Tests use TaskRunner (TASKWORKER_ALWAYS_EAGER=True) or BurstTaskRunner
     # (_signal_send hook) which both operate before send_task in the call chain.
-    TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[method-assign]
+    TaskNamespace.send_task = lambda self, *args, **kwargs: None  # type: ignore[assignment,method-assign]
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:

@@ -19,7 +19,6 @@ from sentry.constants import DataCategory
 from sentry.locks import locks
 from sentry.models.group import Group
 from sentry.net.http import connection_from_url
-from sentry.options.rollout import in_random_rollout
 from sentry.seer.autofix.autofix import get_trace_tree_for_event
 from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
@@ -56,6 +55,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -162,7 +162,7 @@ def _trigger_autofix_task(
             sentry_sdk.capture_exception(e)
             return
 
-    with sentry_sdk.start_span(op="ai_summary.trigger_autofix"):
+    with start_span(op="ai_summary.trigger_autofix", name="ai_summary.trigger_autofix"):
         try:
             group = Group.objects.get(id=group_id)
         except Group.DoesNotExist:
@@ -254,12 +254,7 @@ def _call_seer(
     return SummarizeIssueResponse.validate(response.json())
 
 
-fixability_connection_pool_gpu = connection_from_url(
-    settings.SEER_SCORING_URL,
-    timeout=settings.SEER_FIXABILITY_TIMEOUT,
-)
-
-fixability_connection_pool_cpu = connection_from_url(
+fixability_connection_pool = connection_from_url(
     settings.SEER_SUMMARIZATION_URL,
     timeout=settings.SEER_FIXABILITY_TIMEOUT,
 )
@@ -280,7 +275,7 @@ def make_fixability_score_request(
     viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
-        connection_pool or fixability_connection_pool_gpu,
+        connection_pool or fixability_connection_pool,
         "/v1/automation/summarize/fixability",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
@@ -300,15 +295,10 @@ def _generate_fixability_score(
     )
     if summary is not None:
         body["summary"] = summary
-    pool = (
-        fixability_connection_pool_cpu
-        if in_random_rollout("seer.fixability.cpu-rollout")
-        else fixability_connection_pool_gpu
-    )
     viewer_context = SeerViewerContext(organization_id=group.organization.id)
     response = make_fixability_score_request(
         body,
-        connection_pool=pool,
+        connection_pool=fixability_connection_pool,
         timeout=settings.SEER_FIXABILITY_TIMEOUT,
         viewer_context=viewer_context,
     )
@@ -347,7 +337,9 @@ def get_and_update_group_fixability_score(
             extra={"group_id": group.id},
         )
 
-    with sentry_sdk.start_span(op="ai_summary.generate_fixability_score"):
+    with start_span(
+        op="ai_summary.generate_fixability_score", name="ai_summary.generate_fixability_score"
+    ):
         issue_summary = _generate_fixability_score(group, summary=summary)
 
     if not issue_summary.scores:

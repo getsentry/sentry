@@ -1,7 +1,7 @@
 import {css, useTheme} from '@emotion/react';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconFire} from 'sentry/icons';
@@ -9,7 +9,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
-import {getFirstToolInputValue} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
 interface MessageToolCallsProps {
@@ -35,7 +35,7 @@ export function MessageToolCalls({
   const theme = useTheme();
 
   return (
-    <Flex direction="column" gap="xs" padding="sm md xs md">
+    <Stack gap="xs" padding="sm md xs md">
       {toolCalls.map(tool => {
         const toolNode = nodeMap.get(tool.nodeId);
         const isToolSelected = tool.nodeId === selectedNodeId;
@@ -80,18 +80,18 @@ export function MessageToolCalls({
           </Container>
         );
       })}
-    </Flex>
+    </Stack>
   );
 }
 
 function ToolInputPreview({node}: {node: AITraceSpanNode}) {
-  const firstInputValue = getFirstToolInputValue(node);
-  if (!firstInputValue) {
+  const inputPreview = getToolInputPreview(node);
+  if (!inputPreview) {
     return null;
   }
   return (
     <Text size="xs" monospace variant="muted" ellipsis>
-      {firstInputValue}
+      {inputPreview}
     </Text>
   );
 }

@@ -82,8 +82,7 @@ def send_translate_agentic_request(
         options["model_name"] = model_name
     if metric_context is not None:
         options["metric_context"] = metric_context
-    if options:
-        body["options"] = options
+    body["options"] = options
 
     response = make_translate_agentic_request(body, timeout=10, viewer_context=viewer_context)
     if response.status >= 400:

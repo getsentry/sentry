@@ -16,13 +16,15 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {mockGetBoundingClientRect} from 'sentry/utils/fixtures/virtualization';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 
 import LogsPage from './content';
 
-beforeEach(mockGetBoundingClientRect);
+beforeEach(() => {
+  mockElementSize();
+});
 
 describe('LogsPage', () => {
   let organization: Organization;
@@ -82,6 +84,20 @@ describe('LogsPage', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {error: null, fields: [], valid: true},
+        valid: true,
+      },
     });
 
     MockApiClient.addMockResponse({

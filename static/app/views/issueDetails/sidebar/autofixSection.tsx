@@ -1,12 +1,8 @@
-import {type CSSProperties, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+import {useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
-import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
-
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Image} from '@sentry/scraps/image';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -31,12 +27,11 @@ import {
   RootCausePreview,
   SolutionPreview,
 } from 'sentry/components/events/autofix/v3/autofixPreviews';
+import {AutofixStartCard} from 'sentry/components/events/autofix/v3/autofixStartCard';
 import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconBug} from 'sentry/icons';
 import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -175,6 +170,20 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
 
   useLLMContext(autofixContextData);
 
+  const needOrgSetup =
+    // scm integration doesn't exist
+    !setupCheck?.hasSupportedScmIntegration;
+
+  const needProjSetup =
+    // scm integration not linked to project
+    !aiConfig.seerReposLinked;
+
+  useRouteAnalyticsParams({
+    seerNeedOrgSetup: isPending ? undefined : needOrgSetup,
+    seerNeedProjSetup:
+      isPending || aiConfig.isAutofixSetupLoading ? undefined : needProjSetup,
+  });
+
   if (
     // waiting on the onboarding checks to load
     isPending ||
@@ -188,19 +197,11 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
     return <Placeholder height="160px" />;
   }
 
-  const needOrgSetup =
-    // scm integration doesn't exist
-    !setupCheck?.hasSupportedScmIntegration;
-
-  const needProjSetup =
-    // scm integration not linked to project
-    !aiConfig.seerReposLinked;
-
   // non seat based seer plans are allowed to run autofix without the SCM integration
   if (organization.features.includes('seat-based-seer-enabled')) {
     if (needOrgSetup || needProjSetup) {
       return (
-        <Flex direction="column" border="muted" radius="md" padding="lg" gap="lg">
+        <Stack border="muted" radius="md" padding="lg" gap="lg">
           <Text bold>{t('Finish Configuring Seer')}</Text>
           <Text>
             {t(
@@ -218,6 +219,9 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
               <LinkButton
                 to={`/settings/${organization.slug}/seer/onboarding/`}
                 icon={<IconSeer />}
+                analyticsEventKey="issue_details.seer_setup_clicked"
+                analyticsEventName="Issue Details: Seer Setup Clicked"
+                analyticsParams={{group_id: group.id, setup_type: 'organization'}}
               >
                 {t('Set Up Seer')}
               </LinkButton>
@@ -225,12 +229,15 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
               <LinkButton
                 to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
                 icon={<IconSeer />}
+                analyticsEventKey="issue_details.seer_setup_clicked"
+                analyticsEventName="Issue Details: Seer Setup Clicked"
+                analyticsParams={{group_id: group.id, setup_type: 'project'}}
               >
                 {t('Set Up Seer for This Project')}
               </LinkButton>
             ) : null}
           </Flex>
-        </Flex>
+        </Stack>
       );
     }
   }
@@ -253,14 +260,7 @@ function AutofixArtifacts({autofix, group, project}: AutofixArtifactsProps) {
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
   if (!sections.length) {
-    return (
-      <AutofixEmptyState
-        autofix={autofix}
-        group={group}
-        project={project}
-        referrer={referrer}
-      />
-    );
+    return <AutofixEmptyState autofix={autofix} group={group} project={project} />;
   }
 
   return (
@@ -277,72 +277,23 @@ interface AutofixEmptyStateProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
   project: Project;
-  referrer?: string;
 }
 
-function AutofixEmptyState({autofix, group, project, referrer}: AutofixEmptyStateProps) {
+function AutofixEmptyState({autofix, group, project}: AutofixEmptyStateProps) {
   const {openSeerDrawer} = useOpenSeerDrawer({
     group,
     project,
   });
 
-  // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
-  const startStep = autofix.startStep;
-
-  const [startingRun, setStartingRun] = useState(false);
-  const handleStartRootCause = async () => {
-    setStartingRun(true);
-    try {
-      await startStep('root_cause');
-    } catch {
-      return;
-    } finally {
-      setStartingRun(false);
-    }
-    openSeerDrawer();
-  };
+  const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
   return (
-    <Flex direction="column" gap="md">
-      <Flex
-        border="muted"
-        radius="md"
-        padding="lg"
-        gap="lg"
-        align="center"
-        justify="between"
-      >
-        <Container>
-          <Text>{t('Have Seer...')}</Text>
-          <Container as="ol" margin="0">
-            <li>{t('Determine the root cause of your issue')}</li>
-            <li>{t('Outline a plan')}</li>
-            <li>{t('Create a code fix')}</li>
-          </Container>
-        </Container>
-        <ImageContainer
-          justify="end"
-          align="center"
-          aspectRatio="9 / 16"
-          height={{'2xs': '78px', lg: '98px'}}
-        >
-          <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
-        </ImageContainer>
-      </Flex>
-      <Button
-        size="md"
-        icon={startingRun ? <LoadingIndicator size={16} /> : <IconBug />}
-        aria-label={t('Start Analysis')}
-        variant="primary"
-        onClick={handleStartRootCause}
-        analyticsEventKey="autofix.start_fix_clicked"
-        analyticsEventName="Autofix: Start Fix Clicked"
-        analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
-        disabled={startingRun}
-      >
-        {t('Start Analysis')}
-      </Button>
-    </Flex>
+    <AutofixStartCard
+      autofix={autofix}
+      group={group}
+      referrer={referrer}
+      onStarted={openSeerDrawer}
+    />
   );
 }
 
@@ -383,7 +334,7 @@ function AutofixPreviews({group, project, sections, referrer}: AutofixPreviewsPr
   });
 
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       {sections.map(section => {
         // there should only be 1 section of each type
         if (isRootCauseSection(section)) {
@@ -432,12 +383,6 @@ function AutofixPreviews({group, project, sections, referrer}: AutofixPreviewsPr
       >
         {t('Open Autofix')}
       </Button>
-    </Flex>
+    </Stack>
   );
 }
-
-const ImageContainer = styled(Flex)<{
-  aspectRatio?: CSSProperties['aspectRatio'];
-}>`
-  ${p => p.aspectRatio && `aspect-ratio: ${p.aspectRatio}`};
-`;

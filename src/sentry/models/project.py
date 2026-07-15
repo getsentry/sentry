@@ -6,7 +6,6 @@ from collections.abc import Callable, Collection, Iterable
 from typing import TYPE_CHECKING, Any, ClassVar
 from uuid import uuid1
 
-import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.db.models import Count, Q, QuerySet, Subquery
@@ -49,6 +48,7 @@ from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -381,11 +381,11 @@ class Project(Model):
         from sentry.models.counter import Counter
 
         with (
-            sentry_sdk.start_span(op="project.next_short_id") as span,
+            start_span(op="project.next_short_id", name="project.next_short_id") as span,
             metrics.timer("project.next_short_id"),
         ):
-            span.set_data("project_id", self.id)
-            span.set_data("project_slug", self.slug)
+            set_span_data(span, "project_id", self.id)
+            set_span_data(span, "project_slug", self.slug)
             return Counter.increment(self, delta)
 
     def _save_project(self, *args, **kwargs):

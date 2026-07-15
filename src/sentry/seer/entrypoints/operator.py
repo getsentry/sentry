@@ -29,8 +29,9 @@ from sentry.seer.entrypoints.types import (
     SeerEntrypointKey,
 )
 from sentry.seer.models import SeerPermissionError
+from sentry.seer.pull_requests import link_seer_run_pull_requests
 from sentry.seer.seer_setup import has_seer_access
-from sentry.sentry_apps.metrics import SentryAppEventType
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.types.activity import ActivityType
@@ -217,6 +218,7 @@ class SeerAutofixOperator[CachePayloadT]:
                         step=AutofixStep.ROOT_CAUSE,
                         referrer=AutofixReferrer.SLACK,
                         run_id=None,
+                        user=user,
                     )
                 elif stopping_point == AutofixStoppingPoint.OPEN_PR:
                     trigger_push_changes(
@@ -234,6 +236,7 @@ class SeerAutofixOperator[CachePayloadT]:
                         step=AutofixStep.from_autofix_stopping_point(stopping_point),
                         referrer=AutofixReferrer.SLACK,
                         run_id=run_id,
+                        user=user,
                     )
             except NoSeerQuotaException:
                 error = "No budget for Seer Autofix"
@@ -494,6 +497,10 @@ class SeerAgentOperator[CachePayloadT]:
                     is_interactive=True,
                     enable_coding=False,
                     enable_code_mode_tools=enable_code_mode_tools,
+                    # Entrypoints (e.g. Slack) render responses as plain markdown and
+                    # can't display embed widgets, so the raw Markdoc tags would leak as
+                    # text. Don't ask the agent to emit them in the first place.
+                    enable_embeds=False,
                 )
             except SeerPermissionError as e:
                 with SeerOperatorEventLifecycleMetric(
@@ -668,19 +675,32 @@ def process_autofix_updates(
                 },
             )
 
-        if event_type == SentryAppEventType.SEER_PR_CREATED and features.has(
-            "organizations:pr-metrics-attribution", organization
-        ):
+        if event_type == SentryAppEventType.SEER_PR_CREATED:
+            pull_requests = event_payload.get("pull_requests", [])
+
+            if features.has("organizations:pr-metrics-attribution", organization):
+                try:
+                    attribute_seer_created_pull_requests(
+                        organization=organization,
+                        pull_requests=pull_requests,
+                        run_id=run_id,
+                        group_id=group_id,
+                    )
+                except Exception:
+                    logger.exception(
+                        "seer.pr_attribution.failed",
+                        extra={"group_id": group_id, "run_id": run_id},
+                    )
+
             try:
-                attribute_seer_created_pull_requests(
+                link_seer_run_pull_requests(
                     organization=organization,
-                    pull_requests=event_payload.get("pull_requests", []),
-                    run_id=run_id,
-                    group_id=group_id,
+                    seer_run_state_id=run_id,
+                    pull_requests=pull_requests,
                 )
             except Exception:
                 logger.exception(
-                    "seer.pr_attribution.failed",
+                    "seer.pr_link.failed",
                     extra={"group_id": group_id, "run_id": run_id},
                 )
 

@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
 import {IconDelete} from 'sentry/icons';
@@ -13,7 +13,7 @@ interface RowProps {
   onDelete: () => void;
   errorMessage?: string;
   hasError?: boolean;
-  warningMessage?: React.ReactNode;
+  warningMessages?: string[];
 }
 
 export function AutomationBuilderRow({
@@ -21,10 +21,10 @@ export function AutomationBuilderRow({
   children,
   hasError,
   errorMessage,
-  warningMessage,
+  warningMessages = [],
 }: RowProps) {
   return (
-    <Flex direction="column" gap="xs">
+    <Stack gap="xs">
       <RowContainer incompatible={hasError}>
         <RowLine>{children}</RowLine>
         <DeleteButton
@@ -37,8 +37,21 @@ export function AutomationBuilderRow({
         />
       </RowContainer>
       {hasError && errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
-      {warningMessage && <Alert variant="warning">{warningMessage}</Alert>}
-    </Flex>
+      {warningMessages.length > 0 && (
+        <Alert
+          variant="warning"
+          expand={
+            <ul style={{margin: 0}}>
+              {warningMessages?.map(message => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          }
+        >
+          {t('This action is incompatible with the current configuration.')}
+        </Alert>
+      )}
+    </Stack>
   );
 }
 

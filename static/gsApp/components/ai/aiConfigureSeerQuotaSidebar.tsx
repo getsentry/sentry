@@ -1,11 +1,12 @@
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t} from 'sentry/locale';
+import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutofixContent} from 'sentry/views/issueDetails/sidebar/autofixSection';
 import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSectionTypes';
@@ -21,6 +22,10 @@ export function AiConfigureSeerQuotaSidebar({
   const organization = useOrganization();
   const subscription = useSubscription();
 
+  useRouteAnalyticsParams({
+    seerNeedQuota: aiConfig.isAutofixSetupLoading ? undefined : !aiConfig.hasAutofixQuota,
+  });
+
   if (aiConfig.isAutofixSetupLoading) {
     return <Placeholder height="160px" />;
   }
@@ -32,7 +37,7 @@ export function AiConfigureSeerQuotaSidebar({
   const hasBillingPerms = hasAccessToSubscriptionOverview(subscription, organization);
 
   return (
-    <Flex direction="column" border="muted" radius="md" padding="lg" gap="lg">
+    <Stack border="muted" radius="md" padding="lg" gap="lg">
       <Text bold>{t('Meet Seer, your AI assistant')}</Text>
       <Text>
         {t(
@@ -55,6 +60,6 @@ export function AiConfigureSeerQuotaSidebar({
           </LinkButton>
         </Tooltip>
       </Flex>
-    </Flex>
+    </Stack>
   );
 }

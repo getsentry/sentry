@@ -1,7 +1,9 @@
 import {useMemo} from 'react';
 
+import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
   DEFAULT_YAXIS_BY_TYPE,
+  doesMetricSupportHeatMapVisualization,
   OPTIONS_BY_TYPE,
 } from 'sentry/views/explore/metrics/constants';
 import {syncEquationMetricQueries} from 'sentry/views/explore/metrics/equationBuilder/utils';
@@ -24,6 +26,7 @@ import {
   isVisualizeFunction,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 function syncUpdatedMetricQueries(
   previousMetricQueries: BaseMetricQuery[],
@@ -49,12 +52,6 @@ export interface MetricQueriesControllerValue {
 interface UseMetricQueriesControllerArgs {
   queries: BaseMetricQuery[];
   setQueries: (nextQueries: BaseMetricQuery[]) => void;
-  /**
-   * Whether equations are enabled. Gates the insert-before-equation behavior
-   * of `addMetricQuery` so new aggregates are inserted before any existing
-   * equation rather than appended after them.
-   */
-  hasEquations?: boolean;
 }
 
 /**
@@ -68,7 +65,6 @@ interface UseMetricQueriesControllerArgs {
 export function useMetricQueriesController({
   queries,
   setQueries,
-  hasEquations,
 }: UseMetricQueriesControllerArgs): MetricQueriesControllerValue {
   const labels = useStableLabels(queries);
 
@@ -114,23 +110,31 @@ export function useMetricQueriesController({
             if (visualize && isVisualizeFunction(visualize)) {
               const selectedAggregation = visualize.parsedFunction?.name;
               const allowedAggregations = OPTIONS_BY_TYPE[newTraceMetric.type];
-
-              if (
+              const aggregation =
                 selectedAggregation &&
                 allowedAggregations?.find(option => option.value === selectedAggregation)
+                  ? selectedAggregation
+                  : DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'sum';
+
+              let updatedVisualize = updateVisualizeYAxis(
+                visualize,
+                aggregation,
+                newTraceMetric
+              );
+
+              if (
+                visualize.chartType === ChartType.HEATMAP &&
+                !doesMetricSupportHeatMapVisualization(newTraceMetric)
               ) {
-                aggregateFields = [
-                  updateVisualizeYAxis(visualize, selectedAggregation, newTraceMetric),
-                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
-                ];
-              } else {
-                const defaultAggregation =
-                  DEFAULT_YAXIS_BY_TYPE[newTraceMetric.type] || 'sum';
-                aggregateFields = [
-                  updateVisualizeYAxis(visualize, defaultAggregation, newTraceMetric),
-                  ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
-                ];
+                updatedVisualize = updatedVisualize.replace({
+                  chartType: determineDefaultChartType([updatedVisualize.yAxis]),
+                });
               }
+
+              aggregateFields = [
+                updatedVisualize,
+                ...metricQuery.queryParams.aggregateFields.filter(isGroupBy),
+              ];
             }
 
             return {
@@ -165,7 +169,7 @@ export function useMetricQueriesController({
         isVisualizeEquation(metricQuery.queryParams.visualizes[0]!)
       );
       const insertAt =
-        hasEquations && equationStart !== -1 && type === 'aggregate'
+        equationStart !== -1 && type === 'aggregate'
           ? equationStart
           : labeledQueries.length;
       const lastAggregate = labeledQueries.at(insertAt - 1) ?? defaultMetricQuery();
@@ -199,5 +203,5 @@ export function useMetricQueriesController({
       addMetricQuery,
       reorderMetricQueries,
     };
-  }, [queries, setQueries, labels, hasEquations]);
+  }, [queries, setQueries, labels]);
 }

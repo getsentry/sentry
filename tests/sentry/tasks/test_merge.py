@@ -1,7 +1,9 @@
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import patch
 
 from sentry import buffer, eventstream
+from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.groupmeta import GroupMeta
@@ -11,8 +13,10 @@ from sentry.services import eventstore
 from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.post_process import fetch_buffered_group_stats
+from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import redis
 
@@ -33,6 +37,51 @@ class MergeGroupTest(TestCase, SnubaTestCase):
             merge_groups([group1.id], group2.id, eventstream_state=eventstream_state)
 
         mock_eventstream.end_merge.assert_called_once_with(eventstream_state)
+
+    @patch("sentry.tasks.merge.current_task")
+    def test_selfchain_skips_when_already_spawned(self, mock_current_task) -> None:
+        # A prior delivery of this activation already spawned its continuation.
+        mock_current_task.return_value = SimpleNamespace(id="merge-act-skip")
+        mark_spawned("merge_groups", "merge-act-skip")
+
+        with patch.object(merge_groups, "delay") as mock_delay:
+            # Ids need not exist: the guard short-circuits before any DB access.
+            result = merge_groups([111, 222], 333, transaction_id="txn")
+
+        assert result is True
+        assert mock_delay.call_count == 0
+
+    @patch("sentry.tasks.merge.current_task")
+    def test_selfchain_marks_and_dedupes_across_deliveries(self, mock_current_task) -> None:
+        group1 = self.create_group(self.project)
+        group2 = self.create_group(self.project)
+        target = self.create_group(self.project)
+        mock_current_task.return_value = SimpleNamespace(id="merge-act-dedupe")
+
+        with patch.object(merge_groups, "delay") as mock_delay:
+            # First delivery processes group1, leaves group2 -> spawns the continuation once.
+            merge_groups([group1.id, group2.id], target.id)
+            assert mock_delay.call_count == 1
+            assert already_spawned("merge_groups", "merge-act-dedupe") is True
+
+            # Broker re-pend: same activation id, same original payload -> no-op, no new spawn.
+            merge_groups([group1.id, group2.id], target.id)
+            assert mock_delay.call_count == 1
+
+    @patch("sentry.tasks.merge.mark_spawned")
+    @patch("sentry.tasks.merge.current_task", return_value=None)
+    def test_selfchain_noop_without_activation(self, mock_current_task, mock_mark) -> None:
+        # Synchronous/eager path (e.g. the initial direct call) has no current activation, so the
+        # guard is inert and existing behavior is preserved.
+        group1 = self.create_group(self.project)
+        group2 = self.create_group(self.project)
+        target = self.create_group(self.project)
+
+        with patch.object(merge_groups, "delay") as mock_delay:
+            merge_groups([group1.id, group2.id], target.id)
+            assert mock_delay.call_count == 1
+
+        assert mock_mark.call_count == 0
 
     def test_merge_group_environments(self) -> None:
         group1 = self.create_group(self.project)
@@ -221,6 +270,28 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         fetch_buffered_group_stats(new_group)
         assert new_group.times_seen_pending == 3
         assert new_group.times_seen_with_pending == 168
+
+    @with_feature("organizations:hard-delete-derived-data-invalidation")
+    def test_merge_invalidates_derived_data(self) -> None:
+        project = self.create_project()
+        old_group = self.create_group(project)
+        new_group = self.create_group(project)
+
+        derived = GroupDerivedData.objects.create(
+            group=new_group, cursor_date=before_now(minutes=5), cursor_id=100
+        )
+
+        with self.tasks():
+            merge_groups([old_group.id], new_group.id)
+
+        assert Group.objects.filter(id=old_group.id).exists() is False
+
+        # The derived data is invalidated: the stale row is deleted and rebuilt
+        # from scratch by the scheduled processing task.
+        rebuilt = GroupDerivedData.objects.get(group_id=new_group.id)
+        assert rebuilt.id != derived.id
+        assert rebuilt.cursor_date == EPOCH
+        assert rebuilt.cursor_id == 0
 
     @mock_redis_buffer()
     def test_merge_original_group_id(self) -> None:

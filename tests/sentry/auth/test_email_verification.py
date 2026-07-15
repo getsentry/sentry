@@ -29,7 +29,9 @@ class SendSignupVerificationEmailTest(TestCase):
         mock_msg = mock.MagicMock()
         mock_builder.return_value = mock_msg
 
-        send_signup_verification_email("test@example.com", max_age_minutes=10)
+        send_signup_verification_email(
+            "test@example.com", url_name="sentry-signup-verify-email", max_age_minutes=10
+        )
 
         context = mock_builder.call_args[1]["context"]
         assert context["confirm_email"] == "test@example.com"
@@ -47,7 +49,7 @@ class SendSignupVerificationEmailTest(TestCase):
     ) -> None:
         mock_builder.return_value = mock.MagicMock()
 
-        send_signup_verification_email("user@example.com")
+        send_signup_verification_email("user@example.com", url_name="sentry-signup-verify-email")
 
         signed_blob = mock_reverse.call_args[1]["args"][0]
         payload = verify_signup_link(signed_blob)

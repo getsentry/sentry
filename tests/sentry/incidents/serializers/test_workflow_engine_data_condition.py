@@ -15,7 +15,12 @@ from sentry.workflow_engine.migration_helpers.alert_rule import (
     migrate_metric_data_conditions,
     migrate_resolve_threshold_data_condition,
 )
-from sentry.workflow_engine.models import DataCondition, WorkflowDataConditionGroup
+from sentry.workflow_engine.models import (
+    Action,
+    DataCondition,
+    DataConditionGroup,
+    WorkflowDataConditionGroup,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.incidents.serializers.test_workflow_engine_base import (
@@ -99,6 +104,63 @@ class TestDataConditionSerializer(TestWorkflowEngineSerializer):
         expected_trigger = self.expected_triggers[0].copy()
         expected_trigger["actions"] = expected_actions
         assert serialized_data_condition == expected_trigger
+
+    def test_action_filter_without_priority_condition(self) -> None:
+        """
+        A natively-created connected alert (workflow) seeds its action filter with no conditions
+        (see automationBuilderContext.tsx) if they don't include an Issue Priority WHEN clause.
+        Priority-less action filter should fire for any priority. Previously these actions were dropped,
+        producing an empty `triggers[].actions` in the metric_alert webhook payload
+        """
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            published=True,
+            verify_install=False,
+            name="Super Awesome App",
+            schema={"elements": [self.create_alert_rule_action_schema()]},
+        )
+        self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization, user=self.user
+        )
+        settings = [{"name": "title", "value": "An alert"}]
+        sentry_app_action = self.create_action(
+            type=Action.Type.SENTRY_APP,
+            config={
+                "target_type": AlertRuleTriggerAction.TargetType.SENTRY_APP,
+                "target_identifier": str(sentry_app.id),
+                "target_display": None,
+            },
+            data={"settings": settings},
+        )
+
+        # Connect a native workflow to the existing detector whose action filter has no
+        # priority (or any) condition, mirroring how the new Monitors UI creates connected alerts.
+        workflow = self.create_workflow(organization=self.organization)
+        self.create_detector_workflow(detector=self.detector, workflow=workflow)
+        action_filter = self.create_data_condition_group(
+            organization=self.organization, logic_type=DataConditionGroup.Type.ALL
+        )
+        self.create_workflow_data_condition_group(workflow=workflow, condition_group=action_filter)
+        self.create_data_condition_group_action(
+            action=sentry_app_action, condition_group=action_filter
+        )
+
+        serialized_data_condition = serialize(
+            self.critical_detector_trigger,
+            self.user,
+            WorkflowEngineDataConditionSerializer(),
+        )
+
+        serialized_sentry_app_actions = [
+            action
+            for action in serialized_data_condition["actions"]
+            if action["sentryAppId"] == sentry_app.id
+        ]
+        assert len(serialized_sentry_app_actions) == 1
+        serialized_sentry_app_action = serialized_sentry_app_actions[0]
+        assert serialized_sentry_app_action["type"] == "sentry_app"
+        assert serialized_sentry_app_action["targetType"] == "sentry_app"
+        assert serialized_sentry_app_action["settings"] == settings
 
     def test_comparison_delta(self) -> None:
         comparison_delta_rule = self.create_alert_rule(comparison_delta=60)
@@ -205,6 +267,10 @@ class TestDataConditionSerializer(TestWorkflowEngineSerializer):
         assert serialized["thresholdType"] == AlertRuleThresholdType.ABOVE_AND_BELOW.value
         assert serialized["alertThreshold"] == 0
         assert serialized["resolveThreshold"] is None
+        # The non-numeric ANOMALY_DETECTION condition is skipped during matching without dropping
+        # the DCG's action (which still matches via the priority condition) or duplicating it.
+        action_ids = [action["id"] for action in serialized["actions"]]
+        assert action_ids == [str(trigger_action.id)]
 
     def test_multiple_rules(self) -> None:
         # create another comprehensive alert rule in the DB

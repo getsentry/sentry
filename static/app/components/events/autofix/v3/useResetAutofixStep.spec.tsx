@@ -1,4 +1,4 @@
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import type {
   AutofixSection,
@@ -17,6 +17,7 @@ function makeAutofix(
     triggerCodingAgentHandoff: jest.fn(),
     codingAgentErrors: [],
     dismissCodingAgentError: jest.fn(),
+    warnings: [],
     isLoading: false,
     isPolling: false,
   };
@@ -48,7 +49,7 @@ describe('useResetAutofixStep', () => {
         },
       });
 
-      const {result} = renderHook(() =>
+      const {result} = renderHookWithProviders(() =>
         useResetAutofixStep({autofix, section: makeSection(), step: 'root_cause'})
       );
 
@@ -65,7 +66,7 @@ describe('useResetAutofixStep', () => {
         },
       });
 
-      const {result} = renderHook(() =>
+      const {result} = renderHookWithProviders(() =>
         useResetAutofixStep({autofix, section: makeSection(), step: 'root_cause'})
       );
 
@@ -96,11 +97,51 @@ describe('useResetAutofixStep', () => {
         },
       });
 
-      const {result} = renderHook(() =>
+      const {result} = renderHookWithProviders(() =>
         useResetAutofixStep({autofix, section: makeSection(), step: 'root_cause'})
       );
 
       expect(result.current.canReset).toBe(false);
+    });
+
+    it('uses the canReset override when provided', () => {
+      const autofix = makeAutofix({
+        runState: {
+          run_id: 1,
+          status: 'completed',
+          blocks: [],
+          updated_at: '2024-01-01T00:00:00Z',
+          repo_pr_states: {
+            'repo-1': {
+              repo_name: 'repo-1',
+              branch_name: 'fix/branch',
+              commit_sha: 'abc123',
+              pr_creation_error: null,
+              pr_creation_status: 'completed',
+              pr_id: 1,
+              pr_number: 42,
+              pr_url: 'https://github.com/org/repo/pull/42',
+              title: 'Fix bug',
+            },
+          },
+          coding_agents: {},
+        },
+      });
+
+      const withoutOverride = renderHookWithProviders(() =>
+        useResetAutofixStep({autofix, section: makeSection(), step: 'code_changes'})
+      );
+      expect(withoutOverride.result.current.canReset).toBe(false);
+
+      const withOverride = renderHookWithProviders(() =>
+        useResetAutofixStep({
+          autofix,
+          canReset: true,
+          section: makeSection(),
+          step: 'code_changes',
+        })
+      );
+      expect(withOverride.result.current.canReset).toBe(true);
     });
 
     it('returns false when coding agents have been started', () => {
@@ -123,7 +164,7 @@ describe('useResetAutofixStep', () => {
         },
       });
 
-      const {result} = renderHook(() =>
+      const {result} = renderHookWithProviders(() =>
         useResetAutofixStep({autofix, section: makeSection(), step: 'root_cause'})
       );
 
@@ -142,7 +183,7 @@ describe('useResetAutofixStep', () => {
         },
       });
 
-      const {result} = renderHook(() =>
+      const {result} = renderHookWithProviders(() =>
         useResetAutofixStep({autofix, section: makeSection(), step: 'root_cause'})
       );
 
@@ -168,7 +209,7 @@ describe('useResetAutofixStep', () => {
       });
       const section = makeSection({index: 3});
 
-      const {result} = renderHook(() =>
+      const {result} = renderHookWithProviders(() =>
         useResetAutofixStep({autofix, section, step: 'solution'})
       );
 
@@ -191,7 +232,7 @@ describe('useResetAutofixStep', () => {
         },
       });
 
-      const {result} = renderHook(() =>
+      const {result} = renderHookWithProviders(() =>
         useResetAutofixStep({
           autofix,
           section: makeSection({index: 1}),
@@ -213,7 +254,7 @@ describe('useResetAutofixStep', () => {
     it('defaults shouldShowReset to false and allows toggling', () => {
       const autofix = makeAutofix();
 
-      const {result} = renderHook(() =>
+      const {result} = renderHookWithProviders(() =>
         useResetAutofixStep({autofix, section: makeSection(), step: 'root_cause'})
       );
 

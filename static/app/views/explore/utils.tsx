@@ -25,6 +25,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {determineTimeSeriesConfidence} from 'sentry/views/alerts/rules/metric/utils/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -33,6 +34,7 @@ import type {GroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggr
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
+import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import type {
   RawGroupBy,
   RawVisualize,
@@ -55,7 +57,7 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
 export interface GetExploreUrlArgs {
@@ -459,7 +461,7 @@ export function getDefaultExploreRoute(organization: Organization) {
 
 export function computeVisualizeSampleTotals(
   yAxes: string[],
-  data: ReturnType<typeof useSortedTimeSeries>['data'],
+  data: SortedTimeSeries['data'],
   isTopN: boolean
 ) {
   return yAxes.map(yAxis => {
@@ -666,6 +668,9 @@ export function getSavedQueryTraceItemUrl({
   organization: Organization;
   savedQuery: SavedQuery;
 }) {
+  if (savedQuery.dataset === 'ai_conversations') {
+    return getConversationsUrlFromSavedQueryUrl({savedQuery, organization});
+  }
   const traceItemDataset = getSavedQueryTraceItemDataset(savedQuery.dataset);
   const urlFunction = TRACE_ITEM_TO_URL_FUNCTION[traceItemDataset];
   if (urlFunction) {
@@ -676,6 +681,35 @@ export function getSavedQueryTraceItemUrl({
     `Saved query ${savedQuery.id} has an invalid dataset: ${savedQuery.dataset}`
   );
   return getExploreUrlFromSavedQueryUrl({savedQuery, organization});
+}
+
+function getConversationsUrlFromSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: SavedQuery;
+}) {
+  const firstQuery = savedQuery.query[0];
+  const queryParams = {
+    query: firstQuery?.query,
+    project: savedQuery.projects,
+    environment: savedQuery.environment,
+    start: normalizeDateTimeString(savedQuery.start),
+    end: normalizeDateTimeString(savedQuery.end),
+    statsPeriod: savedQuery.range,
+    id: savedQuery.id,
+    title: savedQuery.name,
+  };
+
+  let queryString = qs.stringify(queryParams, {skipNull: true});
+  if (savedQuery.agent?.length) {
+    queryString += `&agent=${savedQuery.agent.map(encodeURIComponent).join(',')}`;
+  }
+  const basePath = normalizeUrl(
+    `/organizations/${organization.slug}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`
+  );
+  return `${basePath}?${queryString}`;
 }
 
 function getReplayUrlFromSavedQueryUrl({
@@ -793,4 +827,68 @@ interface RemarkObject {
   rangeStart: number;
   ruleId: string;
   type: string;
+}
+
+const SAMPLING_SENSITIVE_AGGREGATES = new Set([
+  'count_unique',
+  'failure_count',
+  'failure_rate',
+]);
+const LOW_SAMPLE_RATE_THRESHOLD = 0.1;
+
+export type SamplingWarningReason = 'partialData' | 'lowSampleRate';
+
+export function getSamplingWarningReason(
+  yAxis: string,
+  series: TimeSeries[],
+  dataScanned: 'full' | 'partial' | undefined
+): SamplingWarningReason | null {
+  if (!isSamplingSensitiveAggregate(yAxis)) {
+    return null;
+  }
+  if (!series.some(seriesItem => defined(seriesItem) && seriesItem.values.length > 0)) {
+    return null;
+  }
+  if (dataScanned === 'partial') {
+    return 'partialData';
+  }
+  if (shouldWarnSamplingSensitive(yAxis, series)) {
+    return 'lowSampleRate';
+  }
+  return null;
+}
+
+export function shouldWarnSamplingSensitive(
+  yAxis: string,
+  series: TimeSeries[]
+): boolean {
+  if (!isSamplingSensitiveAggregate(yAxis)) {
+    return false;
+  }
+  const avgSampleRate = computeAvgSampleRate(series);
+  return defined(avgSampleRate) && avgSampleRate < LOW_SAMPLE_RATE_THRESHOLD;
+}
+
+export function isSamplingSensitiveAggregate(yAxis: string): boolean {
+  const parsed = parseFunction(yAxis);
+  if (!parsed) {
+    return false;
+  }
+  return SAMPLING_SENSITIVE_AGGREGATES.has(parsed.name);
+}
+
+function computeAvgSampleRate(series: TimeSeries[]): number | undefined {
+  let total = 0;
+  let count = 0;
+
+  for (const seriesItem of series.filter(defined)) {
+    for (const item of seriesItem.values) {
+      if (defined(item.sampleRate)) {
+        total += item.sampleRate;
+        count += 1;
+      }
+    }
+  }
+
+  return count > 0 ? total / count : undefined;
 }

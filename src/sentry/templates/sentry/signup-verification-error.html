@@ -1,0 +1,13 @@
+{% extends "sentry/bases/auth.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Verification Error" %} | {{ block.super }}{% endblock %}
+
+{% block auth_main %}
+  <h3>{{ title }}</h3>
+  <p>{{ message }}</p>
+  <div class="auth-footer m-t-1">
+    <a class="btn btn-primary" href="{{ signup_url }}">{% trans "Start over" %}</a>
+  </div>
+{% endblock %}

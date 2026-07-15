@@ -1,14 +1,13 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 import {PartnerPlanEndingBanner} from 'getsentry/components/partnerPlanEndingBanner';
 import type {Subscription} from 'getsentry/types';
@@ -36,28 +35,16 @@ export function SubscriptionHeader(props: Props) {
   const hasBillingPerms = hasPermissions(organization, 'org:billing');
   const isDisabled = isDisabledByPartner(subscription);
   const planIcon = getPlanIcon(subscription.planDetails);
-  const hasPageFrameFeature = useHasPageFrameFeature();
 
   return (
-    <Flex direction="column" gap="xl" background="secondary">
+    <Stack gap="xl" background="secondary">
       <SentryDocumentTitle title={t('Subscription')} orgSlug={organization.slug} />
 
-      <Flex
-        direction="column"
-        gap="md"
-        background="primary"
-        borderBottom="primary"
-        padding={hasPageFrameFeature ? '2xl 3xl' : 'md 3xl 2xl'}
-      >
-        {hasPageFrameFeature ? null : (
-          <Heading as="h1" size="md">
-            {t('Subscription')}
-          </Heading>
-        )}
+      <Stack gap="md" background="primary" borderBottom="primary" padding="2xl 3xl">
         <Flex
           justify="between"
-          align={{xs: 'start', sm: 'center'}}
-          direction={{xs: 'column', sm: 'row'}}
+          align={{'screen:xs': 'start', 'screen:sm': 'center'}}
+          direction={{'screen:xs': 'column', 'screen:sm': 'row'}}
           gap="xl"
         >
           <Flex align="center" gap="sm">
@@ -81,8 +68,8 @@ export function SubscriptionHeader(props: Props) {
             )}
           </Flex>
         </Flex>
-      </Flex>
-      <Flex direction="column" padding="0 2xl xl" gap="xl" borderBottom="primary">
+      </Stack>
+      <Stack padding="0 2xl xl" gap="xl" borderBottom="primary">
         <SubscriptionUpsellBanner
           organization={organization}
           subscription={subscription}
@@ -94,8 +81,8 @@ export function SubscriptionHeader(props: Props) {
         ) : (
           <BodyWithoutBillingPerms {...props} />
         )}
-      </Flex>
-    </Flex>
+      </Stack>
+    </Stack>
   );
 }
 
@@ -112,7 +99,7 @@ function BodyWithBillingPerms({
   subscription: Subscription;
 }) {
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       {subscription.pendingChanges ? (
         <DecidePendingChanges subscription={subscription} organization={organization} />
       ) : null}
@@ -125,7 +112,7 @@ function BodyWithBillingPerms({
       )}
       <HeaderCards organization={organization} subscription={subscription} />
       <ManagedNote subscription={subscription} />
-    </Flex>
+    </Stack>
   );
 }
 

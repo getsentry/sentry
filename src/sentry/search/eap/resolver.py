@@ -4,7 +4,6 @@ from datetime import datetime
 from re import Match
 from typing import Any, Literal, cast
 
-import sentry_sdk
 from parsimonious.exceptions import ParseError
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
@@ -67,6 +66,7 @@ from sentry.search.events import filter as event_filter
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.search.exceptions import InvalidIssueSearchQuery
+from sentry.utils.tracing import get_current_span, set_span_tag, trace
 
 
 def collect_issue_short_ids_from_parsed_terms(terms: Sequence[object]) -> set[str]:
@@ -138,7 +138,7 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Unknown function {function_name}")
 
-    @sentry_sdk.trace
+    @trace
     def resolve_meta(
         self,
         referrer: str,
@@ -147,9 +147,9 @@ class SearchResolver:
     ) -> RequestMeta:
         if self.params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
-        span = sentry_sdk.get_current_span()
+        span = get_current_span()
         if span:
-            span.set_tag("SearchResolver.params", self.params)
+            set_span_tag(span, "SearchResolver.params", self.params)
 
         projects = self.params.projects
 
@@ -173,7 +173,7 @@ class SearchResolver:
             downsampled_storage_config=validate_sampling(sampling_mode),
         )
 
-    @sentry_sdk.trace
+    @trace
     def resolve_query(
         self, querystring: str | None
     ) -> tuple[
@@ -187,11 +187,11 @@ class SearchResolver:
         also append the environment before returning the final TraceItemFilter"""
         environment_query = self.__resolve_environment_query()
         where, having, contexts = self.__resolve_query(querystring)
-        span = sentry_sdk.get_current_span()
+        span = get_current_span()
         if span:
-            span.set_tag("SearchResolver.query_string", querystring)
-            span.set_tag("SearchResolver.resolved_query", where)
-            span.set_tag("SearchResolver.environment_query", environment_query)
+            set_span_tag(span, "SearchResolver.query_string", querystring)
+            set_span_tag(span, "SearchResolver.resolved_query", where)
+            set_span_tag(span, "SearchResolver.environment_query", environment_query)
 
         where = and_trace_item_filters(
             where,
@@ -202,7 +202,7 @@ class SearchResolver:
 
         return where, having, contexts
 
-    @sentry_sdk.trace
+    @trace
     def resolve_query_with_columns(
         self,
         querystring: str | None,
@@ -715,9 +715,7 @@ class SearchResolver:
                             comparison_filter=ComparisonFilter(
                                 key=resolved_column.proto_definition,
                                 op=operator,
-                                value=self._resolve_search_value(
-                                    resolved_column, term.operator, value
-                                ),
+                                value=AttributeValue(val_str=value),
                             )
                         )
                     )
@@ -733,9 +731,7 @@ class SearchResolver:
                             comparison_filter=ComparisonFilter(
                                 key=resolved_column.proto_definition,
                                 op=operator,
-                                value=self._resolve_search_value(
-                                    resolved_column, term.operator, value
-                                ),
+                                value=AttributeValue(val_str=value),
                             )
                         )
                     )
@@ -985,7 +981,7 @@ class SearchResolver:
                 final_contexts.append(context)
         return final_contexts
 
-    @sentry_sdk.trace
+    @trace
     def resolve_columns(
         self, selected_columns: list[str], has_aggregates: bool = False
     ) -> tuple[
@@ -996,12 +992,12 @@ class SearchResolver:
 
         This function will also dedupe the virtual column contexts if necessary
         """
-        span = sentry_sdk.get_current_span()
+        span = get_current_span()
         resolved_columns = []
         resolved_contexts = []
         stripped_columns = [column.strip() for column in selected_columns]
         if span:
-            span.set_tag("SearchResolver.selected_columns", stripped_columns)
+            set_span_tag(span, "SearchResolver.selected_columns", stripped_columns)
         for column in stripped_columns:
             match = fields.is_function(column)
             has_aggregates = has_aggregates or match is not None
@@ -1060,7 +1056,7 @@ class SearchResolver:
         resolved_column, _ = self.resolve_column(column)
         return resolved_column.search_type
 
-    @sentry_sdk.trace
+    @trace
     def resolve_attributes(
         self, columns: list[str]
     ) -> tuple[list[ResolvedAttribute], list[VirtualColumnDefinition | None]]:
@@ -1198,7 +1194,7 @@ class SearchResolver:
         else:
             raise InvalidSearchQuery(f"Could not parse {column}")
 
-    @sentry_sdk.trace
+    @trace
     def resolve_functions(
         self, columns: list[str]
     ) -> tuple[

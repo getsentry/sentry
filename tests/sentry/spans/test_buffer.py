@@ -14,6 +14,7 @@ from sentry_redis_tools.clients import RedisCluster, StrictRedis
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.constants import DataCategory
 from sentry.spans.buffer import SpansBuffer
+from sentry.spans.buffer_store import METRICS_SAMPLE_RATE
 from sentry.spans.buffer_types import (
     EvalshaResult,
     FlushCandidate,
@@ -322,14 +323,18 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
     root_result = [
         _segment_id(1, trace_id, parent_span_id),
         True,
-        15,
-        [(b"latency", 1.0)],
-        [(b"gauge", 2.0)],
+        15000,
+        # The Lua script returns flattened [key1, value1, key2, value2, ...]
+        # lists, with latencies as integer microseconds.
+        [b"latency_us", 1000],
+        [b"gauge", 2.0],
+        [],
     ]
     child_result = [
         _segment_id(1, trace_id, "b" * 16),
         False,
-        5,
+        5000,
+        [],
         [],
         [],
     ]
@@ -365,6 +370,7 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
                 1024,
                 "root-salt",
                 "true",
+                METRICS_SAMPLE_RATE,
                 root_span.span_id,
             ),
             mock.call(
@@ -380,18 +386,19 @@ def test_insert_spans_builds_evalsha_commands_and_results() -> None:
                 1024,
                 "child-salt",
                 "true",
+                METRICS_SAMPLE_RATE,
                 child_span.span_id,
             ),
         ]
     )
     pipeline.execute.assert_called_once_with()
     buffer._buffer_logger.log.assert_called_once_with(
-        [(project_and_trace, 15), (project_and_trace, 5)]
+        [(project_and_trace, 15.0), (project_and_trace, 5.0)]
     )
     emit_metrics.assert_called_once_with(
-        [[(b"latency", 1.0)], []],
+        [[(b"latency_ms", 1.0)], []],
         [[(b"gauge", 2.0)], []],
-        (15, [(b"latency", 1.0)], [(b"gauge", 2.0)]),
+        (15.0, [(b"latency_ms", 1.0)], [(b"gauge", 2.0)]),
     )
 
 
@@ -418,6 +425,7 @@ def test_emit_process_spans_count_metrics() -> None:
                 latency_ms=15,
                 latency_metrics=[],
                 gauge_metrics=[],
+                merged_segment_span_ids=[],
             ),
         )
     ]
@@ -471,10 +479,13 @@ def test_update_queue_uses_inserted_subsegment_metadata() -> None:
         latency_ms=15,
         latency_metrics=[],
         gauge_metrics=[],
+        merged_segment_span_ids=[
+            first_span.span_id.encode("ascii"),
+            second_span.span_id.encode("ascii"),
+        ],
     )
 
     buffer._update_queue(
-        {subsegment.key: [first_span, second_span]},
         [InsertedSubsegment(subsegment, result)],
         now=100,
         redis_ttl=3600,

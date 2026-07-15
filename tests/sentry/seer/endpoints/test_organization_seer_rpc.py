@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from django.urls import reverse
 
 from sentry.models.apitoken import ApiToken
+from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -52,16 +53,25 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         assert response.data == {"slug": self.organization.slug}
 
     @with_feature("organizations:seer-public-rpc")
-    def test_org_level_method_get_organization_project_ids(self) -> None:
-        """Test that get_organization_project_ids returns projects for the org"""
-        path = self._get_path("get_organization_project_ids")
-        response = self.client.post(path, data={"args": {}}, format="json")
+    def test_get_organization_projects(self) -> None:
+        """instrumentation reflects project flags via get_instrumentation"""
+        path = self._get_path("get_organization_projects")
 
+        # No flags set — instrumentation should be empty
+        response = self.client.post(path, data={"args": {}}, format="json")
         assert response.status_code == 200
-        assert "projects" in response.data
-        # Should include our project
-        project_ids = [p["id"] for p in response.data["projects"]]
-        assert self.project.id in project_ids
+        project_data = next(p for p in response.data["projects"] if p["id"] == self.project.id)
+        assert project_data["instrumentation"] == []
+
+        # Set has_transactions and has_logs flags
+        self.project.update(
+            flags=Project.flags.has_transactions | Project.flags.has_logs,
+        )
+
+        response = self.client.post(path, data={"args": {}}, format="json")
+        assert response.status_code == 200
+        project_data = next(p for p in response.data["projects"] if p["id"] == self.project.id)
+        assert set(project_data["instrumentation"]) == {"transactions", "spans", "logs"}
 
     @with_feature("organizations:seer-public-rpc")
     def test_org_level_method_get_organization_features(self) -> None:
@@ -243,6 +253,120 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         mock_request.assert_called_once_with(
             {"org_id": self.organization.id},
             viewer_context={"organization_id": self.organization.id},
+        )
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_get_issue_committers_with_project_access(self) -> None:
+        """A member with access to the issue's project can read committers."""
+        group = self.create_group(project=self.project)
+
+        path = self._get_path("get_issue_committers")
+        response = self.client.post(path, data={"args": {"issue_id": str(group.id)}}, format="json")
+
+        assert response.status_code == 200
+        assert response.data is not None
+        assert response.data["project_id"] == self.project.id
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_get_issue_committers_without_project_access_returns_null(self) -> None:
+        """An org member without access to the issue's project gets a null result.
+
+        Without the project-access gate, a closed-membership org member could supply
+        any in-org issue_id and read commit/PR data for projects they cannot access.
+        We collapse no-access into the same null "not found" signal so the caller can't
+        tell the issue exists in a project they can't see.
+        """
+        group = self.create_group(project=self.project)
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        path = self._get_path("get_issue_committers")
+        response = self.client.post(path, data={"args": {"issue_id": str(group.id)}}, format="json")
+
+        assert response.status_code == 200
+        assert response.data is None
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_get_issue_committers_issue_in_other_org_returns_null(self) -> None:
+        """An issue_id from a different org cannot be resolved and yields null."""
+        other_org = self.create_organization(owner=self.user)
+        other_project = self.create_project(organization=other_org)
+        group = self.create_group(project=other_project)
+
+        path = self._get_path("get_issue_committers")
+        response = self.client.post(path, data={"args": {"issue_id": str(group.id)}}, format="json")
+
+        assert response.status_code == 200
+        assert response.data is None
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_get_issue_details_with_project_access(self) -> None:
+        """get_issue_details is project-access gated and works for a member with access."""
+        group = self.create_group(project=self.project)
+
+        path = self._get_path("get_issue_details")
+        response = self.client.post(path, data={"args": {"issue_id": str(group.id)}}, format="json")
+
+        assert response.status_code == 200
+        assert response.data is not None
+        assert response.data["project_id"] == self.project.id
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_get_issue_details_without_project_access_returns_null(self) -> None:
+        """get_issue_details collapses no-access into the null not-found signal."""
+        group = self.create_group(project=self.project)
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        path = self._get_path("get_issue_details")
+        response = self.client.post(path, data={"args": {"issue_id": str(group.id)}}, format="json")
+
+        assert response.status_code == 200
+        assert response.data is None
+
+    @with_feature("organizations:seer-public-rpc")
+    @patch("sentry.seer.endpoints.organization_seer_rpc.metrics.incr")
+    def test_issue_scoped_authz_records_access_denied_outcome(self, mock_incr: MagicMock) -> None:
+        group = self.create_group(project=self.project)
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        path = self._get_path("get_issue_committers")
+        response = self.client.post(path, data={"args": {"issue_id": str(group.id)}}, format="json")
+
+        assert response.status_code == 200
+        assert response.data is None
+        mock_incr.assert_any_call(
+            "seer.org_rpc.issue_scoped_authz",
+            tags={"method": "get_issue_committers", "outcome": "access_denied"},
+        )
+
+    @with_feature("organizations:seer-public-rpc")
+    @patch("sentry.seer.endpoints.organization_seer_rpc.metrics.incr")
+    def test_issue_scoped_authz_records_not_found_outcome(self, mock_incr: MagicMock) -> None:
+        path = self._get_path("get_issue_committers")
+        response = self.client.post(path, data={"args": {"issue_id": "123456789"}}, format="json")
+
+        assert response.status_code == 200
+        assert response.data is None
+        mock_incr.assert_any_call(
+            "seer.org_rpc.issue_scoped_authz",
+            tags={"method": "get_issue_committers", "outcome": "not_found"},
         )
 
     @with_feature("organizations:seer-public-rpc")

@@ -1,8 +1,23 @@
-type SeerNightShiftRunIssue = {
+import type {PullRequest, PullRequestStatus} from 'sentry/types/integrations';
+
+export type SeerNightShiftRunPullRequest = PullRequest & {
+  status: PullRequestStatus | null;
+};
+
+export type SeerNightShiftRunIssue = {
   action: string;
   dateAdded: string;
   groupId: string;
+  groupShortId: string | null;
+  groupTitle: string | null;
   id: string;
+  pullRequests: SeerNightShiftRunPullRequest[];
+  reason: string | null;
+  seerRunId: string | null;
+};
+
+// A Seer run dispatched by a night shift run, openable in Explorer.
+type SeerNightShiftSeerRun = {
   seerRunId: string | null;
 };
 
@@ -28,6 +43,7 @@ export type SeerNightShiftRun = {
   extras: SeerNightShiftRunExtras;
   id: string;
   issues: SeerNightShiftRunIssue[];
+  seerRuns: SeerNightShiftSeerRun[];
   triageStrategy: string;
 };
 
@@ -64,6 +80,7 @@ export type WorkflowRow = {
   summary?: string;
   triage?: {
     issues: SeerNightShiftRunIssue[];
+    seerRuns: SeerNightShiftSeerRun[];
     agentRunId?: number | string;
     dryRun?: boolean;
     maxCandidates?: number;

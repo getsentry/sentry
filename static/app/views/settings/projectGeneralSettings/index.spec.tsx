@@ -3,7 +3,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {
-  act,
   fireEvent,
   render,
   renderGlobalModal,
@@ -100,7 +99,7 @@ describe('projectGeneralSettings', () => {
     expect(getField('checkbox', 'Verify TLS/SSL')).toBeChecked();
   });
 
-  it('allows undoing an Allowed Domains change from the toast', async () => {
+  it('saves an Allowed Domains change on blur', async () => {
     putMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
@@ -128,31 +127,6 @@ describe('projectGeneralSettings', () => {
         method: 'PUT',
         data: {allowedDomains: ['changed.com']},
       })
-    );
-
-    const addSuccessMessageMock = jest.mocked(addSuccessMessage);
-    const undo = addSuccessMessageMock.mock.calls[0]?.[1]?.undo;
-
-    expect(undo).toBeInstanceOf(Function);
-
-    act(() => {
-      undo?.();
-    });
-
-    await waitFor(() => expect(putMock).toHaveBeenCalledTimes(2));
-
-    expect(putMock).toHaveBeenLastCalledWith(
-      `/projects/${organization.slug}/${project.slug}/`,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {allowedDomains: ['example.com', 'https://example.com']},
-      })
-    );
-
-    await waitFor(() =>
-      expect(screen.getByRole('textbox', {name: 'Allowed Domains'})).toHaveValue(
-        'example.com,https://example.com'
-      )
     );
   });
 

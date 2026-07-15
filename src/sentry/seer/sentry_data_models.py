@@ -116,13 +116,14 @@ class OrganizationSlugResponse(BaseModel):
     slug: str
 
 
-class OrganizationProject(BaseModel):
+class OrganizationProjectDetail(BaseModel):
     id: int
     slug: str
+    instrumentation: list[str]
 
 
-class OrganizationProjectIdsResponse(BaseModel):
-    projects: list[OrganizationProject]
+class OrganizationProjectsResponse(BaseModel):
+    projects: list[OrganizationProjectDetail]
 
 
 class OrganizationFeaturesResponse(BaseModel):
@@ -154,23 +155,9 @@ class SendSeerWebhookErrorResponse(BaseModel):
     error: str
 
 
-class RepositoryIntegrationsStatusResponse(BaseModel):
-    integration_ids: list[int | None]
-
-
 class HasRepoCodeMappingsResponse(BaseModel):
     has_code_mappings: bool
     project_slug_to_id: dict[str, int]
-
-
-class ValidateRepoSuccessResponse(BaseModel):
-    valid: Literal[True] = True
-    integration_id: int | None
-
-
-class ValidateRepoErrorResponse(BaseModel):
-    valid: Literal[False] = False
-    reason: str
 
 
 class GetRepoInstallationIdSuccessResponse(BaseModel):
@@ -206,6 +193,13 @@ class SpanAttributesResponse(BaseModel):
 class BuiltInField(BaseModel):
     key: str
     type: str
+    # Attribute metadata (brief, examples, isDeprecated, replacementAttribute,
+    # ...) for the attribute, populated when the caller requests
+    # `expand="context"`; otherwise None. Today the metadata comes from the
+    # sentry conventions, so only attributes that map to a known convention
+    # carry it, but custom attribute context is planned and will populate this
+    # for user-defined attributes too.
+    context: dict[str, Any] | None = None
 
 
 class AttributeNamesResponse(BaseModel):
@@ -384,15 +378,6 @@ class AttributeValuesResponse(BaseModel):
         return id(self)
 
 
-class TraceItemAttributesResponse(BaseModel):
-    """`get_trace_item_attributes` returns `{"attributes": [...]}` for a single trace item.
-
-    Items in `attributes` are the raw attribute dicts from the trace-items API —
-    passed through verbatim to preserve the upstream wire shape."""
-
-    attributes: list[dict[str, Any]]
-
-
 class TraceItemEventsResponse(BaseModel):
     """`get_log_attributes_for_trace` and `get_metric_attributes_for_trace` return
     `{"data": [{"id", "timestamp", "attributes"}, ...]}` — the EAP GetTrace output."""
@@ -498,48 +483,72 @@ class IssueAndEventDetailsResponse(_DictProxyMixin):
         return super().dict(**kwargs)
 
 
+class IssueCommittersResponse(_DictProxyMixin):
+    """`get_issue_committers` returns the likely code authors for an issue, combining
+    three commit-derived signals: `stack_commits` (frame-blame authors of the files in
+    the stacktrace), `suspect_commits` (the precomputed GroupOwner suspect commits), and
+    `release_commits` (a broader pool of commits shipped around when the issue first
+    appeared). The entries are `CommitSerializer` / committer-serializer output enriched
+    with extra keys (score, files_changed_count, is_merge_commit) — wider than
+    sentry-side can lock down — so the lists are dict passthroughs."""
+
+    stack_commits: list[dict[str, Any]]
+    suspect_commits: list[dict[str, Any]]
+    release_commits: list[dict[str, Any]]
+    project_id: int
+    project_slug: str
+
+
+class IssueOwner(BaseModel):
+    """A resolved code owner of an issue's failing files. Exactly one of the identity
+    fields is set: `email` for a `user`, `slug` for a `team`. `name` is the display
+    name when known. Kept fully typed (not a dict passthrough) so the same model can be
+    reused for RPC request/response validation on both sides of the wire."""
+
+    type: Literal["user", "team"]
+    name: str | None = None
+    email: str | None = None
+    slug: str | None = None
+
+
+class IssueOwnershipResponse(_DictProxyMixin):
+    """`get_issue_ownership` returns the *configured* code owners (Ownership Rules /
+    CODEOWNERS) for the files in an issue's stacktrace — who is RESPONSIBLE for the
+    area, independent of who authored any commit. Useful when there's no suspect commit
+    (e.g. infra/transient errors) but the area still has a clear owner.
+
+    `owners` is the ordered list of resolved users/teams; `matched_rules` are the rule
+    patterns that matched the failing files. `auto_assignment` reports whether Sentry is
+    already auto-assigning issues from these rules — when False, the configured owners
+    exist but nothing acts on them, which is precisely where a suggested assignee adds
+    value. Empty `owners` means no rule covered the failing files."""
+
+    owners: list[IssueOwner]
+    matched_rules: list[str]
+    auto_assignment: bool
+    project_id: int
+    project_slug: str
+
+
+class TeamMembersResponse(_DictProxyMixin):
+    """`get_team_members` returns the active users on a team, letting the agent drill from
+    a team-level owner (e.g. one returned by `get_issue_ownership`) down to individual
+    users — the eventual target when suggesting an assignee. `members` reuses `IssueOwner`
+    (always `type="user"`, with `email`/`name`); it is empty when the team has no active
+    members. Returns `None` (not this model) when the team can't be found."""
+
+    team_id: int
+    team_slug: str
+    team_name: str
+    members: list[IssueOwner]
+
+
 class TransactionsForProjectResponse(BaseModel):
     """`get_transactions_for_project` returns `{"transactions": [...]}` over the
     project-scoped registry. Wraps the existing `Transaction` model so the SDK
     consumer sees the inner shape."""
 
     transactions: list[Transaction]
-
-
-class BulkProjectPreferencesResponse(BaseModel):
-    """`bulk_get_project_preferences` returns `{stringified_project_id: pref_dict}`.
-    The inner pref dicts are `SeerProjectPreference.dict()` output, passed through
-    verbatim since `SeerProjectPreference` lives outside `sentry_data_models`."""
-
-    __root__: dict[str, dict[str, Any]]
-
-    def dict(self, **kwargs: Any) -> Any:
-        # Forward kwargs through `super().dict()` (so options like
-        # `exclude_unset` apply to any future nested-model arms) and unwrap
-        # the `__root__` envelope to the bare map seer expects on the wire.
-        return super().dict(**kwargs)["__root__"]
-
-    # Dict-like proxy so callers can treat the response like the bare map it
-    # serializes to.
-    def __iter__(self) -> Any:
-        return iter(self.__root__)
-
-    def __contains__(self, key: object) -> bool:
-        return key in self.__root__
-
-    def __getitem__(self, key: str) -> Any:
-        return self.__root__[key]
-
-    def __len__(self) -> int:
-        return len(self.__root__)
-
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, dict):
-            return self.dict() == other
-        return super().__eq__(other)
-
-    def __hash__(self) -> int:
-        return id(self)
 
 
 class PrAttributionResponse(BaseModel):
@@ -584,25 +593,6 @@ class BaselineTagDistributionResponse(BaseModel):
     `{"baseline_tag_distribution": [{tag_key, tag_value, count}, ...]}`."""
 
     baseline_tag_distribution: list[BaselineTagDistributionEntry]
-
-    def __getitem__(self, key: str) -> Any:
-        return self.dict()[key]
-
-    def __contains__(self, key: object) -> bool:
-        return key in self.dict()
-
-
-class ComparativeAttributeDistributionsResponse(BaseModel):
-    """`get_comparative_attribute_distributions` returns a baseline vs outliers
-    pair of attribute-value distributions. Each distribution is a list of
-    `(attribute_name, label, value)` triples passed through from the spans
-    frequency-stats endpoint (`query_attribute_distributions`)."""
-
-    baseline_distribution: list[tuple[str, str, float]]
-    total_baseline: int
-    outliers_distribution: list[tuple[str, str, float]]
-    total_outliers: int
-    outliers_function_value: float | None
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]
@@ -867,6 +857,28 @@ class ExecuteTimeseriesQueryErrorResponse(BaseModel):
 
     def __hash__(self) -> int:
         return id(self)
+
+
+class MonitoringProviderConnectionData(BaseModel):
+    provider_key: str
+    url: str
+    encrypted_access_token: str
+    identity_id: int
+    auth_method: str
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+
+class MonitoringProviderConnectionsResponse(BaseModel):
+    """`get_monitoring_provider_connections` success: the caller's connected
+    monitoring provider identities, each carrying a freshly-encrypted access
+    token."""
+
+    connections: list[MonitoringProviderConnectionData]
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
 
 
 class RefreshMonitoringProviderTokenSuccessResponse(BaseModel):

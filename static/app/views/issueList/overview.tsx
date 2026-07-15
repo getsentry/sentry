@@ -58,7 +58,6 @@ import {useSupergroupDrawer} from 'sentry/views/issueList/supergroups/useSupergr
 import {useSuperGroups} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {parseIssuePrioritySearch} from 'sentry/views/issueList/utils/parseIssuePrioritySearch';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -93,6 +92,7 @@ interface Props {
   clickBehavior?: 'navigate' | 'preview';
   headerActions?: ReactNode;
   initialQuery?: string;
+  initialSort?: IssueSortOptions;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
@@ -141,6 +141,7 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
 
 function IssueListOverviewInner({
   initialQuery = DEFAULT_QUERY,
+  initialSort = DEFAULT_ISSUE_STREAM_SORT,
   shouldFetchOnMount = true,
   title = t('Issues'),
   titleDescription,
@@ -156,6 +157,7 @@ function IssueListOverviewInner({
   const {openIssuePreview} = useIssuePreviewDrawer({enabled: isPreviewMode});
   const api = useApi();
   const urlParams = useParams<{viewId?: string}>();
+  const {data: groupSearchView} = useSelectedGroupSearchView();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
     realtimeActiveCookie === undefined || urlParams.viewId
@@ -225,12 +227,18 @@ function IssueListOverviewInner({
   const query = defined(location.query.query)
     ? (decodeScalar(location.query.query) ?? '')
     : initialQuery;
-  const hasRecommendedSort = organization.features.includes(
-    'issue-stream-recommended-sort'
+  const hasRecommendedSortDefault = organization.features.includes(
+    'issue-stream-recommended-sort-default'
   );
-  const defaultSort = hasRecommendedSort
-    ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
-    : DEFAULT_ISSUE_STREAM_SORT;
+  // The stored sort is the user's preferred sort for the unsaved feed.
+  // Saved views persist their own sort, so they neither read nor write it.
+  const defaultSort = urlParams.viewId
+    ? (groupSearchView?.querySort ?? DEFAULT_ISSUE_STREAM_SORT)
+    : initialSort === DEFAULT_ISSUE_STREAM_SORT
+      ? hasRecommendedSortDefault
+        ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
+        : DEFAULT_ISSUE_STREAM_SORT
+      : initialSort;
   const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
@@ -705,7 +713,11 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
-    if (hasRecommendedSort) {
+    if (
+      hasRecommendedSortDefault &&
+      !urlParams.viewId &&
+      initialSort === DEFAULT_ISSUE_STREAM_SORT
+    ) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
     transitionTo({sort: newSort});
@@ -913,13 +925,9 @@ function IssueListOverviewInner({
 
   const {numPreviousIssues, numIssuesOnPage} = getPageCounts();
 
-  const hasPageFrame = useHasPageFrameFeature();
-
   // Derive from query (URL state) not initialQuery (prop) so the hint
   // stays accurate if the user edits the search bar.
   const isTaxonomyView = query.includes('issue.category:');
-
-  const {data: groupSearchView} = useSelectedGroupSearchView();
 
   useLLMContext({
     contextHint:
@@ -965,7 +973,6 @@ function IssueListOverviewInner({
           onActionTaken={onActionTaken}
         />
         <IssueViewsHeader
-          selectedProjectIds={selection.projects}
           title={title}
           description={titleDescription}
           realtimeActive={realtimeActive}
@@ -973,12 +980,7 @@ function IssueListOverviewInner({
           headerActions={headerActions}
         />
         <StyledBody>
-          <Grid
-            area="content"
-            padding={
-              hasPageFrame ? {sm: 'md lg', md: 'md xl'} : {sm: 'xl', md: '2xl 3xl'}
-            }
-          >
+          <Grid area="content" padding={{'screen:sm': 'md lg', 'screen:md': 'lg xl'}}>
             <IssuesDataConsentBanner source="issues" />
             <IssueListFilters
               query={query}
@@ -998,7 +1000,6 @@ function IssueListOverviewInner({
               allResultsVisible={allResultsVisible()}
               displayReprocessingActions={displayReprocessingActions}
               memberList={memberList}
-              selectedProjectIds={selection.projects}
               issuesLoading={issuesLoading || supergroupsLoading}
               statsLoading={statsLoading}
               supergroupLookup={supergroupLookup}

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {BarSeriesOption} from 'echarts';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {BaseChart, type TooltipOption} from 'sentry/components/charts/baseChart';
@@ -110,7 +110,7 @@ function ErrorState({error}: {error: Error}) {
   const config = ERROR_STATE_CONFIG[status] ?? ERROR_STATE_CONFIG.default;
 
   return (
-    <Flex direction="column" gap="2xl" padding="3xl" align="center" justify="center">
+    <Stack gap="2xl" padding="3xl" align="center" justify="center">
       {config.icon}
       <Text size="xl" variant="muted">
         {config.title}
@@ -118,13 +118,13 @@ function ErrorState({error}: {error: Error}) {
       <Text size="md" variant="muted">
         {config.subtitle}
       </Text>
-    </Flex>
+    </Stack>
   );
 }
 
 function EmptySearchState() {
   return (
-    <Flex direction="column" gap="2xl" padding="3xl" align="center" justify="center">
+    <Stack gap="2xl" padding="3xl" align="center" justify="center">
       <StyledIconSearch size="xl" />
       <Text size="xl" variant="muted">
         {t('No matching attributes found')}
@@ -134,7 +134,7 @@ function EmptySearchState() {
           feedbackLink: <FeedbackLink />,
         })}
       </Text>
-    </Flex>
+    </Stack>
   );
 }
 

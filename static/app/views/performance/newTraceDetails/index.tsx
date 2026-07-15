@@ -1,7 +1,7 @@
 import {useEffect, useMemo, useRef} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Stack, type FlexProps} from '@sentry/scraps/layout';
 
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -13,7 +13,6 @@ import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/log
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {TraceAiTab} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiTab';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {
@@ -213,7 +212,6 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
             metaResults={meta}
             organization={organization}
             traceSlug={traceSlug}
-            traceEventView={traceEventView}
             logs={logsData}
             metrics={traceMetricsData}
           />
@@ -273,14 +271,15 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
 const TraceViewImpl = registerLLMContext('trace', TraceViewImplInner);
 
 function TraceInnerLayout(props: FlexProps) {
-  const hasPageFrame = useHasPageFrameFeature();
   return (
-    <Flex
+    <Stack
       {...props}
-      background={hasPageFrame ? 'primary' : undefined}
-      direction="column"
+      background="primary"
       gap="md"
-      padding="xl"
+      paddingLeft="xl"
+      paddingRight="xl"
+      paddingTop="lg"
+      paddingBottom="lg"
       flex="1"
       overflowY="auto"
     />

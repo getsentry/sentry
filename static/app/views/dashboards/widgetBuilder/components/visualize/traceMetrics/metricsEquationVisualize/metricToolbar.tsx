@@ -43,12 +43,14 @@ export function MetricToolbar({
   isSelected,
   onRowSelection,
   onReferenceLabelsChange,
+  disabled,
 }: {
   isSelected: boolean;
   label: string;
   onRowSelection: (label: string) => void;
   referenceMap: Record<string, string>;
   deleteDisabledReason?: string;
+  disabled?: boolean;
   onReferenceLabelsChange?: (labels: string[]) => void;
 }) {
   const visualize = useMetricVisualize();
@@ -62,7 +64,10 @@ export function MetricToolbar({
   ) => {
     if (isVisualizeEquation(visualize)) {
       setVisualize(
-        visualize.replace({yAxis: `${EQUATION_PREFIX}${resolvedExpression.text}`})
+        visualize.replace({
+          yAxis: `${EQUATION_PREFIX}${resolvedExpression.text}`,
+          internalExpression: internalText,
+        })
       );
       const labelSet = new Set(Object.keys(referenceMap));
       const expr = new Expression(internalText, labelSet);
@@ -115,6 +120,8 @@ export function MetricToolbar({
             expression={visualize.expression.text}
             referenceMap={referenceMap}
             handleExpressionChange={handleExpressionChange}
+            disabled={disabled}
+            storedInternalExpression={visualize.internalExpression}
           />
         ) : null}
         <Flex flex="1 1 100%" minWidth="0">
@@ -122,6 +129,8 @@ export function MetricToolbar({
             traceMetric={traceMetric}
             skipTraceMetricFilter={isEquation}
             portalTarget={document.body}
+            disabled={disabled}
+            disableValidation
           />
         </Flex>
       </Flex>

@@ -285,7 +285,7 @@ def translate_discover_query_to_explore_query(
         "last_visited": discover_query.last_visited,
         "dataset": ExploreSavedQueryDataset.SEGMENT_SPANS,
         "is_multi_query": False,
-        "organization": discover_query.organization,
+        "organization_id": discover_query.organization_id,
         "name": discover_query.name,
         "query": translated_query_field,
         "changed_reason": changed_reason,

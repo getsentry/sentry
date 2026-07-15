@@ -16,11 +16,14 @@ import {
   needsGitHubAuth,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
+import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {isArrayOf, isString} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
+import {getGithubPermissionsUpdateUrl} from 'sentry/utils/integrationUtil';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -44,7 +47,11 @@ interface CodingAgentError {
   message: string;
 }
 
-export type AutofixExplorerStep = 'root_cause' | 'solution' | 'code_changes';
+export type AutofixExplorerStep =
+  | 'root_cause'
+  | 'solution'
+  | 'code_changes'
+  | 'pr_iteration';
 
 /**
  * Artifact data types matching the backend Pydantic schemas.
@@ -119,6 +126,33 @@ export function isCodingAgentsArtifact(
  * State returned from the Explorer autofix endpoint.
  * This extends the SeerExplorer types with autofix-specific data.
  */
+/**
+ * Feedback source wire types, mirroring the pydantic discriminated union in
+ * `src/sentry/seer/autofix/pr_iteration/types.py` (`FeedbackSource`). Each
+ * member is keyed by `type`; narrow on it before reading member fields.
+ */
+interface UserUiFeedbackSource {
+  type: 'user-ui';
+  user?: User;
+  user_feedback?: string;
+  user_id?: number;
+}
+
+interface GithubPrCommentFeedbackSource {
+  type: 'github-pr-comment';
+  comment?: {html_url?: string; user?: {login: string}};
+}
+
+type RawFeedbackSource = UserUiFeedbackSource | GithubPrCommentFeedbackSource;
+
+export interface RawFeedback {
+  text: string;
+  source?: RawFeedbackSource;
+  timestamp?: string;
+  // Short display label derived from the source, serialized on `Feedback`.
+  ui_text?: string;
+}
+
 export interface ExplorerAutofixState {
   blocks: Block[];
   run_id: number;
@@ -130,7 +164,13 @@ export interface ExplorerAutofixState {
     id: string;
     input_type: 'file_change_approval' | 'ask_user_question';
   } | null;
+  queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
+  warnings?: Array<{
+    warning_type: string;
+    installation_id?: string;
+    repo_name?: string;
+  }>;
 }
 
 /**
@@ -198,24 +238,38 @@ const isActivelyProcessing = (
       codingAgent.status === CodingAgentStatus.RUNNING
   );
 
+  const hasQueuedFeedback = (autofixState.queued_feedback ?? []).length > 0;
+
   return (
     autofixState.status === 'processing' ||
     autofixState.blocks.some(block => block.loading) ||
     anyPRCreating ||
-    anyCodingAgentsRunning
+    anyCodingAgentsRunning ||
+    hasQueuedFeedback
   );
 };
 
+const hasCreatedPullRequest = (autofixState: ExplorerAutofixState | null): boolean =>
+  Object.values(autofixState?.repo_pr_states ?? {}).some(
+    state => state.pr_creation_status === 'completed'
+  );
+
 /**
  * Gets the appropriate poll interval based on state.
- * Returns false to disable polling, or a number for the interval.
  */
-const getPollInterval = (
-  autofixState: ExplorerAutofixState | null,
-  runStarted: boolean
-): number | false => {
-  // Actively processing - poll fast
-  if (isActivelyProcessing(autofixState, runStarted)) {
+export const getPollInterval = ({
+  autofixState,
+  runStarted,
+  pollPR = false,
+}: {
+  autofixState: ExplorerAutofixState | null;
+  runStarted: boolean;
+  pollPR?: boolean;
+}): number | false => {
+  const shouldPollPR = pollPR && hasCreatedPullRequest(autofixState);
+  const shouldPollProcessing = isActivelyProcessing(autofixState, runStarted);
+
+  if (shouldPollPR || shouldPollProcessing) {
     return POLL_INTERVAL;
   }
 
@@ -230,14 +284,72 @@ export interface AutofixSection {
   index?: number;
 }
 
+function sectionStepFor(step: string): string {
+  return step === 'pr_iteration' ? 'code_changes' : step;
+}
+
+function mergeFilePatches(blocks: Block[]): ExplorerFilePatch[] {
+  const mergedByFile = new Map<string, ExplorerFilePatch>();
+  for (const block of blocks) {
+    for (const patch of block.merged_file_patches ?? []) {
+      mergedByFile.set(`${patch.repo_name}:${patch.patch.path}`, patch);
+    }
+  }
+  return Array.from(mergedByFile.values());
+}
+
+/**
+ * Builds a single section from the blocks that belong to it.
+ *
+ * The section's artifacts are the inline artifacts carried by its blocks plus,
+ * for the code_changes section, the cumulative file-patch diff merged from all
+ * of its blocks (code changes and every pr_iteration folded in).
+ */
+function buildSection(
+  step: string,
+  index: number,
+  blocks: Block[],
+  runState: ExplorerAutofixState | null
+): AutofixSection {
+  const artifacts: AutofixArtifact[] = blocks.flatMap(block => block.artifacts ?? []);
+
+  const section: AutofixSection = {
+    index,
+    step,
+    blocks,
+    artifacts,
+    status: 'processing',
+  };
+
+  if (
+    runState?.status !== 'processing' ||
+    isLastBlockOfSection(blocks[blocks.length - 1]) ||
+    artifacts.length > 0
+  ) {
+    section.status = 'completed';
+  }
+
+  if (isCodeChangesSection(section)) {
+    const patches = mergeFilePatches(blocks);
+    if (patches.length) {
+      artifacts.push(patches);
+    }
+  }
+
+  return section;
+}
+
 /**
  * Groups a flat list of autofix blocks into ordered sections.
  *
  * Blocks arrive as a flat stream from the backend. Each block may carry a
- * `metadata.step` field that signals the start of a new logical section
- * (e.g. "root_cause", "code_changes", "pull_request"). This function walks
- * the blocks in order, splitting them into sections at each step boundary,
- * and attaches the relevant artifacts (file patches, PR states) to each section.
+ * `metadata.step` field that signals which logical section it belongs to
+ * (e.g. "root_cause", "code_changes"). The first block always carries a step,
+ * and a step-less block belongs to whichever section is currently open. We
+ * first bucket the blocks by section — folding `pr_iteration` work into the
+ * single `code_changes` section — then build each section from its blocks,
+ * attaching the relevant artifacts (file patches, PR states). At most one
+ * section exists per step.
  */
 export function getOrderedAutofixSections(runState: ExplorerAutofixState | null) {
   const blocks = runState?.blocks ?? [];
@@ -245,85 +357,33 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     return [];
   }
 
-  // Accumulates file patches across all blocks, keyed by "repo:path".
-  // Patches are merged globally (later patches for the same file overwrite
-  // earlier ones) and snapshotted into the code_changes section when it finalizes.
-  const mergedByFile = new Map<string, ExplorerFilePatch>();
+  // Bucket blocks by section step, preserving first-seen order. Each bucket
+  // also records the index of its first block, used as the reset/restart point.
+  const buckets = new Map<string, {blocks: Block[]; index: number}>();
 
-  const sections: AutofixSection[] = [];
-
-  // The "current" section being built. Blocks without a step marker are
-  // appended to whatever section is in progress (initially an 'unknown' one).
-  let section: AutofixSection = {
-    step: 'unknown',
-    artifacts: [],
-    blocks: [],
-    status: 'processing',
-  };
-
-  // Closes the current section and pushes it to `sections` (if non-empty).
-  function finalizeSection({forceCompletion}: {forceCompletion: boolean}) {
-    if (section.blocks.length) {
-      if (
-        forceCompletion ||
-        // Mark the section as completed if the last message is a terminal marker.
-        isLastBlockOfSection(section.blocks[section.blocks.length - 1]) ||
-        // We have an artifact for the section so good enough to mark it as completed
-        section.artifacts.length > 0
-      ) {
-        section.status = 'completed';
-      }
-
-      if (section.status === 'completed' && section.step === 'code_changes') {
-        // Snapshot the accumulated file patches as an artifact for this section.
-        section.artifacts.push(Array.from(mergedByFile.values()));
-      }
-
-      sections.push(section);
-    }
-  }
+  // The section a step-less block belongs to. The first block always carries a
+  // step, so this is set before any block is bucketed.
+  let currentStep = '';
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i]!;
-    // Accumulate file patches globally — they need to be merged across all
-    // blocks regardless of section boundaries so later patches win per file.
-    if (block.merged_file_patches?.length) {
-      for (const patch of block.merged_file_patches) {
-        const key = `${patch.repo_name}:${patch.patch.path}`;
-        mergedByFile.set(key, patch);
-      }
+    const step = block.message.metadata?.step;
+    if (defined(step)) {
+      currentStep = sectionStepFor(step);
     }
 
-    const message = block.message;
-
-    // A step marker means this block starts a new section.
-    // Finalize the previous section and start a fresh one.
-    const metadata = message.metadata;
-    if (defined(metadata) && defined(metadata.step)) {
-      if (metadata.step !== section.step) {
-        // since there's a new section coming up, this section must be compelete
-        finalizeSection({forceCompletion: true});
-      }
-
-      section = {
-        index: i,
-        step: metadata.step,
-        artifacts: [],
-        blocks: [],
-        status: 'processing',
-      };
+    const bucket = buckets.get(currentStep);
+    if (bucket) {
+      bucket.blocks.push(block);
+    } else {
+      buckets.set(currentStep, {blocks: [block], index: i});
     }
-
-    // Append the block's message and any inline artifacts to the current section.
-    section.blocks.push(block);
-    section.artifacts.push(...(block.artifacts ?? []));
   }
 
-  // Finalize the last in-progress section.
-  finalizeSection({
-    // run is complete so last section must be complete as well
-    forceCompletion: runState?.status !== 'processing',
-  });
+  const sections: AutofixSection[] = Array.from(buckets.entries()).map(
+    ([step, {blocks: sectionBlocks, index}]) =>
+      buildSection(step, index, sectionBlocks, runState)
+  );
 
   // If there are any PR states, append a synthetic "pull_request" section.
   const pullRequests = Object.values(runState?.repo_pr_states ?? {});
@@ -371,12 +431,30 @@ export function isCodeChangesSection(section: AutofixSection): boolean {
   return section.step === 'code_changes';
 }
 
+export function isPrIterationBlock(block: Block): boolean {
+  return block.message.metadata?.step === 'pr_iteration';
+}
+
 export function isPullRequestsSection(section: AutofixSection): boolean {
   return section.step === 'pull_request';
 }
 
 export function isCodingAgentsSection(section: AutofixSection): boolean {
   return section.step === 'coding_agents';
+}
+
+export function isRunValidForPrIteration(organization: Organization): boolean {
+  return organization.features.includes('autofix-pr-iteration');
+}
+
+export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {
+  // pr_iteration is always the last work to run, so if the most recent block
+  // with a step came from one, the run is in the pr_iteration phase (whether it
+  // completed or errored).
+  const lastBlock = runState?.blocks.findLast(block =>
+    defined(block.message.metadata?.step)
+  );
+  return defined(lastBlock) && isPrIterationBlock(lastBlock);
 }
 
 export type AutofixArtifact =
@@ -424,6 +502,11 @@ interface UseExplorerAutofixOptions {
    * Defaults to true.
    */
   enabled?: boolean;
+  /**
+   * Force fast polling while the drawer is mounted. Other observers can keep
+   * their processing-aware intervals.
+   */
+  pollPR?: boolean;
 }
 
 /**
@@ -440,7 +523,7 @@ export function useExplorerAutofix(
 ) {
   const {openModal} = useModal();
 
-  const {enabled = true} = options;
+  const {enabled = true, pollPR = false} = options;
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
@@ -473,7 +556,9 @@ export function useExplorerAutofix(
       if (!enabled) {
         return false;
       }
-      return getPollInterval(query.state.data?.json?.autofix || null, waitingForResponse);
+
+      const autofixState = query.state.data?.json?.autofix || null;
+      return getPollInterval({autofixState, runStarted: waitingForResponse, pollPR});
     },
   });
 
@@ -526,9 +611,13 @@ export function useExplorerAutofix(
         );
 
         // Invalidate to fetch fresh data
-        queryClient.invalidateQueries({
+        const invalidation = queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
+
+        if (step === 'pr_iteration') {
+          await invalidation;
+        }
 
         return response.run_id as number;
       } catch (e: any) {
@@ -670,7 +759,7 @@ export function useExplorerAutofix(
           if (permissionFailures.length > 0) {
             const installationId = permissionFailures[0]?.github_installation_id;
             const installationUrl = installationId
-              ? `https://github.com/settings/installations/${installationId}`
+              ? getGithubPermissionsUpdateUrl(installationId)
               : undefined;
             openModal(deps => (
               <AutofixGithubAppPermissionsModal
@@ -726,7 +815,6 @@ export function useExplorerAutofix(
     ]
   );
 
-  // Clear waiting state when we get a response
   if (waitingForResponse && runState) {
     const hasLoadingBlock = runState.blocks.some(block => block.loading);
     if (!hasLoadingBlock && runState.status !== 'processing') {
@@ -774,6 +862,7 @@ export function useExplorerAutofix(
      */
     dismissCodingAgentError: (id: number) =>
       setCodingAgentErrors(prev => prev.filter(e => e.id !== id)),
+    warnings: runState?.warnings ?? [],
   };
 }
 

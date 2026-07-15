@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -52,9 +52,11 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
+import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import {GroupDetailsLayout} from 'sentry/views/issueDetails/groupDetailsLayout';
 import {useGroupDistributionsDrawer} from 'sentry/views/issueDetails/groupDistributions/useGroupDistributionsDrawer';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useIssueActivityDrawer} from 'sentry/views/issueDetails/hooks/useIssueActivityDrawer';
 import {useMergedIssuesDrawer} from 'sentry/views/issueDetails/hooks/useMergedIssuesDrawer';
@@ -66,7 +68,6 @@ import {
   ORDERED_ISSUE_DETAILS_TOUR,
   type IssueDetailsTour,
 } from 'sentry/views/issueDetails/issueDetailsTour';
-import {SampleEventAlert} from 'sentry/views/issueDetails/sampleEventAlert';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useEngagedViewTracking} from 'sentry/views/issueDetails/useEngagedViewTracking';
@@ -79,7 +80,6 @@ import {
   ReprocessingStatus,
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
-  useIsSampleEvent,
 } from 'sentry/views/issueDetails/utils';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -832,28 +832,29 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   }
 
   return (
-    <TourContextProvider<IssueDetailsTour>
-      tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
-      isCompleted={isIssueDetailsTourCompleted}
-      orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
-      TourContext={IssueDetailsTourContext}
-    >
-      <IssueDetailsTourModal />
-      <GroupDetailsContent
-        project={projectWithFallback}
-        group={props.group}
-        event={props.event ?? injectedEvent}
+    <GroupDataContextProvider group={props.group} project={projectWithFallback}>
+      <TourContextProvider<IssueDetailsTour>
+        tourKey={ISSUE_DETAILS_TOUR_GUIDE_KEY}
+        isCompleted={isIssueDetailsTourCompleted}
+        orderedStepIds={ORDERED_ISSUE_DETAILS_TOUR}
+        TourContext={IssueDetailsTourContext}
       >
-        {props.children}
-      </GroupDetailsContent>
-    </TourContextProvider>
+        <IssueDetailsTourModal />
+        <GroupDetailsContent
+          project={projectWithFallback}
+          group={props.group}
+          event={props.event ?? injectedEvent}
+        >
+          {props.children}
+        </GroupDetailsContent>
+      </TourContextProvider>
+    </GroupDataContextProvider>
   );
 }
 
 function GroupDetails() {
   const organization = useOrganization();
   const {group, ...fetchGroupDetailsProps} = useFetchGroupDetails();
-  const isSampleError = useIsSampleEvent();
 
   const getGroupDetailsTitle = () => {
     const defaultTitle = 'Sentry';
@@ -877,27 +878,32 @@ function GroupDetails() {
   const config = group && getConfigForIssueType(group, group.project);
 
   return (
-    <Fragment>
-      {isSampleError && group && (
-        <SampleEventAlert project={group.project} organization={organization} />
-      )}
-      <SentryDocumentTitle noSuffix title={getGroupDetailsTitle()}>
-        <PageFiltersContainer
-          skipLoadLastUsed
-          forceProject={group?.project}
-          shouldForceProject
-        >
-          {config?.showFeedbackWidget && <FloatingFeedbackButton />}
-          <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group}>
-            <Outlet />
-          </GroupDetailsPageContent>
-        </PageFiltersContainer>
-      </SentryDocumentTitle>
-    </Fragment>
+    <SentryDocumentTitle noSuffix title={getGroupDetailsTitle()}>
+      <PageFiltersContainer
+        skipLoadLastUsed
+        forceProject={group?.project}
+        shouldForceProject
+      >
+        {config?.showFeedbackWidget && <FloatingFeedbackButton />}
+        <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group}>
+          <Outlet />
+        </GroupDetailsPageContent>
+      </PageFiltersContainer>
+    </SentryDocumentTitle>
   );
 }
 
-export default Sentry.withProfiler(GroupDetails);
+function GroupDetailsContainer() {
+  const params = useParams<{groupId: string}>();
+
+  return (
+    <GroupIdProvider groupId={params.groupId}>
+      <GroupDetails />
+    </GroupIdProvider>
+  );
+}
+
+export default Sentry.withProfiler(GroupDetailsContainer);
 
 const StyledLoadingError = styled(LoadingError)`
   margin: ${p => p.theme.space.xl};

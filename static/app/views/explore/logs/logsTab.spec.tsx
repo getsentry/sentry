@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {mockGetBoundingClientRect} from 'sentry/utils/fixtures/virtualization';
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
@@ -37,7 +37,9 @@ const datePageFilterProps: DatePageFilterProps = {
   }),
 };
 
-beforeEach(mockGetBoundingClientRect);
+beforeEach(() => {
+  mockElementSize();
+});
 
 describe('LogsTabContent', () => {
   const {organization, project, setupPageFilters} = initializeLogsTest();
@@ -171,9 +173,17 @@ describe('LogsTabContent', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
-      method: 'POST',
-      body: {attributes: {}},
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: {
+        dataset: [],
+        environment: [],
+        field: [],
+        orderby: [],
+        projects: [],
+        query: {error: null, fields: [], valid: true},
+        valid: true,
+      },
     });
 
     MockApiClient.addMockResponse({
