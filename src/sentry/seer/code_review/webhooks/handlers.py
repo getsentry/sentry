@@ -61,6 +61,21 @@ def handle_webhook_event(
         integration: The GitHub integration
         **kwargs: Additional keyword arguments
     """
+    if organization.slug == "sentry":
+        logs_extra = {
+            "sentry_organization_id": str(organization.id),
+            "sentry_organization_slug": organization.slug,
+            "github_event_type": github_event.value,
+            "github_event_action": event.get("action", "unknown"),
+            "repo_id": str(repo.id),
+            "repo_name": repo.name,
+        }
+        if github_delivery_id:
+            logs_extra["github_delivery_id"] = github_delivery_id
+        if integration is not None:
+            logs_extra["sentry_integration_id"] = str(integration.id)
+        logger.info("github.webhook.code_review.received", extra=logs_extra)
+
     if integration is None:
         return
 
@@ -83,14 +98,6 @@ def handle_webhook_event(
     except Exception:
         logger.warning("github.webhook.code_review.failed_to_set_tags")
 
-    if organization.slug == "sentry":
-        logs_extra = dict(tags)
-        if github_delivery_id:
-            logs_extra["github_delivery_id"] = github_delivery_id
-        logs_extra["github_event_type"] = github_event.value
-        logs_extra["github_event_action"] = event.get("action", "unknown")
-        logger.info("github.webhook.code_review.received", extra=logs_extra)
-
     handler = EVENT_TYPE_TO_HANDLER[github_event]
 
     from ..utils import get_pr_author_id
@@ -109,6 +116,7 @@ def handle_webhook_event(
                 github_event_action=event.get("action", "unknown"),
                 reason=preflight.denial_reason,
             )
+
         if organization.slug == "sentry":
             preflight_logs_extra = dict(tags)
             preflight_logs_extra["allowed"] = preflight.allowed
