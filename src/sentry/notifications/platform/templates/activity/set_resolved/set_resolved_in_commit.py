@@ -4,6 +4,7 @@ from sentry.notifications.platform.templates.activity.base import (
     build_footer,
     build_issue_link,
     create_activity_notification_example,
+    get_issue_description,
 )
 from sentry.notifications.platform.templates.activity.set_resolved.base import (
     get_resolution_subject,
@@ -40,7 +41,7 @@ class SetResolvedInCommitActivityTemplate(
     example_data = create_set_resolved_in_commit_example()
 
     def render(self, data: SetResolvedInCommitNotificationData) -> NotificationRenderedTemplate:
-        extra_body_sections: list[NotificationSection] = []
+        extra_body_sections: list[NotificationSection] = get_issue_description(data=data)
         resolution_blocks: list[NotificationTextBlock] = [
             PlainTextBlock(text="was resolved in a commit.")
         ]
@@ -50,8 +51,8 @@ class SetResolvedInCommitActivityTemplate(
                 CodeTextBlock(text=data.commit_sha),
             ]
             if data.commit_message:
-                extra_body_sections.append(
-                    BlockQuoteSection(blocks=[PlainTextBlock(text=data.commit_message)])
+                extra_body_sections.insert(
+                    0, BlockQuoteSection(blocks=[PlainTextBlock(text=data.commit_message)])
                 )
 
         return NotificationRenderedTemplate(

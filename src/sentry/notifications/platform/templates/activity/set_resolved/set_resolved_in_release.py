@@ -7,6 +7,7 @@ from sentry.notifications.platform.templates.activity.base import (
     build_footer,
     build_issue_link,
     create_activity_notification_example,
+    get_issue_description,
 )
 from sentry.notifications.platform.templates.activity.set_resolved.base import (
     get_resolution_subject,
@@ -66,7 +67,8 @@ class SetResolvedInReleaseActivityTemplate(
                         build_issue_link(data.issue_short_id, data.issue_url),
                         *resolution_blocks,
                     ],
-                )
+                ),
+                *get_issue_description(data=data),
             ],
             footer=build_footer(data=data),
         )
