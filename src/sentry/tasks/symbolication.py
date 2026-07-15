@@ -336,6 +336,16 @@ symbolicate_event = make_task_fn(
     queue="events.symbolicate_event",
     task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=False),
 )
+symbolicate_minidump = make_task_fn(
+    name="sentry.tasks.store.symbolicate_minidump",
+    queue="events.symbolicate_event",
+    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=False),
+)
+symbolicate_applecrashreport = make_task_fn(
+    name="sentry.tasks.store.symbolicate_applecrashreport",
+    queue="events.symbolicate_event",
+    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=False),
+)
 symbolicate_js_event = make_task_fn(
     name="sentry.tasks.symbolicate_js_event",
     queue="events.symbolicate_js_event",
@@ -352,5 +362,15 @@ symbolicate_jvm_event = make_task_fn(
 symbolicate_event_from_reprocessing = make_task_fn(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
+    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=True),
+)
+symbolicate_minidump_from_reprocessing = make_task_fn(
+    name="sentry.tasks.store.symbolicate_minidump",
+    queue="events.symbolicate_event",
+    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=True),
+)
+symbolicate_applecrashreport_from_reprocessing = make_task_fn(
+    name="sentry.tasks.store.symbolicate_applecrashreport",
+    queue="events.symbolicate_event",
     task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=True),
 )
