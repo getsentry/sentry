@@ -41,7 +41,7 @@ export function useScmCreateProjectProductSync(
   // Guard: only sync when this getting-started page belongs to the project the
   // SCM wizard just created. Without this check a non-SCM getting-started page
   // could clobber a stale session that happens to be in storage.
-  const isWizardSession = inExperiment && session?.createdProjectSlug === project.slug;
+  const isWizardSession = inExperiment && session?.createdProjectId === project.id;
 
   const syncProducts = useCallback(
     (products: ProductSolution[]) => {

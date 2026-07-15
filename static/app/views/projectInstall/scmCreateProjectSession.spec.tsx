@@ -9,13 +9,14 @@ import {
   useScmCreateProjectProductSync,
 } from 'sentry/views/projectInstall/scmCreateProjectSession';
 
+const CREATED_PROJECT_ID = '1';
 const CREATED_PROJECT_SLUG = 'my-project';
 
 function seedSession(overrides: Partial<WizardState> = {}) {
   window.sessionStorage.setItem(
     WIZARD_STORAGE_KEY,
     JSON.stringify({
-      createdProjectId: '1',
+      createdProjectId: CREATED_PROJECT_ID,
       createdProjectSlug: CREATED_PROJECT_SLUG,
       selectedFeatures: [ProductSolution.ERROR_MONITORING],
       selectedPlatform: undefined,
@@ -33,7 +34,7 @@ function readSession(): WizardState | null {
 }
 
 describe('useScmCreateProjectProductSync', () => {
-  const project = ProjectFixture({slug: CREATED_PROJECT_SLUG});
+  const project = ProjectFixture({id: CREATED_PROJECT_ID, slug: CREATED_PROJECT_SLUG});
 
   afterEach(() => {
     window.sessionStorage.clear();
@@ -84,7 +85,7 @@ describe('useScmCreateProjectProductSync', () => {
   });
 
   it('returns undefined when the session project does not match', () => {
-    seedSession({createdProjectSlug: 'different-project'});
+    seedSession({createdProjectId: 'different-id'});
 
     const {result} = renderHookWithProviders(
       () => useScmCreateProjectProductSync(project),
