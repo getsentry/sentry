@@ -26,7 +26,6 @@ from sentry.services.eventstore import processing
 from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import process_stacktraces
 from sentry.tasks.base import instrumented_task
-from sentry.tasks.symbolication import get_symbolication_functions
 from sentry.taskworker.namespaces import (
     ingest_attachments_tasks,
     ingest_errors_tasks,
@@ -132,6 +131,8 @@ def _do_preprocess_event(
 ) -> None:
     from sentry.stacktraces.processing import find_stacktraces_in_data
     from sentry.tasks.symbolication import (
+        get_symbolication_function_for_platform,
+        get_symbolication_platforms,
         submit_symbolicate,
     )
 
@@ -166,17 +167,20 @@ def _do_preprocess_event(
     # The event will be submitted to Symbolicator for all returned platforms,
     # one after the other, so we handle mixed stacktraces.
     stacktraces = find_stacktraces_in_data(data)
-    symbolicate_functions = get_symbolication_functions(data, stacktraces)
+    symbolicate_platforms = get_symbolication_platforms(data, stacktraces)
     metrics.incr(
         "events.to-symbolicate",
-        tags={f.value: True for f in symbolicate_functions},
+        tags={platform.value: True for platform in symbolicate_platforms},
         skip_internal=False,
     )
 
-    should_symbolicate = len(symbolicate_functions) > 0
+    should_symbolicate = len(symbolicate_platforms) > 0
     if should_symbolicate:
-        symbolication_function = symbolicate_functions.pop(0)
-        symbolication_function_name = getattr(symbolication_function.function(), "__name__", "none")
+        first_platform = symbolicate_platforms.pop(0)
+        symbolication_function = get_symbolication_function_for_platform(
+            first_platform, data, stacktraces
+        )
+        symbolication_function_name = getattr(symbolication_function, "__name__", "none")
 
         if not killswitch_matches_context(
             "store.load-shed-symbolicate-event-projects",
@@ -191,14 +195,14 @@ def _do_preprocess_event(
 
             submit_symbolicate(
                 SymbolicatorTaskKind(
-                    function=symbolication_function,
+                    platform=first_platform,
                     is_reprocessing=from_reprocessing,
                 ),
                 cache_key=cache_key,
                 event_id=event_id,
                 start_time=start_time,
                 has_attachments=has_attachments,
-                symbolicate_functions=symbolicate_functions,
+                symbolicate_platforms=symbolicate_platforms,
             )
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200

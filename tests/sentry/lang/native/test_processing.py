@@ -15,83 +15,11 @@ from sentry.lang.native.processing import (
     ELECTRON_FIRST_MODULE_REWRITE_RULES,
     _merge_image,
     get_frames_for_symbolication,
-    get_native_symbolication_functions,
     process_native_stacktraces,
 )
-from sentry.lang.native.symbolicator import SymbolicatorFunction
 from sentry.models.eventerror import EventErrorType
-from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path
-
-MINIDUMP_PLACEHOLDER = {
-    "type": "Minidump",
-    "value": "Invalid Minidump",
-    "mechanism": {"type": "minidump", "handled": False, "synthetic": True},
-}
-
-APPLECRASHREPORT_PLACEHOLDER = {
-    "type": "AppleCrashReport",
-    "value": "Invalid Apple Crash Report",
-    "mechanism": {"type": "applecrashreport", "handled": False, "synthetic": True},
-}
-
-NATIVE_EXCEPTION = {
-    "type": "EXCEPTION_ACCESS_VIOLATION_WRITE",
-    "stacktrace": {"frames": [{"instruction_addr": "0x2a2a3d"}]},
-}
-
-
-@pytest.mark.parametrize(
-    ("exceptions", "expected_functions"),
-    [
-        pytest.param(
-            [MINIDUMP_PLACEHOLDER],
-            [SymbolicatorFunction.minidump],
-            id="simple_minidump",
-        ),
-        pytest.param(
-            [MINIDUMP_PLACEHOLDER, NATIVE_EXCEPTION],
-            [SymbolicatorFunction.native, SymbolicatorFunction.minidump],
-            id="minidump_with_native_stacktrace",
-        ),
-        pytest.param(
-            [MINIDUMP_PLACEHOLDER, APPLECRASHREPORT_PLACEHOLDER],  # unlikely but allowed
-            [SymbolicatorFunction.minidump],
-            id="minidump_with_applecrashreport",
-        ),
-        pytest.param(
-            [APPLECRASHREPORT_PLACEHOLDER],
-            [SymbolicatorFunction.applecrashreport],
-            id="simple_applecrashreport",
-        ),
-        pytest.param(
-            [APPLECRASHREPORT_PLACEHOLDER, NATIVE_EXCEPTION],
-            [SymbolicatorFunction.native, SymbolicatorFunction.applecrashreport],
-            id="applecrashreport_with_native",
-        ),
-        pytest.param(
-            [NATIVE_EXCEPTION],
-            [SymbolicatorFunction.native],
-            id="native_stacktrace",
-        ),
-    ],
-)
-def test_get_native_symbolication_functions(
-    exceptions: list[dict[str, Any]], expected_functions: list[SymbolicatorFunction]
-) -> None:
-    # Relay sets the platform of minidump/applecrashreport events to "native",
-    # so a native platform alone must not schedule a `native` symbolication run.
-    data = {
-        "platform": "native",
-        "event_id": "cc3e6c2bb6b6498097f336d1e6979f4b",
-        "exception": {"values": exceptions},
-    }
-    stacktraces = find_stacktraces_in_data(data)
-
-    functions = list(get_native_symbolication_functions(data, stacktraces))
-
-    assert functions == expected_functions
 
 
 def test_merge_symbolicator_image_empty() -> None:

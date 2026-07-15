@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import posixpath
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any
 
 import sentry_sdk
@@ -11,11 +11,10 @@ from symbolic.exceptions import ParseDebugIdError
 
 from sentry import options
 from sentry.lang.native.error import SymbolicationFailed, write_error
-from sentry.lang.native.symbolicator import FrameOrder, Symbolicator, SymbolicatorFunction
+from sentry.lang.native.symbolicator import FrameOrder, Symbolicator
 from sentry.lang.native.utils import (
     get_event_attachment,
     get_os_from_event,
-    has_native_stacktraces,
     image_name,
     is_applecrashreport_event,
     is_minidump_event,
@@ -621,45 +620,19 @@ def emit_apple_symbol_stats(apple_symbol_stats, data):
         )
 
 
-def get_native_symbolication_functions(
-    data: Mapping[str, Any], stacktraces: list[StacktraceInfo]
-) -> list[SymbolicatorFunction]:
-    """
-    Yields the symbolication functions that will process the event,
-    based on the Event `data` and the supplied `stacktraces`.
-    """
-    functions = []
-    if is_minidump_event(data):
-        functions.append(SymbolicatorFunction.minidump)
-    elif is_applecrashreport_event(data):
-        functions.append(SymbolicatorFunction.applecrashreport)
-    elif is_native_event(data, stacktraces):
-        functions.append(SymbolicatorFunction.native)
-        return functions  # early return to prevent duplicates
-
-    if has_native_stacktraces(stacktraces):
-        # Run native symbolication first, to prevent sending minidump / ACR events to
-        # symbolicator twice (after symbolication a minidump event will have native stacktraces).
-        functions.insert(0, SymbolicatorFunction.native)
-
-    return functions
-
-
 def get_native_symbolication_function(
     data: Mapping[str, Any], stacktraces: list[StacktraceInfo]
-) -> SymbolicatorFunction | None:
+) -> Callable[[Symbolicator, Any], Any] | None:
     """
     Returns the appropriate symbolication function (or `None`) that will process
     the event, based on the Event `data`, and the supplied `stacktraces`.
-
-    This is a **legacy** function used for old tasks.
     """
     if is_minidump_event(data):
-        return SymbolicatorFunction.minidump
+        return process_minidump
     elif is_applecrashreport_event(data):
-        return SymbolicatorFunction.applecrashreport
+        return process_applecrashreport
     elif is_native_event(data, stacktraces):
-        return SymbolicatorFunction.native
+        return process_native_stacktraces
     else:
         return None
 

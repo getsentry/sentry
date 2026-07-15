@@ -61,11 +61,6 @@ def is_native_event(data: Mapping[str, Any], stacktraces: list[StacktraceInfo]) 
     if is_native_platform(data.get("platform")):
         return True
 
-    return has_native_stacktraces(stacktraces)
-
-
-def has_native_stacktraces(stacktraces: list[StacktraceInfo]) -> bool:
-    """Returns whether any of the supplied stacktraces are native."""
     for stacktrace in stacktraces:
         if any(is_native_platform(x) for x in stacktrace.platforms):
             return True
