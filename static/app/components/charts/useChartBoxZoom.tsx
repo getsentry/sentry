@@ -103,9 +103,9 @@ export function useChartBoxZoom({
     let bounds: RectangularBounds | null = null;
     let $overlay: HTMLDivElement | null = null;
     let pointerId: number | null = null;
+    let restoreTooltipTimer: ReturnType<typeof setTimeout> | null = null;
 
     function teardown() {
-      isDraggingRef.current = false;
       dom.removeEventListener('pointermove', onPointerMove);
       dom.removeEventListener('pointerup', onPointerUp);
       dom.removeEventListener('lostpointercapture', onLostPointerCapture);
@@ -119,12 +119,28 @@ export function useChartBoxZoom({
       bounds = null;
     }
 
+    // Ends the drag and re-enables the tooltip (clears `isDraggingRef`, which the
+    // formatter reads). Restore is immediate for a click/cancel; only an actual
+    // zoom delays it, so the tooltip doesn't flash under the cursor during the
+    // navigation/refetch a zoom kicks off.
+    function endDrag(delayTooltipRestore = false) {
+      teardown();
+      if (delayTooltipRestore) {
+        restoreTooltipTimer = setTimeout(() => {
+          restoreTooltipTimer = null;
+          isDraggingRef.current = false;
+        }, TOOLTIP_RESTORE_DELAY_MS);
+      } else {
+        isDraggingRef.current = false;
+      }
+    }
+
     // If the chart moves under the fixed-position overlay mid-drag (page scroll,
     // resize, `autoHeightResize`), the selection no longer lines up with the
     // plot — cancel it rather than apply a mismatched zoom.
     function cancelDragOnChartMove() {
       if (bounds) {
-        teardown();
+        endDrag();
       }
     }
 
@@ -149,6 +165,11 @@ export function useChartBoxZoom({
       isDraggingRef.current = true;
       start = point;
       pointerId = evt.pointerId;
+      // A new drag starting during a pending restore cancels it.
+      if (restoreTooltipTimer !== null) {
+        clearTimeout(restoreTooltipTimer);
+        restoreTooltipTimer = null;
+      }
       // Route every subsequent event for this pointer to the chart element —
       // even outside the window — so we always get the terminating `pointerup`
       // and never leave a drag half-open.
@@ -184,6 +205,10 @@ export function useChartBoxZoom({
       dom.removeEventListener('pointerdown', onPointerDown, true);
       document.removeEventListener('scroll', cancelDragOnChartMove, true);
       resizeObserver.disconnect();
+      if (restoreTooltipTimer !== null) {
+        clearTimeout(restoreTooltipTimer);
+      }
+      isDraggingRef.current = false;
       teardown();
     };
 
@@ -220,7 +245,10 @@ export function useChartBoxZoom({
           )
         : null;
 
-      teardown();
+      // Delay the tooltip restore only when a zoom actually applies (navigation
+      // follows and would otherwise flash it under the cursor); a click, tiny
+      // drag, or failed conversion restores it immediately.
+      endDrag(range !== null);
 
       if (range) {
         onZoomRef.current?.(range);
@@ -229,17 +257,17 @@ export function useChartBoxZoom({
 
     // Capture can be lost without a `pointerup` (browser cancels the gesture,
     // the element is removed, etc.). It also fires *after* a normal `pointerup`,
-    // but `teardown` has already cleared `bounds` by then, so this no-ops.
+    // but `endDrag` has already cleared `bounds` by then, so this no-ops.
     function onLostPointerCapture() {
       if (bounds) {
-        teardown();
+        endDrag();
       }
     }
 
     function onKeyDown(evt: KeyboardEvent) {
       if (evt.key === 'Escape') {
         evt.stopPropagation();
-        teardown();
+        endDrag();
       }
     }
   }, []);
@@ -252,6 +280,10 @@ export function useChartBoxZoom({
 // Ignore selections smaller than this (px, on either axis): treat them as a
 // click rather than a zoom.
 const MIN_DRAG_PX = 5;
+
+// How long, in ms, after a zoom before the hover tooltip is re-enabled, so it
+// doesn't flash under the cursor during the navigation the zoom kicks off.
+const TOOLTIP_RESTORE_DELAY_MS = 200;
 
 /** The chart DOM's top-left in client (viewport) space. */
 function getChartOrigin(dom: HTMLElement): Point {
