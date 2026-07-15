@@ -70,7 +70,7 @@ describe('ExploreSecondaryNavigation', () => {
         organization,
         initialRouterConfig: {
           location: {
-            pathname: '/preprod/snapshots/123/',
+            pathname: '/organizations/org-slug/preprod/snapshots/123/',
           },
         },
       }
