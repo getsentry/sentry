@@ -930,6 +930,9 @@ class WeeklyReportsTest(
             "new_substatus_count": 0,
             "escalating_substatus_count": 0,
             "regression_substatus_count": 0,
+            "new_substatus_url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&query=is%3Anew&project={self.project.id}",
+            "escalating_substatus_url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&query=is%3Aescalating&project={self.project.id}",
+            "regression_substatus_url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&query=is%3Aregressed&project={self.project.id}",
         }
 
         assert ctx["trends"]["series"][-2][1][0] == {
@@ -2089,7 +2092,12 @@ class WeeklyReportsTest(
         }
         assert _pct_change(100, 0) is None
         assert _pct_change(0, 0) is None
-        assert _pct_change(100, 100) is None
+        assert _pct_change(100, 100) == {
+            "arrow": "",
+            "pct": "—0%",
+            "bg_color": "#F0F0F2",
+            "text_color": "#80708F",
+        }
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_past_resolved_issues_basic(self) -> None:
