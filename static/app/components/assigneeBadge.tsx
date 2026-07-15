@@ -49,33 +49,44 @@ export function AssigneeBadge({
   chevronDirection = 'down',
   loading = false,
 }: AssigneeBadgeProps) {
-  return loading ? (
-    <StyledTag
-      icon={<LoadingIcon showLabel={showLabel} chevronDirection={chevronDirection} />}
-      variant="muted"
-    />
-  ) : assignedTo ? (
-    <Tooltip
-      isHoverable
-      maxWidth={ASSIGNED_TOOLTIP_MAX_WIDTH}
-      title={
-        <AssignedTooltip assignedTo={assignedTo} assignmentDetails={assignmentDetails} />
-      }
-      skipWrapper
-    >
+  if (loading) {
+    return (
       <StyledTag
-        icon={
-          <AssignedIcon
-            assignedTo={assignedTo}
-            assignedUser={assignedUser}
-            chevronDirection={chevronDirection}
-            showLabel={showLabel}
-          />
-        }
+        icon={<LoadingIcon showLabel={showLabel} chevronDirection={chevronDirection} />}
         variant="muted"
       />
-    </Tooltip>
-  ) : (
+    );
+  }
+
+  if (assignedTo) {
+    return (
+      <Tooltip
+        isHoverable
+        maxWidth={ASSIGNED_TOOLTIP_MAX_WIDTH}
+        title={
+          <AssignedTooltip
+            assignedTo={assignedTo}
+            assignmentDetails={assignmentDetails}
+          />
+        }
+        skipWrapper
+      >
+        <StyledTag
+          icon={
+            <AssignedIcon
+              assignedTo={assignedTo}
+              assignedUser={assignedUser}
+              chevronDirection={chevronDirection}
+              showLabel={showLabel}
+            />
+          }
+          variant="muted"
+        />
+      </Tooltip>
+    );
+  }
+
+  return (
     <Tooltip isHoverable title={<UnassignedTooltip />} skipWrapper>
       <UnassignedTag
         icon={
