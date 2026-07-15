@@ -447,14 +447,6 @@
     {% endfor %}
   </div>
   {% endif %}
-  {% if spans_chart_url and not enhanced_privacy %}
-  <div id="top-spans">
-    <h4>Top Transactions by Duration (p95)</h4>
-    <div style="margin-bottom: 16px;">
-      <img src="{{ spans_chart_url }}" width="600" height="200" alt="Top spans p95 chart" style="max-width: 100%;" />
-    </div>
-  </div>
-  {% endif %}
   {% if past_issues|length > 0 and not enhanced_privacy %}
   <div id="past-resolved-issues">
     <h4>Resolved last week</h4>
@@ -487,6 +479,12 @@
     <a href="{% org_url organization '/explore/traces/' %}"
        style="font-size: 12px; margin-bottom: 16px; display: block; font-weight: bold;">View All Spans</a>
 
+    {% if spans_chart_url %}
+    <div style="margin-bottom: 16px;">
+      <img src="{{ spans_chart_url }}" width="600" height="200" alt="Top spans p95 chart" style="max-width: 100%;" />
+    </div>
+    {% endif %}
+
     {% if top_spans_table %}
     <h4 style="margin-bottom: 0;">Top Spans</h4>
     <table style="width: 100%; border-collapse: collapse;">
@@ -513,6 +511,11 @@
   </div>
   {% endif %}
 
+  {% if notification_settings_link %}
+  <div style="padding: 12px 16px; margin: 16px 0; background-color: #F5F3F7; border-radius: 4px; font-size: 14px; color: #80708F;">
+    Want to choose the projects you see in the weekly report? <a href="{% absolute_uri notification_settings_link %}">Customize your project preferences here!</a>
+  </div>
+  {% endif %}
 
 </div>
 {% endblock %}
