@@ -1,3 +1,5 @@
+import {t} from 'sentry/locale';
+
 import type {AskSeerStep} from './types';
 
 /**
@@ -20,9 +22,12 @@ interface StepLabel {
 
 // Shared labels for tag/field investigation steps
 const TAG_INVESTIGATION_LABELS: StepLabel[] = [
-  {loading: 'Investigating your tags...', completed: 'Investigated tags'},
-  {loading: 'Looking for more tags...', completed: 'Found more tags'},
-  {loading: 'Checking additional tags...', completed: 'Checked additional tags'},
+  {loading: t('Investigating your tags...'), completed: t('Investigated tags')},
+  {loading: t('Looking for more tags...'), completed: t('Found more tags')},
+  {
+    loading: t('Checking additional tags...'),
+    completed: t('Checked additional tags'),
+  },
 ];
 
 /**
@@ -34,62 +39,67 @@ const STEP_LABELS: Record<string, StepLabel[]> = {
   get_field_values: TAG_INVESTIGATION_LABELS,
   get_errors_field_values: TAG_INVESTIGATION_LABELS,
   execute_query: [
-    {loading: 'Fine-tuning your query...', completed: 'Fine-tuned query'},
-    {loading: 'Trying another approach...', completed: 'Tried another approach'},
-    {loading: 'Running one more test...', completed: 'Ran another test'},
+    {loading: t('Fine-tuning your query...'), completed: t('Fine-tuned query')},
+    {loading: t('Trying another approach...'), completed: t('Tried another approach')},
+    {loading: t('Running one more test...'), completed: t('Ran another test')},
   ],
-  finalize_queries: [{loading: 'Double-checking everything...', completed: 'All done!'}],
+  finalize_queries: [
+    {loading: t('Double-checking everything...'), completed: t('All done!')},
+  ],
   mark_unsupported: [
-    {loading: 'Working through this...', completed: 'This query is not supported'},
+    {loading: t('Working through this...'), completed: t('This query is not supported')},
   ],
 
   // DEPRECATED
   fetch_tag_values: TAG_INVESTIGATION_LABELS,
   get_tag_values: TAG_INVESTIGATION_LABELS,
   test_query: [
-    {loading: 'Testing your query...', completed: 'Tested query'},
-    {loading: 'Trying another approach...', completed: 'Tried another approach'},
-    {loading: 'Running one more test...', completed: 'Ran another test'},
+    {loading: t('Testing your query...'), completed: t('Tested query')},
+    {loading: t('Trying another approach...'), completed: t('Tried another approach')},
+    {loading: t('Running one more test...'), completed: t('Ran another test')},
   ],
   run_query: [
-    {loading: 'Running your query...', completed: 'Ran query'},
-    {loading: 'Running it again...', completed: 'Ran again'},
-    {loading: 'One more time...', completed: 'Tried once more'},
+    {loading: t('Running your query...'), completed: t('Ran query')},
+    {loading: t('Running it again...'), completed: t('Ran again')},
+    {loading: t('One more time...'), completed: t('Tried once more')},
   ],
   analyze_results: [
-    {loading: 'Analyzing what I found...', completed: 'Analyzed results'},
-    {loading: 'Taking a closer look...', completed: 'Looked closer'},
-    {loading: 'Examining the details...', completed: 'Examined details'},
+    {loading: t('Analyzing what I found...'), completed: t('Analyzed results')},
+    {loading: t('Taking a closer look...'), completed: t('Looked closer')},
+    {loading: t('Examining the details...'), completed: t('Examined details')},
   ],
   refine_query: [
-    {loading: 'Fine-tuning the query...', completed: 'Refined query'},
-    {loading: 'Making some adjustments...', completed: 'Made adjustments'},
-    {loading: 'Tweaking a few things...', completed: 'Tweaked query'},
+    {loading: t('Fine-tuning the query...'), completed: t('Refined query')},
+    {loading: t('Making some adjustments...'), completed: t('Made adjustments')},
+    {loading: t('Tweaking a few things...'), completed: t('Tweaked query')},
   ],
   search_issues: [
-    {loading: 'Looking through your issues...', completed: 'Searched issues'},
-    {loading: 'Checking more issues...', completed: 'Checked more issues'},
+    {loading: t('Looking through your issues...'), completed: t('Searched issues')},
+    {loading: t('Checking more issues...'), completed: t('Checked more issues')},
   ],
   search_spans: [
-    {loading: 'Exploring your traces...', completed: 'Explored traces'},
-    {loading: 'Looking at more traces...', completed: 'Found more traces'},
+    {loading: t('Exploring your traces...'), completed: t('Explored traces')},
+    {loading: t('Looking at more traces...'), completed: t('Found more traces')},
   ],
   search_logs: [
-    {loading: 'Digging through your logs...', completed: 'Searched logs'},
-    {loading: 'Checking more logs...', completed: 'Checked more logs'},
+    {loading: t('Digging through your logs...'), completed: t('Searched logs')},
+    {loading: t('Checking more logs...'), completed: t('Checked more logs')},
   ],
   generate_query: [
-    {loading: 'Crafting a query for you...', completed: 'Generated query'},
-    {loading: 'Building another option...', completed: 'Built another option'},
+    {loading: t('Crafting a query for you...'), completed: t('Generated query')},
+    {loading: t('Building another option...'), completed: t('Built another option')},
   ],
   validate_query: [
-    {loading: 'Validating your query...', completed: 'Validated your query'},
-    {loading: 'Double-checking everything...', completed: 'Double-checked results'},
+    {loading: t('Validating your query...'), completed: t('Validated your query')},
+    {
+      loading: t('Double-checking everything...'),
+      completed: t('Double-checked results'),
+    },
   ],
   thinking: [
-    {loading: 'Thinking...', completed: 'Thought about it'},
-    {loading: 'Hmm, let me think...', completed: 'Considered options'},
-    {loading: 'Working through this...', completed: 'Worked through it'},
+    {loading: t('Thinking...'), completed: t('Thought about it')},
+    {loading: t('Hmm, let me think...'), completed: t('Considered options')},
+    {loading: t('Working through this...'), completed: t('Worked through it')},
   ],
 };
 
