@@ -757,7 +757,7 @@ describe('WidgetBuilderSlideout', () => {
       />,
       {
         organization: OrganizationFixture({
-          features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+          features: ['tracemetrics-enabled'],
         }),
         initialRouterConfig: {
           location: {
@@ -802,7 +802,7 @@ describe('WidgetBuilderSlideout', () => {
       />,
       {
         organization: OrganizationFixture({
-          features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+          features: ['tracemetrics-enabled'],
         }),
         initialRouterConfig: {
           location: {

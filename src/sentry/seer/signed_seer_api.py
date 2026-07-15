@@ -109,6 +109,7 @@ def _resolve_viewer_context(
 
     return ViewerContext(
         organization_id=org_id,
+        project_id=None if has_mismatch else (vc.project_id if vc else None),
         user_id=user_id,
         actor_type=vc.actor_type,
         token=None if has_mismatch else vc.token,

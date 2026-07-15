@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -39,7 +40,10 @@ function getAuthorName(item: GroupActivity) {
   }
   if (
     (item.type === GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST ||
-      item.type === GroupActivityType.PULL_REQUEST_CLOSED) &&
+      item.type === GroupActivityType.PULL_REQUEST_CLOSED ||
+      item.type === GroupActivityType.PULL_REQUEST_REOPENED ||
+      item.type === GroupActivityType.PULL_REQUEST_MERGED ||
+      item.type === GroupActivityType.PULL_REQUEST_UNLINKED) &&
     item.data.pullRequest?.author?.name &&
     !item.data.pullRequest.author.email?.endsWith('@localhost')
   ) {
@@ -56,6 +60,7 @@ export function getGroupActivityItem(
   teams: Team[]
 ) {
   const author = <strong>{getAuthorName(activity)}</strong>;
+  const activityContext = {id: activity.id, type: activity.type};
   const issuesLink = `/organizations/${organization.slug}/issues/`;
   const isFeedback = issueCategory === IssueCategoryEnum.FEEDBACK;
 
@@ -507,6 +512,48 @@ export function getGroupActivityItem(
           ),
         };
       }
+      case GroupActivityType.PULL_REQUEST_REOPENED: {
+        const {pullRequest} = activity.data;
+        return {
+          title: t('Pull Request Reopened'),
+          message: pullRequest ? (
+            <PullRequestLink
+              pullRequest={pullRequest}
+              repository={pullRequest.repository}
+            />
+          ) : (
+            t('PR not available')
+          ),
+        };
+      }
+      case GroupActivityType.PULL_REQUEST_MERGED: {
+        const {pullRequest} = activity.data;
+        return {
+          title: t('Pull Request Merged'),
+          message: pullRequest ? (
+            <PullRequestLink
+              pullRequest={pullRequest}
+              repository={pullRequest.repository}
+            />
+          ) : (
+            t('PR not available')
+          ),
+        };
+      }
+      case GroupActivityType.PULL_REQUEST_UNLINKED: {
+        const {pullRequest} = activity.data;
+        return {
+          title: t('Pull Request Unlinked'),
+          message: pullRequest ? (
+            <PullRequestLink
+              pullRequest={pullRequest}
+              repository={pullRequest.repository}
+            />
+          ) : (
+            t('PR not available')
+          ),
+        };
+      }
       case GroupActivityType.SET_UNRESOLVED: {
         // TODO(nisanthan): Remove after migrating records to SET_ESCALATING
         const {data} = activity;
@@ -833,6 +880,9 @@ export function getGroupActivityItem(
         };
       }
       default:
+        Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {
+          contexts: {activity: activityContext},
+        });
         return {title: '', message: ''}; // should never hit (?)
     }
   }

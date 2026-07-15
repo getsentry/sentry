@@ -11,6 +11,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
+import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import F
 
@@ -18,7 +19,7 @@ from sentry import features, quotas
 from sentry.constants import DataCategory, ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.utils.hostname import instance_hostname
+from sentry.integrations.utils.hostname import InstanceHostnameError, instance_hostname
 from sentry.models.organization import Organization
 from sentry.models.organizationcontributors import (
     ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD,
@@ -101,11 +102,17 @@ def get_canonical_contributor(
     TODO(CW-1539): Replace with get() after the contributor deduplication
     migration has completed.
     """
+    try:
+        hostname = instance_hostname(integration)
+    except InstanceHostnameError as e:
+        sentry_sdk.capture_exception(e)
+        return
+
     return (
         OrganizationContributors.objects.filter(
             organization_id=organization_id,
             provider=integration.provider,
-            hostname=instance_hostname(integration),
+            hostname=hostname,
             external_identifier=external_identifier,
         )
         .order_by("id")
@@ -124,6 +131,12 @@ def get_or_create_contributor(
     TODO(CW-1539): Replace with get_or_create() after the contributor deduplication
     migration has completed.
     """
+    try:
+        hostname = instance_hostname(integration)
+    except InstanceHostnameError as e:
+        sentry_sdk.capture_exception(e)
+        return
+
     if contributor := get_canonical_contributor(
         organization_id=organization.id,
         integration=integration,
@@ -138,7 +151,7 @@ def get_or_create_contributor(
                 integration_id=integration.id,
                 external_identifier=external_identifier,
                 provider=integration.provider,
-                hostname=instance_hostname(integration),
+                hostname=hostname,
                 alias=alias,
             )
     except IntegrityError:

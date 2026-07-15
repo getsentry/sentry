@@ -29,13 +29,6 @@ export const canUseMetricsStatsBytesUI = (organization: Organization) => {
   );
 };
 
-export const canUseMetricsEquations = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-equations-in-explore')
-  );
-};
-
 export const canUseMetricsEquationsInAlerts = (organization: Organization) => {
   return canUseMetricsAlertsUI(organization);
 };
