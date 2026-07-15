@@ -73,6 +73,7 @@ describe('MessagingIntegrationAlertRule', () => {
     integration: slackIntegrations[0],
     provider: 'slack',
     providersToIntegrations,
+    queryError: false,
     querySuccess: true,
     shouldRenderSetupButton: false,
     setActions: jest.fn(),
@@ -434,6 +435,7 @@ describe('useMessagingIntegrationAlertRule channel label reconciliation', () => 
           integration: undefined,
           provider: undefined,
           providersToIntegrations: {},
+          queryError: false,
           querySuccess: true,
           shouldRenderSetupButton: false,
           setActions: jest.fn(),
@@ -441,7 +443,7 @@ describe('useMessagingIntegrationAlertRule channel label reconciliation', () => 
           setIntegration: jest.fn(),
           setProvider: jest.fn(),
           ...props,
-        }),
+        } as IssueAlertNotificationProps),
       {organization}
     );
   }
@@ -476,7 +478,7 @@ describe('useMessagingIntegrationAlertRule channel label reconciliation', () => 
     });
   });
 
-  it('does not re-set an already-resolved Slack channel', async () => {
+  it('does not re-set an already-resolved Slack channel (legacy flow unaffected)', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${slackIntegration.id}/channels/`,
       body: {
