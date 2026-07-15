@@ -363,13 +363,17 @@ function _getWidgetExploreUrl(
         ? [OurLogKnownFieldKey.TIMESTAMP, ...queryParams.field]
         : queryParams.field;
 
+    const logsAggregateFields = [
+      ...queryParams.groupBy.map(g => ({groupBy: g})),
+      ...logsVisualize,
+    ];
+
     return getLogsUrl({
       organization: queryParams.organization,
       selection: queryParams.selection,
       query: queryParams.query,
       field: logsField,
-      groupBy: queryParams.groupBy,
-      aggregateFields: logsVisualize,
+      aggregateFields: logsAggregateFields,
       interval: queryParams.interval,
       mode: queryParams.mode,
       referrer: queryParams.referrer,
