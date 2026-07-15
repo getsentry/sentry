@@ -25,7 +25,7 @@ import {t} from 'sentry/locale';
  */
 export function useSearchTokenCombobox<T>(
   props: Parameters<typeof useComboBox<T>>[0] & {
-    focusOnTabRef?: RefObject<HTMLElement | null>;
+    tabTargetRef?: RefObject<HTMLElement | null>;
   },
   state: Parameters<typeof useComboBox<T>>[1]
 ): Pick<ReturnType<typeof useComboBox<T>>, 'inputProps' | 'listBoxProps' | 'labelProps'> {
@@ -38,7 +38,7 @@ export function useSearchTokenCombobox<T>(
     shouldFocusWrap,
     isReadOnly,
     isDisabled,
-    focusOnTabRef,
+    tabTargetRef,
   } = props;
   const backupBtnRef = useRef(null);
   const buttonRef = props.buttonRef ?? backupBtnRef;
@@ -97,13 +97,13 @@ export function useSearchTokenCombobox<T>(
         state.commit();
         break;
       case 'Tab':
-        if (!e.shiftKey && focusOnTabRef?.current) {
-          e.preventDefault();
-          focusOnTabRef.current.focus();
+        if (e.shiftKey || !tabTargetRef?.current) {
+          state.commit();
           break;
         }
 
-        state.commit();
+        e.preventDefault();
+        tabTargetRef.current.focus();
         break;
       case 'Escape':
         if (

@@ -138,7 +138,7 @@ export type CustomComboboxMenuProps<T> = {
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<T>;
   listBoxRef: React.RefObject<HTMLUListElement | null>;
-  onMenuExit: () => void;
+  onTabForward: () => void;
   overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<T>;
@@ -292,7 +292,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   isLoading,
   listBoxProps,
   listBoxRef,
-  onMenuExit,
+  onTabForward,
   popoverRef,
   state,
   overlayProps,
@@ -305,7 +305,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   isOpen: boolean;
   listBoxProps: AriaListBoxOptions<any>;
   listBoxRef: React.RefObject<HTMLUListElement | null>;
-  onMenuExit: () => void;
+  onTabForward: () => void;
   overlayProps: OverlayProps;
   popoverRef: React.RefObject<HTMLDivElement | null>;
   state: ComboBoxState<any>;
@@ -327,7 +327,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
       isOpen,
       hiddenOptions,
       listBoxProps,
-      onMenuExit,
+      onTabForward,
       state,
       overlayProps,
       filterValue,
@@ -363,7 +363,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
         ) : null}
         {showAskSeerFooter ? (
           <Flex padding="sm" borderTop="muted">
-            <OpenAskSeerButton ref={askSeerButtonRef} onTab={onMenuExit} />
+            <OpenAskSeerButton ref={askSeerButtonRef} onTabForward={onTabForward} />
           </Flex>
         ) : enableAISearch ? (
           <AskSeer state={state} />
@@ -473,7 +473,7 @@ export function SearchQueryBuilderCombobox<
       listBoxRef,
       inputRef,
       popoverRef,
-      focusOnTabRef: askSeerButtonRef,
+      tabTargetRef: askSeerButtonRef,
       shouldFocusWrap: true,
       onFocus: e => {
         if (openOnFocus) {
@@ -696,7 +696,7 @@ export function SearchQueryBuilderCombobox<
         isLoading={incomingIsLoading}
         listBoxProps={listBoxProps}
         listBoxRef={listBoxRef}
-        onMenuExit={() => {
+        onTabForward={() => {
           state.close();
           state.setFocused(false);
           onOpenChange?.(false);

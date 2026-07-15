@@ -12,17 +12,37 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export function OpenAskSeerButton({
-  onTab,
-  ref,
-}: {
-  onTab: () => void;
+type OpenAskSeerButtonProps = {
+  onTabForward: () => void;
   ref?: Ref<HTMLButtonElement>;
-}) {
+};
+
+export function OpenAskSeerButton({onTabForward, ref}: OpenAskSeerButtonProps) {
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
   const {setAutoSubmitSeer, setDisplayAskSeer} = useSearchQueryBuilderAI();
   const {actionBarRef, currentInputValueRef} = useSearchQueryBuilderLayout();
+
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+    if (event.key.startsWith('Arrow')) {
+      event.stopPropagation();
+      return;
+    }
+
+    if (event.key !== 'Tab' || event.shiftKey) {
+      return;
+    }
+
+    const nextAction = actionBarRef.current?.querySelector('button');
+    if (!(nextAction instanceof HTMLButtonElement)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    onTabForward();
+    nextAction.focus();
+  }
 
   return (
     <Button
@@ -31,22 +51,7 @@ export function OpenAskSeerButton({
       variant="primary"
       ref={ref}
       onFocus={event => event.stopPropagation()}
-      onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => {
-        if (event.key === 'Tab' && !event.shiftKey) {
-          const nextAction = actionBarRef.current?.querySelector('button');
-          if (nextAction instanceof HTMLButtonElement) {
-            event.preventDefault();
-            event.stopPropagation();
-            onTab();
-            nextAction.focus();
-          }
-          return;
-        }
-
-        if (event.key.startsWith('Arrow')) {
-          event.stopPropagation();
-        }
-      }}
+      onKeyDown={handleKeyDown}
       onClick={() => {
         trackAnalytics('ai_query.interface', {
           organization,

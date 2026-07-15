@@ -50,7 +50,7 @@ interface FilterKeyMenuContentProps<T> extends Pick<
   | 'hiddenOptions'
   | 'listBoxProps'
   | 'listBoxRef'
-  | 'onMenuExit'
+  | 'onTabForward'
   | 'recentFilters'
   | 'state'
   | 'selectedSection'
@@ -84,10 +84,10 @@ function ListBoxSectionButton({
 
 function FeedbackFooter({
   askSeerButtonRef,
-  onAskSeerTab,
+  onAskSeerTabForward,
 }: {
   askSeerButtonRef: React.RefObject<HTMLButtonElement | null>;
-  onAskSeerTab: () => void;
+  onAskSeerTabForward: () => void;
 }) {
   const organization = useOrganization();
   const {searchSource} = useSearchQueryBuilderConfig();
@@ -99,7 +99,7 @@ function FeedbackFooter({
   return (
     <SectionedOverlayFooter hasAskSeerRework={hasAskSeerRework}>
       {hasAskSeerRework ? (
-        <OpenAskSeerButton ref={askSeerButtonRef} onTab={onAskSeerTab} />
+        <OpenAskSeerButton ref={askSeerButtonRef} onTabForward={onAskSeerTabForward} />
       ) : null}
       <FeedbackButton
         size={hasAskSeerRework ? 'zero' : 'xs'}
@@ -225,7 +225,7 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
   listBoxProps,
   hiddenOptions,
   listBoxRef,
-  onMenuExit,
+  onTabForward,
   fullWidth,
   sections,
 }: FilterKeyMenuContentProps<T>) {
@@ -304,7 +304,10 @@ function FilterKeyMenuContent<T extends SelectOptionOrSectionWithKey<string>>({
           )}
         </DetailsPane>
       ) : null}
-      <FeedbackFooter askSeerButtonRef={askSeerButtonRef} onAskSeerTab={onMenuExit} />
+      <FeedbackFooter
+        askSeerButtonRef={askSeerButtonRef}
+        onAskSeerTabForward={onTabForward}
+      />
     </Fragment>
   );
 }
@@ -315,7 +318,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
   isOpen,
   listBoxProps,
   listBoxRef,
-  onMenuExit,
+  onTabForward,
   popoverRef,
   recentFilters,
   state,
@@ -400,7 +403,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
               hiddenOptions={hiddenOptionsWithRecentsAndAskSeerAdded}
               listBoxProps={listBoxProps}
               listBoxRef={listBoxRef}
-              onMenuExit={onMenuExit}
+              onTabForward={onTabForward}
               recentFilters={recentFilters}
               selectedSection={selectedSection}
               setSelectedSection={setSelectedSection}
@@ -432,7 +435,7 @@ export function FilterKeyListBox<T extends SelectOptionOrSectionWithKey<string>>
             hiddenOptions={hiddenOptionsWithRecentsAndAskSeerAdded}
             listBoxProps={listBoxProps}
             listBoxRef={listBoxRef}
-            onMenuExit={onMenuExit}
+            onTabForward={onTabForward}
             recentFilters={recentFilters}
             selectedSection={selectedSection}
             setSelectedSection={setSelectedSection}
