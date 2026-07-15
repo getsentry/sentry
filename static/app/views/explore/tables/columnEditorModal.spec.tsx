@@ -155,17 +155,16 @@ describe('ColumnEditorModal', () => {
       );
     });
 
-    // Wait for the modal to render
     expect(await screen.findByRole('button', {name: 'Apply'})).toBeInTheDocument();
 
-    // Check required column (id) - should be disabled
     const idColumnButton = screen.getByRole('button', {name: 'Column id string'});
     expect(idColumnButton).toBeDisabled();
     expect(screen.getAllByLabelText('Remove Column')[0]).toBeDisabled();
     expect(screen.getAllByLabelText('Drag to reorder')[0]).toBeDisabled();
 
-    // Check non-required column (project) - should be enabled
-    const projectColumnButton = screen.getByRole('button', {name: 'Column project string'});
+    const projectColumnButton = screen.getByRole('button', {
+      name: 'Column project string',
+    });
     expect(projectColumnButton).toBeEnabled();
     expect(screen.getAllByLabelText('Remove Column')[1]).toBeEnabled();
     expect(screen.getAllByLabelText('Drag to reorder')[1]).toBeEnabled();
