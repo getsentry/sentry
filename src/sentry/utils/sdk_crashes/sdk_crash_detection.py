@@ -205,7 +205,6 @@ class SDKCrashDetection:
                         "sdk_crash.native_version": sdk_version,
                         "sdk_crash.parent_name": parent_sdk_name,
                         "sdk_crash.parent_version": parent_sdk_version,
-                        "sdk_crash.attribution_version": parent_sdk_version,
                     },
                 )
 

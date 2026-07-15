@@ -204,7 +204,6 @@ def test_flutter_sdk_version_attributed_without_replacing_native_version(
         "sdk_crash.native_version": "8.2.0",
         "sdk_crash.parent_name": "sentry.dart.flutter",
         "sdk_crash.parent_version": "9.24.0",
-        "sdk_crash.attribution_version": "9.24.0",
     }
 
 
