@@ -168,7 +168,7 @@ def _handle_pr_webhook_for_autofix_processor(
     if organization and action and user:
         # Because we require that the sentry github integration be installed for autofix, we can piggyback
         # on this webhook for autofix for now. We may move to a separate autofix github integration in the future
-        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
+        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user, repo.id)
 
 
 def _track_contributor_action_processor(

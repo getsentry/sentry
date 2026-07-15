@@ -22,6 +22,7 @@ from sentry.models.pullrequest import (
     PullRequestMetrics,
     PullRequestVerdict,
 )
+from sentry.seer.models import SeerAgentRun, SeerRunPullRequest
 
 _PR_ACTIVITY_ATTRIBUTION_BUFFER = timedelta(hours=30)
 
@@ -199,3 +200,29 @@ def resolved_group_ids(pull_request: PullRequest) -> list[int]:
         combined = pr_filter
 
     return sorted(GroupLink.objects.filter(combined).values_list("group_id", flat=True).distinct())
+
+
+def seer_run_link_for_pull_request(pull_request: PullRequest) -> tuple[list[int], int | None]:
+    """Group id and run id for the Seer run that opened this PR, via the local
+    ``SeerRunPullRequest`` link.
+
+    That link is written by the on_completion_hook-driven ``seer.pr_created`` flow
+    (``process_autofix_updates`` -> ``link_seer_run_pull_requests``). It may not
+    exist yet at the "opened" webhook if that flow hasn't landed; the "closed"
+    re-check in ``handle_attribution`` covers that case.
+    """
+    link = (
+        SeerRunPullRequest.objects.select_related("seer_run__agent")
+        .filter(pull_request=pull_request)
+        .first()
+    )
+    if link is None:
+        return [], None
+
+    run_id = link.seer_run.seer_run_state_id
+    try:
+        group_id = link.seer_run.agent.group_id
+    except SeerAgentRun.DoesNotExist:
+        group_id = None
+
+    return ([group_id] if group_id is not None else []), run_id

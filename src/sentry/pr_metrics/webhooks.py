@@ -91,6 +91,7 @@ from sentry.pr_metrics.utils import (
     is_activity_tracking_enabled,
     org_has_coding_agent_for_provider,
     resolved_group_ids,
+    seer_run_link_for_pull_request,
 )
 from sentry.seer.autofix.utils import (
     DelegatedAgentMatch,
@@ -178,7 +179,11 @@ def handle_attribution(
     # where the PR open and closes super fast and the webhooks might be out of order
     if action in ("opened", "closed"):
         pr_url = (pull_request or {}).get("html_url") or None
-        _write_author_attribution(pr, github_user, pr_url=pr_url, group_ids=resolved_group_ids(pr))
+        seer_group_ids, seer_run_id = seer_run_link_for_pull_request(pr)
+        group_ids = sorted(set(resolved_group_ids(pr)) | set(seer_group_ids))
+        _write_author_attribution(
+            pr, github_user, pr_url=pr_url, group_ids=group_ids, run_id=seer_run_id
+        )
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
     # Checked on open and re-checked on close, mirroring the SENTRY_APP author
@@ -1113,6 +1118,7 @@ def _write_author_attribution(
     github_user: dict[str, Any],
     pr_url: str | None = None,
     group_ids: list[int] | None = None,
+    run_id: int | None = None,
 ) -> None:
     user_id = github_user.get("id")
     if user_id is None:
@@ -1125,6 +1131,7 @@ def _write_author_attribution(
         signal_details = SentryAppSignalDetails(
             pr_url=pr_url,
             group_ids=group_ids or [],
+            run_id=run_id,
         )
     record_attribution_signal(
         pull_request=pr,
