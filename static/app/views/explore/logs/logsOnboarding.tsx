@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -192,7 +193,12 @@ function OnboardingPanel({
                     </Fragment>
                   ) : (
                     <Fragment>
-                      <BodyTitle>{t('AI-Assisted Setup')}</BodyTitle>
+                      <BodyTitle>
+                        <Flex align="center" gap="sm">
+                          {t('AI-Assisted Setup')}
+                          <FeatureBadge type="experimental" />
+                        </Flex>
+                      </BodyTitle>
                       <SubTitle>
                         {t('First, run this command to install the Sentry plugin')}
                       </SubTitle>
