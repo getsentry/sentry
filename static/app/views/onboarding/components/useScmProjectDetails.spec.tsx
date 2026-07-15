@@ -411,12 +411,23 @@ describe('useScmProjectDetails', () => {
     });
 
     it('unblocks submit when the messaging query fails permanently', async () => {
-      // Override the default empty-body mock with a server error so the query
-      // never succeeds.
+      MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/`,
         statusCode: 500,
         match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/`,
+        body: organization,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/`,
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/teams/`,
+        body: [],
       });
 
       const persistedAction = {
@@ -435,8 +446,11 @@ describe('useScmProjectDetails', () => {
         selectedPlatform: pythonPlatform,
       });
 
-      // With a persisted action and no prior submission the ref inits false.
-      // After the query errors, the gate must release so the user isn't stuck.
+      // Gate starts blocked while the query is in flight.
+      expect(result.current.canSubmit).toBe(false);
+      // After the query errors, the gate must release — the init effect never runs on
+      // error so notificationPickerSettled stays false, but queryError is a standalone
+      // escape hatch that bypasses that check.
       await waitFor(() => expect(result.current.canSubmit).toBe(true));
     });
 

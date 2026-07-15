@@ -308,24 +308,21 @@ export function useScmProjectDetails({
 
   const notificationRestoreCompleteRef = useRef(!projectDetailsForm?.notificationAction);
 
-  const notificationQuerySettled =
-    notificationProps.querySuccess || notificationProps.queryError;
-
+  // Blocks canSubmit until a persisted notification selection settles, then latches open
+  // so later edits don't re-block. No-op when there's no saved action.
+  // "Settled" means one of three things:
+  //   1. Integration restored — query succeeded + INTEGRATION re-added to actions
+  //   2. Integration gone    — query succeeded + picker fell back to the setup CTA
+  //   3. Query failed        — unblock unconditionally so the user isn't permanently stuck
+  //                           (the init effect never runs on error, so notificationPickerSettled
+  //                            stays false and must NOT gate the error escape hatch)
   const notificationPickerSettled =
     notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION) ||
     notificationProps.shouldRenderSetupButton;
-
-  // Blocks canSubmit until a persisted notification selection settles, then latches open
-  // so later edits don't re-block. No-op when there's no saved action.
-  // "Settled" means one of three things happened after the query resolved:
-  //   1. Integration restored   — INTEGRATION re-added to actions by the init effect
-  //   2. Integration gone       — picker fell back to the setup CTA (deleted integration)
-  //   3. Query failed           — unblock so the user isn't permanently stuck
-  if (
-    !notificationRestoreCompleteRef.current &&
-    notificationQuerySettled &&
-    notificationPickerSettled
-  ) {
+  const notificationRestoreComplete =
+    notificationProps.queryError ||
+    (notificationProps.querySuccess && notificationPickerSettled);
+  if (!notificationRestoreCompleteRef.current && notificationRestoreComplete) {
     notificationRestoreCompleteRef.current = true;
   }
 
