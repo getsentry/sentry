@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -66,11 +66,10 @@ type OnboardingProps = {
   project: Project;
 };
 
-const INSTALL_PLUGIN_COMMAND =
-  'npx @sentry/ai install "Please instrument Sentry logging. Include some examples following best practices."';
-
 const AI_SETUP_PROMPT =
   'Please instrument Sentry logging. Include some examples following best practices.';
+
+const INSTALL_PLUGIN_COMMAND = `npx @sentry/ai install "${AI_SETUP_PROMPT}"`;
 
 const LOG_DRAIN_PLATFORM_DOCS: Record<string, {name: string; url: string}> = {
   'node-cloudflare-pages': {
@@ -179,34 +178,52 @@ function OnboardingPanel({
                   <LogDrainsLink project={project} />
                 </Setup>
                 <Preview>
-                  <BodyTitle>{t('AI-Assisted Setup')}</BodyTitle>
-                  <SubTitle>
-                    {t('First, run this command to install the Sentry plugin')}
-                  </SubTitle>
-                  <PromptSnippet>
-                    <OnboardingCodeSnippet
-                      language="bash"
-                      onCopy={() => trackPromptCopied('install_command')}
-                    >
-                      {INSTALL_PLUGIN_COMMAND}
-                    </OnboardingCodeSnippet>
-                  </PromptSnippet>
-                  <SubTitle>{t('Then paste this in your agent of choice')}</SubTitle>
-                  <PromptSnippet>
-                    <OnboardingCodeSnippet
-                      language="text"
-                      onCopy={() => trackPromptCopied('prompt')}
-                    >
-                      {AI_SETUP_PROMPT}
-                    </OnboardingCodeSnippet>
-                  </PromptSnippet>
-                  {receivedFirstLog ? (
-                    <EventReceivedIndicator />
+                  {doesNotSupportLogging ? (
+                    // Platforms without logging support can't run the AI-assisted
+                    // setup (and would never receive a first log), so show the
+                    // product preview instead of the setup prompts.
+                    <Fragment>
+                      <BodyTitle>{t('Preview a Sentry Log')}</BodyTitle>
+                      <Arcade
+                        src="https://demo.arcade.software/dLjHGrPJITrt7JKpmX5V?embed"
+                        loading="lazy"
+                        allowFullScreen
+                      />
+                    </Fragment>
                   ) : (
-                    <EventWaitingIndicator />
+                    <Fragment>
+                      <BodyTitle>{t('AI-Assisted Setup')}</BodyTitle>
+                      <SubTitle>
+                        {t('First, run this command to install the Sentry plugin')}
+                      </SubTitle>
+                      <PromptSnippet>
+                        <OnboardingCodeSnippet
+                          language="bash"
+                          onCopy={() => trackPromptCopied('install_command')}
+                        >
+                          {INSTALL_PLUGIN_COMMAND}
+                        </OnboardingCodeSnippet>
+                      </PromptSnippet>
+                      <SubTitle>{t('Then paste this in your agent of choice')}</SubTitle>
+                      <PromptSnippet>
+                        <OnboardingCodeSnippet
+                          language="text"
+                          onCopy={() => trackPromptCopied('prompt')}
+                        >
+                          {AI_SETUP_PROMPT}
+                        </OnboardingCodeSnippet>
+                      </PromptSnippet>
+                      {receivedFirstLog ? (
+                        <EventReceivedIndicator />
+                      ) : (
+                        <EventWaitingIndicator />
+                      )}
+                    </Fragment>
                   )}
                 </Preview>
-                <OrDivider aria-hidden>{t('OR')}</OrDivider>
+                {doesNotSupportLogging ? null : (
+                  <OrDivider aria-hidden>{t('OR')}</OrDivider>
+                )}
               </Body>
             </div>
           </TabSelectionScope>
@@ -568,6 +585,14 @@ const PromptSnippet = styled('div')`
 
 const OnboardingContainer = styled('div')`
   margin-top: ${p => p.theme.space.md};
+`;
+
+const Arcade = styled('iframe')`
+  width: 750px;
+  max-width: 100%;
+  margin-top: ${p => p.theme.space['2xl']};
+  height: 522px;
+  border: 0;
 `;
 
 type LogsTabOnboardingProps = {
