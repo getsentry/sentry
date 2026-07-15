@@ -27,8 +27,8 @@ import {
 } from 'sentry/views/explore/conversations/components/conversationSummary';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
-import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
 interface ConversationSummaryNewProps {
@@ -222,7 +222,7 @@ export function ConversationSummaryNew({
             aggregates.totalCost < 0 ? (
               <NegativeCostInfo cost={aggregates.totalCost} />
             ) : (
-              formatLLMCosts(aggregates.totalCost)
+              <LLMCosts cost={aggregates.totalCost} />
             )
           }
           isLoading={isLoading}
