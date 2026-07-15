@@ -392,6 +392,7 @@ def _maybe_run_span_first_detector_parity_check(
         )
 
         compare_span_first_problems_to_control_data(
+            project,
             span_first_problems_by_grouptype,
             all_control_problems,
             get_source_of_truth=lambda _: (
