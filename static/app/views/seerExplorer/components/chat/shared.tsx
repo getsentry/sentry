@@ -1,4 +1,4 @@
-import {Spinner, type ToolCallStatus} from '@sentry/scraps/chat';
+import {MessageRow, Spinner, type ToolCallStatus} from '@sentry/scraps/chat';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
@@ -66,7 +66,7 @@ export function hasValidContent(content: string | null | undefined): content is 
 
 export function MessagePlaceholder({content}: {content?: string}) {
   return (
-    <Flex align="center" gap="md" padding="xl" width="100%">
+    <MessageRow align="center" gap="md" padding="xl">
       <Flex
         display="inline-flex"
         align="center"
@@ -78,7 +78,7 @@ export function MessagePlaceholder({content}: {content?: string}) {
         <Spinner role="status" aria-label={t('Loading')} />
       </Flex>
       {hasValidContent(content) && <SeerMarkdown raw={content} />}
-    </Flex>
+    </MessageRow>
   );
 }
 

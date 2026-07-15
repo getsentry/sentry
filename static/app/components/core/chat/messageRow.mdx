@@ -1,0 +1,49 @@
+---
+title: MessageRow
+description: The full-width row that positions a single message turn in a conversation.
+category: chat
+source: '@sentry/scraps/chat'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/messageRow.tsx
+---
+
+import {MessageRow, UserBubble} from '@sentry/scraps/chat';
+import {Container} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/chat/messageRow');
+
+The `MessageRow` lays out a single message turn within a conversation. It is
+presentation only — it owns alignment and the consistent gutter around a turn,
+while the bubble or content is the caller's responsibility.
+
+## Alignment
+
+Use `justify="end"` for the sender's own messages and the default `justify="start"`
+for the agent's responses, so the two sides sit opposite each other.
+
+<Storybook.Demo>
+  <Container width="100%" background="secondary" radius="md">
+    <MessageRow justify="end">
+      <UserBubble>Which of my issues are getting worse?</UserBubble>
+    </MessageRow>
+    <MessageRow>Here are the three escalating issues I found.</MessageRow>
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<MessageRow justify="end">
+  <UserBubble>Which of my issues are getting worse?</UserBubble>
+</MessageRow>
+<MessageRow>Here are the three escalating issues I found.</MessageRow>
+```
+
+## Padding
+
+The row applies a consistent gutter (`md xl`) around each turn. Override
+`padding` for surfaces that need a different gutter.
+
+```jsx
+<MessageRow padding="xl">…</MessageRow>
+```
