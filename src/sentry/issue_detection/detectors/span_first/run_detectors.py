@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Sequence
+from types import NoneType
 from typing import Any
 
 from sentry.issue_detection.detectors.span_first.base import SpanFirstDetector
@@ -157,3 +158,116 @@ def compare_span_first_problems_to_control_data(
             source_of_truth=get_source_of_truth(grouptype),
             metric_sample_rate=1.0,
         )
+
+
+def _compare_problem_sets(
+    control_problems: list[PerformanceProblem], span_first_problems: list[PerformanceProblem]
+) -> dict[str, list[str]]:
+    """
+    Compare two lists of (hopefully matching) problems, and return a dictionary containing
+    information about where, if anywhere, they differ.
+    """
+
+    control_problems_by_fingerprint = {problem.fingerprint: problem for problem in control_problems}
+    span_first_problems_by_fingerprint = {
+        problem.fingerprint: problem for problem in span_first_problems
+    }
+
+    overall_diffs = {}
+
+    if control_problems_by_fingerprint.keys() != span_first_problems_by_fingerprint.keys():
+        non_shared_fingerprints = sorted(
+            set(control_problems_by_fingerprint.keys()).symmetric_difference(
+                span_first_problems_by_fingerprint.keys()
+            )
+        )
+        overall_diffs["non_shared_fingerprints"] = non_shared_fingerprints
+
+    for fingerprint, control_problem in control_problems_by_fingerprint.items():
+        span_first_problem = span_first_problems_by_fingerprint.get(fingerprint)
+
+        if not span_first_problem:
+            continue
+
+        problem_diffs = _compare_problems(control_problem, span_first_problem)
+        if problem_diffs:
+            overall_diffs[fingerprint] = problem_diffs
+
+    return overall_diffs
+
+
+def _compare_problems(
+    control_problem: PerformanceProblem, span_first_problem: PerformanceProblem
+) -> list[str]:
+    """
+    Compare the data in the given problems, and return a list of spots in which the problems differ.
+    """
+
+    diffs = []
+
+    if control_problem.op != span_first_problem.op:
+        diffs.append("op")
+
+    if control_problem.desc != span_first_problem.desc:
+        diffs.append("desc")
+
+    if control_problem.type.slug != span_first_problem.type.slug:
+        diffs.append("type")
+
+    if not _are_equivalent_lists(
+        control_problem.parent_span_ids, span_first_problem.parent_span_ids
+    ):
+        diffs.append("parent_span_ids")
+
+    if not _are_equivalent_lists(control_problem.cause_span_ids, span_first_problem.cause_span_ids):
+        diffs.append("cause_span_ids")
+
+    if not _are_equivalent_lists(
+        control_problem.offender_span_ids, span_first_problem.offender_span_ids
+    ):
+        diffs.append("offender_span_ids")
+
+    if not _are_equivalent_lists(
+        [f"{e.name}{e.value}{e.important}" for e in control_problem.evidence_display],
+        [f"{e.name}{e.value}{e.important}" for e in span_first_problem.evidence_display],
+    ):
+        diffs.append("evidence_display")
+
+    if control_problem.evidence_data.keys() != span_first_problem.evidence_data.keys():
+        non_shared_keys = sorted(
+            set(control_problem.evidence_data.keys()).symmetric_difference(
+                span_first_problem.evidence_data.keys()
+            )
+        )
+        diffs.append(f"evidence_data.non_shared_keys: {', '.join(non_shared_keys)}")
+
+    for key, control_value in control_problem.evidence_data.items():
+        if key not in span_first_problem.evidence_data:
+            continue
+        if key in {"op", "parent_span_ids", "cause_span_ids", "offender_span_ids"}:
+            # These values have already been checked at the top level of the problem
+            continue
+
+        span_first_value = span_first_problem.evidence_data[key]
+
+        if key == "span_evidence_key_value":
+            if not _are_equivalent_lists(
+                [f"{d['key']}{d['value']}{d.get('is_multi_value')}" for d in control_value],
+                [f"{d['key']}{d['value']}{d.get('is_multi_value')}" for d in span_first_value],
+            ):
+                diffs.append("evidence_data.span_evidence_key_value")
+        elif isinstance(control_value, (int, float, str, NoneType)):
+            if control_value != span_first_value:
+                diffs.append(f"evidence_data.{key}")
+        elif isinstance(control_value, list):
+            if not _are_equivalent_lists(control_value, span_first_value):
+                diffs.append(f"evidence_data.{key}")
+
+    return diffs
+
+
+def _are_equivalent_lists(list1: Sequence[Any] | None, list2: Sequence[Any] | None) -> bool:
+    """
+    Given two nullable lists, check for equality, ignoring list order.
+    """
+    return set(list1 or []) == set(list2 or [])
