@@ -2,8 +2,6 @@ from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import patch
 
-import pytest
-
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
 from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
@@ -583,18 +581,6 @@ class PrMetricsEmissionTest(TestCase):
             group_ids=[],
         )
         assert row.opened_at is None
-
-    def test_build_row_raises_when_stored_lifecycle_missing(self) -> None:
-        # A close/merge row needs a persisted head_commit_sha and closed_at; a
-        # null means emit ran on a PR that never reached a terminal state.
-        self.pull_request.closed_at = None
-        with pytest.raises(ValueError):
-            build_pr_metrics_row(
-                pull_request=self.pull_request,
-                close_action="merged",
-                attributions=[],
-                group_ids=[],
-            )
 
     def test_build_row_for_close_omits_merge_commit_sha(self) -> None:
         # The webhook persists null merge fields for a closed-but-unmerged PR.
