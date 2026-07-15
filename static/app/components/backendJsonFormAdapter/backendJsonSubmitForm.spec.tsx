@@ -334,9 +334,16 @@ describe('BackendJsonSubmitForm', () => {
       expect(screen.getByText('This field is required')).toBeInTheDocument();
     });
 
-    it('shows error toast on submit failure', async () => {
+    it.each([
+      [{non_field_errors: ['Issues are disabled']}, 'Issues are disabled'],
+      [{nonFieldErrors: ['Issues are disabled']}, 'Issues are disabled'],
+      [{title: ['Title is invalid']}, 'Title is invalid'],
+      [{detail: 'Something went wrong'}, 'Something went wrong'],
+      [{detail: {message: 'Something went wrong'}}, 'Something went wrong'],
+      [{}, 'An error occurred while submitting'],
+    ])('shows error toast on submit failure %#', async (responseJSON, expected) => {
       const error = new RequestError('POST', '/api/test/', new Error('Bad Request'));
-      error.responseJSON = {detail: 'Something went wrong'};
+      error.responseJSON = responseJSON;
       const failingSubmit = jest.fn().mockRejectedValue(error);
 
       render(
@@ -351,7 +358,7 @@ describe('BackendJsonSubmitForm', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Create'}));
 
       await waitFor(() => {
-        expect(addErrorMessage).toHaveBeenCalledWith('Something went wrong');
+        expect(addErrorMessage).toHaveBeenCalledWith(expected);
       });
     });
 
