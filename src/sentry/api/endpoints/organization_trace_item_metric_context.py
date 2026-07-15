@@ -101,8 +101,6 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
 
-        # No caller time range is expected; existence is checked over the default
-        # window (up to the 90-day retention max) that get_snuba_params falls back to.
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
