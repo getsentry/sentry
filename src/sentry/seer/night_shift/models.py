@@ -44,10 +44,15 @@ class NightShiftPayload(_Base):
 # Result payload (Seer -> Sentry): the triage verdicts pushed back.
 
 
+SkipReason = Literal["duplicate", "insufficient_info", "environmental", "ambiguous_root_cause"]
+
+
 class TriageVerdict(_Base):
     group_id: int
     action: TriageAction
     reason: str = ""
+    # Only meaningful when action="skip"; None for autofix/root_cause_only.
+    skip_reason: SkipReason | None = None
 
 
 class TriageResponse(_Base):

@@ -47,6 +47,7 @@ class SeerNightShiftRunIssueResponse(TypedDict):
     groupShortId: str | None
     action: str | None
     reason: str | None
+    skipReason: str | None
     seerRunId: str | None
     pullRequests: list[SeerNightShiftRunPullRequestResponse]
     dateAdded: str
@@ -235,6 +236,7 @@ def _serialize_issue(
         ),
         "action": extras.get("action"),
         "reason": extras.get("reason"),
+        "skipReason": extras.get("skip_reason"),
         "seerRunId": result.seer_run_id,
         "pullRequests": pull_requests_by_result_id.get(result.id, []),
         "dateAdded": result.date_added.isoformat(),
