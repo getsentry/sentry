@@ -187,7 +187,7 @@ function NewQueryTokens({
         </Stack>
         <Stack gap="xs">
           <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
-          <Flex gap="xs" align="center">
+          <Stack gap="xs">
             {parsedCrossEvent
               ?.filter(({text}) => text.trim() !== '')
               .map(({text}) => (
@@ -195,7 +195,7 @@ function NewQueryTokens({
                   <ProvidedFormattedQuery query={text} />
                 </FormattedQueryWrapper>
               ))}
-          </Flex>
+          </Stack>
         </Stack>
       </Stack>
     );
