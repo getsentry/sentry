@@ -1,6 +1,7 @@
 from .bounded import *  # NOQA
 from .citext import *  # NOQA
 from .encryption import *  # NOQA
+from .externaldatamapping import *  # NOQA
 from .foreignkey import *  # NOQA
 from .gzippeddict import *  # NOQA
 from .jsonfield import *  # NOQA

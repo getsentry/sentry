@@ -21,6 +21,7 @@ class File(AbstractFile[FileBlobIndex, FileBlob]):
     # Remove in 8.1
     blob = FlexibleForeignKey("sentry.FileBlob", null=True, related_name="legacy_blob")
     path = models.TextField(null=True)
+    # path = ExternalDataMapping(models.TextField(null=True), description="What the hell is this?", )
     # </Legacy fields>
 
     class Meta:
