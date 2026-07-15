@@ -62,7 +62,11 @@ export function SeerEnableNotifications() {
     supportsNotifications,
   ]);
 
-  if (!isServiceWorkerSupported || !supportsNotifications || isPromptDismissed) {
+  if (
+    !isServiceWorkerSupported ||
+    !supportsNotifications ||
+    isPromptDismissed !== false
+  ) {
     return null;
   }
 
@@ -140,7 +144,7 @@ export function SeerEnableNotifications() {
               analyticsParams={{surface: analyticsArea}}
               variant="transparent"
               size="sm"
-              onClick={() => snoozePrompt(PROMPT_FEATURE)}
+              onClick={() => snoozePrompt()}
             >
               {t("Don't ask again")}
             </Button>
