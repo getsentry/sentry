@@ -126,14 +126,6 @@ def compare_span_first_problems_to_control_data(
     for grouptype, span_first_problems in span_first_problems_by_grouptype.items():
         control_problems = control_problems_by_grouptype.get(grouptype) or []
 
-        # TODO: Fingerprint parity proves the detectors agree on which problems exist and how
-        # they're grouped, but doesn't validate the rest of the `PerformanceProblem` payload
-        # (`evidence_data`, `desc`, `offender_span_ids`, `parent_span_ids`, `cause_span_ids`,
-        # `evidence_display`). For most detectors these are derived from the same source data as the
-        # fingerprint, so divergence is unlikely -- but unlikely isn't impossible, and a mismatch
-        # there would mean end users see different issue details despite identical fingerprints.
-        # Once the fingerprint metric shows that the fingerprints are reliably matching, extend the
-        # comparison to cover these fields before cutover.
         control_fingerprints = {problem.fingerprint for problem in control_problems}
         span_first_fingerprints = {problem.fingerprint for problem in span_first_problems}
 
@@ -157,3 +149,19 @@ def compare_span_first_problems_to_control_data(
             source_of_truth=get_source_of_truth(grouptype),
             metric_sample_rate=1.0,
         )
+
+
+# TODO: Fingerprint parity proves the detectors agree on which problems exist and how they're
+# grouped, but doesn't validate the rest of the `PerformanceProblem` payload (`evidence_data`,
+# `desc`, `offender_span_ids`, `parent_span_ids`, `cause_span_ids`, `evidence_display`). For most
+# detectors these are derived from the same source data as the fingerprint, so divergence is
+# unlikely -- but unlikely isn't impossible, and a mismatch there would mean end users see different
+# issue details despite identical fingerprints. Once the fingerprint metric shows that the
+# fingerprints are reliably matching, extend the comparison to cover these fields before cutover.
+def _compare_fingerprint_sets(
+    control_problems: list[PerformanceProblem], span_first_problems: list[PerformanceProblem]
+) -> bool:
+    control_fingerprints = {problem.fingerprint for problem in control_problems}
+    span_first_fingerprints = {problem.fingerprint for problem in span_first_problems}
+
+    return control_fingerprints == span_first_fingerprints
