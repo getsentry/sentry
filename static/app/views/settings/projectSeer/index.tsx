@@ -2,7 +2,6 @@ import {Fragment, useCallback, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {
   infiniteQueryOptions,
-  mutationOptions,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -32,14 +31,11 @@ import {SEER_THRESHOLD_OPTIONS} from 'sentry/components/seer/legacy/constants';
 import {AutofixRepositoriesList} from 'sentry/components/seer/projectDetails/autofixRepositoriesList';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {fetchMutation} from 'sentry/utils/queryClient';
+import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
 import {knownAgentIntegrationsQueryOptions} from 'sentry/utils/seer/preferredAgent';
 import {
   getInfiniteSeerProjectsSettingsQueryOptions,
@@ -258,21 +254,6 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
   const scannerAutomation = project.seerScannerAutomation ?? false;
   const automationTuning = project.autofixAutomationTuning ?? 'off';
 
-  const handleSubmitSuccess = useCallback(
-    (resp: DetailedProject) => {
-      const projectSettingsQueryKey = makeDetailedProjectQueryKey({
-        orgSlug: organization.slug,
-        projectSlug: project.slug,
-      });
-      queryClient.setQueryData(projectSettingsQueryKey, prev => ({
-        headers: prev?.headers ?? {},
-        json: resp,
-      }));
-      ProjectsStore.onUpdateSuccess(resp);
-    },
-    [project.slug, queryClient, organization.slug]
-  );
-
   const hasCursorIntegration = Boolean(cursorIntegration);
 
   const hasClaudeIntegration = Boolean(claudeIntegration);
@@ -357,33 +338,8 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
     [setting, updateSeerSettings]
   );
 
-  const projectQueryKey = makeDetailedProjectQueryKey({
-    orgSlug: organization.slug,
-    projectSlug: project.slug,
-  });
-
-  const projectMutationOptions = mutationOptions({
-    mutationFn: (data: Partial<DetailedProject>) =>
-      fetchMutation<DetailedProject>({
-        url: `/projects/${organization.slug}/${project.slug}/`,
-        method: 'PUT',
-        data,
-      }),
-    onMutate: async data => {
-      await queryClient.cancelQueries({queryKey: projectQueryKey});
-      const previous = queryClient.getQueryData(projectQueryKey);
-      queryClient.setQueryData(
-        projectQueryKey,
-        (prev: ApiResponse<DetailedProject> | undefined) =>
-          prev ? {...prev, json: {...prev.json, ...data}} : prev
-      );
-      return {previous};
-    },
-    onError: (_error, _data, context) => {
-      queryClient.setQueryData(projectQueryKey, context?.previous);
-    },
-    onSuccess: handleSubmitSuccess,
-  });
+  const projectMutationOptions = useUpdateProjectMutationOptions(project);
+  const updateProject = useMutation(projectMutationOptions);
 
   // The form's stopping-point field has no "off" option, so fall back to
   // "root_cause" when Seer isn't handing off to a coding agent.
@@ -506,9 +462,10 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
             schema={autofixAutomationTuningSchema}
             initialValue={automationTuning}
             mutationOptions={{
-              ...projectMutationOptions,
-              onSuccess: (resp: DetailedProject) => {
-                handleSubmitSuccess(resp);
+              mutationFn: (data: {
+                autofixAutomationTuning: DetailedProject['autofixAutomationTuning'];
+              }) => updateProject.mutateAsync(data),
+              onSuccess: () => {
                 addSuccessMessage(t('Automatic Seer settings updated'));
               },
             }}
