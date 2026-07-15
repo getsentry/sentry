@@ -6,6 +6,8 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
+import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
+import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
@@ -16,8 +18,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useExperiment} from 'sentry/utils/useExperiment';
-import {CreateSampleEventButton} from 'sentry/views/onboarding/createSampleEventButton';
-import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import {GridFooter} from './genericFooter';
 
