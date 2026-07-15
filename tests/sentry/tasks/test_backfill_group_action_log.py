@@ -321,6 +321,7 @@ class BackfillGroupActionLogForProjectTest(TestCase):
         call_kwargs = mock_apply.call_args.kwargs["kwargs"]
         assert call_kwargs["project_id"] == self.project.id
         assert call_kwargs["cursor_datetime"] is not None
+        assert call_kwargs["cursor_id"] > 0
 
     def test_completes_when_no_activities(self) -> None:
         with (
@@ -361,13 +362,14 @@ class BackfillGroupActionLogForProjectTest(TestCase):
         assert entry.date_added == activity.datetime
 
     def test_resumes_from_cursor(self) -> None:
-        self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
+        a1 = self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
         a2 = self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
 
         with self._options(), patch.object(backfill_group_action_log_for_project, "apply_async"):
             backfill_group_action_log_for_project(
                 self.project.id,
-                cursor_datetime=a2.datetime.isoformat(),
+                cursor_datetime=a1.datetime.isoformat(),
+                cursor_id=a1.id,
             )
 
         entries = GroupActionLogEntry.objects.filter(group_id=self.group.id)
