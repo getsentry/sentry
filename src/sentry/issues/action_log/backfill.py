@@ -109,7 +109,6 @@ def backfill_actions(
                 entry.source,
                 json.dumps(entry.action.dict()),
                 entry.date_added,
-                entry.date_added,  # date_updated
                 entry.idempotency_key,
             ]
         )
