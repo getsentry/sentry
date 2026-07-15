@@ -7038,7 +7038,7 @@ describe('SearchQueryBuilder', () => {
         );
       }
 
-      it('displays ask seer button when searching free text', async () => {
+      it('displays ask seer option when searching free text without the UX rework', async () => {
         const mockOnSearch = jest.fn();
         render(
           <SearchQueryBuilder {...defaultProps} enableAISearch onSearch={mockOnSearch} />,
@@ -7055,6 +7055,67 @@ describe('SearchQueryBuilder', () => {
         expect(
           screen.getByRole('option', {name: /Ask AI to build your query/i})
         ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', {name: /Ask AI to build your query/i})
+        ).not.toBeInTheDocument();
+      });
+
+      it('moves ask seer to the footer when searching free text with the UX rework', async () => {
+        render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
+          organization: {
+            features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+          },
+        });
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(screen.getByRole('combobox'), 'some free text');
+
+        expect(
+          screen.getByRole('button', {name: /Ask AI to build your query/i})
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('option', {name: /Ask AI to build your query/i})
+        ).not.toBeInTheDocument();
+      });
+
+      it('submits typed free text from the footer with the UX rework', async () => {
+        const mockAskSeer = makeMockAskSeer();
+        const props = {
+          ...defaultProps,
+          enableAISearch: true,
+          initialQuery: 'browser.name:firefox',
+        };
+
+        render(
+          <SearchQueryBuilderProvider {...props}>
+            <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
+              <SearchQueryBuilder {...props} />
+            </AskSeerAutoSubmitTestComponent>
+          </SearchQueryBuilderProvider>,
+          {
+            organization: {
+              features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+            },
+          }
+        );
+
+        await userEvent.click(getLastInput());
+        await userEvent.type(getLastInput(), 'find slow spans');
+        await userEvent.click(
+          screen.getByRole('button', {name: /Ask AI to build your query/})
+        );
+
+        expect(
+          await screen.findByRole('combobox', {
+            name: 'Ask Seer with Natural Language',
+          })
+        ).toHaveValue('browser.name is firefox find slow spans ');
+        await waitFor(() => {
+          expect(mockAskSeer).toHaveBeenCalledWith(
+            'browser.name is firefox find slow spans',
+            expect.anything()
+          );
+        });
       });
 
       it('submits typed free text when opening ask seer from the dropdown', async () => {
