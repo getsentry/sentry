@@ -141,7 +141,7 @@ def backfill_group_action_log_for_project(
     except Project.DoesNotExist:
         return
 
-    if reset and last_activity_id == 0:
+    if reset and cursor_datetime is None:
         _reset_project(project)
 
     parsed_cursor = datetime.fromisoformat(cursor_datetime) if cursor_datetime else None

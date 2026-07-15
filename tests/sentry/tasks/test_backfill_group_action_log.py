@@ -447,6 +447,8 @@ class BackfillGroupActionLogForProjectTest(TestCase):
             patch("sentry.tasks.backfill_group_action_log._reset_project") as mock_reset,
             patch.object(backfill_group_action_log_for_project, "apply_async"),
         ):
-            backfill_group_action_log_for_project(self.project.id, last_activity_id=1, reset=True)
+            backfill_group_action_log_for_project(
+                self.project.id, reset=True, cursor_datetime="2020-01-01T00:00:00+00:00"
+            )
 
         mock_reset.assert_not_called()
