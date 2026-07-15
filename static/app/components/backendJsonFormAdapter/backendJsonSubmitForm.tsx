@@ -262,8 +262,8 @@ export function BackendJsonSubmitForm({
           const detail = response?.detail;
           const message =
             nonFieldError ??
-            getFirstError(fieldError) ??
-            (typeof detail === 'string' ? detail : detail?.message);
+            (typeof detail === 'string' ? detail : detail?.message) ??
+            getFirstError(fieldError);
           addErrorMessage(message ?? t('An error occurred while submitting'));
         }
       }

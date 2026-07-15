@@ -341,6 +341,10 @@ describe('BackendJsonSubmitForm', () => {
       [{repo: 'Organization not found'}, 'Organization not found'],
       [{detail: 'Something went wrong'}, 'Something went wrong'],
       [{detail: {message: 'Something went wrong'}}, 'Something went wrong'],
+      [
+        {detail: 'Internal Error', errorId: '1234567890abcdef'},
+        'Internal Error',
+      ],
       [{}, 'An error occurred while submitting'],
     ])('shows error toast on submit failure %#', async (responseJSON, expected) => {
       const error = new RequestError('POST', '/api/test/', new Error('Bad Request'));
