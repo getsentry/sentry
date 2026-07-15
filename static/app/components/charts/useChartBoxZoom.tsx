@@ -42,7 +42,6 @@ interface UseChartBoxZoomProps {
 }
 
 interface BoxZoomOptions {
-  /** True while a drag selection is in progress. */
   isDraggingRef: MutableRefObject<boolean>;
   onChartReady: EChartChartReadyHandler;
 }
@@ -119,10 +118,9 @@ export function useChartBoxZoom({
       bounds = null;
     }
 
-    // Ends the drag and re-enables the tooltip (clears `isDraggingRef`, which the
-    // formatter reads). Restore is immediate for a click/cancel; only an actual
-    // zoom delays it, so the tooltip doesn't flash under the cursor during the
-    // navigation/refetch a zoom kicks off.
+    // Ends the drag and re-enables the tooltip. Restore is immediate for a
+    // click/cancel. Restore is delayed for a drag zoom, so the tooltip doesn't
+    // flash under the cursor.
     function endDrag(delayTooltipRestore = false) {
       teardown();
       if (delayTooltipRestore) {
@@ -165,20 +163,20 @@ export function useChartBoxZoom({
       isDraggingRef.current = true;
       start = point;
       pointerId = evt.pointerId;
+
       // A new drag starting during a pending restore cancels it.
       if (restoreTooltipTimer !== null) {
         clearTimeout(restoreTooltipTimer);
         restoreTooltipTimer = null;
       }
+
       // Route every subsequent event for this pointer to the chart element —
       // even outside the window — so we always get the terminating `pointerup`
       // and never leave a drag half-open.
       dom.setPointerCapture(pointerId);
 
-      // Hide an already-open tooltip so it doesn't sit over the selection box.
-      // `hideTip` is cheap; `setOption` would re-render the chart and stall the
-      // drag's first paint by ~300ms in Safari. The formatter keeps it hidden for
-      // the rest of the drag via `isDraggingRef`.
+      // Hide an already-open tooltip. Note that `hideTip` is much cheaper than
+      // `setOption`
       chartInstance.dispatchAction({type: 'hideTip'});
 
       $overlay = createOverlay(overlayStyleRef.current);
@@ -281,8 +279,7 @@ export function useChartBoxZoom({
 // click rather than a zoom.
 const MIN_DRAG_PX = 5;
 
-// How long, in ms, after a zoom before the hover tooltip is re-enabled, so it
-// doesn't flash under the cursor during the navigation the zoom kicks off.
+// How long, in ms, after a zoom before the hover tooltip is re-enabled.
 const TOOLTIP_RESTORE_DELAY_MS = 200;
 
 /** The chart DOM's top-left in client (viewport) space. */

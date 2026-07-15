@@ -186,9 +186,8 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = params => {
-    // Skip the tooltip during a drag — its `renderToString` is expensive enough
-    // to stall the drag. Hidden via this guard + `hideTip` in useChartBoxZoom,
-    // not a `setOption` chart re-render.
+    // Skip the tooltip during a drag. This improves drag performance since the
+    // tooltip's `renderToString` is expensive.
     if (isDraggingRef.current) {
       return '';
     }
