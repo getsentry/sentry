@@ -1,0 +1,20 @@
+{
+  "name": "@sentry/icons",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./sprite.svg": "./src/sprite.generated.svg"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "svgo": "^4.0.0"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  }
+}

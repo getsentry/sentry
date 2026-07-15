@@ -1014,7 +1014,11 @@ export default typescript.config([
   },
   {
     name: 'files/scripts',
-    files: ['scripts/**/*.{js,ts}', 'tests/js/test-balancer/*.ts'],
+    files: [
+      'scripts/**/*.{js,ts}',
+      'static/icons/scripts/**/*.{js,mjs,ts}',
+      'tests/js/test-balancer/*.ts',
+    ],
     languageOptions: {
       sourceType: 'module',
       globals: globals.node,
@@ -1310,6 +1314,11 @@ export default typescript.config([
           type: 'scripts',
           pattern: 'scripts',
         },
+        // --- workspace packages ---
+        {
+          type: 'packages',
+          pattern: 'static/icons',
+        },
         // --- eslint ---
         {
           type: 'eslint',
@@ -1403,6 +1412,12 @@ export default typescript.config([
             {
               from: [{type: 'configs'}],
               allow: [{to: {type: 'configs'}}, {to: {type: 'build-utils'}}],
+            },
+            {
+              // Workspace packages are standalone: they may only import
+              // from themselves, never from the app
+              from: [{type: 'packages'}],
+              allow: [{to: {type: 'packages'}}],
             },
             // --- stories ---
             {

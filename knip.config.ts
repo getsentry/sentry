@@ -46,32 +46,38 @@ const storyBookEntryPoints = [
 ];
 
 const config: KnipConfig = {
-  entry: [
-    ...productionEntryPoints.map(entry => `${entry}!`),
-    ...testingEntryPoints,
-    ...storyBookEntryPoints,
-    'static/eslint/**/index.ts',
-    // figma code connect files - consumed by Figma CLI
-    'static/**/*.figma.{tsx,jsx}',
-  ],
-  project: [
-    'static/**/*.{js,ts,tsx}!',
-    'config/**/*.ts',
-    'tests/js/**/*.{js,ts,tsx}',
-    // fixtures can be ignored in production - it's fine that they are only used in tests
-    '!static/**/{fixtures,__fixtures__}/**!',
-    // helper files for tests - it's fine that they are only used in tests
-    '!static/**/*{t,T}estUtils*.{js,ts,tsx}!',
-    // helper files for stories - it's fine that they are only used in tests
-    '!static/app/**/__stories__/*.{js,ts,tsx}!',
-    '!static/app/stories/**/*.{js,ts,tsx}!',
-    // ignore eslint plugins in production
-    '!static/eslint/**/*.ts!',
-  ],
+  workspaces: {
+    '.': {
+      entry: [
+        ...productionEntryPoints.map(entry => `${entry}!`),
+        ...testingEntryPoints,
+        ...storyBookEntryPoints,
+        'static/eslint/**/index.ts',
+        // figma code connect files - consumed by Figma CLI
+        'static/**/*.figma.{tsx,jsx}',
+      ],
+      project: [
+        'static/**/*.{js,ts,tsx}!',
+        'config/**/*.ts',
+        'tests/js/**/*.{js,ts,tsx}',
+        // fixtures can be ignored in production - it's fine that they are only used in tests
+        '!static/**/{fixtures,__fixtures__}/**!',
+        // helper files for tests - it's fine that they are only used in tests
+        '!static/**/*{t,T}estUtils*.{js,ts,tsx}!',
+        // helper files for stories - it's fine that they are only used in tests
+        '!static/app/**/__stories__/*.{js,ts,tsx}!',
+        '!static/app/stories/**/*.{js,ts,tsx}!',
+        // ignore eslint plugins in production
+        '!static/eslint/**/*.ts!',
+      ],
+    },
+  },
   ignore: [
     // api-docs has its own package.json with its own dependencies
     'api-docs/**',
   ],
+  // @sentry/icons is not consumed by the app yet; drop this once it is
+  ignoreWorkspaces: ['static/icons'],
   ignoreExportsUsedInFile: isProductionMode,
   ignoreDependencies: [
     'core-js',
