@@ -4,12 +4,14 @@ from sentry.notifications.platform.templates.activity import (
 from sentry.notifications.platform.templates.activity.base import (
     EXAMPLE_ALERT_URL,
     EXAMPLE_ISSUE_URL,
+    EXAMPLE_PROJECT_URL,
+    EXAMPLE_USER_SETTINGS_URL,
     build_footer,
     build_issue_link,
     create_activity_notification_example,
+    get_issue_description,
 )
 from sentry.notifications.platform.templates.activity.seer.base import (
-    get_issue_description,
     get_subject,
     get_view_autofix_button,
 )
@@ -51,16 +53,27 @@ class ActivityAlertBaseTest(TestCase):
         for activity_type in resolved_types:
             assert activity_type.value in ACTIVITY_TYPE_TO_SOURCE
 
-    def test_build_alert_footer(self) -> None:
+    def test_build_footer(self) -> None:
         footer = build_footer(
             data=create_activity_notification_example(ActivityType.SEER_RCA_STARTED)
         )
-        # @claude update this test
-        assert len(footer) == 2
         assert footer[0].type == NotificationTextBlockType.PLAIN_TEXT
-        assert "sent as part of" in footer[0].text
+        assert footer[0].text == "Project:"
         assert isinstance(footer[1], LinkTextBlock)
-        assert footer[1].url == EXAMPLE_ALERT_URL
+        assert footer[1].text == "javascript"
+        assert footer[1].url == EXAMPLE_PROJECT_URL
+        assert isinstance(footer[4], LinkTextBlock)
+        assert footer[4].url == EXAMPLE_ALERT_URL
+        assert isinstance(footer[6], LinkTextBlock)
+        assert footer[6].text == "Manage Preferences"
+        assert footer[6].url == EXAMPLE_USER_SETTINGS_URL
+
+    def test_build_footer_no_alert(self) -> None:
+        data = create_activity_notification_example(ActivityType.SEER_RCA_STARTED).copy(
+            update={"alert_name": None, "alert_url": None}
+        )
+        footer = build_footer(data=data)
+        assert not any(isinstance(b, LinkTextBlock) and b.url == EXAMPLE_ALERT_URL for b in footer)
 
     def test_build_issue_link(self) -> None:
         label = build_issue_link(issue_short_id="PROJ-1", issue_url=EXAMPLE_ISSUE_URL)
@@ -71,33 +84,19 @@ class ActivityAlertBaseTest(TestCase):
         label = build_issue_link(issue_short_id=None, issue_url=EXAMPLE_ISSUE_URL)
         assert label.text == "This issue"
 
-
-class ActivitySeerAlertBaseTest(TestCase):
-    def test_get_subject_with_qualified_short_id(self) -> None:
-        data = create_activity_notification_example(ActivityType.SEER_RCA_STARTED)
-        subject = get_subject("Root Cause Analysis Started", data)
-        assert len(subject) == 2
-        assert subject[0].text == "Root Cause Analysis Started for"
-        assert subject[1].type == NotificationTextBlockType.CODE
-        assert subject[1].text == "EXAMPLE-1"
-
-    def test_get_subject_without_qualified_short_id(self) -> None:
-        data = create_activity_notification_example(ActivityType.SEER_RCA_STARTED).copy(
-            update={"issue_short_id": None}
-        )
-        subject = get_subject("Root Cause Analysis Started", data)
-        assert len(subject) == 1
-        assert "a Sentry Issue" in subject[0].text
-
     def test_get_issue_description(self) -> None:
         data = create_activity_notification_example(ActivityType.SEER_RCA_STARTED)
         sections = get_issue_description(data)
-        assert len(sections) == 1
+        assert len(sections) == 2
         blocks = sections[0].blocks
         assert blocks[0].type == NotificationTextBlockType.LINK
         assert any(
-            b.type == NotificationTextBlockType.CODE and b.text == "example.module.function"
+            b.type == NotificationTextBlockType.CODE and b.text == "/api/v1/users/list/"
             for b in blocks
+        )
+        assert (
+            sections[1].blocks[0].text
+            == "Cannot read properties of null (reading 'example_property')"
         )
 
     def test_get_issue_description_no_culprit(self) -> None:
@@ -107,6 +106,24 @@ class ActivitySeerAlertBaseTest(TestCase):
         sections = get_issue_description(data)
         blocks = sections[0].blocks
         assert not any(b.type == NotificationTextBlockType.CODE for b in blocks)
+
+
+class ActivitySeerAlertBaseTest(TestCase):
+    def test_get_subject_with_qualified_short_id(self) -> None:
+        data = create_activity_notification_example(ActivityType.SEER_RCA_STARTED)
+        subject = get_subject("Root Cause Analysis Started", data)
+        assert len(subject) == 2
+        assert subject[0].text == "Root Cause Analysis Started for"
+        assert subject[1].type == NotificationTextBlockType.CODE
+        assert subject[1].text == "JAVASCRIPT-1"
+
+    def test_get_subject_without_qualified_short_id(self) -> None:
+        data = create_activity_notification_example(ActivityType.SEER_RCA_STARTED).copy(
+            update={"issue_short_id": None}
+        )
+        subject = get_subject("Root Cause Analysis Started", data)
+        assert len(subject) == 1
+        assert "a Sentry Issue" in subject[0].text
 
     def test_get_view_autofix_button(self) -> None:
         data = create_activity_notification_example(ActivityType.SEER_RCA_STARTED)
@@ -121,7 +138,7 @@ class ActivitySetResolvedAlertBaseTest(TestCase):
         data = create_activity_notification_example(ActivityType.SET_RESOLVED)
         subject = get_resolution_subject(data)
         assert subject[0].type == NotificationTextBlockType.CODE
-        assert subject[0].text == "EXAMPLE-1"
+        assert subject[0].text == "JAVASCRIPT-1"
         assert "was resolved" in subject[1].text
 
     def test_get_resolution_subject_without_short_id(self) -> None:

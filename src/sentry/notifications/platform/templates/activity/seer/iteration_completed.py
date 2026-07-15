@@ -1,11 +1,11 @@
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.activity.base import (
-    ActivityAlertActionData,
+    ActivityNotificationData,
     create_activity_notification_example,
+    get_issue_description,
 )
 from sentry.notifications.platform.templates.activity.seer.base import (
     build_template,
-    get_issue_description,
     get_subject,
 )
 from sentry.notifications.platform.types import (
@@ -23,7 +23,7 @@ from sentry.types.activity import ActivityType
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SEER_ITERATION_COMPLETED)
-class SeerIterationCompletedActivityTemplate(NotificationTemplate[ActivityAlertActionData]):
+class SeerIterationCompletedActivityTemplate(NotificationTemplate[ActivityNotificationData]):
     category = NotificationCategory.ACTIVITY
     example_data = create_activity_notification_example(
         ActivityType.SEER_ITERATION_COMPLETED,
@@ -41,7 +41,7 @@ class SeerIterationCompletedActivityTemplate(NotificationTemplate[ActivityAlertA
         },
     )
 
-    def render(self, data: ActivityAlertActionData) -> NotificationRenderedTemplate:
+    def render(self, data: ActivityNotificationData) -> NotificationRenderedTemplate:
         body: list[NotificationSection] = [*get_issue_description(data)]
 
         if data.activity_data:

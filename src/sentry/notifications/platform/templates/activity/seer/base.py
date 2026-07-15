@@ -2,42 +2,33 @@ from django.conf import settings
 
 from sentry.notifications.platform.templates.activity.base import (
     FOOTER_DELIMITER,
-    ActivityAlertActionData,
+    ActivityNotificationData,
     build_footer,
 )
 from sentry.notifications.platform.types import (
     CodeTextBlock,
-    LinkTextBlock,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationSection,
     NotificationTextBlock,
-    ParagraphSection,
     PlainTextBlock,
 )
 
 
-def get_issue_description(data: ActivityAlertActionData) -> list[NotificationSection]:
-    blocks: list[NotificationTextBlock] = [LinkTextBlock(text=data.issue_title, url=data.issue_url)]
-    if data.issue_culprit:
-        blocks.extend([PlainTextBlock(text="—"), CodeTextBlock(text=data.issue_culprit)])
-    return [ParagraphSection(blocks=blocks)]
-
-
-def get_subject(label: str, data: ActivityAlertActionData) -> list[NotificationTextBlock]:
+def get_subject(label: str, data: ActivityNotificationData) -> list[NotificationTextBlock]:
     if data.issue_short_id:
         return [PlainTextBlock(text=f"{label} for"), CodeTextBlock(text=data.issue_short_id)]
     else:
         return [PlainTextBlock(text=f"{label} for a Sentry Issue")]
 
 
-def get_view_autofix_button(data: ActivityAlertActionData) -> NotificationRenderedAction:
+def get_view_autofix_button(data: ActivityNotificationData) -> NotificationRenderedAction:
     link = f"{data.issue_url}?seerDrawer=true"
     return NotificationRenderedAction(label="View Autofix", link=link)
 
 
 def build_template(
-    data: ActivityAlertActionData,
+    data: ActivityNotificationData,
     subject: list[NotificationTextBlock],
     body: list[NotificationSection],
 ) -> NotificationRenderedTemplate:

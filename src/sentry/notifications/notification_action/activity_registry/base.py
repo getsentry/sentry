@@ -1,7 +1,10 @@
 import logging
 from urllib.parse import urlencode
 
-from sentry.integrations.messaging.message_builder import build_attachment_title
+from sentry.integrations.messaging.message_builder import (
+    build_attachment_text,
+    build_attachment_title,
+)
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group
@@ -11,9 +14,9 @@ from sentry.notifications.notification_action.registry import activity_handler_r
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.templates.activity import (
     ACTIVITY_TYPE_TO_SOURCE,
-    ActivityAlertActionData,
-    SetResolvedInCommitActionData,
-    SetResolvedInReleaseActionData,
+    ActivityNotificationData,
+    SetResolvedInCommitNotificationData,
+    SetResolvedInReleaseNotificationData,
 )
 from sentry.notifications.platform.types import NotificationTarget
 from sentry.types.activity import ActivityType
@@ -61,9 +64,9 @@ def extract_notification_models_by_activity(
     return group, project, organization
 
 
-def build_activity_action_data(
+def build_activity_notification_data(
     invocation: ActionInvocation, activity: Activity
-) -> ActivityAlertActionData:
+) -> ActivityNotificationData:
     source = ACTIVITY_TYPE_TO_SOURCE.get(activity.type)
     if source is None:
         raise ValueError(f"No notification source for activity type: {activity.type}")
@@ -83,7 +86,12 @@ def build_activity_action_data(
         issue_url=absolute_uri(group.get_absolute_url()),
         issue_title=build_attachment_title(group) or "",
         issue_culprit=group.culprit,
+        issue_description=build_attachment_text(group),
         project_slug=project.slug,
+        project_url=organization.absolute_url(
+            f"organizations/{organization.slug}/issues/",
+            query=urlencode({"project": project.id}),
+        ),
         alert_url=organization.absolute_url(
             f"organizations/{organization.slug}/monitors/alerts/{invocation.workflow_id}/"
         ),
@@ -108,7 +116,7 @@ def build_activity_action_data(
                     commit_message = commit.message
                 except Commit.DoesNotExist:
                     pass
-            return SetResolvedInCommitActionData(
+            return SetResolvedInCommitNotificationData(
                 **action_data, commit_sha=commit_sha, commit_message=commit_message
             )
         case ActivityType.SET_RESOLVED_IN_RELEASE.value:
@@ -120,9 +128,9 @@ def build_activity_action_data(
                     f"organizations/{organization.slug}/releases/{raw_version}/",
                     query=urlencode({"project": project.id}),
                 )
-            return SetResolvedInReleaseActionData(**action_data, release_url=release_url)
+            return SetResolvedInReleaseNotificationData(**action_data, release_url=release_url)
         case _:
-            return ActivityAlertActionData(**action_data)
+            return ActivityNotificationData(**action_data)
 
 
 def send_activity_notification(
@@ -130,8 +138,8 @@ def send_activity_notification(
     activity: Activity,
     target: NotificationTarget,
 ) -> None:
-    data = build_activity_action_data(invocation, activity)
-    NotificationService[ActivityAlertActionData](data=data).notify_sync(targets=[target])
+    data = build_activity_notification_data(invocation, activity)
+    NotificationService[ActivityNotificationData](data=data).notify_sync(targets=[target])
 
 
 def require_config(action: Action, key: str) -> str:

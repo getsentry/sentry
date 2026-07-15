@@ -1,6 +1,6 @@
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.activity.base import (
-    SetResolvedInCommitActionData,
+    SetResolvedInCommitNotificationData,
     build_footer,
     build_issue_link,
     create_activity_notification_example,
@@ -23,9 +23,9 @@ from sentry.notifications.platform.types import (
 from sentry.types.activity import ActivityType
 
 
-def create_set_resolved_in_commit_example() -> SetResolvedInCommitActionData:
+def create_set_resolved_in_commit_example() -> SetResolvedInCommitNotificationData:
     action_data = create_activity_notification_example(ActivityType.SET_RESOLVED_IN_COMMIT)
-    return SetResolvedInCommitActionData(
+    return SetResolvedInCommitNotificationData(
         **action_data.dict(),
         commit_sha="abc1234",
         commit_message="Fix null pointer dereference in auth flow",
@@ -33,11 +33,13 @@ def create_set_resolved_in_commit_example() -> SetResolvedInCommitActionData:
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT)
-class SetResolvedInCommitActivityTemplate(NotificationTemplate[SetResolvedInCommitActionData]):
+class SetResolvedInCommitActivityTemplate(
+    NotificationTemplate[SetResolvedInCommitNotificationData]
+):
     category = NotificationCategory.ACTIVITY
     example_data = create_set_resolved_in_commit_example()
 
-    def render(self, data: SetResolvedInCommitActionData) -> NotificationRenderedTemplate:
+    def render(self, data: SetResolvedInCommitNotificationData) -> NotificationRenderedTemplate:
         extra_body_sections: list[NotificationSection] = []
         resolution_blocks: list[NotificationTextBlock] = [
             PlainTextBlock(text="was resolved in a commit.")

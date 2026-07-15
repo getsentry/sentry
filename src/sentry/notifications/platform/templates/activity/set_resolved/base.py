@@ -1,5 +1,5 @@
 from sentry.notifications.platform.templates.activity.base import (
-    ActivityAlertActionData,
+    ActivityNotificationData,
 )
 from sentry.notifications.platform.types import (
     CodeTextBlock,
@@ -8,7 +8,7 @@ from sentry.notifications.platform.types import (
 )
 
 
-def get_resolution_subject(data: ActivityAlertActionData) -> list[NotificationTextBlock]:
+def get_resolution_subject(data: ActivityNotificationData) -> list[NotificationTextBlock]:
     blocks: list[NotificationTextBlock] = []
     if data.issue_short_id:
         blocks.extend(

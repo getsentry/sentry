@@ -1,6 +1,6 @@
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.activity.base import (
-    ActivityAlertActionData,
+    ActivityNotificationData,
     build_footer,
     build_issue_link,
     create_activity_notification_example,
@@ -20,11 +20,11 @@ from sentry.types.activity import ActivityType
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SET_RESOLVED)
-class SetResolvedActivityTemplate(NotificationTemplate[ActivityAlertActionData]):
+class SetResolvedActivityTemplate(NotificationTemplate[ActivityNotificationData]):
     category = NotificationCategory.ACTIVITY
     example_data = create_activity_notification_example(ActivityType.SET_RESOLVED)
 
-    def render(self, data: ActivityAlertActionData) -> NotificationRenderedTemplate:
+    def render(self, data: ActivityNotificationData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
             subject=get_resolution_subject(data),
             body=[

@@ -1,10 +1,14 @@
 from typing import Any
 
 from sentry.notifications.platform.types import (
+    CodeSection,
+    CodeTextBlock,
     LinkTextBlock,
     NotificationData,
+    NotificationSection,
     NotificationSource,
     NotificationTextBlock,
+    ParagraphSection,
     PlainTextBlock,
 )
 from sentry.types.activity import ActivityType
@@ -32,7 +36,7 @@ EXAMPLE_USER_SETTINGS_URL = "https://sentry.io/settings/account/notifications/al
 FOOTER_DELIMITER = " · "
 
 
-class ActivityAlertActionData(NotificationData):
+class ActivityNotificationData(NotificationData):
     source: NotificationSource
     notification_uuid: str
     activity_type: int
@@ -43,6 +47,7 @@ class ActivityAlertActionData(NotificationData):
     issue_url: str
     issue_title: str
     issue_culprit: str | None = None
+    issue_description: str | None = None
     project_slug: str
     project_url: str
     # If this notification was triggered by an alert (Workflow)...
@@ -55,13 +60,14 @@ class ActivityAlertActionData(NotificationData):
 def create_activity_notification_example(
     activity_type: ActivityType,
     activity_data: dict[str, Any] | None = None,
-) -> ActivityAlertActionData:
-    return ActivityAlertActionData(
+) -> ActivityNotificationData:
+    return ActivityNotificationData(
         notification_uuid="1234567890",
         activity_user_name="Jane Doe",
         issue_short_id="JAVASCRIPT-1",
         issue_url=EXAMPLE_ISSUE_URL,
         issue_title="ExampleError: something went wrong",
+        issue_description="Cannot read properties of null (reading 'example_property')",
         issue_culprit="/api/v1/users/list/",
         project_slug="javascript",
         project_url=EXAMPLE_PROJECT_URL,
@@ -74,16 +80,16 @@ def create_activity_notification_example(
     )
 
 
-class SetResolvedInCommitActionData(ActivityAlertActionData):
+class SetResolvedInCommitNotificationData(ActivityNotificationData):
     commit_sha: str | None = None
     commit_message: str | None = None
 
 
-class SetResolvedInReleaseActionData(ActivityAlertActionData):
+class SetResolvedInReleaseNotificationData(ActivityNotificationData):
     release_url: str | None = None
 
 
-def build_footer(data: ActivityAlertActionData) -> list[NotificationTextBlock]:
+def build_footer(data: ActivityNotificationData) -> list[NotificationTextBlock]:
     blocks: list[NotificationTextBlock] = [
         PlainTextBlock(text="Project:"),
         LinkTextBlock(text=data.project_slug, url=data.project_url),
@@ -101,3 +107,13 @@ def build_footer(data: ActivityAlertActionData) -> list[NotificationTextBlock]:
 def build_issue_link(issue_short_id: str | None, issue_url: str) -> LinkTextBlock:
     label = issue_short_id or "This issue"
     return LinkTextBlock(text=label, url=issue_url)
+
+
+def get_issue_description(data: ActivityNotificationData) -> list[NotificationSection]:
+    blocks: list[NotificationTextBlock] = [LinkTextBlock(text=data.issue_title, url=data.issue_url)]
+    if data.issue_culprit:
+        blocks.extend([PlainTextBlock(text="—"), CodeTextBlock(text=data.issue_culprit)])
+    sections: list[NotificationSection] = [ParagraphSection(blocks=blocks)]
+    if data.issue_description:
+        sections.append(CodeSection(blocks=[PlainTextBlock(text=data.issue_description)]))
+    return sections

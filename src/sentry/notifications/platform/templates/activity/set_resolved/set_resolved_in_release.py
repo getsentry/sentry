@@ -3,7 +3,7 @@ from sentry_relay.processing import parse_release
 
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.activity.base import (
-    SetResolvedInReleaseActionData,
+    SetResolvedInReleaseNotificationData,
     build_footer,
     build_issue_link,
     create_activity_notification_example,
@@ -24,23 +24,25 @@ from sentry.notifications.platform.types import (
 from sentry.types.activity import ActivityType
 
 
-def create_set_resolved_in_release_example() -> SetResolvedInReleaseActionData:
+def create_set_resolved_in_release_example() -> SetResolvedInReleaseNotificationData:
     action_data = create_activity_notification_example(
         ActivityType.SET_RESOLVED_IN_RELEASE,
         activity_data={"version": "v1.0.0"},
     )
-    return SetResolvedInReleaseActionData(
+    return SetResolvedInReleaseNotificationData(
         **action_data.dict(),
         release_url="https://sentry.io/organizations/acme/releases/v1.0.0/",
     )
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SET_RESOLVED_IN_RELEASE)
-class SetResolvedInReleaseActivityTemplate(NotificationTemplate[SetResolvedInReleaseActionData]):
+class SetResolvedInReleaseActivityTemplate(
+    NotificationTemplate[SetResolvedInReleaseNotificationData]
+):
     category = NotificationCategory.ACTIVITY
     example_data = create_set_resolved_in_release_example()
 
-    def render(self, data: SetResolvedInReleaseActionData) -> NotificationRenderedTemplate:
+    def render(self, data: SetResolvedInReleaseNotificationData) -> NotificationRenderedTemplate:
         resolution_blocks: list[NotificationTextBlock] = [
             PlainTextBlock(text="was resolved in an upcoming release.")
         ]

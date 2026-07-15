@@ -2,7 +2,7 @@ from unittest import mock
 
 from sentry.notifications.notification_action.activity_registry.base import (
     NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES,
-    build_activity_action_data,
+    build_activity_notification_data,
     send_activity_notification,
 )
 from sentry.notifications.notification_action.activity_registry.discord import (
@@ -15,7 +15,7 @@ from sentry.notifications.notification_action.activity_registry.msteams import (
 from sentry.notifications.notification_action.activity_registry.slack import SlackActivityHandler
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.templates.activity import (
-    ActivityAlertActionData,
+    ActivityNotificationData,
 )
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
@@ -46,7 +46,7 @@ class TestBuildActivityData(BaseWorkflowTest):
         self.workflow, self.detector, _, _ = self.create_detector_and_workflow()
         self.action = self.create_action()
 
-    def test_build_activity_action_data(self) -> None:
+    def test_build_activity_notification_data(self) -> None:
         activity = self.create_group_activity(
             group=self.group,
             type=ActivityType.SEER_RCA_STARTED.value,
@@ -60,9 +60,9 @@ class TestBuildActivityData(BaseWorkflowTest):
             notification_uuid="test-uuid",
         )
 
-        data = build_activity_action_data(invocation, activity)
+        data = build_activity_notification_data(invocation, activity)
 
-        assert isinstance(data, ActivityAlertActionData)
+        assert isinstance(data, ActivityNotificationData)
         assert data.source == NotificationSource.ACTIVITY_SEER_RCA_STARTED
         assert data.activity_type == ActivityType.SEER_RCA_STARTED.value
         assert data.notification_uuid == "test-uuid"
@@ -108,7 +108,7 @@ class TestSendActivityNotification(BaseWorkflowTest):
         mock_subscripted = mock_service_cls.__getitem__.return_value
         mock_subscripted.assert_called_once()
         data = mock_subscripted.call_args[1]["data"]
-        assert isinstance(data, ActivityAlertActionData)
+        assert isinstance(data, ActivityNotificationData)
 
         mock_instance = mock_subscripted.return_value
         mock_instance.notify_sync.assert_called_once_with(targets=[target])

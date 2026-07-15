@@ -1,6 +1,6 @@
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.activity.base import (
-    ActivityAlertActionData,
+    ActivityNotificationData,
     build_footer,
     build_issue_link,
     create_activity_notification_example,
@@ -21,14 +21,14 @@ from sentry.utils.dates import format_duration
 
 
 @template_registry.register(NotificationSource.ACTIVITY_SET_RESOLVED_BY_AGE)
-class SetResolvedByAgeActivityTemplate(NotificationTemplate[ActivityAlertActionData]):
+class SetResolvedByAgeActivityTemplate(NotificationTemplate[ActivityNotificationData]):
     category = NotificationCategory.ACTIVITY
     example_data = create_activity_notification_example(
         ActivityType.SET_RESOLVED_BY_AGE,
         activity_data={"age": 168},
     )
 
-    def render(self, data: ActivityAlertActionData) -> NotificationRenderedTemplate:
+    def render(self, data: ActivityNotificationData) -> NotificationRenderedTemplate:
         resolution_text = "was resolved automatically due to inactivity."
         if data.activity_data and "age" in data.activity_data:
             hours = int(data.activity_data["age"])
