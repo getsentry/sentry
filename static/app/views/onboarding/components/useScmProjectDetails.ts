@@ -283,6 +283,12 @@ export function useScmProjectDetails({
     notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION) &&
     !notificationProps.channel;
 
+  // Ignore a lingering INTEGRATION selection when alerts are off: the picker is
+  // hidden, so persisting the action would wrongly force the restore gate later.
+  const hasNotificationAction =
+    alertRuleConfig.alertSetting !== RuleAction.CREATE_ALERT_LATER &&
+    notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION);
+
   const missingFields = {
     notificationChannel: isMissingNotificationChannel,
     platform: !selectedPlatform,
@@ -358,9 +364,7 @@ export function useScmProjectDetails({
     alertRuleConfig.metric === savedAlert?.metric &&
     alertRuleConfig.threshold === savedAlert?.threshold &&
     isEqual(
-      notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION)
-        ? buildIntegrationAction(notificationProps)
-        : undefined,
+      hasNotificationAction ? buildIntegrationAction(notificationProps) : undefined,
       savedForm?.notificationAction
     );
 
@@ -373,9 +377,7 @@ export function useScmProjectDetails({
 
     trackAnalytics(CREATE_CLICKED_EVENT[analyticsFlow], {organization});
 
-    const notificationAction = notificationProps.actions.includes(
-      MultipleCheckboxOptions.INTEGRATION
-    )
+    const notificationAction = hasNotificationAction
       ? buildIntegrationAction(notificationProps)
       : undefined;
     const submittedForm = {
@@ -439,6 +441,7 @@ export function useScmProjectDetails({
     createNotificationAction,
     createProjectAndRules,
     existingProject,
+    hasNotificationAction,
     isOrgMemberWithNoAccess,
     nothingChanged,
     notificationProps,

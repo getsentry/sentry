@@ -10,7 +10,10 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import {IssueAlertActionType} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {MultipleCheckboxOptions} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
+import {
+  DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+  RuleAction,
+} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {useScmProjectDetails, getSubmitTooltipText} from './useScmProjectDetails';
 
@@ -256,6 +259,53 @@ describe('useScmProjectDetails', () => {
         workspace: slackIntegration.id,
         channel: '#eng',
       });
+    });
+
+    it('does not persist a notificationAction when alerts are turned off', async () => {
+      const createdProject = ProjectFixture({slug: 'my-project', platform: 'python'});
+
+      MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        body: createdProject,
+      });
+
+      const onComplete = jest.fn();
+      const {result} = renderDetails({
+        projectDetailsForm: {
+          projectName: 'my-project',
+          teamSlug: adminTeam.slug,
+          alertRuleConfig: {
+            ...DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+            alertSetting: RuleAction.CREATE_ALERT_LATER,
+          },
+        },
+        onComplete,
+      });
+
+      // The integration checkbox stays selected in hook state even though the
+      // notification picker is hidden while alerts are off.
+      await waitFor(() =>
+        expect(result.current.notificationProps.provider).toBe('slack')
+      );
+      act(() => {
+        result.current.notificationProps.setActions([
+          MultipleCheckboxOptions.EMAIL,
+          MultipleCheckboxOptions.INTEGRATION,
+        ]);
+        result.current.notificationProps.setChannel({label: '#eng', value: '#eng'});
+      });
+
+      act(() => {
+        result.current.submit();
+      });
+
+      await waitFor(() => expect(onComplete).toHaveBeenCalled());
+
+      // No notification UI was shown, so the snapshot must not carry an action
+      // (it would otherwise force the restore gate on a later visit).
+      const {projectDetailsForm: submittedForm} = onComplete.mock.calls[0][0];
+      expect(submittedForm.notificationAction).toBeUndefined();
     });
 
     it('restores provider/integration/channel from a persisted notificationAction', async () => {
