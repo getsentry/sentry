@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from django.db.models import Subquery
+from django.db import router, transaction
 from django.utils import timezone
 from sentry_sdk import capture_exception
 from taskbroker_client.task import Task
@@ -25,6 +25,8 @@ from sentry.taskworker.namespaces import relocation_control_tasks, relocation_ta
 from sentry.types.cell import get_local_cell
 
 logger = logging.getLogger("sentry.relocation")
+
+TRANSFER_SCHEDULER_BATCH_SIZE = 100
 
 
 @instrumented_task(
@@ -54,19 +56,29 @@ def _find_relocation_transfer(
     due, and schedule processing tasks for them.
     """
     now = timezone.now()
-    scheduled_ids = model_cls.objects.filter(
-        scheduled_for__lte=now,
-        date_added__gte=now - MAX_AGE,
-    ).values_list("id", flat=True)
+    using = router.db_for_write(model_cls)
+    with transaction.atomic(using=using):
+        scheduled_ids = list(
+            model_cls.objects.using(using)
+            .select_for_update(skip_locked=True)
+            .filter(
+                scheduled_for__lte=now,
+                date_added__gte=now - MAX_AGE,
+            )
+            .order_by("scheduled_for", "id")
+            .values_list("id", flat=True)[:TRANSFER_SCHEDULER_BATCH_SIZE]
+        )
+
+        if scheduled_ids:
+            # Claim these transfers before publishing tasks. If publication fails or the scheduler
+            # exits, the lease makes them eligible for a later retry without another scheduler
+            # publishing them concurrently.
+            model_cls.objects.using(using).filter(id__in=scheduled_ids).update(
+                scheduled_for=now + RETRY_BACKOFF
+            )
 
     for transfer_id in scheduled_ids:
         process_task.delay(transfer_id=transfer_id)
-
-    if len(scheduled_ids):
-        # Advance next retry time in case these deliveries fail.
-        model_cls.objects.filter(id__in=Subquery(scheduled_ids)).update(
-            scheduled_for=timezone.now() + RETRY_BACKOFF
-        )
 
     # Garbage collect expired transfers. Because relocations are
     # expected to complete in 80min we should purge transfers older than

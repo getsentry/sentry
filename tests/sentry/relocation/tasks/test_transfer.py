@@ -1,8 +1,11 @@
+import threading
 from datetime import timedelta
 from io import BytesIO
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import pytest
+from django.db import connections
 from django.utils import timezone
 
 from sentry.models.files.utils import get_relocation_storage
@@ -20,7 +23,7 @@ from sentry.relocation.tasks.transfer import (
     process_relocation_transfer_region,
 )
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.silo import (
     assume_test_silo_mode,
     cell_silo_test,
@@ -90,6 +93,71 @@ class FindRelocationTransferControlTest(TestCase):
         find_relocation_transfer_control()
         assert not mock_process.delay.called
         assert not ControlRelocationTransfer.objects.filter(id=transfer.id).exists()
+
+    @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_control")
+    def test_enqueue_failure_keeps_claim(self, mock_process: MagicMock) -> None:
+        transfer = create_control_relocation_transfer(
+            organization=self.organization, scheduled_for=timezone.now() - timedelta(minutes=2)
+        )
+        mock_process.delay.side_effect = RuntimeError("task broker unavailable")
+
+        with pytest.raises(RuntimeError, match="task broker unavailable"):
+            find_relocation_transfer_control()
+
+        transfer.refresh_from_db()
+        assert transfer.scheduled_for > timezone.now()
+
+        mock_process.delay.reset_mock(side_effect=True)
+        find_relocation_transfer_control()
+        assert not mock_process.delay.called
+
+        transfer.update(scheduled_for=timezone.now() - timedelta(minutes=2))
+        find_relocation_transfer_control()
+        mock_process.delay.assert_called_once_with(transfer_id=transfer.id)
+
+
+@control_silo_test
+class FindRelocationTransferControlConcurrencyTest(TransactionTestCase):
+    @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_control")
+    def test_concurrent_schedulers_publish_once(self, mock_process: MagicMock) -> None:
+        transfer = create_control_relocation_transfer(
+            organization=self.organization, scheduled_for=timezone.now() - timedelta(minutes=2)
+        )
+        first_publish_started = threading.Event()
+        second_scheduler_finished = threading.Event()
+
+        def delay(**kwargs) -> None:
+            if not first_publish_started.is_set():
+                first_publish_started.set()
+                assert second_scheduler_finished.wait(timeout=5)
+
+        mock_process.delay.side_effect = delay
+
+        def run_first_scheduler() -> None:
+            try:
+                find_relocation_transfer_control()
+            finally:
+                connections.close_all()
+
+        def run_second_scheduler() -> None:
+            try:
+                find_relocation_transfer_control()
+            finally:
+                second_scheduler_finished.set()
+                connections.close_all()
+
+        first_scheduler = threading.Thread(target=run_first_scheduler)
+        first_scheduler.start()
+        assert first_publish_started.wait(timeout=5)
+
+        second_scheduler = threading.Thread(target=run_second_scheduler)
+        second_scheduler.start()
+        second_scheduler.join(timeout=5)
+        first_scheduler.join(timeout=5)
+
+        assert not first_scheduler.is_alive()
+        assert not second_scheduler.is_alive()
+        mock_process.delay.assert_called_once_with(transfer_id=transfer.id)
 
 
 class FindRelocationTransferRegionTest(TestCase):
