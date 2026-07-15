@@ -549,9 +549,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     Record<string, boolean>
   >({});
   const legendSelection = props.legendSelection ?? localLegendSelection;
-  const normalizedLegendSelection = hasReleaseBubblesSeries
-    ? {...legendSelection, Releases: legendSelection.Releases !== false}
-    : legendSelection;
   const {onLegendSelectionChange} = props;
   const handleLegendSelectionChange = useCallback(
     (selection: Record<string, boolean>) => {
@@ -590,6 +587,16 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       color: releaseColor,
     });
   }
+
+  // ECharts needs every known legend item to be present in the selection state.
+  // This ensures that when the legend is clicked, none of the series are permanently hidden.
+  const normalizedLegendSelection = chartLegendItems.reduce<Record<string, boolean>>(
+    (acc, item) => {
+      acc[item.name] = legendSelection[item.name] !== false;
+      return acc;
+    },
+    {}
+  );
 
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
