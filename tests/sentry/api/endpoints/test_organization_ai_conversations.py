@@ -771,6 +771,192 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert len(response.data) == 1
         assert response.data[0]["conversationId"] == conversation_id_1
 
+    def test_negated_user_email_filter_ignores_spans_without_user_email(self) -> None:
+        now = before_now(days=25).replace(microsecond=0)
+        excluded_conversation_id = uuid4().hex
+        included_conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=excluded_conversation_id,
+            timestamp=now - timedelta(seconds=4),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            user_email="blocked@example.com",
+            messages=[{"role": "user", "content": "Hello"}],
+        )
+        self.store_ai_span(
+            conversation_id=excluded_conversation_id,
+            timestamp=now - timedelta(seconds=3),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="weather",
+        )
+        self.store_ai_span(
+            conversation_id=included_conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            user_email="allowed@example.com",
+            messages=[{"role": "user", "content": "Hello"}],
+        )
+        self.store_ai_span(
+            conversation_id=included_conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="weather",
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+            "query": "!user.email:blocked@example.com",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["conversationId"] == included_conversation_id
+
+    def test_negated_input_messages_filter_ignores_spans_without_input_messages(self) -> None:
+        now = before_now(days=25).replace(microsecond=0)
+        excluded_conversation_id = uuid4().hex
+        included_conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=excluded_conversation_id,
+            timestamp=now - timedelta(seconds=4),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            input_messages=[{"role": "user", "content": "blocked input"}],
+        )
+        self.store_ai_span(
+            conversation_id=excluded_conversation_id,
+            timestamp=now - timedelta(seconds=3),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="weather",
+        )
+        self.store_ai_span(
+            conversation_id=included_conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            input_messages=[{"role": "user", "content": "allowed input"}],
+        )
+        self.store_ai_span(
+            conversation_id=included_conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="weather",
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+            "query": "!gen_ai.input.messages:*blocked*",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["conversationId"] == included_conversation_id
+
+    def test_nested_negated_string_filters_ignore_spans_without_filter_fields(self) -> None:
+        now = before_now(days=25).replace(microsecond=0)
+        excluded_conversation_id = uuid4().hex
+        included_conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=excluded_conversation_id,
+            timestamp=now - timedelta(seconds=4),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            user_email="blocked@example.com",
+            input_messages=[{"role": "user", "content": "blocked input"}],
+        )
+        self.store_ai_span(
+            conversation_id=excluded_conversation_id,
+            timestamp=now - timedelta(seconds=3),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="weather",
+        )
+        self.store_ai_span(
+            conversation_id=included_conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            user_email="allowed@example.com",
+            input_messages=[{"role": "user", "content": "allowed input"}],
+        )
+        self.store_ai_span(
+            conversation_id=included_conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="weather",
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+            "query": "(!user.email:blocked@example.com AND (!gen_ai.input.messages:*blocked*))",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["conversationId"] == included_conversation_id
+
+    def test_or_query_does_not_require_negated_filter_field_on_other_branches(self) -> None:
+        now = before_now(days=25).replace(microsecond=0)
+        blocked_conversation_id = uuid4().hex
+        allowed_conversation_id = uuid4().hex
+        weather_conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=blocked_conversation_id,
+            timestamp=now - timedelta(seconds=3),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            user_email="blocked@example.com",
+            messages=[{"role": "user", "content": "Hello"}],
+        )
+        self.store_ai_span(
+            conversation_id=allowed_conversation_id,
+            timestamp=now - timedelta(seconds=2),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            user_email="allowed@example.com",
+            messages=[{"role": "user", "content": "Hello"}],
+        )
+        self.store_ai_span(
+            conversation_id=weather_conversation_id,
+            timestamp=now - timedelta(seconds=1),
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="weather",
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+            "query": "(!user.email:blocked@example.com OR gen_ai.tool.name:weather)",
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert {conversation["conversationId"] for conversation in response.data} == {
+            allowed_conversation_id,
+            weather_conversation_id,
+        }
+
     def test_conversation_with_user_data(self) -> None:
         """Test that user data is extracted from spans and returned in the response"""
         now = before_now(days=13).replace(microsecond=0)

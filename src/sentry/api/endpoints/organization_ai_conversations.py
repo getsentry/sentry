@@ -6,6 +6,14 @@ from typing import Any, TypedDict
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    AndFilter,
+    ComparisonFilter,
+    ExistsFilter,
+    NotFilter,
+    OrFilter,
+    TraceItemFilter,
+)
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -16,6 +24,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.rest_framework import OrganizationAIConversationsSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
+from sentry.search.eap.constants import STRING
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
@@ -33,6 +42,83 @@ from sentry.utils.ai_message_normalizer import (
 from sentry.utils.tracing import set_span_data, start_span, trace
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
+
+
+NEGATED_STRING_OPERATORS = {
+    ComparisonFilter.OP_NOT_EQUALS,
+    ComparisonFilter.OP_NOT_IN,
+    ComparisonFilter.OP_NOT_LIKE,
+}
+
+
+def _requires_exists_filter(comparison: ComparisonFilter) -> bool:
+    return (
+        comparison.key.type == STRING
+        and comparison.op in NEGATED_STRING_OPERATORS
+        and not (comparison.op == ComparisonFilter.OP_NOT_EQUALS and comparison.value.val_str == "")
+    )
+
+
+def _require_exists_for_filter_list(filters) -> list[TraceItemFilter]:
+    transformed = []
+    for child in filters:
+        transformed_child = _require_exists_for_negated_string_filters(child)
+        if transformed_child is not None:
+            transformed.append(transformed_child)
+    return transformed
+
+
+def _require_exists_for_negated_string_filters(
+    trace_filter: TraceItemFilter | None,
+) -> TraceItemFilter | None:
+    if trace_filter is None:
+        return None
+
+    filter_type = trace_filter.WhichOneof("value")
+
+    if filter_type == "comparison_filter":
+        comparison = trace_filter.comparison_filter
+        if _requires_exists_filter(comparison):
+            return TraceItemFilter(
+                and_filter=AndFilter(
+                    filters=[
+                        TraceItemFilter(exists_filter=ExistsFilter(key=comparison.key)),
+                        trace_filter,
+                    ]
+                )
+            )
+        return trace_filter
+
+    if filter_type == "and_filter":
+        return TraceItemFilter(
+            and_filter=AndFilter(
+                filters=_require_exists_for_filter_list(trace_filter.and_filter.filters)
+            )
+        )
+
+    if filter_type == "or_filter":
+        return TraceItemFilter(
+            or_filter=OrFilter(
+                filters=_require_exists_for_filter_list(trace_filter.or_filter.filters)
+            )
+        )
+
+    if filter_type == "not_filter":
+        return TraceItemFilter(
+            not_filter=NotFilter(
+                filters=_require_exists_for_filter_list(trace_filter.not_filter.filters)
+            )
+        )
+
+    return trace_filter
+
+
+class AIConversationsSearchResolver(SearchResolver):
+    def resolve_query_with_columns(self, querystring, selected_columns, equations):
+        where, having, contexts = super().resolve_query_with_columns(
+            querystring, selected_columns, equations
+        )
+        return _require_exists_for_negated_string_filters(where), having, contexts
 
 
 def _build_conversation_query(base_query: str, user_query: str) -> str:
@@ -262,6 +348,12 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         limit: int,
         sampling_mode: SAMPLING_MODES,
     ) -> EAPResponse:
+        config = SearchResolverConfig(auto_fields=True)
+        resolver = AIConversationsSearchResolver(
+            params=snuba_params,
+            config=config,
+            definitions=Spans.DEFINITIONS,
+        )
         return Spans.run_table_query(
             params=snuba_params,
             query_string=query_string,
@@ -270,8 +362,9 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             offset=offset,
             limit=limit,
             referrer=Referrer.API_AI_CONVERSATIONS.value,
-            config=SearchResolverConfig(auto_fields=True),
+            config=config,
             sampling_mode=sampling_mode,
+            search_resolver=resolver,
         )
 
     @trace
