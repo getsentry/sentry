@@ -3,15 +3,16 @@ import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {List} from 'sentry/components/list';
-import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -29,6 +30,27 @@ type DerivedCodeMapping = {
   source_path: string;
   stacktrace_root: string;
 };
+
+function WrappingFilePath({path}: {path: string}) {
+  const separatorIndex = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+  const directory = path.slice(0, separatorIndex + 1);
+  const basename = path.slice(separatorIndex + 1);
+
+  return (
+    <Text
+      as="code"
+      monospace
+      wrap="pre-wrap"
+      wordBreak="break-word"
+      data-test-id="file-path"
+    >
+      {directory}
+      <Text as="span" bold monospace variant="inherit">
+        {basename}
+      </Text>
+    </Text>
+  );
+}
 
 interface StacktraceLinkModalProps extends ModalRenderProps {
   filename: string;
@@ -88,12 +110,16 @@ export function StacktraceLinkModal({
 
   // If they have more than one, they'll have to navigate themselves
   const hasOneSourceCodeIntegration = sourceCodeProviders.length === 1;
+  const sourceCodeIntegration = hasOneSourceCodeIntegration
+    ? sourceCodeProviders[0]
+    : undefined;
   const sourceUrl = hasOneSourceCodeIntegration
-    ? `https://${sourceCodeProviders[0]!.domainName}`
+    ? `https://${sourceCodeIntegration!.domainName}`
     : undefined;
   const providerName = hasOneSourceCodeIntegration
-    ? sourceCodeProviders[0]!.name
+    ? sourceCodeIntegration!.name
     : t('source code');
+  const providerDisplayName = sourceCodeIntegration?.provider.name;
 
   const suggestions = uniq(
     Array.isArray(suggestedCodeMappings)
@@ -114,21 +140,15 @@ export function StacktraceLinkModal({
 
   const getPlaceholderUrl = () => {
     if (hasOneSourceCodeIntegration) {
-      const provider = sourceCodeProviders[0];
+      const provider = sourceCodeIntegration;
       if (provider?.provider?.key === 'bitbucket') {
-        return `https://bitbucket.org/workspace/repo/src/branch${
-          filename.startsWith('/') ? '' : '/'
-        }${filename}`;
+        return 'https://bitbucket.org/workspace/repository/src/main/path/to/file';
       }
       if (provider?.provider?.key === 'gitlab') {
-        return `https://gitlab.com/group/project/-/blob/branch${
-          filename.startsWith('/') ? '' : '/'
-        }${filename}`;
+        return 'https://gitlab.com/group/project/-/blob/main/path/to/file';
       }
     }
-    return `https://github.com/helloworld/Hello-World/blob/master${
-      filename.startsWith('/') ? '' : '/'
-    }${filename}`;
+    return 'https://github.com/organization/repository/blob/main/path/to/file';
   };
 
   const onHandleChange = (input: string) => {
@@ -242,42 +262,85 @@ export function StacktraceLinkModal({
             </Alert>
           )}
           <div>
-            {tct(
-              'We can’t find the file path for [filename] in your [provider] repo. Add the correct link below to enable git blame and suspect commits for this project.',
-              {
-                provider: providerName,
-                filename: <StyledCode>{filename}</StyledCode>,
-              }
-            )}
+            {hasOneSourceCodeIntegration
+              ? tct(
+                  'We couldn’t match this stack frame to a file in the [integration] repository. Find the file and paste its [provider] URL below to enable suspect commits and source code links.',
+                  {
+                    integration: sourceCodeIntegration!.name,
+                    provider: providerDisplayName,
+                  }
+                )
+              : t(
+                  'We couldn’t match this stack frame to a file in your connected repositories. Find the file and paste its URL below to enable suspect commits and source code links.'
+                )}
           </div>
           <StyledList symbol="colored-numeric">
             <li>
-              <Stack flex="1" marginTop="2xs" gap="md" maxWidth="calc(100% - 25px - 8px)">
+              <Stack
+                flex="1"
+                minWidth="0"
+                marginTop="2xs"
+                gap="md"
+                maxWidth="calc(100% - 25px - 8px)"
+              >
                 <div>
-                  {hasOneSourceCodeIntegration
-                    ? tct('Go to [link]', {
-                        link: (
-                          <ExternalLink href={sourceUrl}>
-                            {sourceCodeProviders[0]!.provider.name}
-                          </ExternalLink>
-                        ),
-                      })
-                    : t('Go to your source code provider')}
+                  {hasOneSourceCodeIntegration ? (
+                    <ExternalLink href={sourceUrl}>
+                      <Flex as="span" align="center" gap="xs">
+                        {t(
+                          'Open %s on %s',
+                          sourceCodeIntegration!.name,
+                          providerDisplayName
+                        )}
+                        <IconOpen size="xs" />
+                      </Flex>
+                    </ExternalLink>
+                  ) : (
+                    t('Open the repository in your source code provider')
+                  )}
                 </div>
               </Stack>
             </li>
             <li>
-              <Stack flex="1" marginTop="2xs" gap="md" maxWidth="calc(100% - 25px - 8px)">
-                <div>{t('Find the correct repo and path for the file')}</div>
-                <TextCopyInput>{filename}</TextCopyInput>
+              <Stack
+                flex="1"
+                minWidth="0"
+                marginTop="2xs"
+                gap="md"
+                maxWidth="calc(100% - 25px - 8px)"
+              >
+                <div>{t('Find this file in the repository')}</div>
+                <Grid
+                  columns="minmax(0, 1fr) auto"
+                  align="start"
+                  gap="sm"
+                  padding="md"
+                  background="secondary"
+                  border="primary"
+                  radius="md"
+                >
+                  <WrappingFilePath path={filename} />
+                  <CopyToClipboardButton
+                    text={filename}
+                    size="xs"
+                    variant="transparent"
+                    aria-label={t('Copy file path')}
+                  />
+                </Grid>
               </Stack>
             </li>
             <li>
-              <Stack flex="1" marginTop="2xs" gap="md" maxWidth="calc(100% - 25px - 8px)">
+              <Stack
+                flex="1"
+                minWidth="0"
+                marginTop="2xs"
+                gap="md"
+                maxWidth="calc(100% - 25px - 8px)"
+              >
                 <div>
                   {suggestions.length
-                    ? t('Select from one of these suggestions or paste your URL below')
-                    : t('Copy the URL and paste it below')}
+                    ? t('Select a suggested file URL or paste one below')
+                    : t('Paste the file URL below')}
                 </div>
                 {suggestions.length ? (
                   <Suggestions>
@@ -299,7 +362,7 @@ export function StacktraceLinkModal({
 
                 <StyledTextField
                   inline={false}
-                  aria-label={t('Repository URL')}
+                  aria-label={t('File URL')}
                   hideLabel
                   name="source-code-input"
                   value={sourceCodeInput}
@@ -315,7 +378,7 @@ export function StacktraceLinkModal({
         <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button variant="primary" onClick={handleSubmit}>
-            {t('Save')}
+            {t('Save mapping')}
           </Button>
         </Grid>
       </Footer>
@@ -352,10 +415,6 @@ const SuggestionOverflow = styled('div')`
   overflow: hidden;
   text-overflow: ellipsis;
   direction: rtl;
-`;
-
-const StyledCode = styled('code')`
-  word-break: break-word;
 `;
 
 const StyledTextField = styled(TextField)`

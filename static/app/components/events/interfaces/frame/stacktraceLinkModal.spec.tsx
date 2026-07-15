@@ -76,10 +76,34 @@ describe('StacktraceLinkModal', () => {
     expect(screen.getByText('Set up Code Mapping')).toBeInTheDocument();
 
     // Links to GitHub with one integration
-    expect(screen.getByText('GitHub')).toBeInTheDocument();
-    expect(screen.getByText('GitHub')).toHaveAttribute(
-      'href',
-      'https://github.com/test-integration'
+    expect(
+      screen.getByRole('link', {name: 'Open Test Integration on GitHub'})
+    ).toHaveAttribute('href', 'https://github.com/test-integration');
+  });
+
+  it('shows and copies a long filename from a wrapping code block', () => {
+    const longFilename = String.raw`C:\home\site\repository\backend\src\Fulfillment.Tresis\code\Services\BalanceCheckService.cs`;
+
+    renderGlobalModal();
+    act(() =>
+      openModal(modalProps => (
+        <StacktraceLinkModal
+          {...modalProps}
+          filename={longFilename}
+          closeModal={closeModal}
+          integrations={[integration]}
+          organization={org}
+          project={project}
+          onSubmit={onSubmit}
+        />
+      ))
+    );
+
+    expect(screen.getByTestId('file-path')).toHaveTextContent(longFilename);
+    expect(screen.getByRole('button', {name: 'Copy file path'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'File URL'})).not.toHaveAttribute(
+      'placeholder',
+      expect.stringContaining(longFilename)
     );
   });
 
@@ -105,11 +129,8 @@ describe('StacktraceLinkModal', () => {
       ))
     );
 
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Repository URL'}),
-      'sourceUrl'
-    );
-    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'File URL'}), 'sourceUrl');
+    await userEvent.click(screen.getByRole('button', {name: 'Save mapping'}));
     await waitFor(() => {
       expect(closeModal).toHaveBeenCalled();
     });
@@ -140,10 +161,10 @@ describe('StacktraceLinkModal', () => {
     );
 
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Repository URL'}),
+      screen.getByRole('textbox', {name: 'File URL'}),
       'sourceUrl{enter}'
     );
-    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save mapping'}));
     await waitFor(() => {
       expect(closeModal).not.toHaveBeenCalled();
     });
@@ -198,20 +219,15 @@ describe('StacktraceLinkModal', () => {
     );
 
     expect(
-      await screen.findByText(
-        'Select from one of these suggestions or paste your URL below'
-      )
+      await screen.findByText('Select a suggested file URL or paste one below')
     ).toBeInTheDocument();
     const suggestion =
       'https://github.com/getsentry/codemap/blob/master/stack/root/file.py';
     expect(screen.getByText(suggestion)).toBeInTheDocument();
 
     // Paste and save suggestion
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Repository URL'}),
-      suggestion
-    );
-    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'File URL'}), suggestion);
+    await userEvent.click(screen.getByRole('button', {name: 'Save mapping'}));
     await waitFor(() => {
       expect(closeModal).toHaveBeenCalled();
     });
@@ -248,7 +264,7 @@ describe('StacktraceLinkModal', () => {
     // Wait for component to render, then check that suggestions text is not present
     await waitFor(() => {
       expect(
-        screen.queryByText('Select from one of these suggestions or paste your URL below')
+        screen.queryByText('Select a suggested file URL or paste one below')
       ).not.toBeInTheDocument();
     });
   });
@@ -276,12 +292,16 @@ describe('StacktraceLinkModal', () => {
     );
 
     expect(screen.getByText('Set up Code Mapping')).toBeInTheDocument();
-    expect(screen.getByText('Bitbucket')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: 'Open {fb715533-bbd7-4666-aa57-01dc93dd9cc0} on Bitbucket',
+      })
+    ).toBeInTheDocument();
 
-    const textInput = screen.getByRole('textbox', {name: 'Repository URL'});
+    const textInput = screen.getByRole('textbox', {name: 'File URL'});
     expect(textInput).toHaveAttribute(
       'placeholder',
-      'https://bitbucket.org/workspace/repo/src/branch/app/app.py'
+      'https://bitbucket.org/workspace/repository/src/main/path/to/file'
     );
   });
 
@@ -320,7 +340,9 @@ describe('StacktraceLinkModal', () => {
     expect(screen.getByText('Set up Code Mapping')).toBeInTheDocument();
     expect(screen.queryByText('Bitbucket')).not.toBeInTheDocument();
     expect(screen.queryByText('GitHub')).not.toBeInTheDocument();
-    expect(screen.getByText('Go to your source code provider')).toBeInTheDocument();
+    expect(
+      screen.getByText('Open the repository in your source code provider')
+    ).toBeInTheDocument();
 
     expect(
       screen.queryByText(
@@ -328,10 +350,10 @@ describe('StacktraceLinkModal', () => {
       )
     ).not.toBeInTheDocument();
 
-    const textInput = screen.getByRole('textbox', {name: 'Repository URL'});
+    const textInput = screen.getByRole('textbox', {name: 'File URL'});
     expect(textInput).toHaveAttribute(
       'placeholder',
-      'https://github.com/helloworld/Hello-World/blob/master/app/app.py'
+      'https://github.com/organization/repository/blob/main/path/to/file'
     );
   });
 });
