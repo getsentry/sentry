@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from enum import IntEnum, unique
+from enum import Enum, IntEnum, unique
 from functools import total_ordering
 from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
@@ -333,6 +333,19 @@ def _limit_from_settings(x: Any) -> int | None:
     return int(x or 0) or None
 
 
+class SeatAssignmentReason(Enum):
+    """Why a seat assignment check succeeded or failed."""
+
+    ASSIGNABLE = "assignable"
+    """Seat can be assigned — quota and feature requirements are met."""
+
+    FEATURE_NOT_AVAILABLE = "feature_not_available"
+    """The data category is not available on the organization's plan."""
+
+    QUOTA_EXCEEDED = "quota_exceeded"
+    """No reserved or on-demand budget remaining for the data category."""
+
+
 @dataclass
 class SeatAssignmentResult:
     assignable: bool
@@ -342,6 +355,10 @@ class SeatAssignmentResult:
     reason: str = ""
     """
     The human readable reason the assignment can be made or not.
+    """
+    assignment_reason: SeatAssignmentReason = SeatAssignmentReason.ASSIGNABLE
+    """
+    Machine-readable classification of why the seat is or is not assignable.
     """
 
     def __post_init__(self) -> None:
