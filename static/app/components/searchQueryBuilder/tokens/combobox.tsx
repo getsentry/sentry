@@ -356,9 +356,9 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
           </Flex>
         ) : null}
         {showAskSeerFooter ? (
-          <ListBoxFooter>
+          <Flex padding="sm" borderTop="muted">
             <OpenAskSeerButton />
-          </ListBoxFooter>
+          </Flex>
         ) : enableAISearch ? (
           <AskSeer state={state} />
         ) : null}
@@ -735,12 +735,6 @@ const ListBoxPane = styled('div')`
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-`;
-
-const ListBoxFooter = styled('div')`
-  display: flex;
-  padding: ${p => p.theme.space.sm};
-  border-top: 1px solid ${p => p.theme.tokens.border.secondary};
 `;
 
 const DescriptionOverlay = styled(Overlay)`
