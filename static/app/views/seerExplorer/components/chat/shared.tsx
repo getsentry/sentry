@@ -1,7 +1,4 @@
-import {keyframes} from '@emotion/react';
-import styled from '@emotion/styled';
-
-import type {ToolCallStatus} from '@sentry/scraps/chat';
+import {Spinner, type ToolCallStatus} from '@sentry/scraps/chat';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
@@ -83,20 +80,5 @@ export function MessagePlaceholder({content}: {content?: string}) {
     </Flex>
   );
 }
-
-const spin = keyframes`
-  to { transform: rotate(360deg); }
-`;
-
-const Spinner = styled('div')`
-  box-sizing: border-box;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1.5px solid ${p => p.theme.tokens.border.primary};
-  border-left-color: ${p => p.theme.tokens.border.accent.vibrant};
-  animation: ${spin} 0.6s linear infinite;
-  flex-shrink: 0;
-`;
 
 export const BLOCK_WRAPPER_SELECTOR = '[data-block-wrapper]';
