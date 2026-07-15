@@ -5,6 +5,7 @@ from sentry.explore.models import (
     TraceItemTypes,
     TraceMetricTypes,
 )
+from sentry.models.project import Project
 from sentry.search.eap.trace_metrics.types import TraceMetricType
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TraceMetricsTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -28,6 +29,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         metric_name: str,
         metric_type: TraceMetricType = "counter",
         metric_unit: str | None = None,
+        project: Project | None = None,
     ) -> None:
         timestamp = before_now(minutes=10)
         self.store_eap_items(
@@ -37,6 +39,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
                     1,
                     metric_type,
                     metric_unit=metric_unit,
+                    project=project if project is not None else self.project,
                     timestamp=timestamp,
                     # Real ingestion sets this; the fixture must too for max(timestamp_precise).
                     attributes={"sentry.timestamp_precise": int(timestamp.timestamp() * 1e9)},
@@ -131,20 +134,33 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         assert response.status_code == 200, response.data
         assert response.data[0]["context"] == {"brief": "Org-wide brief"}
 
-    def test_single_project_ignores_org_wide_context(self) -> None:
+    def test_falls_back_to_org_wide_context(self) -> None:
         self.store_metric("checkout.requests", "counter")
-        # Only org-wide context exists; a single-project request must not surface it
-        # (context is one scope or the other, never mixed).
+        # Only org-wide context exists; a single-project request falls back to it.
         self.create_context("checkout.requests", project=None, brief="Org-wide brief")
 
         response = self.do_request(query={"project": self.project.id, "expand": "context"})
 
         assert response.status_code == 200, response.data
-        assert "context" not in response.data[0]
+        assert response.data[0]["context"] == {"brief": "Org-wide brief"}
 
-    def test_multi_project_context_returns_400(self) -> None:
+    def test_project_context_preferred_over_org_wide(self) -> None:
+        self.store_metric("checkout.requests", "counter")
+        self.create_context("checkout.requests", project=None, brief="Org-wide brief")
+        self.create_context("checkout.requests", brief="Project brief")
+
+        response = self.do_request(query={"project": self.project.id, "expand": "context"})
+
+        assert response.status_code == 200, response.data
+        assert response.data[0]["context"] == {"brief": "Project brief"}
+
+    def test_multi_project_context(self) -> None:
         other_project = self.create_project(organization=self.organization)
         self.store_metric("checkout.requests", "counter")
+        self.store_metric("checkout.requests", "counter", project=other_project)
+        # Context authored in one of the selected projects surfaces in the
+        # cross-project list.
+        self.create_context("checkout.requests", project=other_project, brief="Other brief")
 
         url = reverse(self.viewname, kwargs={"organization_id_or_slug": self.organization.slug})
         with self.feature(self.feature_flags):
@@ -155,8 +171,9 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
                 ),
             )
 
-        assert response.status_code == 400, response.data
-        assert "single" in response.data["detail"]
+        assert response.status_code == 200, response.data
+        assert response.data[0]["name"] == "checkout.requests"
+        assert response.data[0]["context"] == {"brief": "Other brief"}
 
     def test_context_only_matches_metric_type(self) -> None:
         self.store_metric("checkout.requests", "counter")

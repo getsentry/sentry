@@ -21,7 +21,6 @@ from sentry.explore.models import (
     TraceMetricTypes,
 )
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.search.eap.constants import (
     METRIC_NAME_ALIAS,
     METRIC_TYPE_ALIAS,
@@ -88,23 +87,7 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
             "organizations:data-browsing-attribute-context", organization, actor=request.user
         )
 
-        # Context is stored as either project-scoped or org-wide, so it can only
-        # be attached for a single, unambiguous scope: one project, or org-wide
-        # for the all-projects sentinel (`-1`/`$all`). Mirrors the write endpoint.
-        scope_project = None
-        if include_context:
-            if self.get_requested_project_params_unchecked(request).has_all_projects_sentinel:
-                scope_project = None
-            elif len(snuba_params.projects) == 1:
-                scope_project = snuba_params.projects[0]
-            else:
-                return Response(
-                    {
-                        "detail": "Pass a single `project`, or all projects "
-                        "(`-1`/`$all`), to include context."
-                    },
-                    status=400,
-                )
+        project_ids = [project.id for project in snuba_params.projects]
 
         def data_fn(offset: int, limit: int) -> list[TraceMetricItem]:
             with handle_query_errors():
@@ -136,7 +119,7 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
                 for row in results["data"]
             ]
             if include_context:
-                self._attach_context(metrics, organization, scope_project)
+                self._attach_context(metrics, organization, project_ids)
             return metrics
 
         return self.paginate(
@@ -151,28 +134,34 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
         self,
         metrics: list[TraceMetricItem],
         organization: Organization,
-        scope_project: Project | None,
+        project_ids: list[int],
     ) -> None:
         """Attach authored context to a page of metrics with a single lookup (no N+1)."""
         names = [metric["name"] for metric in metrics]
         if not names:
             return
 
-        # A single scope — org-wide (null project) or one project — so the unique
-        # constraint guarantees at most one row per (value, type).
-        project_filter = (
-            Q(project__isnull=True) if scope_project is None else Q(project=scope_project)
-        )
+        # Metrics are aggregated across the selected projects, so fetch both the
+        # project-scoped rows for those projects and org-wide rows (null project).
         context_rows = TraceItemAttributeValueContext.objects.filter(
-            project_filter,
+            Q(project__isnull=True) | Q(project_id__in=project_ids),
             organization=organization,
             item_type=TraceItemTypes.TRACEMETRICS,
             attribute_name=METRIC_NAME_ALIAS,
             attribute_value__in=names,
         )
-        context_by_key: dict[tuple[str, int], TraceItemAttributeValueContext] = {
-            (row.attribute_value, row.attribute_type): row for row in context_rows
-        }
+
+        # A metric can have context in more than one selected project (plus
+        # org-wide), so pick a deterministic winner per (value, type): a
+        # project-scoped row beats org-wide, and the most recently updated wins
+        # among project-scoped rows.
+        ordered_rows = sorted(
+            context_rows,
+            key=lambda row: (row.project_id is None, -row.date_updated.timestamp()),
+        )
+        context_by_key: dict[tuple[str, int], TraceItemAttributeValueContext] = {}
+        for row in ordered_rows:
+            context_by_key.setdefault((row.attribute_value, row.attribute_type), row)
 
         for metric in metrics:
             type_id = TraceMetricTypes.get_id_for_type_name(metric["type"])
