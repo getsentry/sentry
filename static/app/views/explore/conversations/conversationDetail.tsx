@@ -91,7 +91,6 @@ export function ConversationViewContainer({children}: {children: React.ReactNode
       overflow="hidden"
       border={hasConversationsRedesign ? undefined : 'primary'}
       radius={hasConversationsRedesign ? undefined : 'md'}
-      maxWidth={hasConversationsRedesign ? '1340px' : undefined}
       background="primary"
       display="flex"
     >
