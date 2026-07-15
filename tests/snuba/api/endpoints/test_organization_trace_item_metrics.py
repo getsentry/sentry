@@ -144,7 +144,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         assert response.status_code == 200, response.data
         assert response.data[0]["context"] == {"brief": "Org-wide brief"}
 
-    def test_project_context_preferred_over_org_wide(self) -> None:
+    def test_org_wide_context_preferred_over_project(self) -> None:
         self.store_metric("checkout.requests", "counter")
         self.create_context("checkout.requests", project=None, brief="Org-wide brief")
         self.create_context("checkout.requests", brief="Project brief")
@@ -152,7 +152,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         response = self.do_request(query={"project": self.project.id, "expand": "context"})
 
         assert response.status_code == 200, response.data
-        assert response.data[0]["context"] == {"brief": "Project brief"}
+        assert response.data[0]["context"] == {"brief": "Org-wide brief"}
 
     def test_multi_project_context(self) -> None:
         other_project = self.create_project(organization=self.organization)

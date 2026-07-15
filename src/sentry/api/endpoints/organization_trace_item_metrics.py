@@ -152,12 +152,12 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
         )
 
         # A metric can have context in more than one selected project (plus
-        # org-wide), so pick a deterministic winner per (value, type): a
-        # project-scoped row beats org-wide, and the most recently updated wins
-        # among project-scoped rows.
+        # org-wide), so pick a deterministic winner per (value, type): org-wide
+        # wins (stable regardless of the project selection), otherwise the most
+        # recently updated project-scoped row.
         ordered_rows = sorted(
             context_rows,
-            key=lambda row: (row.project_id is None, -row.date_updated.timestamp()),
+            key=lambda row: (row.project_id is not None, -row.date_updated.timestamp()),
         )
         context_by_key: dict[tuple[str, int], TraceItemAttributeValueContext] = {}
         for row in ordered_rows:
