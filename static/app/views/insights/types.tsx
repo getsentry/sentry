@@ -100,7 +100,7 @@ export enum SpanFields {
   GEN_AI_AGENT_NAME = 'gen_ai.agent.name',
   GEN_AI_FUNCTION_ID = 'gen_ai.function_id',
   GEN_AI_REQUEST_MODEL = 'gen_ai.request.model',
-  GEN_AI_REQUEST_REASONING_EFFORT = 'gen_ai.request.reasoning_effort',
+  GEN_AI_REQUEST_REASONING_LEVEL = 'gen_ai.request.reasoning.level',
   GEN_AI_REQUEST_MESSAGES = 'gen_ai.request.messages',
   GEN_AI_RESPONSE_TEXT = 'gen_ai.response.text',
   GEN_AI_RESPONSE_OBJECT = 'gen_ai.response.object',
