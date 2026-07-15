@@ -13,14 +13,12 @@ from sentry.notifications.platform.templates.activity.base import (
 )
 from sentry.notifications.platform.templates.activity.seer.base import (
     get_subject,
-    get_view_autofix_button,
 )
 from sentry.notifications.platform.templates.activity.set_resolved.base import (
     get_resolution_subject,
 )
 from sentry.notifications.platform.types import (
     LinkTextBlock,
-    NotificationRenderedAction,
     NotificationTextBlockType,
 )
 from sentry.testutils.cases import TestCase
@@ -124,13 +122,6 @@ class ActivitySeerAlertBaseTest(TestCase):
         subject = get_subject("Root Cause Analysis Started", data)
         assert len(subject) == 1
         assert "a Sentry Issue" in subject[0].text
-
-    def test_get_view_autofix_button(self) -> None:
-        data = create_activity_notification_example(ActivityType.SEER_RCA_STARTED)
-        action = get_view_autofix_button(data)
-        assert isinstance(action, NotificationRenderedAction)
-        assert action.label == "View Autofix"
-        assert "seerDrawer=true" in action.link
 
 
 class ActivitySetResolvedAlertBaseTest(TestCase):
