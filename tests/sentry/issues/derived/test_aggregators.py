@@ -227,6 +227,26 @@ def test_regression_resets_progress() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.SET_RESOLVED_IN_RELEASE,
+        GroupActionType.SET_RESOLVED_BY_AGE,
+        GroupActionType.SET_RESOLVED_IN_COMMIT,
+    ],
+)
+def test_resolve_variants_close(action_type: GroupActionType) -> None:
+    assert (
+        _run_for_feature(
+            STATUS,
+            [
+                FakeEntry(type=action_type),
+            ],
+        )
+        == IssueStatus.CLOSED
+    )
+
+
 def test_archive_closes() -> None:
     assert (
         _run_for_feature(
