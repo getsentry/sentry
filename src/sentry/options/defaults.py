@@ -3863,6 +3863,24 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# List of producer names to roll out poll metrics to. Enables everywhere if
+# list contains "all".
+register(
+    "arroyo.producer.record_poll_metrics",
+    type=Sequence,
+    default=None,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+# Arroyo producer poll metrics should be logged every X poll iterations.
+register(
+    "arroyo.producer.poll_metric_frequency",
+    type=Int,
+    default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "github-enterprise.disallow-domain-mismatch",
     type=Bool,
