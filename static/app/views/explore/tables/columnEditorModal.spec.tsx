@@ -157,15 +157,14 @@ describe('ColumnEditorModal', () => {
 
     expect(await screen.findByRole('button', {name: 'Apply'})).toBeInTheDocument();
 
-    const idColumnButton = screen.getByRole('button', {name: 'Column id string'});
-    expect(idColumnButton).toBeDisabled();
+    const columnButtons = screen.getAllByRole('button', {name: /^Column/});
+    expect(columnButtons[0]).toHaveAccessibleName('Column id string');
+    expect(columnButtons[0]).toBeDisabled();
     expect(screen.getAllByLabelText('Remove Column')[0]).toBeDisabled();
     expect(screen.getAllByLabelText('Drag to reorder')[0]).toBeDisabled();
 
-    const projectColumnButton = screen.getByRole('button', {
-      name: 'Column project string',
-    });
-    expect(projectColumnButton).toBeEnabled();
+    expect(columnButtons[1]).toHaveAccessibleName('Column project string');
+    expect(columnButtons[1]).toBeEnabled();
     expect(screen.getAllByLabelText('Remove Column')[1]).toBeEnabled();
     expect(screen.getAllByLabelText('Drag to reorder')[1]).toBeEnabled();
   });
