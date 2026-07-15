@@ -643,6 +643,9 @@ def post_process_group(
 
 
 def run_post_process_job(job: PostProcessJob) -> None:
+    from sentry.issues.action_log.publish import action_context_scope
+    from sentry.issues.action_log.types import ActionSource
+
     group_event = job["event"]
     issue_category = group_event.group.issue_category if group_event.group else None
     issue_category_metric = issue_category.name.lower() if issue_category else None
@@ -676,6 +679,7 @@ def run_post_process_job(job: PostProcessJob) -> None:
                     op=f"tasks.post_process_group.{pipeline_step.__name__}",
                     name=f"tasks.post_process_group.{pipeline_step.__name__}",
                 ),
+                action_context_scope(ActionSource.SYSTEM),
             ):
                 pipeline_step(job)
         except Exception:
