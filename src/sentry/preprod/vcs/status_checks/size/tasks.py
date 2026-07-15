@@ -156,31 +156,43 @@ def evaluate_size_and_format_messages(
 
     # Filter out artifacts not in the size analysis pipeline (e.g., snapshot-only artifacts).
     # Symmetric with snapshots/tasks.py which filters to snapshot-only artifacts.
-    all_artifacts = [a for a in all_artifacts if a.id in size_metrics_map]
+    evaluated_artifacts = [a for a in all_artifacts if a.id in size_metrics_map]
 
     # Filter out SKIPPED artifacts (user didn't request size analysis)
-    all_artifacts = [
-        a for a in all_artifacts if not _is_artifact_size_skipped(size_metrics_map.get(a.id, []))
+    evaluated_artifacts = [
+        a
+        for a in evaluated_artifacts
+        if not _is_artifact_size_skipped(size_metrics_map.get(a.id, []))
     ]
 
     triggered_rules: list[TriggeredRule] = []
-    if not all_artifacts:
+    if not evaluated_artifacts:
         title, subtitle, summary = format_all_skipped_messages(project)
         return SizeEvaluation(
-            StatusCheckStatus.NEUTRAL, triggered_rules, title, subtitle, summary, all_artifacts
+            StatusCheckStatus.NEUTRAL,
+            triggered_rules,
+            title,
+            subtitle,
+            summary,
+            evaluated_artifacts,
         )
 
     # Check if any artifact hit quota limits - show neutral status with quota message
-    if _has_no_quota_artifact(all_artifacts, size_metrics_map):
+    if _has_no_quota_artifact(evaluated_artifacts, size_metrics_map):
         title, subtitle, summary = format_no_quota_messages()
         return SizeEvaluation(
-            StatusCheckStatus.NEUTRAL, triggered_rules, title, subtitle, summary, all_artifacts
+            StatusCheckStatus.NEUTRAL,
+            triggered_rules,
+            title,
+            subtitle,
+            summary,
+            evaluated_artifacts,
         )
 
-    base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics(all_artifacts)
+    base_artifact_map, base_size_metrics_map = _fetch_base_size_metrics(evaluated_artifacts)
 
     status, triggered_rules = _compute_overall_status(
-        all_artifacts,
+        evaluated_artifacts,
         size_metrics_map,
         rules=rules,
         base_artifact_map=base_artifact_map,
@@ -189,7 +201,7 @@ def evaluate_size_and_format_messages(
     )
 
     title, subtitle, summary = format_status_check_messages(
-        all_artifacts,
+        evaluated_artifacts,
         size_metrics_map,
         status,
         project,
@@ -203,7 +215,7 @@ def evaluate_size_and_format_messages(
     if not rules:
         status = StatusCheckStatus.NEUTRAL
 
-    return SizeEvaluation(status, triggered_rules, title, subtitle, summary, all_artifacts)
+    return SizeEvaluation(status, triggered_rules, title, subtitle, summary, evaluated_artifacts)
 
 
 @instrumented_task(

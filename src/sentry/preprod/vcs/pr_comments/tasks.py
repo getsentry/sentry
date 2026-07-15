@@ -43,21 +43,15 @@ def resolve_pr_comment_context(
     feature_flag: str | None = None,
     with_build_configuration: bool = True,
 ) -> PrCommentContext | None:
-    """Run the shared guard for PR-comment tasks and resolve their common inputs.
+    """Resolve common PR-comment inputs after applying the shared task guards.
 
-    Fetches the artifact and validates that it has a commit comparison with PR
-    info, that the project option is enabled, and that the org feature flag is on
-    (when ``feature_flag`` is provided). Returns ``None`` (after logging the
-    matching skip event) when any guard fails, otherwise a ``PrCommentContext``
-    (artifact, commit comparison, organization, and the guard-validated
-    non-None PR scalars). The caller fetches its own SCM client so tests can
-    continue patching ``get_commit_context_client`` per task module.
-
-    ``log_prefix`` scopes the structured-log event names per feature (e.g.
-    ``preprod.size_pr_comments``); ``feature_flag=None`` skips the org-flag gate;
-    ``with_build_configuration`` controls whether the build configuration is
-    prefetched.
+    Returns ``None`` after logging when the artifact or required PR information
+    is missing, the project option is disabled, or the optional feature gate fails.
     """
+
+    def event_name(suffix: str) -> str:
+        return log_prefix + ".create." + suffix
+
     select_related = ["mobile_app_info", "commit_comparison", "project", "project__organization"]
     if with_build_configuration:
         select_related.insert(1, "build_configuration")
@@ -67,16 +61,14 @@ def resolve_pr_comment_context(
             id=preprod_artifact_id
         )
     except PreprodArtifact.DoesNotExist:
-        event = log_prefix + ".create.artifact_not_found"
         logger.exception(
-            event,
+            event_name("artifact_not_found"),
             extra={"preprod_artifact_id": preprod_artifact_id, "caller": caller},
         )
         return None
 
     if not artifact.commit_comparison:
-        event = log_prefix + ".create.no_commit_comparison"
-        logger.info(event, extra={"preprod_artifact_id": artifact.id})
+        logger.info(event_name("no_commit_comparison"), extra={"preprod_artifact_id": artifact.id})
         return None
 
     commit_comparison = artifact.commit_comparison
@@ -85,9 +77,8 @@ def resolve_pr_comment_context(
         or not commit_comparison.head_repo_name
         or not commit_comparison.provider
     ):
-        event = log_prefix + ".create.no_pr_info"
         logger.info(
-            event,
+            event_name("no_pr_info"),
             extra={
                 "preprod_artifact_id": artifact.id,
                 "pr_number": commit_comparison.pr_number,
@@ -97,18 +88,16 @@ def resolve_pr_comment_context(
         return None
 
     if not artifact.project.get_option(enabled_option_key):
-        event = log_prefix + ".create.project_disabled"
         logger.info(
-            event,
+            event_name("project_disabled"),
             extra={"preprod_artifact_id": artifact.id, "project_id": artifact.project.id},
         )
         return None
 
     organization = artifact.project.organization
     if feature_flag is not None and not features.has(feature_flag, organization):
-        event = log_prefix + ".create.feature_disabled"
         logger.info(
-            event,
+            event_name("feature_disabled"),
             extra={"preprod_artifact_id": artifact.id, "organization_id": organization.id},
         )
         return None
