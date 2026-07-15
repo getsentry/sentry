@@ -39,7 +39,7 @@ interface SeerDrawerProps {
 export function SeerDrawer({group, project}: SeerDrawerProps) {
   const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
-  const aiAutofix = useExplorerAutofix(group.id, {
+  const aiAutofix = useExplorerAutofix(group, {
     pollPR: organization.features.includes('autofix-pr-iteration'),
   });
 

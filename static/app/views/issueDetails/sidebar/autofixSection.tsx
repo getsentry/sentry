@@ -113,7 +113,7 @@ const AutofixContentHook = registerLLMContext(
 
 export function AutofixContent({aiConfig, group, project}: AutofixContentProps) {
   const organization = useOrganization();
-  const autofix = useExplorerAutofix(group.id);
+  const autofix = useExplorerAutofix(group);
   const {data: setupCheck, isPending} = useQuery(
     getSeerOnboardingCheckQueryOptions({organization})
   );

@@ -115,7 +115,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const activeThreadId = useActiveThreadId();
 
   // Get data for markdown copy functionality
-  const {runState: autofixData} = useExplorerAutofix(group.id, {enabled: false});
+  const {runState: autofixData} = useExplorerAutofix(group, {enabled: false});
 
   const handleCopyMarkdown = useCallback(() => {
     const markdownText = issueAndEventToMarkdown({

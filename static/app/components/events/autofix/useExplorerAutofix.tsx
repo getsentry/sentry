@@ -16,6 +16,8 @@ import {
   needsGitHubAuth,
   type CodingAgentIntegration,
 } from 'sentry/components/events/autofix/useAutofix';
+import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
+import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {isArrayOf, isString} from 'sentry/types/utils';
@@ -24,6 +26,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {getGithubPermissionsUpdateUrl} from 'sentry/utils/integrationUtil';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
@@ -518,9 +521,10 @@ interface UseExplorerAutofixOptions {
  * - Creating pull requests from code changes
  */
 export function useExplorerAutofix(
-  groupId: string,
+  group: Group,
   options: UseExplorerAutofixOptions = {}
 ) {
+  const groupId = group.id;
   const {openModal} = useModal();
 
   const {enabled = true, pollPR = false} = options;
@@ -529,6 +533,7 @@ export function useExplorerAutofix(
   const organization = useOrganization();
   const user = useUser();
   const orgSlug = organization.slug;
+  const serviceWorker = useServiceWorker();
 
   const [waitingForResponse, setWaitingForResponse] = useState(false);
 
@@ -619,6 +624,47 @@ export function useExplorerAutofix(
           await invalidation;
         }
 
+        if (
+          organization.features.includes('autofix-browser-notifications') &&
+          serviceWorker.isServiceWorkerSupported
+        ) {
+          serviceWorker.controller
+            .postMessage({
+              type: 'event',
+              name: 'autofix.startStep',
+              data: {
+                issueId: groupId,
+                notification: {
+                  navigateTo: {
+                    pathname: normalizeUrl(
+                      `/organizations/${orgSlug}/issues/${groupId}/`
+                    ),
+                    query: {
+                      seerDrawer: 'true',
+                    },
+                  },
+                  project: {
+                    avatar: 'https://sentry.io/favicon.ico', // TODO(ryan953): Use the project avatar url or base64 encoded bytes
+                  },
+                  title: {
+                    success: `${group.shortId} - ${step.replace('_', ' ')} completed`,
+                    error: `${group.shortId} - ${step.replace('_', ' ')} had a problem`,
+                  },
+                  body: {
+                    success: `Click to see the ${step.replace('_', ' ')} results.`,
+                    error: 'The autofix run ended with an error.',
+                  },
+                },
+                organizationIdOrSlug: orgSlug,
+                step,
+                stepOptions: startStepOptions ?? {},
+              },
+            })
+            .catch(error => {
+              addErrorMessage(error instanceof Error ? error.message : String(error));
+            });
+        }
+
         return response.run_id as number;
       } catch (e: any) {
         setWaitingForResponse(false);
@@ -634,7 +680,15 @@ export function useExplorerAutofix(
         throw e;
       }
     },
-    [api, orgSlug, groupId, queryClient]
+    [
+      api,
+      group.shortId,
+      groupId,
+      orgSlug,
+      organization.features,
+      queryClient,
+      serviceWorker,
+    ]
   );
 
   /**
