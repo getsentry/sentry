@@ -32,6 +32,7 @@ export const MICROSECOND = 0.001;
 export const NANOSECOND = 0.000001;
 
 const numberFormatSteps = [
+  [1_000_000_000_000, 'T'],
   [1_000_000_000, 'B'],
   [1_000_000, 'M'],
   [1_000, 'K'],
