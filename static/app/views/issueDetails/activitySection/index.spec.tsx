@@ -14,6 +14,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
@@ -570,6 +571,47 @@ describe('ActivitySection', () => {
     );
   });
 
+  it('shows ownership assignment rules in an info tooltip', async () => {
+    const rule = 'path:src/** #frontend';
+    const assignedGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.ASSIGNED,
+          id: 'ownership-assignment-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            assignee: '123',
+            assigneeName: 'Assigned User',
+            assigneeType: 'user',
+            integration: 'projectOwnership',
+            rule,
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={assignedGroup} project={assignedGroup.project}>
+        <ActivitySection group={assignedGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(screen.getByText('Assigned')).toBeInTheDocument();
+    expect(screen.getByText('Assigned User')).toBeInTheDocument();
+    expect(screen.getByText('Ownership Rule')).toBeInTheDocument();
+    expect(timeline).not.toHaveTextContent(rule);
+
+    await userEvent.hover(screen.getByText('Ownership Rule'));
+    expect(await screen.findByText(rule)).toBeInTheDocument();
+  });
+
   it('renders auto-resolved activity age as an inactivity duration', async () => {
     const autoResolvedGroup = GroupFixture({
       id: '1347',
@@ -996,7 +1038,7 @@ describe('ActivitySection', () => {
           follows_semver: true,
         },
       } satisfies GroupActivity,
-      expectedCopy: ['Regressed', /Compared with resolved version/, /using SemVer/],
+      expectedCopy: ['Regressed', /compared with/, /based on SemVer/],
     },
     {
       name: 'reprocessed events',
@@ -1108,7 +1150,8 @@ describe('ActivitySection', () => {
       'Resolved in 1.0.0 via Jira Server'
     );
     expect(screen.getByRole('link', {name: '1.0.0'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Jira Server'})).toBeInTheDocument();
+    const integrationLink = screen.getByRole('link', {name: 'Jira Server'});
+    expect(within(integrationLink).getByRole('img')).toBeInTheDocument();
   });
 
   it('renders resolved in release without integration', async () => {

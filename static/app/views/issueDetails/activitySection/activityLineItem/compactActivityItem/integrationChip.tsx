@@ -1,9 +1,8 @@
-import {Link} from '@sentry/scraps/link';
-
 import type {GroupActivityIntegrationData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
+import {IntegrationChip} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/integrationChip';
 
-export function getIntegrationLink({
+export function getIntegrationChip({
   data,
   organization,
 }: {
@@ -19,10 +18,9 @@ export function getIntegrationLink({
   }
 
   return (
-    <Link
+    <IntegrationChip
+      label={provider}
       to={`/settings/${organization.slug}/integrations/${providerKey}/${integrationId}/`}
-    >
-      {provider}
-    </Link>
+    />
   );
 }

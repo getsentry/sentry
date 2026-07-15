@@ -10,7 +10,7 @@ import {CommitChip} from 'sentry/views/issueDetails/activitySection/activityLine
 import {PullRequestChip} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/pullRequestChip';
 import {ActivityRelease} from 'sentry/views/issueDetails/activitySection/activityLineItem/chips/releaseChip';
 
-import {getIntegrationLink} from './integrationLink';
+import {getIntegrationChip} from './integrationChip';
 
 function getReleaseResolutionSource(commit: Commit | null | undefined) {
   if (commit?.pullRequest) {
@@ -34,11 +34,11 @@ export function getResolvedInReleaseDetails(
   project: Project
 ) {
   const {data} = activity;
-  const integrationLink = getIntegrationLink({data, organization});
+  const integrationChip = getIntegrationChip({data, organization});
   const resolutionSource = (
     <Fragment>
       {getReleaseResolutionSource(data.commit)}
-      {integrationLink && tct(' via [integration]', {integration: integrationLink})}
+      {integrationChip && tct(' via [integration]', {integration: integrationChip})}
     </Fragment>
   );
 
