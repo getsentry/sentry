@@ -35,6 +35,7 @@ from sentry.snuba.trace_metrics import TraceMetrics
 # can carry more than one type (e.g. both a counter and a gauge named "foo").
 METRIC_NAME_ALIAS = "metric.name"
 METRIC_TYPE_ALIAS = "metric.type"
+METRIC_UNIT_ALIAS = "metric.unit"
 
 
 class OrganizationTraceItemMetricContextPutSerializer(serializers.Serializer[Never]):

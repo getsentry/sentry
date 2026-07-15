@@ -13,6 +13,11 @@ from sentry.api.bases import NoProjects
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpointBase,
 )
+from sentry.api.endpoints.organization_trace_item_metric_context import (
+    METRIC_NAME_ALIAS,
+    METRIC_TYPE_ALIAS,
+    METRIC_UNIT_ALIAS,
+)
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.explore.models import (
@@ -26,10 +31,6 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.trace_metrics import TraceMetrics
 
-# Public aliases (see search/eap/trace_metrics/attributes.py).
-METRIC_NAME_ALIAS = "metric.name"
-METRIC_TYPE_ALIAS = "metric.type"
-METRIC_UNIT_ALIAS = "metric.unit"
 _COUNT_ALIAS = f"count({METRIC_NAME_ALIAS})"
 _LAST_SEEN_ALIAS = "max(timestamp_precise)"
 
