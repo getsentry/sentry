@@ -37,10 +37,8 @@ from sentry.workflow_engine.models.data_condition import (
     SLOW_CONDITIONS,
     Condition,
 )
-from sentry.workflow_engine.processors.data_condition_group import (
-    ProcessedDataConditionGroup,
-    get_slow_conditions_for_groups,
-)
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation
+from sentry.workflow_engine.processors.data_condition_group import get_slow_conditions_for_groups
 from sentry.workflow_engine.processors.delayed_workflow import (
     EventInstance,
     EventKey,
@@ -58,7 +56,6 @@ from sentry.workflow_engine.processors.delayed_workflow import (
     get_group_to_groupevent,
     get_groups_to_fire,
 )
-from sentry.workflow_engine.processors.evaluations import TriggerResult
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
@@ -1009,7 +1006,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
     def test_fire_actions_for_groups__workflow_fire_history(self, mock_process: MagicMock) -> None:
         mock_process.return_value = (
-            ProcessedDataConditionGroup(logic_result=TriggerResult.TRUE, condition_results=[]),
+            DataConditionGroupEvaluation(result=[]),
             [],
         )
 
@@ -1043,7 +1040,7 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     ) -> None:
         """Verify notification_uuid from WorkflowFireHistory is passed to triggered actions."""
         mock_process.return_value = (
-            ProcessedDataConditionGroup(logic_result=TriggerResult.TRUE, condition_results=[]),
+            DataConditionGroupEvaluation(result=[]),
             [],
         )
 

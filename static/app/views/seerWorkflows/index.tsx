@@ -864,7 +864,7 @@ function TriageIssuesDebugAddendum({
         {t('Per-issue internals')}
       </Text>
       <Grid
-        columns="max-content max-content max-content max-content"
+        columns="max-content max-content max-content max-content max-content"
         gap="sm xl"
         align="center"
       >
@@ -873,6 +873,9 @@ function TriageIssuesDebugAddendum({
         </Text>
         <Text bold size="xs" variant="muted">
           {t('Raw action')}
+        </Text>
+        <Text bold size="xs" variant="muted">
+          {t('Skip reason')}
         </Text>
         <Text bold size="xs" variant="muted">
           {t('Seer Run ID')}
@@ -884,6 +887,9 @@ function TriageIssuesDebugAddendum({
           </Text>,
           <Text key={`${issue.id}-action`} size="sm" monospace>
             {issue.action}
+          </Text>,
+          <Text key={`${issue.id}-skip-reason`} size="sm" variant="muted" monospace>
+            {issue.skipReason ?? '-'}
           </Text>,
           <Text key={`${issue.id}-seer`} size="sm" variant="muted" monospace>
             {issue.seerRunId ?? '-'}

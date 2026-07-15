@@ -94,6 +94,7 @@ interface SeerDrawerArtifactsProps {
 
 function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsProps) {
   const organization = useOrganization();
+
   return (
     <Fragment>
       {sections.map(section => {
