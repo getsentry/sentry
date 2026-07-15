@@ -32,7 +32,8 @@ the user should control how much space each gets:
 
 - Equal-width columns that never need resizing — use `Flex` instead
 - More than two panes — `SplitPanel` only supports two
-- Layouts where one pane should fully collapse — use a drawer component
+- Layouts where one pane needs to fully hide and give its space back, 
+  splitpanel always reserves space for the sized pane even at minimum size
 
 ## Best practices
 
