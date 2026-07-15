@@ -388,14 +388,22 @@ def test_root_cause_identified_advances_to_diagnosed() -> None:
     )
 
 
-def test_resolved_in_pull_request_advances_to_fix_proposed() -> None:
+@pytest.mark.parametrize(
+    "action_type,data",
+    [
+        (GroupActionType.RESOLVED_IN_PULL_REQUEST, {"pull_request": 101}),
+        (GroupActionType.SEER_PR_CREATED, {"pull_requests": [{"pr_url": "https://example.com"}]}),
+        (GroupActionType.REFERENCED_IN_COMMIT, {"commit": 42}),
+    ],
+)
+def test_fix_proposal_advances_to_fix_proposed(
+    action_type: GroupActionType, data: dict[str, object]
+) -> None:
     assert (
         _run_for_feature(
             PROGRESS,
             [
-                FakeEntry(
-                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
-                ),
+                FakeEntry(type=action_type, data=data),
             ],
         )
         == IssueProgressState.FIX_PROPOSED
