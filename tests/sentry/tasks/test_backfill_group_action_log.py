@@ -233,7 +233,7 @@ class BackfillGroupActionLogForProjectTest(TestCase):
         user_id: int | None = None,
         group: Group | None = None,
     ) -> Activity:
-        return Activity.objects.create(
+        return Activity.objects.create_without_group_action(
             project=self.project,
             group=group or self.group,
             type=activity_type.value,

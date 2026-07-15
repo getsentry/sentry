@@ -13,14 +13,6 @@ from sentry.issues.action_log import (
     ActionSource,
     GroupActionActor,
     action_context_scope,
-    publish_action,
-)
-from sentry.issues.action_log.types import (
-    GroupAction,
-    PullRequestClosedAction,
-    PullRequestMergedAction,
-    PullRequestReopenedAction,
-    PullRequestUnlinkedAction,
 )
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
@@ -331,14 +323,6 @@ def _groups_with_other_open_prs(group_ids: Sequence[int], *, pull_request_id: in
     return {group_id for group_id, linked_id in sibling_links if linked_id in open_pr_ids}
 
 
-_PULL_REQUEST_ACTION_TYPES: dict[ActivityType, type[GroupAction]] = {
-    ActivityType.PULL_REQUEST_CLOSED: PullRequestClosedAction,
-    ActivityType.PULL_REQUEST_REOPENED: PullRequestReopenedAction,
-    ActivityType.PULL_REQUEST_MERGED: PullRequestMergedAction,
-    ActivityType.PULL_REQUEST_UNLINKED: PullRequestUnlinkedAction,
-}
-
-
 def _create_pull_request_activities(
     group_ids: Sequence[int], *, pull_request_id: int, activity_type: ActivityType
 ) -> None:
@@ -363,7 +347,6 @@ def _create_pull_request_activities(
                 [group.id for group in groups], pull_request_id=pull_request_id
             )
 
-        action_type = _PULL_REQUEST_ACTION_TYPES[activity_type]
         for group in groups:
             data: dict[str, int | bool] = {"pull_request": pull_request_id}
             if has_other_open_prs_by_group is not None:
@@ -375,12 +358,6 @@ def _create_pull_request_activities(
                 type=activity_type.value,
                 ident=str(pull_request_id),
                 data=data,
-            )
-            publish_action(
-                action_type(**data),
-                source=ActionSource.SYSTEM,
-                group_id=group.id,
-                project=group.project,
             )
     except Exception:
         logger.exception(
