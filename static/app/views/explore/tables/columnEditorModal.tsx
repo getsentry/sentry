@@ -95,8 +95,28 @@ export function ColumnEditorModal({
     closeModal();
   }
 
+  function handleTempColumnsChange(
+    nextColumns: string[],
+    operation: 'insert' | 'update' | 'delete' | 'reorder'
+  ) {
+    if (operation !== 'reorder' || !requiredTags?.length) {
+      setTempColumns(nextColumns);
+      return;
+    }
+
+    setTempColumns(currentColumns => {
+      const reorderedColumns = nextColumns.filter(column => !requiredTags.includes(column));
+      currentColumns.forEach((column, index) => {
+        if (requiredTags.includes(column)) {
+          reorderedColumns.splice(index, 0, column);
+        }
+      });
+      return reorderedColumns;
+    });
+  }
+
   return (
-    <DragNDropContext columns={tempColumns} setColumns={setTempColumns}>
+    <DragNDropContext columns={tempColumns} setColumns={handleTempColumnsChange}>
       {({insertColumn, updateColumnAtIndex, deleteColumnAtIndex, editableColumns}) => (
         <Fragment>
           <Header closeButton data-test-id="editor-header">
@@ -183,6 +203,7 @@ function ColumnEditorRow({
 }: ColumnEditorRowProps) {
   const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
     id: column.id,
+    disabled: required,
   });
 
   const [search, setSearch] = useState('');
@@ -314,7 +335,12 @@ function ColumnEditorRow({
       }}
       {...attributes}
     >
-      <StyledDragReorderButton size="sm" iconSize="sm" {...listeners} />
+      <StyledDragReorderButton
+        size="sm"
+        iconSize="sm"
+        disabled={required}
+        {...listeners}
+      />
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}

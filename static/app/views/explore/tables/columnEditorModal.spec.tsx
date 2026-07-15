@@ -135,6 +135,35 @@ describe('ColumnEditorModal', () => {
     expect(onColumnsChange).toHaveBeenCalledWith(['project']);
   });
 
+  it('disables editing, removing, and reordering required columns', () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['id', 'project']}
+            onColumnsChange={() => {}}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={{}}
+            requiredTags={['id']}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    expect(screen.getAllByTestId('editor-column')[0]).toBeDisabled();
+    expect(screen.getAllByLabelText('Remove Column')[0]).toBeDisabled();
+    expect(screen.getAllByLabelText('Drag to reorder')[0]).toBeDisabled();
+
+    expect(screen.getAllByTestId('editor-column')[1]).toBeEnabled();
+    expect(screen.getAllByLabelText('Remove Column')[1]).toBeEnabled();
+    expect(screen.getAllByLabelText('Drag to reorder')[1]).toBeEnabled();
+  });
+
   it('handles duplicate columns without collapsing rows', async () => {
     const onColumnsChange = jest.fn();
 
