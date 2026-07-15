@@ -157,35 +157,17 @@ describe('ColumnEditorModal', () => {
 
     expect(await screen.findByRole('button', {name: 'Apply'})).toBeInTheDocument();
 
-    const allColumnButtons = screen.getAllByRole('button', {
-      name: /^Column.*string$/,
-      hidden: true,
-    });
+    const [idColumn, projectColumn] = screen.getAllByTestId('editor-column');
+    const idRow = within(idColumn!.parentElement!);
+    const projectRow = within(projectColumn!.parentElement!);
 
-    const idColumnButton = allColumnButtons.find(btn =>
-      btn.textContent?.includes('Column id string')
-    );
-    const projectColumnButton = allColumnButtons.find(btn =>
-      btn.textContent?.includes('Column project string')
-    );
+    expect(idRow.getByRole('button', {name: 'Column id string'})).toBeDisabled();
+    expect(idRow.getByRole('button', {name: 'Remove Column'})).toBeDisabled();
+    expect(idRow.getByRole('button', {name: 'Drag to reorder'})).toBeDisabled();
 
-    expect(idColumnButton).toBeDefined();
-    expect(idColumnButton).toHaveAttribute('aria-disabled', 'true');
-
-    expect(projectColumnButton).toBeDefined();
-    expect(projectColumnButton).not.toHaveAttribute('aria-disabled', 'true');
-
-    expect(screen.getAllByLabelText('Remove Column')[0]).toBeDisabled();
-    expect(screen.getAllByLabelText('Remove Column')[1]).toBeEnabled();
-
-    expect(screen.getAllByLabelText('Drag to reorder')[0]).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
-    expect(screen.getAllByLabelText('Drag to reorder')[1]).not.toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    expect(projectRow.getByRole('button', {name: 'Column project string'})).toBeEnabled();
+    expect(projectRow.getByRole('button', {name: 'Remove Column'})).toBeEnabled();
+    expect(projectRow.getByRole('button', {name: 'Drag to reorder'})).toBeEnabled();
   });
 
   it('handles duplicate columns without collapsing rows', async () => {
