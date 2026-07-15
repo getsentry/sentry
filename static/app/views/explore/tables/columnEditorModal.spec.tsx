@@ -159,14 +159,20 @@ describe('ColumnEditorModal', () => {
 
     const columnButtons = screen.getAllByRole('button', {name: /^Column/});
     expect(columnButtons[0]).toHaveAccessibleName('Column id string');
-    expect(columnButtons[0]).toBeDisabled();
+    expect(columnButtons[0]).toHaveAttribute('aria-disabled', 'true');
     expect(screen.getAllByLabelText('Remove Column')[0]).toBeDisabled();
-    expect(screen.getAllByLabelText('Drag to reorder')[0]).toBeDisabled();
+    expect(screen.getAllByLabelText('Drag to reorder')[0]).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
 
     expect(columnButtons[1]).toHaveAccessibleName('Column project string');
-    expect(columnButtons[1]).toBeEnabled();
+    expect(columnButtons[1]).not.toHaveAttribute('aria-disabled', 'true');
     expect(screen.getAllByLabelText('Remove Column')[1]).toBeEnabled();
-    expect(screen.getAllByLabelText('Drag to reorder')[1]).toBeEnabled();
+    expect(screen.getAllByLabelText('Drag to reorder')[1]).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('handles duplicate columns without collapsing rows', async () => {
