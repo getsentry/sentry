@@ -162,11 +162,11 @@ describe('ColumnEditorModal', () => {
       hidden: true,
     });
 
-    const idColumnButton = allColumnButtons.find(
-      btn => btn.getAttribute('aria-label') === 'Column id string'
+    const idColumnButton = allColumnButtons.find(btn =>
+      btn.textContent?.includes('Column id string')
     );
-    const projectColumnButton = allColumnButtons.find(
-      btn => btn.getAttribute('aria-label') === 'Column project string'
+    const projectColumnButton = allColumnButtons.find(btn =>
+      btn.textContent?.includes('Column project string')
     );
 
     expect(idColumnButton).toBeDefined();
