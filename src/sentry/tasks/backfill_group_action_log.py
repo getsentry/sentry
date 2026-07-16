@@ -1,9 +1,11 @@
 import logging
+import time
 from datetime import datetime
 
 from taskbroker_client.state import current_task
 
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.issues.action_log.backfill import (
     BACKFILL_ACTIVITY_SOURCE,
     bulk_insert_action_log_entries,
@@ -16,7 +18,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
-from sentry.utils import json, metrics
+from sentry.utils import json, metrics, redis
 from sentry.utils.action_log.activity_translator import (
     activity_action_idempotency_key,
     activity_to_action,
@@ -25,6 +27,10 @@ from sentry.utils.action_log.activity_translator import (
 logger = logging.getLogger(__name__)
 
 _TASK_KEY = "backfill_group_action_log_for_project"
+_COORDINATOR_TASK_KEY = "backfill_group_action_log_coordinator"
+_REDIS_CURSOR_KEY = "backfill_gal_coordinator:last_project_id"
+_REDIS_CURSOR_TTL = 7 * 24 * 60 * 60
+GAL_BACKFILL_COMPLETED_OPTION = "sentry:gal_backfill_completed"
 
 
 @instrumented_task(
@@ -174,6 +180,8 @@ def _reset_project(project: Project) -> None:
         source=BACKFILL_ACTIVITY_SOURCE,
     ).delete()
 
+    project.delete_option(GAL_BACKFILL_COMPLETED_OPTION)
+
     logger.info(
         "backfill_group_action_log.project_reset_completed",
         extra={
@@ -218,6 +226,7 @@ def _backfill_project(
             "backfill_group_action_log.project_completed",
             extra={"project_id": project.id},
         )
+        project.update_option(GAL_BACKFILL_COMPLETED_OPTION, int(time.time()))
         process_project_derived_data.delay(project_id=project.id)
         return
 
@@ -320,4 +329,108 @@ def _backfill_project(
             "backfill_group_action_log.project_completed",
             extra={"project_id": project.id},
         )
+        project.update_option(GAL_BACKFILL_COMPLETED_OPTION, int(time.time()))
         process_project_derived_data.delay(project_id=project.id)
+
+
+def _get_coordinator_cursor() -> int:
+    client = redis.redis_clusters.get("default")
+    value = client.get(_REDIS_CURSOR_KEY)
+    return int(value) if value else 0
+
+
+def _set_coordinator_cursor(project_id: int) -> None:
+    client = redis.redis_clusters.get("default")
+    client.set(_REDIS_CURSOR_KEY, str(project_id), ex=_REDIS_CURSOR_TTL)
+
+
+def _clear_coordinator_cursor() -> None:
+    client = redis.redis_clusters.get("default")
+    client.delete(_REDIS_CURSOR_KEY)
+
+
+@instrumented_task(
+    name="sentry.tasks.backfill_group_action_log.backfill_group_action_log_for_all_projects",
+    namespace=issues_tasks,
+    processing_deadline_duration=15 * 60,
+    silo_mode=SiloMode.CELL,
+)
+def backfill_group_action_log_for_all_projects(
+    reset: bool = False,
+    **kwargs: object,
+) -> None:
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(_COORDINATOR_TASK_KEY, activation_id):
+        logger.info(
+            "backfill_group_action_log.coordinator.duplicate_redelivery.skipped",
+            extra={"activation_id": activation_id},
+        )
+        metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _COORDINATOR_TASK_KEY})
+        return
+
+    if options.get("issues.backfill_group_action_log.coordinator_killswitch"):
+        logger.info("backfill_group_action_log.coordinator.killswitch_enabled")
+        return
+
+    batch_size: int = options.get("issues.backfill_group_action_log.coordinator_batch_size")
+    inter_batch_delay_s: int = options.get(
+        "issues.backfill_group_action_log.coordinator_inter_batch_delay_s"
+    )
+
+    last_project_id = _get_coordinator_cursor()
+
+    project_ids = list(
+        Project.objects.filter(
+            status=ObjectStatus.ACTIVE,
+            id__gt=last_project_id,
+        )
+        .order_by("id")
+        .values_list("id", flat=True)[:batch_size]
+    )
+
+    if not project_ids:
+        logger.info(
+            "backfill_group_action_log.coordinator.completed",
+            extra={"last_project_id": last_project_id},
+        )
+        _clear_coordinator_cursor()
+        return
+
+    for project_id in project_ids:
+        backfill_group_action_log_for_project.apply_async(
+            kwargs={"project_id": project_id, "reset": reset},
+            headers={"sentry-propagate-traces": False},
+        )
+
+    _set_coordinator_cursor(project_ids[-1])
+
+    metrics.incr(
+        "issues.backfill_group_action_log.coordinator.projects_dispatched",
+        amount=len(project_ids),
+    )
+
+    logger.info(
+        "backfill_group_action_log.coordinator.batch_dispatched",
+        extra={
+            "batch_size": len(project_ids),
+            "first_project_id": project_ids[0],
+            "last_project_id": project_ids[-1],
+            "reset": reset,
+        },
+    )
+
+    if len(project_ids) == batch_size:
+        backfill_group_action_log_for_all_projects.apply_async(
+            kwargs={"reset": reset},
+            countdown=inter_batch_delay_s,
+            headers={"sentry-propagate-traces": False},
+        )
+        if activation_id:
+            mark_spawned(_COORDINATOR_TASK_KEY, activation_id)
+    else:
+        logger.info(
+            "backfill_group_action_log.coordinator.completed",
+            extra={"last_project_id": project_ids[-1]},
+        )
+        _clear_coordinator_cursor()
