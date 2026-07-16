@@ -19,7 +19,9 @@ from sentry.models.pullrequest import (
 from sentry.pr_metrics.attribution import record_attribution_signal
 from sentry.pr_metrics.judge import (
     _MAX_FORWARDED_CHECK_ROWS,
+    _settle_stuck_judge_claim,
     forward_pr_to_seer_judge,
+    reap_stuck_judge_verdicts,
     update_pr_metrics,
 )
 from sentry.seer.sentry_data_models import (
@@ -439,6 +441,137 @@ class UpdatePrMetricsTest(TestCase):
             "merged_unchanged"
         )
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+
+@cell_silo_test
+class ReapStuckJudgeVerdictsTest(TestCase):
+    def setUp(self) -> None:
+        self.repo = self.create_repo(
+            self.project, name="getsentry/sentry", provider="integrations:github"
+        )
+        self.pull_request = self.create_pull_request(
+            repository_id=self.repo.id, organization_id=self.organization.id, key="42"
+        )
+        self.pull_request.update(head_commit_sha=HEAD_SHA)
+        record_attribution_signal(
+            pull_request=self.pull_request,
+            signal_type=PullRequestAttributionSignalType.SENTRY_APP,
+            source=PullRequestAttributionSource.WEBHOOK_DATA,
+        )
+
+    def _stick(
+        self, *, closed_at: datetime | None = None, merged_at: datetime | None = None
+    ) -> None:
+        self.pull_request.update(closed_at=closed_at, merged_at=merged_at)
+        PullRequestMetrics.objects.create(
+            pull_request=self.pull_request, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
+        )
+
+    @patch("sentry.analytics.record")
+    def test_settles_stuck_merged_pr_unchanged(self, mock_record: Any) -> None:
+        # GitHub sets both closed_at and merged_at on a merge.
+        merged_at = datetime.now(timezone.utc) - timedelta(hours=5)
+        self._stick(closed_at=merged_at, merged_at=merged_at)
+
+        reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_unchanged"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch("sentry.analytics.record")
+    def test_settles_stuck_merged_pr_with_iteration(self, mock_record: Any) -> None:
+        merged_at = datetime.now(timezone.utc) - timedelta(hours=5)
+        self._stick(closed_at=merged_at, merged_at=merged_at)
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="delivery-1",
+            event_type=PullRequestActivityType.SYNCHRONIZED,
+            payload={},
+        )
+
+        reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_with_iteration"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch("sentry.analytics.record")
+    def test_settles_stuck_closed_unmerged_pr(self, mock_record: Any) -> None:
+        self._stick(closed_at=datetime.now(timezone.utc) - timedelta(hours=5))
+
+        reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "closed_unmerged"
+        )
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+
+    @patch("sentry.analytics.record")
+    def test_leaves_recently_stuck_pr_alone(self, mock_record: Any) -> None:
+        # Within JUDGE_REAP_STUCK_AFTER: may still be legitimately in flight to Seer.
+        self._stick(closed_at=datetime.now(timezone.utc) - timedelta(hours=1))
+
+        reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "judge_in_progress"
+        )
+        assert mock_record.call_count == 0
+
+    @patch("sentry.analytics.record")
+    def test_leaves_pr_stuck_past_lookback_alone(self, mock_record: Any) -> None:
+        # Past JUDGE_REAP_LOOKBACK: left alone rather than resolved long after the fact.
+        self._stick(closed_at=datetime.now(timezone.utc) - timedelta(days=10))
+
+        reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "judge_in_progress"
+        )
+        assert mock_record.call_count == 0
+
+    @patch("sentry.analytics.record")
+    def test_releases_sentinel_for_reopened_pr(self, mock_record: Any) -> None:
+        # closed_at/merged_at both null: the PR was reopened after being claimed.
+        self._stick()
+
+        reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+        assert mock_record.call_count == 0
+
+    @patch("sentry.analytics.record")
+    def test_does_not_touch_rows_with_other_verdicts(self, mock_record: Any) -> None:
+        self.pull_request.update(closed_at=datetime.now(timezone.utc) - timedelta(hours=5))
+        PullRequestMetrics.objects.create(
+            pull_request=self.pull_request, verdict=PullRequestVerdict.MERGED_UNCHANGED
+        )
+
+        reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_unchanged"
+        )
+        assert mock_record.call_count == 0
+
+    @patch("sentry.analytics.record")
+    def test_settle_is_a_no_op_if_already_settled_concurrently(self, mock_record: Any) -> None:
+        # A very-late Seer callback landing first: the row is no longer
+        # JUDGE_IN_PROGRESS by the time the reaper's compare-and-set runs.
+        self.pull_request.update(closed_at=datetime.now(timezone.utc) - timedelta(hours=5))
+        PullRequestMetrics.objects.create(
+            pull_request=self.pull_request, verdict=PullRequestVerdict.MERGED_UNCHANGED
+        )
+
+        _settle_stuck_judge_claim(self.pull_request)
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
+            "merged_unchanged"
+        )
+        assert mock_record.call_count == 0
 
 
 @cell_silo_test
