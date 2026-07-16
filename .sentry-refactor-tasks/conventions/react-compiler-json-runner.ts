@@ -4,11 +4,14 @@ import {spawnSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import path from 'node:path';
 
+import ts from 'typescript';
+
 interface OxlintDiagnostic {
   filename: string;
   labels: Array<{
     span?: {
       line: number;
+      offset: number;
     };
     label?: string;
   }>;
@@ -81,10 +84,109 @@ try {
   process.exit(1);
 }
 
+// The convention scanner should only create application-code tasks. Oxlint's
+// own ignore configuration does not cover every test/fixture naming convention.
 const ignoredFile =
   /(?:^|\/)(?:__fixtures__|__mocks__|test)(?:\/|$)|\.(?:spec|test)\.[^.]+$/;
+
+// A labeled span points at the actionable expression. Diagnostics without a
+// labeled span (primarily analyzer failures) fall back to their first span.
+const diagnosticLabel = (diagnostic: OxlintDiagnostic) =>
+  diagnostic.labels.find(label => label.label) ?? diagnostic.labels[0];
 const diagnosticLine = (diagnostic: OxlintDiagnostic) =>
-  (diagnostic.labels.find(label => label.label) ?? diagnostic.labels[0])?.span?.line ?? 1;
+  diagnosticLabel(diagnostic)?.span?.line ?? 1;
+
+// Oxlint currently reports some impure calls in deferred callbacks as if they
+// ran during render. Parse each affected file once so those false positives can
+// be removed without weakening the other React Compiler categories.
+const sourceFiles = new Map<string, ts.SourceFile>();
+const deferredCallbacks = new Set([
+  'addEventListener',
+  'catch',
+  'debounce',
+  'finally',
+  'queueMicrotask',
+  'requestAnimationFrame',
+  'setInterval',
+  'setTimeout',
+  'subscribe',
+  'then',
+  'throttle',
+  'useEffect',
+  'useInsertionEffect',
+  'useLayoutEffect',
+]);
+
+function isDeferredPurityDiagnostic(diagnostic: OxlintDiagnostic): boolean {
+  const offset = diagnosticLabel(diagnostic)?.span?.offset;
+  if (offset === undefined) {
+    return false;
+  }
+
+  const filePath = path.resolve(repoPath, diagnostic.filename);
+  let sourceFile = sourceFiles.get(filePath);
+  if (!sourceFile) {
+    const source = readFileSync(filePath, 'utf8');
+    sourceFile = ts.createSourceFile(
+      filePath,
+      source,
+      ts.ScriptTarget.Latest,
+      true,
+      filePath.endsWith('x') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+    );
+    sourceFiles.set(filePath, sourceFile);
+  }
+
+  // Oxlint spans use UTF-8 byte offsets, while TypeScript nodes use UTF-16
+  // string offsets. Convert before locating the innermost containing node.
+  const sourceOffset = Buffer.from(sourceFile.text, 'utf8')
+    .subarray(0, offset)
+    .toString('utf8').length;
+  let nodeAtOffset: ts.Node = sourceFile;
+  function findNode(node: ts.Node) {
+    if (node.pos <= sourceOffset && sourceOffset < node.end) {
+      nodeAtOffset = node;
+      ts.forEachChild(node, findNode);
+    }
+  }
+  findNode(sourceFile);
+
+  for (let node: ts.Node | undefined = nodeAtOffset; node; node = node.parent) {
+    if (!ts.isFunctionLike(node)) {
+      continue;
+    }
+
+    const parent = node.parent;
+
+    // Event handlers may be declared as variables/functions, object methods,
+    // callback properties, or inline JSX attributes.
+    let callbackName: string | undefined;
+    if (ts.isPropertyAssignment(parent) || ts.isVariableDeclaration(parent)) {
+      callbackName = parent.name.getText(sourceFile);
+    } else if (ts.isMethodDeclaration(node) || ts.isFunctionDeclaration(node)) {
+      callbackName = node.name?.getText(sourceFile);
+    } else if (ts.isJsxAttribute(parent)) {
+      callbackName = parent.name.getText(sourceFile);
+    }
+    if (callbackName && /^(?:handle|on)[A-Z]/.test(callbackName)) {
+      return true;
+    }
+
+    // Also recognize anonymous callbacks passed to APIs that invoke them after
+    // render. useMemo is intentionally absent because its callback runs during
+    // render; useCallback is absent because calling the returned function during
+    // render is still a purity violation.
+    if (ts.isCallExpression(parent) && parent.arguments.includes(node as ts.Expression)) {
+      const callbackOwner = parent.expression.getText(sourceFile).split('.').at(-1);
+      if (callbackOwner && deferredCallbacks.has(callbackOwner)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 const locationKey = (filePath: string, line: number | undefined) =>
   `${path.resolve(repoPath, filePath)}:${line}`;
 const excludedLocations = new Set(
@@ -112,7 +214,8 @@ const diagnostics = output.diagnostics.filter(diagnostic => {
   return (
     messageCategory === category &&
     !ignoredFile.test(diagnostic.filename) &&
-    !excludedLocations.has(locationKey(diagnostic.filename, line))
+    !excludedLocations.has(locationKey(diagnostic.filename, line)) &&
+    !(category === 'Purity' && isDeferredPurityDiagnostic(diagnostic))
   );
 });
 
