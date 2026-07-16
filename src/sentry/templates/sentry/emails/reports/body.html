@@ -152,6 +152,7 @@
       text-overflow: ellipsis;
       white-space: nowrap;
       overflow: hidden;
+      max-height: 1.2em;
       font-size: 14px;
       color: #80708F;
       line-height: 1.2;
@@ -231,9 +232,7 @@
       <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 6px; vertical-align: middle; background-color: {{ trends.issue_pct_change.bg_color }}; color: {{ trends.issue_pct_change.text_color }};">{{ trends.issue_pct_change.arrow }}&nbsp;{{ trends.issue_pct_change.pct }}</span>
       {% endif %}
     </h1>
-    {% url 'sentry-organization-issue-list' organization.slug as issue_list %}
-    {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
-    <a href="{% org_url organization issue_list query=query %}"
+    <a href="{{ view_all_issues_url }}"
        style="font-size: 12px; margin-bottom: 16px; display: block; font-weight: bold;">View All Issues</a>
 
     <table class="graph">
@@ -319,16 +318,16 @@
       <tbody>
       {% for project in trends.legend %}
         <tr>
-          <td>
+          <td style="vertical-align: middle;">
               {% if project.color %}<span style="background: {{ project.color }}; display: inline-block; height: 1em; width: 1em;">&nbsp;</span>{% endif %}
           </td>
-          <td style="font-weight: 700;">
+          <td style="font-weight: 700; vertical-align: middle;">
               {% if project.url %}<a href="{{ project.url }}" style="font-weight: 700;">{% endif %}{{ project.slug }}{% if project.url %}</a>{% endif %}
           </td>
-          <td class="numeric" style="text-align: right; color: #4674ca;">{{ project.accepted_error_count|small_count:1 }}</td>
-          <td class="numeric" style="text-align: right; color: #4674ca;">{{ project.new_substatus_count|small_count:1 }}</td>
-          <td class="numeric" style="text-align: right; color: #4674ca;">{{ project.escalating_substatus_count|small_count:1 }}</td>
-          <td class="numeric" style="text-align: right; color: #4674ca;">{{ project.regression_substatus_count|small_count:1 }}</td>
+          <td class="numeric" style="text-align: right;">{{ project.accepted_error_count|small_count:1 }}</td>
+          <td class="numeric" style="text-align: right;">{% if project.new_substatus_url %}<a href="{{ project.new_substatus_url }}" style="color: #4674ca;">{% endif %}{{ project.new_substatus_count|small_count:1 }}{% if project.new_substatus_url %}</a>{% endif %}</td>
+          <td class="numeric" style="text-align: right;">{% if project.escalating_substatus_url %}<a href="{{ project.escalating_substatus_url }}" style="color: #4674ca;">{% endif %}{{ project.escalating_substatus_count|small_count:1 }}{% if project.escalating_substatus_url %}</a>{% endif %}</td>
+          <td class="numeric" style="text-align: right;">{% if project.regression_substatus_url %}<a href="{{ project.regression_substatus_url }}" style="color: #4674ca;">{% endif %}{{ project.regression_substatus_count|small_count:1 }}{% if project.regression_substatus_url %}</a>{% endif %}</td>
         </tr>
       {% endfor %}
       </tbody>
@@ -370,6 +369,13 @@
     </table>
     {% endif %}
 
+    {% if notification_settings_link and user_project_count > 5 %}
+    <div style="padding: 16px 16px 12px; margin: 16px 0 16px; background-color: #f8f8f9; border-radius: 4px; font-size: 14px; color: #80708F;">
+      Want to choose the projects you see in the weekly report? <a href="{% absolute_uri notification_settings_link %}">Customize your project preferences here!</a>
+    </div>
+    {% endif %}
+
+
     {% if issue_summary.total_substatus_count > 0 %}
     <table class="issue-breakdown">
       <tr class="mobile-full-width">
@@ -409,7 +415,7 @@
   </div>
 
   {% if enhanced_privacy %}
-  <div style="padding: 16px; margin: 16px 0; background-color: #f5f3f7; border-radius: 4px; font-size: 14px;">
+  <div style="padding: 16px; margin: 16px 0; background-color: #f8f8f9; border-radius: 4px; font-size: 14px;">
     Details about specific issues and transactions are not shown in this report since enhanced privacy
     controls are enabled. For more details,
     {% url 'sentry-organization-issue-list' organization.slug as issue_list %}
@@ -461,26 +467,11 @@
   </div>
   {% endif %}
 
-  {% if notification_settings_link %}
-  <div style="padding: 12px 16px; margin: 16px 0; background-color: #F5F3F7; border-radius: 4px; font-size: 14px; color: #80708F;">
-    Want to choose the projects you see in the weekly report? <a href="{% absolute_uri notification_settings_link %}">Customize your project preferences here!</a>
-  </div>
-  {% endif %}
-
 </div>
 {% endblock %}
 
 {% block footer %}
   <a href="{% absolute_uri %}" style="float:right">Home</a>
 
-  {% if notification_settings_link %}
   <a href="{% absolute_uri notification_settings_link %}">Notification Settings</a>
-  {% else %}
-  {% url 'sentry-account-settings-notifications' as settings_link %}
-  <a href="{% absolute_uri settings_link %}">Notification Settings</a>
-  {% endif %}
-
-  {% if notification_settings_link %}
-  &middot; <a href="{% absolute_uri notification_settings_link %}">Customize projects in weekly report</a>
-  {% endif %}
 {% endblock %}

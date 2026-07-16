@@ -56,7 +56,7 @@ _action_context: ContextVar[ActionContext | None] = ContextVar("action_context",
 
 
 @contextmanager
-def action_context_scope(source: str, actor: GroupActionActor) -> Generator[None]:
+def action_context_scope(source: str, actor: GroupActionActor = SYSTEM_ACTOR) -> Generator[None]:
     """
     Set action attribution context for the duration of a block. Must be set before
     any code path that calls publish_action_from_context().
