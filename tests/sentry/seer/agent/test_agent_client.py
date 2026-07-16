@@ -7,6 +7,7 @@ from django.test import override_settings
 from django.utils import timezone
 from pydantic import BaseModel
 
+from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.rpc.service import RpcException
@@ -1758,6 +1759,130 @@ class TestGetMonitoringProviderConnections(TestCase):
 
         assert len(result) == 3
         mock_encrypt.assert_called_once_with("gcp-token")
+
+    def _create_org_datadog_integration(self, site: str = "datadoghq.com") -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="datadog",
+            external_id="dd-org-uuid",
+            name=f"Datadog ({site})",
+            metadata={"api_key": "org-api-key", "app_key": "org-app-key", "site": site},
+        )
+
+    def test_org_datadog_connection_when_user_has_no_personal(self) -> None:
+        self._create_org_datadog_integration()
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert len(result) == 1
+        conn = result[0]
+        assert conn["provider_key"] == "datadog"
+        assert conn["url"] == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
+        assert conn["identity_id"] is None
+        assert conn["auth_method"] == "api_key"
+        assert conn["refreshable"] is False
+        assert conn["encrypted_access_token"] is None
+
+        fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
+        headers = conn["encrypted_auth_headers"]
+        assert fernet.decrypt(headers["DD-API-KEY"].encode()).decode() == "org-api-key"
+        assert fernet.decrypt(headers["DD-APPLICATION-KEY"].encode()).decode() == "org-app-key"
+
+    def test_personal_datadog_overrides_org(self) -> None:
+        self._create_org_datadog_integration()
+        idp = self.create_identity_provider(type="datadog", external_id="org-1")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-user-1",
+            data={"access_token": "personal-token", "site": "datadoghq.com"},
+        )
+        self.create_organization_identity(organization=self.organization, identity=identity)
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert len(result) == 1
+        conn = result[0]
+        assert conn["identity_id"] == identity.id
+        assert conn["auth_method"] == "oauth"
+        assert conn["encrypted_auth_headers"] is None
+
+    def test_personal_datadog_pat_overrides_org(self) -> None:
+        self._create_org_datadog_integration()
+        idp = self.create_identity_provider(type="datadog_pat", external_id="org-1")
+        identity = self.create_identity(
+            user=self.user,
+            identity_provider=idp,
+            external_id="dd-pat-user-1",
+            data={"access_token": "personal-pat-token", "site": "datadoghq.com"},
+        )
+        self.create_organization_identity(organization=self.organization, identity=identity)
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert len(result) == 1
+        conn = result[0]
+        assert conn["identity_id"] == identity.id
+        assert conn["auth_method"] == "pat"
+        assert conn["encrypted_auth_headers"] is None
+
+    def test_org_datadog_kept_when_personal_is_different_family(self) -> None:
+        self._create_org_datadog_integration()
+        gcp_idp = self.create_identity_provider(type="gcp", external_id="")
+        gcp_identity = self.create_identity(
+            user=self.user,
+            identity_provider=gcp_idp,
+            external_id="gcp-user-1",
+            data={"access_token": "gcp-token"},
+        )
+        self.create_organization_identity(organization=self.organization, identity=gcp_identity)
+
+        result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert {c["provider_key"] for c in result} == {"gcp", "datadog"}
+        dd_connections = [c for c in result if c["provider_key"] == "datadog"]
+        assert len(dd_connections) == 1
+        assert dd_connections[0]["identity_id"] is None
+
+    def test_org_datadog_connection_ignores_non_active_integration(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="datadog",
+            external_id="dd-org-uuid",
+            name="Datadog",
+            metadata={"api_key": "org-api-key", "app_key": "org-app-key", "site": "datadoghq.com"},
+            status=ObjectStatus.DISABLED,
+        )
+
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_datadog_connection_for_no_user_run(self) -> None:
+        self._create_org_datadog_integration()
+
+        result = get_monitoring_provider_connections(self.organization, None)
+
+        assert len(result) == 1
+        assert result[0]["provider_key"] == "datadog"
+        assert result[0]["identity_id"] is None
+        assert result[0]["refreshable"] is False
+
+    def test_no_connections_for_no_user_run_without_org_integration(self) -> None:
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_integration_with_corrupt_metadata_is_skipped_and_logged(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="datadog",
+            external_id="dd-org-uuid",
+            name="Datadog",
+            metadata={"api_key": "org-api-key", "site": "datadoghq.com"},
+        )
+
+        with self.assertLogs("sentry.integrations.datadog.integration", level="ERROR") as logs:
+            result = get_monitoring_provider_connections(self.organization, self.user.id)
+
+        assert result == []
+        assert any("datadog_integration_invalid" in line for line in logs.output)
 
 
 @with_feature("organizations:seer-infra-telemetry")
