@@ -3,6 +3,7 @@ import type {ComponentType, ReactNode} from 'react';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import {isSafeHref} from 'sentry/utils/marked/marked';
 
 export function ResourceLink({
   icon: Icon,
@@ -13,6 +14,10 @@ export function ResourceLink({
   icon: ComponentType<SVGIconProps>;
   title: string;
 }): ReactNode {
+  if (!href.startsWith('/') && !isSafeHref(href)) {
+    return null;
+  }
+
   const icon = <Icon size="xs" style={{verticalAlign: 'middle'}} />;
 
   if (/^https?:\/\//.test(href)) {
@@ -25,7 +30,7 @@ export function ResourceLink({
         );
       }
     } catch {
-      /* noop */
+      return null;
     }
   }
 
