@@ -4,7 +4,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {useFormTypingAnimation} from 'sentry/components/forms/useFormTypingAnimation';
@@ -153,7 +153,7 @@ export function CreateIssueViewModal({
             </Alert>
           </Alert.Container>
         )}
-        <Flex direction="column" gap="xl">
+        <Stack gap="xl">
           <form.AppField name="name">
             {field => (
               <field.Layout.Stack label={t('Name')} required>
@@ -175,12 +175,12 @@ export function CreateIssueViewModal({
           </form.AppField>
           <form.AppField name="starred">
             {field => (
-              <field.Layout.Row label={t('Starred')}>
+              <field.Layout.Stack label={t('Starred')}>
                 <field.Switch checked={field.state.value} onChange={field.handleChange} />
-              </field.Layout.Row>
+              </field.Layout.Stack>
             )}
           </form.AppField>
-        </Flex>
+        </Stack>
       </Body>
 
       <Footer>
