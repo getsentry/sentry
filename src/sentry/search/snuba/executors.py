@@ -110,11 +110,9 @@ class PostgresSortStrategy:
     # Snuba recommended value) so it still appears, just without the boosts score_fn adds.
     fallback_score_fn: Callable[[dict[str, Any]], float] = lambda data: 0.0
     exclude_null_postgres: bool = True
-    # Optional cap-free path: given the candidate queryset, return (queryset, order_by_key)
-    # for a native Postgres ORDER BY so the sort can page past the in-memory candidate cap.
-    # Only usable when the score can be reproduced as SQL and the query has no Snuba-side
-    # filters (the ordering columns must live in Postgres). Left None for Snuba-blended
-    # strategies like recommended_v2, which have no all-Postgres ordering.
+    # Optional cap-free path: return (queryset, order_by_key) for a native Postgres ORDER BY
+    # so the sort can page past the in-memory candidate cap. None for Snuba-blended strategies
+    # (e.g. recommended_v2) whose ordering can't be expressed entirely in Postgres.
     native_order_by: Callable[[BaseQuerySet], tuple[BaseQuerySet, str]] | None = None
 
 
@@ -1128,57 +1126,45 @@ def _resolve_last_progressed_at(
 
 
 def _has_derived_progress(actor: Any | None, projects: Sequence[Project]) -> bool:
-    """Whether progress should be read from the materialized GroupDerivedData columns
-    (rather than the Activity derivation) for every project in scope. The native ORDER BY
-    and both signal resolvers gate on this: the SQL score only matches the in-memory score
-    when the derived columns are the source of truth."""
+    """Whether every project in scope reads progress from the materialized GroupDerivedData
+    columns rather than the Activity derivation. The native ORDER BY and both signal resolvers
+    gate on this: the SQL score only matches the in-memory score when the columns are the
+    source of truth."""
     return bool(projects) and all(
         features.has("projects:issue-stream-derived-progress", project, actor=actor)
         for project in projects
     )
 
 
-# SQL for the progress sort score, matching progress_strategy().score_fn but computed in
-# Postgres so the sort can ORDER BY it natively (no in-memory candidate cap). The primary
-# term is the fix-cycle rank scaled by LAST_SEEN_TIEBREAK_DIVISOR; the secondary term is
-# last_progressed_at's epoch-ms (falling back to last_seen's), which is < the divisor, so
-# rank stays the primary key and the timestamp only breaks ties. Kept an integer so the
-# stock cursor Paginator (which floors the cursor value) pages it exactly.
-_PROGRESS_SORT_SCORE_SQL = (
-    "((CASE"
-    " WHEN {gdd}.group_id IS NULL THEN %s"  # no derived row -> identified
-    " WHEN {gdd}.progress IS NULL THEN %s"  # null column (closed) -> fix_applied
-    "{when_states}"
-    " ELSE %s"  # unknown string -> identified base
-    " END) * {divisor}"
-    " + CASE"
-    " WHEN {gdd}.last_progressed_at IS NOT NULL"
-    " THEN EXTRACT(EPOCH FROM {gdd}.last_progressed_at) * 1000"
-    " ELSE EXTRACT(EPOCH FROM {grp}.last_seen) * 1000"
-    " END)"
-)
-
-
 def _progress_native_order_by(queryset: BaseQuerySet) -> tuple[BaseQuerySet, str]:
-    """Attach the progress sort score as an ``.extra(select=)`` alias and return the
-    queryset + order-by key. ``.extra`` (not ``.annotate``) is required so the cursor
-    Paginator can reuse the alias SQL in its WHERE clause (see BasePaginator.build_queryset).
-    A LEFT OUTER JOIN to GroupDerivedData is forced via the reverse relation so groups with
-    no derived row still score (as identified)."""
+    """SQL reproduction of progress_strategy().score_fn, attached so the sort can ORDER BY it
+    natively (no in-memory candidate cap). Score is ``rank * LAST_SEEN_TIEBREAK_DIVISOR +
+    tiebreak_epoch_ms``, kept integer so the cursor Paginator (which floors cursor values)
+    pages it exactly. Uses ``.extra`` not ``.annotate`` so the Paginator can reuse the alias
+    SQL in its cursor WHERE clause (see BasePaginator.build_queryset)."""
+    gdd = GroupDerivedData._meta.db_table
     identified = PROGRESS_STATE_SORT_RANK[IssueProgressState.IDENTIFIED]
     fix_applied = PROGRESS_STATE_SORT_RANK[IssueProgressState.FIX_APPLIED]
+
     when_states = ""
     params: list[Any] = [identified, fix_applied]
     for state, rank in PROGRESS_STATE_SORT_RANK.items():
-        when_states += f" WHEN {GroupDerivedData._meta.db_table}.progress = %s THEN %s"
+        when_states += f" WHEN {gdd}.progress = %s THEN %s"
         params.extend([state.value, rank])
     params.append(identified)
 
-    sql = _PROGRESS_SORT_SCORE_SQL.format(
-        gdd=GroupDerivedData._meta.db_table,
-        grp=Group._meta.db_table,
-        when_states=when_states,
-        divisor=LAST_SEEN_TIEBREAK_DIVISOR,
+    sql = (
+        "((CASE"
+        f" WHEN {gdd}.group_id IS NULL THEN %s"  # no derived row -> identified
+        f" WHEN {gdd}.progress IS NULL THEN %s"  # null column (closed) -> fix_applied
+        f"{when_states}"
+        " ELSE %s"  # unknown string -> identified
+        f" END) * {LAST_SEEN_TIEBREAK_DIVISOR}"
+        " + CASE"
+        f" WHEN {gdd}.last_progressed_at IS NOT NULL"
+        f" THEN EXTRACT(EPOCH FROM {gdd}.last_progressed_at) * 1000"
+        f" ELSE EXTRACT(EPOCH FROM {Group._meta.db_table}.last_seen) * 1000"
+        " END)"
     )
     # F() on the nullable reverse OneToOne forces the LEFT OUTER JOIN the raw SQL relies on.
     queryset = queryset.annotate(_gdd_join=F("groupderiveddata__progress")).extra(
@@ -1318,11 +1304,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             sf.key.name not in non_snuba_fields for sf in (search_filters or ())
         )
 
-        # Cap-free path: when the strategy can express its ordering entirely in Postgres and
-        # the query has no Snuba-side filters, ORDER BY the score natively and page it with a
-        # cursor paginator instead of scoring in memory. This lifts the max-candidates cap for
-        # the common issue-stream queries (no event-level filters), so the sort stays correct
-        # past the point where the in-memory path degrades to a plain last_seen sort.
+        # Cap-free path: when the strategy can order entirely in Postgres and the query has no
+        # Snuba-side filters, ORDER BY the score natively instead of scoring candidates in
+        # memory. Lifts the max-candidates cap for the common issue-stream case, past which the
+        # in-memory path degrades to a plain last_seen sort.
         if (
             strategy.native_order_by is not None
             and not has_snuba_filters
@@ -1332,8 +1317,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 op="search.postgres_sort.native_order_by",
                 name="search.postgres_sort.native_order_by",
             ):
-                # Skipping Snuba means we must apply the upper window bound ourselves; the
-                # in-memory path below gets it from Snuba's event window instead.
+                # Skipping Snuba means we apply the upper window bound ourselves.
                 ordered_queryset, order_by = strategy.native_order_by(
                     group_queryset.filter(last_seen__lte=end)
                 )
