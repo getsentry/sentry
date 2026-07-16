@@ -712,7 +712,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert send_robust.called
 
     def test_cached_resolved_group_only_records_one_regression(self) -> None:
-        """A stale RESOLVED group must not repeat its regression activity."""
+        """After one worker regresses a stored RESOLVED group, a second worker holding
+        the old cached state cannot create another regression activity.
+        """
         initial_timestamp = before_now(minutes=5)
         regression_timestamp = initial_timestamp + timedelta(minutes=1)
 
@@ -750,7 +752,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
 
     def test_cached_inactive_group_only_records_one_regression(self) -> None:
-        """An inactive UNRESOLVED row must only be claimed once before RESOLVED is stored."""
+        """One worker regresses a group still stored as UNRESOLVED after its project
+        inactivity window elapses; a second worker holding the old cached state cannot
+        create another activity.
+        """
         self.project.update_option("sentry:resolve_age", 1)
         regression_timestamp = timezone.now()
         event = EventManager(
