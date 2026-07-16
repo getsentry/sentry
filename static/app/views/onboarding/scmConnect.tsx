@@ -5,13 +5,13 @@ import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {ScmIntegrationConnect} from 'sentry/components/onboarding/scm/scmIntegrationConnect';
+import {ScmStepHeader} from 'sentry/components/onboarding/scm/scmStepHeader';
+import {useScmProviders} from 'sentry/components/onboarding/scm/useScmProviders';
 import {IconCheckmark, IconClose, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 
-import {ScmIntegrationConnect} from './components/scmIntegrationConnect';
-import {ScmStepHeader} from './components/scmStepHeader';
-import {useScmProviders} from './components/useScmProviders';
 import {SCM_STEP_CONTENT_WIDTH} from './consts';
 import type {StepProps} from './types';
 
