@@ -236,6 +236,11 @@ TIMESTAMP_PRECISE_ALIAS = "timestamp_precise"
 TIMESTAMP_ALIAS = "timestamp"
 TRACE_ALIAS = "trace"
 
+# Trace metric public aliases.
+METRIC_NAME_ALIAS = "metric.name"
+METRIC_TYPE_ALIAS = "metric.type"
+METRIC_UNIT_ALIAS = "metric.unit"
+
 ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP = {
     "number": AttributeKey.Type.TYPE_DOUBLE,
     "boolean": AttributeKey.Type.TYPE_BOOLEAN,
