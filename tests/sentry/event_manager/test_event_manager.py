@@ -33,6 +33,7 @@ from sentry.dynamic_sampling import (
 from sentry.event_manager import (
     EventManager,
     _get_event_instance,
+    _handle_regression,
     get_event_type,
     has_pending_commit_resolution,
     materialize_metadata,
@@ -709,6 +710,60 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         group = Group.objects.get(id=group.id)
         assert not group.is_resolved()
         assert send_robust.called
+
+    def test_cached_resolved_group_only_records_one_regression(self) -> None:
+        """A worker holding a stale RESOLVED group must not repeat its regression activity."""
+        initial_timestamp = before_now(minutes=5)
+        first_regression_timestamp = initial_timestamp + timedelta(minutes=1)
+        second_regression_timestamp = first_regression_timestamp + timedelta(seconds=6)
+
+        event = EventManager(
+            make_event(
+                event_id="a" * 32,
+                checksum="a" * 32,
+                timestamp=initial_timestamp.isoformat(),
+            )
+        ).save(self.project.id)
+
+        assert event.group_id is not None
+        group = Group.objects.get(id=event.group_id)
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.save(update_fields=["status", "substatus"])
+
+        stale_group = Group.objects.get_from_cache(id=group.id)
+        assert stale_group.status == GroupStatus.RESOLVED
+
+        first_regression = EventManager(
+            make_event(
+                event_id="b" * 32,
+                checksum="a" * 32,
+                timestamp=first_regression_timestamp.isoformat(),
+            )
+        ).save(self.project.id)
+        assert first_regression.group_id == group.id
+        assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
+        assert Group.objects.get_from_cache(id=group.id).status == GroupStatus.UNRESOLVED
+
+        second_manager = EventManager(
+            make_event(
+                event_id="c" * 32,
+                checksum="a" * 32,
+                timestamp=second_regression_timestamp.isoformat(),
+            )
+        )
+        second_manager.normalize(project_id=self.project.id)
+        second_event = _get_event_instance(second_manager.get_data(), self.project.id)
+
+        assert not _handle_regression(stale_group, second_event, release=None)
+
+        assert (
+            Activity.objects.filter(
+                group_id=group.id,
+                type=ActivityType.SET_REGRESSION.value,
+            ).count()
+            == 1
+        )
 
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     def test_marks_as_unresolved_with_new_release(

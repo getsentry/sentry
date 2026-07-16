@@ -1721,6 +1721,9 @@ def _handle_regression(
             # ensure we can't update things if the status has been set to
             # ignored
             status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
+            # Treat active_at as an optimistic lock so a worker holding a stale
+            # cached group cannot record the same regression again.
+            active_at=group.active_at,
         )
         .exclude(
             # add to the regression window to account for races here
