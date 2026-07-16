@@ -55,16 +55,17 @@ nothing, so it is safe to pass a status derived from any message.
 
 ## Labels
 
-Each status carries a default tooltip and accessible label. Override it with the
-`label` prop when the surrounding context needs more specific wording.
+Each status carries a default accessible label, exposed to assistive tech via the
+glyph's `aria-label`. Override it with the `aria-label` prop when the surrounding
+context needs more specific wording.
 
 <Storybook.Demo>
   <Flex align="center" gap="sm">
-    <ToolCallIndicator status="failure" label="Search returned no results" />
+    <ToolCallIndicator status="failure" aria-label="Search returned no results" />
     <Text variant="muted">Custom label</Text>
   </Flex>
 </Storybook.Demo>
 
 ```jsx
-<ToolCallIndicator status="failure" label="Search returned no results" />
+<ToolCallIndicator status="failure" aria-label="Search returned no results" />
 ```
