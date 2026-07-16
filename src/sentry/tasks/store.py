@@ -130,7 +130,9 @@ def _do_preprocess_event(
     has_attachments: bool = False,
     inline_save_event: bool = False,
 ) -> None:
+    from sentry.lang.native.utils import is_gpu_crash_event
     from sentry.stacktraces.processing import find_stacktraces_in_data
+    from sentry.tasks.gpu_crash import submit_symbolicate_gpu_crash
     from sentry.tasks.symbolication import (
         submit_symbolicate,
     )
@@ -174,6 +176,22 @@ def _do_preprocess_event(
     )
 
     should_symbolicate = len(symbolicate_functions) > 0
+
+    # A GPU crash dump is its own native event (Relay split it off the minidump
+    # upload) carrying only the `.nv-gpudmp` — no CPU crash report. Route it to
+    # teapot in a dedicated isolated task before symbolication/save, so a slow
+    # teapot can never back up CPU symbolication. The no-crash-report check keeps
+    # us from hijacking a CPU minidump event when the org hasn't opted into the
+    # Relay-side split; `has_attachments` short-circuits the common path cheaply.
+    if has_attachments and is_gpu_crash_event(data):
+        submit_symbolicate_gpu_crash(
+            cache_key=cache_key,
+            event_id=event_id,
+            start_time=start_time,
+            has_attachments=has_attachments,
+            from_reprocessing=from_reprocessing,
+        )
+        return
     if should_symbolicate:
         symbolication_function = symbolicate_functions.pop(0)
         symbolication_function_name = getattr(symbolication_function.function(), "__name__", "none")
