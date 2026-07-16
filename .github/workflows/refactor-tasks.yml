@@ -31,7 +31,7 @@ jobs:
 
       - name: Scan and report
         env:
-          # Project that receives the findings (was .sentry-refactor-tasks/repo.yaml).
+          # Project that receives the findings.
           SENTRY_DSN: ${{ secrets.SENTRY_REFACTOR_TASKS_DSN }}
           # Inference backend: OpenRouter is used automatically when the key is set.
           OPENROUTER_API_KEY: ${{ secrets.REFACTOR_TASKS_OPENROUTER_API_KEY }}
