@@ -27,7 +27,7 @@ import * as performanceForSentry from 'sentry/utils/performanceForSentry';
 setLocale(DEFAULT_LOCALE_DATA);
 
 /**
- * Setup fetch mocks (needed to define the `Request` global)
+ * Enable fetch mocks and provide fetch primitives missing from jsdom.
  */
 enableFetchMocks();
 
