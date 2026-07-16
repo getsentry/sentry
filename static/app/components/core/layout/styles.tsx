@@ -61,52 +61,42 @@ export function rc<T>(
   let first = true;
   const declarations: string[] = [];
 
-  // `order` and `sizes` share one key type, so a breakpoint listed in `order`
-  // is guaranteed a `sizes` entry — a future divergence fails typecheck instead
-  // of emitting `min-width: undefined`.
-  const emit = <K extends ResponsiveBreakpoint>(axisConfig: {
-    atRule: '@container' | '@media';
-    order: readonly K[];
-    prefix: '' | 'screen:';
-    sizes: Record<K, string>;
-  }) => {
-    const {order, prefix, sizes, atRule} = axisConfig;
-    for (const breakpoint of order) {
-      const key = `${prefix}${breakpoint}`;
-      const v = (value as Partial<Record<string, T>>)[key];
-      const resolvedValue = resolver ? resolver(v, breakpoint, theme) : v;
+  // `propKey` is read straight from the prop as the consumer wrote it (bare for
+  // the container axis, `screen:`-prefixed for the viewport axis). `breakpoint`
+  // is the bare token handed to the resolver and used for the min-width lookup.
+  const emit = (
+    propKey: string,
+    breakpoint: ResponsiveBreakpoint,
+    atRule: '@container' | '@media',
+    size: string
+  ) => {
+    const v = (value as Partial<Record<string, T>>)[propKey];
+    const resolvedValue = resolver ? resolver(v, breakpoint, theme) : v;
 
-      // A resolver can return undefined to indicate that the value should be omitted.
-      if (resolvedValue === undefined) {
-        continue;
-      }
-
-      if (first) {
-        first = false;
-        declarations.push(`${property}: ${resolvedValue as string};`);
-        continue;
-      }
-
-      declarations.push(
-        `${atRule} (min-width: ${sizes[breakpoint]}) {
-          ${property}: ${resolvedValue as string};
-        }`
-      );
+    // A resolver can return undefined to indicate that the value should be omitted.
+    if (resolvedValue === undefined) {
+      return;
     }
+
+    if (first) {
+      first = false;
+      declarations.push(`${property}: ${resolvedValue as string};`);
+      return;
+    }
+
+    declarations.push(
+      `${atRule} (min-width: ${size}) {
+        ${property}: ${resolvedValue as string};
+      }`
+    );
   };
 
-  emit({
-    atRule: '@container',
-    order: CONTAINER_ORDER,
-    prefix: '',
-    sizes: theme.containers,
-  });
-  emit({
-    atRule: '@media',
-    order: VIEWPORT_ORDER,
-    prefix: 'screen:',
-    sizes: theme.breakpoints,
-  });
+  for (const breakpoint of CONTAINER_ORDER) {
+    emit(breakpoint, breakpoint, '@container', theme.containers[breakpoint]);
+  }
+  for (const {key, token} of VIEWPORT_ORDER) {
+    emit(key, token, '@media', theme.breakpoints[token]);
+  }
 
   return declarations.join('');
 }
@@ -127,15 +117,17 @@ const CONTAINER_ORDER: readonly ContainerBreakpointSize[] = [
   '5xl',
 ];
 
-// The viewport scale (`screen:`-prefixed keys) — resolved against `theme.breakpoints`.
-const VIEWPORT_ORDER: readonly BreakpointSize[] = [
-  '2xs',
-  'xs',
-  'sm',
-  'md',
-  'lg',
-  'xl',
-  '2xl',
+// The viewport scale — resolved against `theme.breakpoints`. `key` is the
+// `screen:`-prefixed prop key as consumers write it (defined once here rather
+// than concatenated at runtime); `token` is the bare `theme.breakpoints` name.
+const VIEWPORT_ORDER: ReadonlyArray<{key: ScreenBreakpoint; token: BreakpointSize}> = [
+  {key: 'screen:2xs', token: '2xs'},
+  {key: 'screen:xs', token: 'xs'},
+  {key: 'screen:sm', token: 'sm'},
+  {key: 'screen:md', token: 'md'},
+  {key: 'screen:lg', token: 'lg'},
+  {key: 'screen:xl', token: 'xl'},
+  {key: 'screen:2xl', token: '2xl'},
 ];
 
 type Margin = SpaceSize | 'auto' | '0';
@@ -326,22 +318,19 @@ export function useResponsivePropValue<T extends Responsive<any>>(
   // breakpoint (`theme.containers` scale), `screen:` keys against the viewport
   // (`theme.breakpoints` scale). Whichever axis is emitted later wins a tie.
   const containerIndex = CONTAINER_ORDER.indexOf(containerBreakpoint);
-  const viewportIndex = VIEWPORT_ORDER.indexOf(viewportBreakpoint);
+  const viewportIndex = VIEWPORT_ORDER.findIndex(e => e.token === viewportBreakpoint);
 
   let resolved: ResponsiveValue<T> | undefined;
   let first = true;
 
-  const cascade = (
-    axis: 'container' | 'viewport',
-    order: readonly ResponsiveBreakpoint[],
-    activeIndex: number
-  ) => {
-    for (let i = 0; i < order.length; i++) {
-      const breakpoint = order[i];
-      if (breakpoint === undefined) {
+  // Read each axis with the same prop keys rc() emits — bare for the container
+  // axis, `screen:`-prefixed for the viewport axis.
+  const cascade = (keys: readonly string[], activeIndex: number) => {
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      if (key === undefined) {
         continue;
       }
-      const key = axis === 'container' ? breakpoint : `screen:${breakpoint}`;
       const value = (prop as Partial<Record<string, ResponsiveValue<T>>>)[key];
       if (value === undefined) {
         continue;
@@ -356,8 +345,11 @@ export function useResponsivePropValue<T extends Responsive<any>>(
     }
   };
 
-  cascade('container', CONTAINER_ORDER, containerIndex);
-  cascade('viewport', VIEWPORT_ORDER, viewportIndex);
+  cascade(CONTAINER_ORDER, containerIndex);
+  cascade(
+    VIEWPORT_ORDER.map(e => e.key),
+    viewportIndex
+  );
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   return resolved!;
@@ -375,15 +367,15 @@ export function useActiveBreakpoint(): BreakpointSize {
 
     // Iterate in reverse so that we always find the largest breakpoint
     for (let i = VIEWPORT_ORDER.length - 1; i >= 0; i--) {
-      const bp = VIEWPORT_ORDER[i];
+      const entry = VIEWPORT_ORDER[i];
 
-      if (bp === undefined) {
+      if (entry === undefined) {
         continue;
       }
 
       queries.push({
-        breakpoint: bp,
-        query: window.matchMedia(`(min-width: ${theme.breakpoints[bp]})`),
+        breakpoint: entry.token,
+        query: window.matchMedia(`(min-width: ${theme.breakpoints[entry.token]})`),
       });
     }
 
