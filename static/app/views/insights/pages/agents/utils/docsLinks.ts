@@ -6,11 +6,19 @@ export const AI_INSTRUMENTATION_DOCS_LINKS = {
 } as const;
 
 /**
+ * Platform-agnostic AI agents overview. Used as the fallback when a platform
+ * has no SDK-specific instrumentation guide (e.g. PHP) rather than sending
+ * users to a guide for the wrong language.
+ */
+export const AI_AGENTS_GETTING_STARTED_DOCS_LINK =
+  'https://docs.sentry.io/product/insights/ai/agents/getting-started/';
+
+/**
  * Resolves the AI agents instrumentation docs link, which document how to
  * capture agent inputs and outputs. Accepts either a project platform
  * (e.g. `javascript-react`, `node`, `bun`, `deno`) or an SDK language
- * (`javascript`, `python`), and defaults to the Python guide when it can't
- * be matched.
+ * (`javascript`, `python`). Platforms without a dedicated guide fall back to
+ * the platform-agnostic getting-started page.
  */
 export function getAiInstrumentationDocsLink(platformOrLanguage?: string): string {
   if (
@@ -21,5 +29,8 @@ export function getAiInstrumentationDocsLink(platformOrLanguage?: string): strin
   ) {
     return AI_INSTRUMENTATION_DOCS_LINKS.javascript;
   }
-  return AI_INSTRUMENTATION_DOCS_LINKS.python;
+  if (platformOrLanguage?.startsWith('python')) {
+    return AI_INSTRUMENTATION_DOCS_LINKS.python;
+  }
+  return AI_AGENTS_GETTING_STARTED_DOCS_LINK;
 }
