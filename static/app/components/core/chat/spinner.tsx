@@ -1,9 +1,9 @@
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
-type SpinnerSize = 'xs' | 'sm' | 'md' | 'lg';
+type Size = 'xs' | 'sm' | 'md' | 'lg';
 
-const SPINNER_SIZES: Record<SpinnerSize, number> = {
+const SIZES: Record<Size, number> = {
   xs: 12,
   sm: 14,
   md: 16,
@@ -14,7 +14,7 @@ interface SpinnerProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
    * Diameter of the spinner. Matches the icon size scale.
    */
-  size?: SpinnerSize;
+  size?: Size;
 }
 
 /**
@@ -30,7 +30,7 @@ interface SpinnerProps extends React.HTMLAttributes<HTMLSpanElement> {
 export function Spinner({size = 'xs', ...props}: SpinnerProps) {
   return (
     <Ring
-      $size={SPINNER_SIZES[size]}
+      $size={SIZES[size]}
       aria-hidden={!props['aria-label'] && !props.role ? true : undefined}
       {...props}
     />
