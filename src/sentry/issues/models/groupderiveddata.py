@@ -23,12 +23,19 @@ EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 class GroupDerivedData(DefaultFieldsModel):
     """
     Materialized state derived from GroupActionLogEntry entries.
-    One row per group. The cursor tracks the last entry processed.
+
+    Multiple rows may exist per group, but at most one may be ``is_live=True``
+    at any time (enforced by a partial unique constraint). Only the live row is
+    considered canonical; non-live rows are transient build artifacts.
+
+    See ``processing.py`` for the full lifecycle and promotion protocol.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    group = FlexibleForeignKey("sentry.Group", unique=True)
+    group = FlexibleForeignKey("sentry.Group")
+    is_live = models.BooleanField(db_default=False, default=False)
+
     cursor_date = models.DateTimeField(default=EPOCH)
     cursor_id = BoundedBigIntegerField(default=0)
 
@@ -39,7 +46,6 @@ class GroupDerivedData(DefaultFieldsModel):
 
     # Column-backed features — promoted from JSON for indexing/querying.
 
-    # This is here just for demonstration purposes.
     view_count = BoundedPositiveIntegerField(default=0)
     # Stores the current Progress value as a string.
     progress = models.CharField(max_length=32, null=True, default="identified")
@@ -55,9 +61,31 @@ class GroupDerivedData(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupderiveddata"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["group"],
+                condition=models.Q(is_live=True),
+                name="uniq_live_gdd_per_group",
+            ),
+        ]
         indexes = [
-            models.Index(fields=["progress", "group"]),
-            models.Index(fields=["last_progressed_at", "group"]),
+            # Only live rows participate in joins/filters on these columns.
+            models.Index(
+                fields=["progress", "group"],
+                condition=models.Q(is_live=True),
+                name="sentry_gdd_progress_live",
+            ),
+            models.Index(
+                fields=["last_progressed_at", "group"],
+                condition=models.Q(is_live=True),
+                name="sentry_gdd_lastprog_live",
+            ),
+            models.Index(fields=["group", "is_live"]),
+            models.Index(
+                fields=["date_added"],
+                condition=models.Q(is_live=False),
+                name="sentry_gdd_stale_cleanup",
+            ),
         ]
 
-    __repr__ = sane_repr("group_id", "cursor_date", "cursor_id")
+    __repr__ = sane_repr("group_id", "is_live", "cursor_date", "cursor_id")

@@ -278,7 +278,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         new_group = self.create_group(project)
 
         derived = GroupDerivedData.objects.create(
-            group=new_group, cursor_date=before_now(minutes=5), cursor_id=100
+            group=new_group, is_live=True, cursor_date=before_now(minutes=5), cursor_id=100
         )
 
         with self.tasks():
@@ -288,7 +288,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
 
         # The derived data is invalidated: the stale row is deleted and rebuilt
         # from scratch by the scheduled processing task.
-        rebuilt = GroupDerivedData.objects.get(group_id=new_group.id)
+        rebuilt = GroupDerivedData.objects.get(group_id=new_group.id, is_live=True)
         assert rebuilt.id != derived.id
         assert rebuilt.cursor_date == EPOCH
         assert rebuilt.cursor_id == 0
