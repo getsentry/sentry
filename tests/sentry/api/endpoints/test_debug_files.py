@@ -379,7 +379,7 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
         assert (
             f"/organizations/{self.organization.id}/objectstore/v1/objects/debug_files/" in location
         )
-        assert "os_sig=" in location
+        assert "os_auth=" in location
 
 
 @debug_files_test_both_backends
