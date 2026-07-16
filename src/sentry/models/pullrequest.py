@@ -443,6 +443,32 @@ class PullRequestActivity(DefaultFieldsModel):
 
 
 @cell_silo_model
+class PullRequestActivityLog(DefaultFieldsModel):
+    """One reduced activity document per PR — the 1:1 replacement for the
+    per-webhook-event ``PullRequestActivity`` rows (see
+    ``sentry.pr_metrics.activity_doc`` for the document shape and reducer).
+
+    A dedicated 1:1 model rather than a field on ``PullRequestMetrics``: the doc
+    is swept at the terminal emit while the metrics row must survive, and
+    ``handle_metrics`` rewrites the metrics row on every ``pull_request`` webhook.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    pull_request = models.OneToOneField(
+        "sentry.PullRequest", on_delete=models.CASCADE, related_name="activity_log"
+    )
+    # Column is TOAST-compressed with lz4 (set in migration 1133).
+    data = models.JSONField(default=dict)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_pullrequest_activity_log"
+
+    __repr__ = sane_repr("pull_request_id")
+
+
+@cell_silo_model
 class PullRequestAttribution(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 

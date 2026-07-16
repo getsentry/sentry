@@ -9,7 +9,6 @@ import {t, tct, tn} from 'sentry/locale';
 import type {
   GroupActivity,
   GroupActivitySetEscalating,
-  GroupActivitySetIgnored,
   IssueCategory,
 } from 'sentry/types/group';
 import {GroupActivityType, IssueCategory as IssueCategoryEnum} from 'sentry/types/group';
@@ -20,15 +19,16 @@ import {formatDuration} from 'sentry/utils/duration/formatDuration';
 
 import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
+import {getIntegrationChip} from './chips/integrationChip';
 import {ActivityPriorityChip} from './chips/priorityChip';
 import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
 import {getAssignedActivityItem} from './compactActivityItem/assignment';
 import {getResolvedInCommitDetails} from './compactActivityItem/commitDetails';
-import {getIntegrationLink} from './compactActivityItem/integrationLink';
 import {getProviderName} from './compactActivityItem/provider';
 import {getResolvedInReleaseDetails} from './compactActivityItem/releaseDetails';
 import type {CompactGroupActivityItem} from './compactActivityItem/types';
+import {getArchiveDetails} from './archiveDetails';
 
 export type {CompactGroupActivityItem} from './compactActivityItem/types';
 
@@ -62,61 +62,6 @@ function formatAutoResolveAge(age: number | string | undefined) {
   return precision === 'day'
     ? tn('%s day', '%s days', count)
     : tn('%s hour', '%s hours', count);
-}
-
-function getIgnoredDetails(
-  data: GroupActivitySetIgnored['data'],
-  issueCategory: IssueCategory
-) {
-  const isFeedback = issueCategory === IssueCategoryEnum.FEEDBACK;
-
-  if (data.ignoreDuration) {
-    return tct('for [duration]', {
-      duration: <Duration seconds={data.ignoreDuration * 60} />,
-    });
-  }
-
-  if (data.ignoreCount && data.ignoreWindow) {
-    return tct('until [threshold] within [duration]', {
-      threshold: tn('%s event occurs', '%s events occur', data.ignoreCount),
-      duration: <Duration seconds={data.ignoreWindow * 60} />,
-    });
-  }
-
-  if (data.ignoreCount) {
-    return tn(
-      'until %s more event occurs',
-      'until %s more events occur',
-      data.ignoreCount
-    );
-  }
-
-  if (data.ignoreUserCount && data.ignoreUserWindow) {
-    return tct('until [threshold] within [duration]', {
-      threshold: tn('%s user is affected', '%s users are affected', data.ignoreUserCount),
-      duration: <Duration seconds={data.ignoreUserWindow * 60} />,
-    });
-  }
-
-  if (data.ignoreUserCount) {
-    return tn(
-      'until %s more user is affected',
-      'until %s more users are affected',
-      data.ignoreUserCount
-    );
-  }
-
-  if (data.ignoreUntil) {
-    return tct('until [date]', {
-      date: <DateTime date={data.ignoreUntil} />,
-    });
-  }
-
-  if (data.ignoreUntilEscalating) {
-    return t('until it escalates');
-  }
-
-  return isFeedback ? null : t('forever');
 }
 
 function getEscalatingDetails(data: GroupActivitySetEscalating['data']) {
@@ -201,11 +146,11 @@ export function getCompactGroupActivityItem({
         title: getNoteAuthorName(activity),
       };
     case GroupActivityType.SET_RESOLVED: {
-      const integrationLink = getIntegrationLink({data: activity.data, organization});
+      const integrationChip = getIntegrationChip({data: activity.data, organization});
       return {
         title: t('Resolved'),
-        details: integrationLink
-          ? tct('via [integration]', {integration: integrationLink})
+        details: integrationChip
+          ? tct('via [integration]', {integration: integrationChip})
           : undefined,
       };
     }
@@ -336,11 +281,11 @@ export function getCompactGroupActivityItem({
         };
       }
 
-      const integrationLink = getIntegrationLink({data: activity.data, organization});
+      const integrationChip = getIntegrationChip({data: activity.data, organization});
       return {
         title: t('Marked as unresolved'),
-        details: integrationLink
-          ? tct('via [integration]', {integration: integrationLink})
+        details: integrationChip
+          ? tct('via [integration]', {integration: integrationChip})
           : null,
       };
     }
@@ -350,7 +295,7 @@ export function getCompactGroupActivityItem({
           issueCategory === IssueCategoryEnum.FEEDBACK
             ? t('Marked as spam')
             : t('Archived'),
-        details: getIgnoredDetails(activity.data, issueCategory),
+        details: getArchiveDetails(activity.data, issueCategory),
       };
     case GroupActivityType.SET_PUBLIC:
       return {
@@ -364,7 +309,7 @@ export function getCompactGroupActivityItem({
       const {data} = activity;
       const comparison =
         data.version && data.resolved_in_version && 'follows_semver' in data
-          ? tct('Compared with resolved version [resolvedVersion] using [comparison]', {
+          ? tct(' compared with [resolvedVersion] based on [comparison]', {
               resolvedVersion: (
                 <ActivityRelease
                   organization={organization}
@@ -378,8 +323,9 @@ export function getCompactGroupActivityItem({
 
       return {
         title: t('Regressed'),
-        details: data.version
-          ? tct('in [version]', {
+        details: data.version ? (
+          <Fragment>
+            {tct('in [version]', {
               version: (
                 <ActivityRelease
                   organization={organization}
@@ -387,9 +333,10 @@ export function getCompactGroupActivityItem({
                   version={data.version}
                 />
               ),
-            })
-          : undefined,
-        subtext: comparison,
+            })}
+            {comparison}
+          </Fragment>
+        ) : undefined,
       };
     }
     case GroupActivityType.CREATE_ISSUE:

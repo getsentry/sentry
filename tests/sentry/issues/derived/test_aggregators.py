@@ -136,12 +136,22 @@ def test_starts_open() -> None:
     assert _run_for_feature(STATUS, []) == IssueStatus.OPEN
 
 
-def test_resolve_closes() -> None:
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.RESOLVE,
+        GroupActionType.SET_RESOLVED_IN_RELEASE,
+        GroupActionType.SET_RESOLVED_BY_AGE,
+        GroupActionType.SET_RESOLVED_IN_COMMIT,
+        GroupActionType.ARCHIVE,
+    ],
+)
+def test_close_actions(action_type: GroupActionType) -> None:
     assert (
         _run_for_feature(
             STATUS,
             [
-                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=action_type),
             ],
         )
         == IssueStatus.CLOSED
@@ -224,18 +234,6 @@ def test_regression_resets_progress() -> None:
             ],
         )
         == IssueProgressState.IDENTIFIED
-    )
-
-
-def test_archive_closes() -> None:
-    assert (
-        _run_for_feature(
-            STATUS,
-            [
-                FakeEntry(type=GroupActionType.ARCHIVE),
-            ],
-        )
-        == IssueStatus.CLOSED
     )
 
 
@@ -376,12 +374,19 @@ def test_assign_advances_to_assigned() -> None:
     )
 
 
-def test_root_cause_identified_advances_to_diagnosed() -> None:
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.ROOT_CAUSE_IDENTIFIED,
+        GroupActionType.SEER_RCA_COMPLETED,
+    ],
+)
+def test_root_cause_advances_to_diagnosed(action_type: GroupActionType) -> None:
     assert (
         _run_for_feature(
             PROGRESS,
             [
-                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
+                FakeEntry(type=action_type),
             ],
         )
         == IssueProgressState.DIAGNOSED

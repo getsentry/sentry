@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
+from enum import Enum
 from typing import Any
 
 from sentry import analytics
@@ -37,36 +38,59 @@ from sentry.utils import json, metrics
 logger = logging.getLogger(__name__)
 
 
+class VerdictDeferral(Enum):
+    """Why ``select_verdict`` couldn't settle a terminal verdict on its own.
+
+    Both are a "needs a judge" signal to ``select_verdict``'s only caller, but
+    they aren't interchangeable for ``select_fallback_verdict``, which settles
+    judge-*ineligible* PRs (e.g. MCP) without ever reaching Seer:
+
+    - ``NEEDS_JUDGE``: real activity/engagement data says the outcome is
+      genuinely ambiguous (commits after open, or discussion on a close).
+      Reliable enough to hand to ``select_fallback_verdict`` directly.
+    - ``INDETERMINATE``: there's no reliable signal to decide from at all —
+      activity tracking is off, or the metrics row is missing — so the data's
+      *absence* can't be read as "nothing happened". Judge-eligible PRs still
+      forward regardless (Seer fetches the diff itself); judge-ineligible PRs
+      have no judge to fall back on and stay unemitted, same as before
+      ``select_fallback_verdict`` existed.
+    """
+
+    NEEDS_JUDGE = "needs_judge"
+    INDETERMINATE = "indeterminate"
+
+
 def select_verdict(
     pull_request: PullRequest, organization: Organization
-) -> PullRequestVerdict | None:
-    """The terminal verdict Sentry can decide on its own, or ``None`` for a judge.
+) -> PullRequestVerdict | VerdictDeferral:
+    """The terminal verdict Sentry can decide on its own, or a ``VerdictDeferral``.
 
     A judge is needed whenever the outcome can't be settled deterministically from
-    data Sentry already holds — so ``None`` is the "needs a judge" signal, and the
-    caller forwards to Seer (the judge path) rather than emitting:
+    data Sentry already holds — so the caller forwards to Seer (the judge path)
+    rather than emitting on either ``VerdictDeferral`` outcome:
 
     - Merged with no commits after it opened → ``merged_unchanged``: the merge head
       is the opened head, so nothing changed, by anyone. A merge with later commits
       is ambiguous (Seer's own iteration vs. external changes) and needs the
-      diff-similarity judge.
+      diff-similarity judge → ``NEEDS_JUDGE``.
     - Closed with no engagement — no later commits, comments, or review comments →
       ``closed_unmerged``: an abandoned PR with nothing to analyze. A close with any
-      engagement needs the conversation judge to decide why it was closed.
+      engagement needs the conversation judge to decide why it was closed →
+      ``NEEDS_JUDGE``.
 
     The commits-after-open signal is a ``SYNCHRONIZED`` activity row, one per push
     to the PR branch after it opened. Those rows are only written under
     ``pr-metrics-activity``, which is flagged independently of emission; without it
     a clean merge is indistinguishable from one with later commits, so we defer
-    every outcome to a judge rather than read its absence as "no later commits". A
-    missing ``PullRequestMetrics`` row is an error state — ``handle_metrics``
-    persists it before emission under the same flag, so its absence means it
-    failed — and we defer to a judge for both outcomes rather than emit zeroed
-    counters (merge) or guess abandoned (close).
+    every outcome (``INDETERMINATE``) rather than read its absence as "no later
+    commits". A missing ``PullRequestMetrics`` row is an error state —
+    ``handle_metrics`` persists it before emission under the same flag, so its
+    absence means it failed — and we defer (``INDETERMINATE``) for both outcomes
+    rather than emit zeroed counters (merge) or guess abandoned (close).
     """
     if not is_activity_tracking_enabled(organization):
         metrics.incr("pr_metrics.select_verdict.activity_disabled")
-        return None
+        return VerdictDeferral.INDETERMINATE
 
     metrics_row = PullRequestMetrics.objects.filter(pull_request=pull_request).first()
     if metrics_row is None:
@@ -79,18 +103,57 @@ def select_verdict(
             },
         )
         metrics.incr("pr_metrics.select_verdict.metrics_row_missing")
-        return None
+        return VerdictDeferral.INDETERMINATE
 
     has_commits_after_open = PullRequestActivity.objects.filter(
         pull_request=pull_request, event_type=PullRequestActivityType.SYNCHRONIZED
     ).exists()
 
     if pull_request.merged_at is not None:
-        return PullRequestVerdict.MERGED_UNCHANGED if not has_commits_after_open else None
+        return (
+            PullRequestVerdict.MERGED_UNCHANGED
+            if not has_commits_after_open
+            else VerdictDeferral.NEEDS_JUDGE
+        )
 
     has_discussion = bool(metrics_row.comments_count or metrics_row.review_comments_count)
     if has_commits_after_open or has_discussion:
-        return None
+        return VerdictDeferral.NEEDS_JUDGE
+    return PullRequestVerdict.CLOSED_UNMERGED
+
+
+def select_fallback_verdict(pull_request: PullRequest) -> PullRequestVerdict:
+    """The verdict for a ``NEEDS_JUDGE`` PR whose attribution isn't judge-eligible.
+
+    Only valid to call on a ``VerdictDeferral.NEEDS_JUDGE`` outcome — the caller
+    must not call this for ``INDETERMINATE``, since there ``select_verdict`` has no
+    reliable activity/engagement data to have deferred on, and this function would
+    otherwise silently re-derive "no commits after open" from the same absent data
+    and mislabel an actually-iterated PR as unchanged.
+
+    Weak attribution (e.g. MCP) never reaches Seer — see
+    ``JUDGE_ELIGIBLE_SIGNAL_TYPES`` — so without this fallback a ``NEEDS_JUDGE`` row
+    would sit at ``verdict=None`` forever and never emit. Decided directly from
+    push activity rather than the judge's conversation/diff analysis:
+
+    - Merged with commits after open → ``MERGED_WITH_ITERATION``, reusing the
+      judge's verdict label even though no judge looked at the diff here — weak
+      attribution's iteration signal is push activity alone, same outcome bucket.
+    - Merged with no commits after open → ``MERGED_UNCHANGED``, same as the
+      deterministic case in ``select_verdict``.
+    - Closed unmerged → ``CLOSED_UNMERGED`` unconditionally; there's no
+      judge-eligible equivalent of the conversation judge for weak attribution, so
+      engagement isn't distinguished here.
+    """
+    if pull_request.merged_at is not None:
+        has_commits_after_open = PullRequestActivity.objects.filter(
+            pull_request=pull_request, event_type=PullRequestActivityType.SYNCHRONIZED
+        ).exists()
+        return (
+            PullRequestVerdict.MERGED_WITH_ITERATION
+            if has_commits_after_open
+            else PullRequestVerdict.MERGED_UNCHANGED
+        )
     return PullRequestVerdict.CLOSED_UNMERGED
 
 

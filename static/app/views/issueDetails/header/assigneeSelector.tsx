@@ -6,6 +6,7 @@ import {TeamAvatar} from '@sentry/scraps/avatar';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
 
 import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
+import type {AssignmentDetails} from 'sentry/components/assigneeBadge';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {
   AssigneeSelector,
@@ -15,7 +16,11 @@ import {IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
+import {
+  GroupActivityType,
+  type Group,
+  type GroupActivityAssigned,
+} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {buildTeamId} from 'sentry/utils';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
@@ -32,6 +37,62 @@ interface GroupHeaderAssigneeSelectorProps {
   project: Project;
 }
 
+function getCurrentAssignmentActivity(group: Group): GroupActivityAssigned | undefined {
+  if (!group.assignedTo) {
+    return undefined;
+  }
+
+  const latestAssignment = group.activity.find(
+    (activity): activity is GroupActivityAssigned =>
+      activity.type === GroupActivityType.ASSIGNED
+  );
+
+  if (
+    latestAssignment?.data.assigneeType !== group.assignedTo.type ||
+    latestAssignment.data.assignee !== String(group.assignedTo.id)
+  ) {
+    return undefined;
+  }
+
+  return latestAssignment;
+}
+
+function getAssignmentSource(
+  activity: GroupActivityAssigned | undefined
+): AssignmentDetails['source'] | undefined {
+  switch (activity?.data.integration) {
+    case 'projectOwnership':
+    case 'codeowners':
+    case 'suspectCommitter':
+      return activity.data.integration;
+    default:
+      return undefined;
+  }
+}
+
+function getAssignmentDetails(
+  group: Group,
+  activity: GroupActivityAssigned | undefined
+): AssignmentDetails | undefined {
+  const source = getAssignmentSource(activity);
+
+  if (activity?.user) {
+    return {
+      actorLabel: activity.user.name || activity.user.email || activity.user.username,
+      isSelfAssigned:
+        group.assignedTo?.type === 'user' &&
+        String(group.assignedTo.id) === String(activity.user.id),
+      source,
+    };
+  }
+
+  if (activity?.sentry_app) {
+    return {actorLabel: activity.sentry_app.name, source};
+  }
+
+  return source ? {source} : undefined;
+}
+
 export function GroupHeaderAssigneeSelector({
   group,
   project,
@@ -43,6 +104,8 @@ export function GroupHeaderAssigneeSelector({
     organization,
     group,
   });
+  const assignmentActivity = getCurrentAssignmentActivity(group);
+  const assignmentDetails = getAssignmentDetails(group, assignmentActivity);
   const {data: eventOwners} = useIssueEventOwners({
     eventId: event?.id ?? '',
     projectSlug: project.slug,
@@ -65,7 +128,9 @@ export function GroupHeaderAssigneeSelector({
       owners={owners}
       assigneeLoading={assigneeLoading}
       handleAssigneeChange={handleAssigneeChange}
+      assignmentDetails={assignmentDetails}
       showLabel
+      useOwnerAssignmentDetails={false}
       additionalMenuFooterItems={
         <MenuComponents.CTAButton
           onClick={() => {

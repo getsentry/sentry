@@ -233,7 +233,7 @@ class BackfillGroupActionLogForProjectTest(TestCase):
         user_id: int | None = None,
         group: Group | None = None,
     ) -> Activity:
-        return Activity.objects.create(
+        return Activity.objects.create_without_group_action(
             project=self.project,
             group=group or self.group,
             type=activity_type.value,
@@ -321,6 +321,7 @@ class BackfillGroupActionLogForProjectTest(TestCase):
         call_kwargs = mock_apply.call_args.kwargs["kwargs"]
         assert call_kwargs["project_id"] == self.project.id
         assert call_kwargs["cursor_datetime"] is not None
+        assert call_kwargs["cursor_id"] > 0
 
     def test_completes_when_no_activities(self) -> None:
         with (
@@ -361,13 +362,14 @@ class BackfillGroupActionLogForProjectTest(TestCase):
         assert entry.date_added == activity.datetime
 
     def test_resumes_from_cursor(self) -> None:
-        self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
+        a1 = self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
         a2 = self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
 
         with self._options(), patch.object(backfill_group_action_log_for_project, "apply_async"):
             backfill_group_action_log_for_project(
                 self.project.id,
-                cursor_datetime=a2.datetime.isoformat(),
+                cursor_datetime=a1.datetime.isoformat(),
+                cursor_id=a1.id,
             )
 
         entries = GroupActionLogEntry.objects.filter(group_id=self.group.id)
@@ -393,3 +395,62 @@ class BackfillGroupActionLogForProjectTest(TestCase):
             backfill_group_action_log_for_project(self.project.id)
 
         mock_derived_task.assert_not_called()
+
+    def test_reset_deletes_backfilled_entries_before_backfill(self) -> None:
+        self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
+
+        with self._options(), patch.object(backfill_group_action_log_for_project, "apply_async"):
+            backfill_group_action_log_for_project(self.project.id)
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+
+        with self._options(), patch.object(backfill_group_action_log_for_project, "apply_async"):
+            backfill_group_action_log_for_project(self.project.id, reset=True)
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+
+    def test_reset_preserves_non_backfill_entries(self) -> None:
+        self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
+
+        with self._options(), patch.object(backfill_group_action_log_for_project, "apply_async"):
+            backfill_group_action_log_for_project(self.project.id)
+
+        GroupActionLogEntry.objects.create(
+            group_id=self.group.id,
+            project_id=self.project.id,
+            type=GroupActionType.VIEW.value,
+            actor_type=GroupActorType.USER.value,
+            actor_id=self.user.id,
+            source="web",
+            data={},
+        )
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 2
+
+        with self._options(), patch.object(backfill_group_action_log_for_project, "apply_async"):
+            backfill_group_action_log_for_project(self.project.id, reset=True)
+
+        entries = GroupActionLogEntry.objects.filter(group_id=self.group.id)
+        assert entries.count() == 2
+        sources = {e.source for e in entries}
+        assert "web" in sources
+        assert "backfill:activity" in sources
+
+    def test_reset_only_runs_on_first_batch(self) -> None:
+        for _ in range(3):
+            self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
+
+        with self._options(), patch.object(backfill_group_action_log_for_project, "apply_async"):
+            backfill_group_action_log_for_project(self.project.id)
+
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 3
+
+        with (
+            self._options(),
+            patch("sentry.tasks.backfill_group_action_log._reset_project") as mock_reset,
+            patch.object(backfill_group_action_log_for_project, "apply_async"),
+        ):
+            backfill_group_action_log_for_project(
+                self.project.id, reset=True, cursor_datetime="2020-01-01T00:00:00+00:00"
+            )
+
+        mock_reset.assert_not_called()

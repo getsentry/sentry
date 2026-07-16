@@ -14,12 +14,60 @@ resources:
 import {Container, Stack} from '@sentry/scraps/layout';
 import {SplitPanel} from '@sentry/scraps/splitPanel';
 import {Text} from '@sentry/scraps/text';
-
 import {PersistedSizeDemo, SinglePaneDemo} from './__stories__/splitPanelDemos';
-
 import * as Storybook from 'sentry/stories';
 
 export const documentation = import('!!type-loader!@sentry/scraps/splitPanel/splitPanel');
+
+## When to use
+
+Use `SplitPanel` when two pieces of content share the same space and
+the user should control how much space each gets:
+
+- A resizable sidebar or detail panel next to main content
+- A chat or agent panel alongside a primary view (e.g. Seer)
+- A replay or code viewer with an adjustable side panel
+
+## When not to use
+
+- Equal-width columns that never need resizing — use `Flex` instead
+- More than two panes — `SplitPanel` only supports two
+- Layouts where one pane needs to fully hide and give its space back,
+  splitpanel always reserves space for the sized pane even at minimum size
+
+## Best practices
+
+Always give the parent explicit dimensions and `overflow: hidden`.
+`SplitPanel` fills its parent — it has no intrinsic size of its own.
+
+```tsx
+<Container width="100%" height="400px" overflow="hidden">
+  <SplitPanel defaultSize={300} sized={<Sidebar />} fill={<Content />} />
+</Container>
+```
+
+Set `minSize` and `fillMinSize` to prevent either pane from collapsing
+too small. `120px` is a reasonable floor for most surfaces.
+
+Use `defaultSize` as the meaningful reset target — double-clicking the
+divider returns to this value, so set it to the ideal starting size for
+your content.
+
+Use `placement="end"` when the resizable pane lives on the right or
+bottom — for example a chat panel on the trailing edge of the screen.
+
+Use the responsive `orientation` prop to stack panes vertically on small
+screens and side by side on larger ones, rather than building a separate
+mobile layout.
+
+```tsx
+<SplitPanel
+  orientation={{xs: 'vertical', md: 'horizontal'}}
+  defaultSize={220}
+  sized={<Sidebar />}
+  fill={<Content />}
+/>
+```
 
 ## Basic Usage
 

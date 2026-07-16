@@ -2,7 +2,9 @@ import {Fragment, memo, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
@@ -11,12 +13,12 @@ import {
   MessageBlock,
   UserMessageBlock,
 } from 'sentry/components/ai/chat/messageBlock';
-import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Placeholder} from 'sentry/components/placeholder';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {MessageToolCallsNew} from 'sentry/views/explore/conversations/components/messageToolCallsNew';
 import {
   TURN_META_WIDTH,
@@ -25,9 +27,11 @@ import {
 import {
   type ConversationMessage,
   extractMessagesFromNodes,
+  partitionSpansByType,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {getNumberAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -39,6 +43,11 @@ interface MessagesPanelNewProps {
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
   isLoading?: boolean;
+  /**
+   * Switches the conversation view to the Timeline tab. Surfaced from the
+   * empty transcript state when a conversation has no inference spans.
+   */
+  onViewTimeline?: () => void;
 }
 
 /**
@@ -50,6 +59,7 @@ export function MessagesPanelNew({
   nodes,
   selectedNodeId,
   onSelectNode,
+  onViewTimeline,
   isLoading,
 }: MessagesPanelNewProps) {
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
@@ -79,9 +89,18 @@ export function MessagesPanelNew({
   }
 
   if (messages.length === 0) {
+    // A conversation with no renderable transcript falls into two buckets we can
+    // tell apart from the spans: inference (generation) spans that ran but never
+    // captured their inputs/outputs, versus a conversation that has no inference
+    // spans at all. Each gets its own explanation.
+    const {generationSpans} = partitionSpansByType(nodes);
     return (
       <PanelContainer>
-        <EmptyMessage>{t('No messages found')}</EmptyMessage>
+        {generationSpans.length > 0 ? (
+          <MissingContentNotice nodes={nodes} />
+        ) : (
+          <NoInferenceSpansNotice onViewTimeline={onViewTimeline} />
+        )}
       </PanelContainer>
     );
   }
@@ -283,6 +302,66 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
         </MessageText>
       </Container>
     </CollapsibleContent>
+  );
+}
+
+/**
+ * Shown when inference spans ran but captured no input or output data, so
+ * there is nothing to render as a transcript. Points to the docs for enabling
+ * input/output capture, tailored to the project's platform.
+ */
+function MissingContentNotice({nodes}: {nodes: AITraceSpanNode[]}) {
+  const projectSlug = useMemo(
+    () => nodes.find(node => node.projectSlug)?.projectSlug,
+    [nodes]
+  );
+  const {projects} = useProjects({slugs: projectSlug ? [projectSlug] : []});
+  const platform = projectSlug
+    ? projects.find(project => project.slug === projectSlug)?.platform
+    : undefined;
+  const docsLink = getAiInstrumentationDocsLink(platform);
+
+  return (
+    <EmptyNotice>
+      <Text bold>{t("This conversation's messages weren't captured")}</Text>
+      <Text variant="muted" align="center">
+        {tct(
+          "Its inference spans don't include any input or output data. [link:Enable capturing inputs and outputs] in your SDK to see the transcript here.",
+          {link: <ExternalLink href={docsLink} />}
+        )}
+      </Text>
+    </EmptyNotice>
+  );
+}
+
+/**
+ * Shown when a conversation has spans but none of them are inference spans, so
+ * there is no transcript to build. Directs the user to the Timeline, where the
+ * conversation's other spans are shown.
+ */
+function NoInferenceSpansNotice({onViewTimeline}: {onViewTimeline?: () => void}) {
+  return (
+    <EmptyNotice>
+      <Text bold>{t("This conversation doesn't include any inference spans")}</Text>
+      <Text variant="muted" align="center">
+        {t('The other spans in this conversation are shown in the Timeline.')}
+      </Text>
+      {onViewTimeline && (
+        <Button size="sm" onClick={onViewTimeline}>
+          {t('View Timeline')}
+        </Button>
+      )}
+    </EmptyNotice>
+  );
+}
+
+function EmptyNotice({children}: {children: React.ReactNode}) {
+  return (
+    <Stack flex={1} align="center" justify="center" padding="xl" width="100%">
+      <Stack align="center" gap="md" maxWidth="32rem">
+        {children}
+      </Stack>
+    </Stack>
   );
 }
 

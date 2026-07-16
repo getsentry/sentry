@@ -717,20 +717,6 @@ function buildRoutes(): RouteObject[] {
             () => import('sentry/views/settings/projectSecurityHeaders/csp')
           ),
         },
-        {
-          path: 'expect-ct/',
-          name: t('Certificate Transparency'),
-          component: make(
-            () => import('sentry/views/settings/projectSecurityHeaders/expectCt')
-          ),
-        },
-        {
-          path: 'hpkp/',
-          name: t('HPKP'),
-          component: make(
-            () => import('sentry/views/settings/projectSecurityHeaders/hpkp')
-          ),
-        },
       ],
     },
     {
@@ -2516,6 +2502,14 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/issueList/pages/autofix/recentlyRun')),
     },
     {
+      path: 'autofix/runs/',
+      component: make(() => import('sentry/views/seerRunsDemo')),
+    },
+    {
+      path: 'autofix/issues/',
+      component: make(() => import('sentry/views/autofixIssuesDemo')),
+    },
+    {
       path: 'views/:viewId/',
       component: errorHandler(OverviewWrapper),
     },
@@ -2868,15 +2862,6 @@ function buildRoutes(): RouteObject[] {
           {
             path: 'security-headers/csp/',
             redirectTo: '/settings/:orgId/projects/:projectId/security-headers/csp/',
-          },
-          {
-            path: 'security-headers/expect-ct/',
-            redirectTo:
-              '/settings/:orgId/projects/:projectId/security-headers/expect-ct/',
-          },
-          {
-            path: 'security-headers/hpkp/',
-            redirectTo: '/settings/:orgId/projects/:projectId/security-headers/hpkp/',
           },
           {
             path: 'integrations/:providerKey/',
