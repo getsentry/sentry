@@ -238,7 +238,7 @@ def _sync_project_debug_file(
             if not target_project:
                 return None
 
-            if source_project_debug_file.storage_path is not None:
+            if source_project_debug_file.uses_objectstore_for_read():
                 source_fileobj = source_project_debug_file.get_file()
                 try:
                     target_storage_path = get_debug_files_session(
@@ -255,7 +255,7 @@ def _sync_project_debug_file(
                 project_id=target_project.id,
                 file=(
                     None
-                    if source_project_debug_file.storage_path is not None
+                    if source_project_debug_file.uses_objectstore_for_read()
                     else source_project_debug_file.file
                 ),
                 storage_path=target_storage_path,

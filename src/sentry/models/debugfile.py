@@ -197,8 +197,19 @@ class ProjectDebugFile(Model):
 
     __repr__ = sane_repr("object_name", "cpu_name", "debug_id")
 
+    def uses_objectstore_for_read(self) -> bool:
+        if self.storage_path is None:
+            return False
+        if self.file is None:
+            return True
+
+        from sentry.models.project import Project
+
+        organization = Project.objects.get_from_cache(id=self.project_id).organization
+        return features.has("organizations:objectstore-debugfiles-read", organization)
+
     def get_checksum(self) -> str:
-        if self.storage_path is not None:
+        if self.uses_objectstore_for_read():
             assert self.checksum is not None
             return self.checksum
         if self.file is not None:
@@ -207,7 +218,7 @@ class ProjectDebugFile(Model):
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_content_type(self) -> str:
-        if self.storage_path is not None:
+        if self.uses_objectstore_for_read():
             assert self.content_type is not None
             return str(self.content_type)
         if self.file is not None:
@@ -215,7 +226,7 @@ class ProjectDebugFile(Model):
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_file_size(self) -> int:
-        if self.storage_path is not None:
+        if self.uses_objectstore_for_read():
             assert self.file_size is not None
             return int(self.file_size)
         if self.file is not None:
@@ -223,7 +234,7 @@ class ProjectDebugFile(Model):
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     def get_date_created(self) -> datetime:
-        if self.storage_path is not None:
+        if self.uses_objectstore_for_read():
             assert self.date_created is not None
             return self.date_created
         if self.file is not None:
@@ -268,7 +279,8 @@ class ProjectDebugFile(Model):
     def get_file(self) -> IO[bytes]:
         """Returns the underlying contents as a file-like object. The caller is responsible for closing it."""
 
-        if self.storage_path is not None:
+        if self.uses_objectstore_for_read():
+            assert self.storage_path is not None
             try:
                 response = self._get_objectstore_session().get(self.storage_path)
                 return response.payload
@@ -296,7 +308,8 @@ class ProjectDebugFile(Model):
         return get_download_redirect_url(request, session, org_id, self.storage_path)
 
     def save_to(self, path: str) -> None:
-        if self.storage_path is not None:
+        if self.uses_objectstore_for_read():
+            assert self.storage_path is not None
             path = os.path.abspath(path)
             base = os.path.dirname(path)
             os.makedirs(base, exist_ok=True)

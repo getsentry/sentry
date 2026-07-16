@@ -432,6 +432,41 @@ class CreateDebugFileTest(APITestCase):
         with pytest.raises(RequestError):
             get_debug_files_session(self.organization.id, self.project.id).get(storage_path)
 
+    @requires_objectstore
+    def test_read_gate_prefers_legacy_file_when_disabled(self) -> None:
+        legacy_content = b"legacy-content"
+        objectstore_content = b"objectstore-content"
+        with self.feature("organizations:objectstore-debugfiles-write"):
+            dif, created = self.create_dif(fileobj=BytesIO(legacy_content))
+
+        assert created
+        storage_path = dif.storage_path
+        assert storage_path is not None
+        session = get_debug_files_session(self.organization.id, self.project.id)
+        session.delete(storage_path)
+        replacement_storage_path = session.put(objectstore_content, compression="none")
+        dif.storage_path = replacement_storage_path
+        dif.save(update_fields=["storage_path"])
+
+        assert dif.get_file().read() == legacy_content
+
+        with self.feature("organizations:objectstore-debugfiles-read"):
+            assert dif.get_file().read() == objectstore_content
+
+    @requires_objectstore
+    def test_read_gate_does_not_fall_back_when_objectstore_read_fails(self) -> None:
+        with self.feature("organizations:objectstore-debugfiles-write"):
+            dif, created = self.create_dif(fileobj=BytesIO(b"legacy-content"))
+
+        assert created
+        with (
+            self.feature("organizations:objectstore-debugfiles-read"),
+            patch.object(dif, "_get_objectstore_session") as get_session,
+        ):
+            get_session.return_value.get.side_effect = RuntimeError("Objectstore unavailable")
+            with pytest.raises(RuntimeError):
+                dif.get_file()
+
     def test_keep_disjoint_difs(self) -> None:
         file = self.create_file(
             name="crash.dsym", checksum="dc1e3f3e411979d336c3057cce64294f3420f93a"
