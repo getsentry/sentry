@@ -13,6 +13,7 @@ import {
 
 import {ScmAlertFrequency} from './scmAlertFrequency';
 import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
+import {ScmCollapsibleReveal} from './scmCollapsibleReveal';
 import {ScmCollapsibleSection} from './scmCollapsibleSection';
 import {ScmIssueAlertNotificationOptions} from './scmIssueAlertNotificationOptions';
 
@@ -42,11 +43,18 @@ export function ScmAlertFrequencySection({
   const collapsible = analyticsFlow === 'project-creation';
 
   // Notification options are irrelevant when the user opts out of alerts, so
-  // hide them for "create alerts later" (mirrors issueAlertOptions).
-  const notificationOptions =
-    alertRuleConfig.alertSetting === RuleAction.CREATE_ALERT_LATER ? null : (
+  // hide them for "create alerts later" (mirrors issueAlertOptions). Route the
+  // show/hide through the shared height tween: on the custom -> "set up later"
+  // switch the custom-threshold body collapses via its own ScmCollapsibleReveal,
+  // so snapping this block to null at the same time bounces the whole form.
+  // Animating its height keeps the shift smooth and anchored from the bottom.
+  const notificationOptions = (
+    <ScmCollapsibleReveal
+      open={alertRuleConfig.alertSetting !== RuleAction.CREATE_ALERT_LATER}
+    >
       <ScmIssueAlertNotificationOptions {...notificationProps} />
-    );
+    </ScmCollapsibleReveal>
+  );
 
   const footer = (
     <Flex gap="sm" align="center">
