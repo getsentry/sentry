@@ -3,6 +3,7 @@ from collections.abc import Mapping
 from time import time
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 
 from sentry.killswitches import killswitch_matches_context
@@ -97,6 +98,8 @@ def _do_symbolicate_event(
     has_changed = False
 
     set_current_event_project(project_id)
+    sentry_sdk.set_tag("event_id", event_id)
+    sentry_sdk.set_attribute("event_id", event_id)
 
     def _continue_to_process_event(was_killswitched: bool = False) -> None:
         # Go through the remaining symbolication platforms/functions
