@@ -129,7 +129,10 @@ function FrameLocation({
   const frameLocationSuffix = formatFrameLocation('', frame.lineNo, frame.colNo);
 
   return (
-    <LocationWrapper>
+    <LocationWrapper
+      hasFunction={!!(frame.function ?? frame.rawFunction)}
+      isExpanded={isExpanded}
+    >
       {!isExpanded && leadsToApp ? (
         <LeadHint>
           {getLeadHint({event, hasNextFrame})}
@@ -169,20 +172,20 @@ function FrameContext({frame, platform}: {frame: Frame; platform: PlatformKey}) 
   return (
     <ContextWrapper>
       {hasFrameFunction ? (
-        <Fragment>
+        <FunctionContext>
           <Text as="span" size="xs" variant="muted" monospace>
             {t('in')}
           </Text>
           <FuncName>{frameFunctionName}</FuncName>
-        </Fragment>
+        </FunctionContext>
       ) : null}
       {showPackage ? (
-        <Fragment>
+        <PackageContext>
           <Text as="span" size="xs" variant="muted" monospace>
             {t('within')}
           </Text>
           <PkgName>{frame.package}</PkgName>
-        </Fragment>
+        </PackageContext>
       ) : null}
     </ContextWrapper>
   );
@@ -291,15 +294,18 @@ const ActionArea = styled('div')`
 const TrailingActions = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${p => p.theme.space.xs};
+  gap: ${p => p.theme.space['2xs']};
   margin-left: auto;
 `;
 
-const LocationWrapper = styled('span')`
+const LocationWrapper = styled('span')<{
+  hasFunction: boolean;
+  isExpanded: boolean;
+}>`
   display: inline-flex;
   align-items: baseline;
   min-width: 0;
-  max-width: 100%;
+  max-width: ${p => (!p.isExpanded && p.hasFunction ? '55%' : '100%')};
   flex: 0 1 auto;
   overflow: hidden;
 `;
@@ -333,12 +339,30 @@ const Path = styled('span')`
 const ContextWrapper = styled('span')`
   display: inline-flex;
   align-items: baseline;
-  flex: 0 999 auto;
+  flex: 0 1 auto;
   gap: ${p => p.theme.space.sm};
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
+`;
+
+const FunctionContext = styled('span')`
+  display: inline-flex;
+  align-items: baseline;
+  flex: 0 1 auto;
+  gap: ${p => p.theme.space.sm};
+  min-width: 0;
+  overflow: hidden;
+`;
+
+const PackageContext = styled('span')`
+  display: inline-flex;
+  align-items: baseline;
+  flex: 0 999 auto;
+  gap: ${p => p.theme.space.sm};
+  min-width: 0;
+  overflow: hidden;
 `;
 
 const FuncName = styled('span')`

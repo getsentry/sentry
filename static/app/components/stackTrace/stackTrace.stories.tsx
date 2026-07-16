@@ -1323,7 +1323,7 @@ const WideHovercard = styled(WideHovercardBase)`
 
 const HoverActionsSlot = styled(Flex)<{visible: boolean}>`
   align-items: center;
-  gap: ${p => p.theme.space.sm};
+  gap: ${p => p.theme.space.xs};
   opacity: ${p => (p.visible ? 1 : 0)};
   pointer-events: ${p => (p.visible ? 'auto' : 'none')};
 `;
