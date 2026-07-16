@@ -6,7 +6,11 @@ import pytest
 from google.protobuf.wrappers_pb2 import Int32Value, StringValue
 
 from sentry.billing.platform.core import BillingService, service_method
-from sentry.billing.platform.core.service import _effective_sample_rate, _should_log_trace
+from sentry.billing.platform.core.service import (
+    _effective_sample_rate,
+    _propagate_sample_rate,
+    _should_log_trace,
+)
 
 
 class TestBillingService:
@@ -85,14 +89,11 @@ class TestBillingService:
 
     @mock.patch("sentry.billing.platform.core.service.metrics")
     @mock.patch("sentry.billing.platform.core.service.logger")
-    @mock.patch("sentry.billing.platform.core.service._should_log_trace", return_value=False)
-    def test_service_method_skips_success_log_when_not_sampled(
-        self, mock_should_log, mock_logger, mock_metrics
-    ):
+    def test_service_method_skips_success_log_when_not_sampled(self, mock_logger, mock_metrics):
         """Success logs are skipped when trace is not sampled."""
 
         class TestService(BillingService):
-            @service_method
+            @service_method(trace_log_sample_rate=0)
             def test_method(self, request: StringValue) -> StringValue:
                 return StringValue(value="ok")
 
@@ -108,20 +109,6 @@ class TestBillingService:
 
         # But no success log
         mock_logger.info.assert_not_called()
-
-    @mock.patch("sentry.billing.platform.core.service.metrics")
-    def test_service_method_custom_sample_rate_sets_effective_rate(self, mock_metrics):
-        """A custom trace_log_sample_rate is propagated via the ContextVar."""
-
-        class TestService(BillingService):
-            @service_method(trace_log_sample_rate=0.5)
-            def test_method(self, request: StringValue) -> StringValue:
-                # Inside the method, the effective rate should be set
-                assert _effective_sample_rate.get(0.0) == 0.5
-                return StringValue(value="ok")
-
-        service = TestService()
-        service.test_method(StringValue(value="test"))
 
     @mock.patch("sentry.billing.platform.core.service.metrics")
     def test_service_method_error_handling(self, mock_metrics):
@@ -171,28 +158,22 @@ class TestShouldLogTrace:
 
     @mock.patch("sentry.billing.platform.core.service._get_trace_hash", return_value=None)
     def test_returns_false_when_no_trace_id(self, mock_hash):
-        _effective_sample_rate.set(1.0)
-        assert _should_log_trace() is False
+        with _propagate_sample_rate(1.0):
+            assert _should_log_trace() is False
 
     @mock.patch("sentry.billing.platform.core.service._get_trace_hash", return_value=50)
     def test_logs_when_hash_below_threshold(self, mock_hash):
-        _effective_sample_rate.set(0.01)  # threshold = 100
-        assert _should_log_trace() is True
+        with _propagate_sample_rate(0.01):  # threshold = 100
+            assert _should_log_trace() is True
 
     @mock.patch("sentry.billing.platform.core.service._get_trace_hash", return_value=500)
     def test_skips_when_hash_above_threshold(self, mock_hash):
-        _effective_sample_rate.set(0.01)  # threshold = 100
-        assert _should_log_trace() is False
+        with _propagate_sample_rate(0.01):  # threshold = 100
+            assert _should_log_trace() is False
 
 
 class TestEffectiveSampleRatePropagation:
     """Tests for ContextVar-based sample rate propagation across nested service methods."""
-
-    @pytest.fixture(autouse=True)
-    def _reset_effective_sample_rate(self):
-        token = _effective_sample_rate.set(0.0)
-        yield
-        _effective_sample_rate.reset(token)
 
     @mock.patch("sentry.billing.platform.core.service._get_trace_hash", return_value=9999)
     @mock.patch("sentry.billing.platform.core.service.metrics")
