@@ -53,7 +53,7 @@ describe('OpenInLogsButton', () => {
       {organization}
     );
 
-    expect(screen.getByRole('button', {name: 'Open in Logs'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View in Explore'})).toBeInTheDocument();
   });
 
   it('appends replay_id to the URL when replayId is provided', () => {
@@ -68,7 +68,7 @@ describe('OpenInLogsButton', () => {
       {organization}
     );
 
-    const link = screen.getByRole('button', {name: 'Open in Logs'});
+    const link = screen.getByRole('button', {name: 'View in Explore'});
     expect(link).toHaveAttribute('href', expect.stringContaining('replay_id%3Adeadbeef'));
   });
 
@@ -84,7 +84,7 @@ describe('OpenInLogsButton', () => {
       {organization}
     );
 
-    const link = screen.getByRole('button', {name: 'Open in Logs'});
+    const link = screen.getByRole('button', {name: 'View in Explore'});
     expect(link).toHaveAttribute(
       'href',
       expect.stringMatching(/logsQuery=.*replay_id%3Adeadbeef/)

@@ -83,7 +83,7 @@ function LogsSectionContent() {
           {...tracesItemSearchQueryBuilderProps}
           placeholder={t('Search logs for this event')}
         />
-        <LinkButton to={logsUrl}>{t('Open in Logs')}</LinkButton>
+        <LinkButton to={logsUrl}>{t('View in Explore')}</LinkButton>
       </Flex>
       <TableContainer>
         <LogsInfiniteTable

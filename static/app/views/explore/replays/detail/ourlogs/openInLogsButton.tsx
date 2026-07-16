@@ -34,7 +34,7 @@ export function OpenInLogsButton({replayId}: Props) {
 
   return (
     <LinkButton size="md" to={url} openInNewTab>
-      {t('Open in Logs')}
+      {t('View in Explore')}
     </LinkButton>
   );
 }

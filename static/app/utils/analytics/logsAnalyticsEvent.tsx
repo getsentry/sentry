@@ -84,6 +84,10 @@ export type LogsAnalyticsEventParameters = {
     save_type: 'save_new_query' | 'rename_query';
     ui_source: 'toolbar' | 'table';
   };
+  'logs.table.row_copied': {
+    log_id: string;
+    organization: Organization;
+  };
   'logs.table.row_copied_as_json': {
     log_id: string;
     organization: Organization;
@@ -93,6 +97,10 @@ export type LogsAnalyticsEventParameters = {
     page_source: LogsAnalyticsPageSource;
   };
   'logs.table.row_link_copied': {
+    log_id: string;
+    organization: Organization;
+  };
+  'logs.table.row_view_in_explore_clicked': {
     log_id: string;
     organization: Organization;
   };
@@ -140,6 +148,8 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.save_query_modal': 'Logs Save Query Modal',
   'logs.onboarding_platform_docs_viewed':
     'Logs Explore Empty State (Onboarding) - Platform Docs Viewed',
+  'logs.table.row_copied': 'Logs Row Copied',
   'logs.table.row_copied_as_json': 'Logs Row Copied as JSON',
   'logs.table.row_link_copied': 'Logs Row Link Copied',
+  'logs.table.row_view_in_explore_clicked': 'Logs Row View in Explore Clicked',
 };

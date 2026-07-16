@@ -16,7 +16,9 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {
   IconAdd,
+  IconCopy,
   IconJson,
+  IconOpen,
   IconPin,
   IconSubtract,
   IconTerminal,
@@ -111,6 +113,7 @@ import {
   getLogRowItem,
   getLogRowTimestampMillis,
   getLogSeverityLevel,
+  getLogsUrl,
   isPseudoLogResponseItem,
   isRegularLogResponseItem,
   ourlogToJson,
@@ -800,6 +803,7 @@ function LogRowDetails({
           }}
         >
           <LogRowDetailsActions
+            embedded={embedded}
             fullLogDataResult={fullLogDataResult}
             projectSlug={projectSlug}
             tableDataRow={dataRow}
@@ -846,10 +850,12 @@ function LogRowDetailsFilterActions({filter}: {filter: MessageFilter}) {
 }
 
 function LogRowDetailsActions({
+  embedded,
   fullLogDataResult,
   projectSlug,
   tableDataRow,
 }: {
+  embedded: boolean;
   fullLogDataResult: UseQueryResult<TraceItemDetailsResponse>;
   projectSlug: string;
   tableDataRow: OurLogsResponseItem;
@@ -857,6 +863,7 @@ function LogRowDetailsActions({
   const {data, isPending, isError} = fullLogDataResult;
   const isFrozen = useLogsFrozenIsFrozen();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const user = useUser();
   const showFilterButtons = !isFrozen;
   const message = String(
@@ -870,6 +877,15 @@ function LogRowDetailsActions({
     message
   );
 
+  const logId = String(tableDataRow[OurLogKnownFieldKey.ID] ?? '');
+
+  // Embedded log tables (trace, replay, issues) are a low-fidelity view; send the
+  // user to the full Explore Logs experience focused on this specific log.
+  const viewInExploreUrl =
+    embedded && logId
+      ? getLogsUrl({organization, selection, query: `id:${logId}`})
+      : null;
+
   const {copy} = useCopyToClipboard();
 
   // Memoize in case we are attempting to copy large JSON objects.
@@ -877,7 +893,6 @@ function LogRowDetailsActions({
   let logDebugEndpoint: string | undefined;
 
   if (user.isSuperuser && projectSlug && isRegularLogResponseItem(tableDataRow)) {
-    const logId = tableDataRow[OurLogKnownFieldKey.ID] ?? '';
     const traceId = tableDataRow[OurLogKnownFieldKey.TRACE_ID] ?? '';
 
     if (logId && traceId) {
@@ -912,7 +927,19 @@ function LogRowDetailsActions({
       errorMessage: t('Failed to copy'),
     }).then(() => {
       trackAnalytics('logs.table.row_copied_as_json', {
-        log_id: String(tableDataRow[OurLogKnownFieldKey.ID]),
+        log_id: logId,
+        organization,
+      });
+    });
+  };
+
+  const copyMessage = () => {
+    copy(message, {
+      successMessage: t('Copied!'),
+      errorMessage: t('Failed to copy'),
+    }).then(() => {
+      trackAnalytics('logs.table.row_copied', {
+        log_id: logId,
         organization,
       });
     });
@@ -926,6 +953,31 @@ function LogRowDetailsActions({
         <span />
       )}
       <LogDetailTableActionsButtonBar>
+        {viewInExploreUrl ? (
+          <LinkButton
+            variant="transparent"
+            size="sm"
+            icon={<IconOpen />}
+            to={viewInExploreUrl}
+            onClick={() => {
+              trackAnalytics('logs.table.row_view_in_explore_clicked', {
+                log_id: logId,
+                organization,
+              });
+            }}
+          >
+            {t('View in Explore')}
+          </LinkButton>
+        ) : null}
+        <Button
+          variant="transparent"
+          size="sm"
+          icon={<IconCopy />}
+          onClick={copyMessage}
+          disabled={isPending || isError || !message}
+        >
+          {t('Copy')}
+        </Button>
         <Button
           variant="transparent"
           size="sm"

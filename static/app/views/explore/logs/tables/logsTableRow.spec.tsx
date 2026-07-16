@@ -698,6 +698,90 @@ describe('logsTableRow', () => {
     expect(parsedData).not.toHaveProperty('sentry.item_id');
   });
 
+  it.isKnownFlake('copies the message when the Copy button is clicked', async () => {
+    const mockWriteText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, 'clipboard', {
+      value: {
+        writeText: mockWriteText,
+      },
+      writable: true,
+    });
+
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.click(logTableRow);
+
+    await waitFor(() => {
+      expect(rowDetailsMock).toHaveBeenCalledTimes(1);
+    });
+
+    const copyButton = await screen.findByRole('button', {name: 'Copy'});
+    await userEvent.click(copyButton);
+
+    await waitFor(() => {
+      expect(mockWriteText).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockWriteText).toHaveBeenCalledWith('test log body');
+  });
+
+  it('does not render a View in Explore button in the standalone logs view', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.click(logTableRow);
+
+    expect(await screen.findByRole('button', {name: 'Copy as JSON'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'View in Explore'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('renders a View in Explore button linking to the log when embedded', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+        embedded
+      />,
+      {organization, initialRouterConfig, additionalWrapper: FrozenProviderWrapper}
+    );
+
+    const logTableRow = await screen.findByTestId('log-table-row');
+    await userEvent.click(logTableRow);
+
+    const viewInExplore = await screen.findByRole('button', {name: 'View in Explore'});
+    expect(viewInExplore).toHaveAttribute(
+      'href',
+      expect.stringContaining('logsQuery=id%3A1')
+    );
+  });
+
   it.isKnownFlake('copies link to log when Copy link menu item is clicked', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
