@@ -14,29 +14,35 @@ export function ResourceLink({
   icon: ComponentType<SVGIconProps>;
   title: string;
 }): ReactNode {
-  if (!href.startsWith('/') && !isSafeHref(href)) {
-    return null;
-  }
-
   const icon = <Icon size="xs" style={{verticalAlign: 'middle'}} />;
 
-  if (/^https?:\/\//.test(href)) {
+  if (/^https?:\/\//.test(href) && isSafeHref(href)) {
     try {
-      if (new URL(href).origin !== window.location.origin) {
+      const parsed = new URL(href);
+      if (parsed.origin !== window.location.origin) {
         return (
           <ExternalLink href={href}>
             {icon} {title}
           </ExternalLink>
         );
       }
+      return (
+        <Link to={parsed.pathname + parsed.search + parsed.hash}>
+          {icon} {title}
+        </Link>
+      );
     } catch {
       return null;
     }
   }
 
-  return (
-    <Link to={href}>
-      {icon} {title}
-    </Link>
-  );
+  if (/^\/[^/]/.test(href)) {
+    return (
+      <Link to={href}>
+        {icon} {title}
+      </Link>
+    );
+  }
+
+  return null;
 }
