@@ -6,6 +6,7 @@ import time
 import zipfile
 from io import BytesIO
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from django.core.files.base import ContentFile
@@ -373,9 +374,11 @@ class CreateDebugFileTest(APITestCase):
             dif, created = create_dif_from_file(self.project, file, self.file_path)
 
         assert created
-        assert dif.file_id is None
+        assert dif.file_id is not None
+        assert dif.file is not None
         assert dif.storage_path is not None
         assert dif.content_type == "application/x-mach-binary"
+        assert dif.file.getfile().read() == content
         assert dif.get_file().read() == content
 
     @requires_objectstore
@@ -387,13 +390,47 @@ class CreateDebugFileTest(APITestCase):
             dif, created = self.create_dif(fileobj=BytesIO(content))
 
         assert created
-        assert dif.file_id is None
+        assert dif.file_id is not None
         assert dif.storage_path is not None
         assert dif.content_type == "application/x-mach-binary"
         assert dif.file_size == len(content)
         assert dif.checksum == checksum
         assert dif.get_file_size() == len(content)
+        assert dif.file.getfile().read() == content
         assert dif.get_file().read() == content
+
+    @requires_objectstore
+    def test_objectstore_write_failure_preserves_legacy_dif(self) -> None:
+        content = b"objectstore-dif-content"
+
+        with (
+            self.feature("organizations:objectstore-debugfiles-write"),
+            patch("sentry.models.debugfile._upload_dif_to_objectstore", side_effect=RuntimeError),
+        ):
+            dif, created = self.create_dif(fileobj=BytesIO(content))
+
+        assert created
+        assert dif.file_id is not None
+        assert dif.storage_path is None
+        assert dif.file.getfile().read() == content
+
+    @requires_objectstore
+    def test_delete_dual_written_dif(self) -> None:
+        content = b"objectstore-dif-content"
+        with self.feature("organizations:objectstore-debugfiles-write"):
+            dif, created = self.create_dif(fileobj=BytesIO(content))
+
+        assert created
+        file_id = dif.file_id
+        storage_path = dif.storage_path
+        assert file_id is not None
+        assert storage_path is not None
+
+        dif.delete()
+
+        assert not File.objects.filter(id=file_id).exists()
+        with pytest.raises(RequestError):
+            get_debug_files_session(self.organization.id, self.project.id).get(storage_path)
 
     def test_keep_disjoint_difs(self) -> None:
         file = self.create_file(
