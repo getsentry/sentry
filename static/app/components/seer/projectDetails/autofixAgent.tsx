@@ -50,7 +50,7 @@ export function AutofixAgent({canWrite, project}: Props) {
     knownAgentIntegrationsQueryOptions({organization})
   );
 
-  const {data: agentSelectOptions = []} = useQuery(
+  const {data: agentSelectOptions = [], isPending: isAgentOptionsPending} = useQuery(
     seerAgentIntegrationsSelectQueryOptions({organization})
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
@@ -117,7 +117,11 @@ export function AutofixAgent({canWrite, project}: Props) {
     persistAgentOption,
   ]);
 
-  if (isPending) {
+  // The "Handoff to Agent" select's value comes from the settings query, but its
+  // options come from `agentSelectOptions`. Rendering before the options load
+  // leaves the select with a value that matches nothing, so it briefly shows its
+  // placeholder before the option pops in. Wait for both queries to settle.
+  if (isPending || isAgentOptionsPending) {
     return (
       <Flex justify="center" padding="xl">
         <LoadingIndicator />
