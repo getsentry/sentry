@@ -426,13 +426,6 @@ const appConfig: Configuration = {
     new rspack.ContextReplacementPlugin(/platformicons/, /\.svg$/),
 
     /**
-     * TODO(epurkhiser): Figure out if we still need these
-     */
-    new rspack.ProvidePlugin({
-      Buffer: ['buffer', 'Buffer'],
-    }),
-
-    /**
      * Extract CSS into separate files.
      * https://rspack.rs/plugins/rspack/css-extract-rspack-plugin
      */
@@ -527,8 +520,6 @@ const appConfig: Configuration = {
     fallback: {
       vm: false,
       stream: false,
-      // Node crypto is imported in @sentry-internal/global-search but not used here
-      crypto: false,
       // `pnpm why` says this is only needed in dev deps
       string_decoder: false,
     },

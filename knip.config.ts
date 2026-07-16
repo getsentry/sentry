@@ -76,7 +76,6 @@ const config: KnipConfig = {
   ignoreDependencies: [
     'core-js',
     'tslib', // subdependency of many packages, declare the latest version
-    'buffer', // rspack.ProvidePlugin, needs better knip plugin
     'odiff-bin', // raw binary consumed by Python backend, not a JS import
     'run-on-changed', // CLI used by the eslint CI job (.github/workflows/frontend.yml), not a JS import
     '@swc-contrib/mut-cjs-exports', // used in jest config
