@@ -7,7 +7,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {SeerTodosProvider} from 'sentry/components/seer/markdown/embeds/components/todos';
+import {SeerConversationProvider} from 'sentry/components/seer/markdown/embeds/conversation';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -212,12 +212,6 @@ export function SeerExplorerContent({
     sessionData.owner_user_id.toString() !== user.id;
 
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData?.blocks]);
-
-  // Feeds the conversation-scoped todo state (latest {% todos %} embed wins).
-  const todosSourceBlocks = useMemo(
-    () => blocks.map(block => ({id: block.id, content: block.message.content})),
-    [blocks]
-  );
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input ?? null;
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
@@ -572,7 +566,7 @@ export function SeerExplorerContent({
       {needsSlackUpgrade && (
         <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
       )}
-      <SeerTodosProvider blocks={todosSourceBlocks}>
+      <SeerConversationProvider blocks={blocks}>
         <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
           {isEmptyState ? (
             <EmptyState
@@ -641,7 +635,7 @@ export function SeerExplorerContent({
             </Fragment>
           )}
         </BlocksContainer>
-      </SeerTodosProvider>
+      </SeerConversationProvider>
       <InputSection
         blocks={blocks}
         enabled={!readOnly}

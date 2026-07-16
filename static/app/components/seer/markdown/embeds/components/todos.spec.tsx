@@ -1,10 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {
-  findLatestTodosBlockId,
-  SeerTodosProvider,
-} from 'sentry/components/seer/markdown/embeds/components/todos';
+import {SeerConversationProvider} from 'sentry/components/seer/markdown/embeds/conversation';
 import {SeerEmbedBlockContext} from 'sentry/components/seer/markdown/embeds/registry';
 
 const todosTag = (items: Array<{content: string; status: string}>) =>
@@ -20,63 +17,47 @@ const LATEST_TAG = todosTag([
   {content: 'Write summary', status: 'pending'},
 ]);
 
-describe('findLatestTodosBlockId', () => {
-  it('returns the last block containing a valid todos tag', () => {
-    expect(
-      findLatestTodosBlockId([
-        {id: 'a', content: FIRST_TAG},
-        {id: 'b', content: 'plain prose'},
-        {id: 'c', content: `intro\n\n${LATEST_TAG}`},
-        {id: 'd', content: 'trailing prose'},
-      ])
-    ).toBe('c');
-  });
+const block = (id: string, content: string | null) => ({id, message: {content}});
 
-  it('skips tags with invalid JSON or invalid shape', () => {
-    expect(
-      findLatestTodosBlockId([
-        {id: 'a', content: FIRST_TAG},
-        {id: 'b', content: '{% todos %}not json{% /todos %}'},
-        {
-          id: 'c',
-          content: '{% todos %}{"items":[{"content":"x","status":"bogus"}]}{% /todos %}',
-        },
-      ])
-    ).toBe('a');
-  });
-
-  it('returns null when no block has a todos tag', () => {
-    expect(
-      findLatestTodosBlockId([
-        {id: 'a', content: 'prose'},
-        {id: 'b', content: null},
-      ])
-    ).toBeNull();
-  });
-});
+function renderConversation(
+  blocks: Array<{id: string; message: {content: string | null}}>
+) {
+  render(
+    <SeerConversationProvider blocks={blocks}>
+      {blocks.map(b => (
+        <SeerEmbedBlockContext key={b.id} value={b.id}>
+          <SeerMarkdown raw={b.message.content ?? ''} />
+        </SeerEmbedBlockContext>
+      ))}
+    </SeerConversationProvider>
+  );
+}
 
 describe('Todos embed', () => {
   it('renders the checklist only for the latest todos block', () => {
-    const blocks = [
-      {id: 'a', content: FIRST_TAG},
-      {id: 'b', content: LATEST_TAG},
-    ];
-    render(
-      <SeerTodosProvider blocks={blocks}>
-        <SeerEmbedBlockContext value="a">
-          <SeerMarkdown raw={FIRST_TAG} />
-        </SeerEmbedBlockContext>
-        <SeerEmbedBlockContext value="b">
-          <SeerMarkdown raw={LATEST_TAG} />
-        </SeerEmbedBlockContext>
-      </SeerTodosProvider>
-    );
+    renderConversation([
+      block('a', FIRST_TAG),
+      block('b', 'plain prose'),
+      block('c', `intro\n\n${LATEST_TAG}`),
+    ]);
 
     // Only the latest snapshot's items render — 'Write summary' is unique to it.
     expect(screen.getByText('Write summary')).toBeInTheDocument();
     // Items shared by both snapshots appear exactly once (older embed renders null).
     expect(screen.getAllByText('Investigate spans')).toHaveLength(1);
     expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+  });
+
+  it('skips tags with invalid JSON or invalid shape when deriving the latest', () => {
+    renderConversation([
+      block('a', FIRST_TAG),
+      block('b', '{% todos %}not json{% /todos %}'),
+      block('c', '{% todos %}{"items":[{"content":"x","status":"bogus"}]}{% /todos %}'),
+    ]);
+
+    // 'a' holds the last valid snapshot, so its two items render.
+    expect(screen.getByText('Check error rates')).toBeInTheDocument();
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
   });
 
   it('renders standalone when no provider is present (stories/previews)', () => {

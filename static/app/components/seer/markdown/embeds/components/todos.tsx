@@ -1,77 +1,32 @@
-import type {ReactNode} from 'react';
-import {createContext, useContext, useMemo} from 'react';
+import {useContext} from 'react';
 
+import {
+  registerEmbedFold,
+  useEmbedFoldState,
+} from 'sentry/components/seer/markdown/embeds/conversation';
 import {SeerEmbedBlockContext} from 'sentry/components/seer/markdown/embeds/registry';
-import {SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {TodoList, type TodoListItem} from 'sentry/components/seer/todoList';
 
-const TODOS_TAG_RE = /\{%\s+todos\s+%\}([\s\S]*?)\{%\s+\/todos\s+%\}/g;
-
-interface TodosSourceBlock {
-  content: string | null | undefined;
-  id: string;
-}
-
 /**
- * Returns the id of the last block whose content contains a valid
- * `{% todos %}` tag. The conversation's todo state is a complete-replacement
- * snapshot, so only the latest occurrence is current.
+ * Todo snapshots are complete replacements, so the conversation's todo state
+ * is simply the block holding the last valid `{% todos %}` occurrence.
  */
-export function findLatestTodosBlockId(blocks: TodosSourceBlock[]): string | null {
-  for (let i = blocks.length - 1; i >= 0; i--) {
-    const content = blocks[i]!.content;
-    if (!content) {
-      continue;
-    }
-    const matches = [...content.matchAll(TODOS_TAG_RE)];
-    for (let j = matches.length - 1; j >= 0; j--) {
-      let data: unknown;
-      try {
-        data = JSON.parse(matches[j]![1]!);
-      } catch {
-        continue;
-      }
-      if (SEER_EMBED_SCHEMAS.todos.schema.safeParse(data).success) {
-        return blocks[i]!.id;
-      }
-    }
-  }
-  return null;
-}
-
-const SeerTodosContext = createContext<{latestTodosBlockId: string | null} | undefined>(
-  undefined
-);
-
-/**
- * Conversation-scoped todo state, derived from block data (not the render
- * tree): the latest valid `{% todos %}` occurrence wins. Wrap the rendered
- * conversation and pass the blocks' `{id, content}` pairs.
- */
-export function SeerTodosProvider({
-  blocks,
-  children,
-}: {
-  blocks: TodosSourceBlock[];
-  children: ReactNode;
-}) {
-  const value = useMemo(
-    () => ({latestTodosBlockId: findLatestTodosBlockId(blocks)}),
-    [blocks]
-  );
-  return <SeerTodosContext value={value}>{children}</SeerTodosContext>;
-}
+const todosFold = registerEmbedFold({
+  tag: 'todos',
+  init: null as string | null,
+  reduce: (_latest, occurrence) => occurrence.blockId,
+});
 
 function TodosEmbed({items}: {items: TodoListItem[]}) {
-  const todosState = useContext(SeerTodosContext);
+  const latestTodosBlockId = useEmbedFoldState(todosFold);
   const blockId = useContext(SeerEmbedBlockContext);
 
   // Outside a conversation (stories, previews) there is no provider — render.
   // Inside one, render only from the latest todos-bearing block.
   const isLatest =
-    todosState === undefined ||
-    (todosState.latestTodosBlockId !== null && todosState.latestTodosBlockId === blockId);
+    latestTodosBlockId === undefined ||
+    (latestTodosBlockId !== null && latestTodosBlockId === blockId);
 
   if (!isLatest) {
     return null;
