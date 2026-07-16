@@ -12,6 +12,7 @@ import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
+import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {useProjects} from 'sentry/utils/useProjects';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
@@ -67,7 +68,9 @@ export function QueryTokens({
         <ExploreParamTitle>{t('Visualization')}</ExploreParamTitle>
         {visualizations.map((visualization, vIdx) =>
           visualization.yAxes.map(yAxis => (
-            <ExploreVisualizes key={`${vIdx}-${yAxis}`}>{yAxis}</ExploreVisualizes>
+            <ExploreVisualizes key={`${vIdx}-${yAxis}`}>
+              {isEquation(yAxis) ? stripEquationPrefix(yAxis) : yAxis}
+            </ExploreVisualizes>
           ))
         )}
       </Flex>

@@ -244,23 +244,21 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // and trace metric (the metric is parsed out of the agent's visualization
       // aggregate or query filters above so the panel matches what was queried).
       const newEncodedMetrics = metricQueries
-        .flatMap((mq: BaseMetricQuery) => {
+        .map((mq: BaseMetricQuery) => {
           if (mq.queryParams === queryParams) {
-            const encoded = [
-              encodeMetricQueryParams({
-                ...mq,
-                metric: nextMetric,
-                queryParams: newQueryParams,
-              }),
-            ];
-            for (const eqMq of seerEquationMetricQueries) {
-              encoded.push(encodeMetricQueryParams(eqMq));
-            }
-            return encoded;
+            return encodeMetricQueryParams({
+              ...mq,
+              metric: nextMetric,
+              queryParams: newQueryParams,
+            });
           }
-          return [encodeMetricQueryParams(mq)];
+          return encodeMetricQueryParams(mq);
         })
         .filter(Boolean);
+
+      for (const eqMq of seerEquationMetricQueries) {
+        newEncodedMetrics.push(encodeMetricQueryParams(eqMq));
+      }
 
       const selection = {
         ...pageFilters.selection,

@@ -1,4 +1,5 @@
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardRevision
+from sentry.models.dashboard import (Dashboard, DashboardFavoriteUser,
+                                     DashboardRevision)
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 from sentry.users.models.user import User
