@@ -381,6 +381,8 @@ class SeerRpcServiceEndpoint(Endpoint):
             raise ParseError from e
         except ObjectDoesNotExist as e:
             raise NotFound from e
+        except InvalidSearchQuery as e:
+            raise ParseError from e
         except SnubaRPCRateLimitExceeded as e:
             sentry_sdk.capture_exception()
             raise Throttled(detail="Rate limit exceeded") from e

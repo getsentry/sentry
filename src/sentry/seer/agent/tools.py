@@ -137,17 +137,20 @@ def _get_full_trace_id(
             debug=True,
         )
 
-        subquery_result = Spans.run_table_query(
-            params=snuba_params,
-            query_string=f"trace:{short_trace_id}",
-            selected_columns=["trace", "timestamp"],
-            orderby=["-timestamp"],
-            offset=0,
-            limit=1,
-            referrer=Referrer.SEER_EXPLORER_TOOLS,
-            config=SearchResolverConfig(),
-            sampling_mode=None,
-        )
+        try:
+            subquery_result = Spans.run_table_query(
+                params=snuba_params,
+                query_string=f"trace:{short_trace_id}",
+                selected_columns=["trace", "timestamp"],
+                orderby=["-timestamp"],
+                offset=0,
+                limit=1,
+                referrer=Referrer.SEER_EXPLORER_TOOLS,
+                config=SearchResolverConfig(),
+                sampling_mode=None,
+            )
+        except InvalidSearchQuery:
+            return None
 
         data = subquery_result.get("data")
         full_trace_id = data[0].get("trace") if data else None
