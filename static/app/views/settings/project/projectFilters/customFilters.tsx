@@ -7,7 +7,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {InputGroup} from '@sentry/scraps/input';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -186,7 +186,17 @@ function getConditionPropertyOptions(
   index: number
 ) {
   const currentProperty = conditions[index]?.property;
-  return propertyOptions.filter(option => {
+  // An existing filter may reference a property whose ingestion feature is now
+  // off, so it's missing from propertyOptions. Keep the stored option available
+  // for this row so the select can still display and retain it.
+  const availableOptions =
+    currentProperty && !propertyOptions.some(option => option.value === currentProperty)
+      ? [
+          ...propertyOptions,
+          ...ALL_PROPERTY_OPTIONS.filter(option => option.value === currentProperty),
+        ]
+      : propertyOptions;
+  return availableOptions.filter(option => {
     if (option.value === currentProperty || !isExclusiveProperty(option.value)) {
       return true;
     }
@@ -243,7 +253,7 @@ function CustomFilterModal({
         </Heading>
       </Header>
       <Body>
-        <Flex direction="column" gap="xl">
+        <Stack gap="xl">
           <form.AppField name="name">
             {field => (
               <field.Layout.Stack label={t('Name')} required>
@@ -261,7 +271,7 @@ function CustomFilterModal({
               const conditions = conditionsField.state.value;
               const activeExclusiveProperty = getActiveExclusiveProperty(conditions);
               return (
-                <Flex direction="column" gap="sm">
+                <Stack gap="sm">
                   <Flex justify="between" align="center" gap="md">
                     <Text variant="muted" size="sm">
                       {t(
@@ -320,11 +330,11 @@ function CustomFilterModal({
                       />
                     </Flex>
                   ))}
-                </Flex>
+                </Stack>
               );
             }}
           </form.AppField>
-        </Flex>
+        </Stack>
       </Body>
       <Footer>
         <Flex gap="md">
@@ -459,7 +469,7 @@ export function CustomFilters({project}: {project: Project}) {
   const visibleFilters = filters.filter(filter => matchesQuery(filter, query));
 
   return (
-    <Flex direction="column" gap="lg">
+    <Stack gap="lg">
       <Flex gap="md" align="center">
         <Flex flex={1}>
           <InputGroup style={{width: '100%'}}>
@@ -541,7 +551,7 @@ export function CustomFilters({project}: {project: Project}) {
                 <Text ellipsis>{filter.name}</Text>
               </SimpleTable.RowCell>
               <SimpleTable.RowCell>
-                <Flex direction="column" align="start" gap="xs">
+                <Stack align="start" gap="xs">
                   {filter.conditions.flatMap((condition, conditionIndex) =>
                     condition.value.map((value, valueIndex) => (
                       <ConditionTag
@@ -551,7 +561,7 @@ export function CustomFilters({project}: {project: Project}) {
                       />
                     ))
                   )}
-                </Flex>
+                </Stack>
               </SimpleTable.RowCell>
               <SimpleTable.RowCell>
                 <TimeSince date={filter.dateCreated} />
@@ -597,7 +607,7 @@ export function CustomFilters({project}: {project: Project}) {
           ))}
         </CustomFiltersTable>
       )}
-    </Flex>
+    </Stack>
   );
 }
 
