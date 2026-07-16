@@ -163,7 +163,7 @@ describe('ProjectSeer', () => {
           name: 'sentry',
           organizationId: '',
           owner: 'getsentry',
-          provider: 'github',
+          provider: 'integrations:github',
         },
       ],
     });
@@ -187,6 +187,8 @@ describe('ProjectSeer', () => {
 
     // Wait for initial repos to load
     expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
+    expect(screen.getByText('GitHub')).toBeInTheDocument();
+    expect(screen.queryByText('integrations:github')).not.toBeInTheDocument();
     expect(screen.queryByText('getsentry/seer')).not.toBeInTheDocument();
 
     // Open the add repo modal

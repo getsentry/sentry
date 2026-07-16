@@ -15,6 +15,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Confirm} from 'sentry/components/confirm';
+import {RepoProviderIcon} from 'sentry/components/repositories/repoProviderIcon';
 import {overrideHasAllValues} from 'sentry/components/seer/projectDetails/overrideHasAllValues';
 import {overrideHasAnyValue} from 'sentry/components/seer/projectDetails/overrideHasAnyValue';
 import {IconAdd} from 'sentry/icons/iconAdd';
@@ -22,6 +23,7 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {t, tct, tn} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
+import {getIntegrationDisplayName} from 'sentry/utils/integrationUtil';
 import {getMutateSeerProjectRepoOptions} from 'sentry/utils/seer/seerProjectRepos';
 import type {SeerProjectReposResponse} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -76,6 +78,8 @@ export function AutofixRepositoriesItem({
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
+  const provider = repository.provider.replace(/^integrations:/, '');
+  const providerDisplayName = getIntegrationDisplayName(provider) || repository.provider;
 
   const mutationOptions = getMutateSeerProjectRepoOptions({
     organization,
@@ -132,7 +136,10 @@ export function AutofixRepositoriesItem({
         justify="end"
         style={isExpanded ? {borderBottom: 'none'} : {}}
       >
-        <Text size="sm">{repository.provider}</Text>
+        <Flex align="center" gap="sm">
+          <RepoProviderIcon provider={repository.provider} size="sm" />
+          <Text size="sm">{providerDisplayName}</Text>
+        </Flex>
       </Flex>
 
       <Flex align="center" style={isExpanded ? {borderBottom: 'none'} : {}}>
