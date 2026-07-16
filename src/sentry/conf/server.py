@@ -2248,7 +2248,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.6.0"
+SELF_HOSTED_STABLE_VERSION = "26.7.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2273,6 +2273,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.opsgenie.OpsgenieIntegrationProvider",
     "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
     "sentry.integrations.claude_code.integration.ClaudeCodeAgentIntegrationProvider",
+    "sentry.integrations.datadog.integration.DatadogIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
 )

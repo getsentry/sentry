@@ -365,7 +365,8 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
                 )
         except IntegrityError:
             # Idempotency conflict; we treat this as a no-op.
-            pass
+            # Return to skip the trigger_group_log_processing call.
+            return
 
         # This receiver runs inside the outbox drain transaction
         # (process_shard → transaction.atomic), so the GALE is not yet committed.

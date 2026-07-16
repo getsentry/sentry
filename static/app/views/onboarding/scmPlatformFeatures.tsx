@@ -171,7 +171,7 @@ export function ScmPlatformFeatures({
 
   return (
     <Stack align="center" gap="2xl" flexGrow={1}>
-      <Stack gap="3xl" maxWidth={SCM_STEP_CONTENT_WIDTH}>
+      <Stack gap="3xl" maxWidth={`min(${SCM_STEP_CONTENT_WIDTH}, 100%)`}>
         <Heading as="h2" size="4xl">
           {t('Create your first project')}
         </Heading>

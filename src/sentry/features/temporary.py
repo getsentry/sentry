@@ -111,6 +111,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:gen-ai-explore-metrics-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable defaulting to ask seer from free text search
     manager.add("organizations:gen-ai-default-to-ask-seer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable ask seer ux rework
+    manager.add("organizations:gen-ai-ask-seer-ux-rework", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI search bar on the issues page
     manager.add("organizations:gen-ai-issues-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable GenAI consent
@@ -126,6 +128,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:integrations-github-multi-platform-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-slack-staging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-vercel-upsert-env-var", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:integrations-datadog", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:slack-reinstall-nudge-on-issue-alert", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable GitHub Enterprise to accept github.com as a valid Installation URL
     manager.add("organizations:github-enterprise-github-com-source", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -133,7 +136,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # ...
     # Project Management Integrations Feature Parity Flags
     manager.add("organizations:integrations-github-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    manager.add("organizations:integrations-github_enterprise-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-gitlab-project-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Temporary: log full Jira Cloud `issue.updated` webhook payloads so we can design project-change link rewriting.
     manager.add("organizations:jira-issue-updated-payload-logging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -274,6 +276,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-stream", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable structured LLM context (JSON snapshot) instead of ASCII DOM snapshot
     manager.add("organizations:context-engine-structured-page-context", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable browser notifications for autofix runs
+    manager.add("organizations:autofix-browser-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show the "Open in Seer Agent (debug)" button in the autofix drawer
     manager.add("organizations:autofix-seer-agent-debug", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable autofix introspection for early stopping of autofix runs
@@ -385,8 +389,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Enable high date range options on new explore page
     manager.add("organizations:visibility-explore-range-high", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
-    # Use batched Snuba queries for weekly report key errors instead of per-project queries
-    manager.add("organizations:weekly-report-batched-key-errors", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Show combined resolved "past issues" section instead of separate key errors / performance issues
     manager.add("organizations:weekly-report-past-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Allow users to exclude specific projects from their weekly email reports
@@ -467,6 +469,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:first-event-severity-calculation", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable writing issue action log entries to the database
     manager.add("projects:issue-action-log-write-to-db", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("projects:issue-status-reconciliation", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable similarity embeddings API call
     # This feature is only available on the frontend using project details since the handler gets
     # project options and this is slow in the project index endpoint feature flag serialization
@@ -488,8 +491,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:span-v2-attachment-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables experimental trace attachment processing in Relay.
     manager.add("projects:trace-attachment-processing", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enables the uploading of minidump attachments to the objectstore.
-    manager.add("projects:relay-minidump-attachment-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the uploading of minidumps to the objectstore.
     manager.add("projects:relay-minidump-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the uploading of playstation attachments to the objectstore.
@@ -506,8 +507,5 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     manager.add("organizations:claude-code-vault-reuse", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
-    # seer feature flags for assisted query agent org scoped
-    manager.add("organizations:assisted-query-cross-event-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    manager.add("organizations:assisted-query-project-expansion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
     # fmt: on

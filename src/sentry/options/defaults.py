@@ -634,6 +634,16 @@ register(
     default=3600,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Cutover switch for the reduced per-PR activity document. When on, PR activity is
+# folded into a single PullRequestActivityLog JSON document at webhook time instead
+# of one PullRequestActivity row per event; routing is per-PR (a PR stays on
+# whichever store it started on). Flip this ON only AFTER the code is fully
+# deployed, so a mixed fleet never splits one PR's writes across both stores.
+register(
+    "pr_metrics.activity_document.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -3846,6 +3856,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rolls out FutureTrackingProducer as the replays eap_items producer
+register(
+    "tasks.producer.replays-eap-items.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rolls out the new TaskProducer to processing_errors tasks
 register(
     "tasks.producer.processing-errors.rollout",
@@ -3863,6 +3881,24 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# List of producer names to roll out poll metrics to. Enables everywhere if
+# list contains "all".
+register(
+    "arroyo.producer.record_poll_metrics",
+    type=Sequence,
+    default=None,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+# Arroyo producer poll metrics should be logged every X poll iterations.
+register(
+    "arroyo.producer.poll_metric_frequency",
+    type=Int,
+    default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "github-enterprise.disallow-domain-mismatch",
     type=Bool,
@@ -3874,5 +3910,29 @@ register(
     "error-embeds.control-silo-address",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Issues derived data — process_project_derived_data task
+# Number of groups per batch task when fanning out project-wide processing.
+register(
+    "issues.derived.project-batch-size",
+    default=500,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of batch tasks to schedule; aborts if exceeded.
+register(
+    "issues.derived.project-max-tasks",
+    default=1000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Allows GroupActionLogEntries to be written from Activity creation.
+register(
+    "group_action_log.activity.double-write",
+    default=False,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

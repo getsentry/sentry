@@ -11,7 +11,7 @@ resources:
 ---
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
@@ -110,7 +110,7 @@ Wrap each action in its own `<RevealOnHover.Action>`.
 Use the `visible` prop on `<RevealOnHover.Action>` to override the reveal behavior for specific actions.
 
 <Storybook.Demo>
-  <Flex direction="column" gap="sm" width="300px">
+  <Stack gap="sm" width="300px">
     <RevealOnHover>
       <Text>Pinned item</Text>
       <RevealOnHover.Action visible>
@@ -133,7 +133,7 @@ Use the `visible` prop on `<RevealOnHover.Action>` to override the reveal behavi
         />
       </RevealOnHover.Action>
     </RevealOnHover>
-  </Flex>
+  </Stack>
 </Storybook.Demo>
 
 ```jsx
