@@ -50,20 +50,6 @@ class SymbolicatorFunction(Enum):
     def __call__(self, symbolicator: Symbolicator, data: Any) -> Any:
         return self.function()(symbolicator, data)
 
-    def platform_name(self) -> str:
-        """Lossy conversion to a legacy platform"""
-        match self:
-            case SymbolicatorFunction.native:
-                return "native"
-            case SymbolicatorFunction.js:
-                return "js"
-            case SymbolicatorFunction.jvm:
-                return "jvm"
-            case SymbolicatorFunction.minidump:
-                return "native"
-            case SymbolicatorFunction.applecrashreport:
-                return "native"
-
     def function(self) -> Callable[[Symbolicator, Any], Any]:
         from sentry.lang.java.processing import process_jvm_stacktraces
         from sentry.lang.javascript.processing import process_js_stacktraces
