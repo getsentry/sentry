@@ -21,13 +21,20 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.github.webhook import (
+    CheckRunEventWebhook,
+    CheckSuiteWebhook,
     GitHubWebhook,
     InstallationEventWebhook,
     InstallationRepositoriesEventWebhook,
+    IssueCommentEventWebhook,
     IssuesEventWebhook,
     PullRequestEventWebhook,
+    PullRequestReviewCommentEventWebhook,
+    PullRequestReviewEventWebhook,
+    PullRequestReviewThreadEventWebhook,
     PushEventWebhook,
     get_github_external_id,
+    get_scm_stream_extra,
 )
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
@@ -146,6 +153,36 @@ class GitHubEnterpriseIssuesEventWebhook(GitHubEnterpriseWebhook, IssuesEventWeb
     pass
 
 
+class GitHubEnterpriseIssueCommentEventWebhook(GitHubEnterpriseWebhook, IssueCommentEventWebhook):
+    pass
+
+
+class GitHubEnterpriseCheckRunEventWebhook(GitHubEnterpriseWebhook, CheckRunEventWebhook):
+    pass
+
+
+class GitHubEnterpriseCheckSuiteWebhook(GitHubEnterpriseWebhook, CheckSuiteWebhook):
+    pass
+
+
+class GitHubEnterprisePullRequestReviewEventWebhook(
+    GitHubEnterpriseWebhook, PullRequestReviewEventWebhook
+):
+    pass
+
+
+class GitHubEnterprisePullRequestReviewCommentEventWebhook(
+    GitHubEnterpriseWebhook, PullRequestReviewCommentEventWebhook
+):
+    pass
+
+
+class GitHubEnterprisePullRequestReviewThreadEventWebhook(
+    GitHubEnterpriseWebhook, PullRequestReviewThreadEventWebhook
+):
+    pass
+
+
 class GitHubEnterpriseWebhookBase(Endpoint):
     authentication_classes = ()
     permission_classes = ()
@@ -156,6 +193,12 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         "installation": GitHubEnterpriseInstallationEventWebhook,
         "installation_repositories": GitHubEnterpriseInstallationRepositoriesEventWebhook,
         "issues": GitHubEnterpriseIssuesEventWebhook,
+        "issue_comment": GitHubEnterpriseIssueCommentEventWebhook,
+        "check_run": GitHubEnterpriseCheckRunEventWebhook,
+        "check_suite": GitHubEnterpriseCheckSuiteWebhook,
+        "pull_request_review": GitHubEnterprisePullRequestReviewEventWebhook,
+        "pull_request_review_comment": GitHubEnterprisePullRequestReviewCommentEventWebhook,
+        "pull_request_review_thread": GitHubEnterprisePullRequestReviewThreadEventWebhook,
     }
 
     def _get_host(self, request: HttpRequest) -> str | None:
@@ -365,6 +408,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 "event_type_hint": request.headers.get("X-GitHub-Event"),
                 "event": request.body.decode("utf-8"),
                 "extra": {
+                    **get_scm_stream_extra(event),
                     "host": host,
                     "skipped-authentication": skipped_authentication,
                     "enterprise-version": request.headers.get("x-github-enterprise-version"),

@@ -600,6 +600,7 @@ const OnboardingContainer = styled('div')<{
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow-x: hidden;
   background: ${p => p.theme.tokens.background.primary};
   padding: ${p => (p.hasScmOnboarding ? '60px' : '120px')} ${p => p.theme.space['2xl']};
   width: 100%;

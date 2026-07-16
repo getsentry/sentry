@@ -5,14 +5,13 @@ from datetime import datetime, timedelta
 from threading import local
 from typing import Any
 
-import sentry_sdk
 from django.core.cache import BaseCache, InvalidCacheBackendError, caches
 from django.utils.functional import cached_property
 
 from sentry import options
 from sentry.utils import json, metrics
 from sentry.utils.services import Service
-from sentry.utils.tracing import set_span_tag, start_span
+from sentry.utils.tracing import set_span_tag, start_span, trace
 
 # Cache an instance of the encoder we want to use
 json_dumps = json.JSONEncoder(
@@ -254,7 +253,7 @@ class NodeStorage(local, Service):
         """
         return self.set_subkeys(item_id, {None: data}, ttl=ttl)
 
-    @sentry_sdk.tracing.trace
+    @trace
     def set_subkeys(
         self, item_id: str, data: dict[str | None, Mapping[str, Any]], ttl: timedelta | None = None
     ) -> None:
@@ -289,7 +288,7 @@ class NodeStorage(local, Service):
             return self.cache.get(item_id)
         return None
 
-    @sentry_sdk.tracing.trace
+    @trace
     def _get_cache_items(self, id_list: list[str]) -> dict[str, Any]:
         if self.cache:
             return self.cache.get_many(id_list)
@@ -299,7 +298,7 @@ class NodeStorage(local, Service):
         if self.cache and data:
             self.cache.set(item_id, data, timeout=options.get("nodestore.cache-ttl"))
 
-    @sentry_sdk.tracing.trace
+    @trace
     def _set_cache_items(self, items: dict[Any, Any]) -> None:
         if self.cache:
             self.cache.set_many(items, timeout=options.get("nodestore.cache-ttl"))

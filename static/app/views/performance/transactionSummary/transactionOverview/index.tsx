@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import type {Location} from 'history';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {LoadingContainer} from 'sentry/components/loading/loadingContainer';
@@ -15,21 +14,14 @@ import {
   useMEPDataContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {removeHistogramQueryStrings} from 'sentry/utils/performance/histogram';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
-import {
-  decodeFilterFromLocation,
-  filterToLocationQuery,
-  SpanOperationBreakdownFilter,
-} from 'sentry/views/performance/transactionSummary/filter';
+import {decodeFilterFromLocation} from 'sentry/views/performance/transactionSummary/filter';
 import {useTransactionSummaryContext} from 'sentry/views/performance/transactionSummary/transactionSummaryContext';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
 
-import {ZOOM_END, ZOOM_START} from './latencyChart/utils';
 import {EAPSummaryContent} from './content';
 
 // Used to cast the totals request to numbers
@@ -78,7 +70,6 @@ function EAPOverviewContentWrapper() {
   } = useTransactionSummaryContext();
 
   const location = useLocation();
-  const navigate = useNavigate();
   const mepContext = useMEPDataContext();
 
   const queryData = useDiscoverQuery({
@@ -109,35 +100,10 @@ function EAPOverviewContentWrapper() {
     mepContext.setIsMetricsData(isMetricsData);
   }, [mepContext, queryData.data]);
 
-  const {data: tableData, isPending, error} = queryData;
-  const {
-    data: totalCountTableData,
-    isPending: isTotalCountQueryLoading,
-    error: totalCountQueryError,
-  } = totalCountQueryData;
+  const {data: tableData} = queryData;
+  const {data: totalCountTableData} = totalCountQueryData;
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
-
-  const onChangeFilter = (newFilter: SpanOperationBreakdownFilter | undefined) => {
-    trackAnalytics('performance_views.filter_dropdown.selection', {
-      organization,
-      action: newFilter as string,
-    });
-
-    const nextQuery: Location['query'] = {
-      ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
-      ...filterToLocationQuery(newFilter),
-    };
-
-    if (newFilter === SpanOperationBreakdownFilter.NONE) {
-      delete nextQuery.breakdown;
-    }
-
-    navigate({
-      pathname: location.pathname,
-      query: nextQuery,
-    });
-  };
 
   let totals: TotalValues | null =
     (tableData?.data?.[0] as Record<string, number>) ?? null;
@@ -155,10 +121,7 @@ function EAPOverviewContentWrapper() {
       eventView={eventView}
       projectId={projectId}
       transactionName={transactionName}
-      isLoading={isPending || isTotalCountQueryLoading}
-      error={error || totalCountQueryError}
       totalValues={totals}
-      onChangeFilter={onChangeFilter}
       spanOperationBreakdownFilter={spanOperationBreakdownFilter}
     />
   );

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {Link} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 
-import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
+import {Container, Stack, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -12,7 +12,7 @@ import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
+import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -35,7 +35,6 @@ import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLege
 import {MISSING_DATA_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   LegendSelection,
-  TabularColumn,
   TimeSeries,
   TimeSeriesGroupBy,
 } from 'sentry/views/dashboards/widgets/common/types';
@@ -76,8 +75,6 @@ interface VisualizationWidgetProps {
     totalIssuesCount?: string;
   }) => void;
   onLegendSelectionChange?: (selection: LegendSelection) => void;
-  onWidgetTableResizeColumn?: (columns: TabularColumn[]) => void;
-  onWidgetTableSort?: (sort: Sort) => void;
   onZoom?: EChartDataZoomHandler;
   showConfidenceWarning?: boolean;
   showReleaseAs?: LoadableChartWidgetProps['showReleaseAs'];
@@ -444,7 +441,7 @@ function VisualizationWidgetContent({
 
   if (showBreakdownData) {
     return (
-      <Flex direction="column" height="100%">
+      <Stack height="100%">
         <Container overflow="hidden" flex={2} {...timeseriesContainerPadding}>
           <TimeSeriesWidgetVisualization
             plottables={plottables}
@@ -458,17 +455,17 @@ function VisualizationWidgetContent({
           />
         </Container>
         <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
-        <Flex flex={1} direction="column" borderTop="primary" overflowY="auto">
+        <Stack flex={1} borderTop="primary" overflowY="auto">
           <Container flex={1} width="100%">
             {footerTable}
           </Container>
-        </Flex>
-      </Flex>
+        </Stack>
+      </Stack>
     );
   }
 
   return (
-    <Flex direction="column" height="100%">
+    <Stack height="100%">
       <Container flex={1} {...timeseriesContainerPadding}>
         <TimeSeriesWidgetVisualization
           plottables={plottables}
@@ -481,7 +478,7 @@ function VisualizationWidgetContent({
         />
       </Container>
       <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
-    </Flex>
+    </Stack>
   );
 }
 

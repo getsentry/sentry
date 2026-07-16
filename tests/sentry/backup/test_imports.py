@@ -55,7 +55,6 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay, RelayUsage
-from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.team import Team
 from sentry.monitors.models import Monitor
 from sentry.receivers import create_default_projects
@@ -354,6 +353,23 @@ class SanitizationTests(ImportTestCase):
                 )
                 assert User.objects.filter(username__iexact="min_user").count() == 1
                 assert User.objects.filter(username__icontains="min_user-").count() == 2
+
+    def test_generate_suffix_when_username_matches_existing_email(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            self.create_user(email="min_user", username="existing_sso", is_test_user=False)
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "wb+") as tmp_file:
+                # creates a User with username = "min_user"
+                models = self.json_of_exhaustive_user_with_minimum_privileges()
+                tmp_file.write(orjson.dumps(self.sort_in_memory_json(models)))
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
+
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                assert User.objects.filter(username__iexact="min_user").count() == 0
+                assert User.objects.filter(username__icontains="min_user-").count() == 1
+                assert User.objects.filter(username="existing_sso").count() == 1
 
     def test_bad_invalid_user(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1617,36 +1633,6 @@ class CollisionTests(ImportTestCase):
 
                 with open(tmp_path, "rb") as tmp_file:
                     verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
-
-    @expect_models(COLLISION_TESTED, SavedSearch)
-    def test_colliding_saved_search(self, expected_models: list[type[Model]]) -> None:
-        self.create_organization("some-org", owner=self.user)
-        SavedSearch.objects.create(
-            name="Global Search",
-            query="saved query",
-            is_global=True,
-            visibility=Visibility.ORGANIZATION,
-        )
-        assert SavedSearch.objects.count() == 1
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            assert SavedSearch.objects.count() == 0
-
-            # Allow `is_global` searches for `ImportScope.Global` imports.
-            with open(tmp_path, "rb") as tmp_file:
-                import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
-
-            assert SavedSearch.objects.count() == 1
-
-            # Disallow `is_global` searches for `ImportScope.Organization` imports.
-            with open(tmp_path, "rb") as tmp_file:
-                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
-
-            assert SavedSearch.objects.count() == 1
-
-            with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, DataSource)
     def test_colliding_data_source(self, expected_models: list[type[Model]]) -> None:

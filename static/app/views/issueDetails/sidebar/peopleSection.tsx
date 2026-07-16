@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
@@ -26,7 +26,7 @@ export function PeopleSection({
       title={<Title>{t('People')}</Title>}
       sectionKey={SectionKey.PEOPLE}
     >
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         {hasParticipants && (
           <Flex gap="xs" align="center">
             <ParticipantList
@@ -43,7 +43,7 @@ export function PeopleSection({
             {t('viewed')}
           </Flex>
         )}
-      </Flex>
+      </Stack>
     </SidebarFoldSection>
   );
 }

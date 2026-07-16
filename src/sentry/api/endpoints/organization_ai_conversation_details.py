@@ -2,7 +2,6 @@ import logging
 from dataclasses import replace
 from datetime import datetime, timedelta
 
-import sentry_sdk
 from django.utils import timezone
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -22,6 +21,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import SpanIssueMeta, get_issues_by_span_for_traces
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +57,8 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.tool.name",
     "gen_ai.tool.call.arguments",
     "gen_ai.tool.input",
+    "gen_ai.tool.call.result",
+    "gen_ai.tool.output",
     "gen_ai.usage.total_tokens",
     "gen_ai.request.model",
     "gen_ai.response.model",
@@ -149,7 +151,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
 
         return [replace(base_params, start=now - delta, end=now) for delta in steps]
 
-    @sentry_sdk.trace
+    @trace
     def _annotate_issues(
         self,
         spans: list[dict],
@@ -208,7 +210,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 span["errors"] = bucket["errors"]
                 span["occurrences"] = bucket["occurrences"]
 
-    @sentry_sdk.trace
+    @trace
     def _fetch_spans(
         self,
         snuba_params: SnubaParams,

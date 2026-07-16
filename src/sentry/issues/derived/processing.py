@@ -1,6 +1,7 @@
 import enum
 import logging
-from datetime import datetime
+import time
+from datetime import datetime, timedelta
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, router, transaction
@@ -12,6 +13,7 @@ from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.derived.tasks import process_group_log_task
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
+from sentry.models.group import Group
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -41,9 +43,6 @@ def _ensure_derived(group_id: int) -> GroupDerivedData:
         return GroupDerivedData.objects.get(group_id=group_id)
     except GroupDerivedData.DoesNotExist:
         pass
-
-    # Deferred to avoid circular import: group.py → action_log → processing.py
-    from sentry.models.group import Group
 
     try:
         derived, _created = GroupDerivedData.objects.get_or_create(
@@ -148,22 +147,33 @@ def _process_batch(
         return bool(_entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, 1))
 
 
+class GroupLogTimeout(Exception):
+    """Raised when process_group_log cannot finish within its timeout."""
+
+
 def process_group_log(
     group_id: int,
     batch_size: int = DEFAULT_BATCH_SIZE,
     target_pipeline: Pipeline[GroupActionLogEntry] | None = None,
+    timeout: timedelta | None = None,
 ) -> GroupDerivedData:
     """Fully drain all pending entries for a group, processing in batches.
 
     Raises Group.DoesNotExist if the group has been deleted.
+    Raises GroupLogTimeout if *timeout* elapses before all
+    entries are processed.
     """
     p = target_pipeline or PIPELINE
+    timeout_seconds = timeout.total_seconds() if timeout is not None else None
+    start = time.monotonic()
 
     with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
         derived = _ensure_derived(group_id)
 
     has_more = _process_batch(p, derived, group_id, batch_size)
     while has_more:
+        if timeout_seconds is not None and time.monotonic() - start >= timeout_seconds:
+            raise GroupLogTimeout(group_id)
         has_more = _process_batch(p, derived, group_id, batch_size)
 
     return derived
@@ -211,7 +221,8 @@ def invalidate_group_derived_data(
     group_id: int,
     cursor: tuple[datetime, int] | None = None,
 ) -> None:
-    """Delete derived state so it is rebuilt from scratch on the next pass.
+    """Delete derived state so it is rebuilt from scratch on the next pass,
+    then kicks off an async task to regenerate the derived data.
 
     If *cursor* is ``(date_added, id)`` of the earliest affected entry, the
     row is only deleted when its cursor is at or past that point; otherwise
@@ -220,6 +231,7 @@ def invalidate_group_derived_data(
     """
     if cursor is None:
         GroupDerivedData.objects.filter(group_id=group_id).delete()
+        process_group_log_task.delay(group_id)
         return
 
     # Only invalidate if the row has already processed past the affected point.
@@ -237,3 +249,4 @@ def invalidate_group_derived_data(
                 "cursor_id": cursor_id,
             },
         )
+        process_group_log_task.delay(group_id)

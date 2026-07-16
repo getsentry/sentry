@@ -61,9 +61,12 @@ seer_pr_metrics_connection_pool = connection_from_url(
     timeout=settings.SEER_DEFAULT_TIMEOUT,
 )
 
-# The verdicts Seer may return: every real outcome, never the internal forward
-# sentinel. The callback rejects JUDGE_IN_PROGRESS coming back from Seer.
-RESULT_VERDICTS = frozenset(PullRequestVerdict.values) - {PullRequestVerdict.JUDGE_IN_PROGRESS}
+# The verdicts Seer may return: every real outcome, never an internal sentinel.
+# The callback rejects JUDGE_IN_PROGRESS / WAITING_EVENT_COOLDOWN coming back from Seer.
+RESULT_VERDICTS = frozenset(PullRequestVerdict.values) - {
+    PullRequestVerdict.JUDGE_IN_PROGRESS,
+    PullRequestVerdict.WAITING_EVENT_COOLDOWN,
+}
 
 
 # check_run fires per check per push, so a busy PR can accumulate far more check

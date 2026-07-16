@@ -62,6 +62,10 @@ export function ConversationDetailPageNew() {
     [setQueryState]
   );
 
+  const handleDeselectSpan = useCallback(() => {
+    setQueryState({spanId: null, focusedTool: null});
+  }, [setQueryState]);
+
   return (
     <ViewportConstrainedPage background="secondary">
       <TopBar.Slot name="title">
@@ -90,6 +94,7 @@ export function ConversationDetailPageNew() {
             activeTab={queryState.tab}
             selectedSpanId={queryState.spanId}
             onSelectSpan={handleSelectSpan}
+            onDeselectSpan={handleDeselectSpan}
             focusedTool={queryState.focusedTool}
           />
         </ConversationViewContainer>

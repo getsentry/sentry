@@ -463,7 +463,6 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
         </LogsHighlight>
         {isBodyFiltered && templateText && (
           <FieldReplacementHelper
-            original={attribute_value}
             replacement={templateText as string}
             extra={props.extra}
             item={props.item}
@@ -564,9 +563,7 @@ function ProjectRenderer(props: LogFieldRendererProps) {
   return <span>{props.item.value}</span>;
 }
 
-function FieldReplacementHelper(
-  props: {original: string; replacement: string} & LogFieldRendererProps
-) {
+function FieldReplacementHelper(props: {replacement: string} & LogFieldRendererProps) {
   return <LogsFilteredHelperText>{props.replacement}</LogsFilteredHelperText>;
 }
 

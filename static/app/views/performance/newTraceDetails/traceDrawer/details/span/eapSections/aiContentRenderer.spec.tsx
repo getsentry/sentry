@@ -60,4 +60,20 @@ describe('AIContentRenderer', () => {
     render(<AIContentRenderer text="simple text" />);
     expect(screen.getByText('simple text')).toBeInTheDocument();
   });
+
+  it('renders collapsible XML tags with tag name label', () => {
+    const text = '<thinking>\nsome thought\n</thinking>';
+    render(<AIContentRenderer text={text} inline collapsibleXmlTags />);
+
+    expect(screen.getByText('thinking')).toBeInTheDocument();
+  });
+
+  it('renders nested collapsible XML with hierarchy', () => {
+    const text = '<outer>\n<inner>nested content</inner>\n</outer>';
+    render(<AIContentRenderer text={text} inline collapsibleXmlTags />);
+
+    expect(screen.getByText('outer')).toBeInTheDocument();
+    expect(screen.getByText('inner')).toBeInTheDocument();
+    expect(screen.getByText('nested content')).toBeInTheDocument();
+  });
 });

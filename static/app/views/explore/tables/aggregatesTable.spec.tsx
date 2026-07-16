@@ -5,13 +5,33 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {TagCollection} from 'sentry/types/group';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {AggregatesTable} from './aggregatesTable';
+
+const stringTags: TagCollection = {
+  'span.op': {
+    key: 'span.op',
+    name: 'span.op',
+    kind: FieldKind.TAG,
+  },
+};
+
+const numberTags: TagCollection = {
+  'span.duration': {
+    key: 'span.duration',
+    name: 'span.duration',
+    kind: FieldKind.MEASUREMENT,
+  },
+};
+
+const booleanTags: TagCollection = {};
 
 function createAggregatesQueryResult(
   overrides: Partial<AggregatesTableResult['result']> = {}
@@ -57,12 +77,22 @@ function createAggregatesTableResult({
 
 function AggregatesTableWithParamsProvider({
   aggregatesTableResult,
+  aggregateNumberTags = numberTags,
+  validatedFieldTypes = {},
 }: {
   aggregatesTableResult: AggregatesTableResult;
+  aggregateNumberTags?: TagCollection;
+  validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 }) {
   return (
     <SpansQueryParamsProvider>
-      <AggregatesTable aggregatesTableResult={aggregatesTableResult} />
+      <AggregatesTable
+        aggregatesTableResult={aggregatesTableResult}
+        stringTags={stringTags}
+        numberTags={aggregateNumberTags}
+        booleanTags={booleanTags}
+        validatedFieldTypes={validatedFieldTypes}
+      />
     </SpansQueryParamsProvider>
   );
 }
@@ -178,5 +208,150 @@ describe('AggregatesTable', () => {
     expect(
       screen.queryByRole('menuitemradio', {name: 'Add to filter'})
     ).not.toBeInTheDocument();
+  });
+
+  it('uses validated field types when aggregate metadata is missing', async () => {
+    const eventView = EventView.fromLocation(
+      LocationFixture({
+        query: {
+          field: ['sentry.duration', 'count()'],
+        },
+      })
+    );
+
+    render(
+      <AggregatesTableWithParamsProvider
+        validatedFieldTypes={{'sentry.duration': FieldValueType.NUMBER}}
+        aggregatesTableResult={createAggregatesTableResult({
+          eventView,
+          result: {
+            data: [
+              {
+                'sentry.duration': 123,
+                'count()': 10,
+              },
+            ],
+            meta: {
+              fields: {
+                'count()': FieldValueType.INTEGER,
+              },
+              units: {},
+            },
+          },
+        })}
+      />,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              groupBy: 'sentry.duration',
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    await userEvent.click(screen.getByText('123'));
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Show values greater than'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Add to filter'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('prettifies validated aggregate field names', () => {
+    const aggregate = 'count(span.duration)';
+    const eventView = EventView.fromLocation(
+      LocationFixture({query: {field: ['span.op', aggregate]}})
+    );
+
+    render(
+      <AggregatesTableWithParamsProvider
+        aggregateNumberTags={{
+          ...numberTags,
+          [aggregate]: {
+            key: aggregate,
+            name: aggregate,
+            kind: FieldKind.MEASUREMENT,
+          },
+        }}
+        aggregatesTableResult={createAggregatesTableResult({
+          eventView,
+          result: {
+            meta: {
+              fields: {
+                'span.op': FieldValueType.STRING,
+                [aggregate]: FieldValueType.NUMBER,
+              },
+              units: {},
+            },
+          },
+        })}
+      />,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              visualize: JSON.stringify({yAxes: [aggregate]}),
+              aggregateSort: `-${aggregate}`,
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    expect(screen.getByText('count(spans)')).toBeInTheDocument();
+    expect(screen.queryByText(aggregate)).not.toBeInTheDocument();
+  });
+
+  it('abbreviates span counts when validation returns a less specific type', () => {
+    const aggregate = 'count(span.duration)';
+    const eventView = EventView.fromLocation(
+      LocationFixture({query: {field: ['span.op', aggregate]}})
+    );
+
+    render(
+      <AggregatesTableWithParamsProvider
+        validatedFieldTypes={{[aggregate]: FieldValueType.NUMBER}}
+        aggregatesTableResult={createAggregatesTableResult({
+          eventView,
+          result: {
+            data: [{'span.op': 'http', [aggregate]: 7_800_800}],
+            meta: {
+              fields: {
+                'span.op': FieldValueType.STRING,
+                [aggregate]: FieldValueType.INTEGER,
+              },
+              units: {},
+            },
+          },
+        })}
+      />,
+      {
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              visualize: JSON.stringify({yAxes: [aggregate]}),
+            },
+          },
+        },
+        organization,
+      }
+    );
+
+    expect(screen.getByText('7.8M')).toBeInTheDocument();
   });
 });

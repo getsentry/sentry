@@ -3,7 +3,7 @@ import invariant from 'invariant';
 
 import {ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {TimeSince} from 'sentry/components/timeSince';
@@ -39,13 +39,13 @@ export function ReplayListItem({replay, onClick}: Props) {
           <IconDelete variant="primary" size="md" />
         </ArchivedWrapper>
 
-        <Flex direction="column" gap="xs">
+        <Stack gap="xs">
           <DisplayName>{t('Deleted Replay')}</DisplayName>
           <Flex gap="xs" align="center">
             {project ? <ProjectAvatar size={12} project={project} /> : null}
             <Text size="sm">{getShortEventId(replay.id)}</Text>
           </Flex>
-        </Flex>
+        </Stack>
       </Flex>
     );
   }

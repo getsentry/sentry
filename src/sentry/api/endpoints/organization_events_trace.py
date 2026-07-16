@@ -42,7 +42,7 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.numbers import base32_encode, format_grouped_length
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries
-from sentry.utils.tracing import start_span
+from sentry.utils.tracing import start_span, trace
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id, is_span_id
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -599,7 +599,7 @@ def count_performance_issues(
     return performance_issues_count
 
 
-@sentry_sdk.tracing.trace
+@trace
 def create_transaction_params(
     trace_id: str,
     snuba_params: SnubaParams,
@@ -662,7 +662,7 @@ def create_transaction_params(
     return transaction_params
 
 
-@sentry_sdk.tracing.trace
+@trace
 def query_trace_data(
     trace_id: str,
     snuba_params: SnubaParams,
@@ -1305,8 +1305,8 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
         serialized_transactions = []
 
-        for trace in trace_roots:
-            serialized_transaction = trace.full_dict(detailed)
+        for trace_root in trace_roots:
+            serialized_transaction = trace_root.full_dict(detailed)
             if serialized_transaction is not None:
                 serialized_transactions.append(serialized_transaction)
         for orphan in orphans:
@@ -1399,10 +1399,12 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         visited_transactions_in_serialization: set[str] = set()
 
         result_transactions: list[FullResponse] = []
-        for trace in root_traces:
-            if trace.event["id"] in visited_transactions_in_serialization:
+        for root_trace in root_traces:
+            if root_trace.event["id"] in visited_transactions_in_serialization:
                 continue
-            result_transaction = trace.full_dict(detailed, visited_transactions_in_serialization)
+            result_transaction = root_trace.full_dict(
+                detailed, visited_transactions_in_serialization
+            )
             if result_transaction is not None:
                 result_transactions.append(result_transaction)
         for orphan in orphans:

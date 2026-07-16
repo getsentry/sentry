@@ -508,7 +508,6 @@ function AddToDashboardModal({
                   >
                     <WidgetCardWrapper>
                       <WidgetCard
-                        isEditingDashboard={false}
                         showContextMenu={false}
                         widgetLimitReached={false}
                         selection={
