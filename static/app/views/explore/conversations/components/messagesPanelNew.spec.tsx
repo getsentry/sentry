@@ -31,9 +31,10 @@ function createMockNode(overrides: {
 function createMockToolNode(overrides: {
   id: string;
   toolName: string;
+  hasError?: boolean;
   startTimestamp?: number;
 }) {
-  const {id, toolName, startTimestamp = 1000} = overrides;
+  const {id, toolName, startTimestamp = 1000, hasError = false} = overrides;
   const end = startTimestamp + 100;
   return {
     id,
@@ -45,9 +46,45 @@ function createMockToolNode(overrides: {
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',
       [SpanFields.GEN_AI_TOOL_NAME]: toolName,
+      ...(hasError ? {[SpanFields.SPAN_STATUS]: 'internal_error'} : {}),
     },
     errors: new Set(),
   };
+}
+
+// Builds a turn whose assistant message carries `toolNames.length` tool calls,
+// with the tool spans sitting between two generations so they merge onto the
+// second turn.
+function createNodesWithToolCalls(
+  toolNames: string[],
+  {errorToolNames = []}: {errorToolNames?: string[]} = {}
+) {
+  const requestMessages = JSON.stringify([{role: 'user', content: 'Question?'}]);
+  const firstGeneration = createMockNode({
+    id: 'span-1',
+    startTimestamp: 1000,
+    attributes: {
+      [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+      [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Let me check',
+    },
+  });
+  const toolNodes = toolNames.map((toolName, index) =>
+    createMockToolNode({
+      id: `tool-${index}`,
+      toolName,
+      startTimestamp: 1500 + index * 100,
+      hasError: errorToolNames.includes(toolName),
+    })
+  );
+  const secondGeneration = createMockNode({
+    id: 'span-2',
+    startTimestamp: 3000,
+    attributes: {
+      [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+      [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Here is the answer',
+    },
+  });
+  return [firstGeneration, ...toolNodes, secondGeneration];
 }
 
 describe('MessagesPanelNew', () => {
@@ -217,6 +254,72 @@ describe('MessagesPanelNew', () => {
     );
 
     expect(screen.getByText('weather')).toBeInTheDocument();
+  });
+
+  it('renders a short run of tool calls inline without a summary', () => {
+    render(
+      <MessagesPanelNew
+        nodes={createNodesWithToolCalls(['alpha', 'beta', 'gamma']) as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('alpha')).toBeInTheDocument();
+    expect(screen.getByText('gamma')).toBeInTheDocument();
+    expect(screen.queryByText('3 tool calls')).not.toBeInTheDocument();
+  });
+
+  it('collapses a long run of tool calls behind a summary and expands on click', async () => {
+    render(
+      <MessagesPanelNew
+        nodes={createNodesWithToolCalls(['t1', 't2', 't3', 't4', 't5']) as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    // Collapsed by default: the summary is shown inside a closed details.
+    const summary = screen.getByText('5 tool calls');
+    expect(summary).toBeInTheDocument();
+    const details = summary.closest('details');
+    expect(details).not.toHaveAttribute('open');
+
+    // Expanding reveals every tool call.
+    await userEvent.click(summary);
+    expect(details).toHaveAttribute('open');
+    expect(screen.getByText('t1')).toBeInTheDocument();
+    expect(screen.getByText('t5')).toBeInTheDocument();
+  });
+
+  it('shows the error count in the tool call summary', () => {
+    render(
+      <MessagesPanelNew
+        nodes={
+          createNodesWithToolCalls(['t1', 't2', 't3', 't4', 't5'], {
+            errorToolNames: ['t2', 't4'],
+          }) as any
+        }
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('5 tool calls')).toBeInTheDocument();
+    expect(screen.getByText('2 errors')).toBeInTheDocument();
+  });
+
+  it('expands the tool call group when one of its calls is selected', () => {
+    render(
+      <MessagesPanelNew
+        nodes={createNodesWithToolCalls(['t1', 't2', 't3', 't4', 't5']) as any}
+        selectedNodeId="tool-1"
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    const details = screen.getByText('5 tool calls').closest('details');
+    expect(details).toHaveAttribute('open');
   });
 
   it('selects assistant messages on click but not user messages', async () => {
