@@ -14,7 +14,6 @@ import {
   transformSeerResponse,
   useInitialSeerQuery,
   useSelectedProjectIds,
-  useSelectedProjectIdsForMutation,
 } from './useSeerComboBoxSetup';
 
 const defaultProviderProps = {
@@ -327,7 +326,11 @@ describe('mapSeerResponseItem', () => {
           {
             type: 'metrics',
             query: 'value:>100',
-            metric: {name: 'foo.duration', type: 'distribution', unit: 'millisecond'},
+            metric: {
+              name: 'foo.duration',
+              type: 'distribution',
+              unit: 'millisecond',
+            },
           },
         ],
       })
@@ -500,33 +503,5 @@ describe('useSelectedProjectIds', () => {
     const {result} = renderHookWithProviders(() => useSelectedProjectIds());
 
     expect(result.current).toEqual([1, 2]);
-  });
-});
-
-describe('useSelectedProjectIdsForMutation', () => {
-  beforeEach(() => {
-    ProjectsStore.loadInitialData([
-      ProjectFixture({id: '10', isMember: true}),
-      ProjectFixture({id: '20', isMember: false}),
-    ]);
-  });
-
-  it('returns string IDs for member projects', () => {
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [-1]}), false);
-
-    const {result} = renderHookWithProviders(() => useSelectedProjectIdsForMutation());
-
-    expect(result.current).toEqual(['10']);
-  });
-
-  it('returns pageFilters projects when specified', () => {
-    PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({projects: [10, 20]}),
-      false
-    );
-
-    const {result} = renderHookWithProviders(() => useSelectedProjectIdsForMutation());
-
-    expect(result.current).toEqual([10, 20]);
   });
 });

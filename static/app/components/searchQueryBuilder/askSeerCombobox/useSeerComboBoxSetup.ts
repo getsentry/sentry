@@ -93,21 +93,6 @@ export function useSelectedProjectIds(): number[] {
   }, [pageFilters.selection.projects, projects]);
 }
 
-export function useSelectedProjectIdsForMutation(): Array<number | string> {
-  const pageFilters = usePageFilters();
-  const {projects} = useProjects();
-
-  return useMemo(() => {
-    if (
-      pageFilters.selection.projects?.length > 0 &&
-      pageFilters.selection.projects?.[0] !== -1
-    ) {
-      return pageFilters.selection.projects;
-    }
-    return projects.filter(p => p.isMember).map(p => p.id);
-  }, [pageFilters.selection.projects, projects]);
-}
-
 function mapResponsesWithExpansion<T extends QueryTokensProps>(
   responses: SeerRawResponseItem[],
   projectIds: number[] | null | undefined,
@@ -144,23 +129,6 @@ export function transformSeerResponse<T extends QueryTokensProps>(
     selectedProjectIds,
     mapItem
   );
-}
-
-export function buildSeerMutationResult<T extends QueryTokensProps>(
-  data: SeerRawResponse,
-  selectedProjectIds: number[],
-  mapItem: (item: SeerRawResponseItem) => T
-): {queries: T[]; status: string; unsupported_reason: string | null} {
-  return {
-    status: 'ok',
-    unsupported_reason: data.unsupported_reason,
-    queries: mapResponsesWithExpansion(
-      data.responses,
-      data.project_ids,
-      selectedProjectIds,
-      mapItem
-    ),
-  };
 }
 
 function buildCrossEvents(item: SeerRawResponseItem): CrossEvent[] {
