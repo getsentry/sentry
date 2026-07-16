@@ -44,6 +44,7 @@ from sentry.issues.derived.framework import (
 from sentry.issues.derived.processing import (
     PIPELINE,
     GroupLogTimeout,
+    _entries_after_cursor,
     invalidate_group_derived_data,
     process_group_log,
 )
@@ -164,8 +165,6 @@ class ProcessGroupLogTest(TestCase):
         assert len(entries) == 5
 
     def test_cursor_same_timestamp_different_ids(self) -> None:
-        from sentry.issues.derived.processing import _entries_after_cursor
-
         group = self.create_group()
         ts = datetime(2025, 1, 1, tzinfo=timezone.utc)
 
