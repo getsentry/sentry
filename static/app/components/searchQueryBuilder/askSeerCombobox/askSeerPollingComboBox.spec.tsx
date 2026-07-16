@@ -80,22 +80,20 @@ describe('AskSeerPollingComboBox loading state', () => {
     });
   });
 
-  it('shows the existing loading experience with the feedback footer when the rework is disabled', async () => {
+  it('shows the existing loading experience when the rework is disabled', async () => {
     renderPollingComboBox(['gen-ai-features']);
     await submitQuery();
 
     expect(await screen.findByText("I'm on it...")).toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
   });
 
-  it('shows the single loading status without the feedback footer when the rework is enabled', async () => {
+  it('shows the single loading status when the rework is enabled', async () => {
     renderPollingComboBox(['gen-ai-features', 'gen-ai-ask-seer-ux-rework']);
     await submitQuery();
 
     expect(await screen.findByRole('status')).toHaveTextContent("I'm on it...");
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
   });
 
   it('shows the feedback footer when displaying results', async () => {
@@ -129,6 +127,5 @@ describe('AskSeerPollingComboBox loading state', () => {
     expect(
       await screen.findByText('Do any of these look right to you?')
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
   });
 });

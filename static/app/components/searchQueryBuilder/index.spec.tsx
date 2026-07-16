@@ -17,7 +17,7 @@ import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
-import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import {AskSeerMutationComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerMutationComboBox';
 import {useInitialSeerQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {
   SearchQueryBuilderProvider,
@@ -6966,7 +6966,7 @@ describe('SearchQueryBuilder', () => {
           const {displayAskSeer} = useSearchQueryBuilderAI();
           const {query} = useSearchQueryBuilderState();
           return displayAskSeer ? (
-            <AskSeerComboBox
+            <AskSeerMutationComboBox
               initialQuery={query}
               applySeerSearchQuery={() => {}}
               askSeerMutationOptions={mutationOptions({
@@ -7096,7 +7096,7 @@ describe('SearchQueryBuilder', () => {
         const initialSeerQuery = useInitialSeerQuery();
 
         return displayAskSeer ? (
-          <AskSeerComboBox
+          <AskSeerMutationComboBox
             initialQuery={initialSeerQuery}
             applySeerSearchQuery={() => {}}
             askSeerMutationOptions={mutationOptions({

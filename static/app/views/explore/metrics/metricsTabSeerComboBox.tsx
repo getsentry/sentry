@@ -4,7 +4,7 @@ import {mutationOptions} from '@tanstack/react-query';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
-import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import {AskSeerMutationComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerMutationComboBox';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {
   AskSeerSearchQuery,
@@ -343,7 +343,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   }
 
   return (
-    <AskSeerComboBox
+    <AskSeerMutationComboBox
       initialQuery={initialSeerQuery}
       askSeerMutationOptions={metricsTabAskSeerMutationOptions}
       applySeerSearchQuery={applySeerSearchQuery}

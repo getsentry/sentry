@@ -1,11 +1,10 @@
-import {useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {useLayoutEffect, useMemo, useRef} from 'react';
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
-import {useMutation} from '@tanstack/react-query';
-import type {MutationOptions} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
@@ -24,7 +23,6 @@ import type {
   QueryTokensProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
-  formatQueryToNaturalLanguage,
   generateQueryTokensString,
   isNoneOfTheseItem,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
@@ -33,7 +31,6 @@ import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/token
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
@@ -86,25 +83,35 @@ function useUpdateOverlayPositionOnContentChange({
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
-interface AskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
+export interface AskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
   AriaComboBoxProps<unknown>,
   'children'
 > {
   applySeerSearchQuery: (item: T) => void;
-  askSeerMutationOptions: MutationOptions<
-    {
-      queries: T[];
-      status: string;
-      unsupported_reason: string | null;
-    },
-    Error,
-    string
-  >;
-  initialQuery: string;
+  isError: boolean;
+  isPending: boolean;
+  queries: T[];
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  submitQuery: (query: string) => void;
+  errorTitle?: string;
+  loadingContent?: ReactNode;
+  reset?: () => void;
+  unsupportedReason?: string | null;
 }
 
 export function AskSeerComboBox<T extends QueryTokensProps>({
-  initialQuery,
+  applySeerSearchQuery,
+  isError,
+  isPending,
+  queries,
+  searchQuery,
+  setSearchQuery,
+  submitQuery,
+  errorTitle = t('An error occurred while fetching Seer queries'),
+  loadingContent,
+  reset,
+  unsupportedReason,
   ...props
 }: AskSeerComboBoxProps<T>) {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -116,11 +123,6 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   const {projects} = useProjects();
   const organization = useOrganization();
   const hasAskSeerRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
-
-  const [searchQuery, setSearchQuery] = useState(() =>
-    formatQueryToNaturalLanguage(initialQuery)
-  );
-
   const openForm = useFeedbackForm();
 
   const {
@@ -135,25 +137,6 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
 
   const analyticsArea = useAnalyticsArea();
 
-  const {
-    mutate: submitQuery,
-    data,
-    isPending,
-    isError,
-  } = useMutation({
-    ...props.askSeerMutationOptions,
-    onError: (error, variables, onMutateResult, context) => {
-      props.askSeerMutationOptions.onError?.(error, variables, onMutateResult, context);
-      addErrorMessage(t('Seer failed to process your search. Please try again.'));
-      trackAnalytics('ai_query.error', {
-        organization,
-        area: analyticsArea,
-        natural_language_query: searchQuery,
-        status_code: error instanceof RequestError ? error.status : undefined,
-      });
-    },
-  });
-
   const handleNoneOfTheseClick = () => {
     if (openForm) {
       openForm({
@@ -162,8 +145,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
           ['feedback.source']: `ai_query.${analyticsArea}`,
           ['feedback.owner']: 'ml-ai',
           ['feedback.natural_language_query']: searchQuery,
-          ['feedback.raw_result']: JSON.stringify(data?.queries).replace(/\n/g, ''),
-          ['feedback.num_queries_returned']: data?.queries?.length ?? 0,
+          ['feedback.raw_result']: JSON.stringify(queries).replace(/\n/g, ''),
+          ['feedback.num_queries_returned']: queries.length,
         },
       });
     } else {
@@ -172,8 +155,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   };
 
   const items = useMemo(() => {
-    if (data?.queries && data?.queries.length > 0) {
-      const results: Array<AskSeerSearchItems<T>> = data?.queries.map((query, index) => ({
+    if (queries.length > 0) {
+      const results: Array<AskSeerSearchItems<T>> = queries.map((query, index) => ({
         ...query,
         key: `${index}-${query.query}`,
       }));
@@ -191,7 +174,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     }
 
     return [];
-  }, [data?.queries, hasAskSeerRework]);
+  }, [queries, hasAskSeerRework]);
 
   const state = useComboBoxState({
     ...props,
@@ -214,7 +197,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
           organization,
           area: analyticsArea,
           natural_language_query: searchQuery,
-          num_queries_returned: data?.queries?.length ?? 0,
+          num_queries_returned: queries.length,
         });
         handleNoneOfTheseClick();
         return;
@@ -227,9 +210,10 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
       }
 
       askSeerNLQueryRef.current = searchQuery.trim();
-      props.applySeerSearchQuery(item);
+      applySeerSearchQuery(item);
       setDisplayAskSeerFeedback(true);
       setDisplayAskSeer(false);
+      reset?.();
       state.close();
     },
     children: item => {
@@ -293,6 +277,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
               setDisplayAskSeer(false);
             }
 
+            reset?.();
             state.close();
             return;
           case 'Enter':
@@ -301,7 +286,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
                 organization,
                 area: analyticsArea,
                 natural_language_query: searchQuery,
-                num_queries_returned: data?.queries?.length ?? 0,
+                num_queries_returned: queries.length,
               });
               handleNoneOfTheseClick();
               state.open();
@@ -316,9 +301,10 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
               }
 
               askSeerNLQueryRef.current = searchQuery.trim();
-              props.applySeerSearchQuery(item);
+              applySeerSearchQuery(item);
               setDisplayAskSeerFeedback(true);
               setDisplayAskSeer(false);
+              reset?.();
               state.close();
               return;
             }
@@ -428,7 +414,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     return null;
   }
 
-  const hasResults = (data?.queries?.length ?? 0) > 0;
+  const hasResults = queries.length > 0;
+  const isDisplayingResults = !isPending && !isError && hasResults;
 
   return (
     <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
@@ -457,6 +444,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             });
             setDisplayAskSeerFeedback(false);
             setDisplayAskSeer(false);
+            reset?.();
           }}
           aria-label={t('Close Seer Search')}
           variant="transparent"
@@ -472,17 +460,17 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
           overlayProps={overlayProps}
         >
           {isPending ? (
-            <Stack flex="1">
-              <AskSeerSearchHeader title={t('Let me think about that...')} loading />
-              <AskSeerSearchSkeleton />
-            </Stack>
+            (loadingContent ?? (
+              <Stack flex="1">
+                <AskSeerSearchHeader title={t('Let me think about that...')} loading />
+                <AskSeerSearchSkeleton />
+              </Stack>
+            ))
           ) : isError ? (
             <Stack flex="1">
-              <AskSeerSearchHeader
-                title={t('An error occurred while fetching Seer queries')}
-              />
+              <AskSeerSearchHeader title={errorTitle} />
             </Stack>
-          ) : data?.queries && (data?.queries?.length ?? 0) > 0 ? (
+          ) : hasResults ? (
             <Stack flex="1" onMouseLeave={onMouseLeave}>
               <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
               <AskSeerSearchListBox
@@ -491,10 +479,10 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
                 state={state}
               />
             </Stack>
-          ) : data?.unsupported_reason ? (
+          ) : unsupportedReason ? (
             <Stack flex="1">
               <AskSeerSearchHeader
-                title={data?.unsupported_reason || 'This query is not supported'}
+                title={unsupportedReason || 'This query is not supported'}
               />
             </Stack>
           ) : (
@@ -502,7 +490,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
               <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
             </Stack>
           )}
-          {openForm && (!hasAskSeerRework || hasResults) && (
+          {openForm && (!hasAskSeerRework || isDisplayingResults) && (
             <SeerFooter onMouseDown={e => e.preventDefault()}>
               <Button
                 size="xs"
