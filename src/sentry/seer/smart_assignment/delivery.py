@@ -79,11 +79,13 @@ def deliver_smart_assignment_result(
     Emits a single `smart_assignment.delivery` counter tagged with the outcome so we
     can track success vs failure, how often the agent abstains, and how often it
     names someone we can't link to a Sentry user in the org:
-      - `missing_run`  -- delivery arrived with no matching run mirror (orphaned run)
-      - `error`        -- Seer run failed or returned no artifact
-      - `abstain`      -- completed, but the agent named no one
-      - `unlinked`     -- named someone we couldn't map to an org user
-      - `resolved`     -- named someone we mapped to a Sentry user
+      - `missing_run`   -- delivery arrived with no matching run mirror (orphaned run)
+      - `error`         -- Seer run failed or returned no artifact
+      - `missing_group` -- run isn't tied to a group, or the group was deleted before
+                           delivery, so there's nothing to record the prediction against
+      - `abstain`       -- completed, but the agent named no one
+      - `unlinked`      -- named someone we couldn't map to an org user
+      - `resolved`      -- named someone we mapped to a Sentry user
     """
     agent_run = (
         SeerAgentRun.objects.filter(
@@ -120,7 +122,7 @@ def deliver_smart_assignment_result(
 
     # Resolve every ranked candidate (best-first) to a Sentry user id so scoring can
     # grade the top pick and also see where the eventual assignee placed in the list
-    # (its hit rank). None marks a position we couldn't map to an org user, preserving
+    # (its hit_rank). None marks a position we couldn't map to an org user, preserving
     # each candidate's rank; the raw verdict itself is still queryable on the Seer run.
     predicted_assignee_user_ids = [
         _resolve_identifier_to_user_id(
@@ -129,23 +131,27 @@ def deliver_smart_assignment_result(
         for candidate in verdict.candidates
     ]
 
+    # Do nothing if the group was deleted before delivery, or if the run isn't tied to a group.
+    group = Group.objects.filter(id=group_id).first() if group_id is not None else None
+    if group is None:
+        metrics.incr("smart_assignment.delivery", tags={"outcome": "missing_group"})
+        logger.warning("smart_assignment.delivery.missing_group", extra=log_extra)
+        return
+
     # Hand the resolved verdict off to the completion path via an activity that points
     # back at this run. Creating it invokes the workflow activity handlers, which score
     # the prediction (completing the pair now if ground truth already landed) and
     # auto-assign as needed -- kept out of this RPC handler on purpose.
-    if group_id is not None:
-        group = Group.objects.filter(id=group_id).first()
-        if group is not None:
-            Activity.objects.create_group_activity(
-                group,
-                ActivityType.SMART_ASSIGNMENT_COMPLETED,
-                data={
-                    "run_id": agent_run.id,
-                    "run_uuid": run_uuid,
-                    "predicted_assignee_user_ids": predicted_assignee_user_ids,
-                },
-                send_notification=False,
-            )
+    Activity.objects.create_group_activity(
+        group,
+        ActivityType.SMART_ASSIGNMENT_COMPLETED,
+        data={
+            "run_id": agent_run.id,
+            "run_uuid": run_uuid,
+            "predicted_assignee_user_ids": predicted_assignee_user_ids,
+        },
+        send_notification=False,
+    )
 
     if not predicted_assignee_user_ids:
         outcome = "abstain"

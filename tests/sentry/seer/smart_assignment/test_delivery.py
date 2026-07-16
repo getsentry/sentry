@@ -178,6 +178,35 @@ class DeliverSmartAssignmentResultTest(TestCase):
         )
 
     @patch(METRICS_PATH)
+    def test_untied_run_is_missing_group(self, mock_metrics: MagicMock) -> None:
+        # Run mirror was never tied to a group (group_id is NULL): there's nothing to
+        # record the prediction against, so it must not count as a delivery success.
+        self.mirror.group = None
+        self.mirror.save(update_fields=["group"])
+        alice = self.create_user(username="alice")
+        self.create_member(user=alice, organization=self.organization)
+        self._deliver({"candidates": [{"identifier": "alice", "identifier_kind": "username"}]})
+
+        assert not Activity.objects.filter(
+            type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value
+        ).exists()
+        self._assert_outcome(mock_metrics, "missing_group")
+
+    @patch(METRICS_PATH)
+    def test_deleted_group_is_missing_group(self, mock_metrics: MagicMock) -> None:
+        # Group deleted between dispatch and delivery (stale, dangling group_id): the
+        # activity can't be created, so this is reported distinctly, not as a success.
+        alice = self.create_user(username="alice")
+        self.create_member(user=alice, organization=self.organization)
+        self.group.delete()
+        self._deliver({"candidates": [{"identifier": "alice", "identifier_kind": "username"}]})
+
+        assert not Activity.objects.filter(
+            type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value
+        ).exists()
+        self._assert_outcome(mock_metrics, "missing_group")
+
+    @patch(METRICS_PATH)
     def test_missing_run_is_noop(self, mock_metrics: MagicMock) -> None:
         # Unknown run uuid: should not raise.
         deliver_smart_assignment_result(
