@@ -344,7 +344,7 @@ class ProjectDebugFile(Model):
             try:
                 self._get_objectstore_session().delete(self.storage_path)
             except Exception:
-                logger.info("Failed to delete ProjectDebugFile, will be cleaned up by TTI")
+                logger.exception("Failed to delete ProjectDebugFile, will be cleaned up by TTI")
         if self.file is not None:
             # If another debug file row still references this File, keep the File.
             # Concurrent last-reference deletes can still leave an unreferenced File
@@ -567,16 +567,20 @@ def create_dif_from_id(
         filename = (
             f"{os.path.basename(meta.debug_id)}{_dif_file_extension(meta.file_format, file_type)}"
         )
-        with file.getfile() as source:
-            storage_path = _upload_dif_to_objectstore(
-                session, source, content_type, file_size, filename
-            )
-        objectstore_metadata = {
-            "storage_path": storage_path,
-            "content_type": content_type,
-            "file_size": file_size,
-            "date_created": timezone.now(),
-        }
+        try:
+            with file.getfile() as source:
+                storage_path = _upload_dif_to_objectstore(
+                    session, source, content_type, file_size, filename
+                )
+        except Exception:
+            logger.exception("Failed to dual-write debug file to Objectstore")
+        else:
+            objectstore_metadata = {
+                "storage_path": storage_path,
+                "content_type": content_type,
+                "file_size": file_size,
+                "date_created": timezone.now(),
+            }
 
     dif = ProjectDebugFile.objects.create(
         file=file,

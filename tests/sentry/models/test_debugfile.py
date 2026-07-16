@@ -6,6 +6,7 @@ import time
 import zipfile
 from io import BytesIO
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from django.core.files.base import ContentFile
@@ -397,6 +398,21 @@ class CreateDebugFileTest(APITestCase):
         assert dif.get_file_size() == len(content)
         assert dif.file.getfile().read() == content
         assert dif.get_file().read() == content
+
+    @requires_objectstore
+    def test_objectstore_write_failure_preserves_legacy_dif(self) -> None:
+        content = b"objectstore-dif-content"
+
+        with (
+            self.feature("organizations:objectstore-debugfiles-write"),
+            patch("sentry.models.debugfile._upload_dif_to_objectstore", side_effect=RuntimeError),
+        ):
+            dif, created = self.create_dif(fileobj=BytesIO(content))
+
+        assert created
+        assert dif.file_id is not None
+        assert dif.storage_path is None
+        assert dif.file.getfile().read() == content
 
     @requires_objectstore
     def test_delete_dual_written_dif(self) -> None:
