@@ -7,7 +7,7 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/chat/toolCallIndicator.tsx
 ---
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 import {ToolCallIndicator} from '@sentry/scraps/chat';
 import {Text} from '@sentry/scraps/text';
 
@@ -53,19 +53,9 @@ once they settle.
 The `content` status (a message with no tool calls, only content) renders
 nothing, so it is safe to pass a status derived from any message.
 
-## Labels
+## Accessibility
 
-Each status carries a default accessible label, exposed to assistive tech via the
-glyph's `aria-label`. Override it with the `aria-label` prop when the surrounding
-context needs more specific wording.
-
-<Storybook.Demo>
-  <Flex align="center" gap="sm">
-    <ToolCallIndicator status="failure" aria-label="Search returned no results" />
-    <Text variant="muted">Custom label</Text>
-  </Flex>
-</Storybook.Demo>
-
-```jsx
-<ToolCallIndicator status="failure" aria-label="Search returned no results" />
-```
+Each status has a default `aria-label` (e.g. `failure` → "All tool calls failed").
+Pass `aria-label` to override it when the surrounding context needs more specific
+wording. There is intentionally no tooltip — an icon-only tooltip isn't
+keyboard-focusable — so surface any extra detail as visible text in the consumer.
