@@ -126,16 +126,9 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
             metrics.timing(
                 "billing.service.method.duration", duration_ms, tags=metric_tags, sample_rate=1.0
             )
-            metrics.incr(
-                "billing.service.method.error",
-                tags={**metric_tags, "error_type": type(e).__name__},
-                sample_rate=1.0,
-            )
-            sentry_sdk.metrics.count(
-                "billing.service.method.error",
-                1,
-                attributes={**metric_tags, "error_type": type(e).__name__},
-            )
+            tags = {**metric_tags, "error_type": type(e).__name__}
+            metrics.incr("billing.service.method.error", tags=tags, sample_rate=1.0)
+            sentry_sdk.metrics.count("billing.service.method.error", 1, attributes=tags)
 
             logger.info(
                 "billing.service.method.error",
