@@ -1,0 +1,42 @@
+name: refactor tasks
+# Runs the @sentry/refactor-tasks convention scanner and reports findings to
+# Sentry, where Seer can open fix PRs. See .sentry-refactor-tasks/README.md.
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 08:13 UTC (~1am SF). Off the hour to avoid the top-of-hour rush.
+    - cron: '13 8 * * *'
+  push:
+    branches:
+      - master
+    paths:
+      - '.sentry-refactor-tasks/conventions/**'
+      - '.github/workflows/refactor-tasks.yml'
+
+# Only one scan at a time; a newer run supersedes an in-flight one.
+concurrency:
+  group: refactor-tasks
+  cancel-in-progress: false
+
+jobs:
+  scan-and-report:
+    name: Scan conventions and report to Sentry
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        name: Checkout sentry
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Scan and report
+        env:
+          # Project that receives the findings (was .sentry-refactor-tasks/repo.yaml).
+          SENTRY_DSN: ${{ secrets.SENTRY_REFACTOR_TASKS_DSN }}
+          # Inference backend: OpenRouter is used automatically when the key is set.
+          OPENROUTER_API_KEY: ${{ secrets.REFACTOR_TASKS_OPENROUTER_API_KEY }}
+          INFERENCE_MODEL: haiku
+          SCAN_CONCURRENCY: '4'
+          # Chunk reporting so a large scan stays under spike protection.
+          REFACTOR_TASKS_SENTRY_CHUNK_SIZE: '25'
+        run: pnpm refactor-tasks
