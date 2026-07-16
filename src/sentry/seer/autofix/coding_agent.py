@@ -264,6 +264,7 @@ def poll_github_copilot_agents(
                 update_coding_agent_state(
                     agent_id=agent_id,
                     status=new_status,
+                    agent_url=task_status.html_url,
                     result=result,
                 )
 
