@@ -148,10 +148,34 @@ function useStoriesFavicon() {
     if (!faviconNode) {
       return () => {};
     }
+
     const originalHref = faviconNode.href;
-    const path = originalHref.split('/sentry/')[0];
-    faviconNode.href = `${path}/sentry/images/favicon-stories.png`;
+    const url = new URL(originalHref);
+    const storiesFaviconPath = `${url.origin}${url.pathname.replace(/\/[^/]+$/, '/favicon-stories.png')}`;
+
+    const applyStoriesFavicon = () => {
+      if (faviconNode.href !== storiesFaviconPath) {
+        faviconNode.href = storiesFaviconPath;
+      }
+    };
+
+    applyStoriesFavicon();
+
+    const observer = new MutationObserver(mutations => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'href') {
+          applyStoriesFavicon();
+        }
+      }
+    });
+
+    observer.observe(faviconNode, {
+      attributes: true,
+      attributeFilter: ['href'],
+    });
+
     return () => {
+      observer.disconnect();
       faviconNode.href = originalHref;
     };
   }, []);
