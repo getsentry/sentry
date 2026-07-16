@@ -110,6 +110,24 @@ describe('AskSeerComboBox', () => {
     );
   });
 
+  it('shows an error when starting the search agent fails', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      statusCode: 500,
+    });
+
+    renderComboBox(['gen-ai-features']);
+    await submitQuery();
+
+    expect(
+      await screen.findByText('Seer failed to process your search. Please try again.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Describe what you're looking for")
+    ).not.toBeInTheDocument();
+  });
+
   it('shows the existing loading experience when the rework is disabled', async () => {
     renderComboBox(['gen-ai-features']);
     await submitQuery();

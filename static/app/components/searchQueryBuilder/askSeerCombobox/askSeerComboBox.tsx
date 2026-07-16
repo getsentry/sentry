@@ -128,6 +128,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     isSessionPending,
     isPolling,
     isSessionError,
+    startFailed,
     finalResponse,
     unsupportedReason,
     currentStep,
@@ -168,7 +169,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
       queries={queries}
       submitQuery={submitQuery}
       isPending={isSessionPending || isPolling}
-      isError={isSessionError}
+      isError={isSessionError || startFailed}
       errorAnalytics={{isFetch: true}}
       errorTitle={t('Seer failed to process your search. Please try again.')}
       unsupportedReason={unsupportedReason}
