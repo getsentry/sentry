@@ -83,7 +83,8 @@ try {
 
 const ignoredFile =
   /(?:^|\/)(?:__fixtures__|__mocks__|test)(?:\/|$)|\.(?:spec|test)\.[^.]+$/;
-const diagnosticLine = (diagnostic: OxlintDiagnostic) => diagnostic.labels[0]?.span?.line;
+const diagnosticLine = (diagnostic: OxlintDiagnostic) =>
+  (diagnostic.labels.find(label => label.label) ?? diagnostic.labels[0])?.span?.line ?? 1;
 const locationKey = (filePath: string, line: number | undefined) =>
   `${path.resolve(repoPath, filePath)}:${line}`;
 const excludedLocations = new Set(
@@ -117,9 +118,7 @@ const diagnostics = output.diagnostics.filter(diagnostic => {
 
 const files = new Map<string, ScannerMessage[]>();
 for (const diagnostic of diagnostics) {
-  const primaryLabel =
-    diagnostic.labels.find(label => label.label) ?? diagnostic.labels[0];
-  const line = primaryLabel?.span?.line ?? 1;
+  const line = diagnosticLine(diagnostic);
   const message = [diagnostic.message, diagnostic.help].filter(Boolean).join('\n\n');
   const filePath = path.resolve(repoPath, diagnostic.filename);
   const messages = files.get(filePath) ?? [];
