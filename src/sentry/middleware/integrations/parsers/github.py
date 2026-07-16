@@ -16,8 +16,11 @@ from sentry.integrations.github.webhook import (
 )
 from sentry.integrations.github.webhook_types import (
     _CONTROL_ONLY_EVENTS,
+    CELL_PROCESSED_CHECK_RUN_ACTIONS,
     CELL_PROCESSED_GITHUB_EVENTS,
+    GITHUB_CHECK_RUN_ACTIONS,
     GITHUB_WEBHOOK_TYPE_HEADER,
+    GithubWebhookType,
 )
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
@@ -138,6 +141,28 @@ class GithubRequestParser(BaseRequestParser):
                 tags={"event_type": github_event or "unknown"},
             )
             return HttpResponse(status=202)
+
+        # check_run is by far the highest-volume event type and only some actions
+        # have a cell-side consumer (see CELL_PROCESSED_CHECK_RUN_ACTIONS); drop the
+        # rest, most notably "created" which is roughly half of all deliveries.
+        if github_event == GithubWebhookType.CHECK_RUN:
+            action = event.get("action")
+            if not (isinstance(action, str) and action in CELL_PROCESSED_CHECK_RUN_ACTIONS):
+                # The body is not signature-verified until it reaches the cell, so
+                # only known check_run actions may be tagged verbatim to keep tag
+                # cardinality bounded.
+                metrics.incr(
+                    "github.webhook.drop_unprocessed_event",
+                    tags={
+                        "event_type": github_event,
+                        "action": (
+                            action
+                            if isinstance(action, str) and action in GITHUB_CHECK_RUN_ACTIONS
+                            else "unknown"
+                        ),
+                    },
+                )
+                return HttpResponse(status=202)
 
         response = self.get_response_from_webhookpayload(
             cells=cells,
