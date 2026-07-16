@@ -331,6 +331,16 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
 # New tasks and metrics are welcome to use the correct naming scheme as they are not
 # burdened by aforementioned legacy concerns.
 
+symbolicate_minidump = make_task_fn(  # will not show up in TASK_FNS
+    name="sentry.tasks.store.symbolicate_minidump",
+    queue="events.symbolicate_event",
+    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=False),
+)
+symbolicate_applecrashreport = make_task_fn(  # will not show up in TASK_FNS
+    name="sentry.tasks.store.symbolicate_applecrashreport",
+    queue="events.symbolicate_event",
+    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=False),
+)
 symbolicate_event = make_task_fn(
     name="sentry.tasks.store.symbolicate_event",
     queue="events.symbolicate_event",
@@ -349,6 +359,16 @@ symbolicate_jvm_event = make_task_fn(
 
 
 # Reprocessing variants, only for "native" events:
+symbolicate_minidump_from_reprocessing = make_task_fn(  # will not show up in TASK_FNS
+    name="sentry.tasks.store.symbolicate_minidump_from_reprocessing",
+    queue="events.reprocessing.symbolicate_event",
+    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=True),
+)
+symbolicate_applecrashreport_from_reprocessing = make_task_fn(  # will not show up in TASK_FNS
+    name="sentry.tasks.store.symbolicate_applecrashreport_from_reprocessing",
+    queue="events.reprocessing.symbolicate_event",
+    task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.native, is_reprocessing=True),
+)
 symbolicate_event_from_reprocessing = make_task_fn(
     name="sentry.tasks.store.symbolicate_event_from_reprocessing",
     queue="events.reprocessing.symbolicate_event",
