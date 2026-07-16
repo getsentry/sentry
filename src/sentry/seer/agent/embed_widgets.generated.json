@@ -19,5 +19,36 @@
       "required": ["value", "format"],
       "additionalProperties": false
     }
+  },
+  {
+    "name": "todos",
+    "description": "Your todo checklist. The todo_write tool emits this tag automatically — NEVER write a {% todos %} tag yourself and never restate the todo list in prose. The latest occurrence in the conversation replaces all earlier ones.",
+    "level": ["block"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["pending", "in_progress", "completed"]
+              }
+            },
+            "required": ["content", "status"],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": ["items"],
+      "additionalProperties": false
+    },
+    "featureFlag": "organizations:seer-explorer-todos-markdown"
   }
 ]
