@@ -151,7 +151,7 @@ export function OurlogsDrawer({
             </Flex>
             {exploreUrl && (
               <LinkButton size="sm" to={exploreUrl} openInNewTab>
-                {t('Open in explore')}
+                {t('View in Explore')}
               </LinkButton>
             )}
           </Flex>
