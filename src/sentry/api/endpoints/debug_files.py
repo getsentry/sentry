@@ -275,12 +275,8 @@ class DebugFilesEndpoint(ProjectEndpoint):
         if debug_file is None:
             raise Http404
 
-        if (
-            debug_file.storage_path is not None
-            and debug_file.uses_objectstore_for_read()
-            and features.has(
-                "organizations:objectstore-debugfiles-direct-read", project.organization
-            )
+        if debug_file.uses_objectstore_for_read() and features.has(
+            "organizations:objectstore-debugfiles-direct-read", project.organization
         ):
             return HttpResponseRedirect(debug_file.get_objectstore_presigned_url(self.request))
 
