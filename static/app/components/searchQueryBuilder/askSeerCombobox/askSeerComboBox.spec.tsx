@@ -7,6 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import * as analytics from 'sentry/utils/analytics';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {
   AsyncSDKIntegrationContextProvider,
@@ -110,7 +111,8 @@ describe('AskSeerComboBox', () => {
     );
   });
 
-  it('shows an error when starting the search agent fails', async () => {
+  it('shows and tracks an error when starting the search agent fails', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/search-agent/start/',
       method: 'POST',
@@ -126,6 +128,56 @@ describe('AskSeerComboBox', () => {
     expect(
       screen.queryByText("Describe what you're looking for")
     ).not.toBeInTheDocument();
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'ai_query.error',
+      expect.objectContaining({
+        natural_language_query: 'find slow spans',
+        is_fetch: false,
+        status_code: 500,
+      })
+    );
+  });
+
+  it('tracks polling errors as fetch errors', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 1},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/1/',
+      body: {
+        session: {
+          completed_steps: [],
+          created_at: '2026-01-01T00:00:00Z',
+          current_step: null,
+          final_response: null,
+          natural_language_query: 'find slow spans',
+          org_id: 1,
+          org_slug: 'org-slug',
+          run_id: 1,
+          status: 'error',
+          strategy: 'Traces',
+          updated_at: '2026-01-01T00:00:00Z',
+        },
+      },
+    });
+
+    renderComboBox(['gen-ai-features']);
+    await submitQuery();
+
+    expect(
+      await screen.findByText('Seer failed to process your search. Please try again.')
+    ).toBeInTheDocument();
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'ai_query.error',
+      expect.objectContaining({
+        natural_language_query: 'find slow spans',
+        is_fetch: true,
+        status_code: undefined,
+      })
+    );
   });
 
   it('shows results after retrying a failed start request', async () => {

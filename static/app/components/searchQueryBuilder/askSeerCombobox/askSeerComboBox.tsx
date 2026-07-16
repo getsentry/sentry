@@ -38,6 +38,7 @@ import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/token
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
@@ -119,6 +120,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   ...props
 }: AskSeerComboBoxProps<T>) {
   const organization = useOrganization();
+  const analyticsArea = useAnalyticsArea();
   const [searchQuery, setSearchQuery] = useState(() =>
     formatQueryToNaturalLanguage(initialQuery)
   );
@@ -139,8 +141,15 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     projectIds,
     strategy,
     options,
-    onError: () => {
+    onError: error => {
       addErrorMessage(t('Seer failed to process your search. Please try again.'));
+      trackAnalytics('ai_query.error', {
+        organization,
+        area: analyticsArea,
+        natural_language_query: searchQuery,
+        is_fetch: false,
+        status_code: error instanceof RequestError ? error.status : undefined,
+      });
     },
   });
 
@@ -170,7 +179,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
       submitQuery={submitQuery}
       isPending={isSessionPending || isPolling}
       isError={isSessionError || startFailed}
-      errorAnalytics={{isFetch: true}}
+      errorAnalytics={isSessionError ? {isFetch: true} : undefined}
       errorTitle={t('Seer failed to process your search. Please try again.')}
       unsupportedReason={unsupportedReason}
       loadingContent={loadingContent}
@@ -240,7 +249,7 @@ function AskSeerComboBoxContent<T extends QueryTokensProps>({
   const analyticsArea = useAnalyticsArea();
 
   useEffect(() => {
-    if (isError && !hasTrackedErrorRef.current) {
+    if (isError && errorAnalytics?.isFetch !== undefined && !hasTrackedErrorRef.current) {
       hasTrackedErrorRef.current = true;
       trackAnalytics('ai_query.error', {
         organization,

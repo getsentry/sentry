@@ -69,6 +69,10 @@ describe('SpansTabContent', () => {
       features: ['gen-ai-features'],
     },
   });
+  const organizationWithAISearch = {
+    ...organization,
+    features: [...organization.features, 'gen-ai-search-agent-translate'],
+  };
 
   function setProjects(projects: Project[], selectedProjectIds?: number[]) {
     ProjectsStore.loadInitialData(projects);
@@ -449,10 +453,10 @@ describe('SpansTabContent', () => {
   });
 
   describe('Ask Seer', () => {
-    describe('when the AI features are disabled', () => {
+    describe('when the search agent translate feature is disabled', () => {
       it('does not display the Ask Seer combobox', async () => {
         render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-          organization: {...organization, features: []},
+          organization,
           additionalWrapper: Wrapper,
         });
 
@@ -465,7 +469,7 @@ describe('SpansTabContent', () => {
 
     it('brings along the query', async () => {
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-        organization,
+        organization: organizationWithAISearch,
         additionalWrapper: Wrapper,
       });
 
@@ -489,7 +493,7 @@ describe('SpansTabContent', () => {
 
     it('brings along the user input', async () => {
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-        organization,
+        organization: organizationWithAISearch,
         additionalWrapper: Wrapper,
       });
 
@@ -511,7 +515,7 @@ describe('SpansTabContent', () => {
 
     it('brings along only the query and the user input', async () => {
       render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
-        organization,
+        organization: organizationWithAISearch,
         additionalWrapper: Wrapper,
       });
 

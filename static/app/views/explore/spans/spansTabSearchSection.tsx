@@ -24,6 +24,7 @@ import {
   type AggregationKey,
 } from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {
   TraceItemSearchQueryBuilder,
@@ -73,6 +74,8 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   const setQueryParams = useSetQueryParams();
   const [caseInsensitive, setCaseInsensitive] = useCaseInsensitivity();
   const {selection} = usePageFilters();
+  const organization = useOrganization();
+  const enableAISearch = organization.features.includes('gen-ai-search-agent-translate');
 
   const hasCrossEvents = defined(crossEvents) && crossEvents.length > 0;
   const hasAbsoluteDateSelection = Boolean(
@@ -149,7 +152,7 @@ export function SpanTabSearchSection({datePageFilterProps}: SpanTabSearchSection
   return (
     <Layout.Main width="full">
       <SearchQueryBuilderProvider
-        enableAISearch
+        enableAISearch={enableAISearch}
         aiSearchBadgeType="beta"
         {...spanSearchQueryBuilderProviderProps}
       >
