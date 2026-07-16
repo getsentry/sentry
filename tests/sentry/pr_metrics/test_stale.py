@@ -70,7 +70,9 @@ class FindStalePullRequestsTest(TestCase):
         activity.date_added = _ago(weeks_ago)
         activity.save(update_fields=["date_added"])
 
-    def _add_activity_log(self, pr: Any, event_type: str, *, weeks_ago: float) -> None:
+    def _add_activity_log(
+        self, pr: Any, event_type: PullRequestActivityType, *, weeks_ago: float
+    ) -> None:
         doc = new_document()
         apply_activity(
             doc,
@@ -288,7 +290,9 @@ class DetectStalePullRequestsTaskTest(TestCase):
         )
         return pr
 
-    def _add_activity_log(self, pr: Any, event_type: str, *, weeks_ago: float) -> None:
+    def _add_activity_log(
+        self, pr: Any, event_type: PullRequestActivityType, *, weeks_ago: float
+    ) -> None:
         doc = new_document()
         apply_activity(
             doc,
