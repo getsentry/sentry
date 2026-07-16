@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 import type {Group, GroupActivity} from 'sentry/types/group';
@@ -22,6 +23,20 @@ const user = {
   avatarUrl: null,
   isActive: true,
 } as unknown as NonNullable<GroupActivity['user']>;
+
+const linearApp = {
+  name: 'Linear',
+  slug: 'linear',
+  uuid: 'linear',
+  avatars: [
+    {
+      avatarType: 'upload',
+      avatarUuid: 'bb9d4ae02e0e4e059463f5fd0c6c7305',
+      avatarUrl: 'https://sentry.io/sentry-app-avatar/bb9d4ae02e0e4e059463f5fd0c6c7305/',
+      color: true,
+    },
+  ],
+} as NonNullable<GroupActivity['sentry_app']>;
 
 const repository: Repository = {
   dateCreated: '2025-01-01T00:00:00Z',
@@ -82,6 +97,11 @@ const resolutionActivities = [
   }),
   activity(GroupActivityType.SET_RESOLVED_BY_AGE, {age: 168}),
   activity(GroupActivityType.SET_RESOLVED_IN_RELEASE, {version: 'backend@1.2.3'}),
+  sentryAppActivity(
+    GroupActivityType.SET_RESOLVED_IN_RELEASE,
+    {version: 'backend@1.2.3'},
+    linearApp
+  ),
   activity(GroupActivityType.SET_RESOLVED_IN_RELEASE, {
     version: 'backend@1.2.3',
     commit,
@@ -100,9 +120,6 @@ const resolutionActivities = [
     current_release_version: 'backend@1.0.0',
   }),
   activity(GroupActivityType.SET_RESOLVED_IN_RELEASE),
-  activity(GroupActivityType.SET_RESOLVED_IN_COMMIT, {commit: commitOnly}),
-  activity(GroupActivityType.SET_RESOLVED_IN_COMMIT, {commit: releasedCommit}),
-  activity(GroupActivityType.SET_RESOLVED_IN_COMMIT, {commit: multiReleaseCommit}),
   activity(GroupActivityType.SET_UNRESOLVED),
   activity(GroupActivityType.SET_UNRESOLVED, {
     integration_id: 408,
@@ -119,6 +136,12 @@ const resolutionActivities = [
     resolved_in_version: 'backend@1.2.3',
     follows_semver: false,
   }),
+];
+
+const legacyResolutionActivities = [
+  activity(GroupActivityType.SET_RESOLVED_IN_COMMIT, {commit: commitOnly}),
+  activity(GroupActivityType.SET_RESOLVED_IN_COMMIT, {commit: releasedCommit}),
+  activity(GroupActivityType.SET_RESOLVED_IN_COMMIT, {commit: multiReleaseCommit}),
 ];
 
 const archivedActivities = [
@@ -280,7 +303,7 @@ const seerActivities = [
 ];
 
 export default Storybook.story('Issue Activity', story => {
-  story('Resolution', () => <ActivityExamples items={resolutionActivities} />);
+  story('Resolution', () => <ResolutionExamples />);
   story('Archived', () => <ActivityExamples items={archivedActivities} />);
   story('Assignment', () => <ActivityExamples items={assignmentActivities} />);
   story('Priority and escalation', () => <ActivityExamples items={priorityActivities} />);
@@ -289,6 +312,20 @@ export default Storybook.story('Issue Activity', story => {
   story('Comments', () => <CommentExample />);
   story('Seer', () => <ActivityExamples items={seerActivities} />);
 });
+
+function ResolutionExamples() {
+  return (
+    <Stack gap="xl">
+      <ActivityExamples items={resolutionActivities} />
+      <Stack gap="sm">
+        <Text size="sm" variant="muted">
+          Legacy activity items
+        </Text>
+        <ActivityExamples items={legacyResolutionActivities} />
+      </Stack>
+    </Stack>
+  );
+}
 
 function activity(
   type: GroupActivityType,
@@ -306,6 +343,14 @@ function activity(
 
 function seerActivity(type: GroupActivityType, data: Record<string, unknown> = {}) {
   return activity(type, data, null);
+}
+
+function sentryAppActivity(
+  type: GroupActivityType,
+  data: Record<string, unknown>,
+  sentryApp: NonNullable<GroupActivity['sentry_app']>
+) {
+  return {...activity(type, data, null), sentry_app: sentryApp};
 }
 
 function release(version: string, dateReleased: string) {

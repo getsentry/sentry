@@ -943,7 +943,11 @@ describe('ActivitySection', () => {
     }
   });
 
-  it.each([
+  it.each<{
+    activity: GroupActivity;
+    expectedCopy: Array<RegExp | string>;
+    name: string;
+  }>([
     {
       name: 'automatic ongoing',
       activity: {
@@ -1127,8 +1131,43 @@ describe('ActivitySection', () => {
     );
 
     expect(screen.getByText('Reprocessed')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'into 4 new events'})).toBeInTheDocument();
-    expect(screen.getByRole('img', {name: 'Identified'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '4 new events'})).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'Activity update'})).toBeInTheDocument();
+  });
+
+  it.each([
+    {
+      name: 'deleted attachments',
+      activity: {
+        type: GroupActivityType.DELETED_ATTACHMENT,
+        id: 'deleted-attachment-1',
+        dateCreated: '2020-01-01T00:00:00',
+        data: {},
+      } satisfies GroupActivity,
+      copy: 'Deleted an attachment',
+    },
+    {
+      name: 'reviewed issues',
+      activity: {
+        type: GroupActivityType.MARK_REVIEWED,
+        id: 'reviewed-1',
+        dateCreated: '2020-01-01T00:00:00',
+        data: {},
+      } satisfies GroupActivity,
+      copy: 'Reviewed',
+    },
+  ])('renders $name as general activity updates', ({activity, copy}) => {
+    const activityGroup = GroupFixture({id: '1339', activity: [activity], project});
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} variant="standalone" size="md" />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture({features: ['issue-activity-feed-v2']})}
+    );
+
+    expect(screen.getByText(copy)).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'Activity update'})).toBeInTheDocument();
   });
 
   it('renders resolved in release with integration', async () => {
