@@ -350,13 +350,8 @@ const appConfig: Configuration = {
       },
       {
         test: /\.po$/,
-        use: {
-          loader: 'po-catalog-loader',
-          options: {
-            referenceExtensions: ['.js', '.jsx', '.tsx'],
-            domain: 'sentry',
-          },
-        },
+        loader: path.resolve(import.meta.dirname, './build-utils/po-catalog-loader.ts'),
+        type: 'javascript/dynamic',
       },
       {
         test: /\.pegjs$/,
