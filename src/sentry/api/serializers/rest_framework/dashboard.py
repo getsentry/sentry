@@ -170,8 +170,8 @@ DATASET_CONFIG: dict[int, DatasetConfig] = {
                 DashboardWidgetDisplayTypes.BAR_CHART,
                 DashboardWidgetDisplayTypes.BIG_NUMBER,
                 DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART,
-                # HEATMAP is additionally gated behind the application metrics
-                # (``tracemetrics-enabled``) feature in ``validate_display_type``.
+                # HEATMAP is a metrics-only visualization; it's supported here for
+                # trace metrics widgets and rejected for other widget types.
                 DashboardWidgetDisplayTypes.HEATMAP,
             }
         )
@@ -404,16 +404,6 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
     def validate_display_type(self, display_type):
         display_type_id = DashboardWidgetDisplayTypes.get_id_for_type_name(display_type)
-
-        # Heat maps are a metrics-only visualization, so they're only available
-        # to organizations with the application metrics feature. Without it,
-        # creating or updating a heat map widget is rejected.
-        if display_type_id == DashboardWidgetDisplayTypes.HEATMAP and not features.has(
-            "organizations:tracemetrics-enabled", self.context["organization"]
-        ):
-            raise serializers.ValidationError(
-                f"Display type '{display_type}' is not available for this organization."
-            )
 
         widget_type_name = self.context.get("widget_type")
         if widget_type_name is not None and display_type_id is not None:
