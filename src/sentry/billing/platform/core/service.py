@@ -130,8 +130,14 @@ def service_method(
     Args:
         trace_log_sample_rate: Rate at which to log successful calls, based on
             a hash of the trace ID. Defaults to 0.001 (0.1%). Error logs are
-            always emitted.
+            always emitted. The behavior is such that in a call tree of service methods,
+            the effective sample rate for any node is max(self.trace_log_sample_rate, parent.trace_log_sample_rate)
 
+            Example:
+                Service.method_1(trace_log_sample_rate=0.1) # effective rate = 0.1
+                    -> Service.method_2(trace_log_sample_rate=0.5) # effective_rate = 0.5
+                        -> Service.method_3(trace_log_sample_rate=0.001) # effective_rate = 0.5 (because parent is higher)
+                    -> Service.method_4(trace_log_sample_rate=0.2) # effective_rate = 0.2
     Example:
         @service_method
         def get_contract(self, request: GetContractRequest) -> GetContractResponse:
