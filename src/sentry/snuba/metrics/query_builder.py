@@ -870,14 +870,14 @@ class SnubaQueryBuilder:
                         f"Unsupported string field: {metric_action_by_field.field}"
                     )
 
-            exp = (
-                AliasedExpression(
+            if is_group_by and not is_column:
+                assert metric_groupby_field is not None
+                exp = AliasedExpression(
                     exp=Column(name=column_name),
                     alias=metric_groupby_field.alias,
                 )
-                if is_group_by and not is_column
-                else Column(name=column_name)
-            )
+            else:
+                exp = Column(name=column_name)
 
             if is_order_by:
                 assert metric_orderby_field is not None
@@ -1126,7 +1126,7 @@ class SnubaQueryBuilder:
 
     def __update_query_dicts_with_component_entities(
         self,
-        component_entities: dict[MetricEntity | None, Sequence[str]],
+        component_entities: Mapping[MetricEntity | None, Sequence[str]],
         metric_mri_to_obj_dict: dict[MetricExpressionKey, MetricExpressionBase],
         fields_in_entities: dict[MetricEntity, list[MetricExpressionKey]],
         parent_alias,
