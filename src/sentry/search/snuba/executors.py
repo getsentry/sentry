@@ -1137,11 +1137,10 @@ def _has_derived_progress(actor: Any | None, projects: Sequence[Project]) -> boo
 
 
 def _progress_native_order_by(queryset: BaseQuerySet) -> tuple[BaseQuerySet, str]:
-    """SQL reproduction of progress_strategy().score_fn, attached so the sort can ORDER BY it
-    natively (no in-memory candidate cap). Score is ``rank * LAST_SEEN_TIEBREAK_DIVISOR +
-    tiebreak_epoch_ms``, kept integer so the cursor Paginator (which floors cursor values)
-    pages it exactly. Uses ``.extra`` not ``.annotate`` so the Paginator can reuse the alias
-    SQL in its cursor WHERE clause (see BasePaginator.build_queryset)."""
+    """SQL reproduction of progress_strategy().score_fn so the sort can ORDER BY it natively
+    (no in-memory candidate cap). ``.extra`` (not ``.annotate``) lets the cursor Paginator
+    reuse the alias SQL in its WHERE clause; the ``-id`` tiebreak gives equal scores a total
+    order so paging can't drop/dup rows across a tie."""
     gdd = GroupDerivedData._meta.db_table
     identified = PROGRESS_STATE_SORT_RANK[IssueProgressState.IDENTIFIED]
     fix_applied = PROGRESS_STATE_SORT_RANK[IssueProgressState.FIX_APPLIED]
@@ -1167,8 +1166,10 @@ def _progress_native_order_by(queryset: BaseQuerySet) -> tuple[BaseQuerySet, str
         " END)"
     )
     # F() on the nullable reverse OneToOne forces the LEFT OUTER JOIN the raw SQL relies on.
-    queryset = queryset.annotate(_gdd_join=F("groupderiveddata__progress")).extra(
-        select={"progress_sort_score": sql}, select_params=params
+    queryset = (
+        queryset.annotate(_gdd_join=F("groupderiveddata__progress"))
+        .extra(select={"progress_sort_score": sql}, select_params=params)
+        .order_by("-progress_sort_score", "-id")
     )
     return queryset, "-progress_sort_score"
 

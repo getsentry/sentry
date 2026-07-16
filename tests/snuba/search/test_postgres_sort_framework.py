@@ -632,6 +632,24 @@ class TestProgressSort(PostgresSortTestBase):
 
     @with_feature("projects:issue-stream-derived-progress")
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_native_ordering_paginates_across_score_tie(self):
+        # Identical rank + last_progressed_at -> identical score, so ordering falls to the -id
+        # tiebreak; paging one-at-a-time across the tie must not drop or duplicate a row.
+        ts = before_now(days=2)
+        for group in self.groups:
+            self.create_group_derived_data(group=group, progress="diagnosed", last_progressed_at=ts)
+
+        expected = sorted(self.groups, key=lambda g: g.id, reverse=True)
+        seen = []
+        cursor = None
+        for _ in self.groups:
+            page = self.make_query(sort_by="progress", limit=1, cursor=cursor)
+            seen.extend(page)
+            cursor = page.next
+        assert seen == expected
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
     def test_native_ordering_respects_window_end(self):
         # The native path skips Snuba, so it must apply the upper time bound itself. groups[2]
         # is the newest (last_seen == base_datetime); a date_to before it must exclude it.
