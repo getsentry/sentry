@@ -388,7 +388,6 @@ def run_taskworker(
 )
 @click.option(
     "--application",
-    "activation_application",
     type=str,
     help="Override the application field on generated task activations",
     default=None,
