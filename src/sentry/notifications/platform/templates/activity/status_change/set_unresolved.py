@@ -20,10 +20,10 @@ from sentry.notifications.platform.types import (
 from sentry.types.activity import ActivityType
 
 
-@template_registry.register(NotificationSource.ACTIVITY_SET_RESOLVED)
-class SetResolvedActivityTemplate(NotificationTemplate[ActivityNotificationData]):
+@template_registry.register(NotificationSource.ACTIVITY_SET_UNRESOLVED)
+class SetUnresolvedActivityTemplate(NotificationTemplate[ActivityNotificationData]):
     category = NotificationCategory.ACTIVITY
-    example_data = create_activity_notification_example(ActivityType.SET_RESOLVED)
+    example_data = create_activity_notification_example(ActivityType.SET_UNRESOLVED)
 
     def render(self, data: ActivityNotificationData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
@@ -32,7 +32,7 @@ class SetResolvedActivityTemplate(NotificationTemplate[ActivityNotificationData]
                 ParagraphSection(
                     blocks=[
                         build_issue_link(data.issue_short_id, data.issue_url),
-                        PlainTextBlock(text="had its status changed to resolved."),
+                        PlainTextBlock(text="has been unresolved."),
                     ]
                 ),
                 *get_issue_description(data=data),

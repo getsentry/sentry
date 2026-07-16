@@ -27,6 +27,8 @@ ACTIVITY_TYPE_TO_SOURCE: dict[int, NotificationSource] = {
     ActivityType.SET_RESOLVED_IN_RELEASE.value: NotificationSource.ACTIVITY_SET_RESOLVED_IN_RELEASE,
     ActivityType.SET_RESOLVED_BY_AGE.value: NotificationSource.ACTIVITY_SET_RESOLVED_BY_AGE,
     ActivityType.SET_RESOLVED_IN_COMMIT.value: NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT,
+    ActivityType.SET_REGRESSION.value: NotificationSource.ACTIVITY_SET_REGRESSION,
+    ActivityType.SET_ESCALATING.value: NotificationSource.ACTIVITY_SET_ESCALATING,
 }
 
 EXAMPLE_PROJECT_URL = "https://sentry.io/organizations/acme/issues/?project=123"
