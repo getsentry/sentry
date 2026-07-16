@@ -262,6 +262,7 @@ def submit_symbolicate(
     symbolicate_function_names = (
         None if symbolicate_functions is None else [p.name for p in symbolicate_functions]
     )
+    # Keep platform names around as well, just in case an old worker picks up the task.
     symbolicate_platform_names = (
         None
         if symbolicate_functions is None
@@ -273,7 +274,7 @@ def submit_symbolicate(
         start_time=start_time,
         event_id=event_id,
         has_attachments=has_attachments,
-        symbolicate_platforms=symbolicate_platform_names,  # in case an old worker picks it up
+        symbolicate_platforms=symbolicate_platform_names,
         symbolicate_functions=symbolicate_function_names,
     )
 
