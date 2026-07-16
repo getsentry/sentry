@@ -712,7 +712,6 @@ from .endpoints.internal import (
     InternalBeaconEndpoint,
     InternalEnvironmentEndpoint,
     InternalFeatureFlagsEndpoint,
-    InternalLlmProxyKeyEndpoint,
     InternalMailEndpoint,
     InternalPackagesEndpoint,
     InternalRpcServiceEndpoint,
@@ -3600,11 +3599,6 @@ INTERNAL_URLS = [
         r"^seer-rpc/(?P<method_name>\w+)/$",
         SeerRpcServiceEndpoint.as_view(),
         name="sentry-api-0-seer-rpc-service",
-    ),
-    re_path(
-        r"^llm-proxy/key/$",
-        InternalLlmProxyKeyEndpoint.as_view(),
-        name="sentry-api-0-internal-llm-proxy-key",
     ),
     re_path(
         r"^feature-flags/$",
