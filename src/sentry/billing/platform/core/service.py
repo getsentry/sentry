@@ -5,7 +5,7 @@ import hashlib
 import logging
 import time
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Any, TypeVar, overload
 
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import Message
@@ -65,6 +65,16 @@ def _should_log_trace(trace_log_sample_rate: float) -> bool:
         return False
     hash_value = int(hashlib.md5(str(trace_id).encode()).hexdigest(), 16)
     return (hash_value % 10000) < int(trace_log_sample_rate * 10000)
+
+
+@overload
+def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]: ...
+
+
+@overload
+def service_method(
+    *, trace_log_sample_rate: float = ...
+) -> Callable[[Callable[[Any, T], R]], Callable[[Any, T], R]]: ...
 
 
 def service_method(
