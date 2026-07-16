@@ -20,6 +20,16 @@ from sentry.notifications.platform.types import (
 from sentry.types.activity import ActivityType
 
 
+def get_escalating_explanation(data: ActivityNotificationData) -> str:
+    if data.activity_data:
+        if forecast := int(data.activity_data.get("forecast", 0)):
+            event_word = "event" if forecast == 1 else "events"
+            return f"has been flagged as escalating because over {forecast} {event_word} happened in an hour."
+        if data.activity_data.get("expired_snooze"):
+            return "has been flagged as escalating because your archive condition has expired."
+    return "has been flagged as escalating."
+
+
 @template_registry.register(NotificationSource.ACTIVITY_SET_ESCALATING)
 class SetEscalatingActivityTemplate(NotificationTemplate[ActivityNotificationData]):
     category = NotificationCategory.ACTIVITY
@@ -32,7 +42,7 @@ class SetEscalatingActivityTemplate(NotificationTemplate[ActivityNotificationDat
                 ParagraphSection(
                     blocks=[
                         build_issue_link(data.issue_short_id, data.issue_url),
-                        PlainTextBlock(text="is escalating."),
+                        PlainTextBlock(text=get_escalating_explanation(data)),
                     ]
                 ),
                 *get_issue_description(data=data),
