@@ -135,6 +135,41 @@ describe('ColumnEditorModal', () => {
     expect(onColumnsChange).toHaveBeenCalledWith(['project']);
   });
 
+  it('disables editing, removing, and reordering required columns', async () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['id', 'project']}
+            onColumnsChange={() => {}}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={{}}
+            requiredTags={['id']}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    expect(await screen.findByRole('button', {name: 'Apply'})).toBeInTheDocument();
+
+    const [idColumn, projectColumn] = screen.getAllByTestId('editor-column');
+    const idRow = within(idColumn!.parentElement!);
+    const projectRow = within(projectColumn!.parentElement!);
+
+    expect(idRow.getByRole('button', {name: 'Column id string'})).toBeDisabled();
+    expect(idRow.getByRole('button', {name: 'Remove Column'})).toBeDisabled();
+    expect(idRow.getByRole('button', {name: 'Drag to reorder'})).toBeDisabled();
+
+    expect(projectRow.getByRole('button', {name: 'Column project string'})).toBeEnabled();
+    expect(projectRow.getByRole('button', {name: 'Remove Column'})).toBeEnabled();
+    expect(projectRow.getByRole('button', {name: 'Drag to reorder'})).toBeEnabled();
+  });
+
   it('handles duplicate columns without collapsing rows', async () => {
     const onColumnsChange = jest.fn();
 
