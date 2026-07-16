@@ -107,9 +107,6 @@ const SENTRY_APP_TEMPLATES: SentryAppTemplate[] = [
 
 /** The templates the organization can start from. */
 export function getSentryAppTemplates(organization: Organization): SentryAppTemplate[] {
-  if (!organization.features.includes('sentry-apps-creation-templates')) {
-    return [];
-  }
   return SENTRY_APP_TEMPLATES.filter(
     template =>
       !template.requiresFeatures?.some(

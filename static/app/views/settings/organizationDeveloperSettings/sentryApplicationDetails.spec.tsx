@@ -366,18 +366,6 @@ describe('Sentry Application Details', () => {
         expect(createAppRequest).not.toHaveBeenCalled();
       });
 
-      it('ignores templates without the templates feature', () => {
-        render(<SentryApplicationDetails />, {
-          initialRouterConfig: templateRouterConfig,
-          organization: OrganizationFixture({
-            features: ['sentry-apps-custom-webhook-headers'],
-          }),
-        });
-
-        expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('');
-        expect(screen.queryByText('Trigger a Claude routine')).not.toBeInTheDocument();
-      });
-
       it('ignores the template when the org lacks its required features', () => {
         render(<SentryApplicationDetails />, {
           initialRouterConfig: templateRouterConfig,
