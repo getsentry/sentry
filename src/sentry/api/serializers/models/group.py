@@ -12,13 +12,17 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.constants import LOG_LEVELS
 from sentry.eventtypes import EventTypeStr
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.issues.derived.serialization import (
+    GroupDerivedDataResponse,
+    get_bulk_group_derived_data,
+)
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.commit import Commit
 from sentry.models.environment import Environment
@@ -114,6 +118,7 @@ class BaseGroupResponseOptional(TypedDict, total=False):
     userCount: int
     firstSeen: datetime | None
     lastSeen: datetime | None
+    derivedData: GroupDerivedDataResponse
 
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
@@ -197,6 +202,31 @@ def _make_group_project_response(project: Project) -> GroupProjectResponse:
         "slug": project.slug,
         "platform": project.platform,
     }
+
+
+def _get_derived_data_by_group_id(
+    item_list: Sequence[Group], user: User | RpcUser | AnonymousUser
+) -> dict[int, GroupDerivedDataResponse]:
+    unique_projects = list({item.project for item in item_list})
+    feature_results = features.batch_has(
+        ["projects:issue-stream-derived-progress"],
+        actor=user,
+        projects=unique_projects,
+        skip_experiment_exposure=True,
+    )
+    if not feature_results:
+        return {}
+
+    enabled_project_ids = {
+        project.id
+        for project in unique_projects
+        if feature_results.get(f"project:{project.id}", {}).get(
+            "projects:issue-stream-derived-progress"
+        )
+    }
+    return get_bulk_group_derived_data(
+        {item.id for item in item_list if item.project_id in enabled_project_ids}
+    )
 
 
 GroupStatusStr = Literal[
@@ -362,6 +392,8 @@ class GroupSerializerBase(Serializer, ABC):
 
         snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
+        derived_data_by_group_id = _get_derived_data_by_group_id(item_list, user)
+
         result = {}
         for item in item_list:
             active_date = item.active_at or item.first_seen
@@ -395,6 +427,9 @@ class GroupSerializerBase(Serializer, ABC):
             }
             if snuba_stats is not None:
                 result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
+
+            if item.id in derived_data_by_group_id:
+                result[item]["derived_data"] = derived_data_by_group_id[item.id]
 
             if seen_stats:
                 result[item].update(seen_stats.get(item, {}))
@@ -450,6 +485,8 @@ class GroupSerializerBase(Serializer, ABC):
         # This attribute is currently feature gated
         if "is_unhandled" in attrs:
             group_dict["isUnhandled"] = attrs["is_unhandled"]
+        if "derived_data" in attrs:
+            group_dict["derivedData"] = attrs["derived_data"]
         if is_seen_stats(attrs):
             group_dict.update(self._convert_seen_stats(attrs))
         return group_dict
