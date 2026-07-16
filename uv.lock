@@ -2415,7 +2415,7 @@ requires-dist = [
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.9.27" },
     { name = "sentry-scm", specifier = "==0.32.0" },
-    { name = "sentry-sdk", extras = ["http2"], specifier = "==2.64.0" },
+    { name = "sentry-sdk", extras = ["http2"], specifier = "==2.66.0" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "setuptools", specifier = ">=70.0.0" },
     { name = "simplejson", specifier = ">=3.17.6" },
@@ -2644,14 +2644,14 @@ wheels = [
 
 [[package]]
 name = "sentry-sdk"
-version = "2.64.0"
+version = "2.66.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "certifi", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "urllib3", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-2.64.0-py3-none-any.whl", hash = "sha256:715ea91ca860a819e8d8a50a7bde3a80d0df3b4ed7b6660a20fb9a2d084188f1" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-2.66.0-py3-none-any.whl", hash = "sha256:096136c214c602be2b323524d30755dc5b30ec5a218a206207f33b12c05c6f11" },
 ]
 
 [package.optional-dependencies]
