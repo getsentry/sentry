@@ -66,6 +66,10 @@ export function ConversationDetailPageNew() {
     setQueryState({spanId: null, focusedTool: null});
   }, [setQueryState]);
 
+  const handleViewTimeline = useCallback(() => {
+    setQueryState({tab: 'timeline'});
+  }, [setQueryState]);
+
   return (
     <ViewportConstrainedPage background="secondary">
       <TopBar.Slot name="title">
@@ -95,6 +99,7 @@ export function ConversationDetailPageNew() {
             selectedSpanId={queryState.spanId}
             onSelectSpan={handleSelectSpan}
             onDeselectSpan={handleDeselectSpan}
+            onViewTimeline={handleViewTimeline}
             focusedTool={queryState.focusedTool}
           />
         </ConversationViewContainer>

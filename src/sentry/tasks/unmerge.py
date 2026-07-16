@@ -30,7 +30,7 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import issues_merge_tasks, issues_tasks
+from sentry.taskworker.namespaces import issues_merge_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
@@ -502,10 +502,58 @@ def unlock_hashes(project_id: int, locked_primary_hashes: Sequence[str]) -> None
     ).update(state=GroupHash.State.UNLOCKED)
 
 
+_START_TASK_KEY = "start_unmerge"
+
+
+@instrumented_task(
+    name="sentry.tasks.unmerge.start_unmerge",
+    namespace=issues_merge_tasks,
+    processing_deadline_duration=300,
+    silo_mode=SiloMode.CELL,
+)
+def start_unmerge(
+    project_id: int,
+    source_id: int,
+    destination_id: int | None,
+    fingerprints: Sequence[str],
+    actor_id: int | None,
+    batch_size: int = 500,
+) -> None:
+    task_state = current_task()
+    activation_id = task_state.id if task_state else None
+    if activation_id and already_spawned(_START_TASK_KEY, activation_id):
+        logger.info(
+            "unmerge.start.duplicate_redelivery.skipped",
+            extra={
+                "project_id": project_id,
+                "source_id": source_id,
+                "activation_id": activation_id,
+            },
+        )
+        metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _START_TASK_KEY})
+        return
+
+    logger.info(
+        "unmerge.start",
+        extra={
+            "project_id": project_id,
+            "source_id": source_id,
+            "num_fingerprints": len(fingerprints),
+            "actor_id": actor_id,
+        },
+    )
+    metrics.incr("unmerge.started")
+
+    unmerge.delay(
+        project_id, source_id, destination_id, fingerprints, actor_id, batch_size=batch_size
+    )
+    if activation_id:
+        mark_spawned(_START_TASK_KEY, activation_id)
+
+
 @instrumented_task(
     name="sentry.tasks.unmerge",
     namespace=issues_merge_tasks,
-    alias_namespace=issues_tasks,
     processing_deadline_duration=300,
     silo_mode=SiloMode.CELL,
 )

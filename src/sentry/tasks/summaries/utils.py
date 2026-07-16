@@ -21,7 +21,7 @@ from sentry.issues.grouptype import (
     GroupCategory,
     InvalidGroupTypeError,
 )
-from sentry.models.group import Group, GroupStatus
+from sentry.models.group import DEFAULT_TYPE_ID, Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.organization import Organization
@@ -526,7 +526,7 @@ def project_past_resolved_issues(
         # Filter out groups with unregistered type IDs (deprecated/removed issue types)
         valid_candidates = []
         for g in candidates:
-            if g.type is None:
+            if g.type is None or g.type == DEFAULT_TYPE_ID:
                 valid_candidates.append(g)
                 continue
             try:
@@ -541,12 +541,15 @@ def project_past_resolved_issues(
         error_group_ids = [
             g.id
             for g in valid_candidates
-            if g.type is None or g.issue_category == GroupCategory.ERROR
+            if g.type is None
+            or g.type == DEFAULT_TYPE_ID
+            or g.issue_category == GroupCategory.ERROR
         ]
         perf_group_ids = [
             g.id
             for g in valid_candidates
             if g.type is not None
+            and g.type != DEFAULT_TYPE_ID
             and (
                 g.issue_category == GroupCategory.PERFORMANCE
                 or g.issue_category in PERFORMANCE_ISSUE_CATEGORIES

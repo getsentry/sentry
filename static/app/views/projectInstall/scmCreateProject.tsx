@@ -238,7 +238,7 @@ function ScmCreateProjectWizard({initialState}: {initialState: WizardState}) {
               width="100%"
               border="primary"
               radius="lg"
-              layout="size"
+              layout
             >
               <Layout.Title>{t('Create a new project')}</Layout.Title>
 
