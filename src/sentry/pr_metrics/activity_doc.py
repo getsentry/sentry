@@ -15,7 +15,10 @@ from __future__ import annotations
 import logging
 from collections import Counter
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any, TypedDict
+
+from django.utils.dateparse import parse_datetime
 
 from sentry.models.pullrequest import PullRequestActivityType
 from sentry.utils import metrics
@@ -713,3 +716,45 @@ def timeline_events_from_doc(doc: ActivityDoc) -> list[dict[str, Any]]:
 
     events.sort(key=lambda event: event["timestamp"] or "")
     return events
+
+
+# Mirrors tasks.STALENESS_WINDOW's engagement vocabulary: the same event types
+# that reset the stale clock for legacy PullRequestActivity rows, read here off
+# the document instead. Chosen for low bot-risk: all four require deliberate
+# human action on the PR.
+ENGAGING_ACTIVITY_TYPES = frozenset(
+    {
+        PullRequestActivityType.SYNCHRONIZED,
+        PullRequestActivityType.REVIEW_SUBMITTED,
+        PullRequestActivityType.READY_FOR_REVIEW,
+        PullRequestActivityType.REVIEW_REQUESTED,
+    }
+)
+
+
+def has_engaging_activity_since(doc: Mapping[str, Any], cutoff: datetime) -> bool:
+    """Whether ``doc`` records engaging activity (see ``ENGAGING_ACTIVITY_TYPES``)
+    at or after ``cutoff``.
+
+    The document-store counterpart to the ``~Exists`` check
+    ``find_stale_pull_requests`` runs against legacy ``PullRequestActivity``
+    rows: a PR routed onto this document (see ``_use_activity_document``) never
+    writes those rows, so that SQL-only check can't see its engagement and
+    always reads it as stale. Callers use this to cross-check document-backed
+    candidates before settling them as abandoned.
+
+    Conservative on the events cap: once ``events_dropped`` is nonzero, the
+    ``events`` list is no longer a complete lifecycle record (see
+    ``MAX_EVENTS``) and a dropped entry carries no timestamp to rule out here —
+    so a capped document reads as engaged rather than risking a false abandoned
+    verdict on a PR pathological enough to hit the cap.
+    """
+    if doc.get("events_dropped"):
+        return True
+    for entry in doc.get("events") or ():
+        if entry.get("event_type") not in ENGAGING_ACTIVITY_TYPES:
+            continue
+        ts = parse_datetime(entry.get("ts") or "")
+        if ts is not None and ts >= cutoff:
+            return True
+    return False

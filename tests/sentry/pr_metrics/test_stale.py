@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from sentry.models.pullrequest import (
     PullRequestActivity,
+    PullRequestActivityLog,
     PullRequestActivityType,
     PullRequestAttribution,
     PullRequestAttributionSignalType,
@@ -18,6 +19,7 @@ from sentry.models.pullrequest import (
     PullRequestMetrics,
     PullRequestVerdict,
 )
+from sentry.pr_metrics.activity_doc import apply_activity, new_document
 from sentry.pr_metrics.contracts import CLOSE_ACTION_ABANDONED
 from sentry.pr_metrics.emit import NO_REVIEWER_ENGAGEMENT, emit_pr_metrics_row
 from sentry.pr_metrics.tasks import detect_stale_pull_requests_task, find_stale_pull_requests
@@ -67,6 +69,17 @@ class FindStalePullRequestsTest(TestCase):
         )
         activity.date_added = _ago(weeks_ago)
         activity.save(update_fields=["date_added"])
+
+    def _add_activity_log(self, pr: Any, event_type: str, *, weeks_ago: float) -> None:
+        doc = new_document()
+        apply_activity(
+            doc,
+            event_type=event_type,
+            payload={},
+            ts=_ago(weeks_ago).isoformat(),
+            webhook_id=f"wh-{pr.id}-{event_type}-{weeks_ago}",
+        )
+        PullRequestActivityLog.objects.create(pull_request=pr, data=doc)
 
     # --- inclusion ---
 
@@ -140,6 +153,17 @@ class FindStalePullRequestsTest(TestCase):
         pr = self._make_pr(state="closed")
         self._track(pr)
         assert pr.id not in find_stale_pull_requests(cutoff=_ago(3))
+
+    def test_includes_document_track_pr_with_recent_engagement(self) -> None:
+        # find_stale_pull_requests only reads legacy PullRequestActivity rows.
+        # A PR routed onto the PullRequestActivityLog document (see
+        # webhooks._use_activity_document) never writes those rows, so this
+        # scan can't see its engagement — detect_stale_pull_requests_task is
+        # responsible for cross-checking the document before settling it.
+        pr = self._make_pr()
+        self._track(pr)
+        self._add_activity_log(pr, PullRequestActivityType.REVIEW_SUBMITTED, weeks_ago=1.0)
+        assert pr.id in find_stale_pull_requests(cutoff=_ago(3))
 
     def test_returns_distinct_ids_with_multiple_attributions(self) -> None:
         # Multiple valid attributions on one PR must not produce duplicate ids.
@@ -263,6 +287,52 @@ class DetectStalePullRequestsTaskTest(TestCase):
             is_valid=True,
         )
         return pr
+
+    def _add_activity_log(self, pr: Any, event_type: str, *, weeks_ago: float) -> None:
+        doc = new_document()
+        apply_activity(
+            doc,
+            event_type=event_type,
+            payload={},
+            ts=_ago(weeks_ago).isoformat(),
+            webhook_id=f"wh-{pr.id}-{event_type}-{weeks_ago}",
+        )
+        PullRequestActivityLog.objects.create(pull_request=pr, data=doc)
+
+    def test_skips_document_track_pr_with_recent_engagement(self) -> None:
+        # find_stale_pull_requests can't see engagement recorded in the
+        # PullRequestActivityLog document (it only reads legacy
+        # PullRequestActivity rows), so this candidate must be cross-checked
+        # and skipped here rather than incorrectly claimed as abandoned.
+        pr = self._make_tracked_stale_pr()
+        self._add_activity_log(pr, PullRequestActivityType.REVIEW_SUBMITTED, weeks_ago=1.0)
+        with (
+            self.feature({"organizations:pr-metrics-activity": True}),
+            patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit,
+        ):
+            detect_stale_pull_requests_task()
+
+        mock_emit.assert_not_called()
+        assert not PullRequestMetrics.objects.filter(
+            pull_request=pr, verdict=PullRequestVerdict.ABANDONED
+        ).exists()
+
+    def test_emits_document_track_pr_with_no_recent_engagement(self) -> None:
+        # A document-track PR with genuinely no recent engagement is still
+        # settled as abandoned, same as a legacy-track PR.
+        pr = self._make_tracked_stale_pr()
+        self._add_activity_log(pr, PullRequestActivityType.COMMENT_CREATED, weeks_ago=1.0)
+        with (
+            self.feature({"organizations:pr-metrics-activity": True}),
+            patch("sentry.pr_metrics.tasks.emit_pr_metrics_row") as mock_emit,
+        ):
+            mock_emit.return_value = True
+            detect_stale_pull_requests_task()
+
+        mock_emit.assert_called_once()
+        pr.refresh_from_db()
+        metrics = PullRequestMetrics.objects.get(pull_request=pr)
+        assert metrics.verdict == PullRequestVerdict.ABANDONED
 
     def test_claims_verdict_and_emits_for_stale_pr(self) -> None:
         pr = self._make_tracked_stale_pr()

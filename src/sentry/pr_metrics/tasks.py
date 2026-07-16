@@ -18,11 +18,11 @@ from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
     PullRequestActivityLog,
-    PullRequestActivityType,
     PullRequestMetrics,
     PullRequestVerdict,
 )
 from sentry.models.repository import Repository
+from sentry.pr_metrics.activity_doc import ENGAGING_ACTIVITY_TYPES, has_engaging_activity_since
 from sentry.pr_metrics.emit import NO_REVIEWER_ENGAGEMENT, emit_pr_metrics_row
 from sentry.pr_metrics.judge import forward_pr_to_seer_judge, reap_stuck_judge_verdicts
 from sentry.silo.base import SiloMode
@@ -182,17 +182,12 @@ def reap_stuck_judge_verdicts_task() -> None:
     reap_stuck_judge_verdicts()
 
 
-_STALE_BATCH_SIZE = 500
+# Batch size for the per-candidate settle loop in detect_stale_pull_requests_task.
+# Kept modest (rather than matching find_stale_pull_requests's unbounded scan)
+# because each batch now also bulk-fetches PullRequestActivityLog documents —
+# JSON blobs up to MAX_EVENTS entries each — for cross-checking, not just PR rows.
+_STALE_BATCH_SIZE = 100
 STALENESS_WINDOW = timedelta(weeks=4)
-
-# Activity types that count as "engagement" for staleness purposes.
-# Chosen for low bot-risk: all four require deliberate human action on the PR.
-_ENGAGING_ACTIVITY_TYPES = (
-    PullRequestActivityType.SYNCHRONIZED,
-    PullRequestActivityType.REVIEW_SUBMITTED,
-    PullRequestActivityType.READY_FOR_REVIEW,
-    PullRequestActivityType.REVIEW_REQUESTED,
-)
 
 
 def find_stale_pull_requests(*, cutoff: datetime) -> list[int]:
@@ -205,18 +200,26 @@ def find_stale_pull_requests(*, cutoff: datetime) -> list[int]:
     - It was opened in the window (cutoff - STALENESS_WINDOW, cutoff) — between
       one and two staleness windows ago. PRs older than 2× the window are ignored:
       they've had long enough to be caught by a previous run.
-    - It has no engaging activity (SYNCHRONIZED, REVIEW_SUBMITTED, READY_FOR_REVIEW,
-      REVIEW_REQUESTED) with ``date_added >= cutoff``.
+    - It has no engaging activity (see ``ENGAGING_ACTIVITY_TYPES``) with
+      ``date_added >= cutoff``, read off legacy ``PullRequestActivity`` rows.
 
     The activity check is a correlated ``Exists`` subquery so the whole scan
-    stays in the DB — no Python-side iteration over candidates.
+    stays in the DB — no Python-side iteration over candidates. It only sees
+    legacy ``PullRequestActivity`` rows, though: a PR routed onto the reduced
+    ``PullRequestActivityLog`` document (see
+    ``sentry.pr_metrics.webhooks._use_activity_document``) never writes those
+    rows, so it always clears this filter regardless of real engagement. That
+    false-positive is deliberately left uncorrected here — the caller
+    (``detect_stale_pull_requests_task``) cross-checks each candidate's
+    document before settling it, since doing so here would mean pulling every
+    candidate's document into this one unbounded scan instead of per batch.
 
     Returns a list of ``PullRequest`` primary keys, not ORM instances, so the
     caller can process them in batches without holding a large queryset open.
     """
     recent_engaging_activity = PullRequestActivity.objects.filter(
         pull_request=OuterRef("pk"),
-        event_type__in=_ENGAGING_ACTIVITY_TYPES,
+        event_type__in=ENGAGING_ACTIVITY_TYPES,
         date_added__gte=cutoff,
     )
 
@@ -245,10 +248,19 @@ def detect_stale_pull_requests_task() -> None:
 
     Each candidate is claimed as ``abandoned`` and emitted directly, tagged with
     the ``NO_REVIEWER_ENGAGEMENT`` diagnosis label — unconditional here, since
-    ``find_stale_pull_requests`` already filtered to PRs with zero engaging
-    activity in the detection window. The judge path does not support open PRs
-    (requires ``closed_at``), so all stale PRs are settled here regardless of
-    historical engagement.
+    every remaining candidate (after the document cross-check below) has zero
+    engaging activity in the detection window by construction. The judge path
+    does not support open PRs (requires ``closed_at``), so all stale PRs are
+    settled here regardless of historical engagement.
+
+    ``find_stale_pull_requests`` only sees legacy ``PullRequestActivity`` rows,
+    so a candidate routed onto the reduced ``PullRequestActivityLog`` document
+    (see ``sentry.pr_metrics.webhooks._use_activity_document``) may actually be
+    engaged — that store never writes those rows. Each batch bulk-fetches any
+    such documents for its candidates and skips ones showing activity the SQL
+    scan couldn't see. Less efficient than the pure-SQL legacy path (documents
+    are pulled into Python one batch at a time), which is why the batch size is
+    kept modest rather than matching ``find_stale_pull_requests``'s full scan.
 
     Each candidate is guarded by a compare-and-set claim before any action, so
     an overlapping run or redelivery won't double-process.
@@ -271,6 +283,14 @@ def detect_stale_pull_requests_task() -> None:
         pull_requests = list(PullRequest.objects.filter(id__in=batch))
         org_ids = {pr.organization_id for pr in pull_requests}
         orgs_by_id = {o.id: o for o in Organization.objects.filter(id__in=org_ids)}
+        # Bulk-fetch this batch's documents once, rather than a query per PR —
+        # most candidates will have none (legacy-track PRs), so this is a
+        # small lookup scoped to the batch, not the full candidate list.
+        doc_by_pr_id = dict(
+            PullRequestActivityLog.objects.filter(pull_request_id__in=batch).values_list(
+                "pull_request_id", "data"
+            )
+        )
         for pr in pull_requests:
             org = orgs_by_id.get(pr.organization_id)
             if org is None:
@@ -286,6 +306,13 @@ def detect_stale_pull_requests_task() -> None:
             # Without activity tracking we can't distinguish an engaged PR from
             # an untouched one, so we can't safely emit an abandoned verdict.
             if not features.has("organizations:pr-metrics-activity", org):
+                continue
+
+            doc = doc_by_pr_id.get(pr.id)
+            if doc is not None and has_engaging_activity_since(doc, cutoff):
+                # The legacy-only SQL scan couldn't see this PR's document, so
+                # it fell through as a false candidate — it's actually engaged.
+                metrics.incr("pr_metrics.stale.skipped", tags={"reason": "doc_engaged"})
                 continue
 
             # Ensure the metrics row exists before any compare-and-set claim.
