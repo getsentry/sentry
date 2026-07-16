@@ -1198,7 +1198,7 @@ class Factories:
                         desc="",
                         type=group_type,
                         parent_span_ids=[],
-                        cause_span_ids=None,
+                        cause_span_ids=[],
                         offender_span_ids=[],
                         evidence_data={},
                         evidence_display=[],
