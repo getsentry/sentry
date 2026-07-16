@@ -12,7 +12,7 @@ from sentry.types.activity import ActivityType
 CLIENT_PATH = "sentry.seer.smart_assignment.trigger.SeerAgentClient"
 
 
-class MaybeTriggerSmartAssignmentTest(TestCase):
+class TriggerSmartAssignmentTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group()
