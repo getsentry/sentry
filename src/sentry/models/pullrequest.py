@@ -396,7 +396,6 @@ class PullRequestActivityType(models.TextChoices):
     CHECK_SUITE_COMPLETED = "check_suite_completed"
     CLOSED = "closed"
     COMMENT_CREATED = "comment_created"
-    COMMENT_DELETED = "comment_deleted"
     COMMENT_EDITED = "comment_edited"
     CONVERTED_TO_DRAFT = "converted_to_draft"
     DEQUEUED = "dequeued"

@@ -55,7 +55,6 @@ from sentry.pr_metrics.activity_types import (
     CheckSuiteCompletedPayload,
     ClosedPayload,
     CommentCreatedPayload,
-    CommentDeletedPayload,
     ConvertedToDraftPayload,
     DequeuedPayload,
     EditedPayload,
@@ -632,16 +631,9 @@ def handle_comment(
     """Record PR comment activity from issue_comment webhook events.
 
     ``created`` folds the commenter into the document's participants (or writes a
-    legacy COMMENT_CREATED row); ``deleted`` records a discrete comment_deleted
-    entry — document path only, human senders only.
+    legacy COMMENT_CREATED row). Other actions are ignored.
     """
-    action = event.get("action")
-    if action not in ("created", "deleted"):
-        return
-
-    # comment_deleted is a document-path-only capture; skip it before resolving a PR
-    # whenever the cutover option is globally off, leaving the legacy path untouched.
-    if action == "deleted" and not options.get("pr_metrics.activity_document.enabled"):
+    if event.get("action") != "created":
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -677,10 +669,6 @@ def handle_comment(
 
     sender = event.get("sender") or {}
     comment = event.get("comment") or {}
-
-    if action == "deleted":
-        _record_comment_deletion(pr, webhook_id, sender, is_review=False)
-        return
 
     payload_obj = CommentCreatedPayload(
         sender_login=sender.get("login", ""),
@@ -770,14 +758,9 @@ def handle_review_comment(
     """Record inline PR review comments (pull_request_review_comment events).
 
     ``created`` folds the commenter into participants (or writes a legacy
-    COMMENT_CREATED row); ``deleted`` records a discrete comment_deleted entry —
-    document path only, human senders only.
+    COMMENT_CREATED row). Other actions are ignored.
     """
-    action = event.get("action")
-    if action not in ("created", "deleted"):
-        return
-
-    if action == "deleted" and not options.get("pr_metrics.activity_document.enabled"):
+    if event.get("action") != "created":
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -802,10 +785,6 @@ def handle_review_comment(
 
     comment = event.get("comment") or {}
     sender = event.get("sender") or {}
-
-    if action == "deleted":
-        _record_comment_deletion(pr, webhook_id, sender, is_review=True)
-        return
 
     payload_obj = CommentCreatedPayload(
         sender_login=sender.get("login", ""),
@@ -1490,36 +1469,6 @@ def _record_activity_event(
         )
     else:
         _write_activity_row(pr, webhook_id, event_type, payload)
-
-
-def _record_comment_deletion(
-    pr: PullRequest, webhook_id: str, sender: Mapping[str, Any], *, is_review: bool
-) -> None:
-    """Record a human comment deletion as a document-path entry.
-
-    Captured only on the document path and only from human senders: sticky-comment
-    bots delete+recreate per push, and that churn is exactly the noise the
-    comment-fold design removes. Unlike a creation (folded into participants), a
-    deletion is stored as a discrete entry — it's the only surviving record of a
-    removed comment, which is gone from the SCM by judge time.
-    """
-    if not _use_activity_document(pr):
-        return
-    if sender.get("type") == "Bot":
-        return
-    payload = asdict(
-        CommentDeletedPayload(
-            sender_login=sender.get("login", ""),
-            sender_type=sender.get("type", ""),
-            is_review=is_review,
-        )
-    )
-    _apply_activity_into_doc(
-        pr,
-        event_type=PullRequestActivityType.COMMENT_DELETED,
-        payload=payload,
-        webhook_id=webhook_id,
-    )
 
 
 def _write_activity_row(

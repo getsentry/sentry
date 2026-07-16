@@ -446,22 +446,6 @@ def test_comment_edited_is_participant_only() -> None:
     assert doc["counts"] == {}
 
 
-def test_comment_deleted_is_stored_as_entry() -> None:
-    # A deletion is a discrete entry, not a participant-only fold: the caller routes
-    # it through the entry path and the reducer no longer classifies it as a comment.
-    doc = new_document()
-    apply_activity(
-        doc,
-        event_type=PullRequestActivityType.COMMENT_DELETED,
-        payload={"sender_login": "alice", "sender_type": "User"},
-        ts="2026-07-10T12:00:00Z",
-        webhook_id="del1",
-    )
-    assert [e["event_type"] for e in doc["events"]] == [PullRequestActivityType.COMMENT_DELETED]
-    assert doc["counts"] == {PullRequestActivityType.COMMENT_DELETED: 1}
-    assert doc["participants"] == {"alice": "User"}
-
-
 def test_blank_sender_login_not_folded() -> None:
     doc = new_document()
     _comment(doc, sender_login="", sender_type="User")

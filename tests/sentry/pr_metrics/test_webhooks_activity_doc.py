@@ -539,35 +539,16 @@ class ActivityDocumentWritePathTest(TestCase):
             self._activity(action="synchronize", webhook_id="s1", before="a", after="b")
         assert self._doc_or_none() is None
 
-    def test_comment_deleted_human_recorded_as_entry(self) -> None:
+    def test_comment_deletions_are_ignored(self) -> None:
+        # Deliberately not captured on either store: without the deleted comment's
+        # content, a sender+timestamp entry is too little signal to act on.
         with override_options(DOC_ON):
             self._comment_deleted(webhook_id="cd1", sender={"login": "human", "type": "User"})
-        doc = self._doc()
-        entry = doc["events"][0]
-        assert entry["event_type"] == PullRequestActivityType.COMMENT_DELETED
-        assert entry["payload"]["sender_login"] == "human"
-        assert entry["payload"]["is_review"] is False
-        assert doc["counts"] == {PullRequestActivityType.COMMENT_DELETED: 1}
-
-    def test_comment_deleted_bot_skipped(self) -> None:
-        with override_options(DOC_ON):
-            self._comment_deleted(webhook_id="cd1", sender={"login": "sticky[bot]", "type": "Bot"})
-        # Delete+recreate churn from sticky-comment bots is not recorded.
-        assert self._doc_or_none() is None
-
-    def test_comment_deleted_ignored_when_option_off(self) -> None:
-        self._comment_deleted(webhook_id="cd1", sender={"login": "human", "type": "User"})
-        assert self._doc_or_none() is None
-        assert self._rows() == 0
-
-    def test_review_comment_deleted_marks_is_review(self) -> None:
-        with override_options(DOC_ON):
             self._review_comment_deleted(
                 webhook_id="rcd1", sender={"login": "human", "type": "User"}
             )
-        entry = self._doc()["events"][0]
-        assert entry["event_type"] == PullRequestActivityType.COMMENT_DELETED
-        assert entry["payload"]["is_review"] is True
+        assert self._doc_or_none() is None
+        assert self._rows() == 0
 
     def test_check_group_keyed_on_head_sha(self) -> None:
         with override_options(DOC_ON):

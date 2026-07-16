@@ -99,14 +99,6 @@ class CommentCreatedPayload(BaseActivityPayload, SenderMixin):
 
 
 @dataclass
-class CommentDeletedPayload(BaseActivityPayload, SenderMixin):
-    action: str = "comment_deleted"
-    # True for an inline (pull_request_review_comment) deletion, False for a
-    # top-level issue_comment deletion.
-    is_review: bool = False
-
-
-@dataclass
 class ConvertedToDraftPayload(BaseActivityPayload, SenderMixin):
     action: str = "converted_to_draft"
 
