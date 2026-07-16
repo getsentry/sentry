@@ -15,27 +15,27 @@ from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
-HYBRID_SDK_PARENT_PACKAGES = {
+HYBRID_SDK_TOP_LEVEL_PACKAGES = {
     "sentry.cocoa.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
     "sentry.java.android.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
 }
 
 
-def get_hybrid_sdk_parent(
+def get_hybrid_sdk_top_level(
     sdk_name: str, event_data: Mapping[str, Any]
 ) -> tuple[str, str] | None:
-    parent_sdk = HYBRID_SDK_PARENT_PACKAGES.get(sdk_name)
-    if parent_sdk is None:
+    top_level_sdk = HYBRID_SDK_TOP_LEVEL_PACKAGES.get(sdk_name)
+    if top_level_sdk is None:
         return None
 
-    parent_sdk_name, parent_package_name = parent_sdk
+    top_level_sdk_name, top_level_package_name = top_level_sdk
     packages = get_path(event_data, "sdk", "packages")
     if not isinstance(packages, Sequence) or isinstance(packages, str | bytes):
         return None
 
     versions: set[str] = set()
     for package in packages:
-        if not isinstance(package, Mapping) or package.get("name") != parent_package_name:
+        if not isinstance(package, Mapping) or package.get("name") != top_level_package_name:
             continue
 
         version = package.get("version")
@@ -45,13 +45,13 @@ def get_hybrid_sdk_parent(
     if len(versions) != 1:
         return None
 
-    parent_sdk_version = next(iter(versions))
+    top_level_sdk_version = next(iter(versions))
     try:
-        Version(parent_sdk_version)
+        Version(top_level_sdk_version)
     except InvalidVersion:
         return None
 
-    return parent_sdk_name, parent_sdk_version
+    return top_level_sdk_name, top_level_sdk_version
 
 
 class SDKCrashReporter:
@@ -106,7 +106,7 @@ class SDKCrashDetection:
         if not sdk_name or not sdk_version:
             return None
 
-        hybrid_sdk_parent = get_hybrid_sdk_parent(sdk_name, event.data)
+        hybrid_sdk_top_level = get_hybrid_sdk_top_level(sdk_name, event.data)
 
         mechanism = get_path(event.data, "exception", "values", -1, "mechanism", "type")
         metric_tags = {
@@ -114,11 +114,11 @@ class SDKCrashDetection:
             "sdk_version": sdk_version,
             "is_anr_or_apphang": "true" if mechanism in ("ANR", "AppExitInfo") else "false",
         }
-        if hybrid_sdk_parent is not None:
-            parent_sdk_name, parent_sdk_version = hybrid_sdk_parent
+        if hybrid_sdk_top_level is not None:
+            top_level_sdk_name, top_level_sdk_version = hybrid_sdk_top_level
             metric_tags.update(
-                parent_sdk_name=parent_sdk_name,
-                parent_sdk_version=parent_sdk_version,
+                top_level_sdk_name=top_level_sdk_name,
+                top_level_sdk_version=top_level_sdk_version,
             )
         sdk_detectors = list(map(lambda config: SDKCrashDetector(config=config), configs))
 
@@ -204,14 +204,14 @@ class SDKCrashDetection:
             sdk_version = get_path(sdk_crash_event_data, "sdk", "version")
             set_path(sdk_crash_event_data, "release", value=sdk_version)
 
-            if hybrid_sdk_parent is not None:
-                parent_sdk_name, parent_sdk_version = hybrid_sdk_parent
+            if hybrid_sdk_top_level is not None:
+                top_level_sdk_name, top_level_sdk_version = hybrid_sdk_top_level
                 set_path(
                     sdk_crash_event_data,
                     "tags",
                     value={
-                        "parent_sdk_name": parent_sdk_name,
-                        "parent_sdk_version": parent_sdk_version,
+                        "top_level_sdk_name": top_level_sdk_name,
+                        "top_level_sdk_version": top_level_sdk_version,
                     },
                 )
 

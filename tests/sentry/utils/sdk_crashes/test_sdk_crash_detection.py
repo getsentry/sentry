@@ -13,7 +13,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.issue_detection.store_transaction import store_transaction
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
-from sentry.utils.sdk_crashes.sdk_crash_detection import get_hybrid_sdk_parent, sdk_crash_detection
+from sentry.utils.sdk_crashes.sdk_crash_detection import get_hybrid_sdk_top_level, sdk_crash_detection
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
     SDKCrashDetectionConfig,
     build_sdk_crash_detection_configs,
@@ -32,7 +32,7 @@ def build_sdk_configs() -> Sequence[SDKCrashDetectionConfig]:
 
 
 @pytest.mark.parametrize("sdk_name", ["sentry.cocoa.flutter", "sentry.java.android.flutter"])
-def test_get_hybrid_sdk_parent(sdk_name: str) -> None:
+def test_get_hybrid_sdk_top_level(sdk_name: str) -> None:
     event_data = {
         "sdk": {
             "packages": [
@@ -42,7 +42,7 @@ def test_get_hybrid_sdk_parent(sdk_name: str) -> None:
         }
     }
 
-    assert get_hybrid_sdk_parent(sdk_name, event_data) == (
+    assert get_hybrid_sdk_top_level(sdk_name, event_data) == (
         "sentry.dart.flutter",
         "9.24.0",
     )
@@ -60,10 +60,10 @@ def test_get_hybrid_sdk_parent(sdk_name: str) -> None:
         ],
     ],
 )
-def test_get_hybrid_sdk_parent_rejects_untrusted_versions(packages: object) -> None:
+def test_get_hybrid_sdk_top_level_rejects_untrusted_versions(packages: object) -> None:
     event_data = {"sdk": {"packages": packages}}
 
-    assert get_hybrid_sdk_parent("sentry.cocoa.flutter", event_data) is None
+    assert get_hybrid_sdk_top_level("sentry.cocoa.flutter", event_data) is None
 
 
 class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
@@ -208,16 +208,16 @@ def test_flutter_sdk_version_attributed_without_replacing_native_version(
         "version": "8.2.0",
     }
     assert reported_event_data["tags"] == {
-        "parent_sdk_name": "sentry.dart.flutter",
-        "parent_sdk_version": "9.24.0",
+        "top_level_sdk_name": "sentry.dart.flutter",
+        "top_level_sdk_version": "9.24.0",
     }
     assert reported_event_data["release"] == "8.2.0"
     metric_tags = {
         "sdk_name": "sentry.cocoa.flutter",
         "sdk_version": "8.2.0",
         "is_anr_or_apphang": "false",
-        "parent_sdk_name": "sentry.dart.flutter",
-        "parent_sdk_version": "9.24.0",
+        "top_level_sdk_name": "sentry.dart.flutter",
+        "top_level_sdk_version": "9.24.0",
     }
     incr.assert_any_call(
         "post_process.sdk_crash_monitoring.sdk_event",
