@@ -12,7 +12,7 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Min, prefetch_related_objects
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.constants import LOG_LEVELS
@@ -204,31 +204,6 @@ def _make_group_project_response(project: Project) -> GroupProjectResponse:
     }
 
 
-def _get_derived_data_by_group_id(
-    item_list: Sequence[Group], user: User | RpcUser | AnonymousUser
-) -> dict[int, GroupDerivedDataResponse]:
-    unique_projects = list({item.project for item in item_list})
-    feature_results = features.batch_has(
-        ["projects:issue-stream-derived-progress"],
-        actor=user,
-        projects=unique_projects,
-        skip_experiment_exposure=True,
-    )
-    if not feature_results:
-        return {}
-
-    enabled_project_ids = {
-        project.id
-        for project in unique_projects
-        if feature_results.get(f"project:{project.id}", {}).get(
-            "projects:issue-stream-derived-progress"
-        )
-    }
-    return get_bulk_group_derived_data(
-        {item.id for item in item_list if item.project_id in enabled_project_ids}
-    )
-
-
 GroupStatusStr = Literal[
     "resolved",
     "ignored",
@@ -392,7 +367,11 @@ class GroupSerializerBase(Serializer, ABC):
 
         snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
-        derived_data_by_group_id = _get_derived_data_by_group_id(item_list, user)
+        derived_data_by_group_id = (
+            get_bulk_group_derived_data({item.id for item in item_list})
+            if self._expand("derivedData")
+            else {}
+        )
 
         result = {}
         for item in item_list:

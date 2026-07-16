@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import SimpleGroupSerializer
+from sentry.api.serializers.models.group import GroupSerializer, SimpleGroupSerializer
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.issues.grouptype import FeedbackGroup
@@ -506,8 +506,7 @@ class GroupSerializerDerivedDataTest(TestCase):
             },
         )
 
-        with self.feature("projects:issue-stream-derived-progress"):
-            result = serialize(group, self.user)
+        result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
 
         assert result["derivedData"] == {
             "progress": "diagnosed",
@@ -527,8 +526,7 @@ class GroupSerializerDerivedDataTest(TestCase):
             data={"status": "closed"},
         )
 
-        with self.feature("projects:issue-stream-derived-progress"):
-            result = serialize(group, self.user)
+        result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
 
         assert result["derivedData"]["progress"] == IssueProgressState.FIX_APPLIED.value
         assert result["derivedData"]["status"] == "closed"
@@ -536,17 +534,15 @@ class GroupSerializerDerivedDataTest(TestCase):
     def test_derived_data_omitted_without_row(self) -> None:
         group = self.create_group()
 
-        with self.feature("projects:issue-stream-derived-progress"):
-            result = serialize(group, self.user)
+        result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
 
         assert "derivedData" not in result
 
-    def test_derived_data_omitted_without_feature(self) -> None:
+    def test_derived_data_omitted_without_expand(self) -> None:
         group = self.create_group()
         self.create_group_derived_data(group=group, progress=IssueProgressState.DIAGNOSED.value)
 
-        with self.feature({"projects:issue-stream-derived-progress": False}):
-            result = serialize(group, self.user)
+        result = serialize(group, self.user)
 
         assert "derivedData" not in result
 
@@ -559,8 +555,9 @@ class GroupSerializerDerivedDataTest(TestCase):
             progress=IssueProgressState.DIAGNOSED.value,
         )
 
-        with self.feature("projects:issue-stream-derived-progress"):
-            malformed_result, valid_result = serialize([malformed_group, valid_group], self.user)
+        malformed_result, valid_result = serialize(
+            [malformed_group, valid_group], self.user, GroupSerializer(expand=["derivedData"])
+        )
 
         assert "derivedData" not in malformed_result
         assert valid_result["derivedData"]["progress"] == "diagnosed"
