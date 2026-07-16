@@ -350,13 +350,8 @@ const appConfig: Configuration = {
       },
       {
         test: /\.po$/,
-        use: {
-          loader: 'po-catalog-loader',
-          options: {
-            referenceExtensions: ['.js', '.jsx', '.tsx'],
-            domain: 'sentry',
-          },
-        },
+        loader: path.resolve(import.meta.dirname, './build-utils/po-catalog-loader.ts'),
+        type: 'javascript/dynamic',
       },
       {
         test: /\.pegjs$/,
@@ -424,13 +419,6 @@ const appConfig: Configuration = {
      * This plugin tells rspack where to find those SVG files
      */
     new rspack.ContextReplacementPlugin(/platformicons/, /\.svg$/),
-
-    /**
-     * TODO(epurkhiser): Figure out if we still need these
-     */
-    new rspack.ProvidePlugin({
-      Buffer: ['buffer', 'Buffer'],
-    }),
 
     /**
      * Extract CSS into separate files.
@@ -527,8 +515,6 @@ const appConfig: Configuration = {
     fallback: {
       vm: false,
       stream: false,
-      // Node crypto is imported in @sentry-internal/global-search but not used here
-      crypto: false,
       // `pnpm why` says this is only needed in dev deps
       string_decoder: false,
     },
