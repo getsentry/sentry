@@ -88,9 +88,7 @@ const locationKey = (filePath: string, line: number | undefined) =>
   `${path.resolve(repoPath, filePath)}:${line}`;
 const excludedLocations = new Set(
   output.diagnostics
-    .filter(diagnostic =>
-      excludedCategories.includes(diagnostic.message.split(':', 1)[0]!)
-    )
+    .filter(diagnostic => excludedCategories.includes(diagnostic.message.split(':')[0]!))
     .map(diagnostic => locationKey(diagnostic.filename, diagnosticLine(diagnostic)))
 );
 
@@ -108,7 +106,7 @@ if (excludedFindingsPath) {
 }
 
 const diagnostics = output.diagnostics.filter(diagnostic => {
-  const messageCategory = diagnostic.message.split(':', 1)[0];
+  const messageCategory = diagnostic.message.split(':')[0];
   const line = diagnosticLine(diagnostic);
   return (
     messageCategory === category &&
