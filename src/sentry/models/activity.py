@@ -304,3 +304,4 @@ class ActivityIntegration(Enum):
     MSTEAMS = IntegrationProviderSlug.MSTEAMS.value
     DISCORD = IntegrationProviderSlug.DISCORD.value
     SUSPECT_COMMITTER = "suspectCommitter"
+    SEER_SUGGESTED = "seerSuggested"

@@ -50,6 +50,11 @@ class ActivityType(Enum):
     PULL_REQUEST_MERGED = 40
     PULL_REQUEST_UNLINKED = 41
 
+    # A smart-assignment run finished and delivered its verdict. Not part of the
+    # SEER_* autofix progress lifecycle -- it's an internal signal that drives
+    # scoring/auto-assignment, so it deliberately omits the SEER_ prefix.
+    SMART_ASSIGNMENT_COMPLETED = 42
+
 
 # Warning: This must remain in this EXACT order.
 CHOICES = tuple(
@@ -96,6 +101,7 @@ CHOICES = tuple(
         ActivityType.PULL_REQUEST_REOPENED,  # 39
         ActivityType.PULL_REQUEST_MERGED,  # 40
         ActivityType.PULL_REQUEST_UNLINKED,  # 41
+        ActivityType.SMART_ASSIGNMENT_COMPLETED,  # 42
     ]
 )
 

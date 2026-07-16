@@ -1,0 +1,156 @@
+"""Delivery handler for smart_assignment feature results from Seer.
+
+Seer pushes the `AssigneeVerdict` artifact back via the `deliver_feature_result`
+RPC, routed here by feature_id (see `sentry.seer.agent.feature_delivery`). Seer is
+the system of record for the verdict itself; here we resolve the ranked candidates to
+Sentry users and record a `SMART_ASSIGNMENT_COMPLETED` activity (pointing back at the
+run) carrying those resolved picks, then emit a delivery outcome metric. Acting on
+the verdict -- scoring it and auto-assigning -- happens independently off that activity
+(see `completion`), so this handler stays a thin resolve-and-record step.
+"""
+
+from __future__ import annotations
+
+import logging
+from typing import Any
+
+from sentry.models.activity import Activity
+from sentry.models.group import Group
+from sentry.organizations.services.organization import organization_service
+from sentry.seer.agent.types import FeatureRunStatus
+from sentry.seer.models.run import SeerAgentRun
+from sentry.seer.smart_assignment.models import SEER_FEATURE_ID, AssigneeVerdict
+from sentry.types.activity import ActivityType
+from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
+
+
+def _resolve_identifier_to_user_id(
+    organization_id: int, identifier: str | None, kind: str | None
+) -> int | None:
+    """Map an agent-produced `identifier` to a Sentry user id in the org.
+
+    The agent tags each pick with `identifier_kind` (see the `RankedCandidate`
+    contract on the Seer side) so we resolve deterministically instead of inferring
+    the type from the string:
+      - "email":    verified org email (the RPC already scopes to the org).
+      - "username": unique username, confirmed to be an org member so a global match
+                    can't attribute a prediction to someone outside the org.
+    `kind` is a validated Literal by the time it gets here, so this doesn't guess.
+    Returns None when the agent named no one or the identifier maps to no org user.
+    """
+    if not identifier:
+        return None
+
+    value = identifier.strip()
+    if not value:
+        return None
+
+    if kind == "email":
+        users = user_service.get_many_by_email(
+            emails=[value], organization_id=organization_id, is_verified=True
+        )
+        return users[0].id if users else None
+
+    if kind == "username":
+        users = user_service.get_by_username(username=value)
+        if not users:
+            return None
+        user_id = users[0].id
+        member = organization_service.check_membership_by_id(
+            organization_id=organization_id, user_id=user_id
+        )
+        return user_id if member is not None else None
+
+    return None
+
+
+def deliver_smart_assignment_result(
+    organization_id: int,
+    run_uuid: str,
+    status: FeatureRunStatus,
+    result: dict[str, Any] | None,
+    error: str | None,
+) -> None:
+    """Resolve a delivered smart_assignment verdict's ranked picks and record them.
+
+    Emits a single `smart_assignment.delivery` counter tagged with the outcome so we
+    can track success vs failure, how often the agent abstains, and how often it
+    names someone we can't link to a Sentry user in the org:
+      - `missing_run`  -- delivery arrived with no matching run mirror (orphaned run)
+      - `error`        -- Seer run failed or returned no artifact
+      - `abstain`      -- completed, but the agent named no one
+      - `unlinked`     -- named someone we couldn't map to an org user
+      - `resolved`     -- named someone we mapped to a Sentry user
+    """
+    agent_run = (
+        SeerAgentRun.objects.filter(
+            run__uuid=run_uuid, run__organization_id=organization_id, source=SEER_FEATURE_ID
+        )
+        .select_related("run")
+        .first()
+    )
+    if agent_run is None:
+        metrics.incr("smart_assignment.delivery", tags={"outcome": "missing_run"})
+        logger.warning(
+            "smart_assignment.delivery.missing_run",
+            extra={"organization_id": organization_id, "run_uuid": run_uuid},
+        )
+        return
+
+    group_id = agent_run.group_id
+    log_extra = {"organization_id": organization_id, "group_id": group_id, "run_uuid": run_uuid}
+
+    if status == "error" or result is None:
+        metrics.incr("smart_assignment.delivery", tags={"outcome": "error"})
+        logger.warning(
+            "smart_assignment.delivery.no_result",
+            extra={**log_extra, "status": status, "error": error},
+        )
+        return
+
+    try:
+        verdict = AssigneeVerdict.parse_obj(result)
+    except Exception:
+        metrics.incr("smart_assignment.delivery", tags={"outcome": "error"})
+        logger.warning("smart_assignment.delivery.invalid_result", extra=log_extra)
+        return
+
+    # Resolve every ranked candidate (best-first) to a Sentry user id so scoring can
+    # grade the top pick and also see where the eventual assignee placed in the list
+    # (its hit rank). None marks a position we couldn't map to an org user, preserving
+    # each candidate's rank; the raw verdict itself is still queryable on the Seer run.
+    predicted_assignee_user_ids = [
+        _resolve_identifier_to_user_id(
+            organization_id, candidate.identifier, candidate.identifier_kind
+        )
+        for candidate in verdict.candidates
+    ]
+
+    # Hand the resolved verdict off to the completion path via an activity that points
+    # back at this run. Creating it invokes the workflow activity handlers, which score
+    # the prediction (completing the pair now if ground truth already landed) and
+    # auto-assign as needed -- kept out of this RPC handler on purpose.
+    if group_id is not None:
+        group = Group.objects.filter(id=group_id).first()
+        if group is not None:
+            Activity.objects.create_group_activity(
+                group,
+                ActivityType.SMART_ASSIGNMENT_COMPLETED,
+                data={
+                    "run_id": agent_run.id,
+                    "run_uuid": run_uuid,
+                    "predicted_assignee_user_ids": predicted_assignee_user_ids,
+                },
+                send_notification=False,
+            )
+
+    if not predicted_assignee_user_ids:
+        outcome = "abstain"
+    elif predicted_assignee_user_ids[0] is None:
+        outcome = "unlinked"
+    else:
+        outcome = "resolved"
+    metrics.incr("smart_assignment.delivery", tags={"outcome": outcome})
