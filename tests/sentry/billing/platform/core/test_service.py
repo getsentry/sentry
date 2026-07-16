@@ -78,8 +78,8 @@ class TestBillingService:
         )
         mock_metrics.timing.assert_called()
 
-        # Verify logging
-        assert mock_logger.info.call_count == 1
+        # Successful calls are tracked by metrics without emitting a log per call.
+        mock_logger.info.assert_not_called()
 
     @mock.patch("sentry.billing.platform.core.service.metrics")
     def test_service_method_error_handling(self, mock_metrics):

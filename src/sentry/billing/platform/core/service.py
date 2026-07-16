@@ -116,16 +116,6 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
             )
             metrics.incr("billing.service.method.success", tags=metric_tags, sample_rate=1.0)
 
-            logger.info(
-                "billing.service.method.success",
-                extra={
-                    "duration_ms": duration_ms,
-                    "response_type": type(result).__name__,
-                    "response": MessageToDict(result),
-                    **extras,
-                },
-            )
-
             return result
 
         except Exception as e:
