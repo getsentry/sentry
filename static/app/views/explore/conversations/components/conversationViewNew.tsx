@@ -33,6 +33,7 @@ interface ConversationViewContentNewProps {
   focusedTool?: string | null;
   onDeselectSpan?: () => void;
   onSelectSpan?: (spanId: string) => void;
+  onViewTimeline?: () => void;
   selectedSpanId?: string | null;
 }
 
@@ -42,6 +43,7 @@ export function ConversationViewContentNew({
   selectedSpanId,
   onSelectSpan,
   onDeselectSpan,
+  onViewTimeline,
   focusedTool,
 }: ConversationViewContentNewProps) {
   const isTimeline = activeTab === 'timeline';
@@ -103,6 +105,7 @@ export function ConversationViewContentNew({
               nodes={nodes}
               selectedNodeId={selectedNode?.id ?? null}
               onSelectNode={handleSelectAndOpenDetail}
+              onViewTimeline={onViewTimeline}
             />
           ) : (
             <AiSpanTimeline

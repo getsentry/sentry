@@ -57,16 +57,58 @@ describe('MessagesPanelNew', () => {
     jest.clearAllMocks();
   });
 
-  it('renders empty message when no nodes provided', () => {
+  it('explains when a conversation has no inference spans', () => {
+    const toolNode = createMockToolNode({id: 'tool-1', toolName: 'search'});
+
     render(
       <MessagesPanelNew
-        nodes={[]}
+        nodes={[toolNode] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
       />
     );
 
-    expect(screen.getByText('No messages found')).toBeInTheDocument();
+    expect(
+      screen.getByText("This conversation doesn't include any inference spans")
+    ).toBeInTheDocument();
+    expect(screen.queryByText('No messages found')).not.toBeInTheDocument();
+  });
+
+  it('offers a shortcut to the Timeline when there are no inference spans', async () => {
+    const onViewTimeline = jest.fn();
+    const toolNode = createMockToolNode({id: 'tool-1', toolName: 'search'});
+
+    render(
+      <MessagesPanelNew
+        nodes={[toolNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+        onViewTimeline={onViewTimeline}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'View Timeline'}));
+    expect(onViewTimeline).toHaveBeenCalledTimes(1);
+  });
+
+  it('warns and links to docs when inference spans captured no input/output', () => {
+    // A generation span exists, but it carries no request/response content.
+    const node = createMockNode({id: 'span-1'});
+
+    render(
+      <MessagesPanelNew
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(
+      screen.getByText("This conversation's messages weren't captured")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: 'Enable capturing inputs and outputs'})
+    ).toBeInTheDocument();
   });
 
   it('renders user and assistant messages', () => {
