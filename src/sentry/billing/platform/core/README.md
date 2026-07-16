@@ -6,7 +6,7 @@ Base classes and decorators for billing services. No application-specific code.
 
 Provides automatic observability for service methods:
 
-**Datadog metrics emitted** (via `metrics.incr` / `metrics.timing`):
+**Metrics emitted:**
 
 - `billing.service.method.called` - Method invocations
 - `billing.service.method.success` - Successful completions
@@ -15,11 +15,6 @@ Provides automatic observability for service methods:
 
 All metrics include `service` and `method` tags.
 
-**Sentry Metrics** (via `sentry_sdk.metrics.count`, 100% sampled):
-
-- `billing.service.method.success` - Successful completions
-- `billing.service.method.error` - Failures (tagged with error_type)
-
 **Validation:**
 
 - Input must be a protobuf Message
@@ -27,7 +22,10 @@ All metrics include `service` and `method` tags.
 
 **Logging:**
 
-Structured error logs with service name, method name, duration, and error details. Success paths do not emit a structured log (use Sentry Metrics instead).
+Structured success and error logs with service name, method name, and duration.
+Error logs are always emitted. Success logs are sampled via
+`trace_log_sample_rate` (default `0.001` / 0.1%). Pass
+`trace_log_sample_rate=1.0` when validating a new service method.
 
 ## Example
 
@@ -39,6 +37,10 @@ from sentry_protos.billing.v1.services.contract import GetContractRequest, GetCo
 class ContractService(BillingService):
     @service_method
     def get_contract(self, request: GetContractRequest) -> GetContractResponse:
+        return GetContractResponse(contract_id=f"contract_{request.organization_id}")
+
+    @service_method(trace_log_sample_rate=1.0)
+    def experimental_method(self, request: GetContractRequest) -> GetContractResponse:
         return GetContractResponse(contract_id=f"contract_{request.organization_id}")
 ```
 

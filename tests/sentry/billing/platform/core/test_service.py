@@ -52,14 +52,13 @@ class TestBillingService:
         with pytest.raises(TypeError, match="must return a protobuf Message"):
             service.bad_return(StringValue(value="test"))
 
-    @mock.patch("sentry.billing.platform.core.service.sentry_sdk.metrics.count")
     @mock.patch("sentry.billing.platform.core.service.metrics")
     @mock.patch("sentry.billing.platform.core.service.logger")
-    def test_service_method_observability(self, mock_logger, mock_metrics, mock_sentry_count):
-        """Service methods emit Datadog and Sentry metrics; no success log."""
+    def test_service_method_observability_with_full_sample_rate(self, mock_logger, mock_metrics):
+        """With trace_log_sample_rate=1.0, success metrics and logs are emitted."""
 
         class TestService(BillingService):
-            @service_method
+            @service_method(trace_log_sample_rate=1.0)
             def test_method(self, request: StringValue) -> StringValue:
                 return StringValue(value="ok")
 
@@ -80,22 +79,69 @@ class TestBillingService:
         )
         mock_metrics.timing.assert_called()
 
-        mock_sentry_count.assert_called_once_with(
-            "billing.service.method.success",
-            1,
-            attributes=metric_tags,
-        )
+        mock_logger.info.assert_called_once()
+        assert mock_logger.info.call_args[0][0] == "billing.service.method.success"
 
-        mock_logger.info.assert_not_called()
-
-    @mock.patch("sentry.billing.platform.core.service.sentry_sdk.metrics.count")
+    @mock.patch("sentry.billing.platform.core.service.random", return_value=0.5)
     @mock.patch("sentry.billing.platform.core.service.metrics")
     @mock.patch("sentry.billing.platform.core.service.logger")
-    def test_service_method_error_handling(self, mock_logger, mock_metrics, mock_sentry_count):
-        """Service methods propagate exceptions and emit error metrics/logs."""
+    def test_service_method_success_log_sampled_out(self, mock_logger, mock_metrics, mock_random):
+        """Default sample rate skips success logs when the draw is above the rate."""
 
         class TestService(BillingService):
             @service_method
+            def test_method(self, request: StringValue) -> StringValue:
+                return StringValue(value="ok")
+
+        service = TestService()
+        service.test_method(StringValue(value="test"))
+
+        mock_metrics.incr.assert_any_call(
+            "billing.service.method.success",
+            tags={"service": "TestService", "method": "test_method"},
+            sample_rate=1.0,
+        )
+        mock_logger.info.assert_not_called()
+
+    @mock.patch("sentry.billing.platform.core.service.random", return_value=0.0005)
+    @mock.patch("sentry.billing.platform.core.service.metrics")
+    @mock.patch("sentry.billing.platform.core.service.logger")
+    def test_service_method_success_log_sampled_in(self, mock_logger, mock_metrics, mock_random):
+        """Default sample rate emits success logs when the draw is below the rate."""
+
+        class TestService(BillingService):
+            @service_method
+            def test_method(self, request: StringValue) -> StringValue:
+                return StringValue(value="ok")
+
+        service = TestService()
+        service.test_method(StringValue(value="test"))
+
+        mock_logger.info.assert_called_once()
+        assert mock_logger.info.call_args[0][0] == "billing.service.method.success"
+
+    @mock.patch("sentry.billing.platform.core.service.metrics")
+    @mock.patch("sentry.billing.platform.core.service.logger")
+    def test_service_method_zero_sample_rate_skips_success_log(self, mock_logger, mock_metrics):
+        """trace_log_sample_rate=0 never emits success logs."""
+
+        class TestService(BillingService):
+            @service_method(trace_log_sample_rate=0.0)
+            def test_method(self, request: StringValue) -> StringValue:
+                return StringValue(value="ok")
+
+        service = TestService()
+        service.test_method(StringValue(value="test"))
+
+        mock_logger.info.assert_not_called()
+
+    @mock.patch("sentry.billing.platform.core.service.metrics")
+    @mock.patch("sentry.billing.platform.core.service.logger")
+    def test_service_method_error_handling(self, mock_logger, mock_metrics):
+        """Errors always emit metrics and logs regardless of sample rate."""
+
+        class TestService(BillingService):
+            @service_method(trace_log_sample_rate=0.0)
             def failing_method(self, request: StringValue) -> StringValue:
                 raise ValueError("Something went wrong")
 
@@ -104,22 +150,14 @@ class TestBillingService:
         with pytest.raises(ValueError, match="Something went wrong"):
             service.failing_method(StringValue(value="test"))
 
-        error_tags = {
-            "service": "TestService",
-            "method": "failing_method",
-            "error_type": "ValueError",
-        }
-
         mock_metrics.incr.assert_any_call(
             "billing.service.method.error",
-            tags=error_tags,
+            tags={
+                "service": "TestService",
+                "method": "failing_method",
+                "error_type": "ValueError",
+            },
             sample_rate=1.0,
-        )
-
-        mock_sentry_count.assert_called_once_with(
-            "billing.service.method.error",
-            1,
-            attributes=error_tags,
         )
 
         mock_logger.info.assert_called_once()
