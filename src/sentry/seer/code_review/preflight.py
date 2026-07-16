@@ -10,13 +10,14 @@ from sentry.constants import (
     HIDE_AI_FEATURES_DEFAULT,
     DataCategory,
 )
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.organization import Organization
-from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import (
     CodeReviewSettings,
     RepositorySettings,
 )
+from sentry.seer.code_review.contributor_seats import get_canonical_contributor
 
 
 class PreflightDenialReason(StrEnum):
@@ -43,12 +44,12 @@ class CodeReviewPreflightService:
         self,
         organization: Organization,
         repo: Repository,
-        integration_id: int | None = None,
+        integration: RpcIntegration | None = None,
         pr_author_external_id: str | None = None,
     ):
         self.organization = organization
         self.repo = repo
-        self.integration_id = integration_id
+        self.integration = integration
         self.pr_author_external_id = pr_author_external_id
 
         repo_settings = RepositorySettings.objects.filter(repository=repo).first()
@@ -101,16 +102,15 @@ class CodeReviewPreflightService:
         then that means that they've opened a PR before, and either have a seat already OR it's their
         "Free action."
         """
-        if self.integration_id is None or self.pr_author_external_id is None:
+        if self.integration is None or self.pr_author_external_id is None:
             return PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
-        try:
-            contributor = OrganizationContributors.objects.get(
-                organization_id=self.organization.id,
-                integration_id=self.integration_id,
-                external_identifier=self.pr_author_external_id,
-            )
-        except OrganizationContributors.DoesNotExist:
+        contributor = get_canonical_contributor(
+            organization_id=self.organization.id,
+            integration=self.integration,
+            external_identifier=self.pr_author_external_id,
+        )
+        if contributor is None:
             return PreflightDenialReason.ORG_CONTRIBUTOR_NOT_FOUND
 
         # Excluded author check applies to all organization types

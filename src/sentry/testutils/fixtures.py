@@ -19,6 +19,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -30,6 +31,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -640,6 +642,18 @@ class Fixtures:
     ) -> Integration:
         """Create an integration and add an organization."""
         return Factories.create_integration(organization, external_id, oi_params, **kwargs)
+
+    def create_organization_contributor(
+        self,
+        organization: Organization,
+        integration: Integration | RpcIntegration,
+        external_identifier: str,
+        **kwargs: Any,
+    ) -> OrganizationContributors:
+        """Create an OrganizationContributors row, deriving provider/hostname from the integration."""
+        return Factories.create_organization_contributor(
+            organization, integration, external_identifier, **kwargs
+        )
 
     def create_provider_integration(self, **integration_params: Any) -> Integration:
         """Create an integration tied to a provider but no particular organization."""

@@ -73,7 +73,9 @@ from sentry.integrations.models.integration_feature import (
 )
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.hostname import instance_hostname
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -107,6 +109,7 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
@@ -2034,6 +2037,23 @@ class Factories:
         organization_integration.update(**(oi_params or {}))
 
         return integration
+
+    @staticmethod
+    def create_organization_contributor(
+        organization: Organization,
+        integration: Integration | RpcIntegration,
+        external_identifier: str,
+        **kwargs: Any,
+    ) -> OrganizationContributors:
+        kwargs.setdefault("provider", integration.provider)
+        kwargs.setdefault("hostname", instance_hostname(integration))
+
+        return OrganizationContributors.objects.create(
+            organization=organization,
+            integration_id=integration.id,
+            external_identifier=external_identifier,
+            **kwargs,
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

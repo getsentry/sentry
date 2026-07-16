@@ -12,7 +12,7 @@ from collections.abc import Mapping
 from typing import Any
 
 import sentry_sdk
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import F
 
 from sentry import features, quotas
@@ -92,6 +92,81 @@ def should_increment_contributor_seat(
     )
 
 
+def get_canonical_contributor(
+    *,
+    organization_id: int,
+    integration: Integration | RpcIntegration,
+    external_identifier: str,
+) -> OrganizationContributors | None:
+    """
+    TODO(CW-1539): Replace with get() after the contributor deduplication
+    migration has completed.
+    """
+    try:
+        hostname = instance_hostname(integration)
+    except InstanceHostnameError as e:
+        sentry_sdk.capture_exception(e)
+        return None
+
+    # Prefer the current billing period's seat holder (contributor with the most
+    # actions), with id as a stable tiebreaker.
+    return (
+        OrganizationContributors.objects.filter(
+            organization_id=organization_id,
+            provider=integration.provider,
+            hostname=hostname,
+            external_identifier=external_identifier,
+        )
+        .order_by("-num_actions", "id")
+        .first()
+    )
+
+
+def get_or_create_contributor(
+    *,
+    organization: Organization,
+    integration: Integration | RpcIntegration,
+    external_identifier: str,
+    alias: str | None,
+) -> OrganizationContributors | None:
+    """
+    TODO(CW-1539): Replace with get_or_create() after the contributor deduplication
+    migration has completed.
+    """
+    try:
+        hostname = instance_hostname(integration)
+    except InstanceHostnameError as e:
+        sentry_sdk.capture_exception(e)
+        return None
+
+    if contributor := get_canonical_contributor(
+        organization_id=organization.id,
+        integration=integration,
+        external_identifier=external_identifier,
+    ):
+        return contributor
+
+    try:
+        with transaction.atomic(router.db_for_write(OrganizationContributors)):
+            return OrganizationContributors.objects.create(
+                organization_id=organization.id,
+                integration_id=integration.id,
+                external_identifier=external_identifier,
+                provider=integration.provider,
+                hostname=hostname,
+                alias=alias,
+            )
+    except IntegrityError:
+        contributor = get_canonical_contributor(
+            organization_id=organization.id,
+            integration=integration,
+            external_identifier=external_identifier,
+        )
+        if not contributor:
+            raise
+        return contributor
+
+
 def track_contributor_seat(
     *,
     organization: Organization,
@@ -102,23 +177,13 @@ def track_contributor_seat(
     logs_extra: Mapping[str, Any] | None = None,
 ) -> None:
     """Informational logging for the legacy seat-charging path."""
-    try:
-        hostname = instance_hostname(integration)
-    except InstanceHostnameError as e:
-        sentry_sdk.capture_exception(e)
-        return
-
-    contributor, _ = OrganizationContributors.objects.get_or_create(
-        organization_id=organization.id,
-        integration_id=integration.id,
+    contributor = get_or_create_contributor(
+        organization=organization,
+        integration=integration,
         external_identifier=str(user_id),
-        defaults={
-            "alias": user_username,
-            "provider": integration.provider,
-            "hostname": hostname,
-        },
+        alias=user_username,
     )
-    if not should_increment_contributor_seat(organization, repo, contributor):
+    if not contributor or not should_increment_contributor_seat(organization, repo, contributor):
         return
 
     logger.info(
@@ -153,24 +218,18 @@ def record_contributor_action(
     tags: Mapping[str, Any] | None = None,
 ) -> None:
     """Seed a contributor and record the contributor's PR-opened action."""
-    try:
-        hostname = instance_hostname(integration)
-    except InstanceHostnameError as e:
-        sentry_sdk.capture_exception(e)
-        return
-
-    contributor, _ = OrganizationContributors.objects.get_or_create(
-        organization_id=organization.id,
-        integration_id=integration.id,
+    contributor = get_or_create_contributor(
+        organization=organization,
+        integration=integration,
         external_identifier=str(user_id),
-        defaults={
-            "alias": user_username,
-            "provider": integration.provider,
-            "hostname": hostname,
-        },
+        alias=user_username,
     )
 
-    if not is_opened or not should_increment_contributor_seat(organization, repo, contributor):
+    if (
+        not contributor
+        or not is_opened
+        or not should_increment_contributor_seat(organization, repo, contributor)
+    ):
         return
 
     with transaction.atomic(router.db_for_write(OrganizationContributors)):
