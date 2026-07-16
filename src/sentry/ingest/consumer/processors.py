@@ -12,6 +12,7 @@ from usageaccountant import UsageUnit
 
 from sentry import features
 from sentry.attachments import CachedAttachment, attachment_cache, store_attachments_for_event
+from sentry.constants import DataCategory
 from sentry.event_manager import save_attachment
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
@@ -31,6 +32,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
+from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.snuba import RateLimitExceeded
 from sentry.utils.tracing import start_span
 
@@ -262,7 +264,17 @@ def process_event(
                     project_id=project_id,
                 )
             else:
-                metrics.incr("feedback.ingest.denylist")
+                track_outcome(
+                    org_id=project.organization_id,
+                    project_id=project_id,
+                    key_id=None,
+                    outcome=Outcome.RATE_LIMITED,
+                    reason="feedback_denylist",
+                    timestamp=to_datetime(start_time),
+                    event_id=event_id,
+                    category=DataCategory.USER_REPORT_V2,
+                    quantity=1,
+                )
         else:
             # Preprocess this event, which spawns either process_event or
             # save_event. Pass data explicitly to avoid fetching it again from the

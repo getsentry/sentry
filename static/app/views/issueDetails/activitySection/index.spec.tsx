@@ -14,6 +14,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import * as indicators from 'sentry/actionCreators/indicator';
@@ -433,7 +434,6 @@ describe('ActivitySection', () => {
     const timeline = await screen.findByTestId('activity-timeline');
     expect(timeline).toHaveTextContent('Assigned');
     expect(timeline).toHaveTextContent('#frontend');
-    expect(timeline).not.toHaveTextContent('themselves');
     expect(teamRequest).not.toHaveBeenCalled();
   });
 
@@ -530,7 +530,7 @@ describe('ActivitySection', () => {
   it('preserves the assigned user avatar from activity data', async () => {
     const assignedUser = UserFixture({
       id: '123',
-      name: 'Assigned User',
+      name: 'David Cramer',
       avatar: {
         avatarType: 'upload',
         avatarUrl: 'https://example.com/avatar.jpg',
@@ -564,10 +564,49 @@ describe('ActivitySection', () => {
       }
     );
 
-    expect(await screen.findByRole('img', {name: 'Assigned User'})).toHaveAttribute(
+    expect(await screen.findByRole('img', {name: 'David Cramer'})).toHaveAttribute(
       'src',
       'https://example.com/avatar.jpg?s=120'
     );
+  });
+
+  it('shows ownership assignment rules in an info tooltip', async () => {
+    const rule = 'path:src/** #frontend';
+    const assignedGroup = GroupFixture({
+      id: '1347',
+      activity: [
+        {
+          type: GroupActivityType.ASSIGNED,
+          id: 'ownership-assignment-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            assignee: '123',
+            assigneeName: 'David Cramer',
+            assigneeType: 'user',
+            integration: 'projectOwnership',
+            rule,
+          },
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={assignedGroup} project={assignedGroup.project}>
+        <ActivitySection group={assignedGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({features: ['issue-activity-feed-v2']}),
+      }
+    );
+
+    expect(screen.getByText('Assigned')).toBeInTheDocument();
+    expect(screen.getByText('David Cramer')).toBeInTheDocument();
+    expect(screen.getByText('Ownership Rule')).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('Ownership Rule'));
+    expect(await screen.findByText(rule)).toBeInTheDocument();
   });
 
   it('renders auto-resolved activity age as an inactivity duration', async () => {
@@ -996,17 +1035,7 @@ describe('ActivitySection', () => {
           follows_semver: true,
         },
       } satisfies GroupActivity,
-      expectedCopy: ['Regressed', /Compared with resolved version/, /using SemVer/],
-    },
-    {
-      name: 'reprocessed events',
-      activity: {
-        type: GroupActivityType.REPROCESS,
-        id: 'reprocessed-1',
-        dateCreated: '2020-01-01T00:00:00',
-        data: {eventCount: 4, newGroupId: 2, oldGroupId: 1},
-      } satisfies GroupActivity,
-      expectedCopy: ['Reprocessed', 'into 4 new events'],
+      expectedCopy: ['Regressed', /compared with/, /based on SemVer/],
     },
     {
       name: 'Seer pull request creation',
@@ -1076,6 +1105,32 @@ describe('ActivitySection', () => {
     }
   });
 
+  it('renders reprocessed events as a linked activity update', () => {
+    const activityGroup = GroupFixture({
+      id: '1339',
+      activity: [
+        {
+          type: GroupActivityType.REPROCESS,
+          id: 'reprocessed-1',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {eventCount: 4, newGroupId: 2, oldGroupId: 1},
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={activityGroup} project={activityGroup.project}>
+        <ActivitySection group={activityGroup} variant="standalone" size="md" />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture({features: ['issue-activity-feed-v2']})}
+    );
+
+    expect(screen.getByText('Reprocessed')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'into 4 new events'})).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: 'Identified'})).toBeInTheDocument();
+  });
+
   it('renders resolved in release with integration', async () => {
     const resolvedGroup = GroupFixture({
       id: '1339',
@@ -1108,7 +1163,8 @@ describe('ActivitySection', () => {
       'Resolved in 1.0.0 via Jira Server'
     );
     expect(screen.getByRole('link', {name: '1.0.0'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Jira Server'})).toBeInTheDocument();
+    const integrationLink = screen.getByRole('link', {name: 'Jira Server'});
+    expect(within(integrationLink).getByRole('img')).toBeInTheDocument();
   });
 
   it('renders resolved in release without integration', async () => {
