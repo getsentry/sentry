@@ -4,6 +4,7 @@ import type {AriaPopoverProps} from '@react-aria/overlays';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 
 import {Overlay} from 'sentry/components/overlay';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 type OverlayProps = ReturnType<typeof useOverlay>['overlayProps'];
@@ -19,6 +20,9 @@ interface PopoverProps extends Omit<AriaPopoverProps, 'popoverRef'> {
 export function AskSeerSearchPopover(props: PopoverProps) {
   const ref = useRef<HTMLDivElement>(null);
   const {popoverRef = ref, state, children, overlayProps} = props;
+  const hasAskSeerUxRework = useOrganization().features.includes(
+    'gen-ai-ask-seer-ux-rework'
+  );
 
   return (
     <StyledPositionWrapper {...overlayProps} visible={state.isOpen}>
@@ -43,7 +47,11 @@ export function AskSeerSearchPopover(props: PopoverProps) {
           };
         }}
       >
-        <BackgroundColorWrapper>{children}</BackgroundColorWrapper>
+        {hasAskSeerUxRework ? (
+          children
+        ) : (
+          <BackgroundColorWrapper>{children}</BackgroundColorWrapper>
+        )}
       </ListBoxOverlay>
     </StyledPositionWrapper>
   );
