@@ -448,13 +448,13 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
             project_id=self.project.id,
             debug_id="11111111-1111-1111-1111-111111111111",
         )
-        # The source stays file-backed; the clone is written to Objectstore.
-        assert second_dif.file_id is None
+        # The source stays file-backed; the clone is written to both backends.
+        assert second_dif.file_id is not None
         assert second_dif.storage_path is not None
         assert second_dif.get_file().read() == file_contents
 
-    def test_clone_objectstore_backed_source_to_file(self) -> None:
-        """An Objectstore-backed source (created during rollout) is cloned after the write flag is disabled, producing a file-backed clone."""
+    def test_clone_dual_written_source_to_file(self) -> None:
+        """A dual-written source is cloned after the write flag is disabled, producing a file-backed clone."""
 
         file_contents = b"proguard mapping"
         checksum = sha1(file_contents).hexdigest()
@@ -468,7 +468,7 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
             project_id=self.project.id,
             debug_id="00000000-0000-0000-0000-000000000000",
         )
-        assert first_dif.file_id is None
+        assert first_dif.file_id is not None
         assert first_dif.storage_path is not None
 
         with self.feature({"organizations:objectstore-debugfiles-write": False}):
