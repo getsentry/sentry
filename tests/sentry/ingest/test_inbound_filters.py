@@ -236,108 +236,83 @@ def error_message_rule_condition(values: list[str]) -> dict:
 
 
 @django_db_all
-def test_custom_inbound_filter_error_message_and_release(default_project, factories) -> None:
+@pytest.mark.parametrize(
+    ("conditions", "expected_condition"),
+    [
+        pytest.param(
+            [
+                {"type": "error_message", "value": ["*ConnectionError*"]},
+                {"type": "release", "value": ["1.*", "2.*"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    error_message_rule_condition(["*ConnectionError*"]),
+                    {"op": "glob", "name": "event.release", "value": ["1.*", "2.*"]},
+                ],
+            },
+            id="error_message_and_release",
+        ),
+        pytest.param(
+            [
+                {"type": "log_message", "value": ["*DEBUG*"]},
+                {"type": "release", "value": ["1.2.3"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "log.body", "value": ["*DEBUG*"]},
+                    {
+                        "op": "glob",
+                        "name": "log.attributes.sentry.release.value",
+                        "value": ["1.2.3"],
+                    },
+                ],
+            },
+            id="log_message_and_release",
+        ),
+        pytest.param(
+            [
+                {"type": "metric_name", "value": ["checkout.*"]},
+                {"type": "release", "value": ["1.2.3"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "trace_metric.name", "value": ["checkout.*"]},
+                    {
+                        "op": "glob",
+                        "name": "trace_metric.attributes.sentry.release.value",
+                        "value": ["1.2.3"],
+                    },
+                ],
+            },
+            id="metric_name_and_release",
+        ),
+        pytest.param(
+            [{"type": "metric_name", "value": ["checkout.*"]}],
+            {"op": "glob", "name": "trace_metric.name", "value": ["checkout.*"]},
+            id="single_condition_is_not_wrapped",
+        ),
+        pytest.param(
+            [{"type": "release", "value": ["1.*"]}],
+            {"op": "glob", "name": "event.release", "value": ["1.*"]},
+            id="release_only_targets_events",
+        ),
+    ],
+)
+def test_custom_inbound_filter_condition_translation(
+    default_project, factories, conditions, expected_condition
+) -> None:
     custom_filter = factories.create_project_custom_inbound_filter(
-        default_project,
-        conditions=[
-            {"type": "error_message", "value": ["*ConnectionError*"]},
-            {"type": "release", "value": ["1.*", "2.*"]},
-        ],
+        default_project, conditions=conditions
     )
 
     [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
     assert generic_filter == {
         "id": f"custom-inbound-filter-{custom_filter.id}",
         "isEnabled": True,
-        "condition": {
-            "op": "and",
-            "inner": [
-                error_message_rule_condition(["*ConnectionError*"]),
-                {"op": "glob", "name": "event.release", "value": ["1.*", "2.*"]},
-            ],
-        },
-    }
-    assert_relay_accepts_condition(generic_filter["condition"])
-
-
-@django_db_all
-def test_custom_inbound_filter_log_message_and_release(default_project, factories) -> None:
-    factories.create_project_custom_inbound_filter(
-        default_project,
-        conditions=[
-            {"type": "log_message", "value": ["*DEBUG*"]},
-            {"type": "release", "value": ["1.2.3"]},
-        ],
-    )
-
-    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
-    assert generic_filter["condition"] == {
-        "op": "and",
-        "inner": [
-            {"op": "glob", "name": "log.body", "value": ["*DEBUG*"]},
-            {
-                "op": "glob",
-                "name": "log.attributes.sentry.release.value",
-                "value": ["1.2.3"],
-            },
-        ],
-    }
-    assert_relay_accepts_condition(generic_filter["condition"])
-
-
-@django_db_all
-def test_custom_inbound_filter_metric_name_and_release(default_project, factories) -> None:
-    factories.create_project_custom_inbound_filter(
-        default_project,
-        conditions=[
-            {"type": "metric_name", "value": ["checkout.*"]},
-            {"type": "release", "value": ["1.2.3"]},
-        ],
-    )
-
-    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
-    assert generic_filter["condition"] == {
-        "op": "and",
-        "inner": [
-            {"op": "glob", "name": "trace_metric.name", "value": ["checkout.*"]},
-            {
-                "op": "glob",
-                "name": "trace_metric.attributes.sentry.release.value",
-                "value": ["1.2.3"],
-            },
-        ],
-    }
-    assert_relay_accepts_condition(generic_filter["condition"])
-
-
-@django_db_all
-def test_custom_inbound_filter_single_condition_is_not_wrapped(default_project, factories) -> None:
-    factories.create_project_custom_inbound_filter(
-        default_project,
-        conditions=[{"type": "metric_name", "value": ["checkout.*"]}],
-    )
-
-    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
-    assert generic_filter["condition"] == {
-        "op": "glob",
-        "name": "trace_metric.name",
-        "value": ["checkout.*"],
-    }
-    assert_relay_accepts_condition(generic_filter["condition"])
-
-
-@django_db_all
-def test_custom_inbound_filter_release_only_targets_events(default_project, factories) -> None:
-    factories.create_project_custom_inbound_filter(
-        default_project,
-        conditions=[{"type": "release", "value": ["1.*"]}],
-    )
-
-    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
-    assert generic_filter["condition"] == {
-        "op": "glob",
-        "name": "event.release",
-        "value": ["1.*"],
+        "condition": expected_condition,
     }
     assert_relay_accepts_condition(generic_filter["condition"])
 
@@ -381,17 +356,15 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
 
 @django_db_all
 def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) -> None:
-    first = factories.create_project_custom_inbound_filter(
-        default_project,
-        conditions=[{"type": "release", "value": ["1.*"]}],
-    )
-    second = factories.create_project_custom_inbound_filter(
-        default_project,
-        conditions=[{"type": "release", "value": ["2.*"]}],
-    )
+    created = [
+        factories.create_project_custom_inbound_filter(
+            default_project,
+            conditions=[{"type": "release", "value": [f"{version}.*"]}],
+        )
+        for version in (1, 2, 3)
+    ]
 
     generic_filters = get_custom_inbound_filter_generic_filters(default_project)
     assert [generic_filter["id"] for generic_filter in generic_filters] == [
-        f"custom-inbound-filter-{first.id}",
-        f"custom-inbound-filter-{second.id}",
+        f"custom-inbound-filter-{custom_filter.id}" for custom_filter in created
     ]
