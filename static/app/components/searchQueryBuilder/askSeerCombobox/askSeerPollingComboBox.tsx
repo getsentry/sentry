@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useMemo, useState} from 'react';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import type {UseMutationOptions} from '@tanstack/react-query';
 
@@ -56,7 +56,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
 }: AskSeerPollingComboBoxProps<T>) {
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
-  const hasTrackedFetchErrorRef = useRef(false);
   const [searchQuery, setSearchQuery] = useState(() =>
     formatQueryToNaturalLanguage(initialQuery)
   );
@@ -96,20 +95,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     return transformResponse ? transformResponse(finalResponse) : [finalResponse];
   }, [finalResponse, transformResponse]);
 
-  useEffect(() => {
-    if (isSessionError && !hasTrackedFetchErrorRef.current) {
-      hasTrackedFetchErrorRef.current = true;
-      trackAnalytics('ai_query.error', {
-        organization,
-        area: analyticsArea,
-        natural_language_query: searchQuery,
-        is_fetch: true,
-      });
-    } else if (!isSessionError) {
-      hasTrackedFetchErrorRef.current = false;
-    }
-  }, [isSessionError, organization, analyticsArea, searchQuery]);
-
   if (startFailed && fallbackMutationOptions) {
     return (
       <AskSeerMutationComboBox
@@ -141,6 +126,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       submitQuery={submitQuery}
       isPending={showLoading}
       isError={isSessionError}
+      errorAnalytics={{isFetch: true}}
       errorTitle={t('Seer failed to process your search. Please try again.')}
       unsupportedReason={unsupportedReason}
       loadingContent={loadingContent}

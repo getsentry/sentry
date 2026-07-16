@@ -1,4 +1,4 @@
-import {useLayoutEffect, useMemo, useRef} from 'react';
+import {useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
@@ -83,6 +83,11 @@ function useUpdateOverlayPositionOnContentChange({
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
+interface AskSeerErrorAnalytics {
+  isFetch?: boolean;
+  statusCode?: number;
+}
+
 export interface AskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
   AriaComboBoxProps<unknown>,
   'children'
@@ -94,6 +99,7 @@ export interface AskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   submitQuery: (query: string) => void;
+  errorAnalytics?: AskSeerErrorAnalytics;
   errorTitle?: string;
   loadingContent?: ReactNode;
   reset?: () => void;
@@ -108,6 +114,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   searchQuery,
   setSearchQuery,
   submitQuery,
+  errorAnalytics,
   errorTitle = t('An error occurred while fetching Seer queries'),
   loadingContent,
   reset,
@@ -120,6 +127,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   const containerRef = useRef<HTMLInputElement>(null);
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  const hasTrackedErrorRef = useRef(false);
   const {projects} = useProjects();
   const organization = useOrganization();
   const hasAskSeerRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
@@ -136,6 +144,28 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   } = useSearchQueryBuilderAI();
 
   const analyticsArea = useAnalyticsArea();
+
+  useEffect(() => {
+    if (isError && !hasTrackedErrorRef.current) {
+      hasTrackedErrorRef.current = true;
+      trackAnalytics('ai_query.error', {
+        organization,
+        area: analyticsArea,
+        natural_language_query: searchQuery,
+        is_fetch: errorAnalytics?.isFetch,
+        status_code: errorAnalytics?.statusCode,
+      });
+    } else if (!isError) {
+      hasTrackedErrorRef.current = false;
+    }
+  }, [
+    analyticsArea,
+    errorAnalytics?.isFetch,
+    errorAnalytics?.statusCode,
+    isError,
+    organization,
+    searchQuery,
+  ]);
 
   const handleNoneOfTheseClick = () => {
     if (openForm) {
@@ -281,37 +311,9 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             state.close();
             return;
           case 'Enter':
-            if (state.isOpen && state.selectionManager.focusedKey === 'none-of-these') {
-              trackAnalytics('ai_query.rejected', {
-                organization,
-                area: analyticsArea,
-                natural_language_query: searchQuery,
-                num_queries_returned: queries.length,
-              });
-              handleNoneOfTheseClick();
-              state.open();
-              return;
-            }
-
-            if (state.isOpen && state.selectionManager.focusedKey) {
-              const item = items.find(i => i.key === state.selectionManager.focusedKey);
-              if (!item || isNoneOfTheseItem(item)) {
-                addErrorMessage(t('Failed to find AI query to apply'));
-                return;
-              }
-
-              askSeerNLQueryRef.current = searchQuery.trim();
-              applySeerSearchQuery(item);
-              setDisplayAskSeerFeedback(true);
-              setDisplayAskSeer(false);
-              reset?.();
-              state.close();
-              return;
-            }
-
             if (
               state.isOpen &&
-              searchQuery.trim() !== null &&
+              !state.selectionManager.focusedKey &&
               searchQuery.trim() !== ''
             ) {
               trackAnalytics('ai_query.submitted', {
