@@ -170,8 +170,6 @@ DATASET_CONFIG: dict[int, DatasetConfig] = {
                 DashboardWidgetDisplayTypes.BAR_CHART,
                 DashboardWidgetDisplayTypes.BIG_NUMBER,
                 DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART,
-                # HEATMAP is a metrics-only visualization; it's supported here for
-                # trace metrics widgets and rejected for other widget types.
                 DashboardWidgetDisplayTypes.HEATMAP,
             }
         )
