@@ -4,10 +4,11 @@ from unittest.mock import MagicMock, patch
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group import SimpleGroupSerializer
+from sentry.api.serializers.models.group import GroupSerializer, SimpleGroupSerializer
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.issues.grouptype import FeedbackGroup
+from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
@@ -486,6 +487,80 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         result = serialize(group, user)
         assert result["seerAutofixLastTriggered"] == old_time
         assert result["seerExplorerAutofixLastTriggered"] == new_time
+
+
+class GroupSerializerDerivedDataTest(TestCase):
+    def test_derived_data_included(self) -> None:
+        group = self.create_group()
+        last_progressed_at = timezone.now()
+        self.create_group_derived_data(
+            group=group,
+            view_count=7,
+            progress=IssueProgressState.DIAGNOSED.value,
+            last_progressed_at=last_progressed_at,
+            data={
+                "status": "open",
+                "is_assigned": True,
+                "has_root_cause": True,
+                "has_open_fix_pr": False,
+            },
+        )
+
+        result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
+
+        assert result["derivedData"] == {
+            "progress": "diagnosed",
+            "status": "open",
+            "viewCount": 7,
+            "hasOpenFixPr": False,
+            "isAssigned": True,
+            "hasRootCause": True,
+            "lastProgressedAt": last_progressed_at,
+        }
+
+    def test_derived_data_fix_applied_progress_for_closed_issue(self) -> None:
+        group = self.create_group()
+        self.create_group_derived_data(
+            group=group,
+            progress=None,
+            data={"status": "closed"},
+        )
+
+        result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
+
+        assert result["derivedData"]["progress"] == IssueProgressState.FIX_APPLIED.value
+        assert result["derivedData"]["status"] == "closed"
+
+    def test_derived_data_omitted_without_row(self) -> None:
+        group = self.create_group()
+
+        result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
+
+        assert "derivedData" not in result
+
+    def test_derived_data_omitted_without_expand(self) -> None:
+        group = self.create_group()
+        self.create_group_derived_data(group=group, progress=IssueProgressState.DIAGNOSED.value)
+
+        result = serialize(group, self.user)
+
+        assert "derivedData" not in result
+
+    def test_malformed_derived_data_does_not_fail_bulk_serialization(self) -> None:
+        malformed_group = self.create_group()
+        self.create_group_derived_data(group=malformed_group, progress="invalid")
+        valid_group = self.create_group(project=malformed_group.project)
+        self.create_group_derived_data(
+            group=valid_group,
+            progress=IssueProgressState.DIAGNOSED.value,
+        )
+
+        malformed_result, valid_result = serialize(
+            [malformed_group, valid_group], self.user, GroupSerializer(expand=["derivedData"])
+        )
+
+        assert "derivedData" not in malformed_result
+        assert valid_result["derivedData"]["progress"] == "diagnosed"
 
 
 class SimpleGroupSerializerTest(TestCase):
