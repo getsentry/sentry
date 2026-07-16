@@ -1,23 +1,12 @@
+import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {
-  render,
-  renderGlobalModal,
-  screen,
-  userEvent,
-  waitFor,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  makeCloseButton,
-  makeClosableHeader,
-  ModalBody,
-  ModalFooter,
-} from '@sentry/scraps/modal';
+import {GlobalModal} from '@sentry/scraps/modal';
 
-import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
-import {CommandPalette} from 'sentry/components/commandPalette/ui/commandPalette';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {CommandPaletteHotkeys} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
@@ -30,16 +19,6 @@ import {
 const LOCALSTORAGE_KEY = 'feature-flag-overrides';
 
 mockElementSize();
-
-function makeRenderProps(closeModal: jest.Mock) {
-  return {
-    closeModal,
-    Body: ModalBody,
-    Footer: ModalFooter,
-    Header: makeClosableHeader(closeModal),
-    CloseButton: makeCloseButton(closeModal),
-  };
-}
 
 function SlotOutlets() {
   return (
@@ -59,13 +38,19 @@ function SlotOutlets() {
 
 function renderFeatureFlagActions(organization = OrganizationFixture()) {
   render(
-    <CommandPaletteProvider>
+    <Fragment>
+      <CommandPaletteHotkeys />
       <FeatureFlagCommandPaletteActions />
       <SlotOutlets />
-      <CommandPalette {...makeRenderProps(jest.fn())} />
-    </CommandPaletteProvider>,
+      <GlobalModal />
+    </Fragment>,
     {organization}
   );
+}
+
+async function openCommandPalette() {
+  await userEvent.keyboard('{Control>}k{/Control}');
+  return screen.findByRole('textbox', {name: 'Search commands'});
 }
 
 describe('FeatureFlagCommandPaletteActions', () => {
@@ -91,6 +76,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
     const organization = OrganizationFixture({features: ['enabled-feature']});
     renderFeatureFlagActions(organization);
 
+    await openCommandPalette();
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Search commands'}),
       'Toggle Org Feature Flag'
@@ -108,16 +94,51 @@ describe('FeatureFlagCommandPaletteActions', () => {
     );
   });
 
+  it('keeps a disabled feature flag in the list after returning to it', async () => {
+    const organization = OrganizationFixture({features: ['enabled-feature']});
+    renderFeatureFlagActions(organization);
+
+    await openCommandPalette();
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search commands'}),
+      'Toggle Org Feature Flag'
+    );
+    await userEvent.click(
+      await screen.findByRole('option', {name: /Toggle Org Feature Flag/})
+    );
+    await userEvent.click(await screen.findByRole('option', {name: /enabled-feature/}));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('textbox', {name: 'Search commands'})
+      ).not.toBeInTheDocument()
+    );
+
+    await openCommandPalette();
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search commands'}),
+      'Toggle Org Feature Flag'
+    );
+    await userEvent.click(
+      await screen.findByRole('option', {name: /Toggle Org Feature Flag/})
+    );
+
+    const disabledFlag = await screen.findByRole('option', {
+      name: 'enabled-feature',
+    });
+    expect(disabledFlag).toHaveTextContent('Disabled');
+  });
+
   it('adds a new enabled feature flag from the modal', async () => {
     const organization = OrganizationFixture({features: []});
     renderFeatureFlagActions(organization);
 
+    await openCommandPalette();
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Search commands'}),
       'Add Feature Flag'
     );
     await userEvent.click(await screen.findByRole('option', {name: /Add Feature Flag/}));
-    renderGlobalModal({organization});
     await userEvent.type(
       await screen.findByRole('textbox', {name: 'Feature flag name'}),
       'new-feature'

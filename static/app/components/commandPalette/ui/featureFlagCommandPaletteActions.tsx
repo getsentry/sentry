@@ -24,7 +24,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {CMDKAction} from './cmdk';
 
 interface AddOrgFeatureFlagModalProps extends ModalRenderProps {
-  organization: Organization;
+  onSubmit: (name: string, value: boolean) => void;
 }
 
 export function setLocalFeatureFlagOverride(
@@ -70,7 +70,7 @@ function AddOrgFeatureFlagModal({
   Footer,
   Header,
   closeModal,
-  organization,
+  onSubmit,
 }: AddOrgFeatureFlagModalProps) {
   const [name, setName] = useState('');
   const [isEnabled, setIsEnabled] = useState(true);
@@ -80,7 +80,7 @@ function AddOrgFeatureFlagModal({
     if (!normalizedName) {
       return;
     }
-    setLocalFeatureFlagOverrideWithFeedback(organization, normalizedName, isEnabled);
+    onSubmit(normalizedName, isEnabled);
     closeModal();
   };
 
@@ -129,12 +129,21 @@ function AddOrgFeatureFlagModal({
 
 export function FeatureFlagCommandPaletteActions() {
   const organization = useOrganization();
+  const [overrides, setOverrides] = useState(() =>
+    FeatureFlagOverrides.singleton().getStoredOverrides()
+  );
   const {enabledFlags, featureStateKey, flagNames} = useMemo(() => {
-    const overrides = FeatureFlagOverrides.singleton().getStoredOverrides();
     const names = Array.from(
       new Set([...organization.features, ...Object.keys(overrides)])
     ).sort((a, b) => a.localeCompare(b));
     const enabled = new Set(organization.features);
+    Object.entries(overrides).forEach(([name, value]) => {
+      if (value) {
+        enabled.add(name);
+      } else {
+        enabled.delete(name);
+      }
+    });
 
     return {
       enabledFlags: enabled,
@@ -143,7 +152,12 @@ export function FeatureFlagCommandPaletteActions() {
         .join(','),
       flagNames: names,
     };
-  }, [organization.features]);
+  }, [organization.features, overrides]);
+
+  const setOverride = (name: string, value: boolean) => {
+    setLocalFeatureFlagOverrideWithFeedback(organization, name, value);
+    setOverrides(current => ({...current, [name]: value}));
+  };
 
   return (
     <CMDKAction
@@ -176,12 +190,7 @@ export function FeatureFlagCommandPaletteActions() {
                     ),
                   },
                   keywords: [name, isEnabled ? t('enabled') : t('disabled')],
-                  onAction: () =>
-                    setLocalFeatureFlagOverrideWithFeedback(
-                      organization,
-                      name,
-                      !isEnabled
-                    ),
+                  onAction: () => setOverride(name, !isEnabled),
                 };
               }),
             enabled: state === 'selected',
@@ -194,7 +203,7 @@ export function FeatureFlagCommandPaletteActions() {
         keywords={[t('new flag'), t('create flag'), t('override')]}
         onAction={() =>
           openModal(modalProps => (
-            <AddOrgFeatureFlagModal {...modalProps} organization={organization} />
+            <AddOrgFeatureFlagModal {...modalProps} onSubmit={setOverride} />
           ))
         }
       />
