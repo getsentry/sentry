@@ -4,7 +4,7 @@ import logging
 import uuid
 from typing import Any
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -38,6 +38,8 @@ from sentry.issues.action_log import (
 )
 from sentry.issues.action_log.types import TriggerAutofixAction
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint
+from sentry.issues.formatting.autofix import format_autofix
+from sentry.issues.formatting.mixin import FormattableResponseMixin
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.autofix.autofix_agent import (
@@ -177,11 +179,12 @@ class ExplorerAutofixRequestSerializer(CamelSnakeSerializer):
 
 @cell_silo_endpoint
 @extend_schema(tags=["Seer"])
-class GroupAutofixEndpoint(GroupAiEndpoint):
+class GroupAutofixEndpoint(FormattableResponseMixin, GroupAiEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
     }
+    formatter_adapter = staticmethod(format_autofix)
     owner = ApiOwner.ML_AI
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
@@ -436,6 +439,17 @@ class GroupAutofixEndpoint(GroupAiEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
             IssueParams.ISSUE_ID,
+            OpenApiParameter(
+                name="llmFormat",
+                location=OpenApiParameter.QUERY,
+                required=False,
+                type=str,
+                enum=["markdown", "xml"],
+                description=(
+                    "If set, adds a `formatted` field to the response with the autofix rendered "
+                    "as the requested format for LLM consumption."
+                ),
+            ),
         ],
         responses={
             200: inline_sentry_response_serializer("AutofixStateResponse", AutofixStateResponse),

@@ -9,6 +9,7 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
+from typing import Literal
 
 from sentry.issues.formatting.limits import Limits
 from sentry.issues.formatting.models import EventObject
@@ -70,3 +71,18 @@ class XmlFormatter(Formatter):
 
     def code_block(self, text: str) -> str:
         return f"<code>{text}</code>"
+
+
+Format = Literal["markdown", "xml"]
+
+_FORMATTERS: dict[Format, type[Formatter]] = {
+    "markdown": MarkdownFormatter,
+    "xml": XmlFormatter,
+}
+
+
+def get_formatter(format: Format) -> Formatter:
+    try:
+        return _FORMATTERS[format]()
+    except KeyError:
+        raise ValueError(f"unsupported format: {format!r}") from None

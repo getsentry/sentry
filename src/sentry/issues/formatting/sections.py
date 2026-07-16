@@ -6,10 +6,10 @@ content mirrors Seer's per-section output.
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, Literal
+from typing import Any
 
 from sentry.issues.formatting.adapter import event_response_to_model
-from sentry.issues.formatting.formatter import Formatter, MarkdownFormatter, SectionFn, XmlFormatter
+from sentry.issues.formatting.formatter import Format, Formatter, SectionFn, get_formatter
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, Limits
 from sentry.issues.formatting.models import EventObject, Frame, Stacktrace
 
@@ -183,13 +183,6 @@ def spans_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     return fmt.block("Span Evidence", _truncate("\n".join(lines), limits.max_spans_chars))
 
 
-Format = Literal["markdown", "xml"]
-
-_FORMATTERS: dict[Format, type[Formatter]] = {
-    "markdown": MarkdownFormatter,
-    "xml": XmlFormatter,
-}
-
 # base event sections in render order
 EVENT_SECTIONS: list[SectionFn] = [
     title_section,
@@ -212,10 +205,5 @@ def format_issue(
     limits: Limits = LIMITS_DEFAULT,
 ) -> str:
     """Render a serialized event into text. The single path used by every consumer."""
-    try:
-        formatter_cls = _FORMATTERS[format]
-    except KeyError:
-        raise ValueError(f"unsupported format: {format!r}") from None
-
     model = event_response_to_model(data)
-    return formatter_cls().render(model, sections, limits)
+    return get_formatter(format).render(model, sections, limits)

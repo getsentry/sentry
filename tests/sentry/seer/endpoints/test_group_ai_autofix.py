@@ -3,13 +3,20 @@ from unittest.mock import Mock, patch
 
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.issues.action_log.types import TriggerAutofixAction
-from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
+from sentry.seer.agent.client_models import (
+    Artifact,
+    MemoryBlock,
+    Message,
+    RepoPRState,
+    SeerRunState,
+)
 from sentry.seer.autofix.autofix_agent import AutofixStep, NoSeerQuotaException
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.github_perms import MissingGithubPermissions
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 
@@ -59,6 +66,67 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["run_id"] == 888
         assert response.data["autofix"]["sentry_run_id"] == str(run.uuid)
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_llm_format_adds_formatted_field(self, mock_get_explorer_state):
+        group = self.create_group()
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[
+                MemoryBlock(
+                    id="block-1",
+                    message=Message(role="assistant", content="", metadata=None),
+                    timestamp="2023-07-18T12:00:00Z",
+                    artifacts=[
+                        Artifact(
+                            key="root_cause",
+                            reason="",
+                            data={
+                                "one_line_description": "regex too strict",
+                                "five_whys": ["parse fails"],
+                                "reproduction_steps": ["call crash()"],
+                            },
+                        ),
+                        Artifact(
+                            key="solution",
+                            reason="",
+                            data={
+                                "one_line_summary": "loosen regex",
+                                "steps": [{"title": "Update regex", "description": "allow alnum"}],
+                            },
+                        ),
+                    ],
+                )
+            ],
+            status="completed",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+
+        self.login_as(user=self.user)
+        with override_options({"issues.standardized-markdown-for-llm": True}):
+            response = self.client.get(
+                self._get_url(group.id) + "?llmFormat=markdown", format="json"
+            )
+
+        assert response.status_code == 200, response.data
+        assert response.data["formatted"]["format"] == "markdown"
+        content = response.data["formatted"]["content"]
+        assert "## Root Cause" in content
+        assert "regex too strict" in content
+        assert "## Solution" in content
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_llm_format_ignored_when_option_off(self, mock_get_explorer_state):
+        group = self.create_group()
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888, blocks=[], status="completed", updated_at="2023-07-18T12:00:00Z"
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id) + "?llmFormat=markdown", format="json")
+
+        assert response.status_code == 200, response.data
+        assert "formatted" not in response.data
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_handles_block_with_null_metadata(self, mock_get_explorer_state):

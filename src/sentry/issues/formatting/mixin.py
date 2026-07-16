@@ -16,7 +16,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import options
-from sentry.issues.formatting.sections import Format, format_issue
+from sentry.issues.formatting.formatter import Format
+from sentry.issues.formatting.sections import format_issue
 
 if TYPE_CHECKING:
     # for typing, treat the super() chain as an Endpoint; runtime uses the real base via MRO
