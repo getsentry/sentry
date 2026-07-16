@@ -37,6 +37,10 @@ from sentry.backup.dependencies import (
 )
 from sentry.silo.base import SiloMode
 from sentry.db.models.fields.encryption._base import EncryptedField
+from sentry.db.models.fields.externaldatamapping import (
+    ExternalDataMappingField,
+    ExternalMappingType,
+)
 
 # `sentry exec` sets __file__ to "<script>", so anchor the default output to
 # the invocation directory rather than the script location.
@@ -53,12 +57,27 @@ class DatabaseConnection:
 
 class FieldType(StrEnum):
     ENCRYPTED_COLUMN = "encrypted_column"
+    # Raw integer column holding the id of a row in another (or the same)
+    # postgres database, invisible to Django's relation graph. Sourced from
+    # ExternalDataMappingField annotations with mapping_type=POSTGRES.
+    CROSS_DATABASE_REFERENCE = "cross_database_reference"
 
 
 @dataclass
 class SpecialFieldAnnotation:
     field_name: str
     field_type: FieldType
+    description: str | None = None
+
+
+@dataclass
+class ExternalSystemReference:
+    """A column referencing a non-postgres system (filestore, objectstore, ...)."""
+
+    model_name: str
+    table_name: str
+    field_name: str
+    description: str
 
 
 @dataclass
@@ -85,12 +104,30 @@ class RootModel:
 
 
 class ModelGraph:
-    def __init__(self, model_nodes: dict[str, ModelNode], root_models: list[RootModel]) -> None:
+    def __init__(
+        self,
+        model_nodes: dict[str, ModelNode],
+        root_models: list[RootModel],
+        externally_referenced_systems: dict[str, list[ExternalSystemReference]],
+    ) -> None:
         self.model_nodes = model_nodes
         self.root_models = root_models
+        self.externally_referenced_systems = externally_referenced_systems
 
     def serialize(self) -> dict:
         return {
+            "externally-referenced-systems": {
+                system: [
+                    {
+                        "model_name": ref.model_name,
+                        "table_name": ref.table_name,
+                        "field_name": ref.field_name,
+                        "description": ref.description,
+                    }
+                    for ref in refs
+                ]
+                for system, refs in self.externally_referenced_systems.items()
+            },
             "roots": [
                 {
                     "model_name": r.model_node.model_name,
@@ -100,6 +137,7 @@ class ModelGraph:
                         {
                             "field_name": field.field_name,
                             "field_type": field.field_type.value,
+                            "description": field.description,
                         }
                         for field in r.model_node.special_fields
                     ],
@@ -122,6 +160,7 @@ class ModelGraph:
                         {
                             "field_name": field.field_name,
                             "field_type": field.field_type.value,
+                            "description": field.description,
                         }
                         for field in node.special_fields
                     ],
@@ -172,12 +211,52 @@ class ModelGraphBuilder:
         if model is None:
             raise ValueError(f"Model {model_name} not found")
 
-        fields = model._meta.get_fields()
-        return [
-            SpecialFieldAnnotation(field_name=field.name, field_type=FieldType.ENCRYPTED_COLUMN)
-            for field in fields
-            if isinstance(field, EncryptedField)
-        ]
+        annotations = []
+        for field in model._meta.get_fields():
+            if isinstance(field, EncryptedField):
+                annotations.append(
+                    SpecialFieldAnnotation(
+                        field_name=field.name, field_type=FieldType.ENCRYPTED_COLUMN
+                    )
+                )
+            elif (
+                isinstance(field, ExternalDataMappingField)
+                and field.mapping_type == ExternalMappingType.POSTGRES
+            ):
+                annotations.append(
+                    SpecialFieldAnnotation(
+                        field_name=field.name,
+                        field_type=FieldType.CROSS_DATABASE_REFERENCE,
+                        description=field.mapping_description,
+                    )
+                )
+        return annotations
+
+    def _find_external_system_references(self) -> dict[str, list[ExternalSystemReference]]:
+        """Columns pointing at non-postgres systems, grouped by system name.
+
+        Postgres mappings are deliberately excluded here: they stay node-local
+        as CROSS_DATABASE_REFERENCE special fields, while everything else
+        (filestore, objectstore, ...) is an edge out of postgres entirely.
+        """
+        references: dict[str, list[ExternalSystemReference]] = {}
+        for model_name, relations in dependencies().items():
+            for field in relations.model._meta.get_fields():
+                if (
+                    isinstance(field, ExternalDataMappingField)
+                    and field.mapping_type != ExternalMappingType.POSTGRES
+                ):
+                    references.setdefault(field.mapping_type.value, []).append(
+                        ExternalSystemReference(
+                            model_name=str(model_name),
+                            table_name=relations.table_name,
+                            field_name=field.name,
+                            description=field.mapping_description,
+                        )
+                    )
+        for refs in references.values():
+            refs.sort(key=lambda ref: (ref.model_name, ref.field_name))
+        return references
 
     def _shortest_paths_to_roots(
         self,
@@ -268,7 +347,11 @@ class ModelGraphBuilder:
             for name in sorted(adjacency)
         }
 
-        return ModelGraph(model_nodes=nodes, root_models=root_models)
+        return ModelGraph(
+            model_nodes=nodes,
+            root_models=root_models,
+            externally_referenced_systems=self._find_external_system_references(),
+        )
 
 
 def print_summary(model_graph: ModelGraphBuilder) -> None:
