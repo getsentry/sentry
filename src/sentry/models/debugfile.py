@@ -347,7 +347,7 @@ class ProjectDebugFile(Model):
                 self._get_objectstore_session().delete(self.storage_path)
             except (Project.DoesNotExist, RequestError):
                 logger.info("Failed to delete ProjectDebugFile, will be cleaned up by TTI")
-        elif self.file is not None:
+        if self.file is not None:
             # If another debug file row still references this File, keep the File.
             # Concurrent last-reference deletes can still leave an unreferenced File
             # row behind, but no surviving ProjectDebugFile should point to a deleted
@@ -543,54 +543,6 @@ def create_dif_from_id(
 
     content_type = DIF_MIMETYPES[meta.file_format]
 
-    if features.has("organizations:objectstore-debugfiles-write", project.organization):
-        session = get_debug_files_session(project.organization_id, project.id)
-        file_type = (meta.data or {}).get("type")
-        filename = (
-            f"{os.path.basename(meta.debug_id)}{_dif_file_extension(meta.file_format, file_type)}"
-        )
-        if file is not None:
-            with file.getfile() as source:
-                storage_path = _upload_dif_to_objectstore(
-                    session, source, content_type, file_size, filename
-                )
-        elif fileobj is not None:
-            storage_path = _upload_dif_to_objectstore(
-                session, fileobj, content_type, file_size, filename
-            )
-        else:
-            raise RuntimeError("missing file object")
-
-        metrics.distribution(
-            "storage.put.size",
-            file_size,
-            tags={"usecase": "debug-files", "compression": "none"},
-            unit="byte",
-        )
-
-        dif = ProjectDebugFile.objects.create(
-            file=None,
-            storage_path=storage_path,
-            content_type=content_type,
-            file_size=file_size,
-            date_created=timezone.now(),
-            checksum=checksum,
-            debug_id=meta.debug_id,
-            code_id=meta.code_id,
-            cpu_name=meta.arch,
-            object_name=object_name,
-            project_id=project.id,
-            data=meta.data,
-        )
-
-        # The DIF we've just created might actually be removed here again. But since
-        # this can happen at any time in near or distant future, we don't care and
-        # assume a successful upload. The DIF will be reported to the uploader and
-        # reprocessing can start.
-        clean_redundant_difs(project, meta.debug_id)
-
-        return dif, True
-
     if file is None:
         file = File.objects.create(
             name=meta.debug_id,
@@ -610,6 +562,24 @@ def create_dif_from_id(
         unit="byte",
     )
 
+    objectstore_metadata: dict[str, Any] = {}
+    if features.has("organizations:objectstore-debugfiles-write", project.organization):
+        session = get_debug_files_session(project.organization_id, project.id)
+        file_type = (meta.data or {}).get("type")
+        filename = (
+            f"{os.path.basename(meta.debug_id)}{_dif_file_extension(meta.file_format, file_type)}"
+        )
+        with file.getfile() as source:
+            storage_path = _upload_dif_to_objectstore(
+                session, source, content_type, file_size, filename
+            )
+        objectstore_metadata = {
+            "storage_path": storage_path,
+            "content_type": content_type,
+            "file_size": file_size,
+            "date_created": timezone.now(),
+        }
+
     dif = ProjectDebugFile.objects.create(
         file=file,
         checksum=file.checksum,
@@ -619,6 +589,7 @@ def create_dif_from_id(
         object_name=object_name,
         project_id=project.id,
         data=meta.data,
+        **objectstore_metadata,
     )
 
     # The DIF we've just created might actually be removed here again. But since
