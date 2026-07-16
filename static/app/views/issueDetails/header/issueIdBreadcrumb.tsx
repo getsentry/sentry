@@ -2,7 +2,6 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -61,45 +60,49 @@ export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProp
       'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
     ),
     trailingActions: [
-      <BreadcrumbList.CopyAction
-        key="copy"
-        text={group.shortId}
-        label={t('Copy Issue Short-ID')}
-        tooltip={t('Copy Issue Short-ID')}
-        onCopy={handleCopyShortId}
-      />,
-      group.isPublic && shareUrl ? (
-        <Button
-          key="share"
-          size="zero"
-          variant="transparent"
-          aria-label={t('View issue share settings')}
-          icon={<IconGlobe size="xs" variant="muted" />}
-          tooltipProps={{
-            isHoverable: true,
-            title: tct('This issue has been shared [link:with a public link].', {
-              link: <ExternalLink href={shareUrl} />,
-            }),
-          }}
-          onClick={() =>
-            openModal(modalProps => (
-              <ShareIssueModal
-                {...modalProps}
-                organization={organization}
-                projectSlug={group.project.slug}
-                groupId={group.id}
-                onToggle={() =>
-                  trackAnalytics('issue.shared_publicly', {
-                    organization,
-                  })
+      {
+        type: 'copy',
+        text: group.shortId,
+        label: t('Copy Issue Short-ID'),
+        tooltip: t('Copy Issue Short-ID'),
+        onCopy: handleCopyShortId,
+      },
+      group.isPublic && shareUrl
+        ? {
+            type: 'button',
+            element: (
+              <Button
+                size="zero"
+                variant="transparent"
+                aria-label={t('View issue share settings')}
+                icon={<IconGlobe size="xs" variant="muted" />}
+                tooltipProps={{
+                  isHoverable: true,
+                  title: tct('This issue has been shared [link:with a public link].', {
+                    link: <ExternalLink href={shareUrl} />,
+                  }),
+                }}
+                onClick={() =>
+                  openModal(modalProps => (
+                    <ShareIssueModal
+                      {...modalProps}
+                      organization={organization}
+                      projectSlug={group.project.slug}
+                      groupId={group.id}
+                      onToggle={() =>
+                        trackAnalytics('issue.shared_publicly', {
+                          organization,
+                        })
+                      }
+                      event={null}
+                      hasIssueShare
+                    />
+                  ))
                 }
-                event={null}
-                hasIssueShare
               />
-            ))
+            ),
           }
-        />
-      ) : null,
+        : null,
     ],
   } as const satisfies BreadcrumbTitleItem;
 }

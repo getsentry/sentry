@@ -363,8 +363,7 @@ and an optional rich `tooltip`. When `to` is omitted, that chevron is disabled.
 
 The `page-title` item accepts a `trailingActions` slot rendered after the label,
 for example a copy action or page-level menu. The slot is bounded to
-`BreadcrumbList.CopyAction`, `BreadcrumbList.MenuAction`, plain `Button` or
-`LinkButton`, or an array of those elements. Falsy entries are dropped so
+typed `copy`, `menu`, or `button` objects. Falsy entries are dropped so
 consumers can inline conditionals. Actions are always visible and keyboard
 accessible.
 
@@ -377,17 +376,17 @@ accessible.
           type: 'page-title',
           label: 'JAVASCRIPT-2X9',
           trailingActions: [
-            <BreadcrumbList.CopyAction
-              key="copy"
-              text="JAVASCRIPT-2X9"
-              label="Copy Short-ID"
-            />,
-            <BreadcrumbList.MenuAction
-              key="menu"
-              triggerLabel="More actions"
-              triggerIcon={<IconEllipsis />}
-              items={[{key: 'share', label: 'Share', leadingItems: <IconGlobe />}]}
-            />,
+            {
+              type: 'copy',
+              text: 'JAVASCRIPT-2X9',
+              label: 'Copy Short-ID',
+            },
+            {
+              type: 'menu',
+              triggerLabel: 'More actions',
+              triggerIcon: <IconEllipsis />,
+              items: [{key: 'share', label: 'Share', leadingItems: <IconGlobe />}],
+            },
           ],
         }}
       />
@@ -401,22 +400,26 @@ accessible.
       type: 'page-title',
       label: group.shortId,
       trailingActions: [
-        <BreadcrumbList.CopyAction
-          key="copy"
-          text={group.shortId}
-          label="Copy Short-ID"
-          onCopy={handleCopy}
-        />,
-        isPublic && shareUrl ? (
-          <Button
-            key="share"
-            size="zero"
-            variant="transparent"
-            icon={<IconGlobe />}
-            aria-label="Share"
-            onClick={openShareModal}
-          />
-        ) : null,
+        {
+          type: 'copy',
+          text: group.shortId,
+          label: 'Copy Short-ID',
+          onCopy: handleCopy,
+        },
+        isPublic && shareUrl
+          ? {
+              type: 'button',
+              element: (
+                <Button
+                  size="zero"
+                  variant="transparent"
+                  icon={<IconGlobe />}
+                  aria-label="Share"
+                  onClick={openShareModal}
+                />
+              ),
+            }
+          : null,
       ],
     }}
   />

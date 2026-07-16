@@ -225,14 +225,34 @@ describe('BreadcrumbList rich page-title items', () => {
         item={{
           type: 'page-title',
           label: 'JAVASCRIPT-2X9',
-          trailingActions: (
-            <BreadcrumbList.CopyAction text="JAVASCRIPT-2X9" label="Copy Short-ID" />
-          ),
+          trailingActions: {
+            type: 'copy',
+            text: 'JAVASCRIPT-2X9',
+            label: 'Copy Short-ID',
+          },
         }}
       />
     );
 
     expect(screen.getByRole('button', {name: 'Copy Short-ID'})).toBeInTheDocument();
+  });
+
+  it('renders a menu trailing action', () => {
+    render(
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'JAVASCRIPT-2X9',
+          trailingActions: {
+            type: 'menu',
+            triggerLabel: 'More actions',
+            items: [],
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'More actions'})).toBeInTheDocument();
   });
 
   it('drops falsy entries in a trailing-actions array', () => {
@@ -243,18 +263,18 @@ describe('BreadcrumbList rich page-title items', () => {
           type: 'page-title',
           label: 'JAVASCRIPT-2X9',
           trailingActions: [
-            <BreadcrumbList.CopyAction
-              key="copy"
-              text="JAVASCRIPT-2X9"
-              label="Copy Short-ID"
-            />,
-            isPublic && (
-              <BreadcrumbList.MenuAction
-                key="menu"
-                triggerLabel="More actions"
-                items={[]}
-              />
-            ),
+            {
+              type: 'copy',
+              text: 'JAVASCRIPT-2X9',
+              label: 'Copy Short-ID',
+            },
+            isPublic
+              ? {
+                  type: 'menu',
+                  triggerLabel: 'More actions',
+                  items: [],
+                }
+              : null,
           ],
         }}
       />

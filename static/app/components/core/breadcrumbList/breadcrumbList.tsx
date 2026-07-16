@@ -7,8 +7,6 @@ import {
 
 import {unreachable} from 'sentry/utils/unreachable';
 
-import {BreadcrumbCopyAction} from './actions/breadcrumbCopyAction';
-import {BreadcrumbMenuAction} from './actions/breadcrumbMenuAction';
 import type {BreadcrumbItemLinkProps} from './items/breadcrumbItemLink';
 import {BreadcrumbItemLink} from './items/breadcrumbItemLink';
 import {BreadcrumbItemMenuBreadcrumbs} from './items/breadcrumbItemMenuBreadcrumbs';
@@ -149,12 +147,10 @@ function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
 }
 
 /**
- * Compound component. The title renderer and trailing-action parts are attached
- * here so consumers can compose parent breadcrumbs and the page title while the
- * TopBar owns the heading semantics.
+ * Compound component. The title renderer is attached here so consumers can
+ * compose parent breadcrumbs and the page title while the TopBar owns the
+ * heading semantics.
  */
 export const BreadcrumbList = Object.assign(BreadcrumbListRoot, {
   Title: BreadCrumbTitle,
-  CopyAction: BreadcrumbCopyAction,
-  MenuAction: BreadcrumbMenuAction,
 });

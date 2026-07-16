@@ -124,29 +124,33 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
         },
       },
       trailingActions: [
-        <BreadcrumbList.CopyAction
-          key="copy"
-          text={replayUrlWithTimestamp}
-          label={t('Copy link to replay at current timestamp')}
-          tooltip={t('Copy link to replay at current timestamp')}
-        />,
-        shouldShowRefreshButton ? (
-          <Button
-            key="refresh"
-            tooltipProps={{
-              title: t('Replay is outdated. Refresh for latest activity.'),
-            }}
-            data-test-id="refresh-button"
-            size="zero"
-            variant="link"
-            onClick={doRefresh}
-            icon={<IconRefresh size="xs" variant="accent" />}
-          >
-            <Text size="md" variant="accent">
-              {t('Update')}
-            </Text>
-          </Button>
-        ) : null,
+        {
+          type: 'copy' as const,
+          text: replayUrlWithTimestamp,
+          label: t('Copy link to replay at current timestamp'),
+          tooltip: t('Copy link to replay at current timestamp'),
+        },
+        shouldShowRefreshButton
+          ? {
+              type: 'button' as const,
+              element: (
+                <Button
+                  tooltipProps={{
+                    title: t('Replay is outdated. Refresh for latest activity.'),
+                  }}
+                  data-test-id="refresh-button"
+                  size="zero"
+                  variant="link"
+                  onClick={doRefresh}
+                  icon={<IconRefresh size="xs" variant="accent" />}
+                >
+                  <Text size="md" variant="accent">
+                    {t('Update')}
+                  </Text>
+                </Button>
+              ),
+            }
+          : null,
       ],
     };
 

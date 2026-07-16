@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 
+import {BreadcrumbCopyAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
 import type {BreadcrumbCopyActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
+import {BreadcrumbMenuAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
 import type {BreadcrumbMenuActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
 import type {ButtonProps, LinkButtonProps} from '@sentry/scraps/button';
 import {LinkButton} from '@sentry/scraps/button';
@@ -10,19 +12,19 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
+import {unreachable} from 'sentry/utils/unreachable';
 
 import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 
 /**
- * A single trailing action for the page-title crumb. Deliberately bounded to the
- * component's own compound parts (`BreadcrumbList.CopyAction` /
- * `BreadcrumbList.MenuAction`) or a plain `Button`/`LinkButton` — never an
- * arbitrary ReactNode — so the trailing slot stays visually consistent.
+ * A single trailing action for the page-title crumb. The discriminant keeps
+ * the supported action shapes type-safe and the trailing slot visually
+ * consistent.
  */
 type BreadcrumbTitleAction =
-  | React.ReactElement<BreadcrumbCopyActionProps>
-  | React.ReactElement<BreadcrumbMenuActionProps>
-  | React.ReactElement<ButtonProps | LinkButtonProps>;
+  | ({type: 'copy'} & BreadcrumbCopyActionProps)
+  | ({type: 'menu'} & BreadcrumbMenuActionProps)
+  | {element: React.ReactElement<ButtonProps | LinkButtonProps>; type: 'button'};
 
 /**
  * One action, or a list (falsy entries are dropped so consumers can inline conditionals).
@@ -32,9 +34,27 @@ type BreadcrumbTitleActions =
   | Array<BreadcrumbTitleAction | false | null>;
 
 /**
- * Normalizes the `trailingActions` prop to a flat, keyed row.
+ * Renders the typed trailing action objects as a flat, keyed row.
  * Returns null when there is nothing to render.
  */
+function renderTrailingAction(action: BreadcrumbTitleAction) {
+  switch (action.type) {
+    case 'copy': {
+      const {type: _type, ...props} = action;
+      return <BreadcrumbCopyAction {...props} />;
+    }
+    case 'menu': {
+      const {type: _type, ...props} = action;
+      return <BreadcrumbMenuAction {...props} />;
+    }
+    case 'button':
+      return action.element;
+    default:
+      unreachable(action);
+      return null;
+  }
+}
+
 function renderTrailingActions(trailingActions?: BreadcrumbTitleActions) {
   if (!trailingActions) {
     return null;
@@ -51,7 +71,7 @@ function renderTrailingActions(trailingActions?: BreadcrumbTitleActions) {
   return (
     <Flex as="span" align="center" gap="xs" flexShrink={0}>
       {actions.map((action, index) => (
-        <Fragment key={index}>{action}</Fragment>
+        <Fragment key={index}>{renderTrailingAction(action)}</Fragment>
       ))}
     </Flex>
   );
@@ -87,7 +107,7 @@ export interface BreadcrumbItemPageTitleProps {
   leadingGraphic?: React.ReactNode;
   /** Structured prev/next navigation rendered before the label. */
   pagination?: BreadcrumbItemPaginationProps;
-  /** Trailing action slot — bounded to the component's compound parts. */
+  /** Typed trailing actions rendered after the page title. */
   trailingActions?: BreadcrumbTitleActions;
 }
 
