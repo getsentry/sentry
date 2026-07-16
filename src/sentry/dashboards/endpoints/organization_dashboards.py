@@ -8,9 +8,11 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import (
     Case,
     Exists,
+    F,
     IntegerField,
     OrderBy,
     OuterRef,
+    Subquery,
     Value,
     When,
 )
@@ -96,6 +98,7 @@ class PrebuiltDashboard(TypedDict, total=False):
     prebuilt_id: Required[PrebuiltDashboardId]
     title: Required[str]
     hidden: bool
+    pre_favorited: bool
 
 
 # Prebuilt dashboards store minimal fields in the database. The actual dashboard and widget settings are
@@ -131,6 +134,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.WEB_VITALS,
         "title": "Web Vitals",
+        "pre_favorited": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.WEB_VITALS_SUMMARY,
@@ -159,6 +163,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_OVERVIEW,
         "title": "Backend Overview",
+        "pre_favorited": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_SESSION_HEALTH,
@@ -195,6 +200,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_OVERVIEW,
         "title": "AI Agents Overview",
+        "pre_favorited": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_OVERVIEW,
@@ -301,6 +307,66 @@ def sync_prebuilt_dashboards(organization: Organization) -> None:
         ).exclude(prebuilt_id__in=prebuilt_ids).delete()
 
 
+def sync_prebuilt_dashboards_favorited(organization: Organization, user_id: int) -> None:
+    """
+    Checks if pre-favorited prebuilt dashboards have a DashboardFavoriteUser record for the
+    user, and creates them if they don't. This ensures that certain prebuilt dashboards are
+    favorited by default for all users, preserving any existing starred ones.
+
+    New prebuilts are inserted alphabetically while the user's prebuilt stars are still in
+    their default (alphabetical) order.
+    """
+    enabled_prebuilt_dashboards = get_enabled_prebuilt_dashboards(organization)
+    pre_favorited_ids = [
+        d["prebuilt_id"] for d in enabled_prebuilt_dashboards if d.get("pre_favorited")
+    ]
+    if not pre_favorited_ids:
+        return
+
+    with transaction.atomic(router.db_for_write(DashboardFavoriteUser)):
+        prebuilt_favorited = list(
+            DashboardFavoriteUser.objects.filter(
+                organization=organization,
+                user_id=user_id,
+                favorited=True,
+                dashboard__prebuilt_id__isnull=False,
+            )
+            .order_by("position")
+            .select_related("dashboard")
+        )
+        # We want to know if the dashboards are alphabetically ordered (default) or
+        # have been rearranged, and respect whatever order they're in
+        favorited_titles = [f.dashboard.title for f in prebuilt_favorited]
+        is_default_order = favorited_titles == sorted(favorited_titles)
+
+        # Get any favorited dashboards, custom or prebuilt, belonging to the user.
+        # Don't explicitly exclude those with favorite=False to not show unfavorited dashboards.
+        missing_dashboards = (
+            Dashboard.objects.filter(
+                organization=organization,
+                prebuilt_id__in=pre_favorited_ids,
+            )
+            .exclude(
+                id__in=DashboardFavoriteUser.objects.filter(
+                    organization=organization,
+                    user_id=user_id,
+                ).values_list("dashboard_id", flat=True)
+            )
+            .order_by("title")
+        )
+        for dashboard in missing_dashboards:
+            if is_default_order:
+                DashboardFavoriteUser.objects.insert_favorite_dashboard_alphabetically(
+                    organization, user_id, dashboard
+                )
+            else:
+                DashboardFavoriteUser.objects.insert_favorite_dashboard(
+                    organization=organization,
+                    user_id=user_id,
+                    dashboard=dashboard,
+                )
+
+
 class OrganizationDashboardsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
@@ -374,6 +440,10 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
 
+        has_dashboards_starred = features.has(
+            "organizations:dashboards-starred", organization, actor=request.user
+        )
+
         if features.has(
             "organizations:dashboards-prebuilt-insights-dashboards",
             organization,
@@ -392,6 +462,20 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 pass
             except Exception as err:
                 sentry_sdk.capture_exception(err)
+
+            if has_dashboards_starred:
+                try:
+                    favorite_lock = locks.get(
+                        f"dashboards:sync_prebuilt_dashboards_favorited:{organization.id}:{request.user.id}",
+                        duration=10,
+                        name="sync_prebuilt_dashboards_favorited",
+                    )
+                    with favorite_lock.acquire():
+                        sync_prebuilt_dashboards_favorited(organization, request.user.id)
+                except UnableToAcquireLock:
+                    pass
+                except Exception as err:
+                    sentry_sdk.capture_exception(err)
 
         filters = request.query_params.getlist("filter")
 
@@ -504,7 +588,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 Case(When(created_by_id=request.user.id, then=-1), default=1),
                 "-last_visited",
             ]
-
+        elif "onlyFavorites" in filters and has_dashboards_starred:
+            favorite_dashboards = DashboardFavoriteUser.objects.get_favorite_dashboards(
+                organization, request.user.id
+            ).filter(dashboard_id=OuterRef("id"))
+            dashboards = dashboards.annotate(
+                favorite_position=Subquery(favorite_dashboards.values("position")[:1])
+            )
+            order_by = [F("favorite_position").asc(nulls_last=True), "title"]
         else:
             order_by = ["title"]
 

@@ -10,7 +10,7 @@ import {remarkUnwrapMdxParagraphs} from './remark-unwrap-mdx-paragraphs.ts';
 /**
  * Shared remark plugins for MDX processing.
  *
- * Used by rspack.config.ts (build) and mdx-typecheck.ts (type checking).
+ * Used by rspack.config.ts (build)
  * Order matters — plugins run in array order.
  */
 export const remarkPlugins = [

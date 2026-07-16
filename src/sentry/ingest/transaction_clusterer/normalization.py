@@ -3,7 +3,6 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 import orjson
-import sentry_sdk
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
@@ -11,6 +10,7 @@ from sentry.ingest.transaction_clusterer.datasource import TRANSACTION_SOURCE_SA
 from sentry.ingest.transaction_clusterer.rules import get_sorted_rules_from_redis
 from sentry.models.project import Project
 from sentry.spans.consumers.process_segments.types import CompatibleSpan, attribute_value
+from sentry.utils.tracing import trace
 
 # Ported from Relay:
 # https://github.com/getsentry/relay/blob/aad4b6099d12422e88dd5df49abae11247efdd99/relay-event-normalization/src/regexes.rs#L9
@@ -83,7 +83,7 @@ class Remark:
 
 # Ported from Relay:
 # https://github.com/getsentry/relay/blob/aad4b6099d12422e88dd5df49abae11247efdd99/relay-event-normalization/src/transactions/processor.rs#L350
-@sentry_sdk.trace
+@trace
 def _scrub_identifiers(segment_span: CompatibleSpan, segment_name: str):
     matches = TRANSACTION_NAME_NORMALIZER_REGEX.finditer(segment_name)
     remarks = []
@@ -127,7 +127,7 @@ def _scrub_identifiers(segment_span: CompatibleSpan, segment_name: str):
     segment_span["attributes"] = attributes
 
 
-@sentry_sdk.trace
+@trace
 def _apply_clustering_rules(
     project: Project, segment_span: CompatibleSpan, original_segment_name: str
 ):

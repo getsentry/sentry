@@ -7,7 +7,7 @@ resources:
   js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/separator/separator.tsx
 ---
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
@@ -34,7 +34,7 @@ The Separator component requires an `orientation` prop to determine its layout d
 Horizontal separators are ideal for dividing content vertically, such as between sections or list items.
 
 <Storybook.Demo>
-  <Flex direction="column" gap="md">
+  <Stack gap="md">
     <Container padding="md" border="primary" radius="md" background="primary">
       Content above separator
     </Container>
@@ -42,7 +42,7 @@ Horizontal separators are ideal for dividing content vertically, such as between
     <Container padding="md" border="primary" radius="md" background="primary">
       Content below separator
     </Container>
-  </Flex>
+  </Stack>
 </Storybook.Demo>
 
 ```jsx
@@ -83,34 +83,34 @@ The `border` prop accepts any border token from the theme, allowing you to custo
 
 <Storybook.Demo>
   <Flex direction="row" gap="md" justify="start" align="start">
-    <Flex align="start" justify="start" direction="column" gap="md">
+    <Stack align="start" justify="start" gap="md">
       <Text bold>Horizontal Orientation</Text>
-      <Flex direction="column" gap="md">
-        <Flex direction="column" gap="xs">
+      <Stack gap="md">
+        <Stack gap="xs">
           <Text>Primary border</Text>
           <Separator orientation="horizontal" border="primary" />
-        </Flex>
-        <Flex direction="column" gap="xs">
+        </Stack>
+        <Stack gap="xs">
           <Text>Secondary border</Text>
           <Separator orientation="horizontal" border="secondary" />
-        </Flex>
-        <Flex direction="column" gap="xs">
+        </Stack>
+        <Stack gap="xs">
           <Text>Success border</Text>
           <Separator orientation="horizontal" border="success" />
-        </Flex>
-        <Flex direction="column" gap="xs">
+        </Stack>
+        <Stack gap="xs">
           <Text>Warning border</Text>
           <Separator orientation="horizontal" border="warning" />
-        </Flex>
-        <Flex direction="column" gap="xs">
+        </Stack>
+        <Stack gap="xs">
           <Text>Danger border</Text>
           <Separator orientation="horizontal" border="danger" />
-        </Flex>
-      </Flex>
-    </Flex>
-    <Flex align="start" justify="start" direction="column" gap="md">
+        </Stack>
+      </Stack>
+    </Stack>
+    <Stack align="start" justify="start" gap="md">
       <Text bold>Vertical Orientation</Text>
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         <Flex direction="row" gap="xs">
           <Text>Primary border</Text>
           <Separator orientation="vertical" border="primary" />
@@ -131,8 +131,8 @@ The `border` prop accepts any border token from the theme, allowing you to custo
           <Text>Danger border</Text>
           <Separator orientation="vertical" border="danger" />
         </Flex>
-      </Flex>
-    </Flex>
+      </Stack>
+    </Stack>
   </Flex>
 </Storybook.Demo>
 

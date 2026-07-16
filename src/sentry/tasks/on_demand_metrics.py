@@ -32,6 +32,7 @@ from sentry.taskworker.namespaces import performance_tasks
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.query import RangeQuerySetWrapper
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.tasks.on_demand_metrics")
 
@@ -399,7 +400,7 @@ def _get_widget_query_low_cardinality(
     return all(field_cardinality.values())
 
 
-@sentry_sdk.tracing.trace
+@trace
 def check_field_cardinality(
     query_columns: list[str] | None,
     organization: Organization,
@@ -475,7 +476,7 @@ def check_field_cardinality(
     return {key: cardinality_map.get(value, True) for key, value in cache_keys.items()}
 
 
-@sentry_sdk.tracing.trace
+@trace
 def _query_cardinality(
     query_columns: list[str], organization: Organization, period: str = "30m"
 ) -> tuple[EventsResponse, list[str]]:

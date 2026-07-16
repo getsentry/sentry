@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -113,8 +113,8 @@ export function RevisionListItem({
               : formatRevisionSource(revisionSource)
           }
         />
-        <Flex direction="column" gap="md" style={{flex: 1, minWidth: 0}}>
-          <Flex direction="column" gap="xs">
+        <Stack gap="md" style={{flex: 1, minWidth: 0}}>
+          <Stack gap="xs">
             {isCurrentVersion ? (
               <Text bold size="sm" variant="accent">
                 {t('Current Version')}
@@ -131,7 +131,7 @@ export function RevisionListItem({
                 {createdBy ? createdBy.name || createdBy.email : t('Unknown')}
               </Text>
             </Flex>
-          </Flex>
+          </Stack>
 
           <RevisionDiffBody
             isLoading={isAnyLoading}
@@ -140,7 +140,7 @@ export function RevisionListItem({
             baseRevisionId={baseRevisionId}
             baseSnapshot={baseSnapshot}
           />
-        </Flex>
+        </Stack>
       </Flex>
     </RevisionItem>
   );
@@ -181,10 +181,10 @@ export function RevisionDiffBody({
   }
   const base = baseSnapshot ?? EMPTY_SNAPSHOT;
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       <FilterDiffSection base={base} snapshot={snapshot} />
       <WidgetDiffSection widgetChanges={diffWidgets(base, snapshot)} />
-    </Flex>
+    </Stack>
   );
 }
 
@@ -207,7 +207,7 @@ function FilterDiffSection({
   }
 
   return (
-    <Flex direction="column" gap="xs">
+    <Stack gap="xs">
       {changes.map(({label, before, after}) => (
         <Grid key={label} columns="90px 1fr" gap="sm" align="baseline">
           <Text size="sm" variant="muted">
@@ -233,13 +233,13 @@ function FilterDiffSection({
           </Flex>
         </Grid>
       ))}
-    </Flex>
+    </Stack>
   );
 }
 
 function WidgetDiffSection({widgetChanges}: {widgetChanges: WidgetChange[]}) {
   return (
-    <Flex direction="column" gap="xs">
+    <Stack gap="xs">
       {widgetChanges.length === 0 && (
         <Text size="sm" variant="muted">
           {t('No widget changes in this revision.')}
@@ -248,7 +248,7 @@ function WidgetDiffSection({widgetChanges}: {widgetChanges: WidgetChange[]}) {
       {widgetChanges.map((change, i) => (
         <WidgetDiffCard key={i} change={change} />
       ))}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -268,7 +268,7 @@ function WidgetDiffCard({change}: {change: WidgetChange}) {
   const {label: statusLabel, variant: tagVariant} = STATUS_MAP[status];
 
   return (
-    <Flex direction="column" gap="sm" border="secondary" radius="sm" padding="md">
+    <Stack gap="sm" border="secondary" radius="sm" padding="md">
       <Flex align="center" justify="between" gap="sm">
         <Flex align="center" gap="xs" style={{minWidth: 0}}>
           <Flex
@@ -318,7 +318,7 @@ function WidgetDiffCard({change}: {change: WidgetChange}) {
           {t('Layout position or size changed')}
         </Text>
       )}
-    </Flex>
+    </Stack>
   );
 }
 

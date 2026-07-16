@@ -1,4 +1,5 @@
 import type {Location} from 'history';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
@@ -343,5 +344,21 @@ describe('getLogsSeerLocationQuery', () => {
     });
 
     expect(query.project).toEqual(['7']);
+  });
+
+  it('moves a project filter from the query onto the project selector', () => {
+    const {query} = getLogsSeerLocationQuery({
+      currentLocation: locationWithQuery({}),
+      currentAggregateFields: [new VisualizeFunction('count(message)')],
+      pageDatetime,
+      projects: [ProjectFixture({id: '9', slug: 'seer'})],
+      result: seerResult({
+        query: 'project:seer severity:error',
+      }),
+    });
+
+    // Project scope goes to the page-level selector, not the search bar.
+    expect(query.project).toEqual(['9']);
+    expect(query.logsQuery).toBe('severity:error');
   });
 });

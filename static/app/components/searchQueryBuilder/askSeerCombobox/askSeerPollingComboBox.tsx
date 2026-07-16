@@ -1,9 +1,11 @@
 import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
+import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
+import type {ListState} from '@react-stately/list';
 import type {UseMutationOptions} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -13,6 +15,7 @@ import {Text} from '@sentry/scraps/text';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import {AskSeerLoadingStatus} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerLoadingStatus';
 import {AskSeerProgressBlocks} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerProgressBlocks';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
 import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
@@ -20,6 +23,7 @@ import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeer
 import {QueryTokens} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
 import type {
   AskSeerSearchItems,
+  AskSeerStep,
   QueryTokensProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {useAskSeerPolling} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useAskSeerPolling';
@@ -37,6 +41,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
+import {useProjects} from 'sentry/utils/useProjects';
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
 // is updated in response to these changes.
@@ -85,6 +90,87 @@ function useUpdateOverlayPositionOnContentChange({
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
+interface AskSeerPollingPopoverContentProps {
+  completedSteps: AskSeerStep[];
+  currentStep: AskSeerStep | null;
+  hasResults: boolean;
+  isSessionError: boolean;
+  listBoxProps: AriaListBoxOptions<unknown>;
+  listBoxRef: React.RefObject<HTMLUListElement | null>;
+  onMouseLeave: () => void;
+  showLoading: boolean;
+  state: ListState<unknown>;
+  unsupportedReason?: string | null;
+}
+
+function AskSeerPollingPopoverContent({
+  showLoading,
+  completedSteps,
+  currentStep,
+  isSessionError,
+  hasResults,
+  unsupportedReason,
+  listBoxProps,
+  listBoxRef,
+  state,
+  onMouseLeave,
+}: AskSeerPollingPopoverContentProps) {
+  const hasAskSeerUxRework = useOrganization().features.includes(
+    'gen-ai-ask-seer-ux-rework'
+  );
+
+  if (showLoading) {
+    if (hasAskSeerUxRework) {
+      return (
+        <AskSeerLoadingStatus completedSteps={completedSteps} currentStep={currentStep} />
+      );
+    }
+
+    return (
+      <SeerContent>
+        <AskSeerSearchHeader title={t("I'm on it...")} loading />
+        <AskSeerProgressBlocks
+          completedSteps={completedSteps}
+          currentStep={currentStep}
+        />
+      </SeerContent>
+    );
+  }
+
+  if (isSessionError) {
+    return (
+      <SeerContent>
+        <AskSeerSearchHeader
+          title={t('Seer failed to process your search. Please try again.')}
+        />
+      </SeerContent>
+    );
+  }
+
+  if (hasResults) {
+    return (
+      <SeerContent onMouseLeave={onMouseLeave}>
+        <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
+        <AskSeerSearchListBox {...listBoxProps} listBoxRef={listBoxRef} state={state} />
+      </SeerContent>
+    );
+  }
+
+  if (unsupportedReason) {
+    return (
+      <SeerContent>
+        <AskSeerSearchHeader title={unsupportedReason || 'This query is not supported'} />
+      </SeerContent>
+    );
+  }
+
+  return (
+    <SeerContent onMouseLeave={onMouseLeave}>
+      <AskSeerSearchHeader title={t("Describe what you're looking for")} />
+    </SeerContent>
+  );
+}
+
 interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> extends Omit<
   AriaComboBoxProps<unknown>,
   'children'
@@ -127,6 +213,8 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   const inputRef = useRef<HTMLInputElement>(null);
   const hasTrackedFetchErrorRef = useRef(false);
   const organization = useOrganization();
+  const hasAskSeerUxRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
+  const {projects} = useProjects();
 
   const [searchQuery, setSearchQuery] = useState(() =>
     formatQueryToNaturalLanguage(initialQuery)
@@ -139,6 +227,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     setDisplayAskSeerFeedback,
     askSeerNLQueryRef,
     autoSubmitSeer,
+    setAutoSubmitFromCurrentQuery,
     setAutoSubmitSeer,
     enableAISearch,
   } = useSearchQueryBuilderAI();
@@ -269,7 +358,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
         );
       }
 
-      const readableQuery = generateQueryTokensString(item);
+      const readableQuery = generateQueryTokensString(item, projects);
 
       return (
         <Item
@@ -422,20 +511,30 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   }, [state]);
 
   useLayoutEffect(() => {
-    if (autoSubmitSeer && searchQuery.trim()) {
-      trackAnalytics('ai_query.submitted', {
-        organization,
-        area: analyticsArea,
-        natural_language_query: searchQuery.trim(),
-      });
-      submitQuery(searchQuery.trim());
-      setAutoSubmitSeer(false);
+    if (!autoSubmitSeer) {
+      return;
     }
+
+    if (!searchQuery.trim()) {
+      setAutoSubmitFromCurrentQuery(false);
+      setAutoSubmitSeer(false);
+      return;
+    }
+
+    trackAnalytics('ai_query.submitted', {
+      organization,
+      area: analyticsArea,
+      natural_language_query: searchQuery.trim(),
+    });
+    submitQuery(searchQuery.trim());
+    setAutoSubmitFromCurrentQuery(false);
+    setAutoSubmitSeer(false);
   }, [
     analyticsArea,
     autoSubmitSeer,
     organization,
     searchQuery,
+    setAutoSubmitFromCurrentQuery,
     setAutoSubmitSeer,
     submitQuery,
   ]);
@@ -520,41 +619,19 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
           containerRef={containerRef}
           overlayProps={overlayProps}
         >
-          {showLoading ? (
-            <SeerContent>
-              <AskSeerSearchHeader title={t("I'm on it...")} loading />
-              <AskSeerProgressBlocks
-                completedSteps={completedSteps}
-                currentStep={currentStep}
-              />
-            </SeerContent>
-          ) : isSessionError ? (
-            <SeerContent>
-              <AskSeerSearchHeader
-                title={t('Seer failed to process your search. Please try again.')}
-              />
-            </SeerContent>
-          ) : hasResults ? (
-            <SeerContent onMouseLeave={onMouseLeave}>
-              <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
-              <AskSeerSearchListBox
-                {...listBoxProps}
-                listBoxRef={listBoxRef}
-                state={state}
-              />
-            </SeerContent>
-          ) : unsupportedReason ? (
-            <SeerContent>
-              <AskSeerSearchHeader
-                title={unsupportedReason || 'This query is not supported'}
-              />
-            </SeerContent>
-          ) : (
-            <SeerContent onMouseLeave={onMouseLeave}>
-              <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
-            </SeerContent>
-          )}
-          {openForm && (
+          <AskSeerPollingPopoverContent
+            showLoading={showLoading}
+            completedSteps={completedSteps}
+            currentStep={currentStep}
+            isSessionError={isSessionError}
+            hasResults={hasResults}
+            unsupportedReason={unsupportedReason}
+            listBoxProps={listBoxProps}
+            listBoxRef={listBoxRef}
+            state={state}
+            onMouseLeave={onMouseLeave}
+          />
+          {openForm && !hasAskSeerUxRework ? (
             <SeerFooter onMouseDown={e => e.preventDefault()}>
               <Button
                 size="xs"
@@ -572,7 +649,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
                 {t('Give Feedback')}
               </Button>
             </SeerFooter>
-          )}
+          ) : null}
         </AskSeerSearchPopover>
       ) : null}
     </Wrapper>

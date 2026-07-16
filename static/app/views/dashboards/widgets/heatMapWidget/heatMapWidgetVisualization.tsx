@@ -8,7 +8,7 @@ import type {
   VisualMapComponentOption,
 } from 'echarts/types/dist/shared';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Text} from '@sentry/scraps/text';
 
@@ -28,6 +28,7 @@ import {defined} from 'sentry/utils/defined';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
+import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {formatTooltipYAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatTooltipYAxisValue';
 import {formatTooltipZAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatTooltipZAxisValue';
 import {
@@ -143,7 +144,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   // The heat map's readable time/value axes sit at index 1; index 0 is the
   // hidden category axis that positions the cells.
-  const {brush, toolBox, onBrushStart, onBrushEnd, onChartReady} = useChartBoxZoom({
+  const {onChartReady, isDraggingRef} = useChartBoxZoom({
     onZoom: onZoom ? handleZoom : undefined,
     xAxisIndex: 1,
     yAxisIndex: 1,
@@ -185,6 +186,12 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = params => {
+    // Skip the tooltip during a drag. This improves drag performance since the
+    // tooltip's `renderToString` is expensive.
+    if (isDraggingRef.current) {
+      return '';
+    }
+
     // Only show the tooltip of the current chart. Otherwise, all tooltips
     // in the chart group appear.
     if (!isChartHovered(chartRef?.current)) {
@@ -273,7 +280,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
             }
 
             return (
-              <Flex direction="column" gap="sm" key={param.seriesIndex}>
+              <Stack gap="sm" key={param.seriesIndex}>
                 <Flex justify="between" gap="xl">
                   <Text variant="primary" size="sm">
                     {yAxisLabel}
@@ -295,7 +302,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
                 </Flex>
 
                 {tooltipActions}
-              </Flex>
+              </Stack>
             );
           })}
         </Container>
@@ -313,7 +320,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
   };
 
   return (
-    <Flex direction="column" height="100%">
+    <Stack height="100%">
       <BaseChart
         autoHeightResize
         // will be grouped by date as we only support time as the x-axis right now.
@@ -321,10 +328,6 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
         isGroupedByDate
         showTimeInTooltip
         ref={chartRef}
-        brush={brush}
-        toolBox={toolBox}
-        onBrushStart={onBrushStart}
-        onBrushEnd={onBrushEnd}
         onChartReady={onChartReady}
         tooltip={{
           show: true,
@@ -360,7 +363,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
         period={period}
         utc={utc ?? undefined}
       />
-    </Flex>
+    </Stack>
   );
 }
 
@@ -416,3 +419,5 @@ type HeatMapTooltipContext = HeatMapBucketBounds;
  * Context for a drag-selected region, handed to `onZoom`.
  */
 export type HeatMapZoomContext = HeatMapBucketBounds;
+
+HeatMapWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;

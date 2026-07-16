@@ -12,7 +12,7 @@ import {
   MenuComponents,
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
@@ -431,7 +431,7 @@ export function FilterSelector({
       }
       menuFooter={
         hasStagedChanges || isFetching ? (
-          <Flex direction="column" gap="md">
+          <Stack gap="md">
             {loadingFooter}
             {hasStagedChanges && (
               <Flex gap="md" align="center" justify="end">
@@ -446,7 +446,7 @@ export function FilterSelector({
                 />
               </Flex>
             )}
-          </Flex>
+          </Stack>
         ) : null
       }
       menuTitle={

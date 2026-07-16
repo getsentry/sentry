@@ -29,7 +29,7 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {shouldUse24Hours} from 'sentry/utils/dates';
+import {getUserTimezone, shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
@@ -463,8 +463,12 @@ export function UsageStatsOrganization({
 
     const xAxisStart = moment(startTime);
     const xAxisEnd = moment(endTime);
-    const displayStart = useUtc ? moment(startTime).utc() : moment(startTime).local();
-    const displayEnd = useUtc ? moment(endTime).utc() : moment(endTime).local();
+    const displayStart = useUtc
+      ? moment(startTime).utc()
+      : moment(startTime).tz(getUserTimezone() ?? moment.tz.guess());
+    const displayEnd = useUtc
+      ? moment(endTime).utc()
+      : moment(endTime).tz(getUserTimezone() ?? moment.tz.guess());
 
     if (intervalHours < 24) {
       displayEnd.add(intervalHours, 'h');

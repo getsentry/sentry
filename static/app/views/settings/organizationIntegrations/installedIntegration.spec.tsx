@@ -1,9 +1,12 @@
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
 
 describe('InstalledIntegration', () => {
@@ -54,5 +57,69 @@ describe('InstalledIntegration', () => {
     render(<InstalledIntegration {...defaultProps} provider={provider} />);
 
     expect(screen.getByRole('button', {name: 'Uninstall'})).toBeInTheDocument();
+  });
+
+  it('shows an admin tooltip on the disabled Update Now button', async () => {
+    const lowerAccessOrg = OrganizationFixture({access: ['org:read']});
+
+    render(
+      <InstalledIntegration
+        {...defaultProps}
+        organization={lowerAccessOrg}
+        requiresUpgrade
+      />,
+      {organization: lowerAccessOrg}
+    );
+
+    const updateButton = screen.getByRole('button', {name: 'Update Now'});
+    expect(updateButton).toBeDisabled();
+
+    await userEvent.hover(updateButton);
+    expect(
+      await screen.findByText(
+        'You must be an organization owner, manager or admin to update'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not show the admin tooltip when Update Now is disabled for status', async () => {
+    render(
+      <InstalledIntegration
+        {...defaultProps}
+        integration={
+          OrganizationIntegrationsFixture({
+            organizationIntegrationStatus: 'disabled',
+          }) as any
+        }
+        requiresUpgrade
+      />
+    );
+
+    const updateButton = screen.getByRole('button', {name: 'Update Now'});
+    expect(updateButton).toBeDisabled();
+
+    await userEvent.hover(updateButton);
+    expect(
+      screen.queryByText('You must be an organization owner, manager or admin to update')
+    ).not.toBeInTheDocument();
+  });
+
+  it('allows superusers to update without the admin tooltip', () => {
+    const superuserOrg = OrganizationFixture({
+      access: ['org:read', 'org:superuser'],
+    });
+    OrganizationStore.onUpdate(superuserOrg, {replace: true});
+    ConfigStore.set('user', UserFixture({isSuperuser: true}));
+
+    render(
+      <InstalledIntegration
+        {...defaultProps}
+        organization={superuserOrg}
+        requiresUpgrade
+      />,
+      {organization: superuserOrg}
+    );
+
+    expect(screen.getByRole('button', {name: 'Update Now'})).toBeEnabled();
   });
 });

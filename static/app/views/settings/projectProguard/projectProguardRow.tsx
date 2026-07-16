@@ -14,14 +14,12 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
-import type {ProguardMappingAssociation} from 'sentry/views/settings/projectProguard';
 
 type Props = {
   downloadUrl: string;
   mapping: DebugFile;
   onDelete: (id: string) => void;
   orgSlug: string;
-  associations?: ProguardMappingAssociation;
 };
 
 export function ProjectProguardRow({mapping, onDelete, downloadUrl, orgSlug}: Props) {

@@ -1,7 +1,7 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -37,16 +37,10 @@ export function SubscriptionHeader(props: Props) {
   const planIcon = getPlanIcon(subscription.planDetails);
 
   return (
-    <Flex direction="column" gap="xl" background="secondary">
+    <Stack gap="xl" background="secondary">
       <SentryDocumentTitle title={t('Subscription')} orgSlug={organization.slug} />
 
-      <Flex
-        direction="column"
-        gap="md"
-        background="primary"
-        borderBottom="primary"
-        padding="2xl 3xl"
-      >
+      <Stack gap="md" background="primary" borderBottom="primary" padding="2xl 3xl">
         <Flex
           justify="between"
           align={{'screen:xs': 'start', 'screen:sm': 'center'}}
@@ -74,8 +68,8 @@ export function SubscriptionHeader(props: Props) {
             )}
           </Flex>
         </Flex>
-      </Flex>
-      <Flex direction="column" padding="0 2xl xl" gap="xl" borderBottom="primary">
+      </Stack>
+      <Stack padding="0 2xl xl" gap="xl" borderBottom="primary">
         <SubscriptionUpsellBanner
           organization={organization}
           subscription={subscription}
@@ -87,8 +81,8 @@ export function SubscriptionHeader(props: Props) {
         ) : (
           <BodyWithoutBillingPerms {...props} />
         )}
-      </Flex>
-    </Flex>
+      </Stack>
+    </Stack>
   );
 }
 
@@ -105,7 +99,7 @@ function BodyWithBillingPerms({
   subscription: Subscription;
 }) {
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       {subscription.pendingChanges ? (
         <DecidePendingChanges subscription={subscription} organization={organization} />
       ) : null}
@@ -118,7 +112,7 @@ function BodyWithBillingPerms({
       )}
       <HeaderCards organization={organization} subscription={subscription} />
       <ManagedNote subscription={subscription} />
-    </Flex>
+    </Stack>
   );
 }
 

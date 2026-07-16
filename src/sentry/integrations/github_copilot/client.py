@@ -10,7 +10,8 @@ from sentry.integrations.github_copilot.models import (
     GithubCopilotTaskRequest,
     GithubPullRequest,
 )
-from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState, CodingAgentStatus
+from sentry.seer.autofix.constants import CodingAgentStatus
+from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState
 
 logger = logging.getLogger(__name__)
 

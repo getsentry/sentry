@@ -386,13 +386,8 @@ class StatsigEventSerializer(serializers.Serializer):
     eventName = serializers.CharField(required=True)
     timestamp = serializers.CharField(required=True)
     metadata = serializers.DictField(required=True)
-
-    user = serializers.DictField(required=False, child=serializers.CharField())
-    userID = serializers.CharField(required=False)
-    value = serializers.CharField(required=False)
-    statsigMetadata = serializers.DictField(required=False)
-    timeUUID = serializers.UUIDField(required=False)
-    unitID = serializers.CharField(required=False)
+    user = serializers.DictField(required=False, allow_null=True)
+    userID = serializers.CharField(required=False, allow_blank=True)
 
 
 class StatsigItemSerializer(serializers.Serializer):

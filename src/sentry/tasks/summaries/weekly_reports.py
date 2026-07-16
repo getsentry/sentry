@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import partial
 from typing import Any, Final
+from urllib.parse import urlencode
 
 import sentry_sdk
 from django.conf import settings
@@ -36,7 +37,12 @@ from sentry.tasks.summaries.metrics import (
 from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
-from sentry.tasks.summaries.utils import ONE_DAY, PAST_ISSUES_LINK_BOOST, OrganizationReportContext
+from sentry.tasks.summaries.utils import (
+    ONE_DAY,
+    PAST_ISSUES_LINK_BOOST,
+    OrganizationReportContext,
+    ProjectContext,
+)
 from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.types.group import GroupSubStatus
@@ -244,13 +250,17 @@ def prepare_organization_report(
 
         # Cache after delivery so a failed attempt doesn't poison the
         # previous-week lookup on retry.
-        if not dry_run:
+        if (
+            not dry_run
+            and not email_override
+            and features.has("organizations:weekly-report-week-over-week-metric", ctx.organization)
+        ):
             try:
                 project_metrics: dict[int, dict[str, int]] = {}
                 for project_id, project_ctx in ctx.projects_context_map.items():
                     project_metrics[project_id] = {
                         "e": project_ctx.accepted_error_count,
-                        "t": project_ctx.accepted_transaction_count,
+                        "i": project_ctx.total_substatus_count,
                     }
                 if project_metrics:
                     cache_project_metrics(organization_id, project_metrics)
@@ -341,16 +351,21 @@ class OrganizationReportBatch:
             lifecycle.add_extra("user_id", user_id)
 
             if template_context and user_id:
-                dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
-                if not dupe_check.check_for_duplicate_delivery():
-                    was_sent = self.send_email(template_ctx=template_context, user_id=user_id)
-
-                    # Record delivery if email was sent successfully
-                    if was_sent:
-                        dupe_check.record_delivery()
+                # Admin sends (email_override) bypass duplicate detection so
+                # support/debugging re-sends always go through.
+                if self.email_override:
+                    self.send_email(template_ctx=template_context, user_id=user_id)
                 else:
-                    lifecycle.record_halt(WeeklyReportHaltReason.DUPLICATE_DELIVERY)
-                    metrics.incr("weekly_report.email.skipped", tags={"reason": "duplicate"})
+                    dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
+                    if not dupe_check.check_for_duplicate_delivery():
+                        was_sent = self.send_email(template_ctx=template_context, user_id=user_id)
+
+                        # Record delivery if email was sent successfully
+                        if was_sent:
+                            dupe_check.record_delivery()
+                    else:
+                        lifecycle.record_halt(WeeklyReportHaltReason.DUPLICATE_DELIVERY)
+                        metrics.incr("weekly_report.email.skipped", tags={"reason": "duplicate"})
 
     def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> bool:
         local_start, local_end = get_local_dates(self.ctx, user_id)
@@ -363,7 +378,10 @@ class OrganizationReportBatch:
             context=template_ctx,
             headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},
         )
-        if self.dry_run:
+        # Admin sends (email_override) always deliver the email regardless of
+        # dry_run so the admin tool is useful for debugging.  The dry_run
+        # script (schedule_organizations) never sets email_override.
+        if self.dry_run and not self.email_override:
             metrics.incr("weekly_report.email.skipped", tags={"reason": "dry_run"})
             return False
 
@@ -475,7 +493,7 @@ class _DuplicateDeliveryCheck:
         return is_duplicate_detected
 
 
-project_breakdown_colors = ["#7553FF", "#7C2282", "#F0369A", "#FF9838", "#FFD00E"]
+project_breakdown_colors = ["#7553FF", "#3A1873", "#F0369A", "#FF9838", "#FFD00E"]
 total_color = """
 linear-gradient(
     -45deg,
@@ -515,16 +533,16 @@ group_status_to_color = {
 }
 
 
-def _pct_change(current: int, previous: int) -> str | None:
-    """Returns a formatted string like '▲ 50%' or '▼ 25%', or None if not meaningful."""
+def _pct_change(current: int, previous: int) -> dict[str, str] | None:
     if previous == 0:
         return None
     change = (current - previous) / previous
     pct = round(change * 100)
     if pct == 0:
-        return None
-    arrow = "▲" if change > 0 else "▼"
-    return f"{arrow} {abs(pct)}%"
+        return {"arrow": "", "pct": "—0%", "bg_color": "#F0F0F2", "text_color": "#80708F"}
+    if change > 0:
+        return {"arrow": "↑", "pct": f"{abs(pct)}%", "bg_color": "#F9F0D2", "text_color": "#A45200"}
+    return {"arrow": "↓", "pct": f"{abs(pct)}%", "bg_color": "#E3F7E3", "text_color": "#008900"}
 
 
 def get_group_status_badge(group: Group) -> tuple[str, str, str]:
@@ -609,36 +627,48 @@ def render_template_context(
     local_start, local_end = get_local_dates(ctx, user_id)
 
     # Render the first section of the email where we had the table showing the
-    # number of accepted errors/transactions for each project.
+    # number of errors, new/escalating/regressed issues for each project.
+    def _substatus_url(project_ctx: ProjectContext, query: str) -> str:
+        return project_ctx.project.get_absolute_url(
+            params={
+                "referrer": "weekly_report",
+                "notification_uuid": notification_uuid,
+                "query": query,
+            }
+        )
+
+    def _multi_project_substatus_url(project_ctxs: list[ProjectContext], query: str) -> str:
+        path = f"/organizations/{ctx.organization.slug}/issues/"
+        params = [
+            ("referrer", "weekly_report"),
+            ("notification_uuid", notification_uuid),
+            ("query", query),
+        ]
+        for pc in project_ctxs:
+            params.append(("project", pc.project.id))
+        return ctx.organization.absolute_url(path, query=urlencode(params))
+
     def trends():
         # Given an iterator of event counts, sum up their accepted errors/transaction counts.
-        def sum_event_counts(project_ctxs):
-            event_counts = [
-                (
-                    project_ctx.accepted_error_count,
-                    project_ctx.accepted_transaction_count,
-                )
-                for project_ctx in project_ctxs
-            ]
-            return tuple(sum(event[i] for event in event_counts) for i in range(2))
+        def sum_error_counts(project_ctxs):
+            return sum(project_ctx.accepted_error_count for project_ctx in project_ctxs)
 
         # Highest volume projects go first
         projects_associated_with_user = sorted(
             user_projects,
             reverse=True,
-            key=lambda item: item.accepted_error_count + (item.accepted_transaction_count / 10),
+            key=lambda item: item.accepted_error_count,
         )
         # Calculate total
-        (
-            total_error,
-            total_transaction,
-        ) = sum_event_counts(projects_associated_with_user)
+        total_error = sum_error_counts(projects_associated_with_user)
 
         # The number of reports to keep is the same as the number of colors
         # available to use in the legend.
         projects_taken = projects_associated_with_user[: len(project_breakdown_colors)]
         # All other items are merged to "Others"
         projects_not_taken = projects_associated_with_user[len(project_breakdown_colors) :]
+
+        total_issue = sum(p.total_substatus_count for p in projects_associated_with_user)
 
         # Calculate legend
         legend: list[dict[str, Any]] = [
@@ -649,22 +679,37 @@ def render_template_context(
                 ),
                 "color": project_breakdown_colors[i],
                 "accepted_error_count": project_ctx.accepted_error_count,
-                "accepted_transaction_count": project_ctx.accepted_transaction_count,
+                "new_substatus_count": project_ctx.new_substatus_count,
+                "new_substatus_url": _substatus_url(project_ctx, "is:new"),
+                "escalating_substatus_count": project_ctx.escalating_substatus_count,
+                "escalating_substatus_url": _substatus_url(project_ctx, "is:escalating"),
+                "regression_substatus_count": project_ctx.regression_substatus_count,
+                "regression_substatus_url": _substatus_url(project_ctx, "is:regressed"),
             }
             for i, project_ctx in enumerate(projects_taken)
         ]
 
         if len(projects_not_taken) > 0:
-            (
-                others_error,
-                others_transaction,
-            ) = sum_event_counts(projects_not_taken)
+            others_error = sum_error_counts(projects_not_taken)
             legend.append(
                 {
                     "slug": f"Other ({len(projects_not_taken)})",
                     "color": other_color,
                     "accepted_error_count": others_error,
-                    "accepted_transaction_count": others_transaction,
+                    "new_substatus_count": sum(p.new_substatus_count for p in projects_not_taken),
+                    "new_substatus_url": _multi_project_substatus_url(projects_not_taken, "is:new"),
+                    "escalating_substatus_count": sum(
+                        p.escalating_substatus_count for p in projects_not_taken
+                    ),
+                    "escalating_substatus_url": _multi_project_substatus_url(
+                        projects_not_taken, "is:escalating"
+                    ),
+                    "regression_substatus_count": sum(
+                        p.regression_substatus_count for p in projects_not_taken
+                    ),
+                    "regression_substatus_url": _multi_project_substatus_url(
+                        projects_not_taken, "is:regressed"
+                    ),
                 }
             )
         if len(projects_taken) > 1:
@@ -673,7 +718,24 @@ def render_template_context(
                     "slug": f"Total ({len(projects_associated_with_user)})",
                     "color": total_color,
                     "accepted_error_count": total_error,
-                    "accepted_transaction_count": total_transaction,
+                    "new_substatus_count": sum(
+                        p.new_substatus_count for p in projects_associated_with_user
+                    ),
+                    "new_substatus_url": _multi_project_substatus_url(
+                        projects_associated_with_user, "is:new"
+                    ),
+                    "escalating_substatus_count": sum(
+                        p.escalating_substatus_count for p in projects_associated_with_user
+                    ),
+                    "escalating_substatus_url": _multi_project_substatus_url(
+                        projects_associated_with_user, "is:escalating"
+                    ),
+                    "regression_substatus_count": sum(
+                        p.regression_substatus_count for p in projects_associated_with_user
+                    ),
+                    "regression_substatus_url": _multi_project_substatus_url(
+                        projects_associated_with_user, "is:regressed"
+                    ),
                 }
             )
 
@@ -685,7 +747,7 @@ def render_template_context(
                 {
                     "color": project_breakdown_colors[i],
                     "error_count": project_ctx.error_count_by_day.get(t, 0),
-                    "transaction_count": project_ctx.transaction_count_by_day.get(t, 0),
+                    "issue_count": project_ctx.issue_count_by_day.get(t, 0),
                 }
                 for i, project_ctx in enumerate(projects_taken)
             ]
@@ -697,8 +759,8 @@ def render_template_context(
                             project_ctx.error_count_by_day.get(t, 0)
                             for project_ctx in projects_not_taken
                         ),
-                        "transaction_count": sum(
-                            project_ctx.transaction_count_by_day.get(t, 0)
+                        "issue_count": sum(
+                            project_ctx.issue_count_by_day.get(t, 0)
                             for project_ctx in projects_not_taken
                         ),
                     }
@@ -707,29 +769,29 @@ def render_template_context(
         prev_week_error = sum(
             p.prev_week_accepted_error_count for p in projects_associated_with_user
         )
-        prev_week_transaction = sum(
-            p.prev_week_accepted_transaction_count for p in projects_associated_with_user
+        prev_week_issue = sum(
+            p.prev_week_total_substatus_count for p in projects_associated_with_user
         )
 
         return {
             "legend": legend,
             "series": series,
             "total_error_count": total_error,
-            "total_transaction_count": total_transaction,
+            "total_issue_count": total_issue,
             "error_pct_change": _pct_change(total_error, prev_week_error),
-            "transaction_pct_change": _pct_change(total_transaction, prev_week_transaction),
+            "issue_pct_change": _pct_change(total_issue, prev_week_issue),
             "error_maximum": max(  # The max error count on any single day
                 sum(value["error_count"] for value in values) for timestamp, values in series
             ),
-            "transaction_maximum": max(  # The max transaction count on any single day
-                sum(value["transaction_count"] for value in values) for timestamp, values in series
+            "issue_maximum": max(  # The max issue count on any single day
+                sum(value["issue_count"] for value in values) for timestamp, values in series
             ),
         }
 
-    def key_errors():
-        def all_key_errors():
+    def top_issues():
+        def all_issues():
             for project_ctx in user_projects:
-                for group, count in project_ctx.key_errors_by_group:
+                for group, count in project_ctx.key_error_issues:
                     display = get_group_display(group)
                     (
                         substatus,
@@ -749,11 +811,6 @@ def render_template_context(
                         "group_substatus_text_color": substatus_text_color,
                     }
 
-        return heapq.nlargest(3, all_key_errors(), lambda d: d["count"])
-
-    def key_performance_issues():
-        def all_key_performance_issues():
-            for project_ctx in user_projects:
                 for group, group_history, count in project_ctx.key_performance_issues:
                     display = get_group_display(group)
                     (
@@ -779,7 +836,7 @@ def render_template_context(
                         "group_substatus_text_color": substatus_text_color,
                     }
 
-        return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
+        return heapq.nlargest(5, all_issues(), lambda d: d["count"])
 
     def past_issues():
         def all_past_issues():
@@ -820,22 +877,41 @@ def render_template_context(
 
     show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
 
+    errors_discover_params: list[tuple[str, str | int]] = [
+        ("field", "title"),
+        ("field", "event.type"),
+        ("field", "project"),
+        ("field", "user.display"),
+        ("field", "timestamp"),
+        ("dataset", "errors"),
+        ("sort", "-timestamp"),
+        ("referrer", "weekly_report"),
+        ("notification_uuid", notification_uuid),
+    ]
+    for pc in user_projects:
+        errors_discover_params.append(("project", pc.project.id))
+    errors_discover_query = urlencode(errors_discover_params)
+
+    view_all_issues_url = _multi_project_substatus_url(user_projects, "is:unresolved")
+
     return {
         "organization": ctx.organization,
         "start": date_format(local_start),
         "end": date_format(local_end),
         "trends": trends(),
-        "key_errors": key_errors(),
-        "key_performance_issues": key_performance_issues(),
+        "top_issues": top_issues(),
         "past_issues": past_issues() if show_past_issues else [],
         "show_past_issues": show_past_issues,
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
+        "errors_discover_query": errors_discover_query,
+        "view_all_issues_url": view_all_issues_url,
         "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
         "show_week_over_week_metric": features.has(
             "organizations:weekly-report-week-over-week-metric", ctx.organization
         ),
+        "notification_settings_link": "/settings/account/notifications/reports/",
     }
 
 

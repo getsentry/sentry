@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {FilterWrapper} from 'sentry/components/searchQueryBuilder/formattedQuery';
@@ -114,7 +114,7 @@ export function MobileBuildDetectorDetailsDetect({
 
   return (
     <Container>
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         <Flex gap="xs" align="baseline">
           <Heading as="h4">{t('Measurement:')}</Heading>
           <Value>{getMetricLabel(detector.config.measurement)}</Value>
@@ -147,7 +147,7 @@ export function MobileBuildDetectorDetailsDetect({
           <Value>{t('Static threshold')}</Value>
         </Flex>
         <DetectorPriorities detector={detector} />
-      </Flex>
+      </Stack>
     </Container>
   );
 }

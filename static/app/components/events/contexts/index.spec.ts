@@ -57,6 +57,37 @@ describe('getOrderedContextItems', () => {
     expect(osIndex).not.toBe(-1);
   });
 
+  it('filters out the trace context when the trace is synthetic', () => {
+    const mockEvent = EventFixture({
+      contexts: {
+        runtime: {name: 'node', type: 'runtime'},
+        trace: {trace_id: 'abc123', span_id: 'def456', status: 'ok'},
+      },
+      _meta: {
+        contexts: {
+          trace: {trace_id: {'': {err: ['trace_id.missing']}}},
+        },
+      },
+    });
+
+    const items = getOrderedContextItems(mockEvent);
+
+    expect(items.find(item => item.alias === 'trace')).toBeUndefined();
+    expect(items.find(item => item.alias === 'runtime')).toBeDefined();
+  });
+
+  it('keeps the trace context when the trace is not synthetic', () => {
+    const mockEvent = EventFixture({
+      contexts: {
+        trace: {trace_id: 'abc123', span_id: 'def456', status: 'ok'},
+      },
+    });
+
+    const items = getOrderedContextItems(mockEvent);
+
+    expect(items.find(item => item.alias === 'trace')).toBeDefined();
+  });
+
   it('filters out empty contexts and contexts only with type', () => {
     const mockEvent = EventFixture({
       contexts: {
