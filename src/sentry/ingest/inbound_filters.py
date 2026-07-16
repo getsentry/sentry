@@ -1,9 +1,14 @@
 from collections.abc import Callable, Sequence
-from typing import cast
+from typing import Any, cast
 
 from django.conf import settings
 from rest_framework import serializers
 
+from sentry.models.custominboundfilter import (
+    PRIMARY_CONDITION_TYPES,
+    CustomInboundFilter,
+    CustomInboundFilterConditionType,
+)
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.relay.types import GenericFilter, GenericFiltersConfig, RuleCondition
@@ -493,3 +498,131 @@ def get_trace_metric_names_generic_filter(trace_metric_names: list[str]) -> Gene
             "value": trace_metric_names,
         },
     }
+
+
+CUSTOM_INBOUND_FILTER_ID_PREFIX = "custom-inbound-filter-"
+
+# An item's release lives at a different path per data category, so release
+# conditions glob against the field matching the filter's primary condition
+# category. Filters with only release conditions apply to events, mirroring
+# the legacy `releases` inbound filter.
+_CUSTOM_FILTER_RELEASE_FIELDS = {
+    CustomInboundFilterConditionType.ERROR_MESSAGE: "event.release",
+    CustomInboundFilterConditionType.LOG_MESSAGE: "log.attributes.sentry.release.value",
+    CustomInboundFilterConditionType.METRIC_NAME: "trace_metric.attributes.sentry.release.value",
+}
+
+
+def _custom_error_message_condition(values: list[str]) -> RuleCondition:
+    """
+    Matches events whose exception type, exception value, or log entry message
+    matches one of the globs.
+
+    The legacy ``errorMessages`` filter matches patterns against the formatted
+    ``"{type}: {value}"`` message. Relay's rule DSL cannot express that
+    concatenation, so type and value are matched individually instead.
+    """
+    exception_condition = cast(
+        RuleCondition,
+        {
+            "op": "any",
+            "name": "event.exception.values",
+            "inner": {
+                "op": "or",
+                "inner": [
+                    {"op": "glob", "name": "ty", "value": values},
+                    {"op": "glob", "name": "value", "value": values},
+                ],
+            },
+        },
+    )
+
+    return {
+        "op": "or",
+        "inner": [
+            exception_condition,
+            {"op": "glob", "name": "event.logentry.formatted", "value": values},
+        ],
+    }
+
+
+def _custom_filter_condition(conditions: Any) -> RuleCondition | None:
+    """
+    Translates a custom inbound filter's conditions into a Relay rule condition.
+
+    Conditions are combined with AND. Returns None if any condition cannot be
+    translated (unknown type or no usable values): since every condition narrows
+    the match, dropping only the broken condition would filter more data than
+    configured.
+    """
+    if not isinstance(conditions, list):
+        return None
+
+    parsed: list[tuple[CustomInboundFilterConditionType, list[str]]] = []
+    for condition in conditions:
+        if not isinstance(condition, dict):
+            return None
+
+        raw_type = condition.get("type")
+        if not isinstance(raw_type, str):
+            return None
+
+        try:
+            condition_type = CustomInboundFilterConditionType(raw_type)
+        except ValueError:
+            return None
+
+        values = condition.get("value")
+        if (
+            not isinstance(values, list)
+            or not values
+            or not all(isinstance(value, str) and value for value in values)
+        ):
+            return None
+
+        parsed.append((condition_type, values))
+
+    if not parsed:
+        return None
+
+    primary_types = {ty for ty, _ in parsed if ty in PRIMARY_CONDITION_TYPES}
+    if len(primary_types) > 1:
+        return None
+    primary_type = next(iter(primary_types), CustomInboundFilterConditionType.ERROR_MESSAGE)
+    release_field = _CUSTOM_FILTER_RELEASE_FIELDS[primary_type]
+
+    rule_conditions: list[RuleCondition] = []
+    for condition_type, values in parsed:
+        if condition_type == CustomInboundFilterConditionType.ERROR_MESSAGE:
+            rule_conditions.append(_custom_error_message_condition(values))
+        elif condition_type == CustomInboundFilterConditionType.LOG_MESSAGE:
+            rule_conditions.append({"op": "glob", "name": "log.body", "value": values})
+        elif condition_type == CustomInboundFilterConditionType.METRIC_NAME:
+            rule_conditions.append({"op": "glob", "name": "trace_metric.name", "value": values})
+        else:
+            rule_conditions.append({"op": "glob", "name": release_field, "value": values})
+
+    if len(rule_conditions) == 1:
+        return rule_conditions[0]
+
+    return {"op": "and", "inner": rule_conditions}
+
+
+def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericFilter]:
+    generic_filters: list[GenericFilter] = []
+
+    custom_filters = CustomInboundFilter.objects.filter(
+        project_id=project.id, active=True
+    ).order_by("id")
+    for custom_filter in custom_filters:
+        condition = _custom_filter_condition(custom_filter.conditions)
+        if condition is not None:
+            generic_filters.append(
+                {
+                    "id": f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{custom_filter.id}",
+                    "isEnabled": True,
+                    "condition": condition,
+                }
+            )
+
+    return generic_filters

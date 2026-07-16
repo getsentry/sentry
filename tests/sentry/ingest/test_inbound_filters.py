@@ -1,15 +1,17 @@
 import pytest
 from django.test import override_settings
-from sentry_relay.processing import is_glob_match
+from sentry_relay.processing import is_glob_match, validate_rule_condition
 
 from sentry.ingest.inbound_filters import (
     _chunk_load_error_filter,
     _custom_error_filter,
     _error_message_condition,
+    get_custom_inbound_filter_generic_filters,
     get_generic_filters,
 )
 from sentry.models.project import Project
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils import json
 
 CUSTOM_PATTERNS: list[tuple[str | None, str | None]] = [
     ("MyError", "Something went wrong *"),
@@ -205,3 +207,191 @@ def test_custom_error_filter_matches_concrete_messages_via_logentry(
         _custom_error_filter()
 
     assert message_matches_filters(message, CUSTOM_PATTERNS) is expected
+
+
+def assert_relay_accepts_condition(condition: object) -> None:
+    # Raises if Relay's actual rule parser considers the condition invalid or
+    # unsupported, so these tests verify more than the expected dict shape.
+    validate_rule_condition(json.dumps(condition))
+
+
+def error_message_rule_condition(values: list[str]) -> dict:
+    return {
+        "op": "or",
+        "inner": [
+            {
+                "op": "any",
+                "name": "event.exception.values",
+                "inner": {
+                    "op": "or",
+                    "inner": [
+                        {"op": "glob", "name": "ty", "value": values},
+                        {"op": "glob", "name": "value", "value": values},
+                    ],
+                },
+            },
+            {"op": "glob", "name": "event.logentry.formatted", "value": values},
+        ],
+    }
+
+
+@django_db_all
+def test_custom_inbound_filter_error_message_and_release(default_project, factories) -> None:
+    custom_filter = factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[
+            {"type": "error_message", "value": ["*ConnectionError*"]},
+            {"type": "release", "value": ["1.*", "2.*"]},
+        ],
+    )
+
+    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
+    assert generic_filter == {
+        "id": f"custom-inbound-filter-{custom_filter.id}",
+        "isEnabled": True,
+        "condition": {
+            "op": "and",
+            "inner": [
+                error_message_rule_condition(["*ConnectionError*"]),
+                {"op": "glob", "name": "event.release", "value": ["1.*", "2.*"]},
+            ],
+        },
+    }
+    assert_relay_accepts_condition(generic_filter["condition"])
+
+
+@django_db_all
+def test_custom_inbound_filter_log_message_and_release(default_project, factories) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[
+            {"type": "log_message", "value": ["*DEBUG*"]},
+            {"type": "release", "value": ["1.2.3"]},
+        ],
+    )
+
+    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
+    assert generic_filter["condition"] == {
+        "op": "and",
+        "inner": [
+            {"op": "glob", "name": "log.body", "value": ["*DEBUG*"]},
+            {
+                "op": "glob",
+                "name": "log.attributes.sentry.release.value",
+                "value": ["1.2.3"],
+            },
+        ],
+    }
+    assert_relay_accepts_condition(generic_filter["condition"])
+
+
+@django_db_all
+def test_custom_inbound_filter_metric_name_and_release(default_project, factories) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[
+            {"type": "metric_name", "value": ["checkout.*"]},
+            {"type": "release", "value": ["1.2.3"]},
+        ],
+    )
+
+    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
+    assert generic_filter["condition"] == {
+        "op": "and",
+        "inner": [
+            {"op": "glob", "name": "trace_metric.name", "value": ["checkout.*"]},
+            {
+                "op": "glob",
+                "name": "trace_metric.attributes.sentry.release.value",
+                "value": ["1.2.3"],
+            },
+        ],
+    }
+    assert_relay_accepts_condition(generic_filter["condition"])
+
+
+@django_db_all
+def test_custom_inbound_filter_single_condition_is_not_wrapped(default_project, factories) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "metric_name", "value": ["checkout.*"]}],
+    )
+
+    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
+    assert generic_filter["condition"] == {
+        "op": "glob",
+        "name": "trace_metric.name",
+        "value": ["checkout.*"],
+    }
+    assert_relay_accepts_condition(generic_filter["condition"])
+
+
+@django_db_all
+def test_custom_inbound_filter_release_only_targets_events(default_project, factories) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "release", "value": ["1.*"]}],
+    )
+
+    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
+    assert generic_filter["condition"] == {
+        "op": "glob",
+        "name": "event.release",
+        "value": ["1.*"],
+    }
+    assert_relay_accepts_condition(generic_filter["condition"])
+
+
+@django_db_all
+def test_custom_inbound_filter_skips_inactive_filters(default_project, factories) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        active=False,
+        conditions=[{"type": "release", "value": ["1.*"]}],
+    )
+
+    assert get_custom_inbound_filter_generic_filters(default_project) == []
+
+
+@django_db_all
+def test_custom_inbound_filter_skips_untranslatable_filters(default_project, factories) -> None:
+    # A condition that cannot be translated must disable the whole filter: conditions
+    # are combined with AND, so dropping just the broken condition would filter more
+    # data than the user configured.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[
+            {"type": "error_message", "value": ["*Error*"]},
+            {"type": "unknown_type", "value": ["nope"]},
+        ],
+    )
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "release", "value": []}],
+    )
+    factories.create_project_custom_inbound_filter(default_project, conditions=[])
+    valid_filter = factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "release", "value": ["1.*"]}],
+    )
+
+    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
+    assert generic_filter["id"] == f"custom-inbound-filter-{valid_filter.id}"
+
+
+@django_db_all
+def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) -> None:
+    first = factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "release", "value": ["1.*"]}],
+    )
+    second = factories.create_project_custom_inbound_filter(
+        default_project,
+        conditions=[{"type": "release", "value": ["2.*"]}],
+    )
+
+    generic_filters = get_custom_inbound_filter_generic_filters(default_project)
+    assert [generic_filter["id"] for generic_filter in generic_filters] == [
+        f"custom-inbound-filter-{first.id}",
+        f"custom-inbound-filter-{second.id}",
+    ]

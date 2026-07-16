@@ -90,6 +90,26 @@ class CustomInboundFiltersTest(APITestCase):
         assert audit_entry.data["filter_name"] == "Important errors"
         assert audit_entry.data["conditions"] == conditions
 
+    def test_post_invalidates_project_config(self) -> None:
+        with (
+            self.feature(self.features),
+            outbox_runner(),
+            patch(
+                "sentry.api.endpoints.project_custom_inbound_filters.schedule_invalidate_project_config"
+            ) as mock_invalidate,
+        ):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                conditions=[{"type": "release", "value": ["1.*"]}],
+                status_code=201,
+            )
+
+        mock_invalidate.assert_called_once_with(
+            project_id=self.project.id, trigger="custom_inbound_filters"
+        )
+
     def test_post_without_name(self) -> None:
         conditions = [{"type": "release", "value": ["1.*"]}]
 
@@ -324,6 +344,42 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert audit_entry.data["operation"] == "edit"
         assert audit_entry.data["changes"] == {"active": {"old": True, "new": False}}
 
+    def test_put_invalidates_project_config(self) -> None:
+        with (
+            self.feature(self.features),
+            outbox_runner(),
+            patch(
+                "sentry.api.endpoints.project_custom_inbound_filters.schedule_invalidate_project_config"
+            ) as mock_invalidate,
+        ):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                active=False,
+            )
+
+        mock_invalidate.assert_called_once_with(
+            project_id=self.project.id, trigger="custom_inbound_filters"
+        )
+
+    def test_put_name_only_change_skips_project_config_invalidation(self) -> None:
+        with (
+            self.feature(self.features),
+            outbox_runner(),
+            patch(
+                "sentry.api.endpoints.project_custom_inbound_filters.schedule_invalidate_project_config"
+            ) as mock_invalidate,
+        ):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                name="Renamed filter",
+            )
+
+        mock_invalidate.assert_not_called()
+
     def test_put_no_changes_skips_audit_log(self) -> None:
         with self.feature(self.features), outbox_runner():
             self.get_success_response(
@@ -377,6 +433,26 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert audit_entry.target_object == self.custom_filter.id
         assert audit_entry.data["operation"] == "remove"
         assert audit_entry.data["filter_name"] == "Original filter"
+
+    def test_delete_invalidates_project_config(self) -> None:
+        with (
+            self.feature(self.features),
+            outbox_runner(),
+            patch(
+                "sentry.api.endpoints.project_custom_inbound_filters.schedule_invalidate_project_config"
+            ) as mock_invalidate,
+        ):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                method="delete",
+                status_code=204,
+            )
+
+        mock_invalidate.assert_called_once_with(
+            project_id=self.project.id, trigger="custom_inbound_filters"
+        )
 
     def test_returns_404_for_missing_filter(self) -> None:
         with self.feature(self.features):

@@ -1,9 +1,29 @@
 from __future__ import annotations
 
+from enum import StrEnum
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model, sane_repr
+
+
+class CustomInboundFilterConditionType(StrEnum):
+    ERROR_MESSAGE = "error_message"
+    LOG_MESSAGE = "log_message"
+    METRIC_NAME = "metric_name"
+    RELEASE = "release"
+
+
+# A filter targets a single data category, so a filter's conditions may contain
+# at most one of these condition types. `RELEASE` combines with any of them.
+PRIMARY_CONDITION_TYPES = frozenset(
+    (
+        CustomInboundFilterConditionType.ERROR_MESSAGE,
+        CustomInboundFilterConditionType.LOG_MESSAGE,
+        CustomInboundFilterConditionType.METRIC_NAME,
+    )
+)
 
 
 @cell_silo_model

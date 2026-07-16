@@ -222,6 +222,50 @@ def test_project_config_uses_filter_features(
 
 @django_db_all
 @cell_silo_test
+@pytest.mark.parametrize("has_custom_filters", [False, True])
+@pytest.mark.parametrize("has_inbound_filters_v2", [False, True])
+def test_project_config_custom_inbound_filters_v2(
+    default_project, factories, has_custom_filters, has_inbound_filters_v2
+):
+    active_filter = factories.create_project_custom_inbound_filter(
+        default_project,
+        name="Block old releases",
+        conditions=[{"type": "release", "value": ["1.2.3"]}],
+    )
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        name="Disabled filter",
+        active=False,
+        conditions=[{"type": "release", "value": ["4.5.6"]}],
+    )
+
+    with Feature(
+        {
+            "projects:custom-inbound-filters": has_custom_filters,
+            "organizations:inbound-filters-v2": has_inbound_filters_v2,
+        }
+    ):
+        project_cfg = get_project_config(default_project)
+
+    cfg = project_cfg.to_dict()
+    _validate_project_config(cfg["config"])
+    cfg_generic = get_path(cfg, "config", "filterSettings", "generic", "filters") or []
+    custom_filters = [f for f in cfg_generic if f["id"].startswith("custom-inbound-filter-")]
+
+    if has_custom_filters and has_inbound_filters_v2:
+        assert custom_filters == [
+            {
+                "id": f"custom-inbound-filter-{active_filter.id}",
+                "isEnabled": True,
+                "condition": {"op": "glob", "name": "event.release", "value": ["1.2.3"]},
+            }
+        ]
+    else:
+        assert custom_filters == []
+
+
+@django_db_all
+@cell_silo_test
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["organizations:profiling"])
 def test_project_config_exposed_features(default_project: MagicMock) -> None:
     with Feature({"organizations:profiling": True}):

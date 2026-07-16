@@ -21,6 +21,7 @@ from sentry.ingest.inbound_filters import (
     FilterTypes,
     _FilterSpec,
     get_all_filter_specs,
+    get_custom_inbound_filter_generic_filters,
     get_filter_key,
     get_generic_filters,
     get_log_messages_generic_filter,
@@ -170,6 +171,9 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
                 )
                 if trace_metric_names_filter:
                     base_generic_filters.append(trace_metric_names_filter)
+
+        if features.has("organizations:inbound-filters-v2", project.organization):
+            base_generic_filters.extend(get_custom_inbound_filter_generic_filters(project))
 
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}
