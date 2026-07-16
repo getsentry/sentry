@@ -166,7 +166,7 @@ export function CreateIssueViewModal({
                   placeholder={
                     isGeneratingTitle
                       ? t('Generating title...')
-                      : 'e.g. My Search Results'
+                      : t('e.g. My Search Results')
                   }
                   autoFocus
                 />
