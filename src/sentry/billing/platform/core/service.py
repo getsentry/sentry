@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import contextlib
+import contextvars
 import functools
 import hashlib
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from typing import Any, TypeVar, overload
 
 from google.protobuf.json_format import MessageToDict
@@ -53,18 +55,50 @@ class BillingService:
         pass
 
 
-def _should_log_trace(trace_log_sample_rate: float) -> bool:
-    """
-    Determine whether to log based on a hash of the current trace ID.
+_effective_sample_rate: contextvars.ContextVar[float] = contextvars.ContextVar(
+    "_effective_sample_rate"
+)
 
-    Uses a deterministic hash so all calls within the same trace are consistently
-    logged or not.
+
+@contextlib.contextmanager
+def _propagate_sample_rate(rate: float) -> Generator[None]:
+    """Set the effective sample rate for this scope and restore it on exit.
+
+    The effective rate is ``max(rate, parent_rate)`` so that if a parent
+    service method is being logged, all children in the same call tree
+    will be logged too.  The previous value is restored when the context
+    manager exits, preventing siblings from inheriting each other's rates.
     """
+    effective = max(rate, _effective_sample_rate.get(0.0))
+    token = _effective_sample_rate.set(effective)
+    try:
+        yield
+    finally:
+        _effective_sample_rate.reset(token)
+
+
+def _get_trace_hash() -> int | None:
+    """Return a deterministic hash value for the current trace ID, or None if unavailable."""
     trace_id = get_trace_id()
     if trace_id is None:
+        return None
+    return int(hashlib.md5(str(trace_id).encode()).hexdigest(), 16) % 10000
+
+
+def _should_log_trace() -> bool:
+    """
+    Determine whether to log based on a hash of the current trace ID and the
+    effective sample rate from the ContextVar.
+
+    The effective rate is set by ``_propagate_sample_rate`` as
+    ``max(own_rate, parent_rate)``, so if a parent decided to log, all children
+    in the same call tree will too.
+    """
+    effective_rate = _effective_sample_rate.get(0.0)
+    trace_hash = _get_trace_hash()
+    if trace_hash is None:
         return False
-    hash_value = int(hashlib.md5(str(trace_id).encode()).hexdigest(), 16)
-    return (hash_value % 10000) < int(trace_log_sample_rate * 10000)
+    return trace_hash < int(effective_rate * 10000)
 
 
 @overload
@@ -122,81 +156,86 @@ def service_method(
                     f"got {type(request).__name__}"
                 )
 
-            start_time = time.time()
+            with _propagate_sample_rate(trace_log_sample_rate):
+                start_time = time.time()
 
-            metrics.incr("billing.service.method.called", tags=metric_tags, sample_rate=1.0)
-            extras = {
-                "service": service_name,
-                "method": method_name,
-                "request_type": type(request).__name__,
-                "request": MessageToDict(request),
-            }
-            if organization_id := getattr(request, "organization_id", None):
-                extras["organization_id"] = organization_id
-            if contract_id := getattr(request, "contract_id", None):
-                extras["contract_id"] = contract_id
+                metrics.incr("billing.service.method.called", tags=metric_tags, sample_rate=1.0)
+                extras = {
+                    "service": service_name,
+                    "method": method_name,
+                    "request_type": type(request).__name__,
+                    "request": MessageToDict(request),
+                }
+                if organization_id := getattr(request, "organization_id", None):
+                    extras["organization_id"] = organization_id
+                if contract_id := getattr(request, "contract_id", None):
+                    extras["contract_id"] = contract_id
 
-            try:
-                with start_span(op="function", name=f"{service_name}.{method_name}") as cur_span:
-                    for k, v in extras.items():
-                        set_span_data(cur_span, k, v)
-                    result = func(self, request)
+                try:
+                    with start_span(
+                        op="function", name=f"{service_name}.{method_name}"
+                    ) as cur_span:
+                        for k, v in extras.items():
+                            set_span_data(cur_span, k, v)
+                        result = func(self, request)
 
-                # Validate output is a protobuf message
-                if not isinstance(result, Message):
-                    raise TypeError(
-                        f"{service_name}.{method_name} must return a protobuf Message, "
-                        f"returned {type(result).__name__}"
+                    # Validate output is a protobuf message
+                    if not isinstance(result, Message):
+                        raise TypeError(
+                            f"{service_name}.{method_name} must return a protobuf Message, "
+                            f"returned {type(result).__name__}"
+                        )
+
+                    duration_ms = (time.time() - start_time) * 1000
+
+                    metrics.timing(
+                        "billing.service.method.duration",
+                        duration_ms,
+                        tags=metric_tags,
+                        sample_rate=1.0,
+                    )
+                    metrics.incr(
+                        "billing.service.method.success", tags=metric_tags, sample_rate=1.0
                     )
 
-                duration_ms = (time.time() - start_time) * 1000
+                    if _should_log_trace():
+                        logger.info(
+                            "billing.service.method.success",
+                            extra={
+                                "duration_ms": duration_ms,
+                                "response_type": type(result).__name__,
+                                "response": MessageToDict(result),
+                                **extras,
+                            },
+                        )
 
-                metrics.timing(
-                    "billing.service.method.duration",
-                    duration_ms,
-                    tags=metric_tags,
-                    sample_rate=1.0,
-                )
-                metrics.incr("billing.service.method.success", tags=metric_tags, sample_rate=1.0)
+                    return result
 
-                if _should_log_trace(trace_log_sample_rate):
+                except Exception as e:
+                    duration_ms = (time.time() - start_time) * 1000
+
+                    metrics.timing(
+                        "billing.service.method.duration",
+                        duration_ms,
+                        tags=metric_tags,
+                        sample_rate=1.0,
+                    )
+                    metrics.incr(
+                        "billing.service.method.error",
+                        tags={**metric_tags, "error_type": type(e).__name__},
+                        sample_rate=1.0,
+                    )
+
                     logger.info(
-                        "billing.service.method.success",
+                        "billing.service.method.error",
                         extra={
                             "duration_ms": duration_ms,
-                            "response_type": type(result).__name__,
-                            "response": MessageToDict(result),
+                            "error": str(e),
+                            "error_type": type(e).__name__,
                             **extras,
                         },
                     )
-
-                return result
-
-            except Exception as e:
-                duration_ms = (time.time() - start_time) * 1000
-
-                metrics.timing(
-                    "billing.service.method.duration",
-                    duration_ms,
-                    tags=metric_tags,
-                    sample_rate=1.0,
-                )
-                metrics.incr(
-                    "billing.service.method.error",
-                    tags={**metric_tags, "error_type": type(e).__name__},
-                    sample_rate=1.0,
-                )
-
-                logger.info(
-                    "billing.service.method.error",
-                    extra={
-                        "duration_ms": duration_ms,
-                        "error": str(e),
-                        "error_type": type(e).__name__,
-                        **extras,
-                    },
-                )
-                raise
+                    raise
 
         return wrapper
 
