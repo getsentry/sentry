@@ -132,25 +132,7 @@ def user_project_ownership(ctx: OrganizationReportContext) -> None:
 _KEY_ERROR_ISSUES_CHUNK_SIZE = 100
 
 
-def _org_key_error_issues_snuba(
-    ctx: OrganizationReportContext,
-    project_ids: Sequence[int],
-    referrer: str,
-    per_project_limit: int = 5,
-) -> dict[int, list[dict[str, Any]]]:
-    if not project_ids:
-        return {}
-
-    results: dict[int, list[dict[str, Any]]] = {}
-    for i in range(0, len(project_ids), _KEY_ERROR_ISSUES_CHUNK_SIZE):
-        chunk = project_ids[i : i + _KEY_ERROR_ISSUES_CHUNK_SIZE]
-        chunk_results = _org_key_error_issues_snuba_chunk(ctx, chunk, referrer, per_project_limit)
-        results.update(chunk_results)
-
-    return results
-
-
-def _org_key_error_issues_snuba_chunk(
+def _org_key_error_issues_chunk(
     ctx: OrganizationReportContext,
     project_ids: Sequence[int],
     referrer: str,
@@ -220,13 +202,20 @@ def org_key_error_issues(
     ctx: OrganizationReportContext,
     project_ids: Sequence[int],
     referrer: str,
+    per_project_limit: int = 5,
 ) -> dict[int, list[dict[str, Any]]]:
     op = "weekly_reports.org_key_error_issues"
     with start_span(op=op, name=op):
         if not project_ids:
             return {}
 
-        return _org_key_error_issues_snuba(ctx=ctx, project_ids=project_ids, referrer=referrer)
+        results: dict[int, list[dict[str, Any]]] = {}
+        for i in range(0, len(project_ids), _KEY_ERROR_ISSUES_CHUNK_SIZE):
+            chunk = project_ids[i : i + _KEY_ERROR_ISSUES_CHUNK_SIZE]
+            chunk_results = _org_key_error_issues_chunk(ctx, chunk, referrer, per_project_limit)
+            results.update(chunk_results)
+
+        return results
 
 
 def project_key_performance_issues(ctx: OrganizationReportContext, project: Project, referrer: str):
