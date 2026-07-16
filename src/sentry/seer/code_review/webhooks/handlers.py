@@ -8,10 +8,8 @@ import sentry_sdk
 from redis.client import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
 
-from sentry import features
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.services.integration import RpcIntegration
-from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.utils import json
@@ -63,12 +61,25 @@ def handle_webhook_event(
         integration: The GitHub integration
         **kwargs: Additional keyword arguments
     """
+    if organization.slug == "sentry":
+        logs_extra = {
+            "sentry_organization_id": str(organization.id),
+            "sentry_organization_slug": organization.slug,
+            "github_event_type": github_event.value,
+            "github_event_action": event.get("action", "unknown"),
+            "repo_id": str(repo.id),
+            "repo_name": repo.name,
+        }
+        if github_delivery_id:
+            logs_extra["github_delivery_id"] = github_delivery_id
+
+        if integration is not None:
+            logs_extra["sentry_integration_id"] = str(integration.id)
+
+        logger.info("github.webhook.code_review.received", extra=logs_extra)
+
     if integration is None:
         return
-
-    if integration.provider == IntegrationProviderSlug.GITHUB_ENTERPRISE:
-        if not features.has("organizations:seer-code-review-github-enterprise", organization):
-            return
 
     # Set Sentry scope tags so all logs, errors, and spans in this scope carry them automatically.
     tags = {}
@@ -107,10 +118,19 @@ def handle_webhook_event(
                 github_event_action=event.get("action", "unknown"),
                 reason=preflight.denial_reason,
             )
-            if organization.slug == "sentry":
+
+        if organization.slug == "sentry":
+            preflight_logs_extra: dict[str, Any] = dict(tags)
+            preflight_logs_extra["allowed"] = preflight.allowed
+            if preflight.denial_reason:
                 sentry_sdk.set_tag("denial_reason", preflight.denial_reason)
                 sentry_sdk.set_attribute("denial_reason", preflight.denial_reason)
-                logger.info("github.webhook.code_review.denied")
+                preflight_logs_extra["denial_reason"] = preflight.denial_reason
+                logger.info("github.webhook.code_review.denied", extra=preflight_logs_extra)
+            else:
+                logger.info(
+                    "github.webhook.code_review.denied_no_reason", extra=preflight_logs_extra
+                )
         return
 
     # Ensure only one request per delivery_id within the TTL window: skip if already processed

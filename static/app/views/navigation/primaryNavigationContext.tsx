@@ -5,7 +5,6 @@ import * as Sentry from '@sentry/react';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
-import {NavigationTourReminderContextProvider} from 'sentry/views/navigation/navigationTour';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 const PRIMARY_NAVIGATION_GROUP_CONFIG = {
@@ -70,13 +69,11 @@ export function PrimaryNavigationContextProvider(
   );
 
   return (
-    <NavigationTourReminderContextProvider>
-      <SecondaryNavigationContextProvider>
-        <PrimaryNavigationContext.Provider value={value}>
-          {props.children}
-        </PrimaryNavigationContext.Provider>
-      </SecondaryNavigationContextProvider>
-    </NavigationTourReminderContextProvider>
+    <SecondaryNavigationContextProvider>
+      <PrimaryNavigationContext.Provider value={value}>
+        {props.children}
+      </PrimaryNavigationContext.Provider>
+    </SecondaryNavigationContextProvider>
   );
 }
 

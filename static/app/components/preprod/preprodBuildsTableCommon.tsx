@@ -4,7 +4,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -15,7 +15,10 @@ import {IconCheckmark, IconCommit, IconNot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {InstallAppButton} from 'sentry/views/preprod/components/installAppButton';
 import {getDistributionErrorTooltip} from 'sentry/views/preprod/components/installDetailsContent';
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  getBuildNumber,
+  type BuildDetailsApiResponse,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 export function PreprodBuildsHeaderCells({
   showProjectColumn,
@@ -50,12 +53,14 @@ export function PreprodBuildsRowCells({
   showProjectColumn,
   showInstallabilityIndicator = false,
 }: PreprodBuildsRowCellsProps) {
+  const buildNumber = getBuildNumber(build.app_info);
+
   return (
     <Fragment>
       {showInteraction && <InteractionStateLayer />}
       <SimpleTable.RowCell justify="start">
         {build.app_info?.name || build.app_info?.app_id ? (
-          <Flex direction="column" gap="xs">
+          <Stack gap="xs">
             <Flex align="center" gap="2xs">
               {build.app_info?.platform && (
                 <PlatformIcon platform={build.app_info.platform} />
@@ -115,7 +120,7 @@ export function PreprodBuildsRowCells({
                 </Fragment>
               )}
             </Flex>
-          </Flex>
+          </Stack>
         ) : null}
       </SimpleTable.RowCell>
 
@@ -126,16 +131,16 @@ export function PreprodBuildsRowCells({
       )}
 
       <SimpleTable.RowCell justify="start" minWidth={0}>
-        <Flex direction="column" gap="xs" minWidth={0} width="100%">
+        <Stack gap="xs" minWidth={0} width="100%">
           <Flex align="center" gap="xs">
             {build.app_info?.version !== null && (
               <Text size="lg" bold>
                 {build.app_info?.version}
               </Text>
             )}
-            {build.app_info?.build_number !== null && (
+            {buildNumber && (
               <Text size="lg" variant="muted">
-                ({build.app_info?.build_number})
+                ({buildNumber})
               </Text>
             )}
             {build.state === 3 && <IconCheckmark size="sm" variant="success" />}
@@ -171,7 +176,7 @@ export function PreprodBuildsRowCells({
               </Fragment>
             )}
           </Flex>
-        </Flex>
+        </Stack>
       </SimpleTable.RowCell>
     </Fragment>
   );

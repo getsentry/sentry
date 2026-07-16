@@ -4,7 +4,7 @@ import {parseAsBoolean, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
-import {ConversationTimelineLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
+import {ConversationContentLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
   CONVERSATION_SPAN_DETAIL_TABS,
   ConversationSpanDetail,
@@ -33,6 +33,7 @@ interface ConversationViewContentNewProps {
   focusedTool?: string | null;
   onDeselectSpan?: () => void;
   onSelectSpan?: (spanId: string) => void;
+  onViewTimeline?: () => void;
   selectedSpanId?: string | null;
 }
 
@@ -42,6 +43,7 @@ export function ConversationViewContentNew({
   selectedSpanId,
   onSelectSpan,
   onDeselectSpan,
+  onViewTimeline,
   focusedTool,
 }: ConversationViewContentNewProps) {
   const isTimeline = activeTab === 'timeline';
@@ -94,7 +96,7 @@ export function ConversationViewContentNew({
 
   return (
     <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-      <ConversationTimelineLayout
+      <ConversationContentLayout
         leftPadding={isTranscript ? '0' : 'md'}
         left={
           isTranscript ? (
@@ -103,7 +105,7 @@ export function ConversationViewContentNew({
               nodes={nodes}
               selectedNodeId={selectedNode?.id ?? null}
               onSelectNode={handleSelectAndOpenDetail}
-              nodeTraceMap={nodeTraceMap}
+              onViewTimeline={onViewTimeline}
             />
           ) : (
             <AiSpanTimeline
@@ -111,7 +113,6 @@ export function ConversationViewContentNew({
               nodes={nodes}
               selectedNodeKey={selectedNode?.id ?? ''}
               onSelectNode={handleSelectAndOpenDetail}
-              nodeTraceMap={nodeTraceMap}
               compressGaps
             />
           )

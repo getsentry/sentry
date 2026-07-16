@@ -662,10 +662,24 @@ const HighlightsWrapper = styled('div')`
   margin: ${p => p.theme.space.md} 0;
 `;
 
-function IssuesLink({node, children}: {children: React.ReactNode; node: BaseNode}) {
+function IssuesLink({
+  node,
+  children,
+  traceSlug: traceSlugProp,
+}: {
+  children: React.ReactNode;
+  node: BaseNode;
+  /**
+   * Overrides the trace slug used to build the Issues link. The slug is
+   * normally read from the `traceSlug` route param, but surfaces that render
+   * this outside the trace waterfall route (e.g. the conversations span detail)
+   * have no such param and must pass the trace id explicitly.
+   */
+  traceSlug?: string;
+}) {
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
-  const traceSlug = params.traceSlug?.trim() ?? '';
+  const traceSlug = (traceSlugProp || params.traceSlug || '').trim();
 
   // Adding a buffer of 15mins for errors only traces, where there is no concept of
   // trace duration and start equals end timestamps.

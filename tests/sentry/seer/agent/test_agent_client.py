@@ -10,7 +10,12 @@ from pydantic import BaseModel
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.rpc.service import RpcException
-from sentry.seer.agent.client import SeerAgentClient, get_monitoring_provider_connections
+from sentry.models.promptsactivity import PromptsActivity
+from sentry.seer.agent.client import (
+    SeerAgentClient,
+    get_available_monitoring_providers,
+    get_monitoring_provider_connections,
+)
 from sentry.seer.agent.client_models import (
     AgentFilePatch,
     FilePatch,
@@ -24,6 +29,7 @@ from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, S
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.requests import make_request
+from sentry.utils.prompts import seer_monitoring_provider_dont_ask_feature
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
@@ -254,6 +260,66 @@ class TestSeerAgentClient(TestCase):
 
         body = mock_post.call_args[0][0]
         assert body["agent_run_options"]["enable_pr_context_tools"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    @with_feature("organizations:seer-explorer-embeds")
+    def test_start_run_includes_embed_widgets_by_default(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert "embed_widgets" in body["agent_run_options"]
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.collect_user_org_context")
+    @with_feature("organizations:seer-explorer-embeds")
+    def test_start_run_excludes_embed_widgets_when_disabled(
+        self, mock_collect_context, mock_post, mock_access
+    ):
+        mock_access.return_value = (True, None)
+        mock_collect_context.return_value = {"user_id": self.user.id}
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user, enable_embeds=False)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert "embed_widgets" not in body["agent_run_options"]
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @with_feature("organizations:seer-explorer-embeds")
+    def test_continue_run_includes_embed_widgets_by_default(self, mock_post, mock_access):
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user)
+        client.continue_run(123, "Follow-up query")
+
+        body = mock_post.call_args[0][0]
+        assert "embed_widgets" in body["agent_run_options"]
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    @with_feature("organizations:seer-explorer-embeds")
+    def test_continue_run_excludes_embed_widgets_when_disabled(self, mock_post, mock_access):
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user, enable_embeds=False)
+        client.continue_run(123, "Follow-up query")
+
+        body = mock_post.call_args[0][0]
+        assert "embed_widgets" not in body["agent_run_options"]
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     def test_init_category_key_only_raises_error(self, mock_access):
@@ -1692,3 +1758,88 @@ class TestGetMonitoringProviderConnections(TestCase):
 
         assert len(result) == 3
         mock_encrypt.assert_called_once_with("gcp-token")
+
+
+@with_feature("organizations:seer-infra-telemetry")
+class TestGetAvailableMonitoringProviders(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+
+    def _result_by_provider(self, result: list[dict]) -> dict[str, dict]:
+        return {entry["provider_key"]: entry for entry in result}
+
+    def _dismiss_provider(self, provider_type: str) -> None:
+        PromptsActivity.objects.create(
+            organization_id=self.organization.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature=seer_monitoring_provider_dont_ask_feature(provider_type),
+            data={"dismissed_ts": 1234567890},
+        )
+
+    def test_returns_empty_when_feature_disabled(self) -> None:
+        with self.feature({"organizations:seer-infra-telemetry": False}):
+            assert get_available_monitoring_providers(self.organization, self.user.id) == []
+
+    def test_returns_available_providers(self) -> None:
+        result = get_available_monitoring_providers(self.organization, self.user.id)
+
+        by_provider = self._result_by_provider(result)
+        assert set(by_provider) == {"datadog", "datadog_pat", "gcp"}
+        assert by_provider["datadog"] == {
+            "provider_key": "datadog",
+            "auth_method": "oauth",
+        }
+        assert by_provider["datadog_pat"]["auth_method"] == "pat"
+        assert by_provider["gcp"]["auth_method"] == "oauth"
+
+    def test_excludes_dismissed_provider(self) -> None:
+        self._dismiss_provider("gcp")
+
+        result = get_available_monitoring_providers(self.organization, self.user.id)
+
+        assert set(self._result_by_provider(result)) == {"datadog", "datadog_pat"}
+
+    def test_includes_visible_row(self) -> None:
+        PromptsActivity.objects.create(
+            organization_id=self.organization.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature=seer_monitoring_provider_dont_ask_feature("gcp"),
+            data={"dismissed_ts": None, "snoozed_ts": None},
+        )
+
+        result = get_available_monitoring_providers(self.organization, self.user.id)
+
+        assert "gcp" in self._result_by_provider(result)
+
+    def test_different_user_same_org(self) -> None:
+        other_user = self.create_user()
+        self.create_member(user=other_user, organization=self.organization)
+        PromptsActivity.objects.create(
+            organization_id=self.organization.id,
+            project_id=0,
+            user_id=other_user.id,
+            feature=seer_monitoring_provider_dont_ask_feature("gcp"),
+            data={"dismissed_ts": 1234567890},
+        )
+
+        result = get_available_monitoring_providers(self.organization, self.user.id)
+
+        assert "gcp" in self._result_by_provider(result)
+
+    def test_same_user_different_org(self) -> None:
+        other_org = self.create_organization(owner=self.user)
+        PromptsActivity.objects.create(
+            organization_id=other_org.id,
+            project_id=0,
+            user_id=self.user.id,
+            feature=seer_monitoring_provider_dont_ask_feature("gcp"),
+            data={"dismissed_ts": 1234567890},
+        )
+
+        result = get_available_monitoring_providers(self.organization, self.user.id)
+
+        assert "gcp" in self._result_by_provider(result)

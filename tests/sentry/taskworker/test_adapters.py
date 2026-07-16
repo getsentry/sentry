@@ -18,7 +18,9 @@ from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context, 
 
 @pytest.mark.django_db
 def test_registry_create_namespace_route_setting() -> None:
-    with override_settings(TASKWORKER_ROUTES='{"profiling":"profiles", "lol":"nope"}'):
+    with override_settings(
+        TASKWORKER_ROUTES='{"profiling":"profiles", "private":"private-taskworker-topic"}'
+    ):
         registry = TaskRegistry(
             application="sentry",
             producer_factory=make_producer,
@@ -31,12 +33,10 @@ def test_registry_create_namespace_route_setting() -> None:
         assert tests.topic == Topic.TASKWORKER.value
 
         profiling = registry.create_namespace(name="profiling")
-        assert profiling.topic == Topic.PROFILES.value
+        assert profiling.topic == "profiles"
 
-        with pytest.raises(ValueError):
-            ns = registry.create_namespace(name="lol")
-            # Should raise as the name is routed to an invalid topic
-            ns.topic
+        private = registry.create_namespace(name="private")
+        assert private.topic == "private-taskworker-topic"
 
 
 @pytest.mark.django_db
@@ -66,11 +66,11 @@ def test_default_router_topic_control_silo() -> None:
 def test_default_router_topic_override() -> None:
     with override_settings(
         SILO_MODE=SiloMode.CELL,
-        TASKWORKER_DEFAULT_TOPIC=Topic.TASKWORKER_PUSH.value,
+        TASKWORKER_DEFAULT_TOPIC="taskworker-push",
     ):
         router = SentryRouter()
         topic = router.route_namespace("test.tasks.test_router.unrouted")
-        assert topic == Topic.TASKWORKER_PUSH.value
+        assert topic == "taskworker-push"
 
 
 @pytest.mark.django_db(databases=["default", "control"])
@@ -78,7 +78,7 @@ def test_default_router_topic_override_ignored_in_control_silo() -> None:
     # The region default-topic override must never redirect control-silo tasks.
     with override_settings(
         SILO_MODE=SiloMode.CONTROL,
-        TASKWORKER_DEFAULT_TOPIC=Topic.TASKWORKER_PUSH.value,
+        TASKWORKER_DEFAULT_TOPIC="taskworker-push",
     ):
         router = SentryRouter()
         topic = router.route_namespace("test.tasks.test_router.control")

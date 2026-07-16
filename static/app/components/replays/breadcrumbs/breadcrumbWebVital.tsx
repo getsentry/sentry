@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
@@ -102,7 +102,7 @@ export function BreadcrumbWebVital({
   }
 
   return (
-    <Flex direction="column" gap="sm" align="start">
+    <Stack gap="sm" align="start">
       <NoMarginWrapper>
         <StructuredEventData
           initialExpandedPaths={expandPaths ?? []}
@@ -128,7 +128,7 @@ export function BreadcrumbWebVital({
       >
         {t('All Web Vitals')}
       </NoWrapButton>
-    </Flex>
+    </Stack>
   );
 }
 

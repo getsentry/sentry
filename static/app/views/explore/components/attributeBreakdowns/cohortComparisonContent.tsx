@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
@@ -93,7 +93,7 @@ export function CohortComparison({
 
   return (
     <Panel>
-      <Flex direction="column" gap="2xl" padding="xl">
+      <Stack gap="2xl" padding="xl">
         <AttributeBreakdownsComponent.ControlsContainer>
           <AttributeBreakdownsComponent.StyledBaseSearchBar
             placeholder={t('Search keys')}
@@ -162,7 +162,7 @@ export function CohortComparison({
             )}
           </Fragment>
         )}
-      </Flex>
+      </Stack>
     </Panel>
   );
 }

@@ -523,6 +523,35 @@ class SetCommitsTestCase(TestCase):
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=group).exists()
 
+    @receivers_raise_on_send()
+    def test_commit_resolves_only_when_released_to_issue_project(self) -> None:
+        org = self.create_organization(owner=Factories.create_user())
+        frontend_project = self.create_project(organization=org, name="frontend")
+        backend_project = self.create_project(organization=org, name="backend")
+        frontend_group = self.create_group(project=frontend_project)
+        repo = self.create_repo(project=backend_project, name="test/monorepo")
+        commit = self.create_commit(
+            repo=repo,
+            message=f"fixes {frontend_group.qualified_short_id}",
+        )
+        backend_release = self.create_release(project=backend_project, version="backend@1.0.0")
+
+        backend_release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        assert list(backend_release.projects.all()) == [backend_project]
+        assert not GroupResolution.objects.filter(
+            group=frontend_group, release=backend_release
+        ).exists()
+        assert Group.objects.get(id=frontend_group.id).status == GroupStatus.UNRESOLVED
+
+        frontend_release = self.create_release(project=frontend_project, version="frontend@1.0.0")
+        frontend_release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        resolution = GroupResolution.objects.get(group=frontend_group)
+        assert resolution.release == frontend_release
+        assert resolution.status == GroupResolution.Status.resolved
+        assert Group.objects.get(id=frontend_group.id).status == GroupStatus.RESOLVED
+
     @patch("sentry.analytics.record")
     @receivers_raise_on_send()
     def test_resolution_records_commit_provider(self, mock_record: MagicMock) -> None:
