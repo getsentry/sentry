@@ -144,7 +144,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   // The heat map's readable time/value axes sit at index 1; index 0 is the
   // hidden category axis that positions the cells.
-  const {onChartReady} = useChartBoxZoom({
+  const {onChartReady, isDraggingRef} = useChartBoxZoom({
     onZoom: onZoom ? handleZoom : undefined,
     xAxisIndex: 1,
     yAxisIndex: 1,
@@ -186,6 +186,12 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   // Create tooltip formatter
   const formatTooltip: TooltipFormatterCallback<TopLevelFormatterParams> = params => {
+    // Skip the tooltip during a drag. This improves drag performance since the
+    // tooltip's `renderToString` is expensive.
+    if (isDraggingRef.current) {
+      return '';
+    }
+
     // Only show the tooltip of the current chart. Otherwise, all tooltips
     // in the chart group appear.
     if (!isChartHovered(chartRef?.current)) {
