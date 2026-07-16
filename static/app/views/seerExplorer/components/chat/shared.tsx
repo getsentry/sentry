@@ -1,9 +1,8 @@
-import {keyframes} from '@emotion/react';
-import styled from '@emotion/styled';
-
+import {Spinner, type ToolCallStatus} from '@sentry/scraps/chat';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {t} from 'sentry/locale';
 import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 interface BlockVariantProps {
@@ -25,15 +24,7 @@ export interface ToolUseBlockProps extends BlockVariantProps {
   showThinking?: boolean;
 }
 
-export type BlockStatus =
-  | 'loading'
-  | 'content'
-  | 'success'
-  | 'failure'
-  | 'mixed'
-  | 'pending';
-
-export function getBlockStatus(block: Block): BlockStatus {
+export function getBlockStatus(block: Block): ToolCallStatus {
   if (block.loading) {
     return 'loading';
   }
@@ -84,26 +75,11 @@ export function MessagePlaceholder({content}: {content?: string}) {
         height="12px"
         flexShrink={0}
       >
-        <Spinner />
+        <Spinner role="status" aria-label={t('Loading')} />
       </Flex>
       {hasValidContent(content) && <SeerMarkdown raw={content} />}
     </Flex>
   );
 }
-
-const spin = keyframes`
-  to { transform: rotate(360deg); }
-`;
-
-export const Spinner = styled('div')`
-  box-sizing: border-box;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 1.5px solid ${p => p.theme.tokens.border.primary};
-  border-left-color: ${p => p.theme.tokens.border.accent.vibrant};
-  animation: ${spin} 0.6s linear infinite;
-  flex-shrink: 0;
-`;
 
 export const BLOCK_WRAPPER_SELECTOR = '[data-block-wrapper]';
