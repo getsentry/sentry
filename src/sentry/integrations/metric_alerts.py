@@ -35,6 +35,7 @@ QUERY_AGGREGATION_DISPLAY = {
     "count_unique(tags[sentry:user])": "users affected",
     "percentage(sessions_crashed, sessions)": "% sessions crash free rate",
     "percentage(users_crashed, users)": "% users crash free rate",
+    "failure_rate()": "% failure rate",
 }
 # These should be the same as the options in the frontend
 # COMPARISON_DELTA_OPTIONS
@@ -109,6 +110,9 @@ def get_incident_status_text(
     else:
         agg_text = QUERY_AGGREGATION_DISPLAY.get(agg_display_key, snuba_query.aggregate)
 
+    if agg_display_key == "failure_rate()" and not comparison_delta:
+        metric_value = f"{float(metric_value) * 100:.2f}"
+
     if agg_text.startswith("%"):
         metric_and_agg_text = f"{metric_value}{agg_text}"
     else:
@@ -117,7 +121,10 @@ def get_incident_status_text(
     time_window = snuba_query.time_window // 60
     # % change alerts have a comparison delta
     if comparison_delta:
-        metric_and_agg_text = f"{agg_text.capitalize()} {int(float(metric_value))}%"
+        if agg_display_key == "failure_rate()":
+            metric_and_agg_text = f"Failure rate {float(metric_value):.2f}%"
+        else:
+            metric_and_agg_text = f"{agg_text.capitalize()} {int(float(metric_value))}%"
         higher_or_lower = (
             "higher"
             if (
