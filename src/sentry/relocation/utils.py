@@ -10,6 +10,7 @@ from string import Template
 from typing import Any
 from uuid import UUID
 
+import sentry_sdk
 from django.core.files.storage import Storage
 from django.utils import timezone
 from orjson import JSONDecodeError
@@ -628,7 +629,8 @@ def retry_task_or_fail_relocation(
     logger_data = {"uuid": str(relocation.uuid), "task": task.name, "attempts_left": attempts_left}
     try:
         yield
-    except Exception:
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
         # If this is the last attempt, fail in the manner requested before reraising the exception.
         # This ensures that the database entry for this `Relocation` correctly notes it as a
         # `FAILURE`.
