@@ -1,4 +1,4 @@
-import {Fragment, type ComponentProps} from 'react';
+import {Fragment, useState, type ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 import {mutationOptions} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -6962,13 +6962,19 @@ describe('SearchQueryBuilder', () => {
           },
         });
 
-        function AskSeerTestComponent({children}: {children: React.ReactNode}) {
+        function AskSeerTestComponent({
+          children,
+          onApply,
+        }: {
+          children: React.ReactNode;
+          onApply: (query: string) => void;
+        }) {
           const {displayAskSeer} = useSearchQueryBuilderAI();
           const {query} = useSearchQueryBuilderState();
           return displayAskSeer ? (
             <AskSeerMutationComboBox
               initialQuery={query}
-              applySeerSearchQuery={() => {}}
+              applySeerSearchQuery={item => onApply(item.query ?? '')}
               askSeerMutationOptions={mutationOptions({
                 mutationFn: async (_value: string) => {
                   const data = await fetchMutation<{
@@ -7011,25 +7017,28 @@ describe('SearchQueryBuilder', () => {
           );
         }
 
-        function AskSeerWrapper({children}: {children: React.ReactNode}) {
+        function AskSeerWrapper() {
+          const [query, setQuery] = useState('');
+
           return (
-            <SearchQueryBuilderProvider {...defaultProps} enableAISearch>
-              <AskSeerTestComponent>{children}</AskSeerTestComponent>
+            <SearchQueryBuilderProvider
+              {...defaultProps}
+              initialQuery={query}
+              enableAISearch
+            >
+              <AskSeerTestComponent onApply={setQuery}>
+                <SearchQueryBuilder {...defaultProps} initialQuery={query} autoFocus />
+              </AskSeerTestComponent>
             </SearchQueryBuilderProvider>
           );
         }
 
         const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-        render(
-          <AskSeerWrapper>
-            <SearchQueryBuilder {...defaultProps} />
-          </AskSeerWrapper>,
-          {
-            organization: {
-              features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
-            },
-          }
-        );
+        render(<AskSeerWrapper />, {
+          organization: {
+            features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+          },
+        });
 
         await userEvent.click(getLastInput());
 
@@ -7052,6 +7061,7 @@ describe('SearchQueryBuilder', () => {
           name: "Query parameters: Filter is 'span.duration is greater than 30s ', visualizations are 'count()', sort is 'span.duration Desc'",
         });
         await userEvent.click(filter);
+        await waitFor(() => expect(document.body).toHaveFocus());
         await userEvent.click(getLastInput());
 
         const feedback = await screen.findByText(

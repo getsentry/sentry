@@ -26,7 +26,10 @@ import {
   generateQueryTokensString,
   isNoneOfTheseItem,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
-import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
+import {
+  useSearchQueryBuilderAI,
+  useSearchQueryBuilderLayout,
+} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -130,6 +133,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   const hadFocusedOptionOnEnterRef = useRef(false);
   const hasTrackedErrorRef = useRef(false);
   const {projects} = useProjects();
+  const {wrapperRef} = useSearchQueryBuilderLayout();
   const organization = useOrganization();
   const hasAskSeerRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
   const openForm = useFeedbackForm();
@@ -244,6 +248,9 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
       applySeerSearchQuery(item);
       setDisplayAskSeerFeedback(true);
       setDisplayAskSeer(false);
+      requestAnimationFrame(() => {
+        wrapperRef.current?.querySelector<HTMLElement>(':focus')?.blur();
+      });
       reset?.();
       state.close();
     },
