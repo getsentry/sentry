@@ -1,7 +1,8 @@
 import type {LoaderDefinition} from '@rspack/core';
 import {po} from 'gettext-parser';
 
-const FRONTEND_REFERENCE = /(?:^|\s)[^\s:]+\.(?:js|jsx|tsx):/;
+// PO references are whitespace-delimited `path:line` values from JS and TS modules.
+const FRONTEND_REFERENCE = /(?:^|\s)[^\s:]+\.[jt]sx?:/;
 
 type CatalogMetadata = {
   domain: string;
