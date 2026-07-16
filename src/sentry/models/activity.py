@@ -12,7 +12,7 @@ from django.db.models import F
 from django.db.models.signals import post_save
 from django.utils import timezone
 
-from sentry import options
+from sentry import features, options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -125,7 +125,14 @@ class ActivityManager(BaseManager["Activity"]):
     def create(self, **kwargs: Any) -> Activity:
         activity: Activity = super().create(**kwargs)
 
-        if not options.get("group_action_log.activity.double-write") and not in_test_environment():
+        double_write_enabled = False
+        p = activity.project
+        if p is not None:
+            o = p.organization
+            double_write_enabled = features.has(
+                "organizations:group_action_log.activity.double-write", o
+            )
+        if not double_write_enabled and not in_test_environment():
             return activity
 
         group_id = kwargs.get("group_id")
@@ -153,7 +160,17 @@ class ActivityManager(BaseManager["Activity"]):
 
     def bulk_create(self, *args: Any) -> list[Activity]:
         activities: list[Activity] = super().bulk_create(*args)
-        if not options.get("group_action_log.activity.double-write") and not in_test_environment():
+        if len(activities) == 0:
+            return activities
+
+        double_write_enabled = False
+        p = activities[0].project
+        if p is not None:
+            o = p.organization
+            double_write_enabled = features.has(
+                "organizations:group_action_log.activity.double-write", o
+            )
+        if not double_write_enabled and not in_test_environment():
             return activities
         try:
             actions_with_activities = [
