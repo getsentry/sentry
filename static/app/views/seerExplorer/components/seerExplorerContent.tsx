@@ -7,6 +7,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {usePictureInPicture} from '@sentry/scraps/pictureInPicture';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {SeerTodosProvider} from 'sentry/components/seer/markdown/embeds/components/todos';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -211,6 +212,12 @@ export function SeerExplorerContent({
     sessionData.owner_user_id.toString() !== user.id;
 
   const blocks = useMemo(() => sessionData?.blocks || [], [sessionData?.blocks]);
+
+  // Feeds the conversation-scoped todo state (latest {% todos %} embed wins).
+  const todosSourceBlocks = useMemo(
+    () => blocks.map(block => ({id: block.id, content: block.message.content})),
+    [blocks]
+  );
   const isAwaitingUserInput = sessionData?.status === 'awaiting_user_input';
   const pendingInput = sessionData?.pending_user_input ?? null;
   const isEmptyState = blocks.length === 0 && !(isAwaitingUserInput && pendingInput);
@@ -565,74 +572,76 @@ export function SeerExplorerContent({
       {needsSlackUpgrade && (
         <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
       )}
-      <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
-        {isEmptyState ? (
-          <EmptyState
-            isLoading={isPolling}
-            isError={isError}
-            errorStatusCode={errorStatusCode}
-            runId={runId}
-            displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
-            onSuggestionClick={readOnly ? undefined : sendMessage}
-          />
-        ) : (
-          <Fragment>
-            {blocks.map((block: Block, index: number) => {
-              // For slide-in animation that runs on mount. Avoid running this twice on user blocks when blocks are hydrated.
-              const key = block.message.role === 'user' ? `user-${index}` : block.id;
+      <SeerTodosProvider blocks={todosSourceBlocks}>
+        <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
+          {isEmptyState ? (
+            <EmptyState
+              isLoading={isPolling}
+              isError={isError}
+              errorStatusCode={errorStatusCode}
+              runId={runId}
+              displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
+              onSuggestionClick={readOnly ? undefined : sendMessage}
+            />
+          ) : (
+            <Fragment>
+              {blocks.map((block: Block, index: number) => {
+                // For slide-in animation that runs on mount. Avoid running this twice on user blocks when blocks are hydrated.
+                const key = block.message.role === 'user' ? `user-${index}` : block.id;
 
-              return (
-                <BlockComponent
-                  key={key}
-                  ref={el => {
-                    blockRefs.current[index] = el;
-                  }}
-                  block={block}
-                  blockIndex={index}
-                  blocks={blocks}
-                  runId={runId ?? undefined}
-                  getPageReferrer={getPageReferrer}
-                  interactionPending={
-                    isFileApprovalPending || isQuestionPending || showReauth
-                  }
-                  readOnly={readOnly}
-                  showThinking={showThinking}
-                />
-              );
-            })}
-            {!readOnly &&
-              isFileApprovalPending &&
-              fileApprovalIndex < fileApprovalTotalPatches && (
-                <FileChangeApprovalBlock
-                  currentIndex={fileApprovalIndex}
-                  pendingInput={pendingInput}
+                return (
+                  <BlockComponent
+                    key={key}
+                    ref={el => {
+                      blockRefs.current[index] = el;
+                    }}
+                    block={block}
+                    blockIndex={index}
+                    blocks={blocks}
+                    runId={runId ?? undefined}
+                    getPageReferrer={getPageReferrer}
+                    interactionPending={
+                      isFileApprovalPending || isQuestionPending || showReauth
+                    }
+                    readOnly={readOnly}
+                    showThinking={showThinking}
+                  />
+                );
+              })}
+              {!readOnly &&
+                isFileApprovalPending &&
+                fileApprovalIndex < fileApprovalTotalPatches && (
+                  <FileChangeApprovalBlock
+                    currentIndex={fileApprovalIndex}
+                    pendingInput={pendingInput}
+                  />
+                )}
+              {!readOnly && isQuestionPending && currentQuestion && (
+                <AskUserQuestionBlock
+                  currentQuestion={currentQuestion}
+                  customText={customText}
+                  isOtherSelected={isOtherSelected}
+                  onCustomTextChange={handleQuestionCustomTextChange}
+                  onSelectOption={handleQuestionSelectOption}
+                  questionIndex={questionIndex}
+                  selectedOption={selectedOption}
                 />
               )}
-            {!readOnly && isQuestionPending && currentQuestion && (
-              <AskUserQuestionBlock
-                currentQuestion={currentQuestion}
-                customText={customText}
-                isOtherSelected={isOtherSelected}
-                onCustomTextChange={handleQuestionCustomTextChange}
-                onSelectOption={handleQuestionSelectOption}
-                questionIndex={questionIndex}
-                selectedOption={selectedOption}
-              />
-            )}
-            {!readOnly && showReauth && reauthData && (
-              <ReauthMonitoringProviderBlock
-                data={reauthData}
-                onComplete={handleReauthComplete}
-                returnUrl={
-                  runId === null
-                    ? undefined
-                    : getRelativeExplorerUrl(runId, {resume: true})
-                }
-              />
-            )}
-          </Fragment>
-        )}
-      </BlocksContainer>
+              {!readOnly && showReauth && reauthData && (
+                <ReauthMonitoringProviderBlock
+                  data={reauthData}
+                  onComplete={handleReauthComplete}
+                  returnUrl={
+                    runId === null
+                      ? undefined
+                      : getRelativeExplorerUrl(runId, {resume: true})
+                  }
+                />
+              )}
+            </Fragment>
+          )}
+        </BlocksContainer>
+      </SeerTodosProvider>
       <InputSection
         blocks={blocks}
         enabled={!readOnly}

@@ -1,4 +1,15 @@
 import type {ReactNode} from 'react';
+import {createContext} from 'react';
+
+/**
+ * Identifies the conversation block whose content is currently being rendered.
+ * Provided by the surface rendering the conversation (e.g. the Explorer chat's
+ * BlockComponent) so embeds can locate themselves in the conversation — e.g.
+ * the `todos` embed renders only when it lives in the latest todos-bearing
+ * block. Undefined when markdown renders outside a conversation (stories,
+ * previews).
+ */
+export const SeerEmbedBlockContext = createContext<string | undefined>(undefined);
 
 /**
  * Generic props every Seer embed receives from the markdown Tag renderer.

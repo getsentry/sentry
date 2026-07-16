@@ -18,6 +18,20 @@ export const SEER_EMBED_SCHEMAS = {
       format: z.enum(['absolute', 'relative']).default('absolute'),
     }),
   },
+  todos: {
+    description:
+      'Your todo checklist. The todo_write tool emits this tag automatically — NEVER write a {% todos %} tag yourself and never restate the todo list in prose. The latest occurrence in the conversation replaces all earlier ones.',
+    level: ['block'],
+    featureFlag: 'organizations:seer-explorer-todos-markdown',
+    schema: z.object({
+      items: z.array(
+        z.object({
+          content: z.string(),
+          status: z.enum(['pending', 'in_progress', 'completed']),
+        })
+      ),
+    }),
+  },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
 export type SeerEmbedName = keyof typeof SEER_EMBED_SCHEMAS;

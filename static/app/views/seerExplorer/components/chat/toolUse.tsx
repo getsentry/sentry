@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Checkbox} from '@sentry/scraps/checkbox';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -9,6 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {TodoList} from 'sentry/components/seer/todoList';
 import {IconCheckmark, IconClose, IconLink, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -229,24 +229,6 @@ function ToolCallRow({
         )}
       </Flex>
       {todos && <TodoList todos={todos} />}
-    </Stack>
-  );
-}
-
-function TodoList({todos}: {todos: TodoItem[]}) {
-  return (
-    <Stack as="ul" gap="sm" padding="0">
-      {todos.map(todo => {
-        const checked = todo.status === 'completed';
-        return (
-          <Flex key={todo.content} as="li" gap="sm" align="center">
-            <Checkbox size="xs" checked={checked} readOnly />
-            <Text size="xs" monospace strikethrough={checked} variant="muted">
-              {todo.content}
-            </Text>
-          </Flex>
-        );
-      })}
     </Stack>
   );
 }

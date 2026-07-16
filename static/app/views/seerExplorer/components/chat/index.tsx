@@ -2,6 +2,7 @@ import {motion} from 'framer-motion';
 
 import {Container} from '@sentry/scraps/layout';
 
+import {SeerEmbedBlockContext} from 'sentry/components/seer/markdown/embeds/registry';
 import {unreachable} from 'sentry/utils/unreachable';
 import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
@@ -33,7 +34,9 @@ export function BlockComponent({onClick, ref, ...props}: BlockProps) {
       onClick={onClick}
     >
       <motion.div initial={{opacity: 0, x: 10}} animate={{opacity: 1, x: 0}}>
-        <BlockVariant {...props} />
+        <SeerEmbedBlockContext value={props.block.id}>
+          <BlockVariant {...props} />
+        </SeerEmbedBlockContext>
       </motion.div>
     </Container>
   );
