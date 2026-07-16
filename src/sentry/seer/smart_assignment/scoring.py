@@ -107,6 +107,11 @@ def _apply(run_id: int, updates: dict[str, Any]) -> None:
     with transaction.atomic(using=router.db_for_write(SeerAgentRun)):
         run = SeerAgentRun.objects.select_for_update().select_related("run").get(id=run_id)
         extras = dict(run.extras or {})
+        if extras.get("result"):
+            # The row is a terminal snapshot once scored. Applying later prediction or
+            # ground-truth updates would drift the mirrored fields away from what we
+            # actually scored against, leaving `result`/`hit_rank` inconsistent.
+            return
         extras.update(updates)
         result, hit_rank = _score(run.run.organization_id, extras)
         if result is not None:
