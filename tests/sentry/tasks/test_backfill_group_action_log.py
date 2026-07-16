@@ -716,7 +716,7 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
         assert p1.id not in dispatched_project_ids
         assert p2.id in dispatched_project_ids
 
-    def test_cursor_override_restarts_from_zero(self) -> None:
+    def test_cursor_override_ignored_when_cursor_exists(self) -> None:
         p1 = self.create_project(organization=self.organization)
         p2 = self.create_project(organization=self.organization)
 
@@ -732,7 +732,7 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
         dispatched_project_ids = {
             call.kwargs["kwargs"]["project_id"] for call in mock_apply.call_args_list
         }
-        assert p1.id in dispatched_project_ids
+        assert p1.id not in dispatched_project_ids
         assert p2.id in dispatched_project_ids
 
     def test_invalid_batch_size_aborts(self) -> None:

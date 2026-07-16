@@ -386,7 +386,7 @@ def backfill_group_action_log_for_all_projects(
         )
         return
 
-    if cursor_override is not None:
+    if cursor_override is not None and _get_coordinator_cursor() == 0:
         _set_coordinator_cursor(cursor_override)
 
     last_project_id = _get_coordinator_cursor()
