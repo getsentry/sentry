@@ -802,7 +802,7 @@ def organization_top_spans_timeseries(
         ts_result = Spans.run_top_events_timeseries_query(
             params=snuba_params,
             query_string="is_transaction:1 has:span.name",
-            y_axes=["p95(span.duration)"],
+            y_axes=["p95(span.duration)", "sum(span.duration)"],
             raw_groupby=["span.name"],
             orderby=["-sum(span.duration)"],
             limit=TOP_SPANS_LIMIT,
