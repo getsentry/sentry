@@ -374,6 +374,7 @@ class CreateDebugFileTest(APITestCase):
 
         assert created
         assert dif.file_id is not None
+        assert dif.file is not None
         assert dif.storage_path is not None
         assert dif.content_type == "application/x-mach-binary"
         assert dif.file.getfile().read() == content
