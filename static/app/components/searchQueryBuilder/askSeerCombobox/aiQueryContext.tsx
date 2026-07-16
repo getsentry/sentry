@@ -10,7 +10,7 @@ interface AiQueryContextValue {
   getRunIdForAnalytics: () => number | string | null;
 
   /**
-   * Use to update the runId used for analytics (e.g. when an AI query is applied by AskSeerPollingComboBox).
+   * Use to update the runId used for analytics (e.g. when an AI query is applied by AskSeerComboBox).
    */
   setRunId: (id: number | string | null) => void;
 }

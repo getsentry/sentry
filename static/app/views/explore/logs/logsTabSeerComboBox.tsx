@@ -1,30 +1,22 @@
 import {useCallback} from 'react';
-import {mutationOptions} from '@tanstack/react-query';
 import type {Location} from 'history';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
-import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
-import type {
-  AskSeerSearchQuery,
-  SeerRawResponse,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
-  buildSeerMutationResult,
   mapSeerResponseItem,
   transformSeerResponse,
   useInitialSeerQuery,
   useSelectedProjectIds,
-  useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
-import {ConfigStore} from 'sentry/stores/configStore';
 import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -153,29 +145,6 @@ export function LogsTabSeerComboBox() {
 
   const initialSeerQuery = useInitialSeerQuery();
   const selectedProjectIds = useSelectedProjectIds();
-  const selectedProjectIdsForMutation = useSelectedProjectIdsForMutation();
-
-  const logsTabAskSeerMutationOptions = mutationOptions({
-    mutationFn: async (queryToSubmit: string) => {
-      const user = ConfigStore.get('user');
-      const data = await fetchMutation<SeerRawResponse>({
-        url: `/organizations/${organization.slug}/search-agent/translate/`,
-        method: 'POST',
-        data: {
-          org_id: organization.id,
-          org_slug: organization.slug,
-          natural_language_query: queryToSubmit,
-          project_ids: selectedProjectIdsForMutation,
-          strategy: 'Logs',
-          user_email: user?.email,
-        },
-      });
-
-      return buildSeerMutationResult(data, selectedProjectIds, response =>
-        mapSeerResponseItem(response)
-      );
-    },
-  });
 
   const applySeerSearchQuery = useCallback(
     (result: AskSeerSearchQuery, runId?: number | string) => {
@@ -256,13 +225,12 @@ export function LogsTabSeerComboBox() {
   }
 
   return (
-    <AskSeerPollingComboBox<AskSeerSearchQuery>
+    <AskSeerComboBox<AskSeerSearchQuery>
       initialQuery={initialSeerQuery}
       projectIds={selectedProjectIds}
       strategy="Logs"
       applySeerSearchQuery={applySeerSearchQuery}
       transformResponse={transformResponse}
-      fallbackMutationOptions={logsTabAskSeerMutationOptions}
     />
   );
 }

@@ -1,6 +1,5 @@
 import {Fragment, useState, type ComponentProps} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
-import {mutationOptions} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
@@ -17,7 +16,7 @@ import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
-import {AskSeerMutationComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerMutationComboBox';
+import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {useInitialSeerQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {
   SearchQueryBuilderProvider,
@@ -38,7 +37,6 @@ import {
   FieldValueType,
   getFieldDefinition,
 } from 'sentry/utils/fields';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {getHasTag} from 'sentry/utils/tag';
 
 const FILTER_KEYS: TagCollection = {
@@ -6946,19 +6944,32 @@ describe('SearchQueryBuilder', () => {
           method: 'POST',
         });
         MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/trace-explorer-ai/query/',
+          url: '/organizations/org-slug/search-agent/start/',
           method: 'POST',
+          body: {run_id: 1},
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/search-agent/state/1/',
           body: {
-            status: 'ok',
-            queries: [
-              {
+            session: {
+              completed_steps: [],
+              created_at: '2026-01-01T00:00:00Z',
+              current_step: null,
+              final_response: {
                 query: 'span.duration:>30s',
-                stats_period: '',
-                group_by: [],
-                visualization: [{chart_type: 1, y_axes: ['count()']}],
+                statsPeriod: '',
+                groupBys: [],
+                visualizations: [{chartType: 1, yAxes: ['count()']}],
                 sort: '-span.duration',
               },
-            ],
+              natural_language_query: 'some free text',
+              org_id: 1,
+              org_slug: 'org-slug',
+              run_id: 1,
+              status: 'completed',
+              strategy: 'Traces',
+              updated_at: '2026-01-01T00:00:00Z',
+            },
           },
         });
 
@@ -6972,45 +6983,11 @@ describe('SearchQueryBuilder', () => {
           const {displayAskSeer} = useSearchQueryBuilderAI();
           const {query} = useSearchQueryBuilderState();
           return displayAskSeer ? (
-            <AskSeerMutationComboBox
+            <AskSeerComboBox
               initialQuery={query}
+              projectIds={[]}
+              strategy="Traces"
               applySeerSearchQuery={item => onApply(item.query ?? '')}
-              askSeerMutationOptions={mutationOptions({
-                mutationFn: async (_value: string) => {
-                  const data = await fetchMutation<{
-                    queries: Array<{
-                      group_by: string[];
-                      mode: string;
-                      query: string;
-                      sort: string;
-                      stats_period: string;
-                      visualization: Array<{chart_type: number; y_axes: string[]}>;
-                    }>;
-                    status: string;
-                    unsupported_reason: string | null;
-                  }>({
-                    url: '/organizations/org-slug/trace-explorer-ai/query/',
-                    method: 'POST',
-                    data: {},
-                  });
-
-                  return {
-                    ...data,
-                    queries: data.queries.map(q => ({
-                      visualizations:
-                        q?.visualization?.map((v: any) => ({
-                          chartType: v?.chart_type,
-                          yAxes: v?.y_axes,
-                        })) ?? [],
-                      query: q?.query,
-                      sort: q?.sort ?? '',
-                      groupBys: q?.group_by ?? [],
-                      statsPeriod: q?.stats_period ?? '',
-                      mode: q?.mode ?? 'spans',
-                    })),
-                  };
-                },
-              })}
             />
           ) : (
             children
@@ -7079,25 +7056,16 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('free text', () => {
-      type AskSeerTestResponse = {
-        queries: never[];
-        status: string;
-        unsupported_reason: string | null;
-      };
-
       function makeMockAskSeer() {
-        return jest.fn((_query: string) =>
-          Promise.resolve<AskSeerTestResponse>({
-            queries: [],
-            status: 'ok',
-            unsupported_reason: null,
-          })
-        );
+        return MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/search-agent/start/',
+          method: 'POST',
+          body: new Promise(() => {}),
+        });
       }
 
       function AskSeerAutoSubmitTestComponent({
         children,
-        mockAskSeer,
       }: {
         children: React.ReactNode;
         mockAskSeer: ReturnType<typeof makeMockAskSeer>;
@@ -7106,12 +7074,11 @@ describe('SearchQueryBuilder', () => {
         const initialSeerQuery = useInitialSeerQuery();
 
         return displayAskSeer ? (
-          <AskSeerMutationComboBox
+          <AskSeerComboBox
             initialQuery={initialSeerQuery}
+            projectIds={[]}
+            strategy="Traces"
             applySeerSearchQuery={() => {}}
-            askSeerMutationOptions={mutationOptions({
-              mutationFn: mockAskSeer,
-            })}
           />
         ) : (
           children
@@ -7192,8 +7159,12 @@ describe('SearchQueryBuilder', () => {
         ).toHaveValue('browser.name is firefox find slow spans ');
         await waitFor(() => {
           expect(mockAskSeer).toHaveBeenCalledWith(
-            'browser.name is firefox find slow spans',
-            expect.anything()
+            '/organizations/org-slug/search-agent/start/',
+            expect.objectContaining({
+              data: expect.objectContaining({
+                natural_language_query: 'browser.name is firefox find slow spans',
+              }),
+            })
           );
         });
       });
@@ -7234,8 +7205,12 @@ describe('SearchQueryBuilder', () => {
         ).toHaveValue('browser.name is firefox find slow spans ');
         await waitFor(() => {
           expect(mockAskSeer).toHaveBeenCalledWith(
-            'browser.name is firefox find slow spans',
-            expect.anything()
+            '/organizations/org-slug/search-agent/start/',
+            expect.objectContaining({
+              data: expect.objectContaining({
+                natural_language_query: 'browser.name is firefox find slow spans',
+              }),
+            })
           );
         });
       });
@@ -7272,7 +7247,12 @@ describe('SearchQueryBuilder', () => {
           })
         ).toHaveValue('find slow spans ');
         await waitFor(() => {
-          expect(mockAskSeer).toHaveBeenCalledWith('find slow spans', expect.anything());
+          expect(mockAskSeer).toHaveBeenCalledWith(
+            '/organizations/org-slug/search-agent/start/',
+            expect.objectContaining({
+              data: expect.objectContaining({natural_language_query: 'find slow spans'}),
+            })
+          );
         });
         expect(mockOnSearch).not.toHaveBeenCalled();
 
@@ -7317,11 +7297,20 @@ describe('SearchQueryBuilder', () => {
           })
         ).toHaveValue('find slow spans ');
         await waitFor(() => {
-          expect(mockAskSeer).toHaveBeenCalledWith('find slow spans', expect.anything());
+          expect(mockAskSeer).toHaveBeenCalledWith(
+            '/organizations/org-slug/search-agent/start/',
+            expect.objectContaining({
+              data: expect.objectContaining({natural_language_query: 'find slow spans'}),
+            })
+          );
         });
         expect(mockAskSeer).not.toHaveBeenCalledWith(
-          'find slow find slow spans',
-          expect.anything()
+          '/organizations/org-slug/search-agent/start/',
+          expect.objectContaining({
+            data: expect.objectContaining({
+              natural_language_query: 'find slow find slow spans',
+            }),
+          })
         );
         expect(mockOnSearch).not.toHaveBeenCalled();
       });

@@ -1,28 +1,19 @@
 import {useCallback} from 'react';
-import {mutationOptions} from '@tanstack/react-query';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
-import {AskSeerMutationComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerMutationComboBox';
-import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
-import type {
-  AskSeerSearchQuery,
-  SeerRawResponse,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
+import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
-  buildSeerMutationResult,
   mapSeerResponseItem,
   transformSeerResponse,
   useInitialSeerQuery,
   useSelectedProjectIds,
-  useSelectedProjectIdsForMutation,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {resolveSeerProjectSelection} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
-import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -66,36 +57,6 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
 
   const initialSeerQuery = useInitialSeerQuery();
   const selectedProjectIds = useSelectedProjectIds();
-  const selectedProjectIdsForMutation = useSelectedProjectIdsForMutation();
-
-  const metricsTabAskSeerMutationOptions = mutationOptions({
-    mutationFn: async (queryToSubmit: string) => {
-      const user = ConfigStore.get('user');
-      const data = await fetchMutation<SeerRawResponse>({
-        url: `/organizations/${organization.slug}/search-agent/translate/`,
-        method: 'POST',
-        data: {
-          org_id: organization.id,
-          org_slug: organization.slug,
-          natural_language_query: queryToSubmit,
-          project_ids: selectedProjectIdsForMutation,
-          strategy: 'Metrics',
-          user_email: user?.email,
-          options: {
-            metric_context: {
-              metric_name: traceMetric.name,
-              metric_type: traceMetric.type,
-              metric_unit: traceMetric.unit ?? NONE_UNIT,
-            },
-          },
-        },
-      });
-
-      return buildSeerMutationResult(data, selectedProjectIds, response =>
-        mapSeerResponseItem(response)
-      );
-    },
-  });
 
   const applySeerSearchQuery = useCallback(
     (result: AskSeerSearchQuery, runId?: number | string) => {
@@ -140,7 +101,10 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // metric. Left undefined when neither yields a valid metric — we then keep
       // the panel's existing metric and the query untouched.
       const resolvedMetric = visualizationTraceMetric
-        ? {...visualizationTraceMetric, unit: visualizationTraceMetric.unit ?? NONE_UNIT}
+        ? {
+            ...visualizationTraceMetric,
+            unit: visualizationTraceMetric.unit ?? NONE_UNIT,
+          }
         : queryTraceMetric;
 
       const nextMetric = resolvedMetric ?? traceMetric;
@@ -304,10 +268,6 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
     ]
   );
 
-  const usePollingEndpoint =
-    organization.features.includes('gen-ai-search-agent-translate') &&
-    organization.features.includes('gen-ai-explore-metrics-search');
-
   const transformResponse = useCallback(
     (response: AskSeerSearchQuery): AskSeerSearchQuery[] =>
       transformSeerResponse(
@@ -322,31 +282,20 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
     return null;
   }
 
-  if (usePollingEndpoint) {
-    return (
-      <AskSeerPollingComboBox<AskSeerSearchQuery>
-        initialQuery={initialSeerQuery}
-        projectIds={selectedProjectIds}
-        strategy="Metrics"
-        options={{
-          metric_context: {
-            metric_name: traceMetric.name,
-            metric_type: traceMetric.type,
-            metric_unit: traceMetric.unit ?? NONE_UNIT,
-          },
-        }}
-        applySeerSearchQuery={applySeerSearchQuery}
-        transformResponse={transformResponse}
-        fallbackMutationOptions={metricsTabAskSeerMutationOptions}
-      />
-    );
-  }
-
   return (
-    <AskSeerMutationComboBox
+    <AskSeerComboBox<AskSeerSearchQuery>
       initialQuery={initialSeerQuery}
-      askSeerMutationOptions={metricsTabAskSeerMutationOptions}
+      projectIds={selectedProjectIds}
+      strategy="Metrics"
+      options={{
+        metric_context: {
+          metric_name: traceMetric.name,
+          metric_type: traceMetric.type,
+          metric_unit: traceMetric.unit ?? NONE_UNIT,
+        },
+      }}
       applySeerSearchQuery={applySeerSearchQuery}
+      transformResponse={transformResponse}
     />
   );
 }

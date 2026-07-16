@@ -1,4 +1,4 @@
-import {useEffect, useLayoutEffect, useMemo, useRef} from 'react';
+import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
@@ -13,6 +13,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {AskSeerLoadingStatus} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerLoadingStatus';
+import {AskSeerProgressBlocks} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerProgressBlocks';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
 import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
@@ -22,7 +24,9 @@ import type {
   AskSeerSearchItems,
   QueryTokensProps,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {useAskSeerPolling} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useAskSeerPolling';
 import {
+  formatQueryToNaturalLanguage,
   generateQueryTokensString,
   isNoneOfTheseItem,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
@@ -95,6 +99,90 @@ export interface AskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
   AriaComboBoxProps<unknown>,
   'children'
 > {
+  applySeerSearchQuery: (item: T, runId?: number | string) => void;
+  initialQuery: string;
+  projectIds: number[];
+  strategy: string;
+  /** Optional key-value options to pass to the search agent start endpoint. */
+  options?: Record<string, unknown>;
+  /** Transform the polling API response into query items. */
+  transformResponse?: (response: T) => T[];
+}
+
+export function AskSeerComboBox<T extends QueryTokensProps>({
+  initialQuery,
+  projectIds,
+  strategy,
+  transformResponse,
+  options,
+  applySeerSearchQuery,
+  ...props
+}: AskSeerComboBoxProps<T>) {
+  const organization = useOrganization();
+  const [searchQuery, setSearchQuery] = useState(() =>
+    formatQueryToNaturalLanguage(initialQuery)
+  );
+
+  const {
+    submitQuery,
+    isSessionPending,
+    isPolling,
+    isSessionError,
+    finalResponse,
+    unsupportedReason,
+    currentStep,
+    completedSteps,
+    reset,
+    runId,
+  } = useAskSeerPolling<T>({
+    projectIds,
+    strategy,
+    options,
+    onError: () => {
+      addErrorMessage(t('Seer failed to process your search. Please try again.'));
+    },
+  });
+
+  const queries = useMemo(() => {
+    if (!finalResponse) {
+      return [];
+    }
+    return transformResponse ? transformResponse(finalResponse) : [finalResponse];
+  }, [finalResponse, transformResponse]);
+
+  const hasAskSeerUxRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
+  const loadingContent = hasAskSeerUxRework ? (
+    <AskSeerLoadingStatus completedSteps={completedSteps} currentStep={currentStep} />
+  ) : (
+    <Stack flex="1">
+      <AskSeerSearchHeader title={t("I'm on it...")} loading />
+      <AskSeerProgressBlocks completedSteps={completedSteps} currentStep={currentStep} />
+    </Stack>
+  );
+
+  return (
+    <AskSeerComboBoxContent
+      {...props}
+      searchQuery={searchQuery}
+      setSearchQuery={setSearchQuery}
+      queries={queries}
+      submitQuery={submitQuery}
+      isPending={isSessionPending || isPolling}
+      isError={isSessionError}
+      errorAnalytics={{isFetch: true}}
+      errorTitle={t('Seer failed to process your search. Please try again.')}
+      unsupportedReason={unsupportedReason}
+      loadingContent={loadingContent}
+      applySeerSearchQuery={item => applySeerSearchQuery(item, runId ?? undefined)}
+      reset={reset}
+    />
+  );
+}
+
+interface AskSeerComboBoxContentProps<T extends QueryTokensProps> extends Omit<
+  AriaComboBoxProps<unknown>,
+  'children'
+> {
   applySeerSearchQuery: (item: T) => void;
   isError: boolean;
   isPending: boolean;
@@ -109,7 +197,7 @@ export interface AskSeerComboBoxProps<T extends QueryTokensProps> extends Omit<
   unsupportedReason?: string | null;
 }
 
-export function AskSeerComboBox<T extends QueryTokensProps>({
+function AskSeerComboBoxContent<T extends QueryTokensProps>({
   applySeerSearchQuery,
   isError,
   isPending,
@@ -123,7 +211,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   reset,
   unsupportedReason,
   ...props
-}: AskSeerComboBoxProps<T>) {
+}: AskSeerComboBoxContentProps<T>) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);

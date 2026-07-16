@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -7,7 +7,6 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import * as analytics from 'sentry/utils/analytics';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {
   AsyncSDKIntegrationContextProvider,
@@ -23,10 +22,7 @@ const defaultProviderProps = {
 };
 
 const feedbackIntegration = {
-  createForm: jest.fn(() => ({
-    appendToDom: jest.fn(),
-    open: jest.fn(),
-  })),
+  createForm: jest.fn(),
 } as unknown as FeedbackIntegration;
 
 function FeedbackProvider({children}: {children: React.ReactNode}) {
@@ -48,157 +44,118 @@ function InstallFeedbackIntegration() {
   return null;
 }
 
-function StatefulComboBox({
-  hasResults,
-  isError,
-}: {
-  hasResults: boolean;
-  isError: boolean;
-}) {
-  const [searchQuery, setSearchQuery] = useState('');
-
-  return (
-    <AskSeerComboBox
-      applySeerSearchQuery={() => {}}
-      isError={isError}
-      isPending={false}
-      queries={hasResults ? [{query: 'span.duration:>30s'}] : []}
-      searchQuery={searchQuery}
-      setSearchQuery={setSearchQuery}
-      submitQuery={() => {}}
-    />
-  );
-}
-
-function renderComboBox({
-  features,
-  hasResults,
-  isError = false,
-}: {
-  features: string[];
-  hasResults: boolean;
-  isError?: boolean;
-}) {
+function renderComboBox(features: string[]) {
   const {organization} = initializeOrg({
     organization: {features, hideAiFeatures: false},
   });
 
-  return render(
+  render(
     <SearchQueryBuilderProvider {...defaultProviderProps}>
-      <StatefulComboBox hasResults={hasResults} isError={isError} />
+      <AskSeerComboBox
+        initialQuery=""
+        projectIds={[]}
+        strategy="Traces"
+        applySeerSearchQuery={() => {}}
+      />
     </SearchQueryBuilderProvider>,
     {organization, additionalWrapper: FeedbackProvider}
   );
 }
 
+async function submitQuery() {
+  const input = await screen.findByRole('combobox', {
+    name: 'Ask Seer with Natural Language',
+  });
+  await userEvent.type(input, 'find slow spans{Enter}');
+}
+
 describe('AskSeerComboBox', () => {
   beforeEach(() => {
     destroyAnnouncer();
-    jest.restoreAllMocks();
-  });
-
-  it('always displays the feedback button when the rework is disabled', async () => {
-    renderComboBox({features: ['gen-ai-features'], hasResults: false});
-
-    expect(
-      await screen.findByRole('button', {name: 'Give Feedback'})
-    ).toBeInTheDocument();
-  });
-
-  it('only displays the feedback button with results when the rework is enabled', async () => {
-    renderComboBox({
-      features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
-      hasResults: false,
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: new Promise(() => {}),
     });
-
-    expect(
-      await screen.findByText("Describe what you're looking for")
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
   });
 
-  it('tracks a query submission once', async () => {
-    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    renderComboBox({features: ['gen-ai-features'], hasResults: false});
-
-    const input = await screen.findByRole('combobox', {
-      name: 'Ask Seer with Natural Language',
-    });
-    await userEvent.type(input, 'find slow spans{Enter}');
-
-    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
-      'ai_query.submitted',
-      expect.objectContaining({
-        area: '',
-        natural_language_query: 'find slow spans',
-      })
-    );
-    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
-  });
-
-  it('tracks a rejected query once', async () => {
-    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    renderComboBox({features: ['gen-ai-features'], hasResults: true});
-
-    const input = await screen.findByRole('combobox', {
-      name: 'Ask Seer with Natural Language',
-    });
-    await userEvent.type(input, '{ArrowDown}{ArrowDown}{Enter}');
-
-    const rejectedEvents = trackAnalyticsSpy.mock.calls.filter(
-      ([eventKey]) => eventKey === 'ai_query.rejected'
-    );
-    expect(rejectedEvents).toEqual([
-      [
-        'ai_query.rejected',
-        expect.objectContaining({
-          area: '',
-          natural_language_query: '',
-          num_queries_returned: 1,
+  it('submits the query to the polling endpoint', async () => {
+    const startRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: new Promise(() => {}),
+      match: [
+        MockApiClient.matchData({
+          natural_language_query: 'find slow spans',
+          project_ids: [],
+          strategy: 'Traces',
         }),
       ],
-    ]);
-  });
-
-  it('tracks each rendered error once', async () => {
-    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    const {rerender} = renderComboBox({
-      features: ['gen-ai-features'],
-      hasResults: false,
-      isError: true,
     });
 
-    expect(
-      await screen.findByText('An error occurred while fetching Seer queries')
-    ).toBeInTheDocument();
-    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
-      'ai_query.error',
+    renderComboBox(['gen-ai-features']);
+    await submitQuery();
+
+    expect(startRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/search-agent/start/',
       expect.objectContaining({
-        area: '',
-        natural_language_query: '',
-        is_fetch: undefined,
-        status_code: undefined,
+        data: {
+          natural_language_query: 'find slow spans',
+          project_ids: [],
+          strategy: 'Traces',
+        },
+        method: 'POST',
       })
     );
-    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
-
-    rerender(
-      <SearchQueryBuilderProvider {...defaultProviderProps}>
-        <StatefulComboBox hasResults={false} isError />
-      </SearchQueryBuilderProvider>
-    );
-
-    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('displays the feedback button with results when the rework is enabled', async () => {
-    renderComboBox({
-      features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
-      hasResults: true,
+  it('shows the existing loading experience when the rework is disabled', async () => {
+    renderComboBox(['gen-ai-features']);
+    await submitQuery();
+
+    expect(await screen.findByText("I'm on it...")).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('shows the single loading status when the rework is enabled', async () => {
+    renderComboBox(['gen-ai-features', 'gen-ai-ask-seer-ux-rework']);
+    await submitQuery();
+
+    expect(await screen.findByRole('status')).toHaveTextContent("I'm on it...");
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+  });
+
+  it('shows the feedback footer when displaying results', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 1},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/1/',
+      body: {
+        session: {
+          completed_steps: [],
+          created_at: '2026-01-01T00:00:00Z',
+          current_step: null,
+          final_response: {query: 'span.duration:>30s'},
+          natural_language_query: 'find slow spans',
+          org_id: 1,
+          org_slug: 'org-slug',
+          run_id: 1,
+          status: 'completed',
+          strategy: 'Traces',
+          updated_at: '2026-01-01T00:00:00Z',
+        },
+      },
     });
 
+    renderComboBox(['gen-ai-features', 'gen-ai-ask-seer-ux-rework']);
+    await submitQuery();
+
     expect(
-      await screen.findByRole('button', {name: 'Give Feedback'})
+      await screen.findByText('Do any of these look right to you?')
     ).toBeInTheDocument();
   });
 });
