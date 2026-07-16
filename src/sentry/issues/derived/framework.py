@@ -125,7 +125,7 @@ class Feature[T]:
         self._default = default
         self._default_factory = default_factory
         self._codec = codec or IDENTITY_CODEC
-        self._hash = hash(name)
+        self._hash = hash((name, version))
 
     @property
     def content_id(self) -> str:
@@ -153,6 +153,8 @@ class Feature[T]:
         return (self, val)
 
     def __repr__(self) -> str:
+        if self.version:
+            return f"Feature({self.name!r}, v={self.version})"
         return f"Feature({self.name!r})"
 
     def __hash__(self) -> int:
@@ -160,7 +162,7 @@ class Feature[T]:
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Feature):
-            return self.name == other.name
+            return self.name == other.name and self.version == other.version
         return NotImplemented
 
 
@@ -329,14 +331,16 @@ def aggregator[E: HasType](
 class Pipeline[E: HasType]:
     """Applies a set of Aggregators to a State for each event in a sequence, producing a new State."""
 
+    # Increment to change the pipeline hash when the feature set is
+    # unchanged but pipeline behaviour has changed meaningfully.
+    version: int = 0
+
     def __init__(
         self,
         aggregators: Iterable[Aggregator[E]],
         *,
-        version: int,
         check_mutations: bool = False,
     ) -> None:
-        self._version = version
         self._check_mutations = check_mutations
         aggregators = tuple(aggregators)
         self._aggregators, self._features = _validate_and_sort(aggregators)
@@ -344,10 +348,9 @@ class Pipeline[E: HasType]:
             (agg, frozenset({*agg.deps, *agg.outputs}), frozenset(agg.outputs))
             for agg in self._aggregators
         )
-
-    @property
-    def version(self) -> int:
-        return self._version
+        payload = f"{self.version}:" + ",".join(sorted(f.content_id for f in self._features))
+        digest = hashlib.blake2b(payload.encode(), digest_size=8).digest()
+        self._pipeline_hash = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
 
     @property
     def aggregators(self) -> tuple[Aggregator[E], ...]:
@@ -357,11 +360,10 @@ class Pipeline[E: HasType]:
     def features(self) -> tuple[Feature[Any], ...]:
         return self._features
 
-    def get_feature_hash(self) -> str:
-        """Return a short digest capturing the set of features and their versions."""
-        payload = ",".join(sorted(f.content_id for f in self._features))
-        digest = hashlib.blake2b(payload.encode(), digest_size=8).digest()
-        return base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
+    @property
+    def pipeline_hash(self) -> str:
+        """Short digest capturing the pipeline version, feature set, and feature versions."""
+        return self._pipeline_hash
 
     def initial_state(self) -> State:
         return State({f: f.initial_value() for f in self._features})

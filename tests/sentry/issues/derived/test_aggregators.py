@@ -47,7 +47,7 @@ def _pipeline(
     aggs = aggregators if aggregators is not None else AGGREGATORS
     if targets is not None:
         aggs = resolve(targets, aggs)
-    return Pipeline(aggs, version=1, check_mutations=True)
+    return Pipeline(aggs, check_mutations=True)
 
 
 def _run_for_feature[T](feature: Feature[T], entries: list[FakeEntry]) -> T:
@@ -1044,7 +1044,7 @@ def test_duplicate_output_rejected() -> None:
         return None
 
     with pytest.raises(ValueError, match="output by both"):
-        Pipeline([agg1, agg2], version=1)
+        Pipeline([agg1, agg2])
 
 
 def test_missing_dependency_rejected() -> None:
@@ -1056,7 +1056,7 @@ def test_missing_dependency_rejected() -> None:
         return None
 
     with pytest.raises(ValueError, match="not output by any aggregator"):
-        Pipeline([agg], version=1)
+        Pipeline([agg])
 
 
 def test_cycle_rejected() -> None:
@@ -1072,7 +1072,7 @@ def test_cycle_rejected() -> None:
         return None
 
     with pytest.raises(ValueError, match="Cycle detected"):
-        Pipeline([agg1, agg2], version=1)
+        Pipeline([agg1, agg2])
 
 
 def test_full_pipeline_constructs() -> None:
@@ -1112,7 +1112,7 @@ def test_full_pipeline_mixed_events() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Feature.content_id and Pipeline.get_feature_hash
+# Feature.content_id and Pipeline.pipeline_hash
 # ---------------------------------------------------------------------------
 
 
@@ -1126,12 +1126,12 @@ def test_feature_content_id_explicit_version() -> None:
     assert f.content_id == "foo:3"
 
 
-def test_get_feature_hash_deterministic() -> None:
+def test_pipeline_hash_deterministic() -> None:
     p = _pipeline()
-    assert p.get_feature_hash() == p.get_feature_hash()
+    assert p.pipeline_hash == p.pipeline_hash
 
 
-def test_get_feature_hash_changes_with_version() -> None:
+def test_pipeline_hash_changes_with_feature_version() -> None:
     A = Feature[int]("a", default=0)
     B = Feature[int]("b", default=0)
 
@@ -1143,7 +1143,7 @@ def test_get_feature_hash_changes_with_version() -> None:
     def agg_b(state: StateView, entry: object) -> AggregatorResult:
         return None
 
-    p1 = Pipeline([agg_a, agg_b], version=1)
+    p1 = Pipeline([agg_a, agg_b])
 
     A_v2 = Feature[int]("a", default=0, version=1)
 
@@ -1151,12 +1151,28 @@ def test_get_feature_hash_changes_with_version() -> None:
     def agg_a2(state: StateView, entry: object) -> AggregatorResult:
         return None
 
-    p2 = Pipeline([agg_a2, agg_b], version=1)
+    p2 = Pipeline([agg_a2, agg_b])
 
-    assert p1.get_feature_hash() != p2.get_feature_hash()
+    assert p1.pipeline_hash != p2.pipeline_hash
 
 
-def test_get_feature_hash_is_order_independent() -> None:
+def test_pipeline_hash_changes_with_pipeline_version() -> None:
+    A = Feature[int]("a", default=0)
+
+    @aggregator((A,))
+    def agg_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    class V0(Pipeline[Any]):
+        version = 0
+
+    class V1(Pipeline[Any]):
+        version = 1
+
+    assert V0([agg_a]).pipeline_hash != V1([agg_a]).pipeline_hash
+
+
+def test_pipeline_hash_is_order_independent() -> None:
     A = Feature[int]("a", default=0)
     B = Feature[int]("b", default=0)
 
@@ -1176,14 +1192,14 @@ def test_get_feature_hash_is_order_independent() -> None:
     def agg_a2(state: StateView, entry: object) -> AggregatorResult:
         return None
 
-    p1 = Pipeline([agg_a, agg_b], version=1)
-    p2 = Pipeline([agg_a2, agg_b2], version=1)
+    p1 = Pipeline([agg_a, agg_b])
+    p2 = Pipeline([agg_a2, agg_b2])
 
-    assert p1.get_feature_hash() == p2.get_feature_hash()
+    assert p1.pipeline_hash == p2.pipeline_hash
 
 
-def test_get_feature_hash_is_unpadded_base64() -> None:
+def test_pipeline_hash_is_unpadded_base64() -> None:
     p = _pipeline()
-    h = p.get_feature_hash()
+    h = p.pipeline_hash
     assert "=" not in h
     assert len(h) == 11  # 8 bytes -> 11 base64 chars (no padding)
