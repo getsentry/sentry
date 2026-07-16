@@ -80,21 +80,55 @@ describe('AskSeerPollingComboBox loading state', () => {
     });
   });
 
-  it('preserves the existing loading experience when the rework is disabled', async () => {
+  it('shows the existing loading experience without the feedback footer when the rework is disabled', async () => {
     renderPollingComboBox(['gen-ai-features']);
     await submitQuery();
 
     expect(await screen.findByText("I'm on it...")).toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
   });
 
-  it('shows the single loading status when the rework is enabled', async () => {
+  it('shows the single loading status without the feedback footer when the rework is enabled', async () => {
     renderPollingComboBox(['gen-ai-features', 'gen-ai-ask-seer-ux-rework']);
     await submitQuery();
 
     expect(await screen.findByRole('status')).toHaveTextContent("I'm on it...");
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
+  });
+
+  it('shows the feedback footer when displaying results', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 1},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/1/',
+      body: {
+        session: {
+          completed_steps: [],
+          created_at: '2026-01-01T00:00:00Z',
+          current_step: null,
+          final_response: {query: 'span.duration:>30s'},
+          natural_language_query: 'find slow spans',
+          org_id: 1,
+          org_slug: 'org-slug',
+          run_id: 1,
+          status: 'completed',
+          strategy: 'Traces',
+          updated_at: '2026-01-01T00:00:00Z',
+        },
+      },
+    });
+
+    renderPollingComboBox(['gen-ai-features', 'gen-ai-ask-seer-ux-rework']);
+    await submitQuery();
+
+    expect(
+      await screen.findByText('Do any of these look right to you?')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
   });
 });
