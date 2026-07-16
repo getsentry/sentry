@@ -166,7 +166,7 @@ function AskSeerPollingPopoverContent({
 
   return (
     <SeerContent onMouseLeave={onMouseLeave}>
-      <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
+      <AskSeerSearchHeader title={t("Describe what you're looking for")} />
     </SeerContent>
   );
 }
