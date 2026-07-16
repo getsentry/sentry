@@ -23,6 +23,7 @@ import {
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {t} from 'sentry/locale';
 import type {
   EChartClickHandler,
   EChartDataZoomHandler,
@@ -378,7 +379,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     legendSelected:
       props.legendSelection === undefined
         ? undefined
-        : props.legendSelection.Releases !== false,
+        : props.legendSelection[t('Releases')] !== false,
     yAxisIndex: yAxes.length,
   });
 
