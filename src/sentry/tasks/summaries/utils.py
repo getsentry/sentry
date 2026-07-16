@@ -690,6 +690,12 @@ TOP_SPANS_LIMIT = 5
 TOP_SPANS_QUERY_LIMIT = 50
 
 
+def _build_span_name_filter(names: list[str]) -> str:
+    return " OR ".join(
+        'span.name:"{}"'.format(name.replace("\\", "\\\\").replace('"', '\\"')) for name in names
+    )
+
+
 def organization_top_spans(
     ctx: OrganizationReportContext,
     referrer: str,
@@ -751,10 +757,7 @@ def organization_top_spans(
     with start_span(
         op="weekly_reports.top_spans_projects", name="weekly_reports.top_spans_projects"
     ):
-        span_name_filter = " OR ".join(
-            'span.name:"{}"'.format(name.replace("\\", "\\\\").replace('"', '\\"'))
-            for name in top_span_names
-        )
+        span_name_filter = _build_span_name_filter(top_span_names)
         project_result = Spans.run_table_query(
             params=snuba_params,
             query_string=f"is_transaction:1 ({span_name_filter})",
@@ -796,12 +799,13 @@ def organization_top_spans_timeseries(
     )
     config = SearchResolverConfig(auto_fields=True)
 
+    span_name_filter = _build_span_name_filter([s["name"] for s in ctx.top_spans[:TOP_SPANS_LIMIT]])
     with start_span(
         op="weekly_reports.top_spans_timeseries", name="weekly_reports.top_spans_timeseries"
     ):
         ts_result = Spans.run_top_events_timeseries_query(
             params=snuba_params,
-            query_string="is_transaction:1 has:span.name",
+            query_string=f"is_transaction:1 ({span_name_filter})",
             y_axes=["p95(span.duration)", "sum(span.duration)"],
             raw_groupby=["span.name"],
             orderby=["-sum(span.duration)"],
