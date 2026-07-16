@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
@@ -25,6 +25,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -235,117 +236,105 @@ function CustomFilterModal({
   });
 
   return (
-    <Fragment>
+    <form.AppForm form={form}>
       <Header closeButton>
         <Heading as="h4">
           {filter ? t('Edit Custom Filter') : t('Create Custom Filter')}
         </Heading>
       </Header>
       <Body>
-        <form.AppForm form={form}>
-          <Flex direction="column" gap="xl">
-            <form.AppField name="name">
-              {field => (
-                <field.Layout.Stack label={t('Name')} required>
-                  <field.Input
-                    value={field.state.value}
-                    onChange={field.handleChange}
-                    placeholder={t('e.g. Ignore flaky connection errors')}
-                  />
-                </field.Layout.Stack>
-              )}
-            </form.AppField>
+        <Flex direction="column" gap="xl">
+          <form.AppField name="name">
+            {field => (
+              <field.Layout.Stack label={t('Name')} required>
+                <field.Input
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={t('e.g. Ignore flaky connection errors')}
+                />
+              </field.Layout.Stack>
+            )}
+          </form.AppField>
 
-            <form.AppField name="conditions">
-              {conditionsField => {
-                const conditions = conditionsField.state.value;
-                const activeExclusiveProperty = getActiveExclusiveProperty(conditions);
-                return (
-                  <Flex direction="column" gap="sm">
-                    <Flex justify="between" align="center" gap="md">
-                      <Text variant="muted" size="sm">
-                        {t(
-                          'Events must match all conditions (combined with AND) to be filtered. Each condition is a glob pattern matched against the selected field.'
-                        )}
-                      </Text>
+          <form.AppField name="conditions">
+            {conditionsField => {
+              const conditions = conditionsField.state.value;
+              const activeExclusiveProperty = getActiveExclusiveProperty(conditions);
+              return (
+                <Flex direction="column" gap="sm">
+                  <Flex justify="between" align="center" gap="md">
+                    <Text variant="muted" size="sm">
+                      {t(
+                        'Events must match all conditions (combined with AND) to be filtered. Each condition is a glob pattern matched against the selected field.'
+                      )}
+                    </Text>
+                    <Button
+                      size="sm"
+                      icon={<IconAdd />}
+                      onClick={() =>
+                        conditionsField.pushValue(emptyCondition(activeExclusiveProperty))
+                      }
+                    >
+                      {t('Add Condition')}
+                    </Button>
+                  </Flex>
+                  {conditions.map((condition, index) => (
+                    <Flex key={index} gap="md" align="center">
+                      <Container width="160px">
+                        <form.AppField name={`conditions[${index}].property`}>
+                          {propertyField => (
+                            <propertyField.Select
+                              aria-label={t('Condition property')}
+                              clearable={false}
+                              options={getConditionPropertyOptions(
+                                propertyOptions,
+                                conditions,
+                                index
+                              )}
+                              value={propertyField.state.value}
+                              onChange={value => propertyField.handleChange(value)}
+                            />
+                          )}
+                        </form.AppField>
+                      </Container>
+                      <Text variant="muted">{t('matches')}</Text>
+                      <Flex flex={1}>
+                        <form.AppField name={`conditions[${index}].value`}>
+                          {valueField => (
+                            <valueField.Input
+                              aria-label={t('Condition value')}
+                              placeholder={getValuePlaceholder(condition.property)}
+                              value={valueField.state.value}
+                              onChange={valueField.handleChange}
+                            />
+                          )}
+                        </form.AppField>
+                      </Flex>
                       <Button
                         size="sm"
-                        icon={<IconAdd />}
-                        onClick={() =>
-                          conditionsField.pushValue(
-                            emptyCondition(activeExclusiveProperty)
-                          )
-                        }
-                      >
-                        {t('Add Condition')}
-                      </Button>
+                        variant="transparent"
+                        icon={<IconDelete />}
+                        aria-label={t('Remove condition')}
+                        disabled={conditions.length === 1}
+                        onClick={() => conditionsField.removeValue(index)}
+                      />
                     </Flex>
-                    {conditions.map((condition, index) => (
-                      <Flex key={index} gap="md" align="center">
-                        <Container width="160px">
-                          <form.AppField name={`conditions[${index}].property`}>
-                            {propertyField => (
-                              <propertyField.Select
-                                aria-label={t('Condition property')}
-                                clearable={false}
-                                options={getConditionPropertyOptions(
-                                  propertyOptions,
-                                  conditions,
-                                  index
-                                )}
-                                value={propertyField.state.value}
-                                onChange={value => propertyField.handleChange(value)}
-                              />
-                            )}
-                          </form.AppField>
-                        </Container>
-                        <Text variant="muted">{t('matches')}</Text>
-                        <Flex flex={1}>
-                          <form.AppField name={`conditions[${index}].value`}>
-                            {valueField => (
-                              <valueField.Input
-                                aria-label={t('Condition value')}
-                                placeholder={getValuePlaceholder(condition.property)}
-                                value={valueField.state.value}
-                                onChange={valueField.handleChange}
-                              />
-                            )}
-                          </form.AppField>
-                        </Flex>
-                        <Button
-                          size="sm"
-                          variant="transparent"
-                          icon={<IconDelete />}
-                          aria-label={t('Remove condition')}
-                          disabled={conditions.length === 1}
-                          onClick={() => conditionsField.removeValue(index)}
-                        />
-                      </Flex>
-                    ))}
-                  </Flex>
-                );
-              }}
-            </form.AppField>
-          </Flex>
-        </form.AppForm>
+                  ))}
+                </Flex>
+              );
+            }}
+          </form.AppField>
+        </Flex>
       </Body>
       <Footer>
         <Flex gap="md">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <form.Subscribe selector={state => state.isSubmitting}>
-            {isSubmitting => (
-              <Button
-                variant="primary"
-                busy={isSubmitting}
-                onClick={() => form.handleSubmit()}
-              >
-                {filter ? t('Save Changes') : t('Create Filter')}
-              </Button>
-            )}
-          </form.Subscribe>
+          <form.SubmitButton>
+            {filter ? t('Save Changes') : t('Create Filter')}
+          </form.SubmitButton>
         </Flex>
       </Footer>
-    </Fragment>
+    </form.AppForm>
   );
 }
 
@@ -383,8 +372,22 @@ export function CustomFilters({project}: {project: Project}) {
     }
   );
   const {queryKey} = queryOptions;
-  const [listUrl] = queryKey;
-  const detailUrl = (id: string) => `${listUrl}${id}/`;
+
+  const listUrl = getApiUrl(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/',
+    {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
+  );
+  const detailUrl = (filterId: string) =>
+    getApiUrl(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/custom-inbound-filters/$filterId/',
+      {
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.slug,
+          filterId,
+        },
+      }
+    );
 
   const {data: filters = [], isPending, isError, refetch} = useQuery(queryOptions);
 
