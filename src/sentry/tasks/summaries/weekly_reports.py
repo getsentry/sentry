@@ -791,7 +791,7 @@ def render_template_context(
     def top_issues():
         def all_issues():
             for project_ctx in user_projects:
-                for group, count in project_ctx.key_errors_by_group:
+                for group, count in project_ctx.key_error_issues:
                     display = get_group_display(group)
                     (
                         substatus,

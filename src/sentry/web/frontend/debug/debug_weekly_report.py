@@ -123,7 +123,7 @@ class DebugWeeklyReportView(MailPreviewView):
                 (GroupStatus.RESOLVED, GroupSubStatus.NEW),
                 (GroupStatus.UNRESOLVED, GroupSubStatus.ONGOING),
             ]
-            project_context.key_errors_by_group = [
+            project_context.key_error_issues = [
                 (
                     make_debug_group(
                         group_id=10000 + (project.id * 100) + group_index,
