@@ -108,6 +108,8 @@ def get_canonical_contributor(
         sentry_sdk.capture_exception(e)
         return None
 
+    # Prefer the current billing period's seat holder (contributor with the most
+    # actions), with id as a stable tiebreaker.
     return (
         OrganizationContributors.objects.filter(
             organization_id=organization_id,
@@ -115,7 +117,7 @@ def get_canonical_contributor(
             hostname=hostname,
             external_identifier=external_identifier,
         )
-        .order_by("id")
+        .order_by("-num_actions", "id")
         .first()
     )
 

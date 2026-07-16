@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 from sentry import features
 from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.utils.hostname import InstanceHostnameError
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.seer.code_review.preflight import CodeReviewPreflightService, PreflightDenialReason
 from sentry.silo.base import SiloMode
@@ -295,6 +296,32 @@ class TestCodeReviewPreflightService(TestCase):
 
         assert result.allowed is False
         assert result.denial_reason == PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
+
+    @patch("sentry.seer.code_review.contributor_seats.sentry_sdk.capture_exception")
+    @patch(
+        "sentry.seer.code_review.contributor_seats.instance_hostname",
+        side_effect=InstanceHostnameError("missing"),
+    )
+    @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
+    def test_denied_when_integration_missing_hostname(
+        self, mock_hostname: MagicMock, mock_capture: MagicMock
+    ) -> None:
+        self.create_repository_settings(
+            repository=self.repo,
+            enabled_code_review=True,
+        )
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
+            external_identifier=self.external_identifier,
+        )
+
+        service = self._create_service()
+        result = service.check()
+
+        assert result.allowed is False
+        assert result.denial_reason == PreflightDenialReason.ORG_CONTRIBUTOR_NOT_FOUND
+        mock_capture.assert_called_once()
 
     @with_feature(["organizations:gen-ai-features", "organizations:seat-based-seer-enabled"])
     def test_denied_when_missing_external_identifier(self) -> None:
