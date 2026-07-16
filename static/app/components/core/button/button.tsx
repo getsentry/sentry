@@ -16,6 +16,7 @@ import {useButtonFunctionality} from './useButtonFunctionality';
 
 export type {ButtonProps};
 
+// test comment to trigger PR labeler check
 export function Button({
   disabled,
   type = 'button',
