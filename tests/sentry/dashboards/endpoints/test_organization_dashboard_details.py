@@ -4719,14 +4719,14 @@ class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
     def test_favorite_dashboard(self) -> None:
         assert self.user.id not in self.dashboard.favorited_by
         self.login_as(user=self.user)
-        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": "true"})
+        response = self.do_request("put", self.url(self.dashboard.id), data={"shouldFavorite": "true"})
         assert response.status_code == 204
         assert self.user.id in self.dashboard.favorited_by
 
     def test_unfavorite_dashboard(self) -> None:
         assert self.user_1.id in self.dashboard.favorited_by
         self.login_as(user=self.user_1)
-        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": False})
+        response = self.do_request("put", self.url(self.dashboard.id), data={"shouldFavorite": False})
         assert response.status_code == 204
         assert self.user_1.id not in self.dashboard.favorited_by
 
@@ -4746,7 +4746,7 @@ class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
 
         # assert if user can edit the favorite status of the dashboard
         assert self.user_2.id in self.dashboard.favorited_by
-        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": False})
+        response = self.do_request("put", self.url(self.dashboard.id), data={"shouldFavorite": False})
         assert response.status_code == 204
         assert self.user_2.id not in self.dashboard.favorited_by
 
@@ -4799,7 +4799,7 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
             dashboard=preexisting_dashboard,
         )
         # Insert self.dashboard
-        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": "true"})
+        response = self.do_request("put", self.url(self.dashboard.id), data={"shouldFavorite": "true"})
         assert response.status_code == 204
 
         assert list(
@@ -4817,7 +4817,7 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
     def test_unfavorite_dashboard(self) -> None:
         assert self.user_1.id in self.dashboard.favorited_by
         self.login_as(user=self.user_1)
-        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": False})
+        response = self.do_request("put", self.url(self.dashboard.id), data={"shouldFavorite": False})
         assert response.status_code == 204
         assert (
             DashboardFavoriteUser.objects.get_favorite_dashboard(

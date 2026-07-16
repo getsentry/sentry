@@ -281,10 +281,10 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
         if not request.user.is_authenticated:
             return Response(status=401)
 
-        is_favorited = request.data.get("isFavorited")
+        should_favorite = request.data.get("shouldFavorite", request.data.get("isFavorited"))
 
         if features.has("organizations:dashboards-starred", organization, actor=request.user):
-            if is_favorited:
+            if should_favorite:
                 DashboardFavoriteUser.objects.insert_favorite_dashboard(
                     organization=organization,
                     user_id=request.user.id,
@@ -300,9 +300,9 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
 
         current_favorites = set(dashboard.favorited_by)
 
-        if is_favorited and request.user.id not in current_favorites:
+        if should_favorite and request.user.id not in current_favorites:
             current_favorites.add(request.user.id)
-        elif not is_favorited and request.user.id in current_favorites:
+        elif not should_favorite and request.user.id in current_favorites:
             current_favorites.remove(request.user.id)
         else:
             return Response(status=204)
