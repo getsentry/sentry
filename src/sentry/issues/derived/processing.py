@@ -18,11 +18,7 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-# Pipeline with current aggregators. Versioned because in principle
-# we may want to change it in place and correlate that to existing derived data
-# for invalidation purposes.
-# TODO: Shouldn't it be versioned by a feature set hash? To be sorted out later.
-PIPELINE: Pipeline[GroupActionLogEntry] = Pipeline(AGGREGATORS, version=1)
+PIPELINE: Pipeline[GroupActionLogEntry] = Pipeline(AGGREGATORS)
 
 DEFAULT_BATCH_SIZE = 1000
 INLINE_BATCH_SIZE = 100

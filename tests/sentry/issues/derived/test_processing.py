@@ -77,9 +77,7 @@ class ProcessGroupLogTest(TestCase):
         super().setUp()
         # Enable mutation checking so aggregators that modify state in place fail.
         self._original_pipeline = processing.PIPELINE
-        processing.PIPELINE = Pipeline(
-            AGGREGATORS, version=processing.PIPELINE.version, check_mutations=True
-        )
+        processing.PIPELINE = Pipeline(AGGREGATORS, check_mutations=True)
 
     def tearDown(self) -> None:
         processing.PIPELINE = self._original_pipeline
@@ -361,7 +359,7 @@ def test_mutation_checking_catches_in_place_mutation() -> None:
         state[ITEMS].append("oops")
         return None
 
-    p = Pipeline([bad_mutator], version=1, check_mutations=True)
+    p = Pipeline([bad_mutator], check_mutations=True)
     state = p.initial_state()
 
     class FakeEntry:
@@ -392,7 +390,7 @@ def test_build_update_json_blob_includes_all_json_features() -> None:
     def compute(state: StateView, entry: object) -> AggregatorResult:
         return None
 
-    pipeline = Pipeline([compute], version=1)
+    pipeline = Pipeline([compute])
     state = pipeline.initial_state()
 
     # Update only A — blob should still contain both A and B
