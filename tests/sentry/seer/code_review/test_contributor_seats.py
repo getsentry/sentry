@@ -4,6 +4,7 @@ import pytest
 from django.db import IntegrityError
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.utils.hostname import InstanceHostnameError
 from sentry.models.organizationcontributors import (
@@ -487,7 +488,10 @@ class GetOrCreateContributorTest(TestCase):
         )
 
     def _call(
-        self, integration=None, external_identifier: str = "123", alias: str | None = "alice"
+        self,
+        integration: Integration | None = None,
+        external_identifier: str = "123",
+        alias: str | None = "alice",
     ) -> OrganizationContributors | None:
         return get_or_create_contributor(
             organization=self.organization,
