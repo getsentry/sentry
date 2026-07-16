@@ -701,7 +701,6 @@ def _get_transaction_projects(ctx: OrganizationReportContext) -> list[Project]:
     ]
 
 
-
 def organization_top_spans(
     ctx: OrganizationReportContext,
     referrer: str,
