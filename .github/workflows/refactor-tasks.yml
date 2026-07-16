@@ -1,10 +1,8 @@
 name: refactor tasks
 # Runs the @sentry/refactor-tasks convention scanner and reports findings to
 # Sentry, where Seer can open fix PRs. See .sentry-refactor-tasks/README.md.
-# Every trigger here is employee-only by construction: workflow_dispatch
-# requires repo write access, push to master is branch-protected, and schedule
-# runs as GitHub with no external actor. There is no fork/PR trigger, so no
-# "Trigger:" label gate (as in getsentry-dispatch.yml) is needed.
+# All triggers are employee-only: dispatch and push:master both require repo
+# write access, and schedule has no external actor.
 on:
   workflow_dispatch:
   schedule:
@@ -17,7 +15,6 @@ on:
       - '.sentry-refactor-tasks/conventions/**'
       - '.github/workflows/refactor-tasks.yml'
 
-# Only one scan at a time; a newer run supersedes an in-flight one.
 concurrency:
   group: refactor-tasks
   cancel-in-progress: false
@@ -35,12 +32,8 @@ jobs:
 
       - name: Scan and report
         env:
-          # Project that receives the findings.
           SENTRY_DSN: ${{ secrets.SENTRY_REFACTOR_TASKS_DSN }}
-          # Inference backend: OpenRouter is used automatically when the key is set.
           OPENROUTER_API_KEY: ${{ secrets.REFACTOR_TASKS_OPENROUTER_API_KEY }}
           INFERENCE_MODEL: haiku
           SCAN_CONCURRENCY: '4'
-          # Chunk reporting so a large scan stays under spike protection.
-          REFACTOR_TASKS_SENTRY_CHUNK_SIZE: '25'
         run: pnpm refactor-tasks
