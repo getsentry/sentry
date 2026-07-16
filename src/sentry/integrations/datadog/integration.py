@@ -220,12 +220,17 @@ class DatadogOrgMonitoringProvider(OrgMonitoringProvider):
     def build_connection(
         self, organization: Organization
     ) -> MonitoringProviderConnectionData | None:
-        integration = integration_service.get_integration(
-            organization_id=organization.id,
-            provider=self.provider_key,
-            status=ObjectStatus.ACTIVE,
+        ctx = integration_service.organization_context(
+            organization_id=organization.id, provider=self.provider_key
         )
-        if integration is None:
+        integration = ctx.integration
+        org_integration = ctx.organization_integration
+        if (
+            integration is None
+            or org_integration is None
+            or integration.status != ObjectStatus.ACTIVE
+            or org_integration.status != ObjectStatus.ACTIVE
+        ):
             return None
 
         metadata = integration.metadata or {}

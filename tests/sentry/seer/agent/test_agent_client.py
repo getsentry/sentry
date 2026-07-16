@@ -1806,6 +1806,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert conn["identity_id"] == identity.id
         assert conn["auth_method"] == "oauth"
         assert conn["encrypted_auth_headers"] is None
+        assert conn["refreshable"] is True
 
     def test_personal_datadog_pat_overrides_org(self) -> None:
         self._create_org_datadog_integration()
@@ -1825,6 +1826,7 @@ class TestGetMonitoringProviderConnections(TestCase):
         assert conn["identity_id"] == identity.id
         assert conn["auth_method"] == "pat"
         assert conn["encrypted_auth_headers"] is None
+        assert conn["refreshable"] is False
 
     def test_org_datadog_kept_when_personal_is_different_family(self) -> None:
         self._create_org_datadog_integration()
@@ -1852,6 +1854,20 @@ class TestGetMonitoringProviderConnections(TestCase):
             name="Datadog",
             metadata={"api_key": "org-api-key", "app_key": "org-app-key", "site": "datadoghq.com"},
             status=ObjectStatus.DISABLED,
+        )
+
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_datadog_connection_ignores_uninstalled_org_integration(self) -> None:
+        # On uninstall the OrganizationIntegration goes PENDING_DELETION while the Integration can
+        # stay ACTIVE until async deletion runs -- creds must not leak during that window.
+        self.create_integration(
+            organization=self.organization,
+            provider="datadog",
+            external_id="dd-org-uuid",
+            name="Datadog",
+            metadata={"api_key": "org-api-key", "app_key": "org-app-key", "site": "datadoghq.com"},
+            oi_params={"status": ObjectStatus.PENDING_DELETION},
         )
 
         assert get_monitoring_provider_connections(self.organization, None) == []

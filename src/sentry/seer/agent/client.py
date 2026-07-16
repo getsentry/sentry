@@ -167,6 +167,7 @@ def _get_personal_monitoring_connections(
                         encrypted_access_token=encrypted_access_token,
                         identity_id=identity.id,
                         auth_method=auth_method,
+                        refreshable=is_oauth_provider,
                     )
                 )
 
