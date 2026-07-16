@@ -709,6 +709,9 @@ class Fixtures:
     def create_dashboard(self, *args, **kwargs):
         return Factories.create_dashboard(*args, **kwargs)
 
+    def create_dashboard_favorite_user(self, *args, **kwargs):
+        return Factories.create_dashboard_favorite_user(*args, **kwargs)
+
     def create_dashboard_widget(self, *args, **kwargs):
         return Factories.create_dashboard_widget(*args, **kwargs)
 
