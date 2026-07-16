@@ -128,6 +128,51 @@ describe('AskSeerComboBox', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows results after retrying a failed start request', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      statusCode: 500,
+    });
+
+    renderComboBox(['gen-ai-features']);
+    await submitQuery();
+
+    expect(
+      await screen.findByText('Seer failed to process your search. Please try again.')
+    ).toBeInTheDocument();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 1},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/1/',
+      body: {
+        session: {
+          completed_steps: [],
+          created_at: '2026-01-01T00:00:00Z',
+          current_step: null,
+          final_response: {query: 'span.duration:>30s'},
+          natural_language_query: 'find slow spans',
+          org_id: 1,
+          org_slug: 'org-slug',
+          run_id: 1,
+          status: 'completed',
+          strategy: 'Traces',
+          updated_at: '2026-01-01T00:00:00Z',
+        },
+      },
+    });
+
+    await userEvent.keyboard('{Enter}');
+
+    expect(
+      await screen.findByText('Do any of these look right to you?')
+    ).toBeInTheDocument();
+  });
+
   it('shows the existing loading experience when the rework is disabled', async () => {
     renderComboBox(['gen-ai-features']);
     await submitQuery();

@@ -116,6 +116,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
       }
       inFlightQueryRef.current = query;
       setWaitingForResponse(true);
+      setStartFailed(false);
 
       try {
         const response = (await api.requestPromise(
