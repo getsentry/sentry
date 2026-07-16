@@ -99,6 +99,13 @@ Widget-type-specific rules:
 - For text widgets, widget_type must be null and queries must be empty.
 - Description must not exceed 255 characters for non-text widgets. For text widgets,
 description must not exceed 15,000 characters.
+- For heatmap widgets (display_type "heatmap"):
+  - widget_type must be "tracemetrics"; heatmaps are not supported on any other dataset.
+  - Use exactly one filter (one query) with exactly one aggregate.
+  - That aggregate must use the "count" function over a distribution-type trace metric, \
+in the 4-argument tracemetric form: count(value, <metric_name>, distribution, <metric_unit>). \
+Only "count" is supported; counter and gauge metrics are not.
+  - Do not use equations, group-by columns, or thresholds.
 
 Limits:
 - A dashboard can have at most {Dashboard.MAX_WIDGETS} widgets.
