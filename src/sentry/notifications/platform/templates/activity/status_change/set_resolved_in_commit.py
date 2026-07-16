@@ -6,7 +6,7 @@ from sentry.notifications.platform.templates.activity.base import (
     create_activity_notification_example,
     get_issue_description,
 )
-from sentry.notifications.platform.templates.activity.set_resolved.base import (
+from sentry.notifications.platform.templates.activity.status_change.base import (
     get_resolution_subject,
 )
 from sentry.notifications.platform.types import (
