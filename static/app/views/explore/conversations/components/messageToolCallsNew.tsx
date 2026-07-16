@@ -30,11 +30,18 @@ interface MessageToolCallsNewProps {
 }
 
 /**
- * Tool-call list for the redesigned transcript. Calls collapse behind a
- * `N tool calls` summary (with an error count) that is collapsed by default, to
- * keep tool-heavy turns compact. Each revealed row is an accent wrench +
- * `ToolTag` capped at the message width, with the duration right-aligned.
- * Selection shows an outline.
+ * A turn with fewer tool calls than this reads fine as a plain list, so it is
+ * left expanded; longer runs are the ones that bury the surrounding reasoning.
+ */
+const COLLAPSE_THRESHOLD = 5;
+
+/**
+ * Tool-call list for the redesigned transcript. Runs of at least
+ * `COLLAPSE_THRESHOLD` calls collapse behind a `N tool calls` summary (with an
+ * error count) that is collapsed by default, to keep tool-heavy turns compact;
+ * shorter runs render inline. Each row is an accent wrench + `ToolTag` capped
+ * at the message width, with the duration right-aligned. Selection shows an
+ * outline.
  */
 export function MessageToolCallsNew({
   toolCalls,
@@ -57,6 +64,11 @@ export function MessageToolCallsNew({
       ))}
     </Stack>
   );
+
+  // Short runs read fine as a plain list — only collapse the long ones.
+  if (toolCalls.length < COLLAPSE_THRESHOLD) {
+    return rows;
+  }
 
   const errorCount = toolCalls.filter(tool => tool.hasError).length;
 

@@ -214,21 +214,7 @@ describe('MessagesPanelNew', () => {
     expect(screen.getByText('weather')).toBeInTheDocument();
   });
 
-  it('collapses a single tool call behind a summary by default', () => {
-    render(
-      <MessagesPanelNew
-        nodes={createNodesWithToolCalls(['weather']) as any}
-        selectedNodeId={null}
-        onSelectNode={mockOnSelectNode}
-      />
-    );
-
-    const summary = screen.getByText('1 tool call');
-    expect(summary).toBeInTheDocument();
-    expect(summary.closest('details')).not.toHaveAttribute('open');
-  });
-
-  it('collapses multiple tool calls behind a summary and expands on click', async () => {
+  it('renders a short run of tool calls inline without a summary', () => {
     render(
       <MessagesPanelNew
         nodes={createNodesWithToolCalls(['alpha', 'beta', 'gamma']) as any}
@@ -237,8 +223,22 @@ describe('MessagesPanelNew', () => {
       />
     );
 
-    // Collapsed by default: the summary is shown, the individual tools are not.
-    const summary = screen.getByText('3 tool calls');
+    expect(screen.getByText('alpha')).toBeInTheDocument();
+    expect(screen.getByText('gamma')).toBeInTheDocument();
+    expect(screen.queryByText('3 tool calls')).not.toBeInTheDocument();
+  });
+
+  it('collapses a long run of tool calls behind a summary and expands on click', async () => {
+    render(
+      <MessagesPanelNew
+        nodes={createNodesWithToolCalls(['t1', 't2', 't3', 't4', 't5']) as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    // Collapsed by default: the summary is shown inside a closed details.
+    const summary = screen.getByText('5 tool calls');
     expect(summary).toBeInTheDocument();
     const details = summary.closest('details');
     expect(details).not.toHaveAttribute('open');
@@ -246,17 +246,16 @@ describe('MessagesPanelNew', () => {
     // Expanding reveals every tool call.
     await userEvent.click(summary);
     expect(details).toHaveAttribute('open');
-    expect(screen.getByText('alpha')).toBeInTheDocument();
-    expect(screen.getByText('beta')).toBeInTheDocument();
-    expect(screen.getByText('gamma')).toBeInTheDocument();
+    expect(screen.getByText('t1')).toBeInTheDocument();
+    expect(screen.getByText('t5')).toBeInTheDocument();
   });
 
   it('shows the error count in the tool call summary', () => {
     render(
       <MessagesPanelNew
         nodes={
-          createNodesWithToolCalls(['alpha', 'beta', 'gamma'], {
-            errorToolNames: ['beta', 'gamma'],
+          createNodesWithToolCalls(['t1', 't2', 't3', 't4', 't5'], {
+            errorToolNames: ['t2', 't4'],
           }) as any
         }
         selectedNodeId={null}
@@ -264,20 +263,20 @@ describe('MessagesPanelNew', () => {
       />
     );
 
-    expect(screen.getByText('3 tool calls')).toBeInTheDocument();
+    expect(screen.getByText('5 tool calls')).toBeInTheDocument();
     expect(screen.getByText('2 errors')).toBeInTheDocument();
   });
 
   it('expands the tool call group when one of its calls is selected', () => {
     render(
       <MessagesPanelNew
-        nodes={createNodesWithToolCalls(['alpha', 'beta', 'gamma']) as any}
+        nodes={createNodesWithToolCalls(['t1', 't2', 't3', 't4', 't5']) as any}
         selectedNodeId="tool-1"
         onSelectNode={mockOnSelectNode}
       />
     );
 
-    const details = screen.getByText('3 tool calls').closest('details');
+    const details = screen.getByText('5 tool calls').closest('details');
     expect(details).toHaveAttribute('open');
   });
 
