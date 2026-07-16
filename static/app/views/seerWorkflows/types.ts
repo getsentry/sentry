@@ -13,6 +13,7 @@ export type SeerNightShiftRunIssue = {
   id: string;
   reason: string | null;
   seerRunId: string | null;
+  skipReason: string | null;
   pullRequests?: SeerNightShiftRunPullRequest[];
 };
 

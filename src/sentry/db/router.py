@@ -98,6 +98,7 @@ class SiloRouter:
         "sentry_neglectedrule": SiloMode.CELL,
         "sentry_rulefirehistory": SiloMode.CELL,
         "sentry_savedsearch": SiloMode.CELL,
+        "sentry_teamreplica": SiloMode.CONTROL,
         "uptime_projectuptimesubscription": SiloMode.CELL,
         "workflow_engine_actiongroupstatus": SiloMode.CELL,
         "workflow_engine_workflowaction": SiloMode.CELL,

@@ -709,6 +709,9 @@ class Fixtures:
     def create_dashboard(self, *args, **kwargs):
         return Factories.create_dashboard(*args, **kwargs)
 
+    def create_dashboard_favorite_user(self, *args, **kwargs):
+        return Factories.create_dashboard_favorite_user(*args, **kwargs)
+
     def create_dashboard_widget(self, *args, **kwargs):
         return Factories.create_dashboard_widget(*args, **kwargs)
 
@@ -1245,6 +1248,12 @@ class Fixtures:
 
     def create_seer_agent_run(self, run, **kwargs):
         return Factories.create_seer_agent_run(run=run, **kwargs)
+
+    def create_seer_run_coding_agent_handoff(self, seer_run, **kwargs):
+        return Factories.create_seer_run_coding_agent_handoff(seer_run=seer_run, **kwargs)
+
+    def create_seer_run_pull_request(self, run, pull_request, **kwargs):
+        return Factories.create_seer_run_pull_request(run=run, pull_request=pull_request, **kwargs)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot: InstaSnapshotter) -> None:

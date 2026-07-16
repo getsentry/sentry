@@ -14,6 +14,7 @@ from sentry.models.project import Project
 from sentry.preprod.build_distribution_utils import (
     find_current_and_latest,
     get_download_url_for_artifact,
+    parse_build_number,
 )
 from sentry.preprod.models import PreprodArtifact
 from sentry.ratelimits.config import RateLimitConfig
@@ -106,12 +107,10 @@ class ProjectPreprodArtifactCheckForUpdatesEndpoint(ProjectEndpoint):
                 status=400,
             )
 
-        # Validate build_number
         provided_build_number: int | None = None
         if provided_build_number_str is not None:
-            try:
-                provided_build_number = int(provided_build_number_str)
-            except ValueError:
+            provided_build_number = parse_build_number(provided_build_number_str)
+            if provided_build_number is None:
                 return Response({"error": "Invalid build_number format"}, status=400)
 
         platform = _PLATFORM_MAP.get(provided_platform, provided_platform)
