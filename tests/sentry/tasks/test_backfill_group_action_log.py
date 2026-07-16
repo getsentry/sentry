@@ -505,6 +505,8 @@ class BackfillGroupActionLogForProjectTest(TestCase):
         assert self.project.get_option(GAL_BACKFILL_COMPLETED_OPTION) is None
 
     def test_reset_clears_completion_option(self) -> None:
+        from sentry.tasks.backfill_group_action_log import _reset_project
+
         self._create_activity(ActivityType.SET_RESOLVED, user_id=self.user.id)
 
         with self._options(), patch.object(backfill_group_action_log_for_project, "apply_async"):
@@ -513,11 +515,10 @@ class BackfillGroupActionLogForProjectTest(TestCase):
         self.project.refresh_from_db()
         assert self.project.get_option(GAL_BACKFILL_COMPLETED_OPTION) is not None
 
-        with self._options(), patch.object(backfill_group_action_log_for_project, "apply_async"):
-            backfill_group_action_log_for_project(self.project.id, reset=True)
+        _reset_project(self.project)
 
         self.project.refresh_from_db()
-        assert self.project.get_option(GAL_BACKFILL_COMPLETED_OPTION) is not None
+        assert self.project.get_option(GAL_BACKFILL_COMPLETED_OPTION) is None
 
 
 class BackfillGroupActionLogForAllProjectsTest(TestCase):
@@ -670,7 +671,7 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
 
         assert self.redis_client.get(_REDIS_CURSOR_KEY) is None
 
-    def test_passes_reset_flag_to_per_project_tasks(self) -> None:
+    def test_passes_project_reset_flag_to_per_project_tasks(self) -> None:
         self.create_project(organization=self.organization)
 
         with (
@@ -678,12 +679,12 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
             patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
             patch.object(backfill_group_action_log_for_all_projects, "apply_async"),
         ):
-            backfill_group_action_log_for_all_projects(reset=True)
+            backfill_group_action_log_for_all_projects(project_reset=True)
 
         for call in mock_apply.call_args_list:
             assert call.kwargs["kwargs"]["reset"] is True
 
-    def test_self_chain_preserves_reset_flag(self) -> None:
+    def test_self_chain_preserves_project_reset_flag(self) -> None:
         for _ in range(3):
             self.create_project(organization=self.organization)
 
@@ -694,6 +695,54 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
                 backfill_group_action_log_for_all_projects, "apply_async"
             ) as mock_coordinator_apply,
         ):
-            backfill_group_action_log_for_all_projects(reset=True)
+            backfill_group_action_log_for_all_projects(project_reset=True)
 
-        assert mock_coordinator_apply.call_args.kwargs["kwargs"]["reset"] is True
+        assert mock_coordinator_apply.call_args.kwargs["kwargs"]["project_reset"] is True
+
+    def test_cursor_override_seeds_starting_position(self) -> None:
+        p1 = self.create_project(organization=self.organization)
+        p2 = self.create_project(organization=self.organization)
+
+        with (
+            self._options(),
+            patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
+            patch.object(backfill_group_action_log_for_all_projects, "apply_async"),
+        ):
+            backfill_group_action_log_for_all_projects(cursor_override=p1.id)
+
+        dispatched_project_ids = {
+            call.kwargs["kwargs"]["project_id"] for call in mock_apply.call_args_list
+        }
+        assert p1.id not in dispatched_project_ids
+        assert p2.id in dispatched_project_ids
+
+    def test_cursor_override_restarts_from_zero(self) -> None:
+        p1 = self.create_project(organization=self.organization)
+        p2 = self.create_project(organization=self.organization)
+
+        self.redis_client.set(_REDIS_CURSOR_KEY, str(p1.id))
+
+        with (
+            self._options(),
+            patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
+            patch.object(backfill_group_action_log_for_all_projects, "apply_async"),
+        ):
+            backfill_group_action_log_for_all_projects(cursor_override=0)
+
+        dispatched_project_ids = {
+            call.kwargs["kwargs"]["project_id"] for call in mock_apply.call_args_list
+        }
+        assert p1.id in dispatched_project_ids
+        assert p2.id in dispatched_project_ids
+
+    def test_invalid_batch_size_aborts(self) -> None:
+        self.create_project(organization=self.organization)
+
+        with (
+            self._options(batch_size=0),
+            patch.object(backfill_group_action_log_for_project, "apply_async") as mock_apply,
+        ):
+            backfill_group_action_log_for_all_projects()
+
+        mock_apply.assert_not_called()
+        assert self.redis_client.get(_REDIS_CURSOR_KEY) is None

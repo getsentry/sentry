@@ -356,7 +356,8 @@ def _clear_coordinator_cursor() -> None:
     silo_mode=SiloMode.CELL,
 )
 def backfill_group_action_log_for_all_projects(
-    reset: bool = False,
+    project_reset: bool = False,
+    cursor_override: int | None = None,
     **kwargs: object,
 ) -> None:
     task_state = current_task()
@@ -377,6 +378,16 @@ def backfill_group_action_log_for_all_projects(
     inter_batch_delay_s: int = options.get(
         "issues.backfill_group_action_log.coordinator_inter_batch_delay_s"
     )
+
+    if batch_size <= 0:
+        logger.error(
+            "backfill_group_action_log.coordinator.invalid_batch_size",
+            extra={"batch_size": batch_size},
+        )
+        return
+
+    if cursor_override is not None:
+        _set_coordinator_cursor(cursor_override)
 
     last_project_id = _get_coordinator_cursor()
 
@@ -399,7 +410,7 @@ def backfill_group_action_log_for_all_projects(
 
     for project_id in project_ids:
         backfill_group_action_log_for_project.apply_async(
-            kwargs={"project_id": project_id, "reset": reset},
+            kwargs={"project_id": project_id, "reset": project_reset},
             headers={"sentry-propagate-traces": False},
         )
 
@@ -416,13 +427,13 @@ def backfill_group_action_log_for_all_projects(
             "batch_size": len(project_ids),
             "first_project_id": project_ids[0],
             "last_project_id": project_ids[-1],
-            "reset": reset,
+            "project_reset": project_reset,
         },
     )
 
     if len(project_ids) == batch_size:
         backfill_group_action_log_for_all_projects.apply_async(
-            kwargs={"reset": reset},
+            kwargs={"project_reset": project_reset},
             countdown=inter_batch_delay_s,
             headers={"sentry-propagate-traces": False},
         )
