@@ -8,7 +8,6 @@ from django.conf import settings
 
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.processing import (
-    get_native_symbolication_function,
     get_native_symbolication_functions,
 )
 from sentry.lang.native.symbolicator import (
@@ -21,7 +20,7 @@ from sentry.models.project import Project
 from sentry.services.eventstore import processing
 from sentry.services.eventstore.processing.base import Event
 from sentry.silo.base import SiloMode
-from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
+from sentry.stacktraces.processing import StacktraceInfo
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import symbolication_tasks
@@ -31,20 +30,6 @@ from sentry.utils.tracing import set_span_data, start_span
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.symbolication")
-
-
-def derive_native_function(
-    data: Mapping[str, Any],
-    stacktraces: list[StacktraceInfo],
-) -> SymbolicatorFunction:
-    """Returns the symbolication function for a native event based on
-    and event data. This is a **legacy** function used for old tasks."""
-
-    symbolication_function = get_native_symbolication_function(data, stacktraces)
-    # get_native_symbolication_function already returned something in
-    # get_symbolication_platforms
-    assert symbolication_function is not None
-    return symbolication_function
 
 
 def get_symbolication_functions(
@@ -80,7 +65,6 @@ def _do_symbolicate_event(
     event_id: str | None,
     data: Event | None = None,
     has_attachments: bool = False,
-    derive_native: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
 ) -> None:
     if data is None:
@@ -127,16 +111,7 @@ def _do_symbolicate_event(
             has_attachments=has_attachments,
         )
 
-    if derive_native:
-        # Happens when a new task worker picks up an old task.
-        try:
-            stacktraces = find_stacktraces_in_data(data)
-            symbolication_function = derive_native_function(data, stacktraces)
-        except AssertionError:
-            symbolication_function = None
-    else:
-        # New behavior
-        symbolication_function = task_kind.function
+    symbolication_function = task_kind.function
     symbolication_function_name = (
         None
         if symbolication_function is None
@@ -265,19 +240,12 @@ def submit_symbolicate(
     symbolicate_function_names = (
         None if symbolicate_functions is None else [p.name for p in symbolicate_functions]
     )
-    # Keep platform names around as well, just in case an old worker picks up the task.
-    symbolicate_platform_names = (
-        None
-        if symbolicate_functions is None
-        else [p.platform_name() for p in symbolicate_functions]
-    )
 
     task_fn.delay(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
         has_attachments=has_attachments,
-        symbolicate_platforms=symbolicate_platform_names,
         symbolicate_functions=symbolicate_function_names,
     )
 
@@ -305,7 +273,6 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         event_id: str | None = None,
         data: Event | None = None,
         has_attachments: bool = False,
-        symbolicate_platforms: list[str] | None = None,  # legacy
         symbolicate_functions: list[str] | None = None,
         **kwargs: Any,
     ) -> None:
@@ -318,21 +285,12 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         """
 
         symbolicate_function_values: list[SymbolicatorFunction] | None = None
-        derive_native = False
         if symbolicate_functions is not None:
             # Turn symbolicate_functions back into proper enum values
             symbolicate_function_values = (
                 None
                 if symbolicate_functions is None
                 else [SymbolicatorFunction(p) for p in symbolicate_functions]
-            )
-        elif symbolicate_platforms is not None:
-            # [legacy] Turn symbolicate_platforms back into the next best function
-            derive_native = task_kind.function == SymbolicatorFunction.native
-            symbolicate_function_values = (
-                None
-                if symbolicate_platforms is None
-                else [SymbolicatorFunction(p) for p in symbolicate_platforms]
             )
 
         return _do_symbolicate_event(
@@ -342,7 +300,6 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
             event_id=event_id,
             data=data,
             has_attachments=has_attachments,
-            derive_native=derive_native,
             symbolicate_functions=symbolicate_function_values,
         )
 
