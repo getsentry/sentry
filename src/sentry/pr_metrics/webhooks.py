@@ -37,6 +37,7 @@ from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
+    PullRequestActivityLog,
     PullRequestActivityType,
     PullRequestAttribution,
     PullRequestAttributionSignalType,
@@ -45,6 +46,7 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.models.repository import Repository
+from sentry.pr_metrics.activity_doc import apply_activity, extract_event_at, new_document
 from sentry.pr_metrics.activity_types import (
     AssignedPayload,
     AutoMergeDisabledPayload,
@@ -643,7 +645,7 @@ def handle_comment(
     if not webhook_id:
         return
 
-    _write_activity_row(
+    _record_activity_event(
         pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
     )
 
@@ -709,7 +711,9 @@ def handle_review(
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(pr, webhook_id, event_type, payload)
+    _record_activity_event(
+        pr, webhook_id, event_type, payload, event_at=extract_event_at(event_type, event)
+    )
 
 
 def handle_review_comment(
@@ -756,7 +760,7 @@ def handle_review_comment(
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(
+    _record_activity_event(
         pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
     )
 
@@ -812,7 +816,9 @@ def handle_review_thread(
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(pr, webhook_id, event_type, payload)
+    _record_activity_event(
+        pr, webhook_id, event_type, payload, event_at=extract_event_at(event_type, event)
+    )
 
 
 def handle_check_suite(
@@ -853,8 +859,12 @@ def handle_check_suite(
 
     for pr in _prs_from_check_payload(organization, repo, check_suite, webhook_id, github_event):
         if is_activity_tracking_enabled(organization, pr):
-            _write_activity_row(
-                pr, webhook_id, PullRequestActivityType.CHECK_SUITE_COMPLETED, payload
+            _record_activity_event(
+                pr,
+                webhook_id,
+                PullRequestActivityType.CHECK_SUITE_COMPLETED,
+                payload,
+                provider_ts=check_suite.get("updated_at"),
             )
 
 
@@ -895,8 +905,12 @@ def handle_check_run(
 
     for pr in _prs_from_check_payload(organization, repo, check_run, webhook_id, github_event):
         if is_activity_tracking_enabled(organization, pr):
-            _write_activity_row(
-                pr, webhook_id, PullRequestActivityType.CHECK_RUN_COMPLETED, payload
+            _record_activity_event(
+                pr,
+                webhook_id,
+                PullRequestActivityType.CHECK_RUN_COMPLETED,
+                payload,
+                provider_ts=check_run.get("completed_at"),
             )
 
 
@@ -1328,6 +1342,92 @@ def _write_mcp_attribution(pr: PullRequest) -> None:
     )
 
 
+def _use_activity_document(pr: PullRequest) -> bool:
+    """Whether this PR's activity writes go to the reduced JSON document.
+
+    Per-PR routing, consulted only when the cutover option is on: a PR stays on
+    whichever store it started on — an existing document wins, else pre-existing
+    legacy rows keep it on the old path, else (a new PR) it starts on the
+    document. The indexed 1:1 document lookup runs first; the legacy-rows EXISTS
+    only when there's no document.
+    """
+    if not options.get("pr_metrics.activity_document.enabled"):
+        return False
+    if PullRequestActivityLog.objects.filter(pull_request=pr).exists():
+        return True
+    if PullRequestActivity.objects.filter(pull_request=pr).exists():
+        return False
+    return True
+
+
+def _apply_activity_into_doc(
+    pr: PullRequest,
+    *,
+    event_type: PullRequestActivityType,
+    payload: dict[str, Any],
+    webhook_id: str,
+    event_at: str | None = None,
+    provider_ts: str | None = None,
+) -> None:
+    """Apply one processed event to the PR's activity document, under a row lock.
+
+    ``get_or_create`` the 1:1 row (race-safe on its unique constraint), then lock
+    it and run the pure reducer, so concurrent webhook processors for one PR
+    serialize on the document. The reducer can't be expressed as an atomic JSONB
+    update, so the lock is required. ``date_updated`` is bumped on every fold so
+    retention keys off last-write, not creation.
+
+    Creation and fold share one transaction. The webhook processor loop swallows a
+    failed fold (logs it, no GitHub retry), so a ``get_or_create`` committed outside
+    the atomic would strand the row at its empty ``{}`` default — and routing then
+    sends every later event for that PR down the document path onto a doc that reads
+    as all-zeros. Rolling the creation back with the fold keeps a failed fold a true
+    no-op, exactly like the legacy row insert it replaces.
+    """
+    with transaction.atomic(using=router.db_for_write(PullRequestActivityLog)):
+        PullRequestActivityLog.objects.get_or_create(pull_request=pr)
+        log = PullRequestActivityLog.objects.select_for_update().get(pull_request=pr)
+        doc = log.data if log.data.get("version") else new_document()
+        apply_activity(
+            doc,
+            event_type=event_type,
+            payload=payload,
+            ts=timezone.now().isoformat(),
+            event_at=event_at,
+            webhook_id=webhook_id,
+            provider_ts=provider_ts,
+        )
+        log.data = doc
+        log.save(update_fields=["data", "date_updated"])
+
+
+def _record_activity_event(
+    pr: PullRequest,
+    webhook_id: str,
+    event_type: PullRequestActivityType,
+    payload: dict[str, Any],
+    *,
+    event_at: str | None = None,
+    provider_ts: str | None = None,
+) -> None:
+    """Route one processed event to the document or a legacy row per this PR's store.
+
+    ``event_at`` and ``provider_ts`` only feed the document path; see
+    ``apply_activity`` for their per-family semantics.
+    """
+    if _use_activity_document(pr):
+        _apply_activity_into_doc(
+            pr,
+            event_type=event_type,
+            payload=payload,
+            webhook_id=webhook_id,
+            event_at=event_at,
+            provider_ts=provider_ts,
+        )
+    else:
+        _write_activity_row(pr, webhook_id, event_type, payload)
+
+
 def _write_activity_row(
     pr: PullRequest,
     webhook_id: str,
@@ -1372,7 +1472,9 @@ def _write_activity(
         event_type = mapped
 
     payload = _build_activity_payload(action, pull_request, event)
-    _write_activity_row(pr, webhook_id, event_type, payload)
+    _record_activity_event(
+        pr, webhook_id, event_type, payload, event_at=extract_event_at(event_type, event)
+    )
 
 
 def _build_activity_payload(

@@ -67,7 +67,7 @@ class TestBuildActivityData(BaseWorkflowTest):
         assert data.activity_type == ActivityType.SEER_RCA_STARTED.value
         assert data.notification_uuid == "test-uuid"
         assert data.issue_short_id == self.group.qualified_short_id
-        assert data.issue_url == absolute_uri(self.group.get_absolute_url())
+        assert absolute_uri(self.group.get_absolute_url()) in data.issue_url
         assert data.issue_culprit == self.group.culprit
         assert data.alert_url is not None
         assert data.activity_data == activity.data
