@@ -278,6 +278,18 @@ def spans_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
     return fmt.block("Span Evidence", _truncate("\n".join(lines), limits.max_spans_chars))
 
 
+def contexts_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
+    groups: list[str] = []
+    for name, data in model.contexts.items():
+        # drop the redundant "type" key each context echoes (e.g. browser -> type: "browser")
+        fields = [f"{key}: {value}" for key, value in data.items() if key != "type"]
+        if fields:
+            groups.append("\n".join([name, *fields]))
+    if not groups:
+        return ""
+    return fmt.block("Contexts", "\n\n".join(groups))
+
+
 # every section in render order, including the user identifiers that ``EVENT_SECTIONS`` holds
 # back. Pass this only from a surface that already exposes those fields to its caller.
 EVENT_SECTIONS_WITH_USER: list[SectionFn] = [
@@ -293,6 +305,7 @@ EVENT_SECTIONS_WITH_USER: list[SectionFn] = [
     request_section,
     tags_section,
     user_section,
+    contexts_section,
 ]
 
 # the default: no email, IP, username or ID. Rendered output is bound for an LLM, so user
