@@ -210,7 +210,7 @@ def get_download_redirect_url(request: HttpRequest, session: Session, org: int, 
     from sentry.api.utils import generate_locality_url
     from sentry.auth import system
 
-    presigned_url = session.presigned_object_url("GET", key, duration=timedelta(minutes=5))
+    presigned_url = session.object_url(key, token_validity=timedelta(minutes=5))
 
     if system.is_internal_ip(request):
         # Redirect to a URL pointing to the internal Objectstore ip/hostname.
