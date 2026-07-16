@@ -4,9 +4,9 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
-import {ScmCardButton} from 'sentry/views/onboarding/components/scmCardButton';
-import {ScmCollapsibleReveal} from 'sentry/views/onboarding/components/scmCollapsibleReveal';
-import {ScmSelectableContainer} from 'sentry/views/onboarding/components/scmSelectableContainer';
+import {ScmCardButton} from 'sentry/components/onboarding/scm/scmCardButton';
+import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
+import {ScmSelectableContainer} from 'sentry/components/onboarding/scm/scmSelectableContainer';
 
 interface ScmAlertOptionCardProps {
   isSelected: boolean;

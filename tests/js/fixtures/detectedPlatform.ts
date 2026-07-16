@@ -1,4 +1,4 @@
-import type {DetectedPlatform} from 'sentry/views/onboarding/components/useScmPlatformDetection';
+import type {DetectedPlatform} from 'sentry/components/onboarding/scm/useScmPlatformDetection';
 
 export function DetectedPlatformFixture(
   params: Partial<DetectedPlatform> = {}

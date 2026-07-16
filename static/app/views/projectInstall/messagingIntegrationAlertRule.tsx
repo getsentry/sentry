@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Select, SelectOption} from '@sentry/scraps/select';
@@ -100,6 +100,20 @@ export function useMessagingIntegrationAlertRule({
     [channels, provider]
   );
 
+  useEffect(() => {
+    // A restored channel (e.g. from persisted/default actions) only has a raw
+    // id as its label until the channel list loads. Upgrade it to the
+    // human-readable label once we can resolve it. Skips user-created
+    // channels, which intentionally keep their typed-in label.
+    if (!channel || channel.new || !channelOptions) {
+      return;
+    }
+    const match = channelOptions.find(option => option.value === channel.value);
+    if (match && match.label !== channel.label) {
+      setChannel({value: channel.value, label: match.label, new: false});
+    }
+  }, [channel, channelOptions, setChannel]);
+
   return {
     provider,
     integration,
@@ -171,7 +185,7 @@ export function ChannelSelect({
       options={options}
       isLoading={isLoading}
       disabled={disabled}
-      value={value ? {label: value.label, value: value.value} : undefined}
+      value={value ? {label: value.label, value: value.value} : null}
       onChange={onChange}
       onCreateOption={onCreateOption}
       clearable

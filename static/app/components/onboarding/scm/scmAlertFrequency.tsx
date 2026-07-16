@@ -3,8 +3,8 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
+import {ScmAlertOptionCard} from 'sentry/components/onboarding/scm/scmAlertOptionCard';
 import {t} from 'sentry/locale';
-import {ScmAlertOptionCard} from 'sentry/views/onboarding/components/scmAlertOptionCard';
 import {
   type AlertRuleOptions,
   INTERVAL_CHOICES,

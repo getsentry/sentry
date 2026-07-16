@@ -1,11 +1,20 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderHookWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import type {IssueAlertNotificationProps} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {MessagingIntegrationAlertRule} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
+import {
+  MessagingIntegrationAlertRule,
+  useMessagingIntegrationAlertRule,
+} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 import * as useValidateChannelModule from 'sentry/views/projectInstall/useValidateChannel';
 
 function setupValidateChannelSpy() {
@@ -64,6 +73,7 @@ describe('MessagingIntegrationAlertRule', () => {
     integration: slackIntegrations[0],
     provider: 'slack',
     providersToIntegrations,
+    queryError: false,
     querySuccess: true,
     shouldRenderSetupButton: false,
     setActions: jest.fn(),
@@ -86,6 +96,21 @@ describe('MessagingIntegrationAlertRule', () => {
   it('renders', () => {
     render(getComponent());
     expect(screen.getAllByRole('textbox')).toHaveLength(3);
+  });
+
+  it('clears the channel select when channel prop becomes undefined', () => {
+    const {rerender} = render(getComponent(), {organization});
+
+    // The initial channel value label is visible.
+    expect(screen.getByText('channel')).toBeInTheDocument();
+
+    // Parent state clears channel (e.g. after provider or integration change).
+    rerender(
+      <MessagingIntegrationAlertRule {...notificationProps} channel={undefined} />
+    );
+
+    // The stale channel label must no longer be shown; the select is empty.
+    expect(screen.queryByText('channel')).not.toBeInTheDocument();
   });
 
   it('calls setter when new integration is selected', async () => {
@@ -387,5 +412,93 @@ describe('MessagingIntegrationAlertRule', () => {
       value: '2',
       new: false,
     });
+  });
+});
+
+describe('useMessagingIntegrationAlertRule channel label reconciliation', () => {
+  const organization = OrganizationFixture();
+  const discordIntegration = OrganizationIntegrationsFixture({
+    name: "Moo Deng's Server",
+  });
+  const slackIntegration = OrganizationIntegrationsFixture({
+    name: "Moo Deng's Workspace",
+  });
+
+  function renderRule(
+    props: Partial<IssueAlertNotificationProps>,
+    setChannel: jest.Mock
+  ) {
+    return renderHookWithProviders(
+      () =>
+        useMessagingIntegrationAlertRule({
+          actions: [],
+          integration: undefined,
+          provider: undefined,
+          providersToIntegrations: {},
+          queryError: false,
+          querySuccess: true,
+          shouldRenderSetupButton: false,
+          setActions: jest.fn(),
+          setChannel,
+          setIntegration: jest.fn(),
+          setProvider: jest.fn(),
+          ...props,
+        } as IssueAlertNotificationProps),
+      {organization}
+    );
+  }
+
+  it('upgrades a restored Discord channel label once the channel list loads', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${discordIntegration.id}/channels/`,
+      body: {
+        results: [{id: '2', name: 'alerts', display: '#alerts', type: 'text'}],
+      },
+    });
+
+    const mockSetChannel = jest.fn();
+    renderRule(
+      {
+        integration: discordIntegration,
+        provider: 'discord',
+        providersToIntegrations: {discord: [discordIntegration]},
+        // Restored from a persisted/default action: raw id used as a
+        // placeholder label until the channel list resolves it.
+        channel: {label: '2', value: '2'},
+      },
+      mockSetChannel
+    );
+
+    await waitFor(() => {
+      expect(mockSetChannel).toHaveBeenCalledWith({
+        label: '#alerts (2)',
+        value: '2',
+        new: false,
+      });
+    });
+  });
+
+  it('does not re-set an already-resolved Slack channel (legacy flow unaffected)', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${slackIntegration.id}/channels/`,
+      body: {
+        results: [{id: '1', name: 'general', display: '#general', type: 'text'}],
+      },
+    });
+
+    const mockSetChannel = jest.fn();
+    const {result} = renderRule(
+      {
+        integration: slackIntegration,
+        provider: 'slack',
+        providersToIntegrations: {slack: [slackIntegration]},
+        // Slack channel labels/values are already identical once resolved.
+        channel: {label: '#general', value: '#general', new: false},
+      },
+      mockSetChannel
+    );
+
+    await waitFor(() => expect(result.current.channelOptions).toBeDefined());
+    expect(mockSetChannel).not.toHaveBeenCalled();
   });
 });

@@ -19,6 +19,7 @@ describe('IssueAlertOptions', () => {
     integration: OrganizationIntegrationsFixture(),
     provider: 'slack',
     providersToIntegrations: {},
+    queryError: false,
     querySuccess: true,
     shouldRenderSetupButton: false,
     setActions: jest.fn(),

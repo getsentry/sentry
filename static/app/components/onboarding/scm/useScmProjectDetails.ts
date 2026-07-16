@@ -1,8 +1,10 @@
 import {useCallback, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import isEqual from 'lodash/isEqual';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
+import type {ScmAnalyticsFlow} from 'sentry/components/onboarding/scm/scmAnalyticsFlow';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
@@ -16,8 +18,8 @@ import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
-import type {ScmAnalyticsFlow} from 'sentry/views/onboarding/components/scmAnalyticsFlow';
 import {
+  buildIntegrationAction,
   type IssueAlertNotificationProps,
   MultipleCheckboxOptions,
   useCreateNotificationAction,
@@ -57,6 +59,38 @@ const CREATE_FAILED_EVENT = {
   onboarding: 'onboarding.scm_project_details_create_failed',
   'project-creation': 'project_creation.scm_project_details_create_failed',
 } as const;
+
+export function getSubmitTooltipText({
+  platform,
+  projectName,
+  team,
+  notificationChannel,
+}: {
+  notificationChannel: boolean;
+  platform: boolean;
+  projectName: boolean;
+  team: boolean;
+}): string | undefined {
+  const missingCount = [platform, projectName, team, notificationChannel].filter(
+    Boolean
+  ).length;
+  if (missingCount > 1) {
+    return t('Please fill out all the required fields');
+  }
+  if (platform) {
+    return t('Please select a platform');
+  }
+  if (projectName) {
+    return t('Please provide a project name');
+  }
+  if (team) {
+    return t('Please select a team');
+  }
+  if (notificationChannel) {
+    return t('Please provide an integration channel for alert notifications');
+  }
+  return undefined;
+}
 
 export interface ScmProjectDetailsCompletion {
   /** The created project, or the reused one on the unchanged back-nav path. */
@@ -123,6 +157,8 @@ interface ScmProjectDetailsForm {
   projectName: string;
   /** Creates the project (or reuses an unchanged one) and reports completion. */
   submit: () => void;
+  /** Tooltip copy for the disabled submit button, or undefined when submittable. */
+  submitTooltipText: string | undefined;
   /** Resolved team slug (user selection, falling back to first admin team). */
   teamSlug: string;
 }
@@ -150,10 +186,19 @@ export function useScmProjectDetails({
   const {teams, fetching: isLoadingTeams} = useTeams();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const createProjectAndRules = useCreateProjectAndRules();
+
+  const restoredNotificationOptionsRef = useRef(
+    projectDetailsForm?.notificationAction
+      ? {actions: [projectDetailsForm.notificationAction]}
+      : undefined
+  );
+
   // Provides the messaging-integration notification picker (notificationProps,
   // rendered in ScmAlertFrequencySection) and the side-effect that creates the
   // chosen notification rule at project creation.
-  const {createNotificationAction, notificationProps} = useCreateNotificationAction();
+  const {createNotificationAction, notificationProps} = useCreateNotificationAction(
+    restoredNotificationOptionsRef.current
+  );
 
   const accessTeams = teams.filter((team: Team) => team.access.includes('team:admin'));
   const firstAdminTeam = accessTeams[0];
@@ -238,6 +283,12 @@ export function useScmProjectDetails({
     notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION) &&
     !notificationProps.channel;
 
+  // Ignore a lingering INTEGRATION selection when alerts are off: the picker is
+  // hidden, so persisting the action would wrongly force the restore gate later.
+  const hasNotificationAction =
+    alertRuleConfig.alertSetting !== RuleAction.CREATE_ALERT_LATER &&
+    notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION);
+
   const missingFields = {
     notificationChannel: isMissingNotificationChannel,
     platform: !selectedPlatform,
@@ -259,6 +310,28 @@ export function useScmProjectDetails({
   const isCompletingRef = useRef(false);
   const [isCompleting, setIsCompleting] = useState(false);
 
+  const submitTooltipText = getSubmitTooltipText(missingFields);
+
+  const notificationRestoreCompleteRef = useRef(!projectDetailsForm?.notificationAction);
+
+  // Blocks canSubmit until a persisted notification selection settles, then latches open
+  // so later edits don't re-block. No-op when there's no saved action.
+  // "Settled" means one of three things:
+  //   1. Integration restored — query succeeded + INTEGRATION re-added to actions
+  //   2. Integration gone    — query succeeded + picker fell back to the setup CTA
+  //   3. Query failed        — unblock unconditionally so the user isn't permanently stuck
+  //                           (the init effect never runs on error, so notificationPickerSettled
+  //                            stays false and must NOT gate the error escape hatch)
+  const notificationPickerSettled =
+    notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION) ||
+    notificationProps.shouldRenderSetupButton;
+  const notificationRestoreComplete =
+    notificationProps.queryError ||
+    (notificationProps.querySuccess && notificationPickerSettled);
+  if (!notificationRestoreCompleteRef.current && notificationRestoreComplete) {
+    notificationRestoreCompleteRef.current = true;
+  }
+
   // Block submission until teams and the projects store have loaded so the
   // reuse check below can't be bypassed by a race.
   const canSubmit =
@@ -268,7 +341,8 @@ export function useScmProjectDetails({
     !missingFields.notificationChannel &&
     !isCompleting &&
     !isLoadingTeams &&
-    projectsLoaded;
+    projectsLoaded &&
+    notificationRestoreCompleteRef.current;
 
   const existingProject = createdProjectSlug
     ? projects.find(p => p.slug === createdProjectSlug)
@@ -289,12 +363,10 @@ export function useScmProjectDetails({
     alertRuleConfig.interval === savedAlert?.interval &&
     alertRuleConfig.metric === savedAlert?.metric &&
     alertRuleConfig.threshold === savedAlert?.threshold &&
-    // A configured messaging-integration notification would create a rule the
-    // reused project lacks: the selection isn't persisted across nav, so the
-    // baseline is always "no integration". Treat it as a change so the reuse
-    // shortcut can't silently drop the notification rule. Persisting the
-    // selection (and comparing it precisely) is tracked as follow-up work.
-    !notificationProps.actions.includes(MultipleCheckboxOptions.INTEGRATION);
+    isEqual(
+      hasNotificationAction ? buildIntegrationAction(notificationProps) : undefined,
+      savedForm?.notificationAction
+    );
 
   const submit = useCallback(async () => {
     if (!selectedPlatform || !canSubmit || isCompletingRef.current) {
@@ -305,10 +377,14 @@ export function useScmProjectDetails({
 
     trackAnalytics(CREATE_CLICKED_EVENT[analyticsFlow], {organization});
 
+    const notificationAction = hasNotificationAction
+      ? buildIntegrationAction(notificationProps)
+      : undefined;
     const submittedForm = {
       projectName: projectNameResolved,
       teamSlug: teamSlugResolved,
       alertRuleConfig,
+      notificationAction,
     };
 
     try {
@@ -365,8 +441,10 @@ export function useScmProjectDetails({
     createNotificationAction,
     createProjectAndRules,
     existingProject,
+    hasNotificationAction,
     isOrgMemberWithNoAccess,
     nothingChanged,
+    notificationProps,
     onComplete,
     organization,
     projectNameResolved,
@@ -386,6 +464,7 @@ export function useScmProjectDetails({
     notificationProps,
     isOrgMemberWithNoAccess,
     missingFields,
+    submitTooltipText,
     canSubmit,
     isBusy: isCompleting,
     error: createProjectAndRules.error,

@@ -7,6 +7,14 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {ScmFeatureSelectionPanel} from 'sentry/components/onboarding/scm/scmFeatureSelectionPanel';
+import {ScmPlatformFeaturesCore} from 'sentry/components/onboarding/scm/scmPlatformFeaturesCore';
+import {
+  DEFAULT_SCM_FEATURES,
+  getPlatformInfo,
+  toSelectedSdk,
+} from 'sentry/components/onboarding/scm/scmPlatformHelpers';
+import {useScmPlatformDetection} from 'sentry/components/onboarding/scm/useScmPlatformDetection';
 import {useCreateProject} from 'sentry/components/onboarding/useCreateProject';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
@@ -19,14 +27,6 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
-import {ScmFeatureSelectionPanel} from './components/scmFeatureSelectionPanel';
-import {ScmPlatformFeaturesCore} from './components/scmPlatformFeaturesCore';
-import {
-  DEFAULT_SCM_FEATURES,
-  getPlatformInfo,
-  toSelectedSdk,
-} from './components/scmPlatformHelpers';
-import {useScmPlatformDetection} from './components/useScmPlatformDetection';
 import type {StepProps} from './types';
 
 interface ScmPlatformFeaturesProps {

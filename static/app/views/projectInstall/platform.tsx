@@ -26,6 +26,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {OtherPlatformsInfo} from './otherPlatformsInfo';
 import {PlatformDocHeader} from './platformDocHeader';
+import {useScmCreateProjectProductSync} from './scmCreateProjectSession';
 
 const ProductUnavailableCTA = OverrideOrDefault({
   overrideName: 'component:product-unavailable-cta',
@@ -42,6 +43,8 @@ export function ProjectInstallPlatform({project, platform}: Props) {
   const navigate = useNavigate();
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
+
+  const onProductSelectionSync = useScmCreateProjectProductSync(project);
 
   const products = useMemo(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
@@ -94,6 +97,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
           organization={organization}
           project={project}
           activeProductSelection={products}
+          onProductSelectionSync={onProductSelectionSync}
         />
       )}
       <div>

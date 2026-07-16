@@ -15,6 +15,7 @@ import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCreationErrorAlert';
+import type {ScmAnalyticsFlow} from 'sentry/components/onboarding/scm/scmAnalyticsFlow';
 import {
   useCreateProjectAndRulesError,
   useIsCreatingProjectAndRules,
@@ -29,7 +30,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ScmAnalyticsFlow} from 'sentry/views/onboarding/components/scmAnalyticsFlow';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 export enum SupportedLanguages {
