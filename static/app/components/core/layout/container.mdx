@@ -283,9 +283,9 @@ For background on the underlying CSS, see MDN's <a href="https://developer.mozil
 </Container>
 ```
 
-The two can be combined on one prop — e.g. `direction={{zero: 'column', 'screen:lg': 'row'}}`
-is a column until its container reaches the next breakpoint, then a row once the
-viewport reaches `lg`.
+The two can be combined on one prop — e.g. `direction={{zero: 'column', md: 'row', 'screen:lg': 'column'}}`
+is a column at its container's base, switches to a row once the container reaches
+`md`, then back to a column once the viewport reaches `lg`.
 
 > [!TIP]
 > Prefer `containerType="inline-size"` — it only contains the inline

@@ -53,18 +53,22 @@ export function rc<T>(
   // A responsive value is keyed by breakpoint on two independent axes:
   // - bare keys (`xs`, `md`, …) resolve against the nearest query container (@container)
   // - `screen:`-prefixed keys (`screen:md`, …) resolve against the viewport (@media)
-  // Both can be combined on the same prop. The smallest defined breakpoint
-  // (container first within a breakpoint) is the always-applied base, emitted as
-  // a plain declaration so it applies even with no query container present; the
-  // rest override it via min-width rules of their respective axis, mobile-first.
+  // Both can be combined on the same prop. The axes are emitted in full, one
+  // after the other (all @container, then all @media), so the base is the first
+  // defined container key, else the first defined viewport key. That base is
+  // emitted as a plain declaration so it applies even with no query container
+  // present; the rest override it via min-width rules of their axis, mobile-first.
   let first = true;
   const declarations: string[] = [];
 
-  const emit = (axisConfig: {
+  // `order` and `sizes` share one key type, so a breakpoint listed in `order`
+  // is guaranteed a `sizes` entry — a future divergence fails typecheck instead
+  // of emitting `min-width: undefined`.
+  const emit = <K extends ResponsiveBreakpoint>(axisConfig: {
     atRule: '@container' | '@media';
-    order: readonly ResponsiveBreakpoint[];
+    order: readonly K[];
     prefix: '' | 'screen:';
-    sizes: Record<string, string>;
+    sizes: Record<K, string>;
   }) => {
     const {order, prefix, sizes, atRule} = axisConfig;
     for (const breakpoint of order) {
