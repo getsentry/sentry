@@ -1197,10 +1197,10 @@ def test_pipeline_hash_changes_with_pipeline_version() -> None:
         return None
 
     class V0(Pipeline[Any]):
-        version = 0
+        _version = 0
 
     class V1(Pipeline[Any]):
-        version = 1
+        _version = 1
 
     assert V0([agg_a]).pipeline_hash != V1([agg_a]).pipeline_hash
 

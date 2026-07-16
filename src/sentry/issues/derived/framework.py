@@ -10,7 +10,7 @@ from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum, StrEnum
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, ClassVar, Final, Protocol, runtime_checkable
 
 _MISSING = object()
 
@@ -120,8 +120,8 @@ class Feature[T]:
     ) -> None:
         if default is _MISSING and default_factory is None:
             raise ValueError("Must provide default or default_factory")
-        self.name = name
-        self.version = version
+        self.name: Final[str] = name
+        self._version: Final[int] = version
         self._default = default
         self._default_factory = default_factory
         self._codec = codec or IDENTITY_CODEC
@@ -130,7 +130,7 @@ class Feature[T]:
     @property
     def content_id(self) -> str:
         """Versioned identifier for this feature, e.g. ``"view_count:0"``."""
-        return f"{self.name}:{self.version}"
+        return f"{self.name}:{self._version}"
 
     def initial_value(self) -> T:
         if self._default_factory is not None:
@@ -153,8 +153,8 @@ class Feature[T]:
         return (self, val)
 
     def __repr__(self) -> str:
-        if self.version:
-            return f"Feature({self.name!r}, v={self.version})"
+        if self._version:
+            return f"Feature({self.name!r}, v={self._version})"
         return f"Feature({self.name!r})"
 
     def __hash__(self) -> int:
@@ -162,7 +162,7 @@ class Feature[T]:
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Feature):
-            return self.name == other.name and self.version == other.version
+            return self.name == other.name and self._version == other._version
         return NotImplemented
 
 
@@ -331,9 +331,10 @@ def aggregator[E: HasType](
 class Pipeline[E: HasType]:
     """Applies a set of Aggregators to a State for each event in a sequence, producing a new State."""
 
-    # Increment to change the pipeline hash when the feature set is
-    # unchanged but pipeline behaviour has changed meaningfully.
-    version: int = 0
+    # Bump this manually when pipeline behaviour changes in ways that affect
+    # results but the feature set itself is unchanged (e.g. changing
+    # aggregator execution order). This value is an input to pipeline_hash.
+    _version: ClassVar[int] = 0
 
     def __init__(
         self,
@@ -348,7 +349,7 @@ class Pipeline[E: HasType]:
             (agg, frozenset({*agg.deps, *agg.outputs}), frozenset(agg.outputs))
             for agg in self._aggregators
         )
-        payload = f"{self.version}:" + ",".join(sorted(f.content_id for f in self._features))
+        payload = f"{self._version}:" + ",".join(sorted(f.content_id for f in self._features))
         digest = hashlib.blake2b(payload.encode(), digest_size=8).digest()
         self._pipeline_hash = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
 
