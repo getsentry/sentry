@@ -62,6 +62,7 @@ class DelegatedAgentSignalDetails(BaseModel):
     agent_id: str | None = None
     pr_url: str
     run_id: int | None = None
+    group_ids: list[int] = []
 
 
 # Signal types that use DelegatedAgentSignalDetails for their signal_details.
@@ -312,6 +313,7 @@ def attribute_delegated_agent_pull_request(
     pr_url: str,
     agent_id: str | None = None,
     run_id: int | None = None,
+    group_ids: Sequence[int] | None = None,
 ) -> None:
     """Attribute a PR opened by a Seer-delegated coding agent (Cursor/Copilot/Claude).
 
@@ -360,6 +362,7 @@ def attribute_delegated_agent_pull_request(
             agent_id=agent_id,
             pr_url=pr_url,
             run_id=run_id,
+            group_ids=list(group_ids) if group_ids else [],
         ).dict(),
         log_context=log_context,
     )
