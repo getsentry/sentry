@@ -19,6 +19,10 @@ from sentry.constants import LOG_LEVELS
 from sentry.eventtypes import EventTypeStr
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.services.integration import integration_service
+from sentry.issues.derived.serialization import (
+    GroupDerivedDataResponse,
+    get_bulk_group_derived_data,
+)
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.commit import Commit
 from sentry.models.environment import Environment
@@ -115,6 +119,7 @@ class BaseGroupResponseOptional(TypedDict, total=False):
     userCount: int
     firstSeen: datetime | None
     lastSeen: datetime | None
+    derivedData: GroupDerivedDataResponse
 
 
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
@@ -363,6 +368,12 @@ class GroupSerializerBase(Serializer, ABC):
 
         snuba_stats = self._get_group_snuba_stats(item_list, seen_stats)
 
+        derived_data_by_group_id = (
+            get_bulk_group_derived_data({item.id for item in item_list})
+            if self._expand("derivedData")
+            else {}
+        )
+
         result = {}
         for item in item_list:
             active_date = item.active_at or item.first_seen
@@ -396,6 +407,9 @@ class GroupSerializerBase(Serializer, ABC):
             }
             if snuba_stats is not None:
                 result[item]["is_unhandled"] = bool(snuba_stats.get(item.id, {}).get("unhandled"))
+
+            if item.id in derived_data_by_group_id:
+                result[item]["derived_data"] = derived_data_by_group_id[item.id]
 
             if seen_stats:
                 result[item].update(seen_stats.get(item, {}))
@@ -451,6 +465,8 @@ class GroupSerializerBase(Serializer, ABC):
         # This attribute is currently feature gated
         if "is_unhandled" in attrs:
             group_dict["isUnhandled"] = attrs["is_unhandled"]
+        if "derived_data" in attrs:
+            group_dict["derivedData"] = attrs["derived_data"]
         if is_seen_stats(attrs):
             group_dict.update(self._convert_seen_stats(attrs))
         return group_dict

@@ -258,7 +258,9 @@ class GroupDetailsEndpoint(GroupEndpoint):
             # WARNING: the rest of this endpoint relies on this serializer
             # populating the cache SO don't move this :)
             data: GroupDetailsResponse = serialize(
-                group, request.user, GroupSerializerSnuba(environment_ids=environment_ids)
+                group,
+                request.user,
+                GroupSerializerSnuba(environment_ids=environment_ids, expand=expand),
             )
 
             # TODO: these probably should be another endpoint
