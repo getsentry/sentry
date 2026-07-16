@@ -9,6 +9,7 @@ from sentry.issues.formatting.formatter import MarkdownFormatter, XmlFormatter
 from sentry.issues.formatting.limits import LIMITS_DEFAULT
 from sentry.issues.formatting.models import (
     Breadcrumb,
+    CspDetails,
     EventObject,
     EvidenceSpan,
     ExceptionDetails,
@@ -23,6 +24,8 @@ from sentry.issues.formatting.sections import (
     EVENT_SECTIONS_WITH_USER,
     breadcrumbs_section,
     contexts_section,
+    csp_section,
+    evidence_section,
     detection_context_section,
     exceptions_section,
     format_issue,
@@ -305,6 +308,39 @@ def test_contexts_renders_groups_and_skips_type() -> None:
 
 def test_contexts_empty_renders_nothing() -> None:
     assert contexts_section(EventObject(title="t"), MD, LIMITS_DEFAULT) == ""
+
+
+def test_csp_section() -> None:
+    event = EventObject(
+        title="t",
+        csp=CspDetails(
+            effective_directive="img-src", blocked_uri="blob", document_uri="https://x.com"
+        ),
+    )
+    out = csp_section(event, MD, LIMITS_DEFAULT)
+    assert "## CSP" in out
+    assert "**Blocked:** blob" in out
+    assert "**Directive:** img-src" in out
+    assert "**Document:** https://x.com" in out
+
+
+def test_csp_none_renders_nothing() -> None:
+    assert csp_section(EventObject(title="t"), MD, LIMITS_DEFAULT) == ""
+
+
+def test_evidence_section() -> None:
+    event = EventObject(
+        title="t",
+        evidence=[("Regression", "duration increased"), ("Transaction", "POST /oauth/token")],
+    )
+    out = evidence_section(event, MD, LIMITS_DEFAULT)
+    assert "## Evidence" in out
+    assert "**Regression:** duration increased" in out
+    assert "**Transaction:** POST /oauth/token" in out
+
+
+def test_evidence_empty_renders_nothing() -> None:
+    assert evidence_section(EventObject(title="t"), MD, LIMITS_DEFAULT) == ""
 
 
 def test_threads_only_with_stacktrace() -> None:
