@@ -31,15 +31,19 @@ jobs:
       - uses: ./.github/actions/setup-node-pnpm
 
       # Persist the scanner's content-hashed result cache between runs so
-      # unchanged files skip re-inference. The key is unique per run so every
-      # run saves a fresh cache; restore-keys falls back to the latest prior one.
-      - name: Restore scan cache
+      # unchanged files skip re-inference. The key is scoped to the branch and
+      # keyed on the commit sha for freshness (a new commit misses the exact key
+      # and saves a refreshed cache). restore-keys fall back in order: this
+      # branch's latest cache, then master's, so a new branch bootstraps from
+      # master before it has a cache of its own.
+      - name: Restore and save scan cache
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: .refactor-tasks-cache
-          key: refactor-tasks-cache-${{ github.run_id }}
+          key: refactor-tasks-cache-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
-            refactor-tasks-cache-
+            refactor-tasks-cache-${{ github.ref_name }}-
+            refactor-tasks-cache-master-
 
       - name: Scan and report
         env:
