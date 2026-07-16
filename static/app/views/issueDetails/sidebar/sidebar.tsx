@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {useContainerBreakpoint} from '@sentry/scraps/layout';
+import {useResponsivePropValue} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -33,11 +33,6 @@ import {SupergroupSection} from 'sentry/views/issueDetails/sidebar/supergroupSec
 
 type Props = {group: Group; project: Project; event?: Event};
 
-// Container breakpoints at and above which the sidebar sits beside the content
-// (grid layout). Below these, it drops to the bottom. Must match the layout flip
-// in groupDetailsLayout (`4xl`).
-const SIDE_SIDEBAR_BREAKPOINTS = new Set(['4xl', '5xl']);
-
 export function IssueDetailsSidebar({group, event, project}: Props) {
   const activeUser = useUser();
   const organization = useOrganization();
@@ -57,11 +52,11 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
 
   const showPeopleSection = group.participants.length > 0 || viewers.length > 0;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-  // Resolve against the layout's query container (not the viewport) so this
-  // stays in lockstep with groupDetailsLayout's container-query flips — otherwise
-  // the sidebar placement and the grid/border layout can disagree at boundaries.
-  const containerBreakpoint = useContainerBreakpoint();
-  const isBottomSidebar = !SIDE_SIDEBAR_BREAKPOINTS.has(containerBreakpoint);
+  // Mirror groupDetailsLayout's container-query flip (`{zero, '4xl'}`) so sidebar
+  // placement resolves against the same query container and flips at the same
+  // point — otherwise placement and the grid/border layout disagree at boundaries.
+  const isBottomSidebar =
+    useResponsivePropValue({zero: 'bottom', '4xl': 'side'}) === 'bottom';
   const shouldDisplaySidebar = isSidebarOpen || isBottomSidebar;
   // Check if Seer (AI features) will be shown - must match SeerSection's logic
   // SeerSection shows "Seer" title when the issue type supports it AND AI features are allowed
