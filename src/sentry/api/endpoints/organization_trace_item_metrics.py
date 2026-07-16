@@ -11,6 +11,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpointBase,
+    adjust_start_end_window,
 )
 from sentry.api.paginator import ChainPaginator, GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
@@ -78,6 +79,12 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
             return self.paginate(request=request, paginator=ChainPaginator([]))
+
+        adjusted_start, adjusted_end = adjust_start_end_window(
+            snuba_params.start_date, snuba_params.end_date
+        )
+        snuba_params.start = adjusted_start
+        snuba_params.end = adjusted_end
 
         query_string = serialized.get("query", "")
         # Authored context is joined from TraceItemAttributeValueContext, gated
