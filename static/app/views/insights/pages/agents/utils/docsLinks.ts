@@ -5,11 +5,6 @@ export const AI_INSTRUMENTATION_DOCS_LINKS = {
     'https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/',
 } as const;
 
-/**
- * Platform-agnostic AI agents overview. Used as the fallback when a platform
- * has no SDK-specific instrumentation guide (e.g. PHP) rather than sending
- * users to a guide for the wrong language.
- */
 export const AI_AGENTS_GETTING_STARTED_DOCS_LINK =
   'https://docs.sentry.io/product/insights/ai/agents/getting-started/';
 
