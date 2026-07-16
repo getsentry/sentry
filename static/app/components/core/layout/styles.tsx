@@ -13,14 +13,17 @@ import {useTheme} from '@emotion/react';
 import type {
   BorderVariant,
   BreakpointSize,
+  ContainerBreakpointSize,
   RadiusSize,
   SpaceSize,
   Theme,
 } from 'sentry/utils/theme';
 
-// The two axes a responsive prop can resolve against. Container is the default
-// (bare keys); viewport is opt-in via the `screen:` prefix.
-const RESPONSIVE_AXES = ['container', 'viewport'] as const;
+// A responsive prop resolves against two independent axes with their own scales:
+// - the container axis (bare keys like `md`) → `@container`, `theme.containers`
+// - the viewport axis (`screen:`-prefixed keys) → `@media`, `theme.breakpoints`
+// The breakpoint passed to a resolver can come from either scale.
+type ResponsiveBreakpoint = BreakpointSize | ContainerBreakpointSize;
 
 // It is unfortunate, but Emotion seems to use the fn callback name in the classname, so lets keep it short.
 export function rc<T>(
@@ -30,7 +33,7 @@ export function rc<T>(
   // Optional resolver function to transform the value before it is applied to the CSS property.
   resolver?: (
     value: T | undefined,
-    breakpoint: BreakpointSize | undefined,
+    breakpoint: ResponsiveBreakpoint | undefined,
     theme: Theme
   ) => string | undefined
 ): string | undefined {
@@ -57,9 +60,15 @@ export function rc<T>(
   let first = true;
   const declarations: string[] = [];
 
-  for (const breakpoint of BREAKPOINT_ORDER) {
-    for (const axis of RESPONSIVE_AXES) {
-      const key = axis === 'container' ? breakpoint : `screen:${breakpoint}`;
+  const emit = (axisConfig: {
+    atRule: '@container' | '@media';
+    order: readonly ResponsiveBreakpoint[];
+    prefix: '' | 'screen:';
+    sizes: Record<string, string>;
+  }) => {
+    const {order, prefix, sizes, atRule} = axisConfig;
+    for (const breakpoint of order) {
+      const key = `${prefix}${breakpoint}`;
       const v = (value as Partial<Record<string, T>>)[key];
       const resolvedValue = resolver ? resolver(v, breakpoint, theme) : v;
 
@@ -74,19 +83,34 @@ export function rc<T>(
         continue;
       }
 
-      const atRule = axis === 'container' ? '@container' : '@media';
       declarations.push(
-        `${atRule} (min-width: ${theme.breakpoints[breakpoint]}) {
+        `${atRule} (min-width: ${sizes[breakpoint]}) {
           ${property}: ${resolvedValue as string};
         }`
       );
     }
-  }
+  };
+
+  emit({
+    atRule: '@container',
+    order: CONTAINER_ORDER,
+    prefix: '',
+    sizes: theme.containers,
+  });
+  emit({
+    atRule: '@media',
+    order: VIEWPORT_ORDER,
+    prefix: 'screen:',
+    sizes: theme.breakpoints,
+  });
 
   return declarations.join('');
 }
 
-const BREAKPOINT_ORDER: readonly BreakpointSize[] = [
+// The container query scale (bare keys) — resolved against `theme.containers`.
+const CONTAINER_ORDER: readonly ContainerBreakpointSize[] = [
+  'zero',
+  '3xs',
   '2xs',
   'xs',
   'sm',
@@ -94,7 +118,21 @@ const BREAKPOINT_ORDER: readonly BreakpointSize[] = [
   'lg',
   'xl',
   '2xl',
-] as const;
+  '3xl',
+  '4xl',
+  '5xl',
+];
+
+// The viewport scale (`screen:`-prefixed keys) — resolved against `theme.breakpoints`.
+const VIEWPORT_ORDER: readonly BreakpointSize[] = [
+  '2xs',
+  'xs',
+  'sm',
+  'md',
+  'lg',
+  'xl',
+  '2xl',
+];
 
 type Margin = SpaceSize | 'auto' | '0';
 
@@ -107,21 +145,24 @@ export type Shorthand<T extends string, N extends 4 | 2> = N extends 4
     : never;
 
 /**
- * Responsive prop keys come in two flavors, and may be combined on one prop:
- * - bare keys (`xs`, `md`, ...) resolve against the nearest query container
- *   (`@container`). Container queries are the default, so they take no prefix.
+ * Responsive prop keys come in two flavors, drawn from two independent scales,
+ * and may be combined on one prop:
+ * - bare keys (`zero`, `md`, ...) resolve against the nearest query container
+ *   (`@container`, `theme.containers`). Container queries are the default, so
+ *   they take no prefix.
  * - `screen:`-prefixed keys (`screen:md`, ...) resolve against the viewport
- *   (`@media`).
+ *   (`@media`, `theme.breakpoints`).
  *
- * e.g. `direction={{xs: 'column', 'screen:lg': 'row'}}` is column until its
- * container reaches `xs`, then a row once the viewport reaches `lg`.
+ * e.g. `direction={{zero: 'column', 'screen:lg': 'row'}}` is column until its
+ * container reaches the next breakpoint, then a row once the viewport reaches
+ * `lg`.
  */
 type ScreenBreakpoint = `screen:${BreakpointSize}`;
-type ResponsiveBreakpoint = BreakpointSize | ScreenBreakpoint;
+type ResponsiveKey = ContainerBreakpointSize | ScreenBreakpoint;
 
-export type Responsive<T> = T | Partial<Record<ResponsiveBreakpoint, T>>;
+export type Responsive<T> = T | Partial<Record<ResponsiveKey, T>>;
 
-function isResponsive(prop: unknown): prop is Partial<Record<ResponsiveBreakpoint, any>> {
+function isResponsive(prop: unknown): prop is Partial<Record<ResponsiveKey, any>> {
   return typeof prop === 'object' && prop !== null;
 }
 
@@ -168,7 +209,7 @@ function borderValue(key: Exclude<BorderVariant, 'none'>, theme: Theme): string 
 
 export function getBorder(
   border: BorderVariant | undefined,
-  _breakpoint: BreakpointSize | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
   theme: Theme
 ): string | undefined {
   if (border === undefined) {
@@ -187,7 +228,7 @@ export function getBorder(
 
 export function getRadius(
   radius: Shorthand<RadiusSize, 4> | undefined,
-  _breakpoint: BreakpointSize | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
   theme: Theme
 ): string | undefined {
   if (radius === undefined) {
@@ -207,7 +248,7 @@ export function getRadius(
 
 export function getSpacing(
   spacing: Shorthand<SpaceSize, 4> | undefined,
-  _breakpoint: BreakpointSize | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
   theme: Theme
 ): string | undefined {
   if (spacing === undefined) {
@@ -227,7 +268,7 @@ export function getSpacing(
 
 export function getMargin(
   margin: Shorthand<Margin, 4> | undefined,
-  _breakpoint: BreakpointSize | undefined,
+  _breakpoint: ResponsiveBreakpoint | undefined,
   theme: Theme
 ) {
   if (margin === undefined) {
@@ -262,9 +303,9 @@ export function useResponsivePropValue<T extends Responsive<any>>(
   prop: T
 ): T | ResponsiveValue<T> {
   const viewportBreakpoint = useActiveBreakpoint();
-  // No container ancestor → '2xs', the only value CSS applies in that case (the
+  // No container ancestor → 'zero', the only value CSS applies in that case (the
   // plain base declaration), so JS and the @container rules stay in agreement.
-  const containerBreakpoint = useContext(ContainerQueryContext) ?? '2xs';
+  const containerBreakpoint = useContext(ContainerQueryContext) ?? 'zero';
 
   // Only resolve the active breakpoint if the prop is responsive, else ignore it.
   if (!isResponsive(prop)) {
@@ -275,28 +316,33 @@ export function useResponsivePropValue<T extends Responsive<any>>(
     throw new Error('Responsive prop must contain at least one breakpoint');
   }
 
-  // Walk the same mobile-first cascade rc() emits and keep the value of the last
-  // rule whose condition is currently satisfied. Bare keys are matched against
-  // the nearest container's breakpoint, `screen:` keys against the viewport.
-  const containerIndex = BREAKPOINT_ORDER.indexOf(containerBreakpoint);
-  const viewportIndex = BREAKPOINT_ORDER.indexOf(viewportBreakpoint);
+  // Walk the same mobile-first cascade rc() emits — container axis first, then
+  // viewport axis on top — and keep the value of the last rule whose condition is
+  // currently satisfied. Bare keys are matched against the nearest container's
+  // breakpoint (`theme.containers` scale), `screen:` keys against the viewport
+  // (`theme.breakpoints` scale). Whichever axis is emitted later wins a tie.
+  const containerIndex = CONTAINER_ORDER.indexOf(containerBreakpoint);
+  const viewportIndex = VIEWPORT_ORDER.indexOf(viewportBreakpoint);
 
   let resolved: ResponsiveValue<T> | undefined;
   let first = true;
 
-  for (let i = 0; i < BREAKPOINT_ORDER.length; i++) {
-    const breakpoint = BREAKPOINT_ORDER[i];
-    if (breakpoint === undefined) {
-      continue;
-    }
-    for (const axis of RESPONSIVE_AXES) {
+  const cascade = (
+    axis: 'container' | 'viewport',
+    order: readonly ResponsiveBreakpoint[],
+    activeIndex: number
+  ) => {
+    for (let i = 0; i < order.length; i++) {
+      const breakpoint = order[i];
+      if (breakpoint === undefined) {
+        continue;
+      }
       const key = axis === 'container' ? breakpoint : `screen:${breakpoint}`;
       const value = (prop as Partial<Record<string, ResponsiveValue<T>>>)[key];
       if (value === undefined) {
         continue;
       }
 
-      const activeIndex = axis === 'container' ? containerIndex : viewportIndex;
       // The first defined breakpoint is the always-applied base; later ones only
       // apply once their axis is at least that wide.
       if (first || activeIndex >= i) {
@@ -304,7 +350,10 @@ export function useResponsivePropValue<T extends Responsive<any>>(
       }
       first = false;
     }
-  }
+  };
+
+  cascade('container', CONTAINER_ORDER, containerIndex);
+  cascade('viewport', VIEWPORT_ORDER, viewportIndex);
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   return resolved!;
@@ -321,8 +370,8 @@ export function useActiveBreakpoint(): BreakpointSize {
     const queries: Array<{breakpoint: BreakpointSize; query: MediaQueryList}> = [];
 
     // Iterate in reverse so that we always find the largest breakpoint
-    for (let i = BREAKPOINT_ORDER.length - 1; i >= 0; i--) {
-      const bp = BREAKPOINT_ORDER[i];
+    for (let i = VIEWPORT_ORDER.length - 1; i >= 0; i--) {
+      const bp = VIEWPORT_ORDER[i];
 
       if (bp === undefined) {
         continue;
@@ -395,17 +444,20 @@ function findLargestBreakpoint(
  * CSS-only responsive props don't need this — they resolve natively via
  * `@container` queries. This context exists purely for the JS resolution path.
  */
-const ContainerQueryContext = createContext<BreakpointSize | null>(null);
+const ContainerQueryContext = createContext<ContainerBreakpointSize | null>(null);
 
 /**
  * The JS equivalent of a CSS container query: returns the active breakpoint of
  * the nearest ancestor query container (read from `ContainerQueryContext`),
  * mirroring the mobile-first behavior of `rc()`/`@container`. Must be called
  * inside a query container (a `Container`/`Flex`/… with `containerType`); with
- * no container ancestor it resolves to `2xs` (the base, matching CSS's plain
+ * no container ancestor it resolves to `zero` (the base, matching CSS's plain
  * base declaration).
  *
- * Prefer CSS responsive props (bare breakpoint keys like `{xs: …}`) when
+ * The returned key is on the container scale (`theme.containers`: `zero`, `3xs`,
+ * …, `5xl`) — distinct from the viewport scale used by `useActiveBreakpoint`.
+ *
+ * Prefer CSS responsive props (bare breakpoint keys like `{md: …}`) when
  * possible; reach for this hook only when you genuinely need the resolved
  * breakpoint in JS (e.g. to branch rendering). It replaces width-based
  * `useMedia` usage.
@@ -415,8 +467,8 @@ const ContainerQueryContext = createContext<BreakpointSize | null>(null);
  * prop of your own), use {@link useResponsivePropValue} instead.
  * @public
  */
-export function useContainerBreakpoint(): BreakpointSize {
-  return useContext(ContainerQueryContext) ?? '2xs';
+export function useContainerBreakpoint(): ContainerBreakpointSize {
+  return useContext(ContainerQueryContext) ?? 'zero';
 }
 
 /**
@@ -476,17 +528,17 @@ export function ContainerQueryProvider({
   // context value only changes on a breakpoint boundary — descendants aren't
   // re-rendered on every pixel of a resize.
   const breakpoint = useMemo(() => {
-    for (let i = BREAKPOINT_ORDER.length - 1; i >= 0; i--) {
-      const bp = BREAKPOINT_ORDER[i];
+    for (let i = CONTAINER_ORDER.length - 1; i >= 0; i--) {
+      const bp = CONTAINER_ORDER[i];
       if (bp === undefined) {
         continue;
       }
-      if (inlineSize >= parseInt(theme.breakpoints[bp], 10)) {
+      if (inlineSize >= parseInt(theme.containers[bp], 10)) {
         return bp;
       }
     }
-    return '2xs';
-  }, [inlineSize, theme.breakpoints]);
+    return 'zero';
+  }, [inlineSize, theme.containers]);
 
   return <ContainerQueryContext value={breakpoint}>{children}</ContainerQueryContext>;
 }

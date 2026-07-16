@@ -17,6 +17,7 @@ import {darkTheme as baseDarkTheme} from 'sentry/utils/theme/scraps/theme/dark';
 // eslint-disable-next-line no-restricted-imports
 import {lightTheme as baseLightTheme} from 'sentry/utils/theme/scraps/theme/light';
 import {color} from 'sentry/utils/theme/scraps/tokens/color';
+import {containers} from 'sentry/utils/theme/scraps/tokens/containers';
 import {typography} from 'sentry/utils/theme/scraps/tokens/typography';
 
 import {makeSwatch, type Swatch} from './swatch';
@@ -257,6 +258,7 @@ const commonTheme = {
   },
 
   ...typography,
+  containers,
 };
 
 export interface SentryTheme extends Omit<
