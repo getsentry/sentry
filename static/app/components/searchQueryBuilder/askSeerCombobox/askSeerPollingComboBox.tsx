@@ -580,6 +580,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
 
   const showLoading = isSessionPending || isPolling;
   const hasResults = queries.length > 0;
+  const isDisplayingResults = !showLoading && !isSessionError && hasResults;
 
   return (
     <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
@@ -635,7 +636,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             state={state}
             onMouseLeave={onMouseLeave}
           />
-          {openForm && !hasAskSeerUxRework ? (
+          {openForm && (!hasAskSeerUxRework || isDisplayingResults) ? (
             <SeerFooter onMouseDown={e => e.preventDefault()}>
               <Button
                 size="xs"
