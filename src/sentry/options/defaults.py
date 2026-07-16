@@ -1229,6 +1229,22 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Safety ceilings on how many smart-assignment Seer runs we dispatch, on top of
+# the feature flag and per-issue dedup. Rolling 24h windows; set to 0 to pause
+# dispatching entirely. See sentry.seer.smart_assignment.trigger.
+register(
+    "seer.smart_assignment.max_dispatches_per_org_per_day",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.smart_assignment.max_dispatches_per_day",
+    type=Int,
+    default=1500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "issues.backfill_group_action_log.killswitch",
     type=Bool,
