@@ -6,6 +6,7 @@ import time
 from collections.abc import Callable
 from typing import Any, TypeVar
 
+import sentry_sdk
 from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import Message
 
@@ -115,16 +116,7 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
                 "billing.service.method.duration", duration_ms, tags=metric_tags, sample_rate=1.0
             )
             metrics.incr("billing.service.method.success", tags=metric_tags, sample_rate=1.0)
-
-            logger.info(
-                "billing.service.method.success",
-                extra={
-                    "duration_ms": duration_ms,
-                    "response_type": type(result).__name__,
-                    "response": MessageToDict(result),
-                    **extras,
-                },
-            )
+            sentry_sdk.metrics.count("billing.service.method.success", 1, attributes=metric_tags)
 
             return result
 
@@ -138,6 +130,11 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
                 "billing.service.method.error",
                 tags={**metric_tags, "error_type": type(e).__name__},
                 sample_rate=1.0,
+            )
+            sentry_sdk.metrics.count(
+                "billing.service.method.error",
+                1,
+                attributes={**metric_tags, "error_type": type(e).__name__},
             )
 
             logger.info(

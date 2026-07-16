@@ -6,7 +6,7 @@ Base classes and decorators for billing services. No application-specific code.
 
 Provides automatic observability for service methods:
 
-**Metrics emitted:**
+**Datadog metrics emitted** (via `metrics.incr` / `metrics.timing`):
 
 - `billing.service.method.called` - Method invocations
 - `billing.service.method.success` - Successful completions
@@ -15,6 +15,11 @@ Provides automatic observability for service methods:
 
 All metrics include `service` and `method` tags.
 
+**Sentry Metrics** (via `sentry_sdk.metrics.count`, 100% sampled):
+
+- `billing.service.method.success` - Successful completions
+- `billing.service.method.error` - Failures (tagged with error_type)
+
 **Validation:**
 
 - Input must be a protobuf Message
@@ -22,7 +27,7 @@ All metrics include `service` and `method` tags.
 
 **Logging:**
 
-Structured logs at start, success, and error with service name, method name, and duration.
+Structured error logs with service name, method name, duration, and error details. Success paths do not emit a structured log (use Sentry Metrics instead).
 
 ## Example
 

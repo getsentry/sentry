@@ -52,10 +52,11 @@ class TestBillingService:
         with pytest.raises(TypeError, match="must return a protobuf Message"):
             service.bad_return(StringValue(value="test"))
 
+    @mock.patch("sentry.billing.platform.core.service.sentry_sdk.metrics.count")
     @mock.patch("sentry.billing.platform.core.service.metrics")
     @mock.patch("sentry.billing.platform.core.service.logger")
-    def test_service_method_observability(self, mock_logger, mock_metrics):
-        """Service methods emit metrics and logs."""
+    def test_service_method_observability(self, mock_logger, mock_metrics, mock_sentry_count):
+        """Service methods emit Datadog and Sentry metrics; no success log."""
 
         class TestService(BillingService):
             @service_method
@@ -65,25 +66,33 @@ class TestBillingService:
         service = TestService()
         service.test_method(StringValue(value="test"))
 
-        # Verify metrics were called
+        metric_tags = {"service": "TestService", "method": "test_method"}
+
         mock_metrics.incr.assert_any_call(
             "billing.service.method.called",
-            tags={"service": "TestService", "method": "test_method"},
+            tags=metric_tags,
             sample_rate=1.0,
         )
         mock_metrics.incr.assert_any_call(
             "billing.service.method.success",
-            tags={"service": "TestService", "method": "test_method"},
+            tags=metric_tags,
             sample_rate=1.0,
         )
         mock_metrics.timing.assert_called()
 
-        # Verify logging
-        assert mock_logger.info.call_count == 1
+        mock_sentry_count.assert_called_once_with(
+            "billing.service.method.success",
+            1,
+            attributes=metric_tags,
+        )
 
+        mock_logger.info.assert_not_called()
+
+    @mock.patch("sentry.billing.platform.core.service.sentry_sdk.metrics.count")
     @mock.patch("sentry.billing.platform.core.service.metrics")
-    def test_service_method_error_handling(self, mock_metrics):
-        """Service methods propagate exceptions and emit error metrics."""
+    @mock.patch("sentry.billing.platform.core.service.logger")
+    def test_service_method_error_handling(self, mock_logger, mock_metrics, mock_sentry_count):
+        """Service methods propagate exceptions and emit error metrics/logs."""
 
         class TestService(BillingService):
             @service_method
@@ -95,16 +104,26 @@ class TestBillingService:
         with pytest.raises(ValueError, match="Something went wrong"):
             service.failing_method(StringValue(value="test"))
 
-        # Verify error metrics
+        error_tags = {
+            "service": "TestService",
+            "method": "failing_method",
+            "error_type": "ValueError",
+        }
+
         mock_metrics.incr.assert_any_call(
             "billing.service.method.error",
-            tags={
-                "service": "TestService",
-                "method": "failing_method",
-                "error_type": "ValueError",
-            },
+            tags=error_tags,
             sample_rate=1.0,
         )
+
+        mock_sentry_count.assert_called_once_with(
+            "billing.service.method.error",
+            1,
+            attributes=error_tags,
+        )
+
+        mock_logger.info.assert_called_once()
+        assert mock_logger.info.call_args[0][0] == "billing.service.method.error"
 
     def test_multiple_methods_on_same_service(self) -> None:
         """A service can have multiple service methods."""
