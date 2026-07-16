@@ -401,8 +401,8 @@ importers:
         specifier: ^1.1.0
         version: 1.1.1
       jest-fetch-mock:
-        specifier: ^3.0.3
-        version: 3.0.3(encoding@0.1.13)
+        specifier: 4.2.0
+        version: 4.2.0(encoding@0.1.13)
       js-beautify:
         specifier: ^2.0.3
         version: 2.0.3
@@ -6592,8 +6592,9 @@ packages:
     peerDependencies:
       '@jest/globals': '>=27.5.1'
 
-  jest-fetch-mock@3.0.3:
-    resolution: {integrity: sha512-Ux1nWprtLrdrH4XwE7O7InRY6psIi3GOsqNESJgMJ+M5cv4A8Lh7SN9d2V2kKRZ8ebAfcd1LNyZguAOb6JiDqw==}
+  jest-fetch-mock@4.2.0:
+    resolution: {integrity: sha512-/Yya+k/bopdCSG+cEIL9Kxj1cr4j73DeOQiroicwrTkTEfyMsnQxrugjSopn8RnwginmX/Nlsp57BGy1I1mQSg==}
+    engines: {node: '>=18'}
 
   jest-haste-map@30.4.1:
     resolution: {integrity: sha512-rFrcONd8jeFsyw+Z9CrScJgglRf2+NFmNam8dKu7n+SoHqNYT47mn0DdEcVUZJpvh7Iz6/si7f7yUH7GJHVgnw==}
@@ -7780,9 +7781,6 @@ packages:
     peerDependenciesMeta:
       bluebird:
         optional: true
-
-  promise-polyfill@8.3.0:
-    resolution: {integrity: sha512-H5oELycFml5yto/atYqmjyigJoAo3+OXwolYiH7OfQuYlAqhxNvTfiNMbV9hsC6Yp83yE5r2KTVmtrG6R9i6Pg==}
 
   promise-retry@2.0.1:
     resolution: {integrity: sha512-y+WKFlBR8BGXnsNlIHFGPZmyDf3DFMoLhaflAnyZgV6rG6xu+JwesTo2Q9R6XwYmtmwAFCkAk3e35jEdoeh/3g==}
@@ -15865,10 +15863,9 @@ snapshots:
     dependencies:
       '@jest/globals': 30.4.1
 
-  jest-fetch-mock@3.0.3(encoding@0.1.13):
+  jest-fetch-mock@4.2.0(encoding@0.1.13):
     dependencies:
       cross-fetch: 3.1.8(encoding@0.1.13)
-      promise-polyfill: 8.3.0
     transitivePeerDependencies:
       - encoding
 
@@ -17523,8 +17520,6 @@ snapshots:
   progress@2.0.3: {}
 
   promise-inflight@1.0.1: {}
-
-  promise-polyfill@8.3.0: {}
 
   promise-retry@2.0.1:
     dependencies:
