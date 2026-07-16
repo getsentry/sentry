@@ -555,12 +555,6 @@ def _unfurl_explore(
         if features.has("organizations:visibility-explore-view", org, actor=user)
     }
 
-    heatmap_enabled_orgs = {
-        slug: org
-        for slug, org in orgs_by_slug.items()
-        if features.has("organizations:data-browsing-heat-map-widget", org, actor=user)
-    }
-
     if not enabled_orgs:
         return {}
 
@@ -597,10 +591,6 @@ def _unfurl_explore(
             # comes from metrics URLs — traces/logs never offer it. This branch
             # therefore assumes the trace metrics dataset (events-heatmap with
             # metric-style axes); it is not reached for other Explore datasets.
-            heatmap_org = heatmap_enabled_orgs.get(org_slug)
-            if not heatmap_org:
-                continue
-
             style = ChartType.SLACK_HEATMAP
             heatmap_params = _build_heatmap_query(params)
             api_params: dict[str, str | list[str]] = {

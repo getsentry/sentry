@@ -1485,7 +1485,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_widget_type_tracemetrics_heatmap_requires_flag(self) -> None:
+    def test_widget_type_tracemetrics_heatmap_requires_metrics_feature(self) -> None:
         data = {
             "title": "Test Metrics Heat Map",
             "widgetType": "tracemetrics",
@@ -1509,7 +1509,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "displayType" in response.data, response.data
 
-    def test_widget_type_tracemetrics_heatmap_with_flag(self) -> None:
+    def test_widget_type_tracemetrics_heatmap_with_metrics_feature(self) -> None:
         data = {
             "title": "Test Metrics Heat Map",
             "widgetType": "tracemetrics",
@@ -1525,7 +1525,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
+        with self.feature("organizations:tracemetrics-enabled"):
             response = self.do_request(
                 "post",
                 self.url(),
@@ -1549,7 +1549,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
+        with self.feature("organizations:tracemetrics-enabled"):
             response = self.do_request(
                 "post",
                 self.url(),
@@ -1583,7 +1583,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
+        with self.feature("organizations:tracemetrics-enabled"):
             response = self.do_request(
                 "post",
                 self.url(),
@@ -1616,7 +1616,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
+        with self.feature("organizations:tracemetrics-enabled"):
             response = self.do_request(
                 "post",
                 self.url(),
@@ -1651,7 +1651,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
+        with self.feature("organizations:tracemetrics-enabled"):
             response = self.do_request(
                 "post",
                 self.url(),
@@ -1682,7 +1682,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
+        with self.feature("organizations:tracemetrics-enabled"):
             response = self.do_request(
                 "post",
                 self.url(),
@@ -1710,7 +1710,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
+        with self.feature("organizations:tracemetrics-enabled"):
             response = self.do_request(
                 "post",
                 self.url(),
@@ -1738,7 +1738,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
+        with self.feature("organizations:tracemetrics-enabled"):
             response = self.do_request(
                 "post",
                 self.url(),
@@ -1766,7 +1766,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
+        with self.feature("organizations:tracemetrics-enabled"):
             response = self.do_request(
                 "post",
                 self.url(),
@@ -1794,7 +1794,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
+        with self.feature("organizations:tracemetrics-enabled"):
             response = self.do_request(
                 "post",
                 self.url(),
@@ -1829,7 +1829,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
+        with self.feature("organizations:tracemetrics-enabled"):
             response = self.do_request(
                 "post",
                 self.url(),
