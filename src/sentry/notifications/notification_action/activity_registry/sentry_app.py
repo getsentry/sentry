@@ -204,9 +204,7 @@ class SentryAppActivityHandler(ActivityHandler):
                 }
             )
             action = invocation.action
-            activity, group, project, organization = extract_notification_models_by_activity(
-                activity.id
-            )
+            group, project, organization = extract_notification_models_by_activity(activity)
             lifecycle.add_extras(
                 {
                     "group_id": group.id,

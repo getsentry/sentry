@@ -68,9 +68,12 @@ class HandleWebhookForPrMetricsTest(TestCase):
         action: str = "opened",
         user_id: int = 999,
         changes: dict[str, Any] | None = None,
+        html_url: str | None = None,
     ) -> None:
         payload = dict(self.base_pr_payload)
         payload["user"] = {"id": user_id, "login": "testbot"}
+        if html_url is not None:
+            payload["html_url"] = html_url
         event: dict[str, Any] = {"action": action, "pull_request": payload}
         if changes is not None:
             event["changes"] = changes
@@ -166,6 +169,84 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
         assert attr.is_valid is True
+
+    # --- Local Seer run lookup (supplements the regex-based GroupLink match) ---
+
+    def test_app_attribution_includes_seer_run_group_id(self) -> None:
+        group = self.create_group(project=self.project)
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        self.create_seer_agent_run(run=run, group=group)
+        self.create_seer_run_pull_request(run=run, pull_request=self.pr)
+
+        self._call(
+            user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID,
+            html_url="https://github.com/org/repo/pull/42",
+        )
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details == {
+            "pr_url": "https://github.com/org/repo/pull/42",
+            "group_ids": [group.id],
+            "run_id": 555,
+        }
+
+    def test_app_attribution_unions_regex_and_seer_run_group_ids(self) -> None:
+        regex_group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=regex_group.id,
+            project_id=regex_group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+        seer_group = self.create_group(project=self.project)
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=777)
+        self.create_seer_agent_run(run=run, group=seer_group)
+        self.create_seer_run_pull_request(run=run, pull_request=self.pr)
+
+        self._call(
+            user_id=settings.SENTRY_GITHUB_APP_USER_ID,
+            html_url="https://github.com/org/repo/pull/42",
+        )
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details is not None
+        assert attr.signal_details["group_ids"] == sorted([regex_group.id, seer_group.id])
+        assert attr.signal_details["run_id"] == 777
+
+    def test_app_attribution_without_seer_run_link_falls_back_to_regex(self) -> None:
+        regex_group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=regex_group.id,
+            project_id=regex_group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+
+        self._call(
+            user_id=settings.SENTRY_GITHUB_APP_USER_ID,
+            html_url="https://github.com/org/repo/pull/42",
+        )
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details is not None
+        assert attr.signal_details["group_ids"] == [regex_group.id]
+        assert attr.signal_details["run_id"] is None
+
+    def test_app_attribution_seer_run_without_agent_row_yields_no_group_id(self) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=888)
+        self.create_seer_run_pull_request(run=run, pull_request=self.pr)
+
+        self._call(
+            user_id=settings.SENTRY_GITHUB_APP_USER_ID,
+            html_url="https://github.com/org/repo/pull/42",
+        )
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details is not None
+        assert attr.signal_details["group_ids"] == []
+        assert attr.signal_details["run_id"] == 888
 
     # --- MCP attribution ---
 

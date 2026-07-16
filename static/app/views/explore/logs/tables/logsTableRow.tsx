@@ -397,8 +397,8 @@ export const LogRowContent = memo(function LogRowContent({
     ? {isClickable: false}
     : blockRowExpanding
       ? onEmbeddedRowClick
-        ? {onClick, isClickable: true}
-        : {}
+        ? {...hoverProps, onClick, isClickable: true}
+        : {...hoverProps}
       : {
           ...hoverProps,
           onPointerUp,
@@ -557,7 +557,7 @@ export const LogRowContent = memo(function LogRowContent({
             name: field,
             key: field,
             isSortable: true,
-            type: FieldValueType.STRING,
+            type: meta?.fields?.[field] ?? FieldValueType.STRING,
           };
 
           return (

@@ -442,7 +442,7 @@ function ReleaseRenderer(props: LogFieldRendererProps) {
 
 export function LogBodyRenderer(props: LogFieldRendererProps) {
   const attribute_value = props.item.value as string;
-  const highlightTerm = props.extra?.highlightTerms[0] ?? '';
+  const highlightTerms = props.extra?.highlightTerms ?? [];
   const template = props.extra.attributes?.[OurLogKnownFieldKey.TEMPLATE];
   const templateText =
     props.extra.canAppendTemplateToBody && template ? template : undefined;
@@ -457,7 +457,7 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
       <WrappingText wrapText={props.extra.wrapBody}>
         <LogsHighlight
           caseSensitive={props.extra.caseSensitiveHighlighting}
-          text={highlightTerm}
+          terms={highlightTerms}
         >
           {stripAnsi(attribute_value)}
         </LogsHighlight>

@@ -37,7 +37,12 @@ from sentry.tasks.summaries.metrics import (
 from sentry.tasks.summaries.organization_report_context_factory import (
     OrganizationReportContextFactory,
 )
-from sentry.tasks.summaries.utils import ONE_DAY, PAST_ISSUES_LINK_BOOST, OrganizationReportContext
+from sentry.tasks.summaries.utils import (
+    ONE_DAY,
+    PAST_ISSUES_LINK_BOOST,
+    OrganizationReportContext,
+    ProjectContext,
+)
 from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics
 from sentry.taskworker.namespaces import reports_tasks
 from sentry.types.group import GroupSubStatus
@@ -245,8 +250,10 @@ def prepare_organization_report(
 
         # Cache after delivery so a failed attempt doesn't poison the
         # previous-week lookup on retry.
-        if not dry_run and features.has(
-            "organizations:weekly-report-week-over-week-metric", ctx.organization
+        if (
+            not dry_run
+            and not email_override
+            and features.has("organizations:weekly-report-week-over-week-metric", ctx.organization)
         ):
             try:
                 project_metrics: dict[int, dict[str, int]] = {}
@@ -344,16 +351,21 @@ class OrganizationReportBatch:
             lifecycle.add_extra("user_id", user_id)
 
             if template_context and user_id:
-                dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
-                if not dupe_check.check_for_duplicate_delivery():
-                    was_sent = self.send_email(template_ctx=template_context, user_id=user_id)
-
-                    # Record delivery if email was sent successfully
-                    if was_sent:
-                        dupe_check.record_delivery()
+                # Admin sends (email_override) bypass duplicate detection so
+                # support/debugging re-sends always go through.
+                if self.email_override:
+                    self.send_email(template_ctx=template_context, user_id=user_id)
                 else:
-                    lifecycle.record_halt(WeeklyReportHaltReason.DUPLICATE_DELIVERY)
-                    metrics.incr("weekly_report.email.skipped", tags={"reason": "duplicate"})
+                    dupe_check = _DuplicateDeliveryCheck(self, user_id, self.ctx.timestamp)
+                    if not dupe_check.check_for_duplicate_delivery():
+                        was_sent = self.send_email(template_ctx=template_context, user_id=user_id)
+
+                        # Record delivery if email was sent successfully
+                        if was_sent:
+                            dupe_check.record_delivery()
+                    else:
+                        lifecycle.record_halt(WeeklyReportHaltReason.DUPLICATE_DELIVERY)
+                        metrics.incr("weekly_report.email.skipped", tags={"reason": "duplicate"})
 
     def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> bool:
         local_start, local_end = get_local_dates(self.ctx, user_id)
@@ -366,7 +378,10 @@ class OrganizationReportBatch:
             context=template_ctx,
             headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},
         )
-        if self.dry_run:
+        # Admin sends (email_override) always deliver the email regardless of
+        # dry_run so the admin tool is useful for debugging.  The dry_run
+        # script (schedule_organizations) never sets email_override.
+        if self.dry_run and not self.email_override:
             metrics.incr("weekly_report.email.skipped", tags={"reason": "dry_run"})
             return False
 
@@ -524,7 +539,7 @@ def _pct_change(current: int, previous: int) -> dict[str, str] | None:
     change = (current - previous) / previous
     pct = round(change * 100)
     if pct == 0:
-        return None
+        return {"arrow": "", "pct": "—0%", "bg_color": "#F0F0F2", "text_color": "#80708F"}
     if change > 0:
         return {"arrow": "↑", "pct": f"{abs(pct)}%", "bg_color": "#F9F0D2", "text_color": "#A45200"}
     return {"arrow": "↓", "pct": f"{abs(pct)}%", "bg_color": "#E3F7E3", "text_color": "#008900"}
@@ -612,7 +627,27 @@ def render_template_context(
     local_start, local_end = get_local_dates(ctx, user_id)
 
     # Render the first section of the email where we had the table showing the
-    # number of accepted errors/transactions for each project.
+    # number of errors, new/escalating/regressed issues for each project.
+    def _substatus_url(project_ctx: ProjectContext, query: str) -> str:
+        return project_ctx.project.get_absolute_url(
+            params={
+                "referrer": "weekly_report",
+                "notification_uuid": notification_uuid,
+                "query": query,
+            }
+        )
+
+    def _multi_project_substatus_url(project_ctxs: list[ProjectContext], query: str) -> str:
+        path = f"/organizations/{ctx.organization.slug}/issues/"
+        params = [
+            ("referrer", "weekly_report"),
+            ("notification_uuid", notification_uuid),
+            ("query", query),
+        ]
+        for pc in project_ctxs:
+            params.append(("project", pc.project.id))
+        return ctx.organization.absolute_url(path, query=urlencode(params))
+
     def trends():
         # Given an iterator of event counts, sum up their accepted errors/transaction counts.
         def sum_error_counts(project_ctxs):
@@ -645,8 +680,11 @@ def render_template_context(
                 "color": project_breakdown_colors[i],
                 "accepted_error_count": project_ctx.accepted_error_count,
                 "new_substatus_count": project_ctx.new_substatus_count,
+                "new_substatus_url": _substatus_url(project_ctx, "is:new"),
                 "escalating_substatus_count": project_ctx.escalating_substatus_count,
+                "escalating_substatus_url": _substatus_url(project_ctx, "is:escalating"),
                 "regression_substatus_count": project_ctx.regression_substatus_count,
+                "regression_substatus_url": _substatus_url(project_ctx, "is:regressed"),
             }
             for i, project_ctx in enumerate(projects_taken)
         ]
@@ -659,11 +697,18 @@ def render_template_context(
                     "color": other_color,
                     "accepted_error_count": others_error,
                     "new_substatus_count": sum(p.new_substatus_count for p in projects_not_taken),
+                    "new_substatus_url": _multi_project_substatus_url(projects_not_taken, "is:new"),
                     "escalating_substatus_count": sum(
                         p.escalating_substatus_count for p in projects_not_taken
                     ),
+                    "escalating_substatus_url": _multi_project_substatus_url(
+                        projects_not_taken, "is:escalating"
+                    ),
                     "regression_substatus_count": sum(
                         p.regression_substatus_count for p in projects_not_taken
+                    ),
+                    "regression_substatus_url": _multi_project_substatus_url(
+                        projects_not_taken, "is:regressed"
                     ),
                 }
             )
@@ -676,11 +721,20 @@ def render_template_context(
                     "new_substatus_count": sum(
                         p.new_substatus_count for p in projects_associated_with_user
                     ),
+                    "new_substatus_url": _multi_project_substatus_url(
+                        projects_associated_with_user, "is:new"
+                    ),
                     "escalating_substatus_count": sum(
                         p.escalating_substatus_count for p in projects_associated_with_user
                     ),
+                    "escalating_substatus_url": _multi_project_substatus_url(
+                        projects_associated_with_user, "is:escalating"
+                    ),
                     "regression_substatus_count": sum(
                         p.regression_substatus_count for p in projects_associated_with_user
+                    ),
+                    "regression_substatus_url": _multi_project_substatus_url(
+                        projects_associated_with_user, "is:regressed"
                     ),
                 }
             )
@@ -823,19 +877,22 @@ def render_template_context(
 
     show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
 
-    errors_discover_query = urlencode(
-        [
-            ("field", "title"),
-            ("field", "event.type"),
-            ("field", "project"),
-            ("field", "user.display"),
-            ("field", "timestamp"),
-            ("dataset", "errors"),
-            ("sort", "-timestamp"),
-            ("referrer", "weekly_report"),
-            ("notification_uuid", notification_uuid),
-        ]
-    )
+    errors_discover_params: list[tuple[str, str | int]] = [
+        ("field", "title"),
+        ("field", "event.type"),
+        ("field", "project"),
+        ("field", "user.display"),
+        ("field", "timestamp"),
+        ("dataset", "errors"),
+        ("sort", "-timestamp"),
+        ("referrer", "weekly_report"),
+        ("notification_uuid", notification_uuid),
+    ]
+    for pc in user_projects:
+        errors_discover_params.append(("project", pc.project.id))
+    errors_discover_query = urlencode(errors_discover_params)
+
+    view_all_issues_url = _multi_project_substatus_url(user_projects, "is:unresolved")
 
     return {
         "organization": ctx.organization,
@@ -849,6 +906,7 @@ def render_template_context(
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,
         "errors_discover_query": errors_discover_query,
+        "view_all_issues_url": view_all_issues_url,
         "enhanced_privacy": ctx.organization.flags.enhanced_privacy,
         "show_week_over_week_metric": features.has(
             "organizations:weekly-report-week-over-week-metric", ctx.organization
