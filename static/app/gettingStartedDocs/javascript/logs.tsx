@@ -96,7 +96,9 @@ Sentry.init({
       content: [
         {
           type: 'text',
-          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
+          text: t(
+            'Send a test log from your app, then refresh this page to verify it arrived in Sentry.'
+          ),
         },
         {
           type: 'code',
@@ -104,6 +106,28 @@ Sentry.init({
           code: `import * as Sentry from "${packageName}";
 
 Sentry.logger.info('User triggered test log', { log_source: 'sentry_test' })`,
+        },
+        {
+          type: 'alert',
+          alertType: 'info',
+          text:
+            docsPlatform === 'nextjs'
+              ? tct(
+                  'Already using console.log, Pino, Winston, or Consola? See our [link:integrations].',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/logs/#integrations" />
+                    ),
+                  }
+                )
+              : tct(
+                  'Already using console.log? Capture console calls as Sentry Logs with the [link:consoleLoggingIntegration].',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/logs/#console-integration" />
+                    ),
+                  }
+                ),
         },
       ],
     },
@@ -221,7 +245,7 @@ Sentry.init({
         {
           type: 'text',
           text: t(
-            'To confirm that logs are working correctly, run your application and check the Sentry logs page for the collected logs.'
+            'Send a test log from your app, then refresh this page to verify it arrived in Sentry.'
           ),
         },
         {
@@ -230,6 +254,28 @@ Sentry.init({
           code: `import * as Sentry from "${packageName}";
 
 Sentry.logger.info('User triggered test log', { log_source: 'sentry_test' })`,
+        },
+        {
+          type: 'alert',
+          alertType: 'info',
+          text:
+            docsPlatform === 'nextjs'
+              ? tct(
+                  'Already using console.log, Pino, Winston, or Consola? See our [link:integrations].',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nextjs/logs/#integrations" />
+                    ),
+                  }
+                )
+              : tct(
+                  'Already using console.log? Capture console calls as Sentry Logs with the [link:consoleLoggingIntegration].',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/logs/#console-integration" />
+                    ),
+                  }
+                ),
         },
       ],
     },

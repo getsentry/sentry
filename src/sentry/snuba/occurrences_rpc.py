@@ -345,7 +345,7 @@ class Occurrences(rpc_dataset_common.RPCBase):
                             attrs[public_alias].append(
                                 {"label": bucket.label, "value": bucket.value}
                             )
-                stats.append({"attribute_distributions": {"data": attrs}})
+                stats.append({"attributeDistributions": {"data": attrs}})
 
         return stats
 

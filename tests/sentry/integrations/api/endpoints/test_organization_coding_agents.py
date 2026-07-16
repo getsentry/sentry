@@ -69,11 +69,8 @@ class StoreCodingAgentStatesToSeerTest(APITestCase):
         from unittest.mock import patch
 
         from sentry.seer.autofix.coding_agent import store_coding_agent_states_to_seer
-        from sentry.seer.autofix.utils import (
-            CodingAgentProviderType,
-            CodingAgentState,
-            CodingAgentStatus,
-        )
+        from sentry.seer.autofix.constants import CodingAgentStatus
+        from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState
 
         state1 = CodingAgentState(
             id="a1",
