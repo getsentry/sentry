@@ -311,11 +311,13 @@ class DifAssembleEndpoint(APITestCase):
             debug_id="11111111-1111-1111-1111-111111111111",
         )
 
-        if first_dif.storage_path is not None:
+        if first_dif.uses_objectstore_for_read():
             assert first_dif.storage_path != second_dif.storage_path
+            assert first_dif.file_id != second_dif.file_id
+            assert File.objects.filter(type="project.dif", checksum=checksum).count() == 2
         else:
             assert first_dif.file_id == second_dif.file_id
-        assert File.objects.filter(type="project.dif", checksum=checksum).count() <= 1
+            assert File.objects.filter(type="project.dif", checksum=checksum).count() == 1
 
     def test_reupload_proguard_with_same_debug_id_is_idempotent(self) -> None:
         file_contents = b"proguard mapping"

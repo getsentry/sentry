@@ -355,6 +355,7 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
         download_id = self._upload_and_get_download_id()
 
         with (
+            self.feature("organizations:objectstore-debugfiles-read"),
             self.feature("organizations:objectstore-debugfiles-direct-read"),
             patch("sentry.auth.system.is_internal_ip", return_value=True),
         ):
@@ -369,6 +370,7 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
         download_id = self._upload_and_get_download_id()
 
         with (
+            self.feature("organizations:objectstore-debugfiles-read"),
             self.feature("organizations:objectstore-debugfiles-direct-read"),
             patch("sentry.auth.system.is_internal_ip", return_value=False),
         ):
@@ -380,6 +382,15 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
             f"/organizations/{self.organization.id}/objectstore/v1/objects/debug_files/" in location
         )
         assert "os_sig=" in location
+
+    def test_direct_read_requires_read_gate(self) -> None:
+        download_id = self._upload_and_get_download_id()
+
+        with self.feature("organizations:objectstore-debugfiles-direct-read"):
+            response = self.client.get(f"{self.url}?id={download_id}")
+
+        assert response.status_code == 200
+        assert close_streaming_response(response) == PROGUARD_SOURCE
 
 
 @debug_files_test_both_backends
