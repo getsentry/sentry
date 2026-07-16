@@ -10,6 +10,7 @@ import {Input} from '@sentry/scraps/input';
 import {Flex, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Client} from 'sentry/api';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -91,9 +92,10 @@ type SortByProps = {
   path: string;
   value: string;
   location?: Location;
+  size?: React.ComponentProps<typeof OverlayTrigger.Button>['size'];
 };
 
-function SortBy({options, path, location, value}: SortByProps) {
+function SortBy({options, path, location, value, size}: SortByProps) {
   const navigate = useNavigate();
   const {query, pathname} = location ?? {};
   const resolvedPath = path ?? pathname;
@@ -103,6 +105,7 @@ function SortBy({options, path, location, value}: SortByProps) {
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
+          size={size}
           icon={<IconList size="xs" />}
           prefix="Sort By"
         />
@@ -141,6 +144,26 @@ interface ResultGridProps {
    */
   path: string;
   /**
+   * Fetch the grid's data from every data region in parallel and render the
+   * merged results in a single list with a Region column, instead of scoping
+   * the grid to one region behind a region selector.
+   *
+   * A synthetic "Region" filter is rendered alongside the grid's filters;
+   * selecting a region there goes back to a plain single-region fetch (with
+   * pagination). The merged all-region view is not paginated: each region
+   * contributes at most its first page, and the per-region result summary
+   * flags regions that have more.
+   *
+   * This is opt-in because most regional/cell-scoped grids (e.g. invoice or
+   * relocation search) have no meaningful notion of "the same record in
+   * another region". Only enable it where cross-region results are useful,
+   * such as customer search. Requires `isCellScoped` or `isRegional` and
+   * `useQueryString` (the Region filter is URL-driven).
+   *
+   * @default false
+   */
+  allRegions?: boolean;
+  /**
    * Button on the right side of the header
    */
   buttonGroup?: React.ReactNode;
@@ -156,24 +179,6 @@ interface ResultGridProps {
    * The default sorting to use when one hasn't been selected yet
    */
   defaultSort?: string;
-  /**
-   * Predicate that reports whether a returned row is an *exact* match for the
-   * active search query (e.g. an org whose slug equals the searched term).
-   *
-   * When provided alongside `probeAcrossRegions`, the cross-region probe also
-   * fires when the active region returns only fuzzy/similar matches but no
-   * exact match — not just when it returns zero results. This surfaces the
-   * "this org may live in another region" hint even when a similar slug is
-   * returned in the current region.
-   *
-   * When omitted, cross-region probing falls back to the original behavior of
-   * only probing when the active region returns no results at all.
-   *
-   * `query` is passed pre-normalized: trimmed and lower-cased. Implementations
-   * should compare against an already-normalized field (e.g. an org slug, which
-   * is always lower-case) and must not re-normalize the query themselves.
-   */
-  exactMatchQuery?: (row: any, query: string) => boolean;
   /**
    * A definition of filters
    */
@@ -233,18 +238,6 @@ interface ResultGridProps {
    */
   panelTitle?: string;
   /**
-   * When a region-scoped search returns no results, probe every other data
-   * region for matches and surface a hint pointing the user to them.
-   *
-   * This is opt-in because most regional/cell-scoped grids (e.g. invoice or
-   * relocation search) have no meaningful notion of "the same record in another
-   * region". Only enable it where cross-region presence is useful, such as
-   * customer search.
-   *
-   * @default false
-   */
-  probeAcrossRegions?: boolean;
-  /**
    * Always probe every *other* data region for records and surface a hint when
    * any of them has matches — regardless of whether the active region has
    * results or a search query is present.
@@ -255,8 +248,8 @@ interface ResultGridProps {
    * organization memberships know the user also belongs to orgs in other regions
    * and that they should look there too.
    *
-   * Unlike `probeAcrossRegions`, this is not search-driven: it fires on every
-   * load. Prefer `probeAcrossRegions` for search grids.
+   * Unlike `allRegions`, this keeps the grid scoped to one region at a time
+   * with a region selector. Prefer `allRegions` where the merged view works.
    *
    * @default false
    */
@@ -281,28 +274,52 @@ interface ResultGridProps {
   useQueryString?: boolean;
 }
 
+/**
+ * Per-region progress/result summary for an all-region fetch. Rendered as a
+ * chip above the table so users can see which regions are still loading, how
+ * many results each one returned, and which ones failed.
+ */
+type RegionResult = {
+  cell: Cell;
+  count: number;
+  /**
+   * The region has more than one page of matches; only its first page is
+   * included in the merged list.
+   */
+  hasMore: boolean;
+  status: 'loading' | 'success' | 'error';
+};
+
 export type State = {
   cell: Cell | undefined;
   cursor: string;
   error: boolean;
+  /**
+   * Whether the current result set is being (or was) fetched from all regions
+   * at once rather than only one.
+   */
+  fetchingAllRegions: boolean;
   filters: Location['query'];
   loading: boolean;
-  /**
-   * Whether the active region returned no exact match for the current search
-   * (either no results at all, or only fuzzy/similar matches). Drives whether
-   * the cross-region hint should be surfaced.
-   */
-  missingExactMatch: boolean;
   pageLinks: string | null;
   /**
-   * Whether we are currently probing other regions after a missing exact match.
+   * Whether we are currently probing other regions (`probeAllRegions`).
    */
   probingRegions: boolean;
   query: string;
   /**
-   * Other regions that have at least one match for the active search.
+   * Other regions that have at least one match (`probeAllRegions`).
    */
   regionMatches: Cell[];
+  /**
+   * Per-region status of the current all-region fetch, in region order.
+   */
+  regionResults: RegionResult[];
+  /**
+   * The region each row came from, aligned with `rows` by index. Only
+   * populated for all-region fetches.
+   */
+  rowCells: Cell[];
   rows: any[];
   sortBy: string;
 };
@@ -312,6 +329,12 @@ const extractQuery = (query: Location['query'][string], defaultVal = '') =>
 
 const hasSearchQuery = (query: Location['query'][string]) =>
   extractQuery(query).trim() !== '';
+
+const onlyRegionChanged = (prev: Location['query'], next: Location['query']) => {
+  const keys = new Set([...Object.keys(prev), ...Object.keys(next)]);
+  keys.delete('region');
+  return [...keys].every(key => extractQuery(prev[key]) === extractQuery(next[key]));
+};
 
 class ResultGridImpl extends Component<ResultGridProps, State> {
   static defaultProps: Partial<ResultGridProps> = {
@@ -333,7 +356,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     hasPagination: true,
     isCellScoped: false,
     isRegional: false,
-    probeAcrossRegions: false,
+    allRegions: false,
     probeAllRegions: false,
     useQueryString: true,
   };
@@ -363,7 +386,9 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       filters: Object.assign({}, queryParams),
       regionMatches: [],
       probingRegions: false,
-      missingExactMatch: false,
+      rowCells: [],
+      fetchingAllRegions: false,
+      regionResults: [],
     };
   }
 
@@ -389,6 +414,19 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     }
 
     const queryParams = this.props.location?.query ?? {};
+
+    // Changing only the Region filter while an all-region search is showing
+    // filters the already-fetched rows client-side — no refetch needed. Leave
+    // probeToken alone so still-streaming region responses keep applying.
+    if (
+      this.state.fetchingAllRegions &&
+      hasSearchQuery(queryParams.query) &&
+      onlyRegionChanged(prevProps.location?.query ?? {}, queryParams)
+    ) {
+      this.setState({filters: Object.assign({}, queryParams)});
+      return;
+    }
+
     const {cursor, query, sortBy} = queryParams;
 
     // Invalidate any in-flight region probe from the previous search.
@@ -405,15 +443,15 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
         error: false,
         regionMatches: [],
         probingRegions: false,
-        missingExactMatch: false,
       },
       this.fetchData
     );
   }
 
   /**
-   * Monotonic token used to discard results from stale region probes (e.g.
-   * when the user switches regions or searches again before probes resolve).
+   * Monotonic token used to discard results from stale multi-region requests
+   * (region probes and cross-region searches), e.g. when the user switches
+   * regions or searches again before all regions have responded.
    */
   probeToken = 0;
 
@@ -434,23 +472,13 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     // Avoid slow-fetch race conditions
     this.props.api.clear();
 
-    // api.clear() aborts any in-flight region probe, and aborted requests never
-    // run their success/error callbacks — so probeOtherRegions' finalize() would
-    // never fire and probingRegions would stay stuck. Invalidate the probe (bump
-    // the token) and clear its UI state here, the single entry point for fetches,
-    // so it's reset regardless of which caller (refresh/onCursor/onSearch) we hit.
+    // api.clear() aborts any in-flight multi-region requests, and aborted
+    // requests never run their success/error callbacks — so their finalize()
+    // would never fire and probingRegions/loading would stay stuck. Invalidate
+    // them (bump the token) and clear their UI state here, the single entry
+    // point for fetches, so it's reset regardless of which caller
+    // (refresh/onCursor/onSearch) we hit.
     this.probeToken += 1;
-    if (
-      this.state.probingRegions ||
-      this.state.regionMatches.length > 0 ||
-      this.state.missingExactMatch
-    ) {
-      this.setState({
-        probingRegions: false,
-        regionMatches: [],
-        missingExactMatch: false,
-      });
-    }
 
     // TODO(dcramer): this should whitelist filters/sortBy/cursor/perPage
     const queryParams: Record<string, any> = {
@@ -460,56 +488,64 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       cursor: this.state.cursor,
     };
 
-    const endpoint = this.cellEndpoint(this.state.cell);
+    // The query lives in the URL when useQueryString is on, otherwise in
+    // component state — fall back so multi-region requests always carry the
+    // search term.
+    const query = queryParams.query ?? this.state.query;
+
+    const cells = getCells();
+    const needsRegion = this.props.isRegional || this.props.isCellScoped;
+
+    // The synthetic Region filter narrows an all-region grid back down to a
+    // single region. It's a frontend-only concept, so it never reaches the
+    // API.
+    let filteredCell: Cell | undefined;
+    if (this.props.allRegions) {
+      const regionFilter = extractQuery(queryParams.region);
+      delete queryParams.region;
+      filteredCell = cells.find(c => c.name === regionFilter);
+    }
+
+    // With a search active, the Region filter is applied client-side instead
+    // (see getVisibleRows) so the other regions' matches stay loaded and the
+    // Region column stays visible. Without one, browsing a single region goes
+    // back to a plain region-scoped fetch, which restores pagination.
+    const fetchingAllRegions = Boolean(
+      this.props.allRegions &&
+      needsRegion &&
+      cells.length > 1 &&
+      (!filteredCell || hasSearchQuery(query))
+    );
+
+    this.setState({
+      fetchingAllRegions,
+      probingRegions: false,
+      regionMatches: [],
+      rows: [],
+      rowCells: [],
+      regionResults: [],
+    });
+
+    if (fetchingAllRegions) {
+      this.fetchAllRegions({...queryParams, query}, cells);
+      return;
+    }
+
+    const cell = filteredCell ?? this.state.cell;
+    const endpoint = this.cellEndpoint(cell);
 
     this.props.api.request(endpoint, {
       method: this.props.method,
-      host: this.state.cell ? this.state.cell.locality_url : undefined,
+      host: cell ? cell.locality_url : undefined,
       data: queryParams,
       success: (data, _, resp) => {
-        const rows = this.props.rowsFromData?.(data, this.state.cell) ?? data;
-        const rowsArray = Array.isArray(rows) ? rows : [];
-
-        // The query lives in the URL when useQueryString is on, otherwise in
-        // component state — fall back so probes always carry the search term.
-        const query = queryParams.query ?? this.state.query;
-        // Normalize once (trim + lower-case) so `exactMatchQuery` implementations
-        // can compare against an already-normalized field without re-normalizing.
-        const normalizedQuery = extractQuery(query).trim().toLowerCase();
-
-        const pageLinks = resp?.getResponseHeader('Link') ?? '';
-        // We can only conclude that a region lacks an exact match when we're
-        // looking at its *complete* result set: the first page with no further
-        // pages. If results span multiple pages the exact slug could live on a
-        // page we haven't loaded, which would both produce a misleading "No
-        // exact match" hint and make the hint vanish the moment the user
-        // paginates. An empty result is naturally a complete set.
-        const isFirstPage = !extractQuery(queryParams.cursor);
-        const hasNextPage = parseLinkHeader(pageLinks).next?.results === true;
-        const isCompleteResultSet = isFirstPage && !hasNextPage;
-
-        // Probe other regions whenever the active region lacks an *exact* match
-        // for the search. With an `exactMatchQuery` predicate this includes the
-        // case where the region returns only fuzzy/similar matches (e.g. a
-        // look-alike org slug) but not the exact slug searched. Without the
-        // predicate we fall back to probing only on a completely empty result.
-        const isEmpty = rowsArray.length === 0;
-        const missingExactMatch = Boolean(
-          this.props.probeAcrossRegions &&
-          isCompleteResultSet &&
-          hasSearchQuery(query) &&
-          (this.props.exactMatchQuery
-            ? !rowsArray.some(row => this.props.exactMatchQuery!(row, normalizedQuery))
-            : isEmpty)
-        );
+        const rows = this.props.rowsFromData?.(data, cell) ?? data;
 
         this.setState({
           loading: false,
           error: false,
           rows,
-          pageLinks,
-          regionMatches: [],
-          missingExactMatch,
+          pageLinks: resp?.getResponseHeader('Link') ?? '',
         });
         if (this.props.onLoad) {
           this.props.onLoad();
@@ -518,7 +554,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
         // `probeAllRegions` always checks the other regions for presence, even
         // when the active region has results or no search is active. This flags
         // that the same subject (e.g. a user) also has records elsewhere.
-        if (missingExactMatch || this.props.probeAllRegions) {
+        if (this.props.probeAllRegions) {
           this.probeOtherRegions({...queryParams, query});
         }
       },
@@ -535,9 +571,94 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
   };
 
   /**
-   * Fire a cheap (`per_page: 1`) search against every other region to find out
-   * which ones have matches for the current query. Runs only after the active
-   * region returns no results, so there is no cost on the common path.
+   * Fetch from every region in parallel and merge the results into a single
+   * list, tagging each row with its region. Results stream in as regions
+   * respond, with `regionResults` tracking per-region progress for the
+   * summary chips. Regions are queried without a cursor: cross-region
+   * pagination isn't supported, so each region contributes at most its first
+   * page.
+   */
+  fetchAllRegions = (baseParams: Record<string, any>, cells: Cell[]) => {
+    const token = ++this.probeToken;
+    const params = {...baseParams, cursor: ''};
+
+    const resultsByCell = new Map<
+      string,
+      {failed: boolean; hasMore: boolean; rows: any[]}
+    >();
+
+    const applyUpdate = () => {
+      // Ignore results from a fetch that has since been superseded.
+      if (token !== this.probeToken) {
+        return;
+      }
+
+      const rows: any[] = [];
+      const rowCells: Cell[] = [];
+      const regionResults = cells.map((cell): RegionResult => {
+        const result = resultsByCell.get(cell.locality_url);
+        if (!result) {
+          return {cell, status: 'loading', count: 0, hasMore: false};
+        }
+        if (result.failed) {
+          return {cell, status: 'error', count: 0, hasMore: false};
+        }
+        rows.push(...result.rows);
+        result.rows.forEach(() => rowCells.push(cell));
+        return {
+          cell,
+          status: 'success',
+          count: result.rows.length,
+          hasMore: result.hasMore,
+        };
+      });
+
+      const settled = resultsByCell.size === cells.length;
+      this.setState({
+        loading: !settled,
+        // Show whatever we got as long as at least one region responded.
+        error:
+          settled && cells.every(cell => resultsByCell.get(cell.locality_url)?.failed),
+        rows,
+        rowCells,
+        pageLinks: null,
+        regionResults,
+      });
+      if (settled && this.props.onLoad) {
+        this.props.onLoad();
+      }
+    };
+
+    // Mark every region as loading before the first response arrives.
+    applyUpdate();
+
+    cells.forEach(cell => {
+      this.props.api.request(this.cellEndpoint(cell), {
+        method: this.props.method,
+        host: cell.locality_url,
+        data: params,
+        success: (data, _, resp) => {
+          const rows = this.props.rowsFromData?.(data, cell) ?? data;
+          const pageLinks = resp?.getResponseHeader('Link') ?? '';
+          resultsByCell.set(cell.locality_url, {
+            rows: Array.isArray(rows) ? rows : [],
+            hasMore: parseLinkHeader(pageLinks).next?.results === true,
+            failed: false,
+          });
+          applyUpdate();
+        },
+        error: () => {
+          resultsByCell.set(cell.locality_url, {rows: [], hasMore: false, failed: true});
+          applyUpdate();
+        },
+      });
+    });
+  };
+
+  /**
+   * Fire a cheap (`per_page: 1`) request against every other region to find
+   * out which ones have matches. Used by `probeAllRegions` grids to flag that
+   * the same subject also has records elsewhere.
    */
   probeOtherRegions = (baseParams: Record<string, any>) => {
     const currentCell = this.state.cell;
@@ -628,10 +749,51 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     this.setState({cursor: cursor ?? '', loading: true}, this.fetchData);
   };
 
+  /**
+   * The rows (and their regions) to display. In the all-region view an active
+   * Region filter is applied here, client-side, so switching it never
+   * refetches and the other regions' data stays warm.
+   */
+  getVisibleRows(): {rowCells: Cell[]; rows: any[]} {
+    const {rows, rowCells, fetchingAllRegions} = this.state;
+    if (!fetchingAllRegions) {
+      return {rows, rowCells};
+    }
+    const region = extractQuery(this.state.filters.region);
+    if (!region) {
+      return {rows, rowCells};
+    }
+    const visibleRows: any[] = [];
+    const visibleCells: Cell[] = [];
+    rows.forEach((row, i) => {
+      const cell = rowCells[i];
+      if (cell?.name === region) {
+        visibleRows.push(row);
+        visibleCells.push(cell);
+      }
+    });
+    return {rows: visibleRows, rowCells: visibleCells};
+  }
+
+  /**
+   * The effective table columns: the configured ones, plus a Region column
+   * while showing merged all-region results.
+   */
+  getColumns() {
+    return this.state.fetchingAllRegions
+      ? [
+          ...this.props.columns,
+          <th key="region" style={{width: 100, textAlign: 'center'}}>
+            Region
+          </th>,
+        ]
+      : this.props.columns;
+  }
+
   renderLoading() {
     return (
       <tr>
-        <td colSpan={this.props.columns.length}>
+        <td colSpan={this.getColumns().length}>
           <LoadingIndicator>Hold on to your butts!</LoadingIndicator>
         </td>
       </tr>
@@ -641,7 +803,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
   renderError() {
     return (
       <tr>
-        <td colSpan={this.props.columns.length}>
+        <td colSpan={this.getColumns().length}>
           <ErrorAlert variant="danger" showIcon>
             Something bad happened :/
           </ErrorAlert>
@@ -653,7 +815,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
   renderNoResults() {
     return (
       <tr>
-        <td colSpan={this.props.columns.length}>
+        <td colSpan={this.getColumns().length}>
           <EmptyMessage>No results</EmptyMessage>
         </td>
       </tr>
@@ -661,19 +823,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
   }
 
   renderRegionHint() {
-    const {probeAcrossRegions, probeAllRegions} = this.props;
-
-    if (
-      (!probeAcrossRegions && !probeAllRegions) ||
-      this.state.loading ||
-      this.state.error
-    ) {
-      return null;
-    }
-
-    // The search-driven hint only surfaces when the active region lacked an
-    // exact match. The always-on `probeAllRegions` hint has no such gate.
-    if (!probeAllRegions && !this.state.missingExactMatch) {
+    if (!this.props.probeAllRegions || this.state.loading || this.state.error) {
       return null;
     }
 
@@ -685,41 +835,13 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       return null;
     }
 
-    if (probeAllRegions) {
-      const lead =
-        this.props.probeAllRegionsHint ??
-        'Also found in other data regions — look there too:';
-      return (
-        <RegionHintAlert variant="info" showIcon>
-          <Flex align="center" gap="md" wrap="wrap">
-            <span>{lead}</span>
-            {this.state.regionMatches.map(cell => (
-              <Button
-                key={cell.locality_url}
-                size="xs"
-                onClick={() => this.onChangeCell(cell.locality_url)}
-              >
-                {`View in ${cell.name}`}
-              </Button>
-            ))}
-          </Flex>
-        </RegionHintAlert>
-      );
-    }
-
-    const currentName = this.state.cell?.name ?? 'this region';
-    // The active region returned similar (but not exact) matches — make it
-    // clear the exact record was not found here, rather than implying no
-    // results at all.
-    const leadText = this.state.rows.length > 0 ? 'No exact match in' : 'No results in';
-
+    const lead =
+      this.props.probeAllRegionsHint ??
+      'Also found in other data regions — look there too:';
     return (
       <RegionHintAlert variant="info" showIcon>
         <Flex align="center" gap="md" wrap="wrap">
-          <span>
-            {leadText} <strong>{currentName}</strong>. Found results in another data
-            region:
-          </span>
+          <span>{lead}</span>
           {this.state.regionMatches.map(cell => (
             <Button
               key={cell.locality_url}
@@ -734,8 +856,59 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     );
   }
 
+  /**
+   * One chip per region showing how many results it returned, a spinner while
+   * it's still loading, or a failure marker — so it's always visible what the
+   * merged list does and doesn't include yet.
+   */
+  renderRegionSummary() {
+    if (!this.state.fetchingAllRegions || this.state.regionResults.length === 0) {
+      return null;
+    }
+
+    return (
+      <Flex align="center" gap="sm" wrap="wrap">
+        {this.state.regionResults.map(({cell, status, count, hasMore}) => {
+          if (status === 'loading') {
+            return (
+              <Tag
+                key={cell.locality_url}
+                variant="muted"
+                icon={<LoadingIndicator size={12} relative style={{margin: 0}} />}
+              >
+                {cell.name}
+              </Tag>
+            );
+          }
+          if (status === 'error') {
+            return (
+              <Tag key={cell.locality_url} variant="danger">
+                {`${cell.name}: failed`}
+              </Tag>
+            );
+          }
+          if (hasMore) {
+            return (
+              <Tooltip
+                key={cell.locality_url}
+                title={`${cell.name} has more matches than shown — refine your search to see the rest.`}
+              >
+                <Tag variant="warning">{`${cell.name}: ${count}+`}</Tag>
+              </Tooltip>
+            );
+          }
+          return (
+            <Tag key={cell.locality_url} variant="muted">
+              {`${cell.name}: ${count}`}
+            </Tag>
+          );
+        })}
+      </Flex>
+    );
+  }
+
   renderResults() {
-    const columnLabels = this.props.columns.map(extractColumnLabel);
+    const columnLabels = this.getColumns().map(extractColumnLabel);
     const firstPrimaryIndex = columnLabels.findIndex(label => (label ?? '') !== '');
 
     // CSS custom properties on <tr> carry column labels to ::before pseudo-elements
@@ -748,9 +921,19 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       ])
     );
 
-    return this.state.rows.map((row, i) => {
-      const cells = this.props.columnsForRow?.(row, this.state.rows, this.state) ?? [];
-      const labeledCells = cells.map((cell, j) => {
+    const {rows, rowCells} = this.getVisibleRows();
+    return rows.map((row, i) => {
+      const rowRegion = this.state.fetchingAllRegions ? rowCells[i] : undefined;
+      const cells = this.props.columnsForRow?.(row, rows, this.state) ?? [];
+      const allCells = rowRegion
+        ? [
+            ...cells,
+            <td key="region" style={{textAlign: 'center'}}>
+              <Tag variant="info">{rowRegion.name}</Tag>
+            </td>,
+          ]
+        : cells;
+      const labeledCells = allCells.map((cell, j) => {
         if (!isValidElement(cell)) {
           return cell;
         }
@@ -763,8 +946,11 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
           extraProps
         );
       });
+      const rowKey = this.props.keyForRow?.(row) ?? i;
       return (
-        <tr key={this.props.keyForRow?.(row) ?? i} style={labelVars}>
+        // Row keys can collide across regions (e.g. per-region auto-increment
+        // ids), so scope them by region in cross-region result sets.
+        <tr key={rowRegion ? `${rowRegion.name}:${rowKey}` : rowKey} style={labelVars}>
           {labeledCells}
         </tr>
       );
@@ -778,14 +964,16 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
       sortOptions,
       path,
       location,
-      columns,
       hasPagination,
       hasSearch,
       inPanel,
       panelTitle,
     } = this.props;
 
+    const columns = this.getColumns();
+
     const ensuredFilters = filters ?? {};
+    const regionSummary = this.renderRegionSummary();
 
     const resultTable = (
       <TableScrollWrapper>
@@ -794,13 +982,15 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
             <tr>{columns}</tr>
           </thead>
           <tbody>
-            {this.state.loading
-              ? this.renderLoading()
-              : this.state.error
-                ? this.renderError()
-                : this.state.rows.length === 0
-                  ? this.renderNoResults()
-                  : this.renderResults()}
+            {/* Rows win over the loading state so all-region results can
+                stream in while slower regions are still being fetched. */}
+            {this.state.error
+              ? this.renderError()
+              : this.getVisibleRows().rows.length > 0
+                ? this.renderResults()
+                : this.state.loading
+                  ? this.renderLoading()
+                  : this.renderNoResults()}
           </tbody>
         </ResultTable>
       </TableScrollWrapper>
@@ -811,10 +1001,15 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     const table = CustomPanel ? (
       CustomPanel === true ? (
         <Panel>
-          {panelTitle && (
+          {(panelTitle || regionSummary) && (
             <PanelHeader hasButtons={!!this.props.buttonGroup}>
-              {panelTitle}
-              {this.props.buttonGroup}
+              {panelTitle ?? 'Results'}
+              {(regionSummary || this.props.buttonGroup) && (
+                <Flex align="center" gap="md">
+                  {regionSummary}
+                  {this.props.buttonGroup}
+                </Flex>
+              )}
             </PanelHeader>
           )}
           {resultTable}
@@ -828,11 +1023,26 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
 
     const cells = getCells();
     const needsRegion = this.props.isRegional || this.props.isCellScoped;
+    // All-region grids trade the region selector for a Region filter, and the
+    // sort control moves down next to it.
+    const showAllRegionControls = Boolean(
+      this.props.allRegions && needsRegion && cells.length > 1
+    );
+
+    const sortByControl = sortOptions && sortOptions.length > 0 && (
+      <SortBy
+        options={sortOptions ?? []}
+        value={this.state.sortBy}
+        path={path}
+        location={location}
+        size={showAllRegionControls ? 'xs' : undefined}
+      />
+    );
 
     return (
       <Container data-test-id="result-grid">
         <SortSearchForm onSubmit={this.onSearch}>
-          {needsRegion && (
+          {needsRegion && !this.props.allRegions && (
             <CompactSelect
               trigger={triggerProps => (
                 <OverlayTrigger.Button {...triggerProps} prefix="Region" />
@@ -853,14 +1063,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
               onChange={opt => this.onChangeCell(opt.value)}
             />
           )}
-          {sortOptions && sortOptions.length > 0 && (
-            <SortBy
-              options={sortOptions ?? []}
-              value={this.state.sortBy}
-              path={path}
-              location={location}
-            />
-          )}
+          {!showAllRegionControls && sortByControl}
           {hasSearch && (
             <Flex align="center" gap="xs" width="100%">
               <SearchInput
@@ -881,8 +1084,18 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
             </Flex>
           )}
         </SortSearchForm>
-        {Object.keys(ensuredFilters).length > 0 && (
+        {(showAllRegionControls || Object.keys(ensuredFilters).length > 0) && (
           <FilterList>
+            {showAllRegionControls && (
+              <Filter
+                name="Region"
+                queryKey="region"
+                options={cells.map((c): Option => [c.name, c.name])}
+                value={extractQuery(this.state.filters.region)}
+                path={path}
+                location={location}
+              />
+            )}
             {Object.keys(ensuredFilters).map(filterKey => (
               <Filter
                 key={filterKey}
@@ -893,9 +1106,15 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
                 {...ensuredFilters[filterKey]!}
               />
             ))}
+            {showAllRegionControls && sortByControl && (
+              <PushRight>{sortByControl}</PushRight>
+            )}
           </FilterList>
         )}
         {this.renderRegionHint()}
+        {CustomPanel === true
+          ? null
+          : regionSummary && <RegionSummaryRow>{regionSummary}</RegionSummaryRow>}
         {table}
         {hasPagination && this.state.pageLinks && (
           <StyledPagination
@@ -966,6 +1185,14 @@ const ErrorAlert = styled(Alert)`
 
 const RegionHintAlert = styled(Alert)`
   margin-bottom: ${p => p.theme.space.md};
+`;
+
+const RegionSummaryRow = styled('div')`
+  margin-bottom: ${p => p.theme.space.md};
+`;
+
+const PushRight = styled('div')`
+  margin-left: auto;
 `;
 
 const RegionHintNote = styled('div')`

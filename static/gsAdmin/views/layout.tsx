@@ -216,7 +216,7 @@ export function Layout() {
 // flow-root is used here to create a new flow-context, to avoid margin
 // collapse causing scroll overflow.
 const AppContainer = styled('div')<{isCollapsed: boolean}>`
-  --contentWidth: 1270px;
+  --contentWidth: 1536px;
   --sidebarWidth: 200px;
   --sidebarCollapsedWidth: 48px;
 
