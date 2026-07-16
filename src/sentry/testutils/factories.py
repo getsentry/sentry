@@ -90,7 +90,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.custominboundfilter import CustomInboundFilter
-from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
@@ -2326,6 +2326,25 @@ class Factories:
             title = petname.generate(2, " ", letters=10).title()
         return Dashboard.objects.create(
             organization=organization, title=title, created_by_id=created_by.id, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_dashboard_favorite_user(
+        dashboard: Dashboard,
+        user: User,
+        organization: Organization | None = None,
+        position: int | None = None,
+        **kwargs,
+    ) -> DashboardFavoriteUser:
+        if organization is None:
+            organization = dashboard.organization
+        return DashboardFavoriteUser.objects.create(
+            dashboard=dashboard,
+            user_id=user.id,
+            organization=organization,
+            position=position,
+            **kwargs,
         )
 
     @staticmethod
