@@ -144,10 +144,12 @@ class DatadogIntegration(IntegrationInstallation):
 
         validate_datadog_credentials(api_key, app_key, site)
 
+        name = f"Datadog ({site})"
         new_metadata: DatadogCredentials = {"api_key": api_key, "app_key": app_key, "site": site}
         integration_service.update_integration(
-            integration_id=self.model.id, metadata=dict(new_metadata)
+            integration_id=self.model.id, name=name, metadata=dict(new_metadata)
         )
+        self.model.name = name
         self.model.metadata = dict(new_metadata)
 
 

@@ -157,6 +157,35 @@ class DatadogIntegrationProviderTest(IntegrationTestCase):
         assert integration.metadata == {"api_key": "api", "app_key": "app", "site": "datadoghq.com"}
         assert responses.calls[0].request.headers["DD-API-KEY"] == "api"
 
+    @responses.activate
+    def test_update_organization_config_syncs_name_on_site_change(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="datadog",
+            external_id="dd-ext",
+            name="Datadog (datadoghq.com)",
+            metadata={"api_key": "api", "app_key": "app", "site": "datadoghq.com"},
+        )
+        installation = integration.get_installation(organization_id=self.organization.id)
+        eu_url = "https://mcp.datadoghq.eu/api/unstable/mcp-server/mcp"
+        responses.add(responses.POST, eu_url, status=200, headers={"mcp-session-id": "sess-1"})
+        responses.add(
+            responses.POST,
+            eu_url,
+            status=200,
+            json={
+                "result": {
+                    "contents": [{"text": json.dumps({"user_uuid": "u-1", "org_uuid": "org-123"})}]
+                }
+            },
+        )
+
+        installation.update_organization_config({"site": "datadoghq.eu"})
+
+        integration.refresh_from_db()
+        assert integration.metadata["site"] == "datadoghq.eu"
+        assert integration.name == "Datadog (datadoghq.eu)"
+
     def test_provider_is_single_install_and_flagged(self) -> None:
         provider = self.provider()
         assert provider.key == "datadog"
