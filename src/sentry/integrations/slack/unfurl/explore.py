@@ -587,10 +587,12 @@ def _unfurl_explore(
             continue
 
         if display_type == "heatmap":
-            # Heat maps are a metrics-only visualization, so chartType 3 only ever
-            # comes from metrics URLs — traces/logs never offer it. This branch
-            # therefore assumes the trace metrics dataset (events-heatmap with
-            # metric-style axes); it is not reached for other Explore datasets.
+            # Heat maps are a metrics-only visualization (events-heatmap with
+            # metric-style axes). Traces/logs never offer chartType 3 in the UI,
+            # but guard against hand-built URLs by skipping any non-metrics dataset.
+            if explore_dataset != SupportedTraceItemType.TRACEMETRICS:
+                continue
+
             style = ChartType.SLACK_HEATMAP
             heatmap_params = _build_heatmap_query(params)
             api_params: dict[str, str | list[str]] = {
