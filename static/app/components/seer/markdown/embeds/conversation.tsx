@@ -6,6 +6,7 @@ import {
   SEER_EMBED_SCHEMAS,
   type SeerEmbedName,
 } from 'sentry/components/seer/markdown/embeds/schemas';
+import {MarkedLexer, type ExtendedToken, type Token} from 'sentry/utils/marked/marked';
 
 /**
  * Conversation-derived embed state ("the fold").
@@ -33,6 +34,7 @@ export interface EmbedSourceBlock {
 }
 
 export interface EmbedOccurrence<N extends SeerEmbedName> {
+  attrs: Record<string, string>;
   blockId: string;
   blockIndex: number;
   data: z.output<(typeof SEER_EMBED_SCHEMAS)[N]['schema']>;
@@ -54,10 +56,25 @@ export function registerEmbedFold<N extends SeerEmbedName, S>(
   return fold;
 }
 
-// Matches complete `{% name %}<body>{% /name %}` tags for any tag name;
-// occurrences whose name has no registered fold are skipped. Mirrors the
-// BLOCK_RE grammar in utils/marked/extensions/tag.ts.
-const EMBED_TAG_RE = /\{%\s+([\w-]+)\s+%\}([\s\S]*?)\{%\s+\/\1\s+%\}/g;
+// The same lexer the renderer uses produces the tag tokens (with attrs and a
+// JSON-parsed body) — folds see exactly what renders, nothing more. Tags
+// inside code fences, partial tags mid-stream, etc. are correctly not tags.
+function visitTagTokens(
+  tokens: readonly Token[],
+  visit: (token: Extract<ExtendedToken, {type: 'tag'}>) => void
+): void {
+  for (const token of tokens) {
+    if (token.type === 'tag') {
+      visit(token as Extract<ExtendedToken, {type: 'tag'}>);
+    }
+    if ('tokens' in token && token.tokens) {
+      visitTagTokens(token.tokens, visit);
+    }
+    if ('items' in token && token.items) {
+      visitTagTokens(token.items, visit);
+    }
+  }
+}
 
 function runEmbedFolds(blocks: readonly EmbedSourceBlock[]): Map<string, unknown> {
   const state = new Map<string, unknown>();
@@ -69,30 +86,25 @@ function runEmbedFolds(blocks: readonly EmbedSourceBlock[]): Map<string, unknown
     if (!content) {
       return;
     }
-    for (const match of content.matchAll(EMBED_TAG_RE)) {
-      const fold = foldRegistry.get(match[1]!);
+    visitTagTokens(MarkedLexer.lex(content), token => {
+      const fold = foldRegistry.get(token.name);
       if (!fold) {
-        continue;
+        return;
       }
-      let body: unknown;
-      try {
-        body = JSON.parse(match[2]!);
-      } catch {
-        continue;
-      }
-      const parsed = SEER_EMBED_SCHEMAS[fold.tag].schema.safeParse(body);
+      const parsed = SEER_EMBED_SCHEMAS[fold.tag].schema.safeParse(token.data);
       if (!parsed.success) {
-        continue;
+        return;
       }
       state.set(
         fold.tag,
         fold.reduce(state.get(fold.tag), {
+          attrs: token.attrs,
           blockId: block.id,
           blockIndex,
           data: parsed.data,
         })
       );
-    }
+    });
   });
   return state;
 }

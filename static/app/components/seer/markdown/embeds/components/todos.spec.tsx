@@ -60,6 +60,18 @@ describe('Todos embed', () => {
     expect(screen.getAllByRole('checkbox')).toHaveLength(2);
   });
 
+  it('ignores tags inside code fences when deriving the latest', () => {
+    // A tag quoted in a code fence is code, not an embed — the fold must see
+    // exactly what the renderer's lexer sees.
+    renderConversation([
+      block('a', FIRST_TAG),
+      block('b', `Example syntax:\n\n\`\`\`\n${LATEST_TAG}\n\`\`\``),
+    ]);
+
+    expect(screen.getByText('Check error rates')).toBeInTheDocument();
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+  });
+
   it('renders standalone when no provider is present (stories/previews)', () => {
     render(<SeerMarkdown raw={LATEST_TAG} />);
     expect(screen.getByText('Write summary')).toBeInTheDocument();
