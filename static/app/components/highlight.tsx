@@ -1,48 +1,70 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 
-type HighlightProps = {
+interface MultiHighlightProps {
   /**
    * The original text
    */
   children: string;
   /**
-   * The text to highlight
+   * The terms to highlight
    */
-  text: string;
+  terms: string[];
   /**
    * Whether to only highlight text that matches case too
    */
   caseSensitive?: boolean;
+  className?: string;
   /**
    * Should highlighting be disabled?
    */
   disabled?: boolean;
-};
+}
 
-type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof HighlightProps> &
-  HighlightProps;
+export function MultiHighlight({
+  caseSensitive,
+  className,
+  children,
+  disabled,
+  terms,
+}: MultiHighlightProps) {
+  const {validTerms, pattern} = useMemo(() => {
+    // Longer terms first so an overlapping shorter term can't win the alternation.
+    const sorted = terms.filter(Boolean).sort((a, b) => b.length - a.length);
+    if (sorted.length === 0) {
+      return {validTerms: sorted, pattern: null};
+    }
+    const escaped = sorted.map(term => RegExp.escape(term));
+    return {
+      validTerms: sorted,
+      pattern: new RegExp(`(${escaped.join('|')})`, caseSensitive ? 'g' : 'gi'),
+    };
+  }, [terms, caseSensitive]);
 
-function HighlightComponent({caseSensitive, className, children, disabled, text}: Props) {
-  // There are instances when children is not string in breadcrumbs but not caught by TS
-  if (!text || disabled || typeof children !== 'string') {
-    return <Fragment>{children}</Fragment>;
+  if (disabled || !pattern || typeof children !== 'string') {
+    return children;
   }
 
-  const idx = caseSensitive
-    ? children.indexOf(text)
-    : children.toLowerCase().indexOf(text.toLowerCase());
-
-  if (idx === -1) {
-    return <Fragment>{children}</Fragment>;
+  const parts = children.split(pattern);
+  if (parts.length === 1) {
+    return children;
   }
+
+  const isMatch = (part: string) =>
+    validTerms.some(term =>
+      caseSensitive ? part === term : part.toLowerCase() === term.toLowerCase()
+    );
 
   return (
     <Fragment>
-      {children.substring(0, idx)}
-      <span className={className}>{children.substring(idx, idx + text.length)}</span>
-      {children.substring(idx + text.length)}
+      {parts.map((part, index) =>
+        isMatch(part) ? (
+          <span key={index} className={className}>
+            {part}
+          </span>
+        ) : (
+          <Fragment key={index}>{part}</Fragment>
+        )
+      )}
     </Fragment>
   );
 }
-
-export {HighlightComponent};
