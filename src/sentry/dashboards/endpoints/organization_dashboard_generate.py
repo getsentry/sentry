@@ -102,9 +102,9 @@ description must not exceed 15,000 characters.
 - For heatmap widgets (display_type "heatmap"):
   - widget_type must be "tracemetrics"; heatmaps are not supported on any other dataset.
   - Use exactly one filter (one query) with exactly one aggregate.
-  - That aggregate must be a distribution-type trace metric — a distribution function \
-(p50, p75, p90, p95, p99, avg, min, max, sum, or count) over the 4-argument tracemetric \
-form. Counter and gauge metrics are not supported by heatmaps.
+  - That aggregate must use the "count" function over a distribution-type trace metric, \
+in the 4-argument tracemetric form: count(value, <metric_name>, distribution, <metric_unit>). \
+Only "count" is supported; counter and gauge metrics are not.
   - Do not use equations, group-by columns, or thresholds.
 
 Limits:
