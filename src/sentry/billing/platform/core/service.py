@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+import hashlib
 import logging
 import time
 from collections.abc import Callable
@@ -10,6 +11,7 @@ from google.protobuf.json_format import MessageToDict
 from google.protobuf.message import Message
 
 from sentry.utils import metrics
+from sentry.utils.sdk import get_trace_id
 from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
@@ -51,7 +53,25 @@ class BillingService:
         pass
 
 
-def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
+def _should_log_trace(trace_log_sample_rate: float) -> bool:
+    """
+    Determine whether to log based on a hash of the current trace ID.
+
+    Uses a deterministic hash so all calls within the same trace are consistently
+    logged or not.
+    """
+    trace_id = get_trace_id()
+    if trace_id is None:
+        return False
+    hash_value = int(hashlib.md5(str(trace_id).encode()).hexdigest(), 16)
+    return (hash_value % 10000) < int(trace_log_sample_rate * 10000)
+
+
+def service_method(
+    func: Callable[[Any, T], R] | None = None,
+    *,
+    trace_log_sample_rate: float = 0.001,
+) -> Callable[[Any, T], R] | Callable[[Callable[[Any, T], R]], Callable[[Any, T], R]]:
     """
     Decorator for billing service methods.
 
@@ -63,92 +83,113 @@ def service_method(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
 
     The decorated method should accept a protobuf request and return a protobuf response.
 
+    Args:
+        trace_log_sample_rate: Rate at which to log successful calls, based on
+            a hash of the trace ID. Defaults to 0.001 (0.1%). Error logs are
+            always emitted.
+
     Example:
         @service_method
         def get_contract(self, request: GetContractRequest) -> GetContractResponse:
             pass
+
+        @service_method(trace_log_sample_rate=0.01)
+        def high_volume_method(self, request: Request) -> Response:
+            pass
     """
 
-    @functools.wraps(func)
-    def wrapper(self: BillingService, request: T) -> R:
-        service_name = self.__class__.__name__
-        method_name = func.__name__
-        metric_tags = {"service": service_name, "method": method_name}
+    def decorator(func: Callable[[Any, T], R]) -> Callable[[Any, T], R]:
+        @functools.wraps(func)
+        def wrapper(self: BillingService, request: T) -> R:
+            service_name = self.__class__.__name__
+            method_name = func.__name__
+            metric_tags = {"service": service_name, "method": method_name}
 
-        # Validate input is a protobuf message
-        if not isinstance(request, Message):
-            raise TypeError(
-                f"{service_name}.{method_name} expects a protobuf Message, "
-                f"got {type(request).__name__}"
-            )
-
-        start_time = time.time()
-
-        metrics.incr("billing.service.method.called", tags=metric_tags, sample_rate=1.0)
-        extras = {
-            "service": service_name,
-            "method": method_name,
-            "request_type": type(request).__name__,
-            "request": MessageToDict(request),
-        }
-        if organization_id := getattr(request, "organization_id", None):
-            extras["organization_id"] = organization_id
-        if contract_id := getattr(request, "contract_id", None):
-            extras["contract_id"] = contract_id
-
-        try:
-            with start_span(op="function", name=f"{service_name}.{method_name}") as cur_span:
-                for k, v in extras.items():
-                    set_span_data(cur_span, k, v)
-                result = func(self, request)
-
-            # Validate output is a protobuf message
-            if not isinstance(result, Message):
+            # Validate input is a protobuf message
+            if not isinstance(request, Message):
                 raise TypeError(
-                    f"{service_name}.{method_name} must return a protobuf Message, "
-                    f"returned {type(result).__name__}"
+                    f"{service_name}.{method_name} expects a protobuf Message, "
+                    f"got {type(request).__name__}"
                 )
 
-            duration_ms = (time.time() - start_time) * 1000
+            start_time = time.time()
 
-            metrics.timing(
-                "billing.service.method.duration", duration_ms, tags=metric_tags, sample_rate=1.0
-            )
-            metrics.incr("billing.service.method.success", tags=metric_tags, sample_rate=1.0)
+            metrics.incr("billing.service.method.called", tags=metric_tags, sample_rate=1.0)
+            extras = {
+                "service": service_name,
+                "method": method_name,
+                "request_type": type(request).__name__,
+                "request": MessageToDict(request),
+            }
+            if organization_id := getattr(request, "organization_id", None):
+                extras["organization_id"] = organization_id
+            if contract_id := getattr(request, "contract_id", None):
+                extras["contract_id"] = contract_id
 
-            logger.info(
-                "billing.service.method.success",
-                extra={
-                    "duration_ms": duration_ms,
-                    "response_type": type(result).__name__,
-                    "response": MessageToDict(result),
-                    **extras,
-                },
-            )
+            try:
+                with start_span(op="function", name=f"{service_name}.{method_name}") as cur_span:
+                    for k, v in extras.items():
+                        set_span_data(cur_span, k, v)
+                    result = func(self, request)
 
-            return result
+                # Validate output is a protobuf message
+                if not isinstance(result, Message):
+                    raise TypeError(
+                        f"{service_name}.{method_name} must return a protobuf Message, "
+                        f"returned {type(result).__name__}"
+                    )
 
-        except Exception as e:
-            duration_ms = (time.time() - start_time) * 1000
+                duration_ms = (time.time() - start_time) * 1000
 
-            metrics.timing(
-                "billing.service.method.duration", duration_ms, tags=metric_tags, sample_rate=1.0
-            )
-            metrics.incr(
-                "billing.service.method.error",
-                tags={**metric_tags, "error_type": type(e).__name__},
-                sample_rate=1.0,
-            )
+                metrics.timing(
+                    "billing.service.method.duration",
+                    duration_ms,
+                    tags=metric_tags,
+                    sample_rate=1.0,
+                )
+                metrics.incr("billing.service.method.success", tags=metric_tags, sample_rate=1.0)
 
-            logger.info(
-                "billing.service.method.error",
-                extra={
-                    "duration_ms": duration_ms,
-                    "error": str(e),
-                    "error_type": type(e).__name__,
-                    **extras,
-                },
-            )
-            raise
+                if _should_log_trace(trace_log_sample_rate):
+                    logger.info(
+                        "billing.service.method.success",
+                        extra={
+                            "duration_ms": duration_ms,
+                            "response_type": type(result).__name__,
+                            "response": MessageToDict(result),
+                            **extras,
+                        },
+                    )
 
-    return wrapper
+                return result
+
+            except Exception as e:
+                duration_ms = (time.time() - start_time) * 1000
+
+                metrics.timing(
+                    "billing.service.method.duration",
+                    duration_ms,
+                    tags=metric_tags,
+                    sample_rate=1.0,
+                )
+                metrics.incr(
+                    "billing.service.method.error",
+                    tags={**metric_tags, "error_type": type(e).__name__},
+                    sample_rate=1.0,
+                )
+
+                logger.info(
+                    "billing.service.method.error",
+                    extra={
+                        "duration_ms": duration_ms,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                        **extras,
+                    },
+                )
+                raise
+
+        return wrapper
+
+    if func is not None:
+        return decorator(func)
+    return decorator

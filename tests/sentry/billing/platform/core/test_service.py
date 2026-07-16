@@ -54,7 +54,8 @@ class TestBillingService:
 
     @mock.patch("sentry.billing.platform.core.service.metrics")
     @mock.patch("sentry.billing.platform.core.service.logger")
-    def test_service_method_observability(self, mock_logger, mock_metrics):
+    @mock.patch("sentry.billing.platform.core.service._should_log_trace", return_value=True)
+    def test_service_method_observability(self, mock_should_log, mock_logger, mock_metrics):
         """Service methods emit metrics and logs."""
 
         class TestService(BillingService):
@@ -79,6 +80,49 @@ class TestBillingService:
         mock_metrics.timing.assert_called()
 
         # Verify logging
+        assert mock_logger.info.call_count == 1
+
+    @mock.patch("sentry.billing.platform.core.service.metrics")
+    @mock.patch("sentry.billing.platform.core.service.logger")
+    @mock.patch("sentry.billing.platform.core.service._should_log_trace", return_value=False)
+    def test_service_method_skips_success_log_when_not_sampled(
+        self, mock_should_log, mock_logger, mock_metrics
+    ):
+        """Success logs are skipped when trace is not sampled."""
+
+        class TestService(BillingService):
+            @service_method
+            def test_method(self, request: StringValue) -> StringValue:
+                return StringValue(value="ok")
+
+        service = TestService()
+        service.test_method(StringValue(value="test"))
+
+        # Metrics are still emitted
+        mock_metrics.incr.assert_any_call(
+            "billing.service.method.success",
+            tags={"service": "TestService", "method": "test_method"},
+            sample_rate=1.0,
+        )
+
+        # But no success log
+        mock_logger.info.assert_not_called()
+
+    @mock.patch("sentry.billing.platform.core.service.metrics")
+    @mock.patch("sentry.billing.platform.core.service.logger")
+    @mock.patch("sentry.billing.platform.core.service._should_log_trace", return_value=True)
+    def test_service_method_custom_sample_rate(self, mock_should_log, mock_logger, mock_metrics):
+        """Service methods accept a custom trace_log_sample_rate."""
+
+        class TestService(BillingService):
+            @service_method(trace_log_sample_rate=0.5)
+            def test_method(self, request: StringValue) -> StringValue:
+                return StringValue(value="ok")
+
+        service = TestService()
+        service.test_method(StringValue(value="test"))
+
+        mock_should_log.assert_called_with(0.5)
         assert mock_logger.info.call_count == 1
 
     @mock.patch("sentry.billing.platform.core.service.metrics")
