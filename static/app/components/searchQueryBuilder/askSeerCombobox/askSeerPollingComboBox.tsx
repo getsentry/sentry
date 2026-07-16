@@ -298,6 +298,10 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
         key: `${index}-${query.query}`,
       }));
 
+      if (hasAskSeerUxRework) {
+        return results;
+      }
+
       results.push({
         key: 'none-of-these',
         label: t('None of these'),
@@ -307,7 +311,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     }
 
     return [];
-  }, [queries]);
+  }, [queries, hasAskSeerUxRework]);
 
   const state = useComboBoxState({
     ...props,

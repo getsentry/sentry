@@ -114,6 +114,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
+  const hasAskSeerUxRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
   const {projects} = useProjects();
 
   const [searchQuery, setSearchQuery] = useState(() =>
@@ -177,6 +178,10 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
         key: `${index}-${query.query}`,
       }));
 
+      if (hasAskSeerUxRework) {
+        return results;
+      }
+
       results.push({
         key: 'none-of-these',
         label: t('None of these'),
@@ -186,7 +191,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     }
 
     return [];
-  }, [data?.queries]);
+  }, [data?.queries, hasAskSeerUxRework]);
 
   const state = useComboBoxState({
     ...props,
