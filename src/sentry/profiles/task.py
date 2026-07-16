@@ -34,7 +34,7 @@ from sentry.lang.native.processing import _merge_image
 from sentry.lang.native.symbolicator import (
     FrameOrder,
     Symbolicator,
-    SymbolicatorPlatform,
+    SymbolicatorFunction,
     SymbolicatorTaskKind,
 )
 from sentry.lang.native.utils import native_images_from_data
@@ -796,11 +796,11 @@ def run_symbolicate(
             raise SymbolicationTimeout
 
     if platform in SHOULD_SYMBOLICATE_JS:
-        symbolicator_platform = SymbolicatorPlatform.js
+        symbolicator_function = SymbolicatorFunction.js
     else:
-        symbolicator_platform = SymbolicatorPlatform.native
+        symbolicator_function = SymbolicatorFunction.native
     symbolicator = Symbolicator(
-        task_kind=SymbolicatorTaskKind(platform=symbolicator_platform),
+        task_kind=SymbolicatorTaskKind(function=symbolicator_function),
         on_request=on_symbolicator_request,
         project=project,
         event_id=get_event_id(profile),
@@ -1074,7 +1074,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
             raise SymbolicationTimeout
 
     symbolicator = Symbolicator(
-        task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.jvm),
+        task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.jvm),
         on_request=on_symbolicator_request,
         project=project,
         event_id=get_event_id(profile),

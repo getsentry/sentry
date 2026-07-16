@@ -3,7 +3,6 @@ import {Fragment} from 'react';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Csp} from 'sentry/components/events/interfaces/csp';
 import {Exception} from 'sentry/components/events/interfaces/exception';
-import {Generic} from 'sentry/components/events/interfaces/generic';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Template} from 'sentry/components/events/interfaces/template';
@@ -55,16 +54,6 @@ function EventEntryContent({entry, projectSlug, event}: EventEntryContentProps) 
 
     case EntryType.CSP:
       return <Csp event={event} data={entry.data} />;
-
-    case EntryType.EXPECTCT:
-    case EntryType.EXPECTSTAPLE: {
-      const {data, type} = entry;
-      return <Generic type={type} data={data} />;
-    }
-    case EntryType.HPKP:
-      return (
-        <Generic type={entry.type} data={entry.data} meta={event._meta?.hpkp ?? {}} />
-      );
 
     case EntryType.THREADS:
       return (

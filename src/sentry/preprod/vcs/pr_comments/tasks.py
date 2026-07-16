@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 from enum import StrEnum
-from typing import Any
+from typing import Any, NamedTuple
 
 from django.db import router, transaction
 from taskbroker_client.retry import Retry
 
 from sentry import features
 from sentry.models.commitcomparison import CommitComparison
+from sentry.models.organization import Organization
 from sentry.preprod.build_distribution_utils import is_installable_artifact
 from sentry.preprod.integration_utils import get_commit_context_client
 from sentry.preprod.models import PreprodArtifact
@@ -22,6 +23,95 @@ from sentry.taskworker.namespaces import preprod_tasks
 logger = logging.getLogger(__name__)
 
 
+class PrCommentContext(NamedTuple):
+    artifact: PreprodArtifact
+    commit_comparison: CommitComparison
+    organization: Organization
+    # Validated non-None on the commit comparison by the guard below, surfaced
+    # here so callers get the narrowed types at their typed call sites.
+    head_repo_name: str
+    pr_number: int
+    provider: str
+
+
+def resolve_pr_comment_context(
+    preprod_artifact_id: int,
+    *,
+    log_prefix: str,
+    enabled_option_key: str,
+    caller: str | None = None,
+    feature_flag: str | None = None,
+    with_build_configuration: bool = True,
+) -> PrCommentContext | None:
+    """Resolve common PR-comment inputs after applying the shared task guards.
+
+    Returns ``None`` after logging when the artifact or required PR information
+    is missing, the project option is disabled, or the optional feature gate fails.
+    """
+
+    def event_name(suffix: str) -> str:
+        return log_prefix + ".create." + suffix
+
+    select_related = ["mobile_app_info", "commit_comparison", "project", "project__organization"]
+    if with_build_configuration:
+        select_related.insert(1, "build_configuration")
+
+    try:
+        artifact = PreprodArtifact.objects.select_related(*select_related).get(
+            id=preprod_artifact_id
+        )
+    except PreprodArtifact.DoesNotExist:
+        logger.exception(
+            event_name("artifact_not_found"),
+            extra={"preprod_artifact_id": preprod_artifact_id, "caller": caller},
+        )
+        return None
+
+    if not artifact.commit_comparison:
+        logger.info(event_name("no_commit_comparison"), extra={"preprod_artifact_id": artifact.id})
+        return None
+
+    commit_comparison = artifact.commit_comparison
+    if (
+        not commit_comparison.pr_number
+        or not commit_comparison.head_repo_name
+        or not commit_comparison.provider
+    ):
+        logger.info(
+            event_name("no_pr_info"),
+            extra={
+                "preprod_artifact_id": artifact.id,
+                "pr_number": commit_comparison.pr_number,
+                "head_repo_name": commit_comparison.head_repo_name,
+            },
+        )
+        return None
+
+    if not artifact.project.get_option(enabled_option_key):
+        logger.info(
+            event_name("project_disabled"),
+            extra={"preprod_artifact_id": artifact.id, "project_id": artifact.project.id},
+        )
+        return None
+
+    organization = artifact.project.organization
+    if feature_flag is not None and not features.has(feature_flag, organization):
+        logger.info(
+            event_name("feature_disabled"),
+            extra={"preprod_artifact_id": artifact.id, "organization_id": organization.id},
+        )
+        return None
+
+    return PrCommentContext(
+        artifact,
+        commit_comparison,
+        organization,
+        commit_comparison.head_repo_name,
+        commit_comparison.pr_number,
+        commit_comparison.provider,
+    )
+
+
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_pr_comment",
     namespace=preprod_tasks,
@@ -32,64 +122,19 @@ logger = logging.getLogger(__name__)
 def create_preprod_pr_comment_task(
     preprod_artifact_id: int, caller: str | None = None, **kwargs: Any
 ) -> None:
-    try:
-        artifact = PreprodArtifact.objects.select_related(
-            "mobile_app_info",
-            "build_configuration",
-            "commit_comparison",
-            "project",
-            "project__organization",
-        ).get(id=preprod_artifact_id)
-    except PreprodArtifact.DoesNotExist:
-        logger.exception(
-            "preprod.pr_comments.create.artifact_not_found",
-            extra={"preprod_artifact_id": preprod_artifact_id, "caller": caller},
-        )
-        return
-
-    if not artifact.commit_comparison:
-        logger.info(
-            "preprod.pr_comments.create.no_commit_comparison",
-            extra={"preprod_artifact_id": artifact.id},
-        )
-        return
-
-    commit_comparison = artifact.commit_comparison
-    if (
-        not commit_comparison.pr_number
-        or not commit_comparison.head_repo_name
-        or not commit_comparison.provider
-    ):
-        logger.info(
-            "preprod.pr_comments.create.no_pr_info",
-            extra={
-                "preprod_artifact_id": artifact.id,
-                "pr_number": commit_comparison.pr_number,
-                "head_repo_name": commit_comparison.head_repo_name,
-            },
-        )
-        return
-
-    if not artifact.project.get_option(
-        "sentry:preprod_distribution_pr_comments_enabled_by_customer"
-    ):
-        logger.info(
-            "preprod.pr_comments.create.project_disabled",
-            extra={"preprod_artifact_id": artifact.id, "project_id": artifact.project.id},
-        )
-        return
-
-    organization = artifact.project.organization
-    if not features.has("organizations:preprod-build-distribution-pr-comments", organization):
-        logger.info(
-            "preprod.pr_comments.create.feature_disabled",
-            extra={"preprod_artifact_id": artifact.id, "organization_id": organization.id},
-        )
-        return
-
-    client = get_commit_context_client(
-        organization, commit_comparison.head_repo_name, commit_comparison.provider
+    ctx = resolve_pr_comment_context(
+        preprod_artifact_id,
+        log_prefix="preprod.pr_comments",
+        enabled_option_key="sentry:preprod_distribution_pr_comments_enabled_by_customer",
+        caller=caller,
+        feature_flag="organizations:preprod-build-distribution-pr-comments",
+        with_build_configuration=True,
     )
+    if ctx is None:
+        return
+    artifact, commit_comparison, organization, head_repo_name, pr_number, provider = ctx
+
+    client = get_commit_context_client(organization, head_repo_name, provider)
     if not client:
         logger.info(
             "preprod.pr_comments.create.no_client",

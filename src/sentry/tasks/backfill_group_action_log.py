@@ -17,7 +17,10 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import json, metrics
-from sentry.utils.action_log.activity_translator import activity_to_action
+from sentry.utils.action_log.activity_translator import (
+    activity_action_idempotency_key,
+    activity_to_action,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +118,9 @@ def reset_and_backfill_group_action_log(
 def backfill_group_action_log_for_project(
     project_id: int,
     last_activity_id: int = 0,
+    reset: bool = False,
+    cursor_datetime: str | None = None,
+    cursor_id: int = 0,
     **kwargs: object,
 ) -> None:
     task_state = current_task()
@@ -136,24 +142,56 @@ def backfill_group_action_log_for_project(
     except Project.DoesNotExist:
         return
 
+    if reset and cursor_datetime is None:
+        _reset_project(project)
+
+    parsed_cursor = datetime.fromisoformat(cursor_datetime) if cursor_datetime else None
+
     try:
-        _backfill_project(project, last_activity_id, activation_id)
+        _backfill_project(project, parsed_cursor, cursor_id, activation_id)
     except Exception:
         logger.exception(
             "backfill_group_action_log.task_failed",
             extra={
                 "project_id": project_id,
-                "last_activity_id": last_activity_id,
+                "cursor_datetime": cursor_datetime,
+                "cursor_id": cursor_id,
             },
         )
         raise
 
 
+def _reset_project(project: Project) -> None:
+    from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+    from sentry.issues.models.groupderiveddata import GroupDerivedData
+
+    deleted_derived, _ = GroupDerivedData.objects.filter(
+        group__project_id=project.id,
+    ).delete()
+
+    deleted_entries, _ = GroupActionLogEntry.objects.filter(
+        project_id=project.id,
+        source=BACKFILL_ACTIVITY_SOURCE,
+    ).delete()
+
+    logger.info(
+        "backfill_group_action_log.project_reset_completed",
+        extra={
+            "project_id": project.id,
+            "deleted_entries": deleted_entries,
+            "deleted_derived": deleted_derived,
+        },
+    )
+
+
 def _backfill_project(
     project: Project,
-    last_activity_id: int,
+    cursor_dt: datetime | None,
+    cursor_id: int = 0,
     activation_id: str | None = None,
 ) -> None:
+    from sentry.issues.derived.tasks import process_project_derived_data
+
     batch_size: int = options.get("issues.backfill_group_action_log.batch_size")
     inter_batch_delay_s: int = options.get("issues.backfill_group_action_log.inter_batch_delay_s")
 
@@ -164,26 +202,30 @@ def _backfill_project(
         )
         return
 
-    activities = list(
-        Activity.objects.filter(
-            project_id=project.id,
-            id__gt=last_activity_id,
-            group_id__isnull=False,
-        ).order_by("id")[:batch_size]
+    qs = Activity.objects.filter(
+        project_id=project.id,
+        group_id__isnull=False,
     )
+    if cursor_dt is not None:
+        qs = qs.extra(  # type: ignore[assignment]
+            where=['ROW("datetime", "id") > ROW(%s, %s)'],
+            params=[cursor_dt, cursor_id],
+        )
+    activities = list(qs.order_by("datetime", "id")[:batch_size])
 
     if not activities:
         logger.info(
             "backfill_group_action_log.project_completed",
             extra={"project_id": project.id},
         )
+        process_project_derived_data.delay(project_id=project.id)
         return
 
     logger.info(
         "backfill_group_action_log.batch_starting",
         extra={
             "project_id": project.id,
-            "last_activity_id": last_activity_id,
+            "cursor_datetime": cursor_dt.isoformat() if cursor_dt else None,
             "batch_size": len(activities),
             "first_activity_id": activities[0].id,
             "last_activity_id_in_batch": activities[-1].id,
@@ -225,7 +267,7 @@ def _backfill_project(
                 json.dumps(action.dict()),
                 activity.datetime,
                 activity.datetime,  # date_updated
-                f"activity:{activity.id}",
+                activity_action_idempotency_key(activity),
             ]
         )
         num_entries += 1
@@ -247,6 +289,8 @@ def _backfill_project(
         tags={"reason": "translation_error"},
     )
 
+    last_activity = activities[-1]
+
     logger.info(
         "backfill_group_action_log.batch_complete",
         extra={
@@ -254,7 +298,8 @@ def _backfill_project(
             "converted_count": converted_count,
             "skipped_count": skipped_count,
             "error_count": error_count,
-            "last_activity_id_in_batch": activities[-1].id,
+            "next_cursor_datetime": last_activity.datetime.isoformat(),
+            "next_cursor_id": last_activity.id,
         },
     )
 
@@ -262,10 +307,17 @@ def _backfill_project(
         backfill_group_action_log_for_project.apply_async(
             kwargs={
                 "project_id": project.id,
-                "last_activity_id": activities[-1].id,
+                "cursor_datetime": last_activity.datetime.isoformat(),
+                "cursor_id": last_activity.id,
             },
             countdown=inter_batch_delay_s,
             headers={"sentry-propagate-traces": False},
         )
         if activation_id:
             mark_spawned(_TASK_KEY, activation_id)
+    else:
+        logger.info(
+            "backfill_group_action_log.project_completed",
+            extra={"project_id": project.id},
+        )
+        process_project_derived_data.delay(project_id=project.id)

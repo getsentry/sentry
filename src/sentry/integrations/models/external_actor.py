@@ -7,10 +7,8 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, cell_silo_model
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, cell_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.hybridcloud.outbox.base import ReplicatedCellModel
-from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.integrations.types import (
     ExternalActorSource,
     ExternalProviders,
@@ -22,10 +20,8 @@ logger = logging.getLogger(__name__)
 
 
 @cell_silo_model
-class ExternalActor(ReplicatedCellModel):
+class ExternalActor(Model):
     __relocation_scope__ = RelocationScope.Excluded
-
-    category = OutboxCategory.EXTERNAL_ACTOR_UPDATE
 
     date_updated = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now, null=True)

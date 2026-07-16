@@ -94,7 +94,7 @@ export function MetricSelectRow({
         unit: option.metricUnit,
       })
         ? undefined
-        : t('Heat maps can only visualize distribution metrics.'),
+        : t('Heatmaps can only visualize distribution metrics.'),
     []
   );
 

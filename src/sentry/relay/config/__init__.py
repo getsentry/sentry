@@ -71,7 +71,6 @@ EXPOSABLE_FEATURES = [
     "projects:span-v2-experimental-processing",
     "projects:span-v2-attachment-processing",
     "projects:trace-attachment-processing",
-    "projects:relay-minidump-attachment-uploads",
     "projects:relay-minidump-uploads",
     "projects:relay-playstation-uploads",
     "projects:minidump-multi-exception",
