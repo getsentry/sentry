@@ -211,6 +211,46 @@ def test_minimal_event() -> None:
     assert m.user is None
 
 
+def test_maps_csp_entry() -> None:
+    data = {
+        "title": "t",
+        "entries": [
+            {
+                "type": "csp",
+                "data": {
+                    "effective_directive": "img-src",
+                    "blocked_uri": "blob",
+                    "document_uri": "https://x.com",
+                    "original_policy": "default-src 'none'",  # dropped as noise
+                },
+            }
+        ],
+    }
+    m = event_response_to_model(data)
+    assert m.csp is not None
+    assert m.csp.effective_directive == "img-src"
+    assert m.csp.blocked_uri == "blob"
+    assert m.csp.document_uri == "https://x.com"
+
+
+def test_maps_occurrence_evidence() -> None:
+    data = {
+        "title": "t",
+        "occurrence": {
+            "evidenceDisplay": [
+                {"name": "Regression", "value": "duration increased", "important": True},
+                {"name": "Transaction", "value": "POST /oauth/token"},
+                {"name": "", "value": "skip"},  # missing name/value pairs are skipped
+            ]
+        },
+    }
+    m = event_response_to_model(data)
+    assert m.evidence == [
+        ("Regression", "duration increased"),
+        ("Transaction", "POST /oauth/token"),
+    ]
+
+
 def test_maps_detector_troubleshooting_context() -> None:
     # the Seer RPC adds these camelCase keys to the serialized event
     data = _serialized_event()

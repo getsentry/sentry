@@ -12,6 +12,7 @@ from typing import Any
 
 from sentry.issues.formatting.models import (
     Breadcrumb,
+    CspDetails,
     EventObject,
     EvidenceSpan,
     ExceptionDetails,
@@ -69,6 +70,15 @@ def _tags(data: Mapping[str, Any]) -> tuple[list[tuple[str, str | None]], str | 
     return tags, transaction_name
 
 
+def _evidence(data: Mapping[str, Any]) -> list[tuple[str, str]]:
+    # occurrence.evidenceDisplay carries the human-readable name/value summary for
+    # perf and generic/regression issues (e.g. "Regression": "... increased ...")
+    display = (data.get("occurrence") or {}).get("evidenceDisplay") or []
+    return [
+        (item["name"], item["value"]) for item in display if item.get("name") and item.get("value")
+    ]
+
+
 def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
     entries = _entries_by_type(data)
     tags, transaction_name = _tags(data)
@@ -80,6 +90,7 @@ def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
     request = entries.get("request")
     # a top-level stacktrace entry, distinct from the one nested on an exception
     stacktrace = entries.get("stacktrace")
+    csp = entries.get("csp")
     user = data.get("user")
 
     return EventObject(
@@ -97,8 +108,10 @@ def event_response_to_model(data: Mapping[str, Any]) -> EventObject:
         threads=[_thread(v) for v in _values(entries.get("threads"))],
         breadcrumbs=[Breadcrumb.parse_obj(v) for v in _values(entries.get("breadcrumbs"))],
         request=RequestDetails.parse_obj(request) if request else None,
+        csp=CspDetails.parse_obj(csp) if csp else None,
         tags=tags,
         contexts=data.get("contexts") or {},
         user=UserDetails.parse_obj(user) if user else None,
         spans=[EvidenceSpan.parse_obj(s) for s in entries.get("spans") or []],
+        evidence=_evidence(data),
     )
