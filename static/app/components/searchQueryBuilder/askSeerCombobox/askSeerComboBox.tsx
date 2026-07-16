@@ -489,7 +489,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             </Stack>
           ) : (
             <Stack flex="1" onMouseLeave={onMouseLeave}>
-              <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
+              <AskSeerSearchHeader title={t("Describe what you're looking for")} />
             </Stack>
           )}
           {openForm && (!hasAskSeerRework || isDisplayingResults) && (

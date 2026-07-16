@@ -112,7 +112,7 @@ describe('AskSeerComboBox', () => {
     });
 
     expect(
-      await screen.findByText("Describe what you're looking for.")
+      await screen.findByText("Describe what you're looking for")
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
   });

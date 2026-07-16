@@ -381,7 +381,7 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
         assert (
             f"/organizations/{self.organization.id}/objectstore/v1/objects/debug_files/" in location
         )
-        assert "os_sig=" in location
+        assert "os_auth=" in location
 
     def test_direct_read_requires_read_gate(self) -> None:
         download_id = self._upload_and_get_download_id()

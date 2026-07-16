@@ -110,7 +110,7 @@ describe('AskSeerMutationComboBox', () => {
       {organization}
     );
 
-    const header = await screen.findByText(/Describe what you're looking for./);
+    const header = await screen.findByText("Describe what you're looking for");
     expect(header).toBeInTheDocument();
   });
 
