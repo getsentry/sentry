@@ -22,6 +22,7 @@ from sentry.issues.formatting.sections import (
     EVENT_SECTIONS,
     EVENT_SECTIONS_WITH_USER,
     breadcrumbs_section,
+    contexts_section,
     detection_context_section,
     exceptions_section,
     format_issue,
@@ -287,6 +288,25 @@ def test_user_only_present_fields() -> None:
     assert "ID" not in out
 
 
+def test_contexts_renders_groups_and_skips_type() -> None:
+    event = EventObject(
+        title="t",
+        contexts={
+            "browser": {"type": "browser", "name": "Chrome", "version": "28"},
+            "os": {"type": "os", "name": "Windows"},
+        },
+    )
+    out = contexts_section(event, MD, LIMITS_DEFAULT)
+    assert "## Contexts" in out
+    assert "browser\nname: Chrome\nversion: 28" in out
+    assert "os\nname: Windows" in out
+    assert "type:" not in out  # the redundant per-context type key is dropped
+
+
+def test_contexts_empty_renders_nothing() -> None:
+    assert contexts_section(EventObject(title="t"), MD, LIMITS_DEFAULT) == ""
+
+
 def test_threads_only_with_stacktrace() -> None:
     with_st = ThreadDetails(
         name="main", crashed=True, stacktrace=Stacktrace(frames=[Frame(function="f", line_no=1)])
@@ -410,7 +430,7 @@ def test_unadaptable_payload_renders_nothing() -> None:
 def test_event_sections_order() -> None:
     names = [s.__name__ for s in EVENT_SECTIONS]
     assert names[0] == "title_section"
-    assert names[-1] == "tags_section"
+    assert names[-1] == "contexts_section"
     assert "exceptions_section" in names
 
 
