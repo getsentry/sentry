@@ -3,13 +3,14 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import {useFormTypingAnimation} from './useFormTypingAnimation';
 
 describe('useFormTypingAnimation', () => {
-  beforeEach(() => jest.useFakeTimers());
-  afterEach(() => jest.useRealTimers());
-
-  const setValue = jest.fn<(value: string) => void>();
+  const setValue = jest.fn<void, [value: string]>();
   const latest = () => setValue.mock.lastCall?.[0];
 
-  beforeEach(() => setValue.mockClear());
+  beforeEach(() => {
+    jest.useFakeTimers();
+    setValue.mockClear();
+  });
+  afterEach(() => jest.useRealTimers());
 
   it('animates text into the target form field', () => {
     const {result} = renderHook(useFormTypingAnimation, {initialProps: {speed: 80}});
