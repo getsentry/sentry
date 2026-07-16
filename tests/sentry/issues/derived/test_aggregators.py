@@ -1047,6 +1047,22 @@ def test_duplicate_output_rejected() -> None:
         Pipeline([agg1, agg2])
 
 
+def test_duplicate_name_different_versions_rejected() -> None:
+    A_v0 = Feature[int]("x", default=0, version=0)
+    A_v1 = Feature[int]("x", default=0, version=1)
+
+    @aggregator((A_v0,))
+    def agg1(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((A_v1,))
+    def agg2(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    with pytest.raises(ValueError, match="output by both"):
+        Pipeline([agg1, agg2])
+
+
 def test_missing_dependency_rejected() -> None:
     A = Feature[int]("a", default=0)
     B = Feature[int]("b", default=0)
@@ -1073,6 +1089,23 @@ def test_cycle_rejected() -> None:
 
     with pytest.raises(ValueError, match="Cycle detected"):
         Pipeline([agg1, agg2])
+
+
+def test_distinct_feature_instances_same_name_rejected() -> None:
+    A_output = Feature[int]("a", default=0)
+    A_dep = Feature[int]("a", default=0)  # different instance, same name
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A_output,))
+    def produce_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,), deps=(A_dep,))
+    def use_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    with pytest.raises(ValueError, match="multiple distinct instances"):
+        Pipeline([produce_a, use_a])
 
 
 def test_full_pipeline_constructs() -> None:

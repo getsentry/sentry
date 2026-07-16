@@ -425,6 +425,20 @@ def resolve[E: HasType](
     return [agg for agg in all_aggs if agg.name in needed]
 
 
+def _ensure_no_aliasing(features: Iterable[Feature[Any]]) -> tuple[Feature[Any], ...]:
+    """Return the unique features, raising if the same name maps to different instances."""
+    seen: dict[str, Feature[Any]] = {}
+    for f in features:
+        existing = seen.get(f.name)
+        if existing is not None and existing is not f:
+            raise ValueError(
+                f"Feature {f.name!r} has multiple distinct instances in the pipeline; "
+                f"use the same Feature object everywhere"
+            )
+        seen[f.name] = f
+    return tuple(seen.values())
+
+
 def _validate_and_sort[E: HasType](
     aggregators: tuple[Aggregator[E], ...],
 ) -> tuple[tuple[Aggregator[E], ...], tuple[Feature[Any], ...]]:
@@ -473,9 +487,6 @@ def _validate_and_sort[E: HasType](
         remaining = {a.name for a in aggregators} - {a.name for a in order}
         raise ValueError(f"Cycle detected among aggregators: {remaining}")
 
-    all_features: dict[str, Feature[Any]] = {}
-    for agg in aggregators:
-        for f in (*agg.deps, *agg.outputs):
-            all_features[f.name] = f
+    all_features = _ensure_no_aliasing(f for agg in aggregators for f in (*agg.deps, *agg.outputs))
 
-    return tuple(order), tuple(all_features.values())
+    return tuple(order), all_features
