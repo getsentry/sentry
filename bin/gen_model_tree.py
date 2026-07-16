@@ -320,8 +320,9 @@ class BfsTreePrinter:
     Each entry in `nodes` carries the same payload as the nested tree
     serialization (the DAG-style ModelNode fields plus this script's tree
     annotations) with a `depth` field instead of nested `children`; the array
-    order is the BFS (level-order) traversal. External (non-postgres)
-    dependencies of the tree's models get their own
+    order is the BFS (level-order) traversal, with each depth sorted by the
+    number of roots the model references (len of `root_paths`), ascending.
+    External (non-postgres) dependencies of the tree's models get their own
     `externally-referenced-systems` property.
     """
 
@@ -336,12 +337,18 @@ class BfsTreePrinter:
     def serialize(self) -> dict:
         nodes = []
         members: set[str] = set()
-        queue: deque[tuple[TreeNode, int]] = deque([(self.tree, 0)])
-        while queue:
-            tree_node, depth = queue.popleft()
-            members.add(tree_node.node.model_name)
-            nodes.append(serialize_tree_node(tree_node) | {"depth": depth})
-            queue.extend((child, depth + 1) for child in tree_node.children)
+        depth = 0
+        level: list[TreeNode] = [self.tree]
+        while level:
+            # Stable sort: ties keep the deterministic child-name order.
+            level.sort(key=lambda tree_node: len(tree_node.node.root_paths))
+            next_level: list[TreeNode] = []
+            for tree_node in level:
+                members.add(tree_node.node.model_name)
+                nodes.append(serialize_tree_node(tree_node) | {"depth": depth})
+                next_level.extend(tree_node.children)
+            level = next_level
+            depth += 1
 
         tree_externals = {
             system: tree_refs
