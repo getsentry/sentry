@@ -127,6 +127,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   const containerRef = useRef<HTMLInputElement>(null);
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
+  const hadFocusedOptionOnEnterRef = useRef(false);
   const hasTrackedErrorRef = useRef(false);
   const {projects} = useProjects();
   const organization = useOrganization();
@@ -311,11 +312,12 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             state.close();
             return;
           case 'Enter':
-            if (
-              state.isOpen &&
-              !state.selectionManager.focusedKey &&
-              searchQuery.trim() !== ''
-            ) {
+            if (hadFocusedOptionOnEnterRef.current) {
+              hadFocusedOptionOnEnterRef.current = false;
+              return;
+            }
+
+            if (state.isOpen && searchQuery.trim() !== '') {
               trackAnalytics('ai_query.submitted', {
                 organization,
                 area: analyticsArea,
@@ -428,6 +430,12 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
         <InvisibleInput
           {...inputProps}
           autoComplete="off"
+          onKeyDownCapture={e => {
+            hadFocusedOptionOnEnterRef.current =
+              e.key === 'Enter' &&
+              state.isOpen &&
+              state.selectionManager.focusedKey !== null;
+          }}
           onClick={() => state.open()}
           placeholder={t('Ask Seer with Natural Language')}
           ref={mergeRefs(inputRef, triggerProps.ref as React.Ref<HTMLInputElement>)}

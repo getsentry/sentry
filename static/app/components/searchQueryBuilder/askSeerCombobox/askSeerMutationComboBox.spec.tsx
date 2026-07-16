@@ -200,6 +200,7 @@ describe('AskSeerMutationComboBox', () => {
         query: 'span.duration:>30s',
       })
     );
+    expect(input).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('renders an error message when the Seer search fails', async () => {
