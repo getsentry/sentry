@@ -11,7 +11,6 @@ from slack_sdk.models.blocks import (
     ContextBlock,
     InteractiveElement,
     LinkButtonElement,
-    MarkdownBlock,
     MarkdownTextObject,
     PlainTextObject,
     RichTextBlock,
@@ -254,8 +253,9 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
     def _render_agent_response(cls, data: SeerAgentResponse) -> SlackRenderable:
         from sentry import features
         from sentry.models.organization import Organization
+        from sentry.seer.entrypoints.slack.embed_renderer import render_agent_summary
 
-        blocks: list[Block] = [MarkdownBlock(text=data.summary)]
+        blocks: list[Block] = render_agent_summary(data.summary)
         try:
             organization = Organization.objects.get_from_cache(id=data.organization_id)
         except Organization.DoesNotExist:
