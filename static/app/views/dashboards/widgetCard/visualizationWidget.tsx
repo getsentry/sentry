@@ -514,8 +514,8 @@ function decodeLegendSelection(encoded: LegendSelection): LegendSelection {
   }
   // remove any keys that are empty strings
   const filteredSelections = Object.keys(decoded).reduce<LegendSelection>((acc, key) => {
-    if (key) {
-      acc[key] = decoded[key]!;
+    if (key && decoded[key] !== undefined) {
+      acc[key] = decoded[key];
     }
     return acc;
   }, {});
