@@ -748,13 +748,12 @@ def organization_top_spans(
     if not top_span_names:
         return
 
-    names_to_map = top_span_names[:TOP_SPANS_LIMIT]
     with start_span(
         op="weekly_reports.top_spans_projects", name="weekly_reports.top_spans_projects"
     ):
         span_name_filter = " OR ".join(
             'span.name:"{}"'.format(name.replace("\\", "\\\\").replace('"', '\\"'))
-            for name in names_to_map
+            for name in top_span_names
         )
         project_result = Spans.run_table_query(
             params=snuba_params,
@@ -762,7 +761,7 @@ def organization_top_spans(
             selected_columns=["span.name", "project.id", "count()"],
             orderby=["-count()"],
             offset=0,
-            limit=len(names_to_map) * max(len(projects), 10),
+            limit=len(top_span_names) * max(len(projects), 10),
             referrer=referrer,
             config=config,
             sampling_mode=None,
