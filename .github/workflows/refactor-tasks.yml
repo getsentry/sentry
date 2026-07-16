@@ -1,6 +1,10 @@
 name: refactor tasks
 # Runs the @sentry/refactor-tasks convention scanner and reports findings to
 # Sentry, where Seer can open fix PRs. See .sentry-refactor-tasks/README.md.
+# Every trigger here is employee-only by construction: workflow_dispatch
+# requires repo write access, push to master is branch-protected, and schedule
+# runs as GitHub with no external actor. There is no fork/PR trigger, so no
+# "Trigger:" label gate (as in getsentry-dispatch.yml) is needed.
 on:
   workflow_dispatch:
   schedule:
