@@ -6,12 +6,16 @@ export const AI_INSTRUMENTATION_DOCS_LINKS = {
 } as const;
 
 /**
- * Resolves the AI agents instrumentation docs link for a project platform.
- * These pages document how to capture agent inputs and outputs. Defaults to
- * the Python guide when the platform is unknown, matching the onboarding flow.
+ * Resolves the AI agents instrumentation docs link, which document how to
+ * capture agent inputs and outputs. Accepts either a project platform
+ * (e.g. `javascript-react`, `node`) or an SDK language (`javascript`,
+ * `python`), and defaults to the Python guide when it can't be matched.
  */
-export function getAiInstrumentationDocsLink(platform?: string): string {
-  if (platform?.startsWith('javascript') || platform?.startsWith('node')) {
+export function getAiInstrumentationDocsLink(platformOrLanguage?: string): string {
+  if (
+    platformOrLanguage?.startsWith('javascript') ||
+    platformOrLanguage?.startsWith('node')
+  ) {
     return AI_INSTRUMENTATION_DOCS_LINKS.javascript;
   }
   return AI_INSTRUMENTATION_DOCS_LINKS.python;
