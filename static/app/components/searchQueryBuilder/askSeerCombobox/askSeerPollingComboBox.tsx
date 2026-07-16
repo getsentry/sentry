@@ -636,7 +636,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             state={state}
             onMouseLeave={onMouseLeave}
           />
-          {openForm && isDisplayingResults ? (
+          {openForm && (!hasAskSeerUxRework || isDisplayingResults) ? (
             <SeerFooter onMouseDown={e => e.preventDefault()}>
               <Button
                 size="xs"

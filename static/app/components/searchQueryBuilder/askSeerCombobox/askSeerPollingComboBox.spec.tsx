@@ -80,13 +80,13 @@ describe('AskSeerPollingComboBox loading state', () => {
     });
   });
 
-  it('shows the existing loading experience without the feedback footer when the rework is disabled', async () => {
+  it('shows the existing loading experience with the feedback footer when the rework is disabled', async () => {
     renderPollingComboBox(['gen-ai-features']);
     await submitQuery();
 
     expect(await screen.findByText("I'm on it...")).toBeInTheDocument();
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
   });
 
   it('shows the single loading status without the feedback footer when the rework is enabled', async () => {

@@ -1,15 +1,22 @@
+import {useEffect} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 import {mutationOptions} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {
+  AsyncSDKIntegrationContextProvider,
+  useAsyncSDKIntegrationStore,
+} from 'sentry/views/app/asyncSDKIntegrationProvider';
 
 const defaultProps = {
   enableAISearch: true,
@@ -36,6 +43,46 @@ const askSeerMutationOptions = mutationOptions({
 const {organization} = initializeOrg({
   organization: {features: ['gen-ai-features'], hideAiFeatures: false},
 });
+
+const feedbackIntegration = {
+  createForm: jest.fn(),
+} as unknown as FeedbackIntegration;
+
+function FeedbackProvider({children}: {children: React.ReactNode}) {
+  return (
+    <AsyncSDKIntegrationContextProvider>
+      <InstallFeedbackIntegration />
+      <GlobalFeedbackForm>{children}</GlobalFeedbackForm>
+    </AsyncSDKIntegrationContextProvider>
+  );
+}
+
+function InstallFeedbackIntegration() {
+  const {setState} = useAsyncSDKIntegrationStore();
+
+  useEffect(() => {
+    setState({Feedback: feedbackIntegration});
+  }, [setState]);
+
+  return null;
+}
+
+function renderComboBox(features: string[]) {
+  const {organization: organizationWithFeatures} = initializeOrg({
+    organization: {features, hideAiFeatures: false},
+  });
+
+  render(
+    <SearchQueryBuilderProvider {...defaultProps}>
+      <AskSeerComboBox
+        initialQuery=""
+        askSeerMutationOptions={askSeerMutationOptions}
+        applySeerSearchQuery={() => {}}
+      />
+    </SearchQueryBuilderProvider>,
+    {organization: organizationWithFeatures, additionalWrapper: FeedbackProvider}
+  );
+}
 
 describe('AskSeerComboBox', () => {
   beforeEach(() => {
@@ -169,6 +216,29 @@ describe('AskSeerComboBox', () => {
 
     const filter = await screen.findByText('Filter');
     expect(filter).toBeInTheDocument();
+  });
+
+  it('always displays the feedback button when the rework is disabled', async () => {
+    renderComboBox(['gen-ai-features']);
+
+    expect(
+      await screen.findByRole('button', {name: 'Give Feedback'})
+    ).toBeInTheDocument();
+  });
+
+  it('only displays the feedback button with results when the rework is enabled', async () => {
+    renderComboBox(['gen-ai-features', 'gen-ai-ask-seer-ux-rework']);
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
+
+    await userEvent.type(input, 'test{Enter}');
+
+    expect(
+      await screen.findByRole('button', {name: 'Give Feedback'})
+    ).toBeInTheDocument();
   });
 
   it('applies the query to the route query params when selected via keyboard', async () => {
