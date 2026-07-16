@@ -248,7 +248,7 @@ class User(Model, AbstractBaseUser):
                     if self.pk is None and not is_relocated_user:
                         # new users should set email_unique
                         self.email_unique = self.email
-                    elif self.pk is None and is_relocated_user and self.email_unique:
+                    elif self.pk is None and is_relocated_user:
                         # If the user is new, relocated and has email_unique blank email_unique
                         # to dodge integrity errors.
                         self.email_unique = None
