@@ -154,8 +154,13 @@ class TransactionsRebalancingModel(
             )
             # recalculate implicit_budget based on used. Flooring the explicit rates can push `used`
             # above what the un-floored split spent, so reclaim the difference from the implicit tail.
-            # If the floor consumes the whole budget there is nothing left for the tail (max(0, ...)).
-            implicit_budget = max(0.0, total_budget - used)
+            # The tail's extrapolation factor must stay bounded too, so it gets the same floor
+            # (a 0.0 rate would also be rewritten to 1.0 by the relay bias). This can overshoot the
+            # overall budget; accepted for now. Guarded so min_sample_rate == 0.0 stays bit-identical
+            # to the un-floored model.
+            implicit_budget = total_budget - used
+            if min_sample_rate > 0.0:
+                implicit_budget = max(implicit_budget, min_sample_rate * total_implicit)
             implicit_rate = implicit_budget / total_implicit
 
         return explicit_rates, implicit_rate
