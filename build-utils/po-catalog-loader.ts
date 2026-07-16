@@ -1,7 +1,7 @@
 import type {LoaderDefinition} from '@rspack/core';
 import {po} from 'gettext-parser';
 
-const FRONTEND_REFERENCE = /(?:^|\n)[^:\n]+\.(?:js|jsx|tsx):/;
+const FRONTEND_REFERENCE = /(?:^|\s)[^\s:]+\.(?:js|jsx|tsx):/;
 
 type CatalogMetadata = {
   domain: string;
