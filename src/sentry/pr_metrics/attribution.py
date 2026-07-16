@@ -323,6 +323,11 @@ def attribute_delegated_agent_pull_request(
     point. Callers pass the ``SEER_DELEGATED_*`` signal type for the authoring
     agent; unlike Seer-native PRs we never attribute these to ``SENTRY_APP``.
 
+    ``run_id``/``group_ids`` are optional and left sparse (``None``/``[]``) when
+    a caller can't resolve them locally; ``group_ids`` is the issue(s) the
+    delegated run was launched against, mirroring the field already on
+    ``SentryAppSignalDetails``.
+
     Gated behind ``organizations:pr-metrics-attribution``. Best-effort: callers run
     this inside the polling/webhook flow, so any failure is logged and swallowed
     rather than allowed to interrupt that flow.

@@ -146,6 +146,10 @@ class SyncCodingAgentStatusTest(TestCase):
             )
 
         assert result.known_to_seer is False
+        # run_id/group_id are resolved before the local save is attempted, so a
+        # save failure doesn't leave the caller without this data too.
+        assert result.run_id == RUN_STATE_ID
+        assert result.group_id is None
         mock_update_state.assert_not_called()
         self.handoff.refresh_from_db()
         assert self.handoff.status == "pending"

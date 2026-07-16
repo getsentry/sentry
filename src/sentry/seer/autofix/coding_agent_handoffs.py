@@ -33,6 +33,9 @@ class CodingAgentSyncResult(NamedTuple):
     (and its ``SeerAgentRun`` sibling, populated when the run was launched
     against an issue) — no Seer round trip needed. Both are ``None`` when no
     matching handoff row exists locally.
+
+    Being a tuple, this is always truthy — check ``.known_to_seer`` explicitly
+    rather than the result object itself.
     """
 
     known_to_seer: bool
