@@ -52,10 +52,3 @@ once they settle.
 
 The `content` status (a message with no tool calls, only content) renders
 nothing, so it is safe to pass a status derived from any message.
-
-## Accessibility
-
-Each status has a default `aria-label` (e.g. `failure` → "All tool calls failed").
-Pass `aria-label` to override it when the surrounding context needs more specific
-wording. There is intentionally no tooltip — an icon-only tooltip isn't
-keyboard-focusable — so surface any extra detail as visible text in the consumer.
