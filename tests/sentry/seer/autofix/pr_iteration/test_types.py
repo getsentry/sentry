@@ -1,16 +1,21 @@
+from datetime import timedelta
+
 import pytest
 from pydantic import ValidationError
 
 from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
-from sentry.seer.autofix.pr_iteration.types import (
+from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
-    GithubPrCommentFeedbackSource,
-    GithubPrReviewCommentFeedbackSource,
-    UserUIFeedbackSource,
-    format_feedback_for_prompt,
     parse_feedback,
     serialize_feedback,
 )
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubIssueComment,
+    GithubPrCommentFeedbackSource,
+    GithubPrReviewCommentFeedbackSource,
+)
+from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
@@ -69,7 +74,7 @@ class ParseSerializeFeedbackTest(TestCase):
         assert isinstance(parsed[0].source, UserUIFeedbackSource)
         assert isinstance(parsed[1].source, GithubPrCommentFeedbackSource)
         assert parsed[0].source.user_id == 7
-        assert parsed[1].source.comment["id"] == 99
+        assert parsed[1].source.comment.id == 99
 
     def test_parses_single_object(self) -> None:
         feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="solo"))
@@ -175,6 +180,7 @@ class GithubPrCommentTextTest(TestCase):
     def test_derives_feedback_from_comment(self) -> None:
         # The validator turns the comment into feedback once; text reads it back.
         source = GithubPrCommentFeedbackSource(comment={"id": 1, "body": "@sentry parsed"})
+        assert isinstance(source.comment, GithubIssueComment)
         assert source.comment_feedback == "parsed"
         assert source.text == "parsed"
 
@@ -215,45 +221,42 @@ class GithubPrCommentShouldConsumeTest(TestCase):
         assert source.should_consume(_run_state()) is True
 
 
-class FormatFeedbackForPromptTest(TestCase):
-    def test_format_review_comment_range_anchor(self) -> None:
+class GithubPrReviewCommentTextTest(TestCase):
+    def test_text_includes_range_anchor(self) -> None:
         feedback = _review_feedback(line=42, start_line=40)
-        assert (
-            format_feedback_for_prompt(feedback)
-            == "Inline comment on src/sentry/foo.py:40-42:\nfix it"
-        )
+        assert feedback.text == "Inline comment on src/sentry/foo.py:40-42:\nfix it"
+        assert feedback.ui_text == "fix it"
 
-    def test_format_review_comment_single_line_anchor(self) -> None:
+    def test_text_includes_single_line_anchor(self) -> None:
         feedback = _review_feedback(line=42, start_line=None)
-        assert (
-            format_feedback_for_prompt(feedback)
-            == "Inline comment on src/sentry/foo.py:42:\nfix it"
-        )
+        assert feedback.text == "Inline comment on src/sentry/foo.py:42:\nfix it"
+        assert feedback.ui_text == "fix it"
 
-    def test_format_review_comment_collapsed_range_uses_single_line(self) -> None:
+    def test_text_collapsed_range_uses_single_line(self) -> None:
         # start_line == line: GitHub effectively treats this as single-line.
         feedback = _review_feedback(line=42, start_line=42)
-        assert (
-            format_feedback_for_prompt(feedback)
-            == "Inline comment on src/sentry/foo.py:42:\nfix it"
-        )
+        assert feedback.text == "Inline comment on src/sentry/foo.py:42:\nfix it"
+        assert feedback.ui_text == "fix it"
 
-    def test_format_review_comment_file_only_anchor(self) -> None:
+    def test_text_file_only_anchor(self) -> None:
         feedback = _review_feedback(line=None, start_line=None)
-        assert (
-            format_feedback_for_prompt(feedback) == "Inline comment on src/sentry/foo.py:\nfix it"
-        )
+        assert feedback.text == "Inline comment on src/sentry/foo.py:\nfix it"
+        assert feedback.ui_text == "fix it"
 
-    def test_format_review_comment_no_file_path_passes_through(self) -> None:
+    def test_text_no_file_path_passes_through(self) -> None:
         feedback = _review_feedback(file_path=None, line=None)
-        assert format_feedback_for_prompt(feedback) == "fix it"
+        assert feedback.text == "fix it"
+        assert feedback.ui_text == "fix it"
 
-    def test_format_top_level_comment_passes_through(self) -> None:
-        feedback = Feedback(
-            source=GithubPrCommentFeedbackSource(comment={"id": 1, "body": "@sentry fix it"})
-        )
-        assert format_feedback_for_prompt(feedback) == "fix it"
 
-    def test_format_ui_feedback_passes_through(self) -> None:
-        feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="ui feedback"))
-        assert format_feedback_for_prompt(feedback) == "ui feedback"
+class ConsumeTaskTest(TestCase):
+    def test_now_returns_no_countdown(self) -> None:
+        assert ConsumeTask.Now.countdown() is None
+
+    def test_later_with_timedelta(self) -> None:
+        task = ConsumeTask.Later(when=timedelta(seconds=30))
+        assert task.countdown() == 30
+
+    def test_later_with_negative_timedelta_returns_zero(self) -> None:
+        task = ConsumeTask.Later(when=timedelta(seconds=-10))
+        assert task.countdown() == 0

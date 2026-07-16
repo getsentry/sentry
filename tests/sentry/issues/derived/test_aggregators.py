@@ -13,7 +13,12 @@ from typing import Any, get_args, get_type_hints
 
 import pytest
 
-from sentry.issues.action_log.types import GroupActionType, GroupActorType, ReconcileStatusAction
+from sentry.issues.action_log.types import (
+    GroupAction,
+    GroupActionType,
+    GroupActorType,
+    ReconcileStatusAction,
+)
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
     LAST_PROGRESSED_AT,
@@ -57,6 +62,14 @@ class FakeEntry:
     actor_type: int = GroupActorType.SYSTEM
     actor_id: int = 0
     data: dict[str, object] = field(default_factory=dict)
+
+    @property
+    def action(self) -> GroupAction:
+        action_type = GroupActionType(self.type)
+        action_cls = GroupAction.by_type(action_type)
+        if action_cls is None:
+            raise ValueError(f"No GroupAction registered for {action_type!r}")
+        return action_cls(**self.data)
 
 
 def _ts(year: int = 2025, month: int = 1, day: int = 1, hour: int = 0) -> datetime:
@@ -123,12 +136,22 @@ def test_starts_open() -> None:
     assert _run_for_feature(STATUS, []) == IssueStatus.OPEN
 
 
-def test_resolve_closes() -> None:
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.RESOLVE,
+        GroupActionType.SET_RESOLVED_IN_RELEASE,
+        GroupActionType.SET_RESOLVED_BY_AGE,
+        GroupActionType.SET_RESOLVED_IN_COMMIT,
+        GroupActionType.ARCHIVE,
+    ],
+)
+def test_close_actions(action_type: GroupActionType) -> None:
     assert (
         _run_for_feature(
             STATUS,
             [
-                FakeEntry(type=GroupActionType.RESOLVE),
+                FakeEntry(type=action_type),
             ],
         )
         == IssueStatus.CLOSED
@@ -211,18 +234,6 @@ def test_regression_resets_progress() -> None:
             ],
         )
         == IssueProgressState.IDENTIFIED
-    )
-
-
-def test_archive_closes() -> None:
-    assert (
-        _run_for_feature(
-            STATUS,
-            [
-                FakeEntry(type=GroupActionType.ARCHIVE),
-            ],
-        )
-        == IssueStatus.CLOSED
     )
 
 
@@ -363,12 +374,19 @@ def test_assign_advances_to_assigned() -> None:
     )
 
 
-def test_root_cause_identified_advances_to_diagnosed() -> None:
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.ROOT_CAUSE_IDENTIFIED,
+        GroupActionType.SEER_RCA_COMPLETED,
+    ],
+)
+def test_root_cause_advances_to_diagnosed(action_type: GroupActionType) -> None:
     assert (
         _run_for_feature(
             PROGRESS,
             [
-                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
+                FakeEntry(type=action_type),
             ],
         )
         == IssueProgressState.DIAGNOSED
@@ -662,6 +680,79 @@ def test_pr_close_with_remaining_keeps_fix_proposed() -> None:
                     type=GroupActionType.RESOLVED_IN_PULL_REQUEST, data=_resolved_pr_data(101)
                 ),
                 _pr_closed(has_other=True),
+            ],
+        )
+        == IssueProgressState.FIX_PROPOSED
+    )
+
+
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.PULL_REQUEST_MERGED,
+        GroupActionType.PULL_REQUEST_UNLINKED,
+    ],
+)
+def test_pr_merged_or_unlinked_demotes_when_no_open_prs_remain(action_type: int) -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(type=GroupActionType.ROOT_CAUSE_IDENTIFIED),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                FakeEntry(
+                    type=action_type,
+                    data={"pull_request": 101, "has_other_open_prs": False},
+                ),
+            ],
+        )
+        == IssueProgressState.DIAGNOSED
+    )
+
+
+@pytest.mark.parametrize(
+    "action_type",
+    [
+        GroupActionType.PULL_REQUEST_MERGED,
+        GroupActionType.PULL_REQUEST_UNLINKED,
+    ],
+)
+def test_pr_merged_or_unlinked_with_remaining_keeps_fix_proposed(action_type: int) -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                FakeEntry(
+                    type=action_type,
+                    data={"pull_request": 101, "has_other_open_prs": True},
+                ),
+            ],
+        )
+        == IssueProgressState.FIX_PROPOSED
+    )
+
+
+def test_pr_reopened_restores_fix_proposed() -> None:
+    assert (
+        _run_for_feature(
+            PROGRESS,
+            [
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                _pr_closed(has_other=False),
+                FakeEntry(
+                    type=GroupActionType.PULL_REQUEST_REOPENED,
+                    data={"pull_request": 101},
+                ),
             ],
         )
         == IssueProgressState.FIX_PROPOSED

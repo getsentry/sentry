@@ -291,11 +291,9 @@ interface PrimaryNavigationMenuProps extends PrimaryNavigationItemBaseProps {
   icon?: React.ReactNode;
   indicator?: 'accent' | 'danger' | 'warning';
   onOpen?: MouseEventHandler<HTMLButtonElement>;
-  triggerWrap?: React.ComponentType<{children: React.ReactNode}>;
 }
 
 function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
-  const TriggerWrap = props.triggerWrap ?? Fragment;
   const theme = useTheme();
   const organization = useOrganization({allowNull: true});
   const {layout} = usePrimaryNavigation();
@@ -320,42 +318,40 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
       minMenuWidth={200}
       trigger={triggerProps => {
         return (
-          <TriggerWrap>
-            <Tooltip
-              title={props.label}
-              disabled={layout === 'mobile'}
-              position="right"
-              skipWrapper
-            >
-              <NavigationButton
-                {...triggerProps}
-                aria-label={layout === 'mobile' ? undefined : props.label}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
-                  if (organization) {
-                    trackAnalytics('navigation.primary_item_clicked', {
-                      item: props.analyticsKey,
-                      organization,
-                      ...props.analyticsParams,
-                    });
-                  }
-                  triggerProps.onClick?.(event);
-                  props.onOpen?.(event);
-                }}
-                icon={
-                  props.indicator ? (
-                    <Fragment>
-                      {props.icon}
-                      <PrimaryNavigationUnreadIndicator variant={props.indicator} />
-                    </Fragment>
-                  ) : (
-                    props.icon
-                  )
+          <Tooltip
+            title={props.label}
+            disabled={layout === 'mobile'}
+            position="right"
+            skipWrapper
+          >
+            <NavigationButton
+              {...triggerProps}
+              aria-label={layout === 'mobile' ? undefined : props.label}
+              onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                if (organization) {
+                  trackAnalytics('navigation.primary_item_clicked', {
+                    item: props.analyticsKey,
+                    organization,
+                    ...props.analyticsParams,
+                  });
                 }
-              >
-                {layout === 'mobile' ? null : props.children}
-              </NavigationButton>
-            </Tooltip>
-          </TriggerWrap>
+                triggerProps.onClick?.(event);
+                props.onOpen?.(event);
+              }}
+              icon={
+                props.indicator ? (
+                  <Fragment>
+                    {props.icon}
+                    <PrimaryNavigationUnreadIndicator variant={props.indicator} />
+                  </Fragment>
+                ) : (
+                  props.icon
+                )
+              }
+            >
+              {layout === 'mobile' ? null : props.children}
+            </NavigationButton>
+          </Tooltip>
         );
       }}
       items={props.items}

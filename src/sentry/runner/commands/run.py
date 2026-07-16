@@ -602,6 +602,7 @@ def basic_consumer(
         logging.getLogger("arroyo").setLevel(log_level.upper())
 
     add_global_tags(
+        all_threads=True,
         set_sentry_tags=True,
         tags={
             "kafka_topic": topic,

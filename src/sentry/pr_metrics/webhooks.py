@@ -21,11 +21,13 @@ from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Any
 
+import orjson
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
+from pydantic import ValidationError
 
 from sentry import features, options
 from sentry.integrations.github.webhook_types import GithubWebhookType
@@ -35,6 +37,7 @@ from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
+    PullRequestActivityLog,
     PullRequestActivityType,
     PullRequestAttribution,
     PullRequestAttributionSignalType,
@@ -43,6 +46,7 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.models.repository import Repository
+from sentry.pr_metrics.activity_doc import apply_activity, extract_event_at, new_document
 from sentry.pr_metrics.activity_types import (
     AssignedPayload,
     AutoMergeDisabledPayload,
@@ -69,14 +73,17 @@ from sentry.pr_metrics.activity_types import (
 )
 from sentry.pr_metrics.attribution import (
     JUDGE_ELIGIBLE_SIGNAL_TYPES,
+    DelegatedAgentSignalDetails,
     SentryAppSignalDetails,
     record_attribution_signal,
 )
 from sentry.pr_metrics.emit import (
     CI_FAILING_AT_CLOSE,
+    VerdictDeferral,
     ci_failing_at_close,
     emit_pr_metrics_row,
     is_pr_tracked,
+    select_fallback_verdict,
     select_verdict,
 )
 from sentry.pr_metrics.tasks import emit_pr_metrics_cooldown_task, forward_pr_to_seer_task
@@ -86,8 +93,10 @@ from sentry.pr_metrics.utils import (
     is_activity_tracking_enabled,
     org_has_coding_agent_for_provider,
     resolved_group_ids,
+    seer_run_link_for_pull_request,
 )
 from sentry.seer.autofix.utils import (
+    DelegatedAgentMatch,
     MatchDelegatedAgentPrRequest,
     make_match_coding_agent_pr_request,
 )
@@ -172,10 +181,17 @@ def handle_attribution(
     # where the PR open and closes super fast and the webhooks might be out of order
     if action in ("opened", "closed"):
         pr_url = (pull_request or {}).get("html_url") or None
-        _write_author_attribution(pr, github_user, pr_url=pr_url, group_ids=resolved_group_ids(pr))
+        seer_group_ids, seer_run_id = seer_run_link_for_pull_request(pr)
+        group_ids = sorted(set(resolved_group_ids(pr)) | set(seer_group_ids))
+        _write_author_attribution(
+            pr, github_user, pr_url=pr_url, group_ids=group_ids, run_id=seer_run_id
+        )
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
-    if action == "opened" and pull_request is not None:
+    # Checked on open and re-checked on close, mirroring the SENTRY_APP author
+    # attribution above — the same out-of-order/missed-webhook concern applies,
+    # and record_attribution_signal is idempotent against the repeat check.
+    if action in ("opened", "closed") and pull_request is not None:
         _attribute_delegated_agent(pr, pull_request, repo, organization, github_user)
 
 
@@ -198,9 +214,11 @@ def _claim_terminal_event(pr: PullRequest, verdict: PullRequestVerdict) -> bool:
     close and later merged is thus recorded by its first close — an accepted loss
     on the rare reopened PR.
 
-    Only called once a deterministic ``verdict`` is in hand. A PR that needs a
-    judge is guarded the same way once the forward path lands — it claims the
-    event with a sentinel verdict before forwarding — but that isn't wired yet.
+    Only called once a deterministic ``verdict`` is in hand — either
+    ``select_verdict``'s outcome or, for judge-ineligible attribution,
+    ``select_fallback_verdict``'s. A PR actually forwarded to a judge is guarded
+    the same way but with the ``JUDGE_IN_PROGRESS`` sentinel via
+    ``_claim_for_judge`` instead.
     """
     claimed = PullRequestMetrics.objects.filter(pull_request=pr, verdict__isnull=True).update(
         verdict=verdict
@@ -220,19 +238,67 @@ def _claim_for_judge(pr: PullRequest) -> bool:
     return _claim_terminal_event(pr, PullRequestVerdict.JUDGE_IN_PROGRESS)
 
 
-def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
+def _forward_to_judge(
+    pr: PullRequest, organization: Organization, deferral: VerdictDeferral
+) -> None:
     """Hand a needs-judge terminal event to Seer, guarded against redelivery.
 
 
-    * Only PRs in orgs that have seer access are forwarded to the judge.
     * Only PRs with attribution in JUDGE_ELIGIBLE_SIGNAL_TYPES are forwarded to
-    the judge.
+    the judge; anything else (e.g. MCP) is settled here directly via
+    ``select_fallback_verdict`` instead, but only when ``deferral`` is
+    ``NEEDS_JUDGE`` — real activity/engagement data backs that verdict. An
+    ``INDETERMINATE`` deferral has no reliable data to fall back on either, so
+    it's skipped exactly as before this fallback existed.
+    * Only PRs in orgs that have seer access are forwarded to the judge. Checked
+    after the eligibility branch above: the fallback never talks to Seer, so it
+    must not be blocked by an org's Seer-access consent gate.
 
     Gated on ``pr-metrics-judge`` independently of emission: until it's enabled
     (and Seer's endpoint exists), a needs-judge PR is skipped — today's behavior.
     Claims the sentinel via the redelivery guard before enqueuing the forward, so
     a redelivered terminal event can't forward to Seer twice.
     """
+    if not PullRequestAttribution.objects.filter(
+        pull_request=pr,
+        is_valid=True,
+        signal_type__in=JUDGE_ELIGIBLE_SIGNAL_TYPES,
+    ).exists():
+        if deferral is not VerdictDeferral.NEEDS_JUDGE:
+            # Only reachable with an INDETERMINATE deferral (the other member,
+            # NEEDS_JUDGE, is handled by the fallback-verdict branch below) — no
+            # eligible attribution to forward to a real judge, and no reliable
+            # local data to settle a fallback verdict from either. Tag both
+            # facts: attribution alone doesn't explain why this stays unemitted.
+            metrics.incr(
+                "pr_metrics.emit.skipped",
+                tags={"reason": "no_eligible_attribution_indeterminate"},
+            )
+            logger.warning(
+                "pr_metrics.emit.needs_judge",
+                extra={
+                    "organization_id": organization.id,
+                    "repository_id": pr.repository_id,
+                    "pull_request_id": pr.id,
+                    "reason": "not_agent_attribution_indeterminate",
+                },
+            )
+            return
+
+        verdict = select_fallback_verdict(pr)
+        metrics.incr("pr_metrics.emit.fallback_verdict", tags={"verdict": verdict})
+        logger.info(
+            "pr_metrics.emit.fallback_verdict",
+            extra={
+                "organization_id": organization.id,
+                "repository_id": pr.repository_id,
+                "pull_request_id": pr.id,
+                "verdict": verdict,
+            },
+        )
+        _claim_and_emit(pr, verdict, "pr_metrics.emit.fallback_emitted")
+        return
+
     if not has_seer_access(organization):
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "no_seer_access"})
         logger.info(
@@ -242,23 +308,6 @@ def _forward_to_judge(pr: PullRequest, organization: Organization) -> None:
                 "repository_id": pr.repository_id,
                 "pull_request_id": pr.id,
                 "reason": "no_seer_access",
-            },
-        )
-        return
-
-    if not PullRequestAttribution.objects.filter(
-        pull_request=pr,
-        is_valid=True,
-        signal_type__in=JUDGE_ELIGIBLE_SIGNAL_TYPES,
-    ).exists():
-        metrics.incr("pr_metrics.emit.skipped", tags={"reason": "no_eligible_attribution"})
-        logger.info(
-            "pr_metrics.emit.needs_judge",
-            extra={
-                "organization_id": organization.id,
-                "repository_id": pr.repository_id,
-                "pull_request_id": pr.id,
-                "reason": "not_agent_attribution",
             },
         )
         return
@@ -407,11 +456,10 @@ def run_deferred_emission(pull_request: PullRequest, organization: Organization)
     final state.
 
     Reopen handling: if the PR is no longer terminal (reopened during the window),
-    release the sentinel and stop — a later re-close reschedules. Otherwise release
-    the cooldown claim back to NULL and run the standard verdict -> emit/forward
-    path, whose own NULL-based guards settle the row exactly once (a late redelivery
-    that races the brief NULL window still emits once: whichever of the two claims
-    the verdict wins, the other no-ops).
+    release the sentinel and stop — a later re-close reschedules. Otherwise run the
+    standard verdict -> emit/forward path, whose own NULL-based guards settle the
+    row exactly once (a late redelivery that races the brief NULL window still
+    emits once: whichever of the two claims the verdict wins, the other no-ops).
     """
     log_extra = {
         "organization_id": organization.id,
@@ -419,8 +467,6 @@ def run_deferred_emission(pull_request: PullRequest, organization: Organization)
         "pull_request_id": pull_request.id,
     }
 
-    # Release our cooldown claim so the deterministic/judge guards below — which
-    # compare-and-set against a NULL verdict — can settle the row.
     PullRequestMetrics.objects.filter(
         pull_request=pull_request, verdict=PullRequestVerdict.WAITING_EVENT_COOLDOWN
     ).update(verdict=None)
@@ -433,10 +479,23 @@ def run_deferred_emission(pull_request: PullRequest, organization: Organization)
         return
 
     verdict = select_verdict(pull_request, organization)
-    if verdict is None:
-        _forward_to_judge(pull_request, organization)
+    if isinstance(verdict, VerdictDeferral):
+        _forward_to_judge(pull_request, organization, verdict)
         return
 
+    _claim_and_emit(pull_request, verdict, "pr_metrics.cooldown.emitted")
+
+
+def _claim_and_emit(
+    pull_request: PullRequest, verdict: PullRequestVerdict, emitted_metric: str
+) -> None:
+    """Claim a deterministic verdict and emit its row, guarded against redelivery.
+
+    Shared by the cooldown task's deterministic path and ``_forward_to_judge``'s
+    judge-ineligible fallback — both settle a verdict Sentry decided on its own
+    (no Seer round trip) and must emit exactly once under the same NULL-verdict
+    claim. ``emitted_metric`` lets each caller keep its own success counter.
+    """
     if not _claim_terminal_event(pull_request, verdict):
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
         return
@@ -456,7 +515,7 @@ def run_deferred_emission(pull_request: PullRequest, organization: Organization)
     # claim still stands and the row is forgone — an acceptable loss for telemetry,
     # not worth a rollback that would reopen the redelivery race.
     emit_pr_metrics_row(pull_request=pull_request, diagnosis_labels=diagnosis_labels)
-    metrics.incr("pr_metrics.cooldown.emitted")
+    metrics.incr(emitted_metric)
 
 
 def handle_metrics(
@@ -586,7 +645,7 @@ def handle_comment(
     if not webhook_id:
         return
 
-    _write_activity_row(
+    _record_activity_event(
         pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
     )
 
@@ -652,7 +711,9 @@ def handle_review(
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(pr, webhook_id, event_type, payload)
+    _record_activity_event(
+        pr, webhook_id, event_type, payload, event_at=extract_event_at(event_type, event)
+    )
 
 
 def handle_review_comment(
@@ -699,7 +760,7 @@ def handle_review_comment(
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(
+    _record_activity_event(
         pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
     )
 
@@ -755,7 +816,9 @@ def handle_review_thread(
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(pr, webhook_id, event_type, payload)
+    _record_activity_event(
+        pr, webhook_id, event_type, payload, event_at=extract_event_at(event_type, event)
+    )
 
 
 def handle_check_suite(
@@ -796,8 +859,12 @@ def handle_check_suite(
 
     for pr in _prs_from_check_payload(organization, repo, check_suite, webhook_id, github_event):
         if is_activity_tracking_enabled(organization, pr):
-            _write_activity_row(
-                pr, webhook_id, PullRequestActivityType.CHECK_SUITE_COMPLETED, payload
+            _record_activity_event(
+                pr,
+                webhook_id,
+                PullRequestActivityType.CHECK_SUITE_COMPLETED,
+                payload,
+                provider_ts=check_suite.get("updated_at"),
             )
 
 
@@ -838,8 +905,12 @@ def handle_check_run(
 
     for pr in _prs_from_check_payload(organization, repo, check_run, webhook_id, github_event):
         if is_activity_tracking_enabled(organization, pr):
-            _write_activity_row(
-                pr, webhook_id, PullRequestActivityType.CHECK_RUN_COMPLETED, payload
+            _record_activity_event(
+                pr,
+                webhook_id,
+                PullRequestActivityType.CHECK_RUN_COMPLETED,
+                payload,
+                provider_ts=check_run.get("completed_at"),
             )
 
 
@@ -1061,6 +1132,7 @@ def _write_author_attribution(
     github_user: dict[str, Any],
     pr_url: str | None = None,
     group_ids: list[int] | None = None,
+    run_id: int | None = None,
 ) -> None:
     user_id = github_user.get("id")
     if user_id is None:
@@ -1073,6 +1145,7 @@ def _write_author_attribution(
         signal_details = SentryAppSignalDetails(
             pr_url=pr_url,
             group_ids=group_ids or [],
+            run_id=run_id,
         )
     record_attribution_signal(
         pull_request=pr,
@@ -1141,7 +1214,9 @@ def _detect_delegated_agent(
     Filter PRs that could have been delegated by Autofix to external coding agents,
     and fire the matching request to Seer if it's a candidate.
 
-    Then Seer calls the RPC "record_pr_attribution" to write the attribution row async.
+    Seer resolves the match either synchronously (a ``200`` with the match body,
+    recorded in-process here) or asynchronously (a ``202``, followed later by the
+    "record_pr_attribution" RPC callback writing the attribution row).
     """
     group_ids = resolved_group_ids(pr)
     if not group_ids:
@@ -1215,7 +1290,33 @@ def _send_seer_delegated_agent_match(
         _record_delegated_candidate(provider_hint, "seer_error_bad_status")
         return
 
-    _record_delegated_candidate(provider_hint, "sent")
+    if response.status != 200:
+        # 202: Seer enqueued the match asynchronously and will call back via the
+        # record_pr_attribution RPC once it resolves.
+        _record_delegated_candidate(provider_hint, "sent")
+        return
+
+    # 200: Seer resolved the match synchronously — record the attribution now,
+    # in-process, instead of waiting for the async RPC callback.
+    try:
+        match = DelegatedAgentMatch.validate(orjson.loads(response.data))
+        signal_type = PullRequestAttributionSignalType(match.signal_type)
+    except (orjson.JSONDecodeError, ValidationError, ValueError):
+        logger.exception("pr_metrics.delegated_agent.seer_match.bad_body", extra=log_extra)
+        _record_delegated_candidate(provider_hint, "seer_error_bad_body")
+        return
+
+    record_attribution_signal(
+        pull_request=pr,
+        signal_type=signal_type,
+        source=PullRequestAttributionSource.SEER_DATA,
+        signal_details=DelegatedAgentSignalDetails(
+            agent_id=match.agent_id,
+            pr_url=request_body.pr_url,
+            run_id=match.run_id,
+        ).dict(),
+    )
+    _record_delegated_candidate(provider_hint, "sync_matched")
 
 
 def _write_mcp_attribution(pr: PullRequest) -> None:
@@ -1239,6 +1340,92 @@ def _write_mcp_attribution(pr: PullRequest) -> None:
         source=PullRequestAttributionSource.WEBHOOK_DATA,
         signal_details={"group_ids": matched_groups},
     )
+
+
+def _use_activity_document(pr: PullRequest) -> bool:
+    """Whether this PR's activity writes go to the reduced JSON document.
+
+    Per-PR routing, consulted only when the cutover option is on: a PR stays on
+    whichever store it started on — an existing document wins, else pre-existing
+    legacy rows keep it on the old path, else (a new PR) it starts on the
+    document. The indexed 1:1 document lookup runs first; the legacy-rows EXISTS
+    only when there's no document.
+    """
+    if not options.get("pr_metrics.activity_document.enabled"):
+        return False
+    if PullRequestActivityLog.objects.filter(pull_request=pr).exists():
+        return True
+    if PullRequestActivity.objects.filter(pull_request=pr).exists():
+        return False
+    return True
+
+
+def _apply_activity_into_doc(
+    pr: PullRequest,
+    *,
+    event_type: PullRequestActivityType,
+    payload: dict[str, Any],
+    webhook_id: str,
+    event_at: str | None = None,
+    provider_ts: str | None = None,
+) -> None:
+    """Apply one processed event to the PR's activity document, under a row lock.
+
+    ``get_or_create`` the 1:1 row (race-safe on its unique constraint), then lock
+    it and run the pure reducer, so concurrent webhook processors for one PR
+    serialize on the document. The reducer can't be expressed as an atomic JSONB
+    update, so the lock is required. ``date_updated`` is bumped on every fold so
+    retention keys off last-write, not creation.
+
+    Creation and fold share one transaction. The webhook processor loop swallows a
+    failed fold (logs it, no GitHub retry), so a ``get_or_create`` committed outside
+    the atomic would strand the row at its empty ``{}`` default — and routing then
+    sends every later event for that PR down the document path onto a doc that reads
+    as all-zeros. Rolling the creation back with the fold keeps a failed fold a true
+    no-op, exactly like the legacy row insert it replaces.
+    """
+    with transaction.atomic(using=router.db_for_write(PullRequestActivityLog)):
+        PullRequestActivityLog.objects.get_or_create(pull_request=pr)
+        log = PullRequestActivityLog.objects.select_for_update().get(pull_request=pr)
+        doc = log.data if log.data.get("version") else new_document()
+        apply_activity(
+            doc,
+            event_type=event_type,
+            payload=payload,
+            ts=timezone.now().isoformat(),
+            event_at=event_at,
+            webhook_id=webhook_id,
+            provider_ts=provider_ts,
+        )
+        log.data = doc
+        log.save(update_fields=["data", "date_updated"])
+
+
+def _record_activity_event(
+    pr: PullRequest,
+    webhook_id: str,
+    event_type: PullRequestActivityType,
+    payload: dict[str, Any],
+    *,
+    event_at: str | None = None,
+    provider_ts: str | None = None,
+) -> None:
+    """Route one processed event to the document or a legacy row per this PR's store.
+
+    ``event_at`` and ``provider_ts`` only feed the document path; see
+    ``apply_activity`` for their per-family semantics.
+    """
+    if _use_activity_document(pr):
+        _apply_activity_into_doc(
+            pr,
+            event_type=event_type,
+            payload=payload,
+            webhook_id=webhook_id,
+            event_at=event_at,
+            provider_ts=provider_ts,
+        )
+    else:
+        _write_activity_row(pr, webhook_id, event_type, payload)
 
 
 def _write_activity_row(
@@ -1285,7 +1472,9 @@ def _write_activity(
         event_type = mapped
 
     payload = _build_activity_payload(action, pull_request, event)
-    _write_activity_row(pr, webhook_id, event_type, payload)
+    _record_activity_event(
+        pr, webhook_id, event_type, payload, event_at=extract_event_at(event_type, event)
+    )
 
 
 def _build_activity_payload(

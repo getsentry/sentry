@@ -1,7 +1,10 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
+    GithubPrCommentFeedbackSource,
+)
 from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
-from sentry.seer.autofix.pr_iteration.types import Feedback, GithubPrCommentFeedbackSource
 from sentry.testutils.cases import TestCase
 
 MENTION_PATH = "sentry.seer.autofix.pr_iteration.mention"
@@ -57,8 +60,9 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         assert isinstance(source, GithubPrCommentFeedbackSource)
         assert feedback.text == "fix it"
         assert source.comment_feedback == "fix it"
-        assert source.comment["id"] == 999
-        assert source.comment["user"]["login"] == "octocat"
+        assert source.comment.id == 999
+        assert source.comment.user is not None
+        assert source.comment.user.login == "octocat"
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_non_created_action(self, mock_delay: MagicMock) -> None:
@@ -91,4 +95,25 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         event["issue"].pop("number")
         with self.feature("organizations:autofix-pr-iteration"):
             self._call(event)
+        mock_delay.assert_not_called()
+
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    def test_skips_when_mention_has_hyphen_suffix(self, mock_delay: MagicMock) -> None:
+        """Test that @sentry-cursor-agent doesn't trigger the command."""
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._call(self._event(body="@sentry-cursor-agent please help"))
+        mock_delay.assert_not_called()
+
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    def test_skips_when_mention_has_underscore_suffix(self, mock_delay: MagicMock) -> None:
+        """Test that @sentry_bot doesn't trigger the command."""
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._call(self._event(body="@sentry_bot do something"))
+        mock_delay.assert_not_called()
+
+    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
+    def test_skips_when_mention_in_email(self, mock_delay: MagicMock) -> None:
+        """Test that email@sentry.io doesn't trigger the command."""
+        with self.feature("organizations:autofix-pr-iteration"):
+            self._call(self._event(body="contact email@sentry.io for help"))
         mock_delay.assert_not_called()

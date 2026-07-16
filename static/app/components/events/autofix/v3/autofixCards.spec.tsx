@@ -801,7 +801,7 @@ describe('ArtifactCard', () => {
       ]);
     });
 
-    it('shows the iterating loader without replaying the previous step when feedback is queued', () => {
+    it('shows the code changes, not the loader, when feedback is only queued', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
@@ -821,20 +821,15 @@ describe('ArtifactCard', () => {
             'code_changes',
             'completed',
             [[makePatch('org/repo', 'src/app.py')]],
-            [
-              makePrIterationBlock(0, {text: 'first pass'}),
-              makeAssistantBlock('Previous step output that should not replay'),
-            ]
+            [makePrIterationBlock(0, {text: 'first pass'})]
           )}
         />,
         {organization: prIterationOrganization}
       );
 
-      expect(screen.getByText('Iterating on PR…')).toBeInTheDocument();
-      expect(
-        screen.queryByText('Previous step output that should not replay')
-      ).not.toBeInTheDocument();
-      expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
+      expect(screen.getByText('1 file changed in 1 repo')).toBeInTheDocument();
+      expect(screen.queryByText('Iterating on PR…')).not.toBeInTheDocument();
+      expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
     });
 
     it('renders queued feedback as a feedback item', () => {
@@ -864,7 +859,33 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('Make the button blue')).toBeInTheDocument();
     });
 
-    it('shows generic processing copy for queued feedback without the feature flag', () => {
+    it('renders queued feedback with missing source attribution', () => {
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [{text: 'Make the button blue'}],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      expect(screen.getByText('(unknown): Make the button blue')).toBeInTheDocument();
+    });
+
+    it('shows the code changes for queued feedback without the feature flag', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,
         runState: {
@@ -886,7 +907,8 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(screen.getByText('Implementing changes…')).toBeInTheDocument();
+      expect(screen.getByText('1 file changed in 1 repo')).toBeInTheDocument();
+      expect(screen.queryByText('Implementing changes…')).not.toBeInTheDocument();
       expect(screen.queryByText('Iterating on PR…')).not.toBeInTheDocument();
     });
 

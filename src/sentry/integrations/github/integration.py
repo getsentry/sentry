@@ -278,6 +278,7 @@ class GitHubIntegration(
         accessible_only: bool = False,
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
+        parallel: bool = False,
     ) -> list[RepositoryInfo]:
         """
         args:
@@ -291,6 +292,9 @@ class GitHubIntegration(
           page_number_limit cap with more data still available, raise
           ApiPaginationTruncated (partial result attached). Ignored when
           ``use_cache`` is True.
+        * parallel - when True, fetch pages after the first concurrently. Only
+          the interactive repo-listing endpoint opts in; not used on the Search
+          API path.
 
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
@@ -319,11 +323,12 @@ class GitHubIntegration(
         def _fetch_and_process() -> list[RepositoryInfo]:
             try:
                 raw = (
-                    client.get_repos_cached()
+                    client.get_repos_cached(parallel=parallel)
                     if use_cache
                     else client.get_repos(
                         page_number_limit=page_number_limit,
                         raise_on_page_limit=raise_on_page_limit,
+                        parallel=parallel,
                     )
                 )
             except ApiPaginationTruncated as e:
