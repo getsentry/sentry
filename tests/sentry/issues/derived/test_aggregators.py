@@ -1109,3 +1109,81 @@ def test_full_pipeline_mixed_events() -> None:
     )
     assert state[STATUS] == IssueStatus.CLOSED
     assert state[VIEW_COUNT] == 1
+
+
+# ---------------------------------------------------------------------------
+# Feature.content_id and Pipeline.get_feature_hash
+# ---------------------------------------------------------------------------
+
+
+def test_feature_content_id_default_version() -> None:
+    f = Feature[int]("foo", default=0)
+    assert f.content_id == "foo:0"
+
+
+def test_feature_content_id_explicit_version() -> None:
+    f = Feature[int]("foo", default=0, version=3)
+    assert f.content_id == "foo:3"
+
+
+def test_get_feature_hash_deterministic() -> None:
+    p = _pipeline()
+    assert p.get_feature_hash() == p.get_feature_hash()
+
+
+def test_get_feature_hash_changes_with_version() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A,))
+    def agg_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,))
+    def agg_b(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    p1 = Pipeline([agg_a, agg_b], version=1)
+
+    A_v2 = Feature[int]("a", default=0, version=1)
+
+    @aggregator((A_v2,))
+    def agg_a2(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    p2 = Pipeline([agg_a2, agg_b], version=1)
+
+    assert p1.get_feature_hash() != p2.get_feature_hash()
+
+
+def test_get_feature_hash_is_order_independent() -> None:
+    A = Feature[int]("a", default=0)
+    B = Feature[int]("b", default=0)
+
+    @aggregator((A,))
+    def agg_a(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,))
+    def agg_b(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((B,))
+    def agg_b2(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    @aggregator((A,))
+    def agg_a2(state: StateView, entry: object) -> AggregatorResult:
+        return None
+
+    p1 = Pipeline([agg_a, agg_b], version=1)
+    p2 = Pipeline([agg_a2, agg_b2], version=1)
+
+    assert p1.get_feature_hash() == p2.get_feature_hash()
+
+
+def test_get_feature_hash_is_unpadded_base64() -> None:
+    p = _pipeline()
+    h = p.get_feature_hash()
+    assert "=" not in h
+    assert len(h) == 11  # 8 bytes -> 11 base64 chars (no padding)

@@ -3,7 +3,9 @@ Core framework for the derived-data pipeline.
 No Django dependencies — pure Python, fully testable in isolation.
 """
 
+import base64
 import copy
+import hashlib
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from datetime import datetime
@@ -102,6 +104,9 @@ class Feature[T]:
     The ``codec`` handles conversion to/from storage representations.
     JSON-blob features use ``to_json`` / ``from_json``; column-backed
     features use ``to_column`` / ``from_column``.
+
+    Increment ``version`` whenever the feature's aggregation logic changes
+    meaningfully so that stale derived data can be detected.
     """
 
     def __init__(
@@ -111,14 +116,21 @@ class Feature[T]:
         default: Any = _MISSING,
         default_factory: Callable[[], Any] | None = None,
         codec: Codec[T] | None = None,
+        version: int = 0,
     ) -> None:
         if default is _MISSING and default_factory is None:
             raise ValueError("Must provide default or default_factory")
         self.name = name
+        self.version = version
         self._default = default
         self._default_factory = default_factory
         self._codec = codec or IDENTITY_CODEC
         self._hash = hash(name)
+
+    @property
+    def content_id(self) -> str:
+        """Versioned identifier for this feature, e.g. ``"view_count:0"``."""
+        return f"{self.name}:{self.version}"
 
     def initial_value(self) -> T:
         if self._default_factory is not None:
@@ -344,6 +356,12 @@ class Pipeline[E: HasType]:
     @property
     def features(self) -> tuple[Feature[Any], ...]:
         return self._features
+
+    def get_feature_hash(self) -> str:
+        """Return a short digest capturing the set of features and their versions."""
+        payload = ",".join(sorted(f.content_id for f in self._features))
+        digest = hashlib.blake2b(payload.encode(), digest_size=8).digest()
+        return base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
 
     def initial_state(self) -> State:
         return State({f: f.initial_value() for f in self._features})
