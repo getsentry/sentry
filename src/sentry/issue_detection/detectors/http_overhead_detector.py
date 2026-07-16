@@ -172,7 +172,7 @@ class HTTPOverheadDetector(PerformanceDetector):
             desc=desc,
             type=PerformanceHTTPOverheadGroupType,
             cause_span_ids=[],
-            parent_span_ids=None,
+            parent_span_ids=[],
             offender_span_ids=location_span_ids,
             evidence_data=evidence_data,
             evidence_display=[
