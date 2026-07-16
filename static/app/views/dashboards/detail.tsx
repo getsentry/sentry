@@ -255,11 +255,21 @@ class DashboardDetail extends Component<Props, State> {
     if (
       prevProps.organization !== this.props.organization ||
       // The only part of `location` used by `WidgetLegendSelectionState` is
-      // `unselectedSeries`. Don't bother comparing anything else. Once this
+      // `unselectedSeries`. However, we also need to make sure all top level dashboard filters are propagated
+      // to the widget legend selection state so it doesn't wipe out previous filters.
+      //  Don't bother comparing anything else besides these top level filters. Once this
       // component is a functional component, we'll move the selection state
       // into a hook, and make sure it doesn't re-render too much.
       prevProps.location.query.unselectedSeries !==
         this.props.location.query.unselectedSeries ||
+      prevProps.location.query.environment !== this.props.location.query.environment ||
+      prevProps.location.query.project !== this.props.location.query.project ||
+      prevProps.location.query.statsPeriod !== this.props.location.query.statsPeriod ||
+      prevProps.location.query.start !== this.props.location.query.start ||
+      prevProps.location.query.end !== this.props.location.query.end ||
+      prevProps.location.query.interval !== this.props.location.query.interval ||
+      prevProps.location.query.release !== this.props.location.query.release ||
+      prevProps.location.query.globalFilter !== this.props.location.query.globalFilter ||
       prevProps.navigate !== this.props.navigate ||
       prevProps.dashboard !== this.props.dashboard
     ) {

@@ -19,6 +19,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -30,6 +31,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
@@ -641,6 +643,18 @@ class Fixtures:
         """Create an integration and add an organization."""
         return Factories.create_integration(organization, external_id, oi_params, **kwargs)
 
+    def create_organization_contributor(
+        self,
+        organization: Organization,
+        integration: Integration | RpcIntegration,
+        external_identifier: str,
+        **kwargs: Any,
+    ) -> OrganizationContributors:
+        """Create an OrganizationContributors row, deriving provider/hostname from the integration."""
+        return Factories.create_organization_contributor(
+            organization, integration, external_identifier, **kwargs
+        )
+
     def create_provider_integration(self, **integration_params: Any) -> Integration:
         """Create an integration tied to a provider but no particular organization."""
         return Factories.create_provider_integration(**integration_params)
@@ -708,6 +722,9 @@ class Fixtures:
 
     def create_dashboard(self, *args, **kwargs):
         return Factories.create_dashboard(*args, **kwargs)
+
+    def create_dashboard_favorite_user(self, *args, **kwargs):
+        return Factories.create_dashboard_favorite_user(*args, **kwargs)
 
     def create_dashboard_widget(self, *args, **kwargs):
         return Factories.create_dashboard_widget(*args, **kwargs)
@@ -1245,6 +1262,9 @@ class Fixtures:
 
     def create_seer_agent_run(self, run, **kwargs):
         return Factories.create_seer_agent_run(run=run, **kwargs)
+
+    def create_seer_run_coding_agent_handoff(self, seer_run, **kwargs):
+        return Factories.create_seer_run_coding_agent_handoff(seer_run=seer_run, **kwargs)
 
     def create_seer_run_pull_request(self, run, pull_request, **kwargs):
         return Factories.create_seer_run_pull_request(run=run, pull_request=pull_request, **kwargs)

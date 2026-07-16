@@ -252,6 +252,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
 )
+register(
+    "auth.email-verification-at-signup.force-in-experiment",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Settings
 register(
@@ -632,6 +638,16 @@ register(
 register(
     "pr_metrics.emit_cooldown_seconds",
     default=3600,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Cutover switch for the reduced per-PR activity document. When on, PR activity is
+# folded into a single PullRequestActivityLog JSON document at webhook time instead
+# of one PullRequestActivity row per event; routing is per-PR (a PR stays on
+# whichever store it started on). Flip this ON only AFTER the code is fully
+# deployed, so a mixed fleet never splits one PR's writes across both stores.
+register(
+    "pr_metrics.activity_document.enabled",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3846,6 +3862,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rolls out FutureTrackingProducer as the replays eap_items producer
+register(
+    "tasks.producer.replays-eap-items.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rolls out the new TaskProducer to processing_errors tasks
 register(
     "tasks.producer.processing-errors.rollout",
@@ -3908,5 +3932,13 @@ register(
     "issues.derived.project-max-tasks",
     default=1000,
     type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Allows GroupActionLogEntries to be written from Activity creation.
+register(
+    "group_action_log.activity.double-write",
+    default=False,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
