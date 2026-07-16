@@ -118,7 +118,7 @@ export function AutofixRepositoriesItem({
         style={isExpanded ? {borderBottom: 'none'} : {}}
       >
         <RowButton
-          icon={<IconChevron direction={isExpanded ? 'up' : 'down'} />}
+          icon={<IconChevron direction={isExpanded ? 'down' : 'right'} />}
           onClick={() => setIsExpanded(!isExpanded)}
           aria-label={isExpanded ? t('Collapse') : t('Expand')}
           size="zero"
