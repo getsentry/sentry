@@ -85,9 +85,12 @@ class PrCloseMetricsEvent(analytics.Event):
     autofix_referrers: list[str] = field(default_factory=list)
     # The terminal verdict, one of ``PullRequestVerdict``: the deterministic
     # outcome (``merged_unchanged`` / ``closed_unmerged``) on the no-judge path, or
-    # the Seer judge's verdict on the judge path. Claimed before emit on both paths
-    # (the claim gates emission), so every emitted row carries a verdict — the
-    # ``| None`` is only the column's unset default, not an expected emitted value.
+    # the Seer judge's verdict on the judge path. Claimed before emit on both
+    # paths (the claim gates emission), so an emitted row almost always carries
+    # a verdict. The one exception is the ``JUDGE_IN_PROGRESS`` reaper
+    # (``reap_stuck_judge_verdicts``): a stuck row with no reliable local signal
+    # (activity tracking was off) still emits, but with an explicit null verdict
+    # rather than being dropped from the table entirely.
     verdict: str | None = None
     # Close-reason labels behind the verdict (e.g. out_of_scope_or_unwanted) — the
     # "why", a vocabulary shared across judges, not specific to any one. Mostly

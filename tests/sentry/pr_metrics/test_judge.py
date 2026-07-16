@@ -19,7 +19,7 @@ from sentry.models.pullrequest import (
 from sentry.pr_metrics.attribution import record_attribution_signal
 from sentry.pr_metrics.judge import (
     _MAX_FORWARDED_CHECK_ROWS,
-    _settle_stuck_judge_claim,
+    _reconcile_stuck_judge_claim,
     forward_pr_to_seer_judge,
     reap_stuck_judge_verdicts,
     update_pr_metrics,
@@ -29,6 +29,7 @@ from sentry.seer.sentry_data_models import (
     UpdatePrMetricsSuccessResponse,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.analytics import get_event_count
 from sentry.testutils.silo import cell_silo_test
 
@@ -444,6 +445,7 @@ class UpdatePrMetricsTest(TestCase):
 
 
 @cell_silo_test
+@with_feature("organizations:pr-metrics-activity")
 class ReapStuckJudgeVerdictsTest(TestCase):
     def setUp(self) -> None:
         self.repo = self.create_repo(
@@ -510,6 +512,21 @@ class ReapStuckJudgeVerdictsTest(TestCase):
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
 
     @patch("sentry.analytics.record")
+    def test_settles_to_null_verdict_when_indeterminate(self, mock_record: Any) -> None:
+        # Activity tracking off for this org: select_verdict can't tell whether
+        # there were commits after open, so select_fallback_verdict would risk
+        # misreading "untracked" as "no commits after open". The row settles to
+        # an explicit null verdict instead of a guessed one.
+        self._stick(closed_at=datetime.now(timezone.utc) - timedelta(hours=5))
+
+        with self.feature({"organizations:pr-metrics-activity": False}):
+            reap_stuck_judge_verdicts()
+
+        assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
+        assert _last_row(mock_record).verdict is None
+
+    @patch("sentry.analytics.record")
     def test_leaves_recently_stuck_pr_alone(self, mock_record: Any) -> None:
         # Within JUDGE_REAP_STUCK_AFTER: may still be legitimately in flight to Seer.
         self._stick(closed_at=datetime.now(timezone.utc) - timedelta(hours=1))
@@ -566,7 +583,7 @@ class ReapStuckJudgeVerdictsTest(TestCase):
             pull_request=self.pull_request, verdict=PullRequestVerdict.MERGED_UNCHANGED
         )
 
-        _settle_stuck_judge_claim(self.pull_request)
+        _reconcile_stuck_judge_claim(self.pull_request)
 
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
             "merged_unchanged"
