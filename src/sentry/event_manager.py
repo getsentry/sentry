@@ -1717,13 +1717,20 @@ def _handle_regression(
     date = max(event.datetime, group.last_seen)
     is_regression = bool(
         Group.objects.filter(
-            id=group.id,
-            # ensure we can't update things if the status has been set to
-            # ignored
-            status__in=[GroupStatus.RESOLVED, GroupStatus.UNRESOLVED],
-            # Treat active_at as an optimistic lock so a worker holding a stale
-            # cached group cannot record the same regression again.
-            active_at=group.active_at,
+            Q(id=group.id)
+            & (
+                # The first worker changes status, so stale workers no longer match.
+                Q(status=GroupStatus.RESOLVED)
+                # Group.get_status() treats inactive UNRESOLVED rows as resolved before
+                # sentry.tasks.auto_resolve_issues.auto_resolve_project_issues() persists
+                # RESOLVED. Only claim an unchanged snapshot for a newer event.
+                | Q(
+                    status=GroupStatus.UNRESOLVED,
+                    resolved_at__isnull=True,
+                    last_seen__lte=group.last_seen,
+                    last_seen__lt=date,
+                )
+            )
         )
         .exclude(
             # add to the regression window to account for races here
@@ -1897,9 +1904,6 @@ def _process_existing_aggregate(
 ) -> bool:
     last_seen = max(event.datetime, group.last_seen)
     updated_group_values: dict[str, Any] = {"last_seen": last_seen}
-    # Unclear why this is necessary, given that it's also in `updated_group_values`, but removing
-    # it causes unrelated tests to fail. Hard to say if that's the tests or the removal, though.
-    group.last_seen = updated_group_values["last_seen"]
 
     if (
         event.search_message
@@ -1919,7 +1923,9 @@ def _process_existing_aggregate(
     if group.first_seen > event.datetime:
         updated_group_values["first_seen"] = event.datetime
 
+    # _handle_regression uses the loaded last_seen as an optimistic lock.
     is_regression = _handle_regression(group, event, release, incoming_group_values)
+    group.last_seen = last_seen
 
     existing_data = group.data
     existing_metadata = group.data.get("metadata", {})

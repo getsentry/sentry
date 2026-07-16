@@ -712,54 +712,77 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert send_robust.called
 
     def test_cached_resolved_group_only_records_one_regression(self) -> None:
-        """A worker holding a stale RESOLVED group must not repeat its regression activity."""
+        """A stale RESOLVED group must not repeat its regression activity."""
         initial_timestamp = before_now(minutes=5)
-        first_regression_timestamp = initial_timestamp + timedelta(minutes=1)
-        second_regression_timestamp = first_regression_timestamp + timedelta(seconds=6)
+        regression_timestamp = initial_timestamp + timedelta(minutes=1)
 
         event = EventManager(
-            make_event(
-                event_id="a" * 32,
-                checksum="a" * 32,
-                timestamp=initial_timestamp.isoformat(),
-            )
+            make_event(checksum="a" * 32, timestamp=initial_timestamp.isoformat())
         ).save(self.project.id)
 
         assert event.group_id is not None
         group = Group.objects.get(id=event.group_id)
-        group.status = GroupStatus.RESOLVED
-        group.substatus = None
-        group.save(update_fields=["status", "substatus"])
-
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
         stale_group = Group.objects.get_from_cache(id=group.id)
         assert stale_group.status == GroupStatus.RESOLVED
 
-        first_regression = EventManager(
-            make_event(
-                event_id="b" * 32,
-                checksum="a" * 32,
-                timestamp=first_regression_timestamp.isoformat(),
-            )
+        regression = EventManager(
+            make_event(checksum="a" * 32, timestamp=regression_timestamp.isoformat())
         ).save(self.project.id)
-        assert first_regression.group_id == group.id
-        assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
-        assert Group.objects.get_from_cache(id=group.id).status == GroupStatus.UNRESOLVED
+        assert regression.group_id == stale_group.id
 
         second_manager = EventManager(
             make_event(
-                event_id="c" * 32,
                 checksum="a" * 32,
-                timestamp=second_regression_timestamp.isoformat(),
+                timestamp=(regression_timestamp + timedelta(seconds=6)).isoformat(),
             )
         )
         second_manager.normalize(project_id=self.project.id)
         second_event = _get_event_instance(second_manager.get_data(), self.project.id)
 
         assert not _handle_regression(stale_group, second_event, release=None)
-
         assert (
             Activity.objects.filter(
-                group_id=group.id,
+                group_id=stale_group.id,
+                type=ActivityType.SET_REGRESSION.value,
+            ).count()
+            == 1
+        )
+
+    def test_cached_inactive_group_only_records_one_regression(self) -> None:
+        """An inactive UNRESOLVED row must only be claimed once before RESOLVED is stored."""
+        self.project.update_option("sentry:resolve_age", 1)
+        regression_timestamp = timezone.now()
+        event = EventManager(
+            make_event(
+                checksum="a" * 32,
+                timestamp=(regression_timestamp - timedelta(hours=2)).isoformat(),
+            )
+        ).save(self.project.id)
+
+        assert event.group_id is not None
+        stale_group = Group.objects.get_from_cache(id=event.group_id)
+        assert stale_group.status == GroupStatus.UNRESOLVED
+        assert stale_group.is_resolved()
+
+        regression = EventManager(
+            make_event(checksum="a" * 32, timestamp=regression_timestamp.isoformat())
+        ).save(self.project.id)
+        assert regression.group_id == stale_group.id
+
+        second_manager = EventManager(
+            make_event(
+                checksum="a" * 32,
+                timestamp=(regression_timestamp + timedelta(seconds=6)).isoformat(),
+            )
+        )
+        second_manager.normalize(project_id=self.project.id)
+        second_event = _get_event_instance(second_manager.get_data(), self.project.id)
+
+        assert not _handle_regression(stale_group, second_event, release=None)
+        assert (
+            Activity.objects.filter(
+                group_id=stale_group.id,
                 type=ActivityType.SET_REGRESSION.value,
             ).count()
             == 1
