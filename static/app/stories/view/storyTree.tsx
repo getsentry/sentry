@@ -7,7 +7,7 @@ import {Heading} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
 import type {MDXFrontmatter} from 'sentry/stories/frontmatter';
-import {storyFrontmatterIndex} from 'sentry/stories/storyFrontmatterIndex';
+import {storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
 import {useStoryParams} from 'sentry/stories/view';
 import {fzf} from 'sentry/utils/search/fzf';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
