@@ -5,7 +5,7 @@ from typing import Any
 
 from django.db import router, transaction
 
-from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -61,9 +61,7 @@ def record_ground_truth(
     """Record who the issue actually belonged to on the run mirror, then score.
 
     No-op if no run was dispatched for the group, or the outcome carries no useful
-    signal: a Seer AI-step start, an automatic resolution with no acting user, or our
-    own auto-assignment (tagged with the ``SEER_SUGGESTED`` integration by
-    ProjectOwnership.handle_auto_assignment, which would score us against ourselves).
+    signal: a Seer AI-step start or an automatic resolution with no acting user.
     For an assignment we mirror the current assignee (user and/or team). For a
     user-driven resolution we record the resolver as the assumed assignee only when no
     explicit assignee has been recorded -- an assignment is better truth.
@@ -74,11 +72,6 @@ def record_ground_truth(
 
     updates: dict[str, Any] = {}
     if activity_type == ActivityType.ASSIGNED:
-        if (
-            activity is not None
-            and (activity.data or {}).get("integration") == ActivityIntegration.SEER_SUGGESTED.value
-        ):
-            return
         assignee = GroupAssignee.objects.filter(group=group).first()
         if assignee is None:
             return
