@@ -5,9 +5,38 @@ import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {
   formatQueryToNaturalLanguage,
   generateQueryTokensString,
+  getCrossEventFilterQuery,
   getExpandedProjectIds,
   resolveSeerProjectSelection,
 } from './utils';
+
+describe('getCrossEventFilterQuery', () => {
+  it.each(['spans', 'logs'] as const)('returns the %s query unchanged', type => {
+    expect(getCrossEventFilterQuery({type, query: 'severity:error'})).toBe(
+      'severity:error'
+    );
+  });
+
+  it('prepends the metric name to a metrics query', () => {
+    expect(
+      getCrossEventFilterQuery({
+        type: 'metrics',
+        metric: {name: 'foo.duration', type: 'distribution'},
+        query: 'value:>100',
+      })
+    ).toBe('metric.name:foo.duration value:>100');
+  });
+
+  it('returns the metric name when the metrics query is empty', () => {
+    expect(
+      getCrossEventFilterQuery({
+        type: 'metrics',
+        metric: {name: 'foo.duration', type: 'distribution'},
+        query: '',
+      })
+    ).toBe('metric.name:foo.duration');
+  });
+});
 
 describe('getExpandedProjectIds', () => {
   it.each([null, undefined, []])('returns undefined when projects is %s', input => {

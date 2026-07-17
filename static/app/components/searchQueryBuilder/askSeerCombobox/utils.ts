@@ -19,6 +19,8 @@ import {
 import type {Project} from 'sentry/types/project';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 
 function extractErrorReason(err: Error): string {
   if (err instanceof RequestError) {
@@ -194,6 +196,19 @@ export function resolveSeerProjectSelection(
     projectIds: expandedProjectIds?.length ? expandedProjectIds : undefined,
     query,
   };
+}
+
+export function getCrossEventFilterQuery(crossEvent: CrossEvent): string {
+  if (crossEvent.type !== 'metrics') {
+    return crossEvent.query;
+  }
+
+  return [
+    `${TraceMetricKnownFieldKey.METRIC_NAME}:${crossEvent.metric.name}`,
+    crossEvent.query,
+  ]
+    .filter(Boolean)
+    .join(' ');
 }
 
 const NEGATED_WILDCARD_OPERATOR_LABELS: Partial<Record<WildcardOperator, string>> = {

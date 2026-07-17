@@ -6,6 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
   formatDateRange,
+  getCrossEventFilterQuery,
   resolveSeerProjectSelection,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
@@ -13,7 +14,6 @@ import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/forma
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {t} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
-import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
 const MAX_PROJECT_CHIPS = 3;
 
@@ -174,15 +174,7 @@ export function OldQueryTokens({
       {crossEvents?.length ? (
         <CrossEventSection>
           {crossEvents.map((crossEvent, idx) => {
-            const filterQuery =
-              crossEvent.type === 'metrics'
-                ? [
-                    `${TraceMetricKnownFieldKey.METRIC_NAME}:${crossEvent.metric.name}`,
-                    crossEvent.query,
-                  ]
-                    .filter(Boolean)
-                    .join(' ')
-                : crossEvent.query;
+            const filterQuery = getCrossEventFilterQuery(crossEvent);
             const parsedCrossEvent = filterQuery
               ? parseQueryBuilderValue(filterQuery, getFieldDefinition)
               : null;
