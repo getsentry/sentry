@@ -4,7 +4,6 @@ import pytest
 
 from sentry.lang.native.utils import (
     Backoff,
-    _uid_from_nvdbg_filename,
     get_os_from_event,
     is_gpu_crash_event,
     is_minidump_event,
@@ -43,28 +42,6 @@ def test_is_minidump() -> None:
     assert not is_minidump_event({"exception": None})
 
 
-@pytest.mark.parametrize(
-    "filename,expected",
-    [
-        # Production SDKs ship the full 32-hex uid.
-        ("59339c1ea893474000000210749de540.nvdbg", "59339c1ea893474000000210749de540"),
-        # The NVIDIA D3D12HelloNsightAftermath sample splits id[0]/id[1] with a
-        # dash — the two 16-hex halves concatenate back to the 32-hex uid.
-        (
-            "shader-59339c1ea8934740-00000210749de540.nvdbg",
-            "59339c1ea893474000000210749de540",
-        ),
-        # Uppercase is normalized to lowercase to match the decoder's key.
-        ("ABCDEF0123456789ABCDEF0123456789.nvdbg", "abcdef0123456789abcdef0123456789"),
-        # No parseable uid => None (skipped by the finders).
-        ("garbage.txt", None),
-        ("shader-nope.nvdbg", None),
-    ],
-)
-def test_uid_from_nvdbg_filename(filename: str, expected: str | None) -> None:
-    assert _uid_from_nvdbg_filename(filename) == expected
-
-
 class _Att:
     def __init__(self, type: str, name: str = "") -> None:
         self.type = type
@@ -78,10 +55,10 @@ class _Att:
         ([_Att("event.nv_gpudmp", "d.nv-gpudmp")], True),
         # A combined upload (dump + minidump) is the CPU crash → leave it to symbolicator.
         ([_Att("event.nv_gpudmp", "d.nv-gpudmp"), _Att("event.minidump", "m")], False),
-        # Same for an apple crash report (dump matched via the filename fallback).
-        ([_Att("event.attachment", "d.nv-gpudmp"), _Att("event.applecrashreport", "a")], False),
-        # No GPU dump at all.
-        ([_Att("event.attachment", "log.txt")], False),
+        # Same when the dump rides an apple crash report event.
+        ([_Att("event.nv_gpudmp", "d.nv-gpudmp"), _Att("event.applecrashreport", "a")], False),
+        # An untyped `event.attachment` is not a GPU dump (no filename fallback).
+        ([_Att("event.attachment", "d.nv-gpudmp")], False),
     ],
 )
 def test_is_gpu_crash_event(attachments: list[_Att], expected: bool) -> None:

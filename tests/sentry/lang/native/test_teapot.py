@@ -1,10 +1,10 @@
 """
-Unit tests for the teapot client + GPU error-event construction.
+Unit tests for the teapot client + GPU event enrichment.
 
 Covers:
 * `TeapotClient.symbolicate` — both multipart and JSON+storage_url paths
 * `submit_to_teapot` wrapper — best-effort error swallowing
-* `_build_gpu_error_event` / `emit_gpu_crash_event` — synthetic error event shape
+* `apply_gpu_crash_symbolication` — applying teapot's decode to the event
 * `_normalize_gpu_frames` — frame normalization edge cases
 """
 
@@ -154,7 +154,9 @@ def test_apply_gpu_crash_symbolication_shape() -> None:
     assert data["fingerprint"] == ["gpu", "shader_hang", "abc123"]
     # Relay-owned fields are preserved, not overwritten.
     assert data["contexts"]["trace"]["trace_id"] == "a" * 32
-    assert data["tags"]["cpu_event_id"] == "cpu-1"
+    # tags are the pipeline's list-of-pairs form; the Relay-set tag survives.
+    tags = dict(data["tags"])
+    assert tags["cpu_event_id"] == "cpu-1"
     assert data["release"] == "game@1.2.3"
     # teapot's decode is applied.
     assert data["level"] == "fatal"
@@ -163,8 +165,8 @@ def test_apply_gpu_crash_symbolication_shape() -> None:
     assert exc["mechanism"] == {"type": "gpu_crash", "handled": False}
     assert exc["stacktrace"]["frames"][0]["function"] == "Vertex"
     assert data["contexts"]["gpu_crash"]["fault_category"] == "shader_hang"
-    assert data["tags"]["gpu.fault_category"] == "shader_hang"
-    assert data["tags"]["gpu.shader_hash"] == "abc123"
+    assert tags["gpu.fault_category"] == "shader_hang"
+    assert tags["gpu.shader_hash"] == "abc123"
 
 
 def test_apply_fingerprint_fallback() -> None:
@@ -204,7 +206,7 @@ def test_apply_survives_malformed_teapot_response(response: dict[str, Any]) -> N
 
     assert out is data
     assert "shader_hash" not in ctx
-    assert "gpu.shader_hash" not in data["tags"]
+    assert "gpu.shader_hash" not in dict(data["tags"])
     # len()/list() over the scalar list fields yielded empties, not a TypeError.
     assert ctx["missing_dif_count"] == 0
     assert isinstance(data["fingerprint"], list)
@@ -259,7 +261,8 @@ def test_client_multipart_success() -> None:
 
 
 def test_client_multipart_carries_shader_debug_attachments() -> None:
-    """Each .nvdbg attachment becomes its own `nv_shader_debug.<uid>` field."""
+    """Each .nvdbg is sent as a repeated `nv_shader_debug` field whose part
+    filename carries the uid teapot decodes it by."""
 
     project = _FakeProject()
     dump = _FakeAttachment(b"dump-bytes")
@@ -279,21 +282,15 @@ def test_client_multipart_carries_shader_debug_attachments() -> None:
         mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
     ):
         mock_post.return_value = _FakeResponse(200, _completed_response())
-        TeapotClient(project, "abc").symbolicate(
-            dump,
-            [
-                ("a" * 32, nvdbg1),
-                ("b" * 32, nvdbg2),
-            ],
-        )
+        TeapotClient(project, "abc").symbolicate(dump, [nvdbg1, nvdbg2])
 
     files = mock_post.call_args.kwargs["files"]
-    # `files` is a list-of-tuples (the only way to repeat field names),
-    # so map by the first element for ergonomic assertions.
-    by_field = {field_name: payload for field_name, payload in files}
-    assert "upload_file" in by_field
-    assert by_field[f"nv_shader_debug.{'a' * 32}"][1] == b"nvdbg-bytes-1"
-    assert by_field[f"nv_shader_debug.{'b' * 32}"][1] == b"nvdbg-bytes-2"
+    # `files` is a list-of-tuples so the `nv_shader_debug` field can repeat; each
+    # entry is (field_name, (filename, bytes, content_type)).
+    assert any(field == "upload_file" for field, _ in files)
+    shaders = {payload[0]: payload[1] for field, payload in files if field == "nv_shader_debug"}
+    assert shaders["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.nvdbg"] == b"nvdbg-bytes-1"
+    assert shaders["bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.nvdbg"] == b"nvdbg-bytes-2"
 
 
 def test_client_retries_on_503() -> None:
@@ -456,7 +453,7 @@ def test_client_uses_json_path_when_all_attachments_stored() -> None:
     ):
         mock_post.return_value = _FakeResponse(200, _completed_response())
 
-        TeapotClient(project, "abc").symbolicate(dump, [("c" * 32, nvdbg)])
+        TeapotClient(project, "abc").symbolicate(dump, [nvdbg])
 
     # JSON path: `files` empty, Content-Type set, body is JSON-encoded.
     kwargs = mock_post.call_args.kwargs
@@ -469,7 +466,7 @@ def test_client_uses_json_path_when_all_attachments_stored() -> None:
     assert body["dump"]["storage_url"] == "http://objectstore/dump-obj-id"
     assert body["dump"]["storage_token"] == "token-dump"
     assert len(body["shader_debug_info"]) == 1
-    assert body["shader_debug_info"][0]["uid"] == "c" * 32
+    assert body["shader_debug_info"][0]["filename"] == "cafebabecafebabecafebabecafebabe.nvdbg"
     assert body["shader_debug_info"][0]["storage_url"] == "http://objectstore/nvdbg-obj-id"
     assert body["shader_debug_info"][0]["storage_token"] == "token-nvdbg"
 
@@ -493,7 +490,7 @@ def test_client_falls_back_to_multipart_when_any_attachment_lacks_stored_id() ->
         mock.patch("sentry.lang.native.teapot.get_attachments_session") as mock_session_fn,
     ):
         mock_post.return_value = _FakeResponse(200, _completed_response())
-        TeapotClient(project, "abc").symbolicate(dump, [("c" * 32, nvdbg)])
+        TeapotClient(project, "abc").symbolicate(dump, [nvdbg])
 
     # Objectstore session is never opened because the mixed-state check
     # routes to multipart immediately.
@@ -502,7 +499,9 @@ def test_client_falls_back_to_multipart_when_any_attachment_lacks_stored_id() ->
     files = mock_post.call_args.kwargs["files"]
     by_field = {field_name: payload for field_name, payload in files}
     assert by_field["upload_file"][1] == b"dump-bytes"
-    assert by_field[f"nv_shader_debug.{'c' * 32}"][1] == b"nvdbg-bytes"
+    shader = next(payload for field, payload in files if field == "nv_shader_debug")
+    assert shader[0] == "cafebabecafebabecafebabecafebabe.nvdbg"
+    assert shader[1] == b"nvdbg-bytes"
 
 
 # ---------------------------------------------------------------------------
