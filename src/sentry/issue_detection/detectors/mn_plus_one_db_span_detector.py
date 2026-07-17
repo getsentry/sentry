@@ -4,6 +4,7 @@ import hashlib
 from abc import ABC, abstractmethod
 from collections import deque
 from collections.abc import Sequence
+from random import randint
 from typing import Any
 
 from sentry.issue_detection.base import DetectorType, PerformanceDetector
@@ -20,6 +21,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.utils import metrics
+from sentry.utils.sdk import sdk_logger
 
 
 class MNPlusOneState(ABC):
@@ -253,6 +255,27 @@ class ContinuingMNPlusOne(MNPlusOneState):
 
         db_span_ids = [span["span_id"] for span in offender_db_spans]
         offender_span_ids = [span["span_id"] for span in offender_spans]
+
+        # TODO: Temporary debugging log
+        if not db_span_description and randint(1, 100) == 1:
+            sdk_logger.info(
+                "db_span_missing_description",
+                attributes={
+                    "db_spans": [
+                        {
+                            "id": span["span_id"],
+                            "op": span["op"],
+                            "db": (span.get("data") or {}).get("db.system"),
+                        }
+                        for span in offender_db_spans
+                    ],
+                    "offender_span_ids": offender_span_ids,
+                    "trace_id": db_span.get("trace_id"),
+                    "project_id": db_span.get("project_id"),
+                    "org_id": db_span.get("organization_id"),
+                    "sdk": (db_span.get("data") or {}).get("sdk.name"),
+                },
+            )
 
         return PerformanceProblem(
             fingerprint=self._fingerprint(db_span["hash"], common_parent_span),
