@@ -181,7 +181,7 @@ describe('AskSeerComboBox', () => {
     expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
   });
 
-  it('regenerates the displayed mutation results', async () => {
+  it('regenerates results when feedback is unavailable', async () => {
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     const queryRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-explorer-ai/query/',
@@ -201,7 +201,7 @@ describe('AskSeerComboBox', () => {
           applySeerSearchQuery={() => {}}
         />
       </SearchQueryBuilderProvider>,
-      {organization: reworkedOrganization, additionalWrapper: FeedbackProvider}
+      {organization: reworkedOrganization}
     );
 
     await userEvent.type(
@@ -210,6 +210,7 @@ describe('AskSeerComboBox', () => {
     );
     await userEvent.click(await screen.findByRole('button', {name: 'Generate again'}));
 
+    expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
     await waitFor(() => expect(queryRequest).toHaveBeenCalledTimes(2));
     expect(trackAnalyticsSpy).toHaveBeenCalledWith('ai_query.regenerated', {
       organization: reworkedOrganization,

@@ -45,7 +45,7 @@ function InstallFeedbackIntegration() {
   return null;
 }
 
-function renderPollingComboBox(features: string[]) {
+function renderPollingComboBox(features: string[], withFeedback = true) {
   const {organization} = initializeOrg({
     organization: {features, hideAiFeatures: false},
   });
@@ -59,7 +59,7 @@ function renderPollingComboBox(features: string[]) {
         applySeerSearchQuery={() => {}}
       />
     </SearchQueryBuilderProvider>,
-    {organization, additionalWrapper: FeedbackProvider}
+    withFeedback ? {organization, additionalWrapper: FeedbackProvider} : {organization}
   );
 
   return {organization};
@@ -108,7 +108,7 @@ describe('AskSeerPollingComboBox results', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('shows the reworked footer for results and starts a new run when regenerated', async () => {
+  it('regenerates results when feedback is unavailable', async () => {
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     const startRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/search-agent/start/',
@@ -126,14 +126,15 @@ describe('AskSeerPollingComboBox results', () => {
         },
       },
     });
-    const {organization} = renderPollingComboBox([
-      'gen-ai-features',
-      'gen-ai-ask-seer-ux-rework',
-    ]);
+    const {organization} = renderPollingComboBox(
+      ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+      false
+    );
 
     await submitQuery();
     await userEvent.click(await screen.findByRole('button', {name: 'Generate again'}));
 
+    expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
     expect(startRequest).toHaveBeenCalledTimes(2);
     expect(trackAnalyticsSpy).toHaveBeenCalledWith('ai_query.regenerated', {
       organization,

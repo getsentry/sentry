@@ -633,7 +633,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             state={state}
             onMouseLeave={onMouseLeave}
           />
-          {openForm && (!hasAskSeerUxRework || isDisplayingResults) ? (
+          {!hasAskSeerUxRework || isDisplayingResults ? (
             <Flex
               justify={hasAskSeerUxRework ? 'between' : 'end'}
               borderTop="primary"
@@ -667,21 +667,25 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
                   {t('Generate again')}
                 </Button>
               ) : null}
-              <Button
-                size={hasAskSeerUxRework ? 'zero' : 'xs'}
-                icon={<IconMegaphone />}
-                onClick={() =>
-                  openForm({
-                    messagePlaceholder: t('How can we make Seer search better for you?'),
-                    tags: {
-                      ['feedback.source']: `ai_query.${analyticsArea}`,
-                      ['feedback.owner']: 'ml-ai',
-                    },
-                  })
-                }
-              >
-                {t('Give Feedback')}
-              </Button>
+              {openForm ? (
+                <Button
+                  size={hasAskSeerUxRework ? 'zero' : 'xs'}
+                  icon={<IconMegaphone />}
+                  onClick={() =>
+                    openForm({
+                      messagePlaceholder: t(
+                        'How can we make Seer search better for you?'
+                      ),
+                      tags: {
+                        ['feedback.source']: `ai_query.${analyticsArea}`,
+                        ['feedback.owner']: 'ml-ai',
+                      },
+                    })
+                  }
+                >
+                  {t('Give Feedback')}
+                </Button>
+              ) : null}
             </Flex>
           ) : null}
         </AskSeerSearchPopover>
