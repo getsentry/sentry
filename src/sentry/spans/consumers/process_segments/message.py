@@ -92,6 +92,9 @@ def _process_segment(
     if segment_span is None:
         return spans
 
+    if any(attribute_value(s, ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID) for s in spans):
+        metrics.incr("spans.consumers.process_segments.gen_ai_conversation")
+
     try:
         with metrics.timer("spans.consumers.process_segments.get_project"):
             project = Project.objects.get_from_cache(id=segment_span["project_id"])
