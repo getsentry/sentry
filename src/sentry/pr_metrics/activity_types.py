@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 # Known values: "Bot", "User", "Organization".
 # Typed as str to remain forward-compatible with enterprise account types
@@ -49,6 +49,20 @@ class SynchronizePayload(BaseActivityPayload, SenderMixin):
     action: str = "synchronize"
     before_sha: str | None = None  # head SHA before the push
     after_sha: str | None = None  # head SHA after the push
+
+
+@dataclass
+class ReopenedPayload(BaseActivityPayload, SenderMixin):
+    action: str = "reopened"
+
+
+@dataclass
+class EditedPayload(BaseActivityPayload, SenderMixin):
+    action: str = "edited"
+    # Names of the changed PR properties (the keys of the webhook ``changes``
+    # object — e.g. ``["base", "title"]``), never their values: ``changes`` carries
+    # the OLD title/body text, which the structural-only posture excludes.
+    changed_fields: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -173,7 +187,7 @@ class ReviewDismissedPayload(BaseActivityPayload, SenderMixin):
 
 
 @dataclass
-class AutoMergeEnabledPayload(BaseActivityPayload):
+class AutoMergeEnabledPayload(BaseActivityPayload, SenderMixin):
     action: str = "auto_merge_enabled"
     # "merge", "squash", or "rebase" — a bounded enum; the auto-merge commit
     # title/message are deliberately excluded.
@@ -181,17 +195,17 @@ class AutoMergeEnabledPayload(BaseActivityPayload):
 
 
 @dataclass
-class AutoMergeDisabledPayload(BaseActivityPayload):
+class AutoMergeDisabledPayload(BaseActivityPayload, SenderMixin):
     action: str = "auto_merge_disabled"
 
 
 @dataclass
-class EnqueuedPayload(BaseActivityPayload):
+class EnqueuedPayload(BaseActivityPayload, SenderMixin):
     action: str = "enqueued"
 
 
 @dataclass
-class DequeuedPayload(BaseActivityPayload):
+class DequeuedPayload(BaseActivityPayload, SenderMixin):
     action: str = "dequeued"
     # Why GitHub removed the PR from the merge queue (e.g. "MERGE", "CI_FAILURE",
     # "MERGE_CONFLICT", "MANUAL"). A bounded enum carrying the merge-intent signal.

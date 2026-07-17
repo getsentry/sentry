@@ -1103,6 +1103,7 @@ class PullRequestEventWebhook(GitHubWebhook):
         # Activity must be written before emission so the verdict check in
         # handle_activity sees no verdict yet on the open/sync events, and so the
         # SYNCHRONIZED rows are present when select_verdict runs on the close event.
+        # This ordering is pinned by test_pull_request_processor_order_contract.
         pr_metrics_handle_activity,
         pr_metrics_handle_emission,
     )
