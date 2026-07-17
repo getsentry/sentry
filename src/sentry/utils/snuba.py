@@ -29,7 +29,6 @@ from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
 from urllib3.util.request import ACCEPT_ENCODING
 
-from sentry import options
 from sentry.api.helpers.error_upsampling import (
     UPSAMPLED_ERROR_AGGREGATION,
     are_any_projects_error_upsampled,
@@ -605,14 +604,18 @@ def _maybe_compress_snuba_request_body(
 ) -> str | bytes:
     """Optionally gzip a request body destined for Snuba, setting Content-Encoding.
 
-    Gated behind the ``snuba.request-body-compression`` option, which is OFF by
+    Gated behind the ``SENTRY_SNUBA_COMPRESS_REQUESTS`` setting, which is OFF by
     default. Unlike response (Accept-Encoding) compression, this does NOT degrade
     gracefully: it only works if Snuba decompresses request bodies. If it does
     not, Snuba receives gzip bytes where it expects JSON/protobuf and every query
     fails -- so keep this disabled until Snuba is confirmed to honor
     ``Content-Encoding: gzip`` on incoming requests.
+
+    This is gated by a Django setting rather than an option on purpose: this code
+    runs in the (thread-pooled) Snuba query path, which must stay DB-free, and an
+    options-store lookup can hit the database.
     """
-    if not options.get("snuba.request-body-compression"):
+    if not settings.SENTRY_SNUBA_COMPRESS_REQUESTS:
         return body
     raw = body.encode("utf-8") if isinstance(body, str) else body
     if len(raw) < SNUBA_REQUEST_COMPRESSION_MIN_BYTES:

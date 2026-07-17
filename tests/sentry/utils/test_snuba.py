@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from unittest import mock
 
 import pytest
+from django.test import override_settings
 from django.utils import timezone
 from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
 from urllib3 import HTTPConnectionPool
@@ -16,7 +17,6 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.snuba import (
     ROUND_UP,
@@ -786,20 +786,20 @@ def test_snuba_request_headers_advertise_response_compression() -> None:
     assert headers["referer"] == "test_referrer"
 
 
-def test_request_body_not_compressed_when_option_disabled() -> None:
+@override_settings(SENTRY_SNUBA_COMPRESS_REQUESTS=False)
+def test_request_body_not_compressed_when_setting_disabled() -> None:
     headers: dict[str, str] = {}
     body = "x" * (SNUBA_REQUEST_COMPRESSION_MIN_BYTES + 1)
-    with override_options({"snuba.request-body-compression": False}):
-        result = _maybe_compress_snuba_request_body(body, headers)
+    result = _maybe_compress_snuba_request_body(body, headers)
     assert result == body
     assert "content-encoding" not in headers
 
 
-def test_request_body_compressed_when_option_enabled() -> None:
+@override_settings(SENTRY_SNUBA_COMPRESS_REQUESTS=True)
+def test_request_body_compressed_when_setting_enabled() -> None:
     headers: dict[str, str] = {}
     body = json.dumps({"query": "x" * SNUBA_REQUEST_COMPRESSION_MIN_BYTES})
-    with override_options({"snuba.request-body-compression": True}):
-        result = _maybe_compress_snuba_request_body(body, headers)
+    result = _maybe_compress_snuba_request_body(body, headers)
     assert isinstance(result, bytes)
     assert headers["content-encoding"] == "gzip"
     # Snuba must be able to recover the original body.
@@ -808,21 +808,21 @@ def test_request_body_compressed_when_option_enabled() -> None:
     assert len(result) < len(body.encode("utf-8"))
 
 
-def test_request_body_bytes_input_compressed_when_option_enabled() -> None:
+@override_settings(SENTRY_SNUBA_COMPRESS_REQUESTS=True)
+def test_request_body_bytes_input_compressed_when_setting_enabled() -> None:
     headers: dict[str, str] = {}
     body = b"b" * (SNUBA_REQUEST_COMPRESSION_MIN_BYTES + 100)
-    with override_options({"snuba.request-body-compression": True}):
-        result = _maybe_compress_snuba_request_body(body, headers)
+    result = _maybe_compress_snuba_request_body(body, headers)
     assert isinstance(result, bytes)
     assert headers["content-encoding"] == "gzip"
     assert gzip.decompress(result) == body
 
 
+@override_settings(SENTRY_SNUBA_COMPRESS_REQUESTS=True)
 def test_small_request_body_not_compressed_even_when_enabled() -> None:
     # Below the threshold gzip overhead would inflate the payload, so we skip it.
     headers: dict[str, str] = {}
     body = "small body"
-    with override_options({"snuba.request-body-compression": True}):
-        result = _maybe_compress_snuba_request_body(body, headers)
+    result = _maybe_compress_snuba_request_body(body, headers)
     assert result == body
     assert "content-encoding" not in headers

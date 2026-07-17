@@ -1708,6 +1708,13 @@ SENTRY_DEFAULT_MAX_EVENTS_PER_MINUTE = "90%"
 SENTRY_SNUBA = os.environ.get("SNUBA", "http://127.0.0.1:1218")
 SENTRY_SNUBA_TIMEOUT = 30
 SENTRY_SNUBA_CACHE_TTL_SECONDS = 60
+# When True, gzip request bodies sent to Snuba and set Content-Encoding: gzip.
+# Keep this False until Snuba is confirmed to decompress request bodies -- otherwise
+# Snuba receives gzip bytes where it expects JSON/protobuf and queries fail. (Response
+# compression via Accept-Encoding is always on and safe.) This is a Django setting
+# rather than an option because it must be read in the (thread-pooled, DB-free) Snuba
+# query path where an options-store DB lookup is not safe.
+SENTRY_SNUBA_COMPRESS_REQUESTS = False
 
 # Node storage backend
 SENTRY_NODESTORE = "sentry.services.nodestore.django.DjangoNodeStorage"
