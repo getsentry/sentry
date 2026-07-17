@@ -497,6 +497,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:relay-minidump-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the uploading of playstation attachments to the objectstore.
     manager.add("projects:relay-playstation-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables uploading streams to objectstore via multipart uploads.
+    # See <https://getsentry.github.io/objectstore/rust/objectstore_service/multipart/>.
+    manager.add("projects:relay-upload-multipart", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Allows sending additional stack traces with minidumps.
     manager.add("projects:minidump-multi-exception", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
