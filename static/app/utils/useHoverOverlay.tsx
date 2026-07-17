@@ -497,7 +497,9 @@ function useHoverOverlay({
         (skipWrapper || typeof triggerChildren.type === 'string')
       ) {
         const childRef = (triggerChildren.props as any).ref;
-        const mergedRef = childRef ? mergeRefs(childRef, setTriggerElement) : setTriggerElement;
+        const mergedRef = childRef
+          ? mergeRefs(childRef, setTriggerElement)
+          : setTriggerElement;
 
         if (showUnderline) {
           const triggerStyle = {
