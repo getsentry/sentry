@@ -72,24 +72,24 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
             metadata={"group_id": self.group.id},
         )
 
-    @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.get_agent_state_from_pr_id")
     def test_skips_non_completed_action(self, mock_get_state: MagicMock) -> None:
         pr_iteration_from_check_suite_listener(self._event(action="requested"))
         mock_get_state.assert_not_called()
 
-    @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.get_agent_state_from_pr_id")
     def test_skips_uninteresting_conclusion(self, mock_get_state: MagicMock) -> None:
         pr_iteration_from_check_suite_listener(self._event(conclusion="success"))
         mock_get_state.assert_not_called()
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository", return_value=None)
-    @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories", return_value=[])
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.get_agent_state_from_pr_id")
     def test_no_repository(self, mock_get_state: MagicMock, _mock_resolve: MagicMock) -> None:
         pr_iteration_from_check_suite_listener(self._event(self._raw()))
         mock_get_state.assert_not_called()
 
     @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
-    @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.get_agent_state_from_pr_id")
     def test_invalid_payload_captures_and_returns(
         self, mock_get_state: MagicMock, mock_capture: MagicMock
     ) -> None:
@@ -100,7 +100,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_get_state.assert_not_called()
 
     @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
-    @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.get_agent_state_from_pr_id")
     def test_invalid_json_captures_and_returns(
         self, mock_get_state: MagicMock, mock_capture: MagicMock
     ) -> None:
@@ -111,15 +111,15 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_get_state.assert_not_called()
 
     @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback")
-    @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id", return_value=None)
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.get_agent_state_from_pr_id", return_value=None)
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories")
     def test_skips_pr_without_run(
         self,
         mock_resolve: MagicMock,
         _mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
     ) -> None:
-        mock_resolve.return_value = MagicMock(organization_id=self.organization.id)
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
         raw = self._raw(pull_requests=[{"id": 555}])
 
         pr_iteration_from_check_suite_listener(self._event(raw))
@@ -127,15 +127,15 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_enqueue.assert_not_called()
 
     @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback")
-    @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories")
     def test_skips_run_missing_group_id(
         self,
         mock_resolve: MagicMock,
         mock_get_state: MagicMock,
         mock_enqueue: MagicMock,
     ) -> None:
-        mock_resolve.return_value = MagicMock(organization_id=self.organization.id)
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
         state = self._agent_state()
         state.metadata = {}
         mock_get_state.return_value = state
@@ -147,8 +147,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
     @patch(TRIGGER_CONSUME_PATH)
     @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=False)
-    @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories")
     def test_does_not_trigger_when_not_enqueued(
         self,
         mock_resolve: MagicMock,
@@ -156,7 +156,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
     ) -> None:
-        mock_resolve.return_value = MagicMock(organization_id=self.organization.id)
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
         mock_get_state.return_value = self._agent_state()
         raw = self._raw(pull_requests=[{"id": 555}])
 
@@ -166,8 +166,8 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
 
     @patch(TRIGGER_CONSUME_PATH)
     @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
-    @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories")
     def test_enqueues_and_triggers_for_matched_run(
         self,
         mock_resolve: MagicMock,
@@ -175,7 +175,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
     ) -> None:
-        mock_resolve.return_value = MagicMock(organization_id=self.organization.id)
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
         mock_get_state.return_value = self._agent_state()
         raw = self._raw(pull_requests=[{"id": 555}])
 
@@ -189,11 +189,11 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert isinstance(kwargs["feedback"].source, CheckSuiteFeedbackSource)
         mock_trigger_consume.assert_called_once()
 
-    @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.sentry_sdk.capture_exception")
     @patch(TRIGGER_CONSUME_PATH)
     @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
-    @patch(f"{CHECK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories")
     def test_seer_error_on_one_pr_continues_to_remaining(
         self,
         mock_resolve: MagicMock,
@@ -204,7 +204,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     ) -> None:
         from sentry.seer.models import SeerApiError
 
-        mock_resolve.return_value = MagicMock(organization_id=self.organization.id)
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
         error = SeerApiError("transient", 500)
         mock_get_state.side_effect = [error, self._agent_state()]
         raw = self._raw(pull_requests=[{"id": 111}, {"id": 222}])
@@ -214,6 +214,32 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert mock_get_state.call_count == 2
         mock_capture.assert_called_once_with(error)
         mock_enqueue.assert_called_once()
+        mock_trigger_consume.assert_called_once()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories")
+    def test_tries_each_org_until_agent_state_found(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+    ) -> None:
+        wrong_org_repo = MagicMock(organization_id=111, id=1)
+        right_org_repo = MagicMock(organization_id=self.organization.id, id=2)
+        mock_resolve.return_value = [wrong_org_repo, right_org_repo]
+        mock_get_state.side_effect = [None, self._agent_state()]
+        raw = self._raw(pull_requests=[{"id": 555}])
+
+        pr_iteration_from_check_suite_listener(self._event(raw))
+
+        assert mock_get_state.call_count == 2
+        mock_get_state.assert_any_call(111, "integrations:github", 555)
+        mock_get_state.assert_any_call(self.organization.id, "integrations:github", 555)
+        _, kwargs = mock_enqueue.call_args
+        assert kwargs["organization_id"] == self.organization.id
         mock_trigger_consume.assert_called_once()
 
 
@@ -283,14 +309,14 @@ class CheckSuiteHardCapTest(TestCase):
 
         assert not self._source().should_queue(self._run_state_on_head(blocks=blocks))
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository", return_value=None)
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories", return_value=[])
     def test_not_capped_when_fewer_than_cap_iterations(self, _mock: MagicMock) -> None:
         cap = CHECK_SUITE_ITERATION_HARD_CAP
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap - 1)]
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository", return_value=None)
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories", return_value=[])
     def test_not_capped_when_one_iteration_has_non_check_suite_feedback(
         self, _mock: MagicMock
     ) -> None:
@@ -306,7 +332,7 @@ class CheckSuiteHardCapTest(TestCase):
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository", return_value=None)
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories", return_value=[])
     def test_only_last_n_iterations_considered(self, _mock: MagicMock) -> None:
         cap = CHECK_SUITE_ITERATION_HARD_CAP
         blocks = [_iteration_block(0, Feedback(source=UserUIFeedbackSource(user_id=1)))]
@@ -315,7 +341,7 @@ class CheckSuiteHardCapTest(TestCase):
         assert self._source().should_trigger(_run_state(blocks=blocks)) is None
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.CHECK_SUITE_ITERATION_HARD_CAP", 0)
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository", return_value=None)
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories", return_value=[])
     def test_cap_disabled_when_zero(self, _mock: MagicMock) -> None:
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(10)]
 

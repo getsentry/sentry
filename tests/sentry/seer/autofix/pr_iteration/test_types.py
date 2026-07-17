@@ -12,6 +12,7 @@ from sentry.seer.autofix.pr_iteration.feedback import (
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
+    CheckSuiteAutofixRun,
     CheckSuiteFeedbackSource,
     get_check_suite_url,
     resolve_check_suite_repository,
@@ -417,77 +418,77 @@ class CheckSuiteShouldTriggerTest(TestCase):
             }
         )
 
+    def _source_with_autofix_run(
+        self, head_sha="abc", *, repo: MagicMock | None = None
+    ) -> CheckSuiteFeedbackSource:
+        source = self._source(head_sha=head_sha)
+        source.__dict__["autofix_run"] = CheckSuiteAutofixRun(
+            repository=repo or MagicMock(organization_id=1, id=2),
+            run_state=_run_state(),
+            pr_id=1,
+            group_id=1,
+        )
+        return source
+
     def test_now_when_no_head_sha(self) -> None:
         assert self._source(head_sha="").should_trigger(_run_state()) == ConsumeTask.Now
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository", return_value=None)
-    def test_now_when_repository_none(self, _mock_resolve: MagicMock) -> None:
-        assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
+    def test_now_when_autofix_run_missing(self) -> None:
+        source = self._source()
+        source.__dict__["autofix_run"] = None
+
+        assert source.should_trigger(_run_state()) == ConsumeTask.Now
 
     @patch("sentry.scm.factory.new", side_effect=Exception("boom"))
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
-    def test_now_when_scm_init_fails(self, mock_resolve: MagicMock, _mock_new: MagicMock) -> None:
-        mock_resolve.return_value = MagicMock(organization_id=1, id=2)
-
-        assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
+    def test_now_when_scm_init_fails(self, _mock_new: MagicMock) -> None:
+        assert self._source_with_autofix_run().should_trigger(_run_state()) == ConsumeTask.Now
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", type("Other", (), {}))
     @patch("sentry.scm.factory.new")
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
-    def test_now_when_unsupported_provider(
-        self, mock_resolve: MagicMock, mock_new: MagicMock
-    ) -> None:
-        mock_resolve.return_value = MagicMock(organization_id=1, id=2)
+    def test_now_when_unsupported_provider(self, mock_new: MagicMock) -> None:
         mock_new.return_value = MagicMock()
 
-        assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
+        assert self._source_with_autofix_run().should_trigger(_run_state()) == ConsumeTask.Now
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages")
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
     @patch("sentry.scm.factory.new")
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
     def test_later_when_a_check_suite_not_completed(
         self,
-        mock_resolve: MagicMock,
         mock_new: MagicMock,
         mock_pages: MagicMock,
     ) -> None:
-        mock_resolve.return_value = MagicMock(organization_id=1, id=2)
         mock_new.return_value = MagicMock()
         mock_pages.return_value = [{"data": [{"status": "in_progress"}]}]
 
-        assert self._source().should_trigger(_run_state()) == ConsumeTask.Later(timedelta(hours=1))
+        assert self._source_with_autofix_run().should_trigger(_run_state()) == ConsumeTask.Later(
+            timedelta(hours=1)
+        )
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages")
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
     @patch("sentry.scm.factory.new")
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
     def test_now_when_all_completed(
         self,
-        mock_resolve: MagicMock,
         mock_new: MagicMock,
         mock_pages: MagicMock,
     ) -> None:
-        mock_resolve.return_value = MagicMock(organization_id=1, id=2)
         mock_new.return_value = MagicMock()
         mock_pages.return_value = [{"data": [{"status": "completed"}]}]
 
-        assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
+        assert self._source_with_autofix_run().should_trigger(_run_state()) == ConsumeTask.Now
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", side_effect=Exception("boom"))
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
     @patch("sentry.scm.factory.new")
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repository")
     def test_now_when_list_check_suites_fails(
         self,
-        mock_resolve: MagicMock,
         mock_new: MagicMock,
         _mock_pages: MagicMock,
     ) -> None:
-        mock_resolve.return_value = MagicMock(organization_id=1, id=2)
         mock_new.return_value = MagicMock()
 
-        assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
+        assert self._source_with_autofix_run().should_trigger(_run_state()) == ConsumeTask.Now
 
 
 class ResolveCheckSuiteRepositoryTest(TestCase):
@@ -548,3 +549,43 @@ class ResolveCheckSuiteRepositoryTest(TestCase):
 
         assert result is not None
         assert result.id == repo.id
+
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.integration_service.organization_contexts")
+    def test_returns_all_matching_repos_across_orgs(self, mock_contexts: MagicMock) -> None:
+        from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
+            resolve_check_suite_repositories,
+        )
+
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+        repo_a = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            external_id="2",
+            name="owner/repo",
+        )
+        repo_b = self.create_repo(
+            project=other_project,
+            provider="integrations:github",
+            external_id="2",
+            name="owner/repo",
+        )
+        mock_contexts.return_value = MagicMock(
+            integration=MagicMock(),
+            organization_integrations=[
+                MagicMock(organization_id=self.organization.id),
+                MagicMock(organization_id=other_org.id),
+            ],
+        )
+
+        result = resolve_check_suite_repositories(
+            CheckSuiteFeedbackSource(
+                event={
+                    **_check_suite_event(),
+                    "installation": {"id": 1},
+                    "repository": {"id": 2, "html_url": "https://github.com/owner/repo"},
+                }
+            ).event
+        )
+
+        assert {repo.id for repo in result} == {repo_a.id, repo_b.id}
