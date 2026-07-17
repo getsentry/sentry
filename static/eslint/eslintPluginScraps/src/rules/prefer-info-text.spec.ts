@@ -256,6 +256,26 @@ import {InfoText} from '@sentry/scraps/info';
       `),
       ],
     },
+    {
+      name: 'Text component with property access',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+        const x = (
+          <Tooltip
+            title={dashboard.title}
+            position="top"
+            showOnlyOnOverflow
+            skipWrapper
+          >
+            <Text ellipsis variant="inherit">
+              {dashboard.title}
+            </Text>
+          </Tooltip>
+        );
+      `,
+      errors: [{messageId: 'preferInfoText'}],
+    },
 
     {
       name: 'showUnderline is stripped in suggestion',
@@ -269,6 +289,21 @@ import {InfoText} from '@sentry/scraps/info';
 import {InfoText} from '@sentry/scraps/info';
 
         const x = <InfoText variant="inherit" title="x">Some text here</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'showOnlyOnOverflow becomes overflowOnly mode in suggestion',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip title="x" showOnlyOnOverflow>Some text here</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x" mode="overflowOnly">Some text here</InfoText>;
       `),
       ],
     },
