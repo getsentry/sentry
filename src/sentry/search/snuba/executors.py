@@ -1312,8 +1312,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # in-memory path degrades to a plain last_seen sort.
         #
         # Skip when Snuba is needed for correctness: an environment scope (env-scoped values
-        # live in Snuba) or a past upper bound (native_upper_bound_ok). Both are constant
-        # across a search's pages, so cursors stay comparable.
+        # live in Snuba) or a past upper bound (see native_upper_bound_ok).
         if (
             strategy.native_order_by is not None
             and not has_snuba_filters
@@ -1495,6 +1494,8 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # The native path bounds only by Group.last_seen (a global max, never in the future),
         # so it's correct for any upper bound at/after now. The endpoint always sends
         # date_to=now, so gate on "not in the past" (within clock fuzz), not "no bound at all".
+        # (A caller pinning an absolute end near now could flip this across pages as now
+        # advances; the default stream recomputes end=now each request, so it stays stable.)
         native_upper_bound_ok = end is None or end >= now - ALLOWED_FUTURE_DELTA
 
         allow_postgres_only_search = False
