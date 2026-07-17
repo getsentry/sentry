@@ -103,6 +103,63 @@ class PaginatorTest(TestCase):
         result3 = paginator.get_result(limit=1, cursor=result2.prev)
         assert len(result3) == 0, (result3, list(result3))
 
+    def test_prev_cursor_composite_order_distinct_keys(self) -> None:
+        # Regression guard: composite ORDER BY ("-score", "-id") with a distinct primary key
+        # per row paginates forward-then-back correctly. Here the primary key discriminates, so
+        # the cursor value alone locates the row; contrast test_prev_cursor_composite_order_tie,
+        # where a tie on the primary key exposes the offset layer's blindness to -id.
+        self.create_user("foo@example.com")
+        self.create_user("bar@example.com")
+        res3 = self.create_user("baz@example.com")
+
+        queryset = (
+            User.objects.all().extra(select={"score": "auth_user.id"}).order_by("-score", "-id")
+        )
+        paginator = self.cls(queryset, "-score")
+
+        page1 = paginator.get_result(limit=1, cursor=None)
+        assert [r.id for r in page1] == [res3.id]
+        page2 = paginator.get_result(limit=1, cursor=page1.next)
+
+        previous = paginator.get_result(limit=1, cursor=page2.prev)
+        assert [r.id for r in previous] == [r.id for r in page1]
+
+    @pytest.mark.xfail(
+        reason=(
+            "Reversing the ORDER BY (incl. secondary -id) is necessary but not sufficient for "
+            "a composite-key prev cursor across a score tie: the cursor is a single (value, "
+            "offset) pair and get_item_key reads only the primary key, so when every row ties "
+            "on that key the offset math is blind to the -id tiebreak. A complete fix needs a "
+            "composite-aware cursor. Tracked as a follow-up."
+        ),
+        strict=True,
+    )
+    def test_prev_cursor_composite_order_tie(self) -> None:
+        # Mirror the native progress sort: a scalar paginator key plus a secondary -id
+        # tiebreak baked into the queryset's ORDER BY, with every row tied on the key. Paging
+        # forward then back across the tie must return the original page, not a row dropped or
+        # duplicated by the secondary key being invisible to the cursor's offset math.
+        self.create_user("foo@example.com")
+        self.create_user("bar@example.com")
+        res3 = self.create_user("baz@example.com")
+
+        # Column-derived score that is identical (1) for every row, so ordering is decided
+        # entirely by the -id tiebreak (id desc). Column-based so the paginator can splice the
+        # alias SQL into its cursor WHERE clause, matching how the native progress sort works.
+        queryset = (
+            User.objects.all()
+            .extra(select={"score": "(auth_user.id - auth_user.id + 1)"})
+            .order_by("-score", "-id")
+        )
+        paginator = self.cls(queryset, "-score")
+
+        page1 = paginator.get_result(limit=1, cursor=None)
+        assert [r.id for r in page1] == [res3.id]
+        page2 = paginator.get_result(limit=1, cursor=page1.next)
+
+        previous = paginator.get_result(limit=1, cursor=page2.prev)
+        assert [r.id for r in previous] == [r.id for r in page1]
+
 
 @control_silo_test
 class OffsetPaginatorTest(TestCase):
