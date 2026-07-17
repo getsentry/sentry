@@ -37,7 +37,7 @@ function makeReleaseOption(
           <Fragment>{release.versionInfo.package}@</Fragment>
         )}
         <Version version={release.version} anchor={false} />{' '}
-        {isVersionInfoSemver(release.versionInfo.version)
+        {release.versionInfo && isVersionInfoSemver(release.versionInfo.version)
           ? t('(semver)')
           : t('(non-semver)')}
       </span>
