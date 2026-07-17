@@ -6,7 +6,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -99,10 +98,6 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         """
         Retrieves explore data for a given organization as a heatmap.
         """
-        if not features.has(
-            "organizations:data-browsing-heat-map-widget", organization, actor=request.user
-        ):
-            return Response(status=404)
         with start_span(op="discover.endpoint", name="filter_params") as span:
             set_span_data(span, "organization", organization)
 

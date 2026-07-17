@@ -15,7 +15,7 @@ import {Text} from '@sentry/scraps/text';
 import {IconList} from 'sentry/icons';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
-import type {RequestMessage, TestNotificationOptions} from 'sentry/serviceWorker/types';
+import type {RequestMessage, AllNotificationOptions} from 'sentry/serviceWorker/types';
 import * as Storybook from 'sentry/stories';
 import type {AvatarProject} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -181,7 +181,7 @@ function buildPayload(
   values: NotificationFormValues,
   imageSources: Record<FixedImageSource, string | null>
 ): RequestMessage {
-  const options: TestNotificationOptions = {};
+  const options: AllNotificationOptions = {};
 
   if (values.body.trim()) {
     options.body = values.body;

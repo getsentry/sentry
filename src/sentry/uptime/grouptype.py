@@ -25,7 +25,7 @@ from sentry.workflow_engine.handlers.detector.stateful import (
     StatefulDetectorHandler,
 )
 from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorGroupKey,
@@ -207,7 +207,7 @@ class UptimeDetectorHandler(StatefulDetectorHandler[UptimePacketValue, CheckStat
     @override
     def create_occurrence(
         self,
-        evaluation_result: ProcessedDataConditionGroup,
+        _group_evaluation: DataConditionGroupEvaluation,
         data_packet: DataPacket[UptimePacketValue],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:

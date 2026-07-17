@@ -106,7 +106,7 @@ class ScheduleAutoResolutionTest(TestCase):
         # Attributed to the system, never the unknown fallback.
         assert {getattr(r, "source") for r in records} == {ActionSource.SYSTEM}
         # The resolve itself is recorded, even though it bypasses update_group_status.
-        assert "resolve" in {getattr(r, "action") for r in records}
+        assert "set_resolved_by_age" in {getattr(r, "action") for r in records}
 
     @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
     def test_single_event_performance(self, mock_kick_off_status_syncs: MagicMock) -> None:

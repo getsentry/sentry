@@ -30,7 +30,10 @@ import type {
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  DocsPageLocation,
+  StepType,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
@@ -57,6 +60,7 @@ import {
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
   NODE_AGENT_INTEGRATIONS,
+  PHP_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
@@ -225,10 +229,65 @@ function ConversationOnboardingPanel({
   );
 }
 
-function getConversationIdStep(integration: string, isPython: boolean): OnboardingStep {
+function getConversationIdStep(
+  integration: string,
+  platform: 'javascript' | 'php' | 'python'
+): OnboardingStep {
   const isOpenAI =
     integration === AgentIntegration.OPENAI ||
     integration === AgentIntegration.OPENAI_AGENTS;
+
+  if (platform === 'php') {
+    return {
+      title: t('Enable Conversations'),
+      content: [
+        {
+          type: 'text',
+          text: tct(
+            'Make your Laravel AI agent conversational with the [code:Conversational] contract and [code:RemembersConversations] trait:',
+            {code: <code />}
+          ),
+        },
+        {
+          type: 'code',
+          language: 'php',
+          code: `<?php
+// ...
+
+use Laravel\\Ai\\Concerns\\RemembersConversations;
+use Laravel\\Ai\\Contracts\\Agent;
+use Laravel\\Ai\\Contracts\\Conversational;
+use Laravel\\Ai\\Promptable;
+
+class MyAgent implements Agent, Conversational
+{
+    use Promptable, RemembersConversations;
+
+    // ...
+}`,
+        },
+      ],
+    };
+  }
+
+  const conversationIdCodeBlock: ContentBlock =
+    platform === 'python'
+      ? {
+          type: 'code',
+          language: 'python',
+          code: `import sentry_sdk.ai
+
+# Call this at the start of each conversation
+sentry_sdk.ai.set_conversation_id("my-conversation-123")`,
+        }
+      : {
+          type: 'code',
+          language: 'javascript',
+          code: `import * as Sentry from "@sentry/node";
+
+// Call this at the start of each conversation
+Sentry.setConversationId("my-conversation-123");`,
+        };
 
   const content: ContentBlock[] = [
     {
@@ -237,23 +296,7 @@ function getConversationIdStep(integration: string, isPython: boolean): Onboardi
         'Group related LLM calls into a single conversation thread by setting an ID at the start:'
       ),
     },
-    isPython
-      ? {
-          type: 'code' as const,
-          language: 'python',
-          code: `import sentry_sdk.ai
-
-# Call this at the start of each conversation
-sentry_sdk.ai.set_conversation_id("my-conversation-123")`,
-        }
-      : {
-          type: 'code' as const,
-          language: 'javascript',
-          code: `import * as Sentry from "@sentry/node";
-
-// Call this at the start of each conversation
-Sentry.setConversationId("my-conversation-123");`,
-        },
+    conversationIdCodeBlock,
     ...(isOpenAI
       ? [
           {
@@ -306,6 +349,32 @@ Sentry.setUser({ id: "user_123", email: "jane@example.com", username: "jane" });
   };
 }
 
+function getPhpConversationVerifyStep(): OnboardingStep {
+  return {
+    type: StepType.VERIFY,
+    content: [
+      {
+        type: 'text',
+        text: tct(
+          'Verify Conversations by continuing an existing Laravel AI conversation with [code:->continue()]:',
+          {code: <code />}
+        ),
+      },
+      {
+        type: 'code',
+        language: 'php',
+        code: `<?php
+
+use App\\Ai\\Agents\\MyAgent;
+
+$response = (new MyAgent)
+    ->continue('my-conversation-123', as: auth()->user())
+    ->prompt('Make it shorter.');`,
+      },
+    ],
+  };
+}
+
 export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const api = useApi();
   const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
@@ -326,19 +395,31 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   });
 
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
+  const isPhpPlatform = (project?.platform ?? '').startsWith('php');
 
   const integrations = isPythonPlatform
     ? PYTHON_AGENT_INTEGRATIONS
-    : NODE_AGENT_INTEGRATIONS;
+    : isPhpPlatform
+      ? PHP_AGENT_INTEGRATIONS
+      : NODE_AGENT_INTEGRATIONS;
 
   const integrationOptions = {
     integration: {
       label: t('Integration'),
       items: integrations.map(integration => ({
-        label: AGENT_INTEGRATION_LABELS[integration],
+        label: isPhpPlatform
+          ? (currentPlatform?.name ?? t('Laravel'))
+          : AGENT_INTEGRATION_LABELS[integration],
         value: integration,
         leadingItems: (
-          <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
+          <PlatformIcon
+            platform={
+              isPhpPlatform
+                ? (project?.platform ?? 'php-laravel')
+                : AGENT_INTEGRATION_ICONS[integration]
+            }
+            size={16}
+          />
         ),
       })),
     },
@@ -401,9 +482,14 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const steps: OnboardingStep[] = [
     ...(agentMonitoringDocs.install?.(docParams) || []),
     ...(agentMonitoringDocs.configure?.(docParams) || []),
-    getConversationIdStep(selectedIntegration, isPythonPlatform),
-    getSetUserStep(isPythonPlatform),
-    ...(agentMonitoringDocs.verify?.(docParams) || []),
+    getConversationIdStep(
+      selectedIntegration,
+      isPythonPlatform ? 'python' : isPhpPlatform ? 'php' : 'javascript'
+    ),
+    ...(isPhpPlatform ? [] : [getSetUserStep(isPythonPlatform)]),
+    ...(isPhpPlatform
+      ? [getPhpConversationVerifyStep()]
+      : agentMonitoringDocs.verify?.(docParams) || []),
   ].filter(s => !s.collapsible);
 
   const introduction = agentMonitoringDocs.introduction?.(docParams);

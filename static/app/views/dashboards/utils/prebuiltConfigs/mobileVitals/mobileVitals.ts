@@ -269,12 +269,31 @@ const AVG_FRAME_DELAY_WIDGET: PrebuiltWidget = {
   },
 };
 
+const ABOUT_THIS_PAGE_TEXT_WIDGET: PrebuiltWidget = {
+  id: 'about-this-page-text',
+  title: t('About this page'),
+  description:
+    t(`Top-level metrics show your app's health. When one looks off, use the tables below to find the screens responsible, then drill in to investigate.
+
+App start metrics only count launches that open the app UI, not background starts.
+
+See the [Mobile Vitals docs](https://docs.sentry.io/product/insights/mobile/mobile-vitals/) for more information.`),
+  displayType: DisplayType.TEXT,
+  interval: '1h',
+  queries: [],
+  layout: {
+    h: 2,
+    x: 4,
+    y: 0,
+    w: 2,
+    minH: 2,
+  },
+};
+
 const APP_START_TABLE: PrebuiltWidget = {
   id: 'app-start-table',
   title: t('App Starts'),
-  description: t(
-    "On iOS, cold and warm start classification may differ from Apple's definitions. Sentry defines a cold start as a launch after first install, reboot, or update; all other launches are warm starts. Warm start results may differ between prewarmed and non-prewarmed launches."
-  ),
+  description: '',
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '1h',
@@ -435,6 +454,7 @@ export const MOBILE_VITALS_PREBUILT_CONFIG: PrebuiltDashboard = {
   widgets: [
     ...FIRST_ROW_WIDGETS,
     ...SECOND_ROW_WIDGETS,
+    ABOUT_THIS_PAGE_TEXT_WIDGET,
     APP_START_TABLE,
     SCREEN_LOAD_TABLE,
     SCREEN_RENDERING_TABLE,

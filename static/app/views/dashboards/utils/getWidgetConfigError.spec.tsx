@@ -101,7 +101,7 @@ describe('getWidgetConfigError', () => {
     });
 
     expect(getWidgetConfigError(widget)).toBe(
-      'Heat maps can only visualize distribution metrics.'
+      'Heatmaps can only visualize distribution metrics.'
     );
   });
 });

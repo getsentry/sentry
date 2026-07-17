@@ -13,7 +13,7 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.types.actor import Actor
 from sentry.utils import metrics
 from sentry.workflow_engine.models import DataConditionGroup, DataPacket, Detector
-from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorGroupKey,
@@ -114,6 +114,8 @@ class BaseDetectorHandler(
     DataPacketType is what we've embedded within the data packet.
     DataPacketEvaluationType is the type of the value to be extracted from the data packet and
     used to evaluate the conditions on the detector.
+
+    TODO - Implement a standard DetectorHandler with this base class -- a-la StatefulDetectorHandler
     """
 
     def __init__(self, detector: Detector):
@@ -161,13 +163,15 @@ class BaseDetectorHandler(
     ) -> GroupedDetectorEvaluationResult:
         """
         This method is used to evaluate the data packet's value against the conditions on the detector.
+
+        TODO - rename this to `evaluate` and change current evaluate to `_evaluate`
         """
         pass
 
     @abc.abstractmethod
     def create_occurrence(
         self,
-        evaluation_result: ProcessedDataConditionGroup,
+        evaluation: DataConditionGroupEvaluation,
         data_packet: DataPacket[DataPacketType],
         priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:

@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {Link} from '@sentry/scraps/link';
 
@@ -8,7 +9,6 @@ import {t, tct, tn} from 'sentry/locale';
 import type {
   GroupActivity,
   GroupActivitySetEscalating,
-  GroupActivitySetIgnored,
   IssueCategory,
 } from 'sentry/types/group';
 import {GroupActivityType, IssueCategory as IssueCategoryEnum} from 'sentry/types/group';
@@ -19,15 +19,16 @@ import {formatDuration} from 'sentry/utils/duration/formatDuration';
 
 import {CommitChip} from './chips/commitChip';
 import {ExternalIssueChip} from './chips/externalIssueChip';
+import {getIntegrationChip} from './chips/integrationChip';
 import {ActivityPriorityChip} from './chips/priorityChip';
 import {PullRequestChip, SeerPullRequestChip} from './chips/pullRequestChip';
 import {ActivityRelease} from './chips/releaseChip';
 import {getAssignedActivityItem} from './compactActivityItem/assignment';
 import {getResolvedInCommitDetails} from './compactActivityItem/commitDetails';
-import {getIntegrationLink} from './compactActivityItem/integrationLink';
 import {getProviderName} from './compactActivityItem/provider';
 import {getResolvedInReleaseDetails} from './compactActivityItem/releaseDetails';
 import type {CompactGroupActivityItem} from './compactActivityItem/types';
+import {getArchiveDetails} from './archiveDetails';
 
 export type {CompactGroupActivityItem} from './compactActivityItem/types';
 
@@ -61,61 +62,6 @@ function formatAutoResolveAge(age: number | string | undefined) {
   return precision === 'day'
     ? tn('%s day', '%s days', count)
     : tn('%s hour', '%s hours', count);
-}
-
-function getIgnoredDetails(
-  data: GroupActivitySetIgnored['data'],
-  issueCategory: IssueCategory
-) {
-  const isFeedback = issueCategory === IssueCategoryEnum.FEEDBACK;
-
-  if (data.ignoreDuration) {
-    return tct('for [duration]', {
-      duration: <Duration seconds={data.ignoreDuration * 60} />,
-    });
-  }
-
-  if (data.ignoreCount && data.ignoreWindow) {
-    return tct('until [threshold] within [duration]', {
-      threshold: tn('%s event occurs', '%s events occur', data.ignoreCount),
-      duration: <Duration seconds={data.ignoreWindow * 60} />,
-    });
-  }
-
-  if (data.ignoreCount) {
-    return tn(
-      'until %s more event occurs',
-      'until %s more events occur',
-      data.ignoreCount
-    );
-  }
-
-  if (data.ignoreUserCount && data.ignoreUserWindow) {
-    return tct('until [threshold] within [duration]', {
-      threshold: tn('%s user is affected', '%s users are affected', data.ignoreUserCount),
-      duration: <Duration seconds={data.ignoreUserWindow * 60} />,
-    });
-  }
-
-  if (data.ignoreUserCount) {
-    return tn(
-      'until %s more user is affected',
-      'until %s more users are affected',
-      data.ignoreUserCount
-    );
-  }
-
-  if (data.ignoreUntil) {
-    return tct('until [date]', {
-      date: <DateTime date={data.ignoreUntil} />,
-    });
-  }
-
-  if (data.ignoreUntilEscalating) {
-    return t('until it escalates');
-  }
-
-  return isFeedback ? null : t('forever');
 }
 
 function getEscalatingDetails(data: GroupActivitySetEscalating['data']) {
@@ -192,6 +138,7 @@ export function getCompactGroupActivityItem({
   issueCategory,
 }: GetCompactGroupActivityItemParams): CompactGroupActivityItem {
   const issuesLink = `/organizations/${organization.slug}/issues/`;
+  const activityContext = {id: activity.id, type: activity.type};
 
   switch (activity.type) {
     case GroupActivityType.NOTE:
@@ -199,11 +146,11 @@ export function getCompactGroupActivityItem({
         title: getNoteAuthorName(activity),
       };
     case GroupActivityType.SET_RESOLVED: {
-      const integrationLink = getIntegrationLink({data: activity.data, organization});
+      const integrationChip = getIntegrationChip({data: activity.data, organization});
       return {
         title: t('Resolved'),
-        details: integrationLink
-          ? tct('via [integration]', {integration: integrationLink})
+        details: integrationChip
+          ? tct('via [integration]', {integration: integrationChip})
           : undefined,
       };
     }
@@ -278,6 +225,51 @@ export function getCompactGroupActivityItem({
           : null,
       };
     }
+    case GroupActivityType.PULL_REQUEST_REOPENED: {
+      const pullRequest = activity.data.pullRequest;
+      return {
+        title: pullRequest
+          ? tct('Pull request [pullRequest] reopened', {
+              pullRequest: <PullRequestChip pullRequest={pullRequest} />,
+            })
+          : t('Pull request reopened'),
+        details: pullRequest
+          ? tct('on [provider]', {
+              provider: getPullRequestProvider(pullRequest),
+            })
+          : null,
+      };
+    }
+    case GroupActivityType.PULL_REQUEST_MERGED: {
+      const pullRequest = activity.data.pullRequest;
+      return {
+        title: pullRequest
+          ? tct('Pull request [pullRequest] merged', {
+              pullRequest: <PullRequestChip pullRequest={pullRequest} />,
+            })
+          : t('Pull request merged'),
+        details: pullRequest
+          ? tct('on [provider]', {
+              provider: getPullRequestProvider(pullRequest),
+            })
+          : null,
+      };
+    }
+    case GroupActivityType.PULL_REQUEST_UNLINKED: {
+      const pullRequest = activity.data.pullRequest;
+      return {
+        title: pullRequest
+          ? tct('Pull request [pullRequest] unlinked', {
+              pullRequest: <PullRequestChip pullRequest={pullRequest} />,
+            })
+          : t('Pull request unlinked'),
+        details: pullRequest
+          ? tct('on [provider]', {
+              provider: getPullRequestProvider(pullRequest),
+            })
+          : null,
+      };
+    }
     case GroupActivityType.SET_UNRESOLVED: {
       if ('forecast' in activity.data && activity.data.forecast) {
         return {
@@ -289,11 +281,11 @@ export function getCompactGroupActivityItem({
         };
       }
 
-      const integrationLink = getIntegrationLink({data: activity.data, organization});
+      const integrationChip = getIntegrationChip({data: activity.data, organization});
       return {
         title: t('Marked as unresolved'),
-        details: integrationLink
-          ? tct('via [integration]', {integration: integrationLink})
+        details: integrationChip
+          ? tct('via [integration]', {integration: integrationChip})
           : null,
       };
     }
@@ -303,7 +295,7 @@ export function getCompactGroupActivityItem({
           issueCategory === IssueCategoryEnum.FEEDBACK
             ? t('Marked as spam')
             : t('Archived'),
-        details: getIgnoredDetails(activity.data, issueCategory),
+        details: getArchiveDetails(activity.data, issueCategory),
       };
     case GroupActivityType.SET_PUBLIC:
       return {
@@ -317,7 +309,7 @@ export function getCompactGroupActivityItem({
       const {data} = activity;
       const comparison =
         data.version && data.resolved_in_version && 'follows_semver' in data
-          ? tct('Compared with resolved version [resolvedVersion] using [comparison]', {
+          ? tct(' compared with [resolvedVersion] based on [comparison]', {
               resolvedVersion: (
                 <ActivityRelease
                   organization={organization}
@@ -331,8 +323,9 @@ export function getCompactGroupActivityItem({
 
       return {
         title: t('Regressed'),
-        details: data.version
-          ? tct('in [version]', {
+        details: data.version ? (
+          <Fragment>
+            {tct('in [version]', {
               version: (
                 <ActivityRelease
                   organization={organization}
@@ -340,9 +333,10 @@ export function getCompactGroupActivityItem({
                   version={data.version}
                 />
               ),
-            })
-          : undefined,
-        subtext: comparison,
+            })}
+            {comparison}
+          </Fragment>
+        ) : undefined,
       };
     }
     case GroupActivityType.CREATE_ISSUE:
@@ -418,13 +412,15 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.REPROCESS:
       return {
         title: t('Reprocessed'),
-        details: (
-          <Link
-            to={`/organizations/${organization.slug}/issues/?query=reprocessing.original_issue_id:${activity.data.oldGroupId}&referrer=group-activity-reprocesses`}
-          >
-            {tn('into %s new event', 'into %s new events', activity.data.eventCount)}
-          </Link>
-        ),
+        details: tct('into [events]', {
+          events: (
+            <Link
+              to={`/organizations/${organization.slug}/issues/?query=reprocessing.original_issue_id:${activity.data.oldGroupId}&referrer=group-activity-reprocesses`}
+            >
+              {tn('%s new event', '%s new events', activity.data.eventCount)}
+            </Link>
+          ),
+        }),
       };
     case GroupActivityType.MARK_REVIEWED:
       return {
@@ -449,7 +445,7 @@ export function getCompactGroupActivityItem({
       };
     case GroupActivityType.DELETED_ATTACHMENT:
       return {
-        title: t('Attachment deleted'),
+        title: t('Deleted an attachment'),
       };
     case GroupActivityType.SEER_RCA_STARTED:
       return {
@@ -510,6 +506,10 @@ export function getCompactGroupActivityItem({
       };
     }
   }
+
+  Sentry.captureMessage(`Unknown group activity type: ${activityContext.type}`, {
+    contexts: {activity: activityContext},
+  });
 
   return {
     title: t('Activity'),

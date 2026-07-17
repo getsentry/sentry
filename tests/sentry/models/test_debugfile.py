@@ -6,6 +6,7 @@ import time
 import zipfile
 from io import BytesIO
 from typing import Any
+from unittest.mock import patch
 
 import pytest
 from django.core.files.base import ContentFile
@@ -373,9 +374,11 @@ class CreateDebugFileTest(APITestCase):
             dif, created = create_dif_from_file(self.project, file, self.file_path)
 
         assert created
-        assert dif.file_id is None
+        assert dif.file_id is not None
+        assert dif.file is not None
         assert dif.storage_path is not None
         assert dif.content_type == "application/x-mach-binary"
+        assert dif.file.getfile().read() == content
         assert dif.get_file().read() == content
 
     @requires_objectstore
@@ -387,13 +390,82 @@ class CreateDebugFileTest(APITestCase):
             dif, created = self.create_dif(fileobj=BytesIO(content))
 
         assert created
-        assert dif.file_id is None
+        assert dif.file_id is not None
         assert dif.storage_path is not None
         assert dif.content_type == "application/x-mach-binary"
         assert dif.file_size == len(content)
         assert dif.checksum == checksum
         assert dif.get_file_size() == len(content)
+        assert dif.file.getfile().read() == content
         assert dif.get_file().read() == content
+
+    @requires_objectstore
+    def test_objectstore_write_failure_preserves_legacy_dif(self) -> None:
+        content = b"objectstore-dif-content"
+
+        with (
+            self.feature("organizations:objectstore-debugfiles-write"),
+            patch("sentry.models.debugfile._upload_dif_to_objectstore", side_effect=RuntimeError),
+        ):
+            dif, created = self.create_dif(fileobj=BytesIO(content))
+
+        assert created
+        assert dif.file_id is not None
+        assert dif.storage_path is None
+        assert dif.file.getfile().read() == content
+
+    @requires_objectstore
+    def test_delete_dual_written_dif(self) -> None:
+        content = b"objectstore-dif-content"
+        with self.feature("organizations:objectstore-debugfiles-write"):
+            dif, created = self.create_dif(fileobj=BytesIO(content))
+
+        assert created
+        file_id = dif.file_id
+        storage_path = dif.storage_path
+        assert file_id is not None
+        assert storage_path is not None
+
+        dif.delete()
+
+        assert not File.objects.filter(id=file_id).exists()
+        with pytest.raises(RequestError):
+            get_debug_files_session(self.organization.id, self.project.id).get(storage_path)
+
+    @requires_objectstore
+    def test_read_gate_prefers_legacy_file_when_disabled(self) -> None:
+        legacy_content = b"legacy-content"
+        objectstore_content = b"objectstore-content"
+        with self.feature("organizations:objectstore-debugfiles-write"):
+            dif, created = self.create_dif(fileobj=BytesIO(legacy_content))
+
+        assert created
+        storage_path = dif.storage_path
+        assert storage_path is not None
+        session = get_debug_files_session(self.organization.id, self.project.id)
+        session.delete(storage_path)
+        replacement_storage_path = session.put(objectstore_content, compression="none")
+        dif.storage_path = replacement_storage_path
+        dif.save(update_fields=["storage_path"])
+
+        assert dif.get_file().read() == legacy_content
+
+        with self.feature("organizations:objectstore-debugfiles-read"):
+            assert dif.get_file().read() == objectstore_content
+
+    @requires_objectstore
+    def test_read_gate_does_not_fall_back_when_objectstore_read_fails(self) -> None:
+        with self.feature("organizations:objectstore-debugfiles-write"):
+            dif, created = self.create_dif(fileobj=BytesIO(b"legacy-content"))
+
+        assert created
+        with (
+            self.feature("organizations:objectstore-debugfiles-read"),
+            patch.object(dif, "_get_objectstore_session") as get_session,
+        ):
+            get_session.return_value.get.side_effect = RuntimeError("Objectstore unavailable")
+            with pytest.raises(RuntimeError):
+                dif.get_file()
 
     def test_keep_disjoint_difs(self) -> None:
         file = self.create_file(
