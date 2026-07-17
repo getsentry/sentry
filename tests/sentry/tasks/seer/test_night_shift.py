@@ -23,6 +23,8 @@ from sentry.tasks.seer.night_shift.cron import (
 )
 from sentry.tasks.seer.night_shift.models import TriageAction
 from sentry.tasks.seer.night_shift.simple_triage import (
+    NIGHT_SHIFT_ISSUE_FETCH_LIMIT,
+    NIGHT_SHIFT_MAX_SEARCH_PAGES,
     ScoredCandidate,
     fixability_score_strategy,
     fixability_score_strategy_per_project,
@@ -34,7 +36,12 @@ from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.cursors import Cursor
 from sentry.utils.redis import redis_clusters
+
+
+def _cursor_result(results, has_next=False):
+    return Mock(results=results, next=Cursor(0, has_results=has_next))
 
 
 def _dispatched_feature_body(organization):
@@ -1008,7 +1015,7 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
         with patch(
             "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
         ) as mock_query:
-            mock_query.return_value = Mock(results=[error_group, lvs_group])
+            mock_query.return_value = _cursor_result([error_group, lvs_group])
             result = fixability_score_strategy([project], max_candidates=10)
 
         assert {c.group.id for c in result} == {error_group.id, lvs_group.id}
@@ -1031,7 +1038,7 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
         with patch(
             "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
         ) as mock_query:
-            mock_query.return_value = Mock(results=[])
+            mock_query.return_value = _cursor_result([])
             fixability_score_strategy_per_project([project], max_candidates=5)
 
         assert mock_query.call_args.kwargs["limit"] == 15
@@ -1042,10 +1049,91 @@ class TestFixabilityScoreStrategy(NightShiftFixtures, TestCase, SnubaTestCase):
         with patch(
             "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
         ) as mock_query:
-            mock_query.return_value = Mock(results=[])
+            mock_query.return_value = _cursor_result([])
             fixability_score_strategy_per_project([project], max_candidates=40)
 
         assert mock_query.call_args.kwargs["limit"] == 100
+
+    def test_paginates_when_first_page_mostly_skipped(self) -> None:
+        project = self.create_project()
+        page1 = [
+            self._store_event_and_update_group(project, f"p1-{i}", seer_fixability_score=None)
+            for i in range(3)
+        ]
+        page2 = [self._store_event_and_update_group(project, "p2-0", seer_fixability_score=None)]
+        mark_skipped(page1[1].id)
+        mark_skipped(page1[2].id)
+
+        with patch(
+            "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
+        ) as mock_query:
+            mock_query.side_effect = [
+                _cursor_result(page1, has_next=True),
+                _cursor_result(page2),
+            ]
+            result = fixability_score_strategy([project], max_candidates=3)
+
+        assert mock_query.call_count == 2
+        assert mock_query.call_args_list[0].kwargs["cursor"] is None
+        assert mock_query.call_args_list[1].kwargs["cursor"] is not None
+        assert {c.group.id for c in result} == {page1[0].id, page2[0].id}
+
+    def test_stops_paginating_once_a_page_worth_of_candidates(self) -> None:
+        project = self.create_project()
+        groups = [
+            Mock(id=i, seer_fixability_score=None, times_seen=1)
+            for i in range(NIGHT_SHIFT_ISSUE_FETCH_LIMIT)
+        ]
+
+        with (
+            patch("sentry.tasks.seer.night_shift.simple_triage.search.backend.query") as mock_query,
+            patch(
+                "sentry.tasks.seer.night_shift.simple_triage.is_issue_category_eligible",
+                return_value=True,
+            ),
+        ):
+            mock_query.return_value = _cursor_result(groups, has_next=True)
+            result = fixability_score_strategy([project], max_candidates=10)
+
+        assert mock_query.call_count == 1
+        assert len(result) == 10
+
+    def test_stops_at_a_page_of_non_skipped_even_when_all_dropped(self) -> None:
+        # A full page of non-skipped results is enough to stop, even when scoring
+        # later drops every issue as below-threshold — we page past skips, not
+        # past low fixability.
+        project = self.create_project()
+        groups = [
+            Mock(id=i, seer_fixability_score=0.0, times_seen=1)
+            for i in range(NIGHT_SHIFT_ISSUE_FETCH_LIMIT)
+        ]
+
+        with (
+            patch("sentry.tasks.seer.night_shift.simple_triage.search.backend.query") as mock_query,
+            patch(
+                "sentry.tasks.seer.night_shift.simple_triage.is_issue_category_eligible",
+                return_value=True,
+            ),
+        ):
+            mock_query.return_value = _cursor_result(groups, has_next=True)
+            result = fixability_score_strategy([project], max_candidates=10)
+
+        assert mock_query.call_count == 1
+        assert result == []
+
+    def test_pagination_is_bounded(self) -> None:
+        project = self.create_project()
+        skipped = self._store_event_and_update_group(project, "skip", seer_fixability_score=None)
+        mark_skipped(skipped.id)
+
+        with patch(
+            "sentry.tasks.seer.night_shift.simple_triage.search.backend.query"
+        ) as mock_query:
+            mock_query.return_value = _cursor_result([skipped], has_next=True)
+            result = fixability_score_strategy([project], max_candidates=5)
+
+        assert mock_query.call_count == NIGHT_SHIFT_MAX_SEARCH_PAGES
+        assert result == []
 
 
 class TestTriageActionFromFixabilityScore:
