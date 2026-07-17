@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from django.db import connections, router, transaction
+from django.utils import timezone
 
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
@@ -109,7 +110,7 @@ def backfill_actions(
                 entry.source,
                 json.dumps(entry.action.dict()),
                 entry.date_added,
-                entry.date_added,  # date_updated
+                timezone.now(),  # date_updated
                 entry.idempotency_key,
             ]
         )

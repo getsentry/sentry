@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime
 
+from django.utils import timezone
 from taskbroker_client.state import current_task
 
 from sentry import options
@@ -266,7 +267,7 @@ def _backfill_project(
                 BACKFILL_ACTIVITY_SOURCE,
                 json.dumps(action.dict()),
                 activity.datetime,
-                activity.datetime,  # date_updated
+                timezone.now(),  # date_updated
                 activity_action_idempotency_key(activity),
             ]
         )

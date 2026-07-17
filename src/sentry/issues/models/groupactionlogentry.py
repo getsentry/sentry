@@ -59,7 +59,7 @@ class GroupActionLogEntry(Model):
 
     # Primarly intended for debugging; not intended to be relied upon
     # for invalidation.
-    date_updated = models.DateTimeField(auto_now=True)
+    date_updated = models.DateTimeField(db_default=Now(), auto_now=True)
 
     # Unique identifier for external action this corresponds to.
     # Primarly exists to make backfilling third party actions simpler.
