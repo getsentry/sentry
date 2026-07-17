@@ -20,6 +20,7 @@ from scm.types import (
 )
 from taskbroker_client.retry import Retry
 
+from sentry import options
 from sentry.cache import default_cache
 from sentry.integrations.services.integration import integration_service
 from sentry.locks import locks
@@ -33,6 +34,7 @@ from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     PrIterationNoPullRequestException,
     PrIterationNotEnabledException,
+    get_latest_iteration_index,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -209,6 +211,24 @@ def consume_queued_autofix_feedback(
             logger.info(
                 "autofix.pr_iteration.consume_feedback.no_consumable_feedback",
                 extra={"run_id": run_id, "group_id": group_id},
+            )
+            return
+
+        # Hard cap on iterations per run. Bounds the feedback loop when a review bot
+        # re-reviews each new iteration commit (each re-review is genuinely new
+        # feedback, so dedup can't stop it). Checked after draining the queue so the
+        # capped feedback doesn't accumulate. get_latest_iteration_index == the count
+        # of iterations already performed (next would be +1), so >= stops the next.
+        max_iterations = options.get("autofix.pr-iteration.max-iterations")
+        if get_latest_iteration_index(state) >= max_iterations:
+            metrics.incr("autofix.pr_iteration.max_iterations_reached")
+            logger.info(
+                "autofix.pr_iteration.consume_feedback.max_iterations_reached",
+                extra={
+                    "run_id": run_id,
+                    "group_id": group_id,
+                    "max_iterations": max_iterations,
+                },
             )
             return
 

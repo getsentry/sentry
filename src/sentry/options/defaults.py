@@ -3772,6 +3772,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Hard cap on how many PR iterations a single Autofix run will perform. Bounds the
+# feedback loop when a review bot re-reviews each new iteration commit.
+register(
+    "autofix.pr-iteration.max-iterations",
+    type=Int,
+    default=20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
 register(
     "integrations.slo.integration-id-tag-enabled",
