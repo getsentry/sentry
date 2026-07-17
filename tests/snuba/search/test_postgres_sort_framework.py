@@ -350,7 +350,7 @@ class TestFallbackBehavior(PostgresSortTestBase):
                 actor=None,
                 start=before_now(days=90),
                 end=timezone.now(),
-                allow_postgres_only_search=False,
+                native_upper_bound_ok=True,
                 referrer=Referrer.TESTING_TEST.value,
             )
             assert result is None
@@ -679,6 +679,17 @@ class TestProgressSort(PostgresSortTestBase):
         )
         assert self.groups[2] not in set(results)
         assert set(results) == {self.groups[0], self.groups[1]}
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_date_to_now_uses_native_path(self):
+        # The issue-stream endpoint always sends date_to=now. That is not a restrictive bound
+        # (last_seen can't exceed now), so the native path must still run and rank by progress
+        # rather than falling back to recency.
+        self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
+        results = list(self.make_query(sort_by="progress", date_to=timezone.now()))
+        # Progress order: groups[0] (fix_applied) first, then identified by recency.
+        assert results == [self.groups[0], self.groups[2], self.groups[1]]
 
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
     def test_snuba_filter_over_cap_does_not_use_native_ordering(self):
