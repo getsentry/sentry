@@ -26,7 +26,8 @@ export function DashboardsNavigationItems({dashboards}: DashboardsNavigationItem
       }}
     >
       {dashboard => {
-        const dashboardProjects = new Set(dashboard.projects.map(String));
+        const dashboardProjectIds = dashboard.projects ?? [];
+        const dashboardProjects = new Set(dashboardProjectIds.map(String));
         const dashboardProjectPlatforms = projects
           .filter(p => dashboardProjects.has(p.id))
           .map(p => p.platform)
@@ -40,7 +41,7 @@ export function DashboardsNavigationItems({dashboards}: DashboardsNavigationItem
               <SecondaryNavigation.ProjectIcon
                 projectPlatforms={dashboardProjectPlatforms}
                 allProjects={
-                  dashboard.projects.length === 1 && dashboard.projects[0] === -1
+                  dashboardProjectIds.length === 1 && dashboardProjectIds[0] === -1
                 }
               />
             }
