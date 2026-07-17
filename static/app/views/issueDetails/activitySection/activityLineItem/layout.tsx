@@ -58,19 +58,6 @@ export const ActivityLineRow = styled('div')`
   align-items: start;
   column-gap: ${p => p.theme.space.xs};
 
-  &:last-child {
-    &::after {
-      content: '';
-      position: absolute;
-      z-index: 1;
-      left: 10.5px;
-      top: 22px;
-      bottom: 0;
-      width: 1px;
-      background: ${p => p.theme.tokens.background.overlay};
-    }
-  }
-
   @container activity-list (min-width: 90px) {
     column-gap: ${p => p.theme.space.sm};
   }

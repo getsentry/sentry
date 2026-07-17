@@ -434,7 +434,7 @@ const ActivityLineList = styled('div')`
     position: absolute;
     left: 10.5px;
     top: 11px;
-    bottom: 0;
+    bottom: 11px;
     width: 0;
     border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   }
