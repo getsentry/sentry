@@ -21,7 +21,7 @@ from sentry.types.group import PriorityLevel
 
 logger = logging.getLogger("sentry.tasks.seer.night_shift")
 
-NIGHT_SHIFT_ISSUE_FETCH_LIMIT = 100
+NIGHT_SHIFT_ISSUE_FETCH_LIMIT = 250
 # Scales the per-project fetch limit instead of using the flat limit above.
 NIGHT_SHIFT_PER_PROJECT_FETCH_MULTIPLIER = 3
 FIXABILITY_SCORE_THRESHOLD = FixabilityScoreThresholds.MEDIUM.value
