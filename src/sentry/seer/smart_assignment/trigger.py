@@ -15,6 +15,7 @@ from sentry.seer.smart_assignment.models import (
     SEER_FEATURE_ID,
     SmartAssignmentPayload,
 )
+from sentry.seer.smart_assignment.scoring import record_ground_truth
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
@@ -31,15 +32,23 @@ def trigger_smart_assignment(
     activity_type: ActivityType,
     activity: Activity | None = None,
 ) -> None:
-    """Gate + dispatch a prediction for `group`.
+    """Trigger and/or score a Smart Assignment run for an issue.
 
-    Dispatches a Seer run the first time (deduped to one run per group, and subject
-    to per-org / global daily caps). `activity_type` is what triggered us (a Seer AI
-    step starting, an assignment, or a resolution); `activity` is the triggering
-    activity, stamped with a pointer to the run it kicked off. No-op unless the org
-    is flagged. Automatic resolutions (no acting user, e.g. resolved by age) are
-    skipped entirely -- we only treat a resolution as signal when a human resolved
-    the issue, since then they probably should have been the assignee.
+    If we haven't run Smart Assignment yet on this issue, and the org has the
+    flag on, and we haven't hit daily caps, _dispatch() smart assignment.
+
+    Always call record_ground_truth(), which will record details from this
+    activity (the user manually assigned to the issue) if it indicates
+    what the smart assignment result *should* be.
+
+    Activites that truly *need* a SA result--SEER_CODING_STARTED, etc.--
+    won't have these. But activites like ASSIGNED will, because we're running
+    SA simply to check if it would have the same result as ground truth.
+
+    If SA ran earlier, it will score the ground truth against the SA result.
+    If SA is running now, it will score when SA completes.
+    If SA is running now and ground truth comes later, this trigger will be
+    called again and we'll score then.
     """
     organization = group.organization
 
@@ -57,6 +66,8 @@ def trigger_smart_assignment(
     # is our durable record that a run was dispatched.
     if not _already_predicted(group) and not _dispatch_rate_limited(organization):
         _dispatch(group, activity_type, activity)
+
+    record_ground_truth(group, activity_type, activity)
 
 
 def _already_predicted(group: Group) -> bool:
