@@ -499,7 +499,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
               <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
             </Stack>
           )}
-          {!hasAskSeerUxRework || isDisplayingResults ? (
+          {(hasAskSeerUxRework ? isDisplayingResults : openForm) ? (
             <Flex
               justify={hasAskSeerUxRework ? 'between' : 'end'}
               borderTop="primary"

@@ -633,7 +633,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             state={state}
             onMouseLeave={onMouseLeave}
           />
-          {!hasAskSeerUxRework || isDisplayingResults ? (
+          {(hasAskSeerUxRework ? isDisplayingResults : openForm) ? (
             <Flex
               justify={hasAskSeerUxRework ? 'between' : 'end'}
               borderTop="primary"
