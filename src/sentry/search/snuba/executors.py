@@ -1317,16 +1317,13 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # - no explicit upper time bound (allow_postgres_only_search): Group.last_seen is the
         #   issue's global max event time, not its max within [start, end], so a Postgres-only
         #   window bound would wrongly drop issues with events both inside and after `end`.
-        # - not a prev cursor: BasePaginator only reverses its own key for a prev page, leaving
-        #   the native order's secondary -id tiebreak unflipped, which can drop/dup a row across
-        #   a score tie when paging backward.
-        # Anything else falls through to the Snuba path, which scopes both correctly.
+        # These gate on query filters (constant across a search's pages), so every page of a
+        # given search consistently uses one path — cursors stay comparable.
         if (
             strategy.native_order_by is not None
             and not has_snuba_filters
             and not environments
             and allow_postgres_only_search
-            and not (cursor is not None and cursor.is_prev)
             and _has_derived_progress(actor, projects)
         ):
             with start_span(

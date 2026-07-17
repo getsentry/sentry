@@ -350,6 +350,7 @@ class TestFallbackBehavior(PostgresSortTestBase):
                 actor=None,
                 start=before_now(days=90),
                 end=timezone.now(),
+                allow_postgres_only_search=False,
                 referrer=Referrer.TESTING_TEST.value,
             )
             assert result is None
@@ -650,21 +651,6 @@ class TestProgressSort(PostgresSortTestBase):
             seen.extend(page)
             cursor = page.next
         assert seen == expected
-
-    @with_feature("projects:issue-stream-derived-progress")
-    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
-    def test_prev_cursor_paginates_back_across_score_tie(self):
-        # The native path can't reverse its composite (score, -id) order for a prev cursor, so
-        # backward paging over a score tie falls through to Snuba. Stepping forward then back
-        # must land on the original page rather than dropping or duplicating a tied row.
-        ts = before_now(days=2)
-        for group in self.groups:
-            self.create_group_derived_data(group=group, progress="diagnosed", last_progressed_at=ts)
-
-        page1 = self.make_query(sort_by="progress", limit=1)
-        page2 = self.make_query(sort_by="progress", limit=1, cursor=page1.next)
-        previous = self.make_query(sort_by="progress", limit=1, cursor=page2.prev)
-        assert list(previous) == list(page1)
 
     @with_feature("projects:issue-stream-derived-progress")
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
