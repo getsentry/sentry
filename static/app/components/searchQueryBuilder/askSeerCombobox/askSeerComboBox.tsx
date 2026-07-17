@@ -562,19 +562,18 @@ const InvisibleInput = styled('input')`
   margin-bottom: -1px;
   background: transparent;
 
-  padding-top: ${p => p.theme.space.sm};
-  padding-bottom: ${p => p.theme.space.sm};
-  padding-left: ${p => p.theme.space['3xl']};
-  padding-right: ${p => p.theme.space.sm};
+  padding-top: calc(${p => p.theme.space.xs} + 1px);
+  padding-bottom: calc(${p => p.theme.space.xs} + 1px);
+  padding-left: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.xs});
+  padding-right: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.xs});
 
   &::selection {
     background: rgba(0, 0, 0, 0.2);
   }
 
-  :placeholder-shown {
+  &:not(:focus) {
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   [disabled] {

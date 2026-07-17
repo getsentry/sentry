@@ -47,11 +47,9 @@ export function AskSeerSearchPopover(props: PopoverProps) {
           };
         }}
       >
-        {hasAskSeerUxRework ? (
-          children
-        ) : (
-          <BackgroundColorWrapper>{children}</BackgroundColorWrapper>
-        )}
+        <BackgroundColorWrapper $hasAskSeerUxRework={hasAskSeerUxRework}>
+          {children}
+        </BackgroundColorWrapper>
       </ListBoxOverlay>
     </StyledPositionWrapper>
   );
@@ -65,8 +63,11 @@ const ListBoxOverlay = styled(Overlay)`
   border-top-right-radius: 0;
 `;
 
-const BackgroundColorWrapper = styled('div')`
-  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+const BackgroundColorWrapper = styled('div')<{$hasAskSeerUxRework: boolean}>`
+  background-color: ${p =>
+    p.$hasAskSeerUxRework
+      ? p.theme.tokens.background.primary
+      : p.theme.tokens.background.transparent.accent.muted};
 `;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
