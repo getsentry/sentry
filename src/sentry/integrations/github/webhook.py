@@ -52,6 +52,11 @@ from sentry.integrations.utils.metrics import IntegrationWebhookEvent, Integrati
 from sentry.integrations.utils.scope import clear_organization_info
 from sentry.integrations.utils.sync import sync_group_assignee_inbound_by_external_actor
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
+from sentry.issues.action_log import (
+    ActionSource,
+    action_context_scope,
+    resolve_action_actor,
+)
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
@@ -1377,7 +1382,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         return options.get("github-app.webhook-secret")
 
     def post(self, request: HttpRequest) -> HttpResponse:
-        return self.handle(request)
+        with action_context_scope(ActionSource.GITHUB, resolve_action_actor(request)):
+            return self.handle(request)
 
     def handle(self, request: HttpRequest) -> HttpResponse:
         clear_organization_info()
