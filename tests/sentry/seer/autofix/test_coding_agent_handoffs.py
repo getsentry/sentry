@@ -82,7 +82,7 @@ class SyncCodingAgentStatusTest(TestCase):
     def test_updates_seer_and_returns_known_to_seer(self, mock_update_state: Mock) -> None:
         mock_update_state.return_value = True
 
-        known_to_seer = sync_coding_agent_status(
+        result = sync_coding_agent_status(
             agent_id="agent-1",
             organization_id=self.organization.id,
             status=CodingAgentStatus.COMPLETED,
@@ -95,11 +95,28 @@ class SyncCodingAgentStatusTest(TestCase):
             agent_url="https://github.com/copilot/agents/agent-1",
             result=None,
         )
-        assert known_to_seer is True
+        assert result.known_to_seer is True
+        assert result.run_id == RUN_STATE_ID
+        assert result.group_id is None
 
         self.handoff.refresh_from_db()
         assert self.handoff.status == "completed"
         assert self.handoff.extras["agent_url"] == "https://github.com/copilot/agents/agent-1"
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_resolves_group_id_from_seer_agent_run(self, mock_update_state: Mock) -> None:
+        mock_update_state.return_value = True
+        group = self.create_group()
+        self.create_seer_agent_run(self.seer_run, group=group)
+
+        result = sync_coding_agent_status(
+            agent_id="agent-1",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+        )
+
+        assert result.run_id == RUN_STATE_ID
+        assert result.group_id == group.id
 
     @patch(MOCK_UPDATE_STATE_PATH)
     def test_returns_false_when_seer_does_not_recognize_agent(
@@ -107,13 +124,13 @@ class SyncCodingAgentStatusTest(TestCase):
     ) -> None:
         mock_update_state.return_value = False
 
-        known_to_seer = sync_coding_agent_status(
+        result = sync_coding_agent_status(
             agent_id="agent-1",
             organization_id=self.organization.id,
             status=CodingAgentStatus.COMPLETED,
         )
 
-        assert known_to_seer is False
+        assert result.known_to_seer is False
         # The Sentry-side row still updates even if Seer didn't recognize the agent --
         # the two systems are independent, so the return value is informational only.
         self.handoff.refresh_from_db()
@@ -122,13 +139,17 @@ class SyncCodingAgentStatusTest(TestCase):
     @patch(MOCK_UPDATE_STATE_PATH)
     def test_skips_seer_call_when_local_save_fails(self, mock_update_state: Mock) -> None:
         with patch.object(SeerRunCodingAgentHandoff, "save", side_effect=Exception("db blip")):
-            known_to_seer = sync_coding_agent_status(
+            result = sync_coding_agent_status(
                 agent_id="agent-1",
                 organization_id=self.organization.id,
                 status=CodingAgentStatus.COMPLETED,
             )
 
-        assert known_to_seer is False
+        assert result.known_to_seer is False
+        # run_id/group_id are resolved before the local save is attempted, so a
+        # save failure doesn't leave the caller without this data too.
+        assert result.run_id == RUN_STATE_ID
+        assert result.group_id is None
         mock_update_state.assert_not_called()
         self.handoff.refresh_from_db()
         assert self.handoff.status == "pending"
@@ -143,13 +164,13 @@ class SyncCodingAgentStatusTest(TestCase):
         mock_update_state.return_value = True
 
         with patch.object(SeerRunCodingAgentHandoff, "save", side_effect=Exception("db blip")):
-            known_to_seer = sync_coding_agent_status(
+            result = sync_coding_agent_status(
                 agent_id="agent-cursor",
                 organization_id=self.organization.id,
                 status=CodingAgentStatus.COMPLETED,
             )
 
-        assert known_to_seer is True
+        assert result.known_to_seer is True
         mock_update_state.assert_called_once_with(
             agent_id="agent-cursor",
             status=CodingAgentStatus.COMPLETED,
@@ -164,13 +185,15 @@ class SyncCodingAgentStatusTest(TestCase):
     def test_noop_when_agent_id_not_found(self, mock_update_state: Mock, mock_logger: Mock) -> None:
         mock_update_state.return_value = True
 
-        known_to_seer = sync_coding_agent_status(
+        result = sync_coding_agent_status(
             agent_id="does-not-exist",
             organization_id=self.organization.id,
             status=CodingAgentStatus.COMPLETED,
         )
 
-        assert known_to_seer is True
+        assert result.known_to_seer is True
+        assert result.run_id is None
+        assert result.group_id is None
         mock_logger.info.assert_called_once_with(
             "seer.coding_agent_handoff.not_found",
             extra={"agent_id": "does-not-exist", "organization_id": self.organization.id},

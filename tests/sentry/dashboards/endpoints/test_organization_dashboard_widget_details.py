@@ -1485,18 +1485,20 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 200, response.data
 
-    def test_widget_type_tracemetrics_heatmap_requires_flag(self) -> None:
+    def test_heatmap_rejected_for_non_tracemetrics_widget(self) -> None:
+        # Heat maps are only a supported display type for trace metrics widgets;
+        # requesting one for another dataset is rejected on the display type.
         data = {
-            "title": "Test Metrics Heat Map",
-            "widgetType": "tracemetrics",
+            "title": "Test Heat Map",
+            "widgetType": "spans",
             "displayType": "heatmap",
             "queries": [
                 {
                     "name": "",
-                    "conditions": "metric.name:foo",
-                    "fields": ["sum(value)"],
+                    "conditions": "",
+                    "fields": ["count()"],
                     "columns": [],
-                    "aggregates": ["sum(value)"],
+                    "aggregates": ["count()"],
                 },
             ],
         }
@@ -1509,7 +1511,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         assert response.status_code == 400, response.data
         assert "displayType" in response.data, response.data
 
-    def test_widget_type_tracemetrics_heatmap_with_flag(self) -> None:
+    def test_widget_type_tracemetrics_heatmap(self) -> None:
         data = {
             "title": "Test Metrics Heat Map",
             "widgetType": "tracemetrics",
@@ -1525,12 +1527,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 200, response.data
 
     def test_heatmap_rejects_equation_aggregate(self) -> None:
@@ -1549,12 +1550,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 400, response.data
         assert response.data["queries"] == ["Heatmap widgets don't support equations."], (
             response.data
@@ -1583,12 +1583,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 400, response.data
         assert response.data["queries"] == ["Heatmap widgets cannot have multiple queries"], (
             response.data
@@ -1616,12 +1615,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 400, response.data
         assert (
             response.data["queries"][0]["selectedAggregate"]
@@ -1651,12 +1649,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 200, response.data
 
     def test_heatmap_rejects_second_of_multiple_aggregates_when_invalid(self) -> None:
@@ -1682,12 +1679,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 400, response.data
         assert (
             response.data["queries"][0]["aggregates"]
@@ -1710,12 +1706,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 400, response.data
         assert (
             response.data["queries"][0]["aggregates"]
@@ -1738,12 +1733,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 400, response.data
         assert (
             response.data["queries"][0]["aggregates"]
@@ -1766,12 +1760,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 400, response.data
         assert (
             response.data["queries"][0]["columns"]
@@ -1794,12 +1787,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 400, response.data
         assert (
             response.data["queries"][0]["columns"]
@@ -1829,12 +1821,11 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
             ],
         }
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
-            response = self.do_request(
-                "post",
-                self.url(),
-                data=data,
-            )
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
         assert response.status_code == 400, response.data
         assert response.data["thresholds"] == ["Heatmap widgets do not support thresholds."], (
             response.data
