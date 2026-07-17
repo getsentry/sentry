@@ -262,6 +262,8 @@ const config: Config.InitialOptions = {
   moduleNameMapper: {
     '\\.(css|less|png|gif|jpg|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
+    '^sentry/stories/storyManifest\\.generated$':
+      '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',
     '^sentry/(.*)': '<rootDir>/static/app/$1',
     '^@sentry/scraps/(.*)': '<rootDir>/static/app/components/core/$1',
     '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',

@@ -7,13 +7,11 @@ import {Heading} from '@sentry/scraps/text';
 
 import {IconChevron} from 'sentry/icons';
 import type {MDXFrontmatter} from 'sentry/stories/frontmatter';
-import {storyFrontmatterIndex} from 'sentry/stories/storyFrontmatterIndex';
+import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
 import {useStoryParams} from 'sentry/stories/view';
 import {fzf} from 'sentry/utils/search/fzf';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
-
-import {useStoryBookFiles} from './useStoriesLoader';
 
 export class StoryTreeNode {
   public name: string;
@@ -196,8 +194,6 @@ interface StoryHierarchyData {
  * Stories are ordered by section, then by subcategory within components.
  */
 export function useFlatStoryList(): StoryTreeNode[] {
-  const files = useStoryBookFiles();
-
   return useMemo(() => {
     const result: StoryTreeNode[] = [];
 
@@ -211,7 +207,7 @@ export function useFlatStoryList(): StoryTreeNode[] {
       grouped.set(section, {direct: [], bySubcategory: new Map()});
     }
 
-    for (const file of files) {
+    for (const file of storyFiles) {
       const loc = inferStoryLocation(file);
       const sectionData = grouped.get(loc.section);
       if (!sectionData) {
@@ -255,7 +251,7 @@ export function useFlatStoryList(): StoryTreeNode[] {
     }
 
     return result;
-  }, [files]);
+  }, []);
 }
 
 /**
@@ -263,8 +259,6 @@ export function useFlatStoryList(): StoryTreeNode[] {
  * Sections contain stories, and the components section has subcategories.
  */
 export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
-  const files = useStoryBookFiles();
-
   return useMemo(() => {
     const hierarchy = new Map<StorySection, StoryHierarchyData>();
 
@@ -277,7 +271,7 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
     const productFiles: string[] = [];
     const coreFilesBySubcategory = new Map<ComponentSubcategory, string[]>();
 
-    for (const file of files) {
+    for (const file of storyFiles) {
       const loc = inferStoryLocation(file);
       const sectionData = hierarchy.get(loc.section);
       if (!sectionData) {
@@ -328,7 +322,7 @@ export function useStoryHierarchy(): Map<StorySection, StoryHierarchyData> {
     }
 
     return hierarchy;
-  }, [files]);
+  }, []);
 }
 
 function inferFileCategory(path: string): StoryCategory {
@@ -513,16 +507,13 @@ function buildComponentTree(
   // Iterate in display order
   for (const subcategory of COMPONENT_SUBCATEGORY_ORDER) {
     const files = filesBySubcategory.get(subcategory);
-    if (!files || files.length === 0) {
+    if (!files?.[0]) {
       continue;
     }
 
+    const firstFile = files[0];
     const config = COMPONENT_SUBCATEGORY_CONFIG[subcategory];
-    if (!files[0]) {
-      continue;
-    }
-
-    const folderNode = new StoryTreeNode(config.label, subcategory, files[0]);
+    const folderNode = new StoryTreeNode(config.label, subcategory, firstFile);
 
     // Collect subgroup component names for filtering
     const subgroupComponents = new Set(config.subgroups?.flatMap(sg => sg.components));
@@ -541,11 +532,12 @@ function buildComponentTree(
         const subgroupFiles = files.filter(f =>
           subgroup.components.includes(inferComponentName(f).toLowerCase())
         );
-        if (subgroupFiles.length > 0 && subgroupFiles[0]) {
+        const firstSubgroupFile = subgroupFiles[0];
+        if (firstSubgroupFile) {
           const subgroupNode = new StoryTreeNode(
             subgroup.label,
             subcategory,
-            subgroupFiles[0]
+            firstSubgroupFile
           );
           // Add subgroup components in config order (not alphabetically)
           for (const componentName of subgroup.components) {

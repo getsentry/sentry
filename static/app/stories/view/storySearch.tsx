@@ -16,7 +16,7 @@ import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {storyFrontmatterIndex} from 'sentry/stories/storyFrontmatterIndex';
+import {storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
 import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
 import {
   COMPONENT_SUBCATEGORY_CONFIG,
