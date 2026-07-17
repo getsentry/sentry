@@ -74,16 +74,9 @@ def link_pull_request_to_seer_run(
     log_context: Mapping[str, Any],
     coding_agent_handoff: SeerRunCodingAgentHandoff | None = None,
 ) -> PullRequest | None:
-    """Resolve one reported PR and idempotently link it to ``seer_run`` via
-    :class:`SeerRunPullRequest`. Returns the resolved PR, or ``None`` on any
-    failure. Best-effort: every failure is logged and swallowed rather than raised.
-
-    Pass ``coding_agent_handoff`` when the PR was produced by a delegated coding
-    agent handoff, so the link records which handoff produced it (a run can hand
-    off to multiple agents, one per repo, so this disambiguates per-agent outcome).
-
-    Checks the killswitch itself (rather than leaving it to callers) so every
-    write path into :class:`SeerRunPullRequest` is guaranteed to respect it.
+    """Idempotently links one PR to ``seer_run``. Never raises -- returns None on
+    failure. Pass ``coding_agent_handoff`` to record which handoff produced the PR.
+    Checks the killswitch itself so every write path respects it.
     """
     if options.get("seer.pull-request-linking.killswitch.enabled"):
         return None
