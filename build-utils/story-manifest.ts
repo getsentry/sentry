@@ -7,6 +7,10 @@ import {parse as parseYaml} from 'yaml';
 
 const appDir = path.resolve(import.meta.dirname, '../static/app');
 const modulePath = 'app/stories/storyManifest.generated.ts';
+const PLUGIN_NAME = 'StoryManifestPlugin';
+const STORY_GLOB = '**/*.{stories.tsx,mdx}';
+const STORY_FILE_PATTERN = /(?:\.stories\.tsx|\.mdx)$/;
+const WATCH_DEBOUNCE_MS = 25;
 
 function readFrontmatter(file: string) {
   const block = fs
@@ -20,7 +24,7 @@ function readFrontmatter(file: string) {
 
 function createManifest() {
   const files = fs
-    .globSync('**/*.{stories.tsx,mdx}', {cwd: appDir})
+    .globSync(STORY_GLOB, {cwd: appDir})
     .map(file => file.replaceAll('\\', '/'))
     .sort();
   const frontmatter = Object.fromEntries(
@@ -62,14 +66,14 @@ export class StoryManifestPlugin implements RspackPluginInstance {
 
   apply(compiler: Compiler) {
     this.virtualModules.apply(compiler);
-    compiler.hooks.watchRun.tap('StoryManifestPlugin', () => {
+    compiler.hooks.watchRun.tap(PLUGIN_NAME, () => {
       // rspack.config.ts excludes Story files from Rspack's watcher so the
       // manifest can update first. Debounce the duplicate events emitted by
       // editors that save by replacing a file.
       // https://rspack.rs/config/watch#watchoptionsignored
       if (!this.watcher) {
         this.watcher = fs.watch(appDir, {recursive: true}, (_event, filename) => {
-          if (filename && /(?:\.stories\.tsx|\.mdx)$/.test(filename)) {
+          if (filename && STORY_FILE_PATTERN.test(filename)) {
             const file = path.join(appDir, filename);
             this.pending.add(file);
             clearTimeout(this.timer);
@@ -78,22 +82,22 @@ export class StoryManifestPlugin implements RspackPluginInstance {
                 this.flush(compiler);
               } catch (error) {
                 compiler
-                  .getInfrastructureLogger('StoryManifestPlugin')
+                  .getInfrastructureLogger(PLUGIN_NAME)
                   .error('Failed to update the Story manifest', error);
               }
-            }, 25);
+            }, WATCH_DEBOUNCE_MS);
           }
         });
         this.watcher.on('error', error => {
           compiler
-            .getInfrastructureLogger('StoryManifestPlugin')
+            .getInfrastructureLogger(PLUGIN_NAME)
             .error('Story manifest watcher failed', error);
           this.close();
         });
       }
     });
-    compiler.hooks.watchClose.tap('StoryManifestPlugin', () => this.close());
-    compiler.hooks.shutdown.tapPromise('StoryManifestPlugin', async () => this.close());
+    compiler.hooks.watchClose.tap(PLUGIN_NAME, () => this.close());
+    compiler.hooks.shutdown.tapPromise(PLUGIN_NAME, async () => this.close());
   }
 
   private flush(compiler: Compiler) {
