@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1138_groupactionlogentry_date_updated_db_default"),
+        ("sentry", "1139_add_pipeline_hash_to_groupderiveddata"),
     ]
 
     operations = [
