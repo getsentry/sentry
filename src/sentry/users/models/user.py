@@ -11,6 +11,7 @@ from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
 from django.db import IntegrityError, models, router, transaction
 from django.db.models import Count, Q, Subquery
+from django.db.models.functions import Upper
 from django.db.models.query import QuerySet
 from django.dispatch import receiver
 from django.forms import model_to_dict
@@ -33,6 +34,7 @@ from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import Model, control_silo_model, sane_repr
+from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.postgres.transactions import enforce_constraints
@@ -210,6 +212,13 @@ class User(Model, AbstractBaseUser):
     class Meta:
         app_label = "sentry"
         db_table = "auth_user"
+        indexes = (
+            IndexWithPostgresNameLimits(Upper("username"), name="auth_user_username_upper_idx"),
+            IndexWithPostgresNameLimits(Upper("email"), name="auth_user_email_upper_idx"),
+            IndexWithPostgresNameLimits(
+                Upper("email_unique"), name="auth_user_email_unique_upper_idx"
+            ),
+        )
         verbose_name = _("user")
         verbose_name_plural = _("users")
 
