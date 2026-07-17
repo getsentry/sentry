@@ -275,7 +275,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         if debug_file is None:
             raise Http404
 
-        if debug_file.storage_path is not None and features.has(
+        if debug_file.uses_objectstore_for_read() and features.has(
             "organizations:objectstore-debugfiles-direct-read", project.organization
         ):
             return HttpResponseRedirect(debug_file.get_objectstore_presigned_url(self.request))
@@ -840,9 +840,10 @@ def _clone_proguard_debug_file_for_reupload(
         }
 
     meta = build_proguard_reupload_dif_meta(debug_file, requested_debug_id)
-    if debug_file.file is not None:
+    if not debug_file.uses_objectstore_for_read():
+        assert debug_file.file is not None
         dif, created = create_dif_from_id(project, meta, file=debug_file.file)
-    elif debug_file.storage_path is not None:
+    else:
         source_fileobj = debug_file.get_file()
         try:
             # Spool into a temporary file to get a seekable stream.
@@ -852,8 +853,6 @@ def _clone_proguard_debug_file_for_reupload(
                 dif, created = create_dif_from_id(project, meta, fileobj=tmp)
         finally:
             source_fileobj.close()
-    else:
-        raise ValueError("ProjectDebugFile has neither file nor storage_path")
 
     if created:
         record_last_upload(project)
