@@ -117,6 +117,10 @@ export function ExploreSecondaryNavigation() {
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
                 to={`${baseUrl}/releases/`}
+                activeTo={[
+                  `${baseUrl}/releases/`,
+                  `/organizations/${organization.slug}/preprod/`,
+                ]}
                 analyticsItemName="explore_releases"
               >
                 {t('Releases')}
