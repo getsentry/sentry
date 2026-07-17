@@ -150,6 +150,9 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.ACTIVITY_SET_ESCALATING,
         NotificationSource.ACTIVITY_SET_UNRESOLVED,
         NotificationSource.ACTIVITY_SET_IGNORED,
+        NotificationSource.ACTIVITY_NOTE,
+        NotificationSource.ACTIVITY_ASSIGNED,
+        NotificationSource.ACTIVITY_UNASSIGNED,
     ],
 }
 
