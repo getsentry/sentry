@@ -47,6 +47,11 @@ class GroupDerivedData(DefaultFieldsModel):
     # The last time the above column was changed.
     last_progressed_at = models.DateTimeField(null=True, default=None)
 
+    # Pipeline hash stamped at row creation. If it doesn't match the current
+    # pipeline hash, this row wasn't fully generated with the current config
+    # and needs to be regenerated.
+    pipeline_hash = models.CharField(max_length=16, null=True, default=None)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupderiveddata"
