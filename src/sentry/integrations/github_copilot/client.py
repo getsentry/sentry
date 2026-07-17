@@ -117,7 +117,7 @@ class GithubCopilotAgentClient(CodingAgentClient):
             provider=CodingAgentProviderType.GITHUB_COPILOT_AGENT,
             name=f"{owner}/{repo}: GitHub Copilot",
             started_at=started_at,
-            agent_url=None,
+            agent_url=task.html_url,
         )
 
     def get_task_status(self, owner: str, repo: str, task_id: str) -> GithubCopilotTask:

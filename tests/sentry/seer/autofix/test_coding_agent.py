@@ -178,6 +178,7 @@ class TestPollGithubCopilotAgents(TestCase):
             task_status=GithubCopilotTask(
                 id="task-123",
                 state="completed",
+                html_url="https://github.com/getsentry/sentry/copilot/tasks/task-123",
                 artifacts=[
                     GithubCopilotArtifact(
                         provider="github",
@@ -215,6 +216,9 @@ class TestPollGithubCopilotAgents(TestCase):
         assert call_kwargs["agent_id"] == "getsentry:sentry:task-123"
         assert call_kwargs["organization_id"] == self.organization.id
         assert call_kwargs["status"] == CodingAgentStatus.COMPLETED
+        assert (
+            call_kwargs["agent_url"] == "https://github.com/getsentry/sentry/copilot/tasks/task-123"
+        )
         assert call_kwargs["result"].pr_url == "https://github.com/getsentry/sentry/pull/12345"
         assert call_kwargs["result"].description == "Fix the bug"
         assert call_kwargs["result"].repo_full_name == "getsentry/sentry"
@@ -452,6 +456,7 @@ class TestPollGithubCopilotAgents(TestCase):
             agent_id="getsentry:sentry:task-123",
             organization_id=self.organization.id,
             status=CodingAgentStatus.FAILED,
+            agent_url=None,
             result=None,
         )
 
