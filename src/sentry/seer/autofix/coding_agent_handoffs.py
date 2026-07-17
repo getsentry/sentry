@@ -140,9 +140,7 @@ def sync_coding_agent_status(
                 coding_agent_handoff=handoff,
             )
 
-    # Do this last: it's a network call to Seer, and nothing above depends on
-    # its result except known_to_seer itself (consumed by callers to gate PR
-    # attribution) -- the local bookkeeping above shouldn't wait behind it.
+    # Do this last -- it's the only network call here, and nothing above needs its result.
     known_to_seer = update_coding_agent_state(
         agent_id=agent_id, status=status, agent_url=agent_url, result=result
     )
