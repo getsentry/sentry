@@ -2064,6 +2064,33 @@ class TestGetEventDetails(
 
         self._assert_event_response_shape(result, expected_event_id=event.event_id)
 
+    def test_format_returns_shared_formatter_output(self) -> None:
+        event = self._make_error_event()
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=event.event_id,
+            project_slug=self.project.slug,
+            format="markdown",
+        )
+
+        assert result is not None
+        assert result["formatted"] is not None
+        assert "## Title" in result["formatted"]
+        assert "## Exception" in result["formatted"]
+
+    def test_no_format_omits_formatted(self) -> None:
+        event = self._make_error_event()
+
+        result = get_event_details(
+            organization_id=self.organization.id,
+            event_id=event.event_id,
+            project_slug=self.project.slug,
+        )
+
+        assert result is not None
+        assert result["formatted"] is None
+
     def test_by_event_id_multi_project(self) -> None:
         """Fetching by event_id without project_slug hits the multi-project code path."""
         self.create_project(organization=self.organization)  # second project → multi-project path

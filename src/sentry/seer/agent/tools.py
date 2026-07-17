@@ -24,6 +24,13 @@ from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.issues.formatting.formatter import Format
+from sentry.issues.formatting.limits import LIMITS_DEFAULT, LIMITS_LOW
+from sentry.issues.formatting.sections import (
+    EVENT_SECTIONS,
+    breadcrumbs_section,
+    format_issue,
+)
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -1984,6 +1991,9 @@ def get_event_details(
     start: str | None = None,
     end: str | None = None,
     project_slug: str | None = None,
+    format: Format | None = None,
+    format_limits: str = "default",
+    include_breadcrumbs: bool = True,
 ) -> EventDetailsResponse | None:
     """
     Get event details by event ID, or get the recommended event for an issue, optionally scoped by time range.
@@ -2085,12 +2095,24 @@ def get_event_details(
     serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
     serialized_event.update(_get_event_troubleshooting_context(event))
 
+    # Opt-in shared-formatter output for Seer (so it drops its own EventDetails.format_event).
+    formatted: str | None = None
+    if format is not None:
+        limits = LIMITS_LOW if format_limits == "low" else LIMITS_DEFAULT
+        sections = (
+            EVENT_SECTIONS
+            if include_breadcrumbs
+            else [section for section in EVENT_SECTIONS if section is not breadcrumbs_section]
+        )
+        formatted = format_issue(serialized_event, format=format, sections=sections, limits=limits)
+
     return EventDetailsResponse(
         event=serialized_event,
         event_id=event.event_id,
         event_trace_id=event.trace_id,
         project_id=event.project_id,
         project_slug=event.project.slug,
+        formatted=formatted,
     )
 
 
