@@ -2,7 +2,7 @@ import random
 
 import sentry_sdk
 
-from sentry import features
+from sentry import features, options
 from sentry.models.organization import Organization
 from sentry.utils import metrics
 
@@ -27,8 +27,9 @@ def should_send_nudge_block(
     if not features.has("organizations:slack-reinstall-nudge-on-issue-alert", organization):
         return False
 
-    # only 30% of the alerts should have the nudge blocks
-    if random.random() >= 0.3:
+    # Configurable frequency of nudge blocks (default 0.3 = 30%)
+    nudge_frequency = options.get("slack.nudge-frequency")
+    if random.random() >= nudge_frequency:
         record_nudge_metric("skipped_random_check")
         return False
 
