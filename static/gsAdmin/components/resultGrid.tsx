@@ -1,4 +1,4 @@
-import {cloneElement, Component, isValidElement} from 'react';
+import {cloneElement, Component, Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -336,6 +336,23 @@ const onlyRegionChanged = (prev: Location['query'], next: Location['query']) => 
   return [...keys].every(key => extractQuery(prev[key]) === extractQuery(next[key]));
 };
 
+/**
+ * Regions in order of operator importance; anything unlisted sorts after
+ * these, alphabetically. Drives the row, chip, and reveal order of the
+ * all-region view instead of trusting the config's cell order.
+ */
+const REGION_PRIORITY = ['us', 'de'];
+
+const regionPriority = (cell: Cell) => {
+  const index = REGION_PRIORITY.indexOf(cell.name);
+  return index === -1 ? REGION_PRIORITY.length : index;
+};
+
+const sortCellsByPriority = (cells: Cell[]) =>
+  [...cells].sort(
+    (a, b) => regionPriority(a) - regionPriority(b) || a.name.localeCompare(b.name)
+  );
+
 class ResultGridImpl extends Component<ResultGridProps, State> {
   static defaultProps: Partial<ResultGridProps> = {
     method: 'GET',
@@ -527,7 +544,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
     });
 
     if (fetchingAllRegions) {
-      this.fetchAllRegions({...queryParams, query}, cells);
+      this.fetchAllRegions({...queryParams, query}, sortCellsByPriority(cells));
       return;
     }
 
@@ -750,29 +767,48 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
   };
 
   /**
-   * The rows (and their regions) to display. In the all-region view an active
-   * Region filter is applied here, client-side, so switching it never
-   * refetches and the other regions' data stays warm.
+   * The rows (and their regions) to display.
+   *
+   * In the all-region view an active Region filter is applied here,
+   * client-side, so switching it never refetches. Without a filter, rows
+   * reveal in strict priority order: a region's rows only show once every
+   * higher-priority region has settled, so streamed results never insert
+   * above rows the operator is already reading.
    */
   getVisibleRows(): {rowCells: Cell[]; rows: any[]} {
-    const {rows, rowCells, fetchingAllRegions} = this.state;
+    const {rows, rowCells, fetchingAllRegions, regionResults} = this.state;
     if (!fetchingAllRegions) {
       return {rows, rowCells};
     }
+
+    const visible = (predicate: (cell: Cell) => boolean) => {
+      const visibleRows: any[] = [];
+      const visibleCells: Cell[] = [];
+      rows.forEach((row, i) => {
+        const cell = rowCells[i];
+        if (cell && predicate(cell)) {
+          visibleRows.push(row);
+          visibleCells.push(cell);
+        }
+      });
+      return {rows: visibleRows, rowCells: visibleCells};
+    };
+
+    // A filtered view is not gated on other regions — the filtered region's
+    // rows show as soon as they arrive.
     const region = extractQuery(this.state.filters.region);
-    if (!region) {
+    if (region) {
+      return visible(cell => cell.name === region);
+    }
+
+    const firstPending = regionResults.findIndex(r => r.status === 'loading');
+    if (firstPending === -1) {
       return {rows, rowCells};
     }
-    const visibleRows: any[] = [];
-    const visibleCells: Cell[] = [];
-    rows.forEach((row, i) => {
-      const cell = rowCells[i];
-      if (cell?.name === region) {
-        visibleRows.push(row);
-        visibleCells.push(cell);
-      }
-    });
-    return {rows: visibleRows, rowCells: visibleCells};
+    const revealed = new Set(
+      regionResults.slice(0, firstPending).map(r => r.cell.locality_url)
+    );
+    return visible(cell => revealed.has(cell.locality_url));
   }
 
   /**
@@ -797,6 +833,51 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
           <LoadingIndicator>Hold on to your butts!</LoadingIndicator>
         </td>
       </tr>
+    );
+  }
+
+  /**
+   * Slim row marking where held-back region results will land while their
+   * region (or a higher-priority one) is still loading.
+   */
+  renderPendingRegions() {
+    if (!this.state.fetchingAllRegions) {
+      return null;
+    }
+    const region = extractQuery(this.state.filters.region);
+    const pending = this.state.regionResults.filter(r => r.status === 'loading');
+    const relevant = region ? pending.filter(r => r.cell.name === region) : pending;
+    if (relevant.length === 0) {
+      return null;
+    }
+    return (
+      <tr>
+        <td colSpan={this.getColumns().length}>
+          <PendingRegionNote>
+            <LoadingIndicator size={14} relative style={{margin: 0}} />
+            {`Searching ${relevant.map(r => r.cell.name).join(', ')}…`}
+          </PendingRegionNote>
+        </td>
+      </tr>
+    );
+  }
+
+  renderBody() {
+    if (this.state.error) {
+      return this.renderError();
+    }
+    // Revealed rows and the pending-region marker can coexist: results stream
+    // in per region while lower-priority regions are still being searched.
+    const hasVisibleRows = this.getVisibleRows().rows.length > 0;
+    const pendingRow = this.renderPendingRegions();
+    if (!hasVisibleRows && !pendingRow) {
+      return this.state.loading ? this.renderLoading() : this.renderNoResults();
+    }
+    return (
+      <Fragment>
+        {hasVisibleRows && this.renderResults()}
+        {pendingRow}
+      </Fragment>
     );
   }
 
@@ -981,17 +1062,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
           <thead>
             <tr>{columns}</tr>
           </thead>
-          <tbody>
-            {/* Rows win over the loading state so all-region results can
-                stream in while slower regions are still being fetched. */}
-            {this.state.error
-              ? this.renderError()
-              : this.getVisibleRows().rows.length > 0
-                ? this.renderResults()
-                : this.state.loading
-                  ? this.renderLoading()
-                  : this.renderNoResults()}
-          </tbody>
+          <tbody>{this.renderBody()}</tbody>
         </ResultTable>
       </TableScrollWrapper>
     );
@@ -1090,7 +1161,7 @@ class ResultGridImpl extends Component<ResultGridProps, State> {
               <Filter
                 name="Region"
                 queryKey="region"
-                options={cells.map((c): Option => [c.name, c.name])}
+                options={sortCellsByPriority(cells).map((c): Option => [c.name, c.name])}
                 value={extractQuery(this.state.filters.region)}
                 path={path}
                 location={location}
@@ -1189,6 +1260,15 @@ const RegionHintAlert = styled(Alert)`
 
 const RegionSummaryRow = styled('div')`
   margin-bottom: ${p => p.theme.space.md};
+`;
+
+const PendingRegionNote = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${p => p.theme.space.sm};
+  padding: ${p => p.theme.space.md};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
 `;
 
 const PushRight = styled('div')`

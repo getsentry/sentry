@@ -137,6 +137,80 @@ describe('ResultGrid allRegions', () => {
     );
   });
 
+  it('holds lower-priority rows until higher-priority regions settle', async () => {
+    // us is the slowest region but must render first — its late rows would
+    // otherwise insert above de rows the operator is already reading.
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      body: [{id: '1', name: 'Acme Inc'}],
+      asyncDelay: 300,
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [{id: '2', name: 'Acme GmbH'}],
+    });
+
+    renderGrid('acme');
+
+    // de settled: its count is visible but its rows are held back.
+    expect(await screen.findByText('de: 1')).toBeInTheDocument();
+    expect(screen.queryByText('Acme GmbH')).not.toBeInTheDocument();
+    expect(screen.getByText(/Searching us/)).toBeInTheDocument();
+
+    // us settles: everything appears at once, us first.
+    expect(await screen.findByText('Acme Inc')).toBeInTheDocument();
+    expect(screen.getByText('Acme GmbH')).toBeInTheDocument();
+    expect(screen.queryByText(/Searching/)).not.toBeInTheDocument();
+
+    const rowTexts = screen.getAllByRole('row').map(row => row.textContent ?? '');
+    expect(rowTexts.findIndex(text => text.includes('Acme Inc'))).toBeLessThan(
+      rowTexts.findIndex(text => text.includes('Acme GmbH'))
+    );
+  });
+
+  it('orders regions by priority regardless of config order', async () => {
+    ConfigStore.set('cells', [
+      {name: 'de', locality_url: DE_URL},
+      {name: 'us', locality_url: US_URL},
+    ] as any);
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      body: [{id: '1', name: 'Acme Inc'}],
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [{id: '2', name: 'Acme GmbH'}],
+    });
+
+    renderGrid('acme');
+
+    expect(await screen.findByText('Acme Inc')).toBeInTheDocument();
+    const rowTexts = screen.getAllByRole('row').map(row => row.textContent ?? '');
+    expect(rowTexts.findIndex(text => text.includes('Acme Inc'))).toBeLessThan(
+      rowTexts.findIndex(text => text.includes('Acme GmbH'))
+    );
+  });
+
+  it('reveals a filtered region as soon as it arrives, without waiting for priority', async () => {
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/us/customers/',
+      body: [{id: '1', name: 'Acme Inc'}],
+      asyncDelay: 300,
+    });
+    MockApiClient.addMockResponse({
+      url: '/_admin/cells/de/customers/',
+      body: [{id: '2', name: 'Acme GmbH'}],
+    });
+
+    renderGrid('acme', {region: 'de'});
+
+    // The de rows show while us is still loading — the filter already
+    // excludes us rows, so there is nothing to hold for.
+    expect(await screen.findByText('Acme GmbH')).toBeInTheDocument();
+    expect(screen.queryByText(/Searching/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Acme Inc')).not.toBeInTheDocument();
+  });
+
   it('fetches a single region when the Region filter is set', async () => {
     const usRequest = MockApiClient.addMockResponse({
       url: '/_admin/cells/us/customers/',
