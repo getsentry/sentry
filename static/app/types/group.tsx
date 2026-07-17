@@ -4,6 +4,7 @@ import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
 import type {ParsedOwnershipRule} from 'sentry/types/ownership';
 import type {FieldKind} from 'sentry/utils/fields';
+import type {ProgressState} from 'sentry/views/issueList/utils/progress';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
@@ -1175,6 +1176,16 @@ export const enum FixabilityScoreThresholds {
   SUPER_LOW = 'super_low',
 }
 
+export interface GroupDerivedData {
+  hasOpenFixPr: boolean;
+  hasRootCause: boolean;
+  isAssigned: boolean;
+  lastProgressedAt: string | null;
+  progress: ProgressState;
+  status: 'open' | 'closed';
+  viewCount: number;
+}
+
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
@@ -1209,6 +1220,7 @@ export interface BaseGroup {
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
+  derivedData?: GroupDerivedData;
   inbox?: InboxDetails | null | false;
   integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
