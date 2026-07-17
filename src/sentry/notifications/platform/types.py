@@ -143,6 +143,10 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.ACTIVITY_SET_RESOLVED_IN_RELEASE,
         NotificationSource.ACTIVITY_SET_RESOLVED_BY_AGE,
         NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT,
+        NotificationSource.ACTIVITY_SET_REGRESSION,
+        NotificationSource.ACTIVITY_SET_ESCALATING,
+        NotificationSource.ACTIVITY_SET_UNRESOLVED,
+        NotificationSource.ACTIVITY_SET_IGNORED,
     ],
 }
 

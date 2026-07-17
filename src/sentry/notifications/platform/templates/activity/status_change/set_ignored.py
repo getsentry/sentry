@@ -29,14 +29,14 @@ def get_archive_explanation(data: ActivityNotificationData) -> str:
     if not data.activity_data:
         return "has been archived forever."
 
-    ignore_duration = data.activity_data.get("ignore_duration")
+    ignore_duration = data.activity_data.get("ignoreDuration")
 
     if ignore_duration:
         duration = format_duration(int(ignore_duration))
         return f"has been archived for {duration}."
 
-    ignore_count = data.activity_data.get("ignore_count")
-    ignore_window = data.activity_data.get("ignore_window")
+    ignore_count = data.activity_data.get("ignoreCount")
+    ignore_window = data.activity_data.get("ignoreWindow")
     if ignore_count and ignore_window:
         window = format_duration(int(ignore_window))
         return f"has been archived until it happens {ignore_count} time(s) in {window}."
@@ -44,8 +44,8 @@ def get_archive_explanation(data: ActivityNotificationData) -> str:
     if ignore_count:
         return f"has been archived until it happens {ignore_count} time(s)."
 
-    ignore_user_count = data.activity_data.get("ignore_user_count")
-    ignore_user_window = data.activity_data.get("ignore_user_window")
+    ignore_user_count = data.activity_data.get("ignoreUserCount")
+    ignore_user_window = data.activity_data.get("ignoreUserWindow")
     if ignore_user_count and ignore_user_window:
         window = format_duration(int(ignore_user_window))
         return f"has been archived until it affects {ignore_user_count} user(s) in {window}."
@@ -53,11 +53,11 @@ def get_archive_explanation(data: ActivityNotificationData) -> str:
     if ignore_user_count:
         return f"has been archived until it affects {ignore_user_count} user(s)."
 
-    ignore_until = data.activity_data.get("ignore_until")
+    ignore_until = data.activity_data.get("ignoreUntil")
     if ignore_until:
         return f"has been archived until {ignore_until}."
 
-    ignore_until_escalating = data.activity_data.get("ignore_until_escalating")
+    ignore_until_escalating = data.activity_data.get("ignoreUntilEscalating")
     if ignore_until_escalating:
         return "has been archived until it escalates."
 
