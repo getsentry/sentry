@@ -20,8 +20,7 @@ import {
 import {NODE_ENV} from 'sentry/constants';
 import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
-import {useStoryBookFiles} from 'sentry/stories/view/useStoriesLoader';
+import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -32,6 +31,10 @@ const CURSOR_OFFSET_RIGHT = 4;
 const CURSOR_OFFSET_LEFT = 8;
 const CURSOR_OFFSET_TOP = 8;
 const CURSOR_OFFSET_BOTTOM = 4;
+const storybookFilesLookup = storyFiles.reduce<Record<string, string>>((acc, file) => {
+  acc[file] = file;
+  return acc;
+}, {});
 
 export function SentryComponentInspector() {
   const theme = useTheme();
@@ -294,16 +297,6 @@ export function SentryComponentInspector() {
       ref.style.top = `${position.top}px`;
     }
   };
-
-  const storybookFiles = useStoryBookFiles();
-  const storybookFilesLookup = useMemo(
-    () =>
-      storybookFiles.reduce<Record<string, string>>((acc, file) => {
-        acc[file] = file;
-        return acc;
-      }, {}),
-    [storybookFiles]
-  );
 
   if (NODE_ENV !== 'development') {
     return null;
@@ -688,10 +681,10 @@ function computeTooltipPosition(
   let left = x + CURSOR_OFFSET_LEFT;
 
   if (x > innerWidth * 0.7) {
-    left = x - (container.offsetWidth || 0) - CURSOR_OFFSET_RIGHT;
+    left = x - container.offsetWidth - CURSOR_OFFSET_RIGHT;
   }
   if (y > innerHeight * 0.7) {
-    top = y - (container.offsetHeight || 0) - CURSOR_OFFSET_BOTTOM;
+    top = y - container.offsetHeight - CURSOR_OFFSET_BOTTOM;
   }
 
   return {
@@ -719,7 +712,9 @@ function getSourcePath(el: unknown): string {
 }
 
 const getFileName = (path: string) => {
-  return (path.split('/').pop()?.toLowerCase() || '')
+  return path
+    .slice(path.lastIndexOf('/') + 1)
+    .toLowerCase()
     .replace(/\.stories\.tsx$/, '')
     .replace(/\.tsx$/, '')
     .replace(/\.mdx$/, '');
@@ -730,10 +725,6 @@ function getComponentStorybookFile(
   stories: Record<string, string>
 ): string | null {
   const sourcePath = getSourcePath(el);
-  if (!sourcePath) {
-    return null;
-  }
-
   const mdxSourcePath = sourcePath.replace(/\.tsx$/, '.mdx');
 
   if (stories[mdxSourcePath] && getFileName(mdxSourcePath) === getFileName(sourcePath)) {

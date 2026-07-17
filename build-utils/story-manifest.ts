@@ -35,6 +35,7 @@ function createManifest() {
 export const storyImports: Record<string, () => Promise<unknown>> = {
 ${files.map((file, i) => `  ${JSON.stringify(`app/${file}`)}: () => import(${JSON.stringify(requests[i])}),`).join('\n')}
 };
+export const storyFiles = Object.keys(storyImports);
 export const storyFrontmatterIndex = ${JSON.stringify(frontmatter)};
 let hmrVersion = 0;
 const hmrListeners = new Set<() => void>();
@@ -66,14 +67,30 @@ export class StoryManifestPlugin implements RspackPluginInstance {
       // manifest can update first. Debounce the duplicate events emitted by
       // editors that save by replacing a file.
       // https://rspack.rs/config/watch#watchoptionsignored
-      this.watcher ??= fs.watch(appDir, {recursive: true}, (_event, filename) => {
-        if (filename && /(?:\.stories\.tsx|\.mdx)$/.test(filename)) {
-          const file = path.join(appDir, filename);
-          this.pending.add(file);
-          clearTimeout(this.timer);
-          this.timer = setTimeout(() => this.flush(compiler), 25);
-        }
-      });
+      if (!this.watcher) {
+        this.watcher = fs.watch(appDir, {recursive: true}, (_event, filename) => {
+          if (filename && /(?:\.stories\.tsx|\.mdx)$/.test(filename)) {
+            const file = path.join(appDir, filename);
+            this.pending.add(file);
+            clearTimeout(this.timer);
+            this.timer = setTimeout(() => {
+              try {
+                this.flush(compiler);
+              } catch (error) {
+                compiler
+                  .getInfrastructureLogger('StoryManifestPlugin')
+                  .error('Failed to update the Story manifest', error);
+              }
+            }, 25);
+          }
+        });
+        this.watcher.on('error', error => {
+          compiler
+            .getInfrastructureLogger('StoryManifestPlugin')
+            .error('Story manifest watcher failed', error);
+          this.close();
+        });
+      }
     });
     compiler.hooks.watchClose.tap('StoryManifestPlugin', () => this.close());
     compiler.hooks.shutdown.tapPromise('StoryManifestPlugin', async () => this.close());
@@ -85,12 +102,23 @@ export class StoryManifestPlugin implements RspackPluginInstance {
     const changedExistingStory = [...changed].some(file =>
       this.manifest.files.has(path.relative(appDir, file).replaceAll('\\', '/'))
     );
-    const next = createManifest();
-    const manifestChanged = next.source !== this.manifest.source;
+    // Existing TS Stories cannot change the file list or MDX metadata, so avoid
+    // rescanning every Story and reparsing every MDX file for that common case.
+    const shouldRebuildManifest =
+      removed.size > 0 ||
+      [...changed].some(file => {
+        const relativeFile = path.relative(appDir, file).replaceAll('\\', '/');
+        return file.endsWith('.mdx') || !this.manifest.files.has(relativeFile);
+      });
+    let manifestChanged = false;
 
-    if (manifestChanged) {
-      this.manifest = next;
-      this.virtualModules.writeModule(modulePath, next.source);
+    if (shouldRebuildManifest) {
+      const next = createManifest();
+      manifestChanged = next.source !== this.manifest.source;
+      if (manifestChanged) {
+        this.manifest = next;
+        this.virtualModules.writeModule(modulePath, next.source);
+      }
     }
     if (!manifestChanged || changedExistingStory) {
       // Pass exact paths back to Rspack so incremental compilation can

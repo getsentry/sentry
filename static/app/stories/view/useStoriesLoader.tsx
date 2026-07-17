@@ -51,16 +51,7 @@ export function isMDXStory(story: StoryDescriptor): story is MDXStoryDescriptor 
   return story.filename.endsWith('.mdx');
 }
 
-export function useStoryBookFiles() {
-  useSyncExternalStore(subscribeToStoriesHmr, getStoriesHmrVersion);
-  return Object.keys(storyImports);
-}
-
 async function importStory(filename: string): Promise<StoryDescriptor> {
-  if (!filename) {
-    throw new Error(`Filename is required, got ${filename}`);
-  }
-
   const loadStory = storyImports[filename];
   if (!loadStory) {
     throw new Error(`Unknown story: ${filename}`);
