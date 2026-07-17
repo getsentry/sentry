@@ -7,6 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
+import * as analytics from 'sentry/utils/analytics';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {
   AsyncSDKIntegrationContextProvider,
@@ -44,7 +45,7 @@ function InstallFeedbackIntegration() {
   return null;
 }
 
-function renderPollingComboBox(features: string[]) {
+function renderPollingComboBox(features: string[], withFeedback = true) {
   const {organization} = initializeOrg({
     organization: {features, hideAiFeatures: false},
   });
@@ -58,8 +59,10 @@ function renderPollingComboBox(features: string[]) {
         applySeerSearchQuery={() => {}}
       />
     </SearchQueryBuilderProvider>,
-    {organization, additionalWrapper: FeedbackProvider}
+    withFeedback ? {organization, additionalWrapper: FeedbackProvider} : {organization}
   );
+
+  return {organization};
 }
 
 async function submitQuery() {
@@ -96,5 +99,58 @@ describe('AskSeerPollingComboBox loading state', () => {
     expect(await screen.findByRole('status')).toHaveTextContent("I'm on it...");
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
+  });
+});
+
+describe('AskSeerPollingComboBox results', () => {
+  beforeEach(() => {
+    destroyAnnouncer();
+    MockApiClient.clearMockResponses();
+  });
+
+  it('regenerates results when feedback is unavailable', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const startRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 123},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/123/',
+      body: {
+        session: {
+          status: 'completed',
+          current_step: null,
+          completed_steps: [],
+          final_response: {query: 'span.duration:>30s'},
+        },
+      },
+    });
+    const {organization} = renderPollingComboBox(
+      ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+      false
+    );
+
+    await submitQuery();
+    const regenerateButton = await screen.findByRole('button', {
+      name: 'Generate again',
+    });
+    expect(regenerateButton).toBeEnabled();
+
+    const input = screen.getByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.clear(input);
+    expect(regenerateButton).toBeEnabled();
+
+    await userEvent.click(regenerateButton);
+
+    expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
+    expect(startRequest).toHaveBeenCalledTimes(2);
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith('ai_query.regenerated', {
+      organization,
+      area: '',
+      natural_language_query: 'find slow spans',
+    });
   });
 });

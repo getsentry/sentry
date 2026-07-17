@@ -10,6 +10,7 @@ import type {UseMutationOptions} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -34,7 +35,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
+import {IconClose, IconMegaphone, IconSearch, IconSync} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -576,6 +577,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
 
   const showLoading = isSessionPending || isPolling;
   const hasResults = queries.length > 0;
+  const isDisplayingResults = !showLoading && !isSessionError && hasResults;
 
   return (
     <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
@@ -631,24 +633,59 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             state={state}
             onMouseLeave={onMouseLeave}
           />
-          {openForm && !hasAskSeerUxRework ? (
-            <SeerFooter onMouseDown={e => e.preventDefault()}>
-              <Button
-                size="xs"
-                icon={<IconMegaphone />}
-                onClick={() =>
-                  openForm({
-                    messagePlaceholder: t('How can we make Seer search better for you?'),
-                    tags: {
-                      ['feedback.source']: `ai_query.${analyticsArea}`,
-                      ['feedback.owner']: 'ml-ai',
-                    },
-                  })
-                }
-              >
-                {t('Give Feedback')}
-              </Button>
-            </SeerFooter>
+          {(hasAskSeerUxRework ? isDisplayingResults : openForm) ? (
+            <Flex
+              justify={hasAskSeerUxRework ? 'between' : 'end'}
+              borderTop="primary"
+              paddingTop="sm"
+              paddingBottom="sm"
+              paddingLeft="md"
+              paddingRight="md"
+              background={hasAskSeerUxRework ? 'secondary' : 'primary'}
+              onMouseDown={e => e.preventDefault()}
+            >
+              {hasAskSeerUxRework ? (
+                <Button
+                  icon={<IconSync />}
+                  size="zero"
+                  onClick={() => {
+                    const query = searchQuery.trim() || askSeerNLQueryRef.current?.trim();
+                    if (!query) {
+                      return;
+                    }
+
+                    trackAnalytics('ai_query.regenerated', {
+                      organization,
+                      area: analyticsArea,
+                      natural_language_query: query,
+                    });
+                    reset();
+                    submitQuery(query);
+                  }}
+                >
+                  {t('Generate again')}
+                </Button>
+              ) : null}
+              {openForm ? (
+                <Button
+                  size={hasAskSeerUxRework ? 'zero' : 'xs'}
+                  icon={<IconMegaphone />}
+                  onClick={() =>
+                    openForm({
+                      messagePlaceholder: t(
+                        'How can we make Seer search better for you?'
+                      ),
+                      tags: {
+                        ['feedback.source']: `ai_query.${analyticsArea}`,
+                        ['feedback.owner']: 'ml-ai',
+                      },
+                    })
+                  }
+                >
+                  {t('Give Feedback')}
+                </Button>
+              ) : null}
+            </Flex>
           ) : null}
         </AskSeerSearchPopover>
       ) : null}
@@ -725,14 +762,6 @@ const ButtonsWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-`;
-
-const SeerFooter = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  padding: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const SeerContent = styled('div')`
