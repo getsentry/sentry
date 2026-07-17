@@ -1,0 +1,53 @@
+name: complete-hook-dependencies
+severity: error
+tags: [react, react-compiler, hooks, memoization]
+
+why: |
+  A dependency list declares every reactive value used by an Effect, memo, or
+  callback. Missing a dependency leaves the callback synchronized with an old
+  render. Unnecessary dependencies cause needless work or reveal that the code
+  models the wrong lifecycle. The compiler must be able to prove the list
+  matches the callback.
+
+  This convention corresponds to the React Compiler `MemoDependencies`
+  diagnostic, including missing dependencies, unnecessary dependencies, and
+  stable-looking ref/setter values whose binding may change over time.
+
+  See: https://react.dev/reference/eslint-plugin-react-hooks/lints/exhaustive-deps
+
+detect: |
+  For `useEffect`, `useLayoutEffect`, `useMemo`, `useCallback`, and custom hooks
+  that accept dependency arrays, compare the callback's reactive reads with the
+  dependency list.
+
+  Flag:
+    - A reactive prop, state value, local binding, function, or property path
+      used by the callback but omitted from the list.
+    - A listed dependency not used by the callback.
+    - A supposedly stable dependency whose variable can later point to a
+      different ref, setter, or object.
+    - Dependencies hidden behind serialized stand-ins or eslint suppressions.
+
+  Do NOT flag module constants or values created entirely inside the callback.
+  State setters and a specific `useRef` object are normally stable, but verify
+  that the binding itself cannot be reassigned or selected dynamically.
+
+fix: |
+  First add every reactive value the callback actually reads. If that causes
+  unwanted reruns, restructure the code instead of lying to React:
+    - Move non-reactive work into the Effect or out of the component.
+    - Stabilize a function/object only when stable identity is required.
+    - Use an Effect Event for non-reactive logic that must read current values.
+    - Remove an Effect when it only derives render data.
+
+  Remove dependencies only when the callback truly does not read them.
+
+examples:
+  bad:
+    - 'const value = useMemo(() => compute(items, query), [items]);'
+    - 'useEffect(() => subscribe(topic), [topic, unusedFlag]);'
+  good:
+    - 'const value = useMemo(() => compute(items, query), [items, query]);'
+    - 'useEffect(() => subscribe(topic), [topic]);'
+
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} MemoDependencies'

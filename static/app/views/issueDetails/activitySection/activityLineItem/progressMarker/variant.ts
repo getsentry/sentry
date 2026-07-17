@@ -32,9 +32,14 @@ export function getActivityMarkerState(item: GroupActivity): ActivityMarkerState
     case GroupActivityType.SET_PUBLIC:
     case GroupActivityType.SET_PRIVATE:
     case GroupActivityType.SET_PRIORITY:
+    case GroupActivityType.DELETED_ATTACHMENT:
+    case GroupActivityType.MERGE:
+    case GroupActivityType.UNMERGE_SOURCE:
+    case GroupActivityType.UNMERGE_DESTINATION:
+    case GroupActivityType.REPROCESS:
+    case GroupActivityType.MARK_REVIEWED:
       return 'activity';
     case GroupActivityType.SET_REGRESSION:
-    case GroupActivityType.MARK_REVIEWED:
       return ProgressState.IDENTIFIED;
     case GroupActivityType.SET_IGNORED:
       return ProgressState.ASSIGNED;

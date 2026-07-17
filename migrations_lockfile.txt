@@ -31,7 +31,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0027_add_seer_run_coding_agent_handoff
 
-sentry: 1136_delete_teamreplica
+sentry: 1137_add_user_upper_indexes
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

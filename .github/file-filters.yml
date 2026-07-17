@@ -38,6 +38,9 @@ frontend_all: &frontend_all
   - added|modified: 'static/**/*.{less,json,yml,md,mdx}'
   - added|modified: '{vercel,tsconfig,biome,package}.json'
 
+api_url_codegen:
+  - added|modified: 'static/app/utils/api/knownSentryApiUrls.generated.ts'
+
 # Also used in `getsentry-dispatch.yml` to dispatch backend tests on getsentry
 backend_dependencies: &backend_dependencies
   - 'requirements-*.txt'

@@ -66,7 +66,7 @@ interface UserUiFeedback extends ParsedBaseFeedback {
 
 interface GithubPrCommentFeedback extends ParsedBaseFeedback {
   commentUrl: string;
-  sourceType: 'github-pr-comment';
+  sourceType: 'github-pr-comment' | 'github-pr-review-comment';
   githubUsername?: string;
 }
 
@@ -95,14 +95,15 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
   switch (source?.type) {
     case 'user-ui':
       return {...base, sourceType: 'user-ui', user: source.user};
-    case 'github-pr-comment': {
+    case 'github-pr-comment':
+    case 'github-pr-review-comment': {
       const commentUrl = source.comment?.html_url;
       if (!commentUrl) {
         return null;
       }
       return {
         ...base,
-        sourceType: 'github-pr-comment',
+        sourceType: source.type,
         githubUsername: source.comment?.user?.login,
         commentUrl,
       };
@@ -452,6 +453,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 function feedbackLinkUrl(item: IterationFeedback): string | undefined {
   switch (item.sourceType) {
     case 'github-pr-comment':
+    case 'github-pr-review-comment':
       return item.commentUrl;
     default:
       return undefined;
@@ -461,11 +463,12 @@ function feedbackLinkUrl(item: IterationFeedback): string | undefined {
 function FeedbackAttribution({item}: {item: IterationFeedback}) {
   switch (item.sourceType) {
     case 'github-pr-comment':
+    case 'github-pr-review-comment':
       return (
         <Tooltip title={item.githubUsername ?? t('GitHub PR comment')} skipWrapper>
           <ExternalLink href={item.commentUrl}>
             <Flex align="center">
-              <IconGithub size="md" />
+              <IconGithub size="md" data-test-id="icon-github" />
             </Flex>
           </ExternalLink>
         </Tooltip>

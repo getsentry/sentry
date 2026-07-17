@@ -3,12 +3,14 @@ Core framework for the derived-data pipeline.
 No Django dependencies — pure Python, fully testable in isolation.
 """
 
+import base64
 import copy
+import hashlib
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum, StrEnum
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, ClassVar, Final, Protocol, runtime_checkable
 
 _MISSING = object()
 
@@ -102,6 +104,9 @@ class Feature[T]:
     The ``codec`` handles conversion to/from storage representations.
     JSON-blob features use ``to_json`` / ``from_json``; column-backed
     features use ``to_column`` / ``from_column``.
+
+    Increment ``version`` whenever the feature's aggregation logic changes
+    meaningfully so that stale derived data can be detected.
     """
 
     def __init__(
@@ -111,14 +116,21 @@ class Feature[T]:
         default: Any = _MISSING,
         default_factory: Callable[[], Any] | None = None,
         codec: Codec[T] | None = None,
+        version: int = 0,
     ) -> None:
         if default is _MISSING and default_factory is None:
             raise ValueError("Must provide default or default_factory")
-        self.name = name
+        self.name: Final[str] = name
+        self._version: Final[int] = version
         self._default = default
         self._default_factory = default_factory
         self._codec = codec or IDENTITY_CODEC
-        self._hash = hash(name)
+        self._hash = hash((name, version))
+
+    @property
+    def content_id(self) -> str:
+        """Versioned identifier for this feature, e.g. ``"view_count:0"``."""
+        return f"{self.name}:{self._version}"
 
     def initial_value(self) -> T:
         if self._default_factory is not None:
@@ -141,6 +153,8 @@ class Feature[T]:
         return (self, val)
 
     def __repr__(self) -> str:
+        if self._version:
+            return f"Feature({self.name!r}, v={self._version})"
         return f"Feature({self.name!r})"
 
     def __hash__(self) -> int:
@@ -148,7 +162,7 @@ class Feature[T]:
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Feature):
-            return self.name == other.name
+            return self.name == other.name and self._version == other._version
         return NotImplemented
 
 
@@ -317,14 +331,17 @@ def aggregator[E: HasType](
 class Pipeline[E: HasType]:
     """Applies a set of Aggregators to a State for each event in a sequence, producing a new State."""
 
+    # Bump this manually when pipeline behaviour changes in ways that affect
+    # results but the feature set itself is unchanged (e.g. changing
+    # aggregator execution order). This value is an input to pipeline_hash.
+    _version: ClassVar[int] = 0
+
     def __init__(
         self,
         aggregators: Iterable[Aggregator[E]],
         *,
-        version: int,
         check_mutations: bool = False,
     ) -> None:
-        self._version = version
         self._check_mutations = check_mutations
         aggregators = tuple(aggregators)
         self._aggregators, self._features = _validate_and_sort(aggregators)
@@ -332,10 +349,9 @@ class Pipeline[E: HasType]:
             (agg, frozenset({*agg.deps, *agg.outputs}), frozenset(agg.outputs))
             for agg in self._aggregators
         )
-
-    @property
-    def version(self) -> int:
-        return self._version
+        payload = f"{self._version}:" + ",".join(sorted(f.content_id for f in self._features))
+        digest = hashlib.blake2b(payload.encode(), digest_size=8).digest()
+        self._pipeline_hash = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
 
     @property
     def aggregators(self) -> tuple[Aggregator[E], ...]:
@@ -344,6 +360,11 @@ class Pipeline[E: HasType]:
     @property
     def features(self) -> tuple[Feature[Any], ...]:
         return self._features
+
+    @property
+    def pipeline_hash(self) -> str:
+        """Short digest capturing the pipeline version, feature set, and feature versions."""
+        return self._pipeline_hash
 
     def initial_state(self) -> State:
         return State({f: f.initial_value() for f in self._features})
@@ -405,6 +426,20 @@ def resolve[E: HasType](
     return [agg for agg in all_aggs if agg.name in needed]
 
 
+def _ensure_no_aliasing(features: Iterable[Feature[Any]]) -> tuple[Feature[Any], ...]:
+    """Return the unique features, raising if the same name maps to different instances."""
+    seen: dict[str, Feature[Any]] = {}
+    for f in features:
+        existing = seen.get(f.name)
+        if existing is not None and existing is not f:
+            raise ValueError(
+                f"Feature {f.name!r} has multiple distinct instances in the pipeline; "
+                f"use the same Feature object everywhere"
+            )
+        seen[f.name] = f
+    return tuple(seen.values())
+
+
 def _validate_and_sort[E: HasType](
     aggregators: tuple[Aggregator[E], ...],
 ) -> tuple[tuple[Aggregator[E], ...], tuple[Feature[Any], ...]]:
@@ -453,9 +488,6 @@ def _validate_and_sort[E: HasType](
         remaining = {a.name for a in aggregators} - {a.name for a in order}
         raise ValueError(f"Cycle detected among aggregators: {remaining}")
 
-    all_features: dict[str, Feature[Any]] = {}
-    for agg in aggregators:
-        for f in (*agg.deps, *agg.outputs):
-            all_features[f.name] = f
+    all_features = _ensure_no_aliasing(f for agg in aggregators for f in (*agg.deps, *agg.outputs))
 
-    return tuple(order), tuple(all_features.values())
+    return tuple(order), all_features
