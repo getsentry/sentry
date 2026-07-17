@@ -1,6 +1,5 @@
 import type {LineSeriesOption} from 'echarts';
 
-import {LineSeries} from 'sentry/components/charts/series/lineSeries';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 import {segmentTimeSeriesByIncompleteData} from 'sentry/utils/timeSeries/segmentTimeSeriesByIncompleteData';
 import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
@@ -49,47 +48,46 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     const plottableSeries: LineSeriesOption[] = [];
 
     const commonOptions = {
+      type: 'line' as const,
+      showSymbol: false,
+      symbolSize: 6,
+      animation: false,
       name: this.name,
       color,
-      animation: false,
       yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
     };
 
     this.#timeSeriesAndIsIncomplete.forEach(([timeSeries, isIncomplete], index) => {
       if (isIncomplete) {
-        plottableSeries.push(
-          LineSeries({
-            ...commonOptions,
-            stack: `incomplete-${index}`,
-            data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
-              timeSeriesItemToEChartsDataPoint
-            ),
-            lineStyle: {
-              type: 'dotted',
-            },
-            areaStyle: {
-              color,
-              opacity: 0.8,
-            },
-            silent: true,
-          })
-        );
+        plottableSeries.push({
+          ...commonOptions,
+          stack: `incomplete-${index}`,
+          data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
+            timeSeriesItemToEChartsDataPoint
+          ),
+          lineStyle: {
+            type: 'dotted',
+          },
+          areaStyle: {
+            color,
+            opacity: 0.8,
+          },
+          silent: true,
+        });
       }
 
       if (!isIncomplete) {
-        plottableSeries.push(
-          LineSeries({
-            ...commonOptions,
-            stack: `complete-${index}`,
-            areaStyle: {
-              color,
-              opacity: 1,
-            },
-            data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
-              timeSeriesItemToEChartsDataPoint
-            ),
-          })
-        );
+        plottableSeries.push({
+          ...commonOptions,
+          stack: `complete-${index}`,
+          areaStyle: {
+            color,
+            opacity: 1,
+          },
+          data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
+            timeSeriesItemToEChartsDataPoint
+          ),
+        });
       }
     });
 
