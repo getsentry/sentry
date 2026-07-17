@@ -9,6 +9,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.projectownership import ProjectOwnership
+from sentry.seer.models.run import SeerAgentRun
 from sentry.seer.smart_assignment.scoring import record_prediction
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
@@ -29,10 +30,13 @@ def process_smart_assignment_completion(group: Group, activity: Activity) -> Non
     data = activity.data or {}
     predicted_assignee_user_ids: list[int | None] = data.get("predicted_assignee_user_ids") or []
 
-    # Mirror the ranked predictions onto the run; scores immediately if ground truth
-    # already landed (assignment before Seer finished), otherwise waits for it. This is
-    # not user-facing, so it runs regardless of the feature flag.
-    record_prediction(group.id, predicted_assignee_user_ids)
+    # Mirror the ranked predictions onto the run the completion activity points at (always
+    # set by delivery); scores immediately if ground truth already landed (assignment
+    # before Seer finished), otherwise waits for it. This is not user-facing, so it runs
+    # regardless of the feature flag.
+    run = SeerAgentRun.objects.filter(id=data.get("run_id")).first()
+    if run is not None:
+        record_prediction(run, predicted_assignee_user_ids)
 
     _apply_prediction(group, predicted_assignee_user_ids, run_uuid=data.get("run_uuid"))
 

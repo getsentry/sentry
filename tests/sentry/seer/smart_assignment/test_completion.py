@@ -74,11 +74,13 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
         assert self._extras()["predicted_assignee_user_ids"] == [alice.id]
 
     def test_handles_missing_payload(self) -> None:
+        # Defensive: run_id is always set by delivery, but a payload missing the picks
+        # still records an (empty) prediction on the run rather than raising.
         activity = Activity.objects.create_without_group_action(
             project_id=self.group.project_id,
             group=self.group,
             type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value,
-            data={},
+            data={"run_id": self.mirror.id},
         )
         process_smart_assignment_completion(self.group, activity)
         assert self._extras()["predicted_assignee_user_ids"] == []
