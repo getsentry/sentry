@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
   formatDateRange,
@@ -19,15 +20,26 @@ import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {OldQueryTokens} from './oldQueryTokens';
 
 const MAX_PROJECT_CHIPS = 3;
+type NormalizedDateTimeParams = Pick<QueryTokensProps, 'start' | 'end' | 'statsPeriod'>;
 
 export function QueryTokens(props: QueryTokensProps) {
   const organization = useOrganization();
 
-  if (!organization.features.includes('gen-ai-ask-seer-ux-rework')) {
-    return <OldQueryTokens {...props} />;
+  let normalizedDateTimeParams: NormalizedDateTimeParams = {};
+  if (props.start || props.end || props.statsPeriod) {
+    const {start, end, statsPeriod} = normalizeDateTimeParams({
+      start: props.start,
+      end: props.end,
+      statsPeriod: props.statsPeriod,
+    });
+    normalizedDateTimeParams = {start, end, statsPeriod: statsPeriod ?? undefined};
   }
 
-  return <NewQueryTokens {...props} />;
+  if (!organization.features.includes('gen-ai-ask-seer-ux-rework')) {
+    return <OldQueryTokens {...props} {...normalizedDateTimeParams} />;
+  }
+
+  return <NewQueryTokens {...props} {...normalizedDateTimeParams} />;
 }
 
 function NewQueryTokens({

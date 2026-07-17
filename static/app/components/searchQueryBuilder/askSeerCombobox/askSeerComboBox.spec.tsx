@@ -280,6 +280,7 @@ describe('AskSeerComboBox', () => {
 
     const filter = await screen.findByText('Filter');
     expect(filter).toBeInTheDocument();
+    expect(screen.queryByText('Time Range')).not.toBeInTheDocument();
   });
 
   it('hides the feedback option when the rework is enabled', async () => {
