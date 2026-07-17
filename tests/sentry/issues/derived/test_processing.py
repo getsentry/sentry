@@ -44,6 +44,7 @@ from sentry.issues.derived.framework import (
 from sentry.issues.derived.processing import (
     PIPELINE,
     GroupLogTimeout,
+    _entries_after_cursor,
     invalidate_group_derived_data,
     process_group_log,
 )
@@ -160,6 +161,52 @@ class ProcessGroupLogTest(TestCase):
         entries = list(GroupActionLogEntry.objects.filter(group_id=group.id).order_by("id"))
         assert derived.cursor_id == entries[-1].id
         assert len(entries) == 5
+
+    def test_cursor_same_timestamp_different_ids(self) -> None:
+        group = self.create_group()
+        ts = datetime(2025, 1, 1, tzinfo=timezone.utc)
+
+        # Create 3 entries with identical date_added but ascending ids.
+        entries = []
+        for _ in range(3):
+            e = GroupActionLogEntry.objects.create(
+                group_id=group.id,
+                project_id=group.project_id,
+                type=GroupActionType.VIEW.value,
+                actor_type=GroupActorType.SYSTEM.value,
+                actor_id=0,
+                source=SOURCE,
+                data={},
+                date_added=ts,
+            )
+            entries.append(e)
+
+        def ids_after_cursor(
+            cursor_date: datetime, cursor_id: int, batch_size: int = 10
+        ) -> list[int]:
+            return [
+                e.id for e in _entries_after_cursor(group.id, cursor_date, cursor_id, batch_size)
+            ]
+
+        e0, e1, e2 = entries[0].id, entries[1].id, entries[2].id
+
+        # Starting before all entries returns all three.
+        assert ids_after_cursor(ts, e0 - 1) == [e0, e1, e2]
+
+        # Cursor at entry[0] skips it, returns entries[1] and entries[2].
+        assert ids_after_cursor(ts, e0) == [e1, e2]
+
+        # Cursor at entry[1] returns only entries[2].
+        assert ids_after_cursor(ts, e1) == [e2]
+
+        # Cursor at entry[2] returns nothing.
+        assert ids_after_cursor(ts, e2) == []
+
+        # Cursor before the timestamp returns all entries.
+        assert ids_after_cursor(ts - timedelta(seconds=1), 0) == [e0, e1, e2]
+
+        # batch_size limits results.
+        assert ids_after_cursor(ts, e0 - 1, batch_size=2) == [e0, e1]
 
     def test_system_action_no_user(self) -> None:
         group = self.create_group()
