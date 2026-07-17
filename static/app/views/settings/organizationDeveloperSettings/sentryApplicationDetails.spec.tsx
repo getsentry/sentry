@@ -200,6 +200,29 @@ describe('Sentry Application Details', () => {
         screen.queryByRole('textbox', {name: 'Redirect URL'})
       ).not.toBeInTheDocument();
     });
+
+    it('notes the payload transform when the URL fires a Claude routine', async () => {
+      render(<SentryApplicationDetails />, {
+        initialRouterConfig,
+        organization: OrganizationFixture({
+          features: ['sentry-apps-claude-routine-webhooks'],
+        }),
+      });
+
+      const webhookInput = screen.getByRole('textbox', {name: 'Webhook URL'});
+      await userEvent.type(
+        webhookInput,
+        'https://api.anthropic.com/v1/claude_code/routines/trig_123/fire'
+      );
+
+      await userEvent.hover(screen.getByText('Claude routine'));
+      expect(
+        await screen.findByText(/automatically format your webhook payloads/)
+      ).toBeInTheDocument();
+
+      await userEvent.type(webhookInput, '/extra');
+      expect(screen.queryByText('Claude routine')).not.toBeInTheDocument();
+    });
   });
 
   describe('Renders public app', () => {

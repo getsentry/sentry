@@ -4,6 +4,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
@@ -85,6 +86,11 @@ const AVATAR_STYLES = {
     ),
   },
 };
+
+// Mirrors CLAUDE_ROUTINE_URL_RE in src/sentry/utils/sentry_apps/webhooks.py;
+// payloads sent to matching URLs get a plain-text prompt added.
+const CLAUDE_ROUTINE_URL_REGEX =
+  /^https:\/\/api\.anthropic\.com\/v1\/claude_code\/routines\/[^/?#]+\/fire\/?$/;
 
 const sentryAppFormSchema = z
   .object({
@@ -706,6 +712,18 @@ function SentryApplicationForm({
                 value={field.state.value}
                 onChange={field.handleChange}
                 placeholder={t('e.g. https://example.com/sentry/webhook/')}
+                trailingItems={
+                  organization.features.includes('sentry-apps-claude-routine-webhooks') &&
+                  CLAUDE_ROUTINE_URL_REGEX.test(field.state.value) ? (
+                    <Tooltip
+                      title={t(
+                        'Sentry will automatically format your webhook payloads to be compatible with Claude Routines.'
+                      )}
+                    >
+                      <Tag variant="info">{t('Claude routine')}</Tag>
+                    </Tooltip>
+                  ) : null
+                }
               />
             </field.Layout.Row>
           )}
