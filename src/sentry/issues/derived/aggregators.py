@@ -255,7 +255,7 @@ def track_last_completed_autofix_step(
 def track_blocker(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     """Track the human action blocking the issue's progress toward resolution.
     If there are open PRs, the blocker is MERGE_PR.
-    If there aren't any open PRs, the blocker is decided by the last completed autofix step.
+    Otherwise, the blocker is decided by the last completed pre-PR autofix step.
     """
     current = state[BLOCKER]
     new_blocker = current
@@ -266,7 +266,9 @@ def track_blocker(state: StateView, entry: GroupActionLogEntry) -> AggregatorRes
         new_blocker = IssueBlocker.MERGE_PR
     else:
         match state[LAST_COMPLETED_AUTOFIX_STEP]:
-            case IssueAutofixStep.NONE:
+            case (
+                IssueAutofixStep.NONE | IssueAutofixStep.PR_CREATED | IssueAutofixStep.PR_ITERATION
+            ):
                 new_blocker = IssueBlocker.NONE
             case IssueAutofixStep.ROOT_CAUSE:
                 new_blocker = IssueBlocker.APPROVE_ROOT_CAUSE
@@ -274,8 +276,6 @@ def track_blocker(state: StateView, entry: GroupActionLogEntry) -> AggregatorRes
                 new_blocker = IssueBlocker.APPROVE_PLAN
             case IssueAutofixStep.CODE_CHANGES:
                 new_blocker = IssueBlocker.APPROVE_CODE_CHANGES
-            case IssueAutofixStep.PR_CREATED | IssueAutofixStep.PR_ITERATION:
-                new_blocker = IssueBlocker.MERGE_PR
 
     if new_blocker != current:
         return emit(BLOCKER.value(new_blocker))

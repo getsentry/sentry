@@ -1049,8 +1049,8 @@ def test_blocker_defaults_to_none() -> None:
         (GroupActionType.SEER_SOLUTION_COMPLETED, IssueBlocker.APPROVE_PLAN),
         (GroupActionType.AUTOFIX_CODING_COMPLETE, IssueBlocker.APPROVE_CODE_CHANGES),
         (GroupActionType.SEER_CODING_COMPLETED, IssueBlocker.APPROVE_CODE_CHANGES),
-        (GroupActionType.SEER_PR_CREATED, IssueBlocker.MERGE_PR),
-        (GroupActionType.SEER_ITERATION_COMPLETED, IssueBlocker.MERGE_PR),
+        (GroupActionType.SEER_PR_CREATED, IssueBlocker.NONE),
+        (GroupActionType.SEER_ITERATION_COMPLETED, IssueBlocker.NONE),
     ],
 )
 def test_completed_action_sets_blocker(action: GroupActionType, expected: IssueBlocker) -> None:
@@ -1131,6 +1131,29 @@ def test_last_pr_terminal_action_falls_back_to_completed_blocker(
             ],
         )
         == IssueBlocker.APPROVE_CODE_CHANGES
+    )
+
+
+@pytest.mark.parametrize(
+    "autofix_action",
+    [GroupActionType.SEER_PR_CREATED, GroupActionType.SEER_ITERATION_COMPLETED],
+)
+def test_last_pr_closed_clears_merge_blocker_after_pr_autofix_step(
+    autofix_action: GroupActionType,
+) -> None:
+    assert (
+        _run_for_feature(
+            BLOCKER,
+            [
+                FakeEntry(type=autofix_action),
+                FakeEntry(
+                    type=GroupActionType.RESOLVED_IN_PULL_REQUEST,
+                    data=_resolved_pr_data(101),
+                ),
+                _pr_terminal(GroupActionType.PULL_REQUEST_CLOSED, has_other=False),
+            ],
+        )
+        == IssueBlocker.NONE
     )
 
 
