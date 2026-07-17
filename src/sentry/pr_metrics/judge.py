@@ -42,10 +42,9 @@ from sentry.pr_metrics.contracts import (
     PrConversationAnalysis,
 )
 from sentry.pr_metrics.emit import (
-    CI_FAILING_AT_CLOSE,
     VerdictDeferral,
     active_attributions,
-    ci_failing_at_close,
+    calculate_deterministic_diagnosis_labels,
     emit_pr_metrics_row,
     select_fallback_verdict,
     select_verdict,
@@ -427,38 +426,30 @@ def update_pr_metrics(
 # other path back to a terminal verdict, so reap_stuck_judge_verdicts is the only
 # thing that ever resolves those rows; run daily by reap_stuck_judge_verdicts_task.
 JUDGE_REAP_STUCK_AFTER = timedelta(hours=4)
-JUDGE_REAP_LOOKBACK = timedelta(days=7)
 _REAP_BATCH_SIZE = 500
 
 
 def reap_stuck_judge_verdicts() -> None:
     """Settle ``PullRequestMetrics`` rows stuck at ``JUDGE_IN_PROGRESS``.
 
-    Bounded by the PR's ``closed_at``/``merged_at`` (whichever is set): between
-    ``JUDGE_REAP_STUCK_AFTER`` and ``JUDGE_REAP_LOOKBACK`` ago. Too-recent PRs may
-    still be legitimately in flight to Seer; anything past the lookback is left
-    alone rather than resolved long after the fact.
+    Bounded below by the PR's ``closed_at``/``merged_at`` (whichever is set) being
+    at least ``JUDGE_REAP_STUCK_AFTER`` ago — too-recent PRs may still be
+    legitimately in flight to Seer. No upper bound: a row that fell behind (task
+    outage, a backlog bigger than ``_REAP_BATCH_SIZE`` per run) still gets reaped
+    on a later run rather than aging out and staying stuck forever.
 
     A row with neither timestamp set was reopened after being claimed for judge
     (see ``run_deferred_emission``'s reopen handling) — there's nothing to settle,
     so its sentinel is released instead of resolved.
     """
-    now = timezone.now()
-    stale_cutoff = now - JUDGE_REAP_STUCK_AFTER
-    lookback_cutoff = now - JUDGE_REAP_LOOKBACK
+    stale_cutoff = timezone.now() - JUDGE_REAP_STUCK_AFTER
 
     stuck_rows = (
         PullRequestMetrics.objects.filter(verdict=PullRequestVerdict.JUDGE_IN_PROGRESS)
         .filter(
             Q(pull_request__closed_at__isnull=True, pull_request__merged_at__isnull=True)
-            | Q(
-                pull_request__closed_at__lte=stale_cutoff,
-                pull_request__closed_at__gte=lookback_cutoff,
-            )
-            | Q(
-                pull_request__merged_at__lte=stale_cutoff,
-                pull_request__merged_at__gte=lookback_cutoff,
-            )
+            | Q(pull_request__closed_at__lte=stale_cutoff)
+            | Q(pull_request__merged_at__lte=stale_cutoff)
         )
         .select_related("pull_request")
         .order_by("id")[:_REAP_BATCH_SIZE]
@@ -472,6 +463,22 @@ def reap_stuck_judge_verdicts() -> None:
             _reconcile_stuck_judge_claim(pull_request)
 
 
+def _release_judge_sentinel(pull_request: PullRequest) -> bool:
+    """Compare-and-set the ``JUDGE_IN_PROGRESS`` sentinel back to null.
+
+    Shared by both reaper release paths (reopened PR, indeterminate
+    reconciliation). Guarded against a race with a very-late Seer callback
+    settling the row first: the CAS is off ``JUDGE_IN_PROGRESS`` specifically,
+    so whichever settles first wins and the other is a no-op. Returns whether
+    this call won the release.
+    """
+    return bool(
+        PullRequestMetrics.objects.filter(
+            pull_request=pull_request, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
+        ).update(verdict=None)
+    )
+
+
 def _release_reopened_judge_claim(pull_request: PullRequest) -> None:
     """Release a stuck sentinel on a PR reopened after being claimed for judge.
 
@@ -479,14 +486,39 @@ def _release_reopened_judge_claim(pull_request: PullRequest) -> None:
     terminal, so there's nothing to settle here — release the guard so a later
     re-close can re-claim and re-forward rather than finding the row stuck.
     """
-    released = PullRequestMetrics.objects.filter(
-        pull_request=pull_request, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
-    ).update(verdict=None)
-    if not released:
+    if not _release_judge_sentinel(pull_request):
+        metrics.incr("pr_metrics.judge.reaper.skipped", tags={"reason": "already_settled"})
         return
     metrics.incr("pr_metrics.judge.reaper.released", tags={"reason": "reopened"})
     logger.info(
         "pr_metrics.judge.reaper.released",
+        extra={
+            "organization_id": pull_request.organization_id,
+            "repository_id": pull_request.repository_id,
+            "pull_request_id": pull_request.id,
+        },
+    )
+
+
+def _release_indeterminate_judge_claim(pull_request: PullRequest) -> None:
+    """Release a stuck sentinel with no reliable local signal to settle from.
+
+    ``select_verdict`` deferred ``INDETERMINATE`` — typically activity tracking
+    was off for this org — so there's no reliable local signal to settle a
+    verdict from, and ``select_fallback_verdict`` would silently misread
+    "untracked" as "no commits after open". Rather than emit a null-verdict row
+    (which would leave ``verdict IS NULL`` on the row — the same state
+    ``update_pr_metrics`` treats as "never claimed" — open for a subsequent
+    genuine Seer callback to emit a second row for the same PR), the sentinel
+    is released and nothing is emitted: the same outcome as the judge-ineligible
+    ``INDETERMINATE`` path, which also never emits.
+    """
+    if not _release_judge_sentinel(pull_request):
+        metrics.incr("pr_metrics.judge.reaper.skipped", tags={"reason": "already_settled"})
+        return
+    metrics.incr("pr_metrics.judge.reaper.released", tags={"reason": "indeterminate"})
+    logger.warning(
+        "pr_metrics.judge.reaper.indeterminate",
         extra={
             "organization_id": pull_request.organization_id,
             "repository_id": pull_request.repository_id,
@@ -508,11 +540,9 @@ def _reconcile_stuck_judge_claim(pull_request: PullRequest) -> None:
     * ``NEEDS_JUDGE`` falls back to ``select_fallback_verdict``, exactly as the
       ineligible-attribution path already does — safe here because real
       push-activity data backs it.
-    * ``INDETERMINATE`` means there's no reliable local signal at all (typically
-      activity tracking was off for this org) — calling ``select_fallback_verdict``
-      here would silently misread "untracked" as "no commits after open". Instead
-      the sentinel is released to null and the row still emits, carrying an
-      explicit null verdict rather than silently dropping the PR from the table.
+    * ``INDETERMINATE`` has no reliable local signal to settle from at all —
+      see ``_release_indeterminate_judge_claim``, which releases the sentinel
+      without emitting rather than risk a duplicate row.
 
     Guarded against a race with a very-late Seer callback landing at the same
     time: a compare-and-set off ``JUDGE_IN_PROGRESS`` inside a transaction, so
@@ -525,12 +555,13 @@ def _reconcile_stuck_judge_claim(pull_request: PullRequest) -> None:
         return
 
     outcome = select_verdict(pull_request, organization)
-    if not isinstance(outcome, VerdictDeferral):
-        verdict: PullRequestVerdict | None = outcome
-    elif outcome is VerdictDeferral.NEEDS_JUDGE:
+    if isinstance(outcome, VerdictDeferral):
+        if outcome is not VerdictDeferral.NEEDS_JUDGE:
+            _release_indeterminate_judge_claim(pull_request)
+            return
         verdict = select_fallback_verdict(pull_request)
     else:
-        verdict = None
+        verdict = outcome
 
     log_extra = {
         "organization_id": pull_request.organization_id,
@@ -538,11 +569,7 @@ def _reconcile_stuck_judge_claim(pull_request: PullRequest) -> None:
         "pull_request_id": pull_request.id,
         "verdict": verdict,
     }
-    diagnosis_labels = (
-        [CI_FAILING_AT_CLOSE]
-        if verdict == PullRequestVerdict.CLOSED_UNMERGED and ci_failing_at_close(pull_request)
-        else None
-    )
+    diagnosis_labels = calculate_deterministic_diagnosis_labels(pull_request, verdict)
     with transaction.atomic(using=router.db_for_write(PullRequestMetrics)):
         settled = PullRequestMetrics.objects.filter(
             pull_request=pull_request, verdict=PullRequestVerdict.JUDGE_IN_PROGRESS
@@ -552,5 +579,5 @@ def _reconcile_stuck_judge_claim(pull_request: PullRequest) -> None:
             return
 
     emit_pr_metrics_row(pull_request=pull_request, diagnosis_labels=diagnosis_labels)
-    metrics.incr("pr_metrics.judge.reaper.fallback_emitted", tags={"verdict": verdict or "none"})
+    metrics.incr("pr_metrics.judge.reaper.fallback_emitted", tags={"verdict": verdict})
     logger.info("pr_metrics.judge.reaper.fallback_emitted", extra=log_extra)

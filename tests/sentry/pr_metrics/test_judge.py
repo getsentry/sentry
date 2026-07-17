@@ -512,19 +512,20 @@ class ReapStuckJudgeVerdictsTest(TestCase):
         assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
 
     @patch("sentry.analytics.record")
-    def test_settles_to_null_verdict_when_indeterminate(self, mock_record: Any) -> None:
+    def test_releases_without_emitting_when_indeterminate(self, mock_record: Any) -> None:
         # Activity tracking off for this org: select_verdict can't tell whether
         # there were commits after open, so select_fallback_verdict would risk
-        # misreading "untracked" as "no commits after open". The row settles to
-        # an explicit null verdict instead of a guessed one.
+        # misreading "untracked" as "no commits after open". Rather than emit a
+        # null-verdict row (which would leave the door open, via verdict IS NULL,
+        # for a later genuine Seer callback to emit a second row), the sentinel
+        # is released and nothing is emitted.
         self._stick(closed_at=datetime.now(timezone.utc) - timedelta(hours=5))
 
         with self.feature({"organizations:pr-metrics-activity": False}):
             reap_stuck_judge_verdicts()
 
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict is None
-        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
-        assert _last_row(mock_record).verdict is None
+        assert mock_record.call_count == 0
 
     @patch("sentry.analytics.record")
     def test_leaves_recently_stuck_pr_alone(self, mock_record: Any) -> None:
@@ -539,16 +540,17 @@ class ReapStuckJudgeVerdictsTest(TestCase):
         assert mock_record.call_count == 0
 
     @patch("sentry.analytics.record")
-    def test_leaves_pr_stuck_past_lookback_alone(self, mock_record: Any) -> None:
-        # Past JUDGE_REAP_LOOKBACK: left alone rather than resolved long after the fact.
+    def test_settles_pr_stuck_long_past_stale_cutoff(self, mock_record: Any) -> None:
+        # No upper bound: a row that fell behind (task outage, an oversized
+        # backlog) still gets reaped rather than aging out and staying stuck.
         self._stick(closed_at=datetime.now(timezone.utc) - timedelta(days=10))
 
         reap_stuck_judge_verdicts()
 
         assert PullRequestMetrics.objects.get(pull_request=self.pull_request).verdict == (
-            "judge_in_progress"
+            "closed_unmerged"
         )
-        assert mock_record.call_count == 0
+        assert get_event_count(mock_record, PrCloseMetricsEvent) == 1
 
     @patch("sentry.analytics.record")
     def test_releases_sentinel_for_reopened_pr(self, mock_record: Any) -> None:
