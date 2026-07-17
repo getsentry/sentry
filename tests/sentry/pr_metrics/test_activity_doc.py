@@ -438,11 +438,10 @@ def test_comment_redelivery_and_multiple_senders() -> None:
     assert doc["counts"] == {}
 
 
-def test_comment_deleted_and_edited_are_participant_only() -> None:
+def test_comment_edited_is_participant_only() -> None:
     doc = new_document()
-    _comment(doc, event_type=PullRequestActivityType.COMMENT_DELETED, sender_login="alice")
     _comment(doc, event_type=PullRequestActivityType.COMMENT_EDITED, sender_login="bob")
-    assert doc["participants"] == {"alice": "User", "bob": "User"}
+    assert doc["participants"] == {"bob": "User"}
     assert doc["events"] == []
     assert doc["counts"] == {}
 

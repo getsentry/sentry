@@ -1,0 +1,49 @@
+name: no-ref-access-during-render
+severity: error
+tags: [react, react-compiler, refs, correctness]
+
+why: |
+  A ref is an escape hatch for values that do not participate in rendering.
+  Reading or writing `ref.current` during render hides a mutable input from
+  React, so repeated or concurrent renders can observe different values without
+  a state update. Passing a ref to an arbitrary function during render has the
+  same risk because that function may read or mutate it.
+
+  This convention corresponds to all React Compiler `Refs` variants in the
+  audit: reading, updating, passing, or indirectly accessing a ref during
+  render.
+
+  See: https://react.dev/reference/eslint-plugin-react-hooks/lints/refs
+
+detect: |
+  During component or hook execution, flag:
+    - Reading `ref.current` to calculate JSX, hook inputs, or return values.
+    - Assigning to `ref.current` during render.
+    - Passing a ref object to a function that may inspect or mutate it during
+      render.
+    - Calling a helper that closes over and accesses a ref during render.
+
+  Do NOT flag ref access in event handlers, Effects, layout Effects, imperative
+  handles, or cleanup functions. Allow the narrow lazy-initialization pattern
+  where `ref.current` is initialized only when null, the result is stable, and
+  it does not affect render output unpredictably.
+
+fix: |
+  Use state for values that affect rendering. Move DOM measurement and
+  synchronization into a layout Effect or event handler. Pass the specific
+  immutable value a helper needs rather than the ref object. For "latest value"
+  callbacks, use an Effect Event or update the ref after render.
+
+examples:
+  bad:
+    - 'valueRef.current = value;'
+    - 'return <Output value={valueRef.current} />;'
+    - 'const result = calculate(valueRef);'
+  good:
+    - 'return <Output value={value} />;'
+    - |
+      useLayoutEffect(() => {
+        sizeRef.current = elementRef.current?.getBoundingClientRect() ?? null;
+      });
+
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} Refs'
