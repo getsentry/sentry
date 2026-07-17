@@ -73,7 +73,7 @@ class GcpSaGenerationApiStep:
         assert pipeline.organization is not None
         sentry_sa_email = generate_sentry_sa(pipeline.organization.id)
         pipeline.bind_state("sentry_sa_email", sentry_sa_email)
-        return {"sentry_sa_email": sentry_sa_email}
+        return {"sentrySaEmail": sentry_sa_email}
 
     def get_serializer_cls(self) -> type | None:
         return None
@@ -142,7 +142,9 @@ class GcpIntegrationProvider(IntegrationProvider):
         if not config:
             raise IntegrationConfigurationError("Missing configuration data")
 
-        sentry_sa_email: str = state["sentry_sa_email"]
+        sentry_sa_email = state.get("sentry_sa_email")
+        if not sentry_sa_email:
+            raise IntegrationConfigurationError("Missing Sentry service account email")
         customer_sa_email: str = config["customer_sa_email"]
         projects: list[str] = config["projects"]
 

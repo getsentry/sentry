@@ -45,7 +45,7 @@ class GcpIntegrationProviderTest(TestCase):
         expected_email = (
             f"sentry-org-{self.organization.id}@sentry-connectors.iam.gserviceaccount.com"
         )
-        assert step_data["sentry_sa_email"] == expected_email
+        assert step_data["sentrySaEmail"] == expected_email
         pipeline.bind_state.assert_called_with("sentry_sa_email", expected_email)
 
     def test_sa_generation_step_advances_on_post(self) -> None:
@@ -110,6 +110,14 @@ class GcpIntegrationProviderTest(TestCase):
     def test_build_integration_requires_config(self) -> None:
         with pytest.raises(IntegrationConfigurationError):
             self.provider.build_integration({})
+
+    def test_build_integration_requires_sentry_sa_email(self) -> None:
+        state = self._state()
+        del state["sentry_sa_email"]
+        with pytest.raises(
+            IntegrationConfigurationError, match="Missing Sentry service account email"
+        ):
+            self.provider.build_integration(state)
 
     def test_build_integration_validates_project_ids(self) -> None:
         with pytest.raises(IntegrationConfigurationError, match="Invalid GCP project ID"):
