@@ -941,9 +941,12 @@ interface GroupActivityDeletedAttachment extends GroupActivityBase {
   type: GroupActivityType.DELETED_ATTACHMENT;
 }
 
+type SeerRcaStartReason = 'issue_predicted_fixable' | 'night_shift';
+
 interface GroupActivitySeerRcaStarted extends GroupActivityBase {
   data: {
     run_id?: number;
+    start_reason?: SeerRcaStartReason;
   };
   type: GroupActivityType.SEER_RCA_STARTED;
 }

@@ -448,6 +448,23 @@ export function getCompactGroupActivityItem({
         title: t('Deleted an attachment'),
       };
     case GroupActivityType.SEER_RCA_STARTED:
+      if (activity.user) {
+        return {
+          title: t('Started root cause analysis'),
+        };
+      }
+      if (activity.data.start_reason === 'issue_predicted_fixable') {
+        return {
+          title: t('Root cause analysis started'),
+          details: t('because the issue was predicted to be fixable'),
+        };
+      }
+      if (activity.data.start_reason === 'night_shift') {
+        return {
+          title: t('Root cause analysis started'),
+          details: t('after Night Shift identified the issue'),
+        };
+      }
       return {
         title: t('Root cause analysis started'),
       };

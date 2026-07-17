@@ -811,6 +811,28 @@ export function getGroupActivityItem(
           message: tct('by [author]', {author}),
         };
       case GroupActivityType.SEER_RCA_STARTED:
+        if (activity.user) {
+          return {
+            title: t('Root Cause Analysis'),
+            message: tct('[author] started analyzing the root cause', {author}),
+          };
+        }
+        if (activity.data.start_reason === 'issue_predicted_fixable') {
+          return {
+            title: t('Root Cause Analysis'),
+            message: t(
+              'Seer started analyzing the root cause because this issue was predicted to be fixable'
+            ),
+          };
+        }
+        if (activity.data.start_reason === 'night_shift') {
+          return {
+            title: t('Root Cause Analysis'),
+            message: t(
+              'Seer started analyzing the root cause after Night Shift identified this issue'
+            ),
+          };
+        }
         return {
           title: t('Root Cause Analysis'),
           message: t('Seer started analyzing the root cause'),

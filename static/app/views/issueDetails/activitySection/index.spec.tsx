@@ -1574,6 +1574,115 @@ describe('ActivitySection', () => {
     expect(screen.getByText('Seer completed root cause analysis')).toBeInTheDocument();
   });
 
+  it('renders the user who started Seer root cause analysis in the compact feed', async () => {
+    const initiatingUser = UserFixture({name: 'Alice Example'});
+    const seerGroup = GroupFixture({
+      id: 'seer-user-start',
+      activity: [
+        {
+          type: GroupActivityType.SEER_RCA_STARTED,
+          id: 'seer-rca-user-start',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {run_id: 123},
+          user: initiatingUser,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
+        <ActivitySection group={seerGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({
+          features: [
+            'display-seer-actions-as-issue-activities',
+            'issue-activity-feed-v2',
+          ],
+        }),
+      }
+    );
+
+    expect(await screen.findByText('Started root cause analysis')).toBeInTheDocument();
+    expect(screen.getByTestId('user-activity-actor')).toBeInTheDocument();
+    expect(screen.queryByText(/by Alice Example/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      'issue_predicted_fixable' as const,
+      'Seer started analyzing the root cause because this issue was predicted to be fixable',
+    ],
+    [
+      'night_shift' as const,
+      'Seer started analyzing the root cause after Night Shift identified this issue',
+    ],
+  ])('renders the %s automatic Seer start reason', async (startReason, message) => {
+    const seerGroup = GroupFixture({
+      id: `seer-${startReason}`,
+      activity: [
+        {
+          type: GroupActivityType.SEER_RCA_STARTED,
+          id: `seer-rca-${startReason}`,
+          dateCreated: '2020-01-01T00:00:00',
+          data: {run_id: 123, start_reason: startReason},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
+        <ActivitySection group={seerGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({
+          features: ['display-seer-actions-as-issue-activities'],
+        }),
+      }
+    );
+
+    expect(await screen.findByText('Root Cause Analysis')).toBeInTheDocument();
+    expect(screen.getByText(message)).toBeInTheDocument();
+  });
+
+  it('renders an automatic Seer start reason in the compact activity feed', async () => {
+    const seerGroup = GroupFixture({
+      id: 'seer-compact-start',
+      activity: [
+        {
+          type: GroupActivityType.SEER_RCA_STARTED,
+          id: 'seer-rca-compact-start',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {run_id: 123, start_reason: 'night_shift'},
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={seerGroup} project={seerGroup.project}>
+        <ActivitySection group={seerGroup} />
+      </GroupDataContextProvider>,
+      {
+        organization: OrganizationFixture({
+          features: [
+            'display-seer-actions-as-issue-activities',
+            'issue-activity-feed-v2',
+          ],
+        }),
+      }
+    );
+
+    expect(await screen.findByText('Root cause analysis started')).toBeInTheDocument();
+    expect(
+      screen.getByText('after Night Shift identified the issue')
+    ).toBeInTheDocument();
+  });
+
   it('hides Seer activity when feature flag is disabled', () => {
     const seerGroup = GroupFixture({
       id: '1343',
