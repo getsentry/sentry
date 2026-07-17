@@ -272,9 +272,7 @@ class ScheduleWebhooksTest(TestCase):
 
 def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list[WebhookPayload]:
     # Keep path aligned with provider so responses mocks aren't misleading.
-    request_path = (
-        f"/extensions/{provider}/webhook/" if provider else "/extensions/github/webhook/"
-    )
+    request_path = f"/extensions/{provider}/webhook/" if provider else "/extensions/github/webhook/"
     created = []
     for _ in range(0, num):
         hook = Factories.create_webhook_payload(
