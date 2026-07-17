@@ -322,7 +322,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       data: registryData,
     },
     platformOptions: [ProductSolution.PERFORMANCE_MONITORING],
-    newOrg: false,
     feedbackOptions: {},
     urlPrefix,
     isSelfHosted,

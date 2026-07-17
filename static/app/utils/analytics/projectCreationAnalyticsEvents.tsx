@@ -11,6 +11,23 @@ export type ProjectCreationEventParameters = {
     platform: string;
     project_id: string;
   };
+  // Setup-docs (getting-started) page events, mirroring onboarding.* /
+  // onboarding.scm_*. The non-scm_ keys fix a pollution bug where project
+  // creation previously emitted onboarding.* for these interactions.
+  'project_creation.dsn_copied': {
+    platform: string;
+  };
+  'project_creation.js_loader_npm_docs_shown': {
+    platform: string;
+    project_id: string;
+  };
+  'project_creation.next_step_clicked': {
+    newOrg: boolean;
+    platform: string;
+    products: string[];
+    project_id: string;
+    step: string;
+  };
   // SCM-first project creation flow (mirrors onboarding.scm_*)
   'project_creation.scm_connect_integration_selected': {
     provider: string;
@@ -21,6 +38,20 @@ export type ProjectCreationEventParameters = {
   'project_creation.scm_connect_repo_selected': {
     provider: string;
     repo: string;
+  };
+  'project_creation.scm_dsn_copied': {
+    platform: string;
+  };
+  'project_creation.scm_js_loader_npm_docs_shown': {
+    platform: string;
+    project_id: string;
+  };
+  'project_creation.scm_next_step_clicked': {
+    newOrg: boolean;
+    platform: string;
+    products: string[];
+    project_id: string;
+    step: string;
   };
   'project_creation.scm_platform_change_platform_clicked': Record<string, unknown>;
   'project_creation.scm_platform_feature_toggled': {
@@ -49,7 +80,19 @@ export type ProjectCreationEventParameters = {
   'project_creation.scm_select_framework_modal_rendered': {
     platform: string;
   };
+  'project_creation.scm_setup_loader_docs_rendered': {
+    platform: string;
+    project_id: string;
+  };
   'project_creation.scm_skip_detection_clicked': Record<string, unknown>;
+  'project_creation.scm_source_maps_wizard_button_copy_clicked': {
+    platform: string;
+    project_id: string;
+  };
+  'project_creation.scm_source_maps_wizard_selected_and_copied': {
+    platform: string;
+    project_id: string;
+  };
   'project_creation.select_framework_modal_close_button_clicked': {
     platform: string;
   };
@@ -62,6 +105,10 @@ export type ProjectCreationEventParameters = {
   };
   'project_creation.select_framework_modal_skip_button_clicked': {
     platform: string;
+  };
+  'project_creation.setup_loader_docs_rendered': {
+    platform: string;
+    project_id: string;
   };
   'project_creation.source_maps_wizard_button_copy_clicked': {
     platform: string;
@@ -122,4 +169,20 @@ export const projectCreationEventMap: Record<
     'Project Creation: Source Maps Wizard Button Copy Clicked',
   'project_creation.source_maps_wizard_selected_and_copied':
     'Project Creation: Source Maps Wizard Selected and Copied',
+  'project_creation.dsn_copied': 'Project Creation: DSN Copied',
+  'project_creation.scm_dsn_copied': 'Project Creation: SCM DSN Copied',
+  'project_creation.next_step_clicked': 'Project Creation: Next Step Clicked',
+  'project_creation.scm_next_step_clicked': 'Project Creation: SCM Next Step Clicked',
+  'project_creation.js_loader_npm_docs_shown':
+    'Project Creation: JS Loader Switch to npm Instructions',
+  'project_creation.scm_js_loader_npm_docs_shown':
+    'Project Creation: SCM JS Loader Switch to npm Instructions',
+  'project_creation.setup_loader_docs_rendered':
+    'Project Creation: Setup Loader Docs Rendered',
+  'project_creation.scm_setup_loader_docs_rendered':
+    'Project Creation: SCM Setup Loader Docs Rendered',
+  'project_creation.scm_source_maps_wizard_button_copy_clicked':
+    'Project Creation: SCM Source Maps Wizard Button Copy Clicked',
+  'project_creation.scm_source_maps_wizard_selected_and_copied':
+    'Project Creation: SCM Source Maps Wizard Selected and Copied',
 };

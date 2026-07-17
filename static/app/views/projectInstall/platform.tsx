@@ -20,6 +20,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeList} from 'sentry/utils/queryString';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -45,6 +46,16 @@ export function ProjectInstallPlatform({project, platform}: Props) {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const onProductSelectionSync = useScmCreateProjectProductSync(project);
+
+  // This page is the destination for both project-creation variants; real
+  // new-org onboarding renders docs via views/onboarding/setupDocs. Match the
+  // experiment gate in newProject.tsx to label which project-creation flow
+  // produced this getting-started view. reportExposure is false because this
+  // page isn't itself an experiment-variant surface.
+  const {inExperiment: hasScmProjectCreation} = useExperiment({
+    feature: 'onboarding-scm-project-creation-experiment',
+    reportExposure: false,
+  });
 
   const products = useMemo(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
@@ -98,6 +109,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
           project={project}
           activeProductSelection={products}
           onProductSelectionSync={onProductSelectionSync}
+          docsFlow={hasScmProjectCreation ? 'project-creation-scm' : 'project-creation'}
         />
       )}
       <div>
