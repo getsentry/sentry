@@ -1,10 +1,10 @@
-# Single taskbroker pool for devenv. All topics — the regular taskworker
-# topics, the ingest-profiles passthrough topic, and the subscription-result
-# passthrough topics — are consumed by this one broker so that a single
-# taskworker pool processes everything (mirrors self-hosted).
+# Sentry's own taskbroker for raw-mode topics. The regular taskworker /
+# taskworker_dlq topics are owned by the generic `taskbroker` remote
+# dependency instead, so this only produces retries/deadletters into them.
 #
-# Topics live in this config file (rather than env vars on the service) because
-# env-var config keys can't contain hyphens, and several topic names do.
+# Topics live in this config file (rather than env vars on the service)
+# because env-var config keys can't contain hyphens, and several topic names
+# do.
 kafka_deadletter_topic: taskworker_dlq
 kafka_retry_topic: taskworker
 create_missing_topics: true
@@ -16,13 +16,14 @@ kafka_clusters:
 kafka_topics:
   taskworker:
     cluster: default
-    consumer_group: taskworker
+    consumer_group: taskbroker-sentry
+    produce_only: true
   taskworker_dlq:
     cluster: default
-    consumer_group: taskworker
+    consumer_group: taskbroker-sentry
     produce_only: true
 
-  # ingest-profiles passthrough (STREAM-1041). Raw Kafka messages on the
+  # ingest-profiles raw mode (STREAM-1041). Raw Kafka messages on the
   # profiles topic are turned into activations for the profile-processing task.
   profiles:
     cluster: default
@@ -33,7 +34,7 @@ kafka_topics:
       taskname: sentry.profiles.task.process_profile_from_kafka
       processing_deadline_duration: 30
 
-  # Subscription-result passthrough (STREAM-1207).
+  # Subscription-result raw mode (STREAM-1207).
   events-subscription-results:
     cluster: default
     consumer_group: sentry-consumer
