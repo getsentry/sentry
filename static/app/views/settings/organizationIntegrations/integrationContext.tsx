@@ -13,6 +13,7 @@ type IntegrationContextProps = {
       | 'onboarding'
       | 'onboarding_scm'
       | 'project_creation'
+      | 'scm_project_creation'
       | 'seer_onboarding_github'
       | 'seer_onboarding_code_review'
       | 'test_analytics_onboarding'

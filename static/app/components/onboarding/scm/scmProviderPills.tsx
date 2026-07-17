@@ -9,17 +9,33 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
+import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 import {partitionScmProviders} from './scmProviderOrder';
 
+// Which install `view` the SCM provider install fires under, per host flow. Keeps
+// onboarding installs on `onboarding_scm` while splitting project-creation SCM
+// installs into their own `scm_project_creation` bucket (was mislabeled as
+// `onboarding_scm`).
+const INSTALL_VIEW = {
+  onboarding: 'onboarding_scm',
+  'project-creation': 'scm_project_creation',
+} as const;
+
 interface ScmProviderPillsProps {
+  analyticsFlow: ScmAnalyticsFlow;
   onInstall: (data: Integration) => void;
   providers: IntegrationProvider[];
 }
 
-export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) {
+export function ScmProviderPills({
+  analyticsFlow,
+  providers,
+  onInstall,
+}: ScmProviderPillsProps) {
   const organization = useOrganization();
   const {startFlow} = useAddIntegration();
   const {primaryProviders, moreProviders} = partitionScmProviders(providers);
+  const view = INSTALL_VIEW[analyticsFlow];
   const gridItemCount = primaryProviders.length + (moreProviders.length > 0 ? 1 : 0);
 
   const columnsXs = `repeat(${Math.min(gridItemCount, 2)}, 1fr)`;
@@ -48,7 +64,7 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
               type: 'first_party',
               installStatus: 'Not Installed',
               analyticsParams: {
-                view: 'onboarding_scm',
+                view,
                 already_installed: false,
               },
               suppressSuccessMessage: true,
@@ -79,7 +95,7 @@ export function ScmProviderPills({providers, onInstall}: ScmProviderPillsProps) 
                   organization,
                   onInstall,
                   analyticsParams: {
-                    view: 'onboarding_scm',
+                    view,
                     already_installed: false,
                   },
                   suppressSuccessMessage: true,

@@ -18,6 +18,7 @@ export type IntegrationView = {
     | 'onboarding'
     | 'onboarding_scm'
     | 'project_creation'
+    | 'scm_project_creation'
     | 'developer_settings'
     | 'new_integration_modal'
     | 'seer_onboarding_github'
