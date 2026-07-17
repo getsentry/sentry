@@ -65,14 +65,14 @@ class BaseSignupVerificationView(BaseView):
         if ratelimiter.backend.is_limited(f"signup-verify:ip:{ip_address}", limit=5, window=60):
             return self._render_error(
                 title="Too many attempts",
-                message="Please wait a few minutes and try again.",
+                message="Please wait a moment and try again.",
             )
         if ratelimiter.backend.is_limited(
             f"signup-verify:ip:daily:{ip_address}", limit=50, window=86400
         ):
             return self._render_error(
                 title="Too many attempts",
-                message="Please wait a few minutes and try again.",
+                message="Please wait a moment and try again.",
             )
 
         try:
