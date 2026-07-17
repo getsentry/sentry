@@ -91,6 +91,9 @@ class NotificationSource(StrEnum):
     ACTIVITY_SET_ESCALATING = "activity-set-escalating"
     ACTIVITY_SET_UNRESOLVED = "activity-set-unresolved"
     ACTIVITY_SET_IGNORED = "activity-set-ignored"
+    ACTIVITY_NOTE = "activity-note"
+    ACTIVITY_ASSIGNED = "activity-assigned"
+    ACTIVITY_UNASSIGNED = "activity-unassigned"
 
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
