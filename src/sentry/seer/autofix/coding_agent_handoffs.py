@@ -121,27 +121,30 @@ def sync_coding_agent_status(
             if handoff.provider != CodingAgentProviderType.CURSOR_BACKGROUND_AGENT.value:
                 return CodingAgentSyncResult(known_to_seer=False, run_id=run_id, group_id=group_id)
 
+        if result and result.pr_url:
+            pr_number = parse_pull_request_number(result.pr_url)
+            link_log_context = {
+                **log_context,
+                "repo_name": result.repo_full_name,
+                "provider": result.repo_provider,
+                "pr_number": pr_number,
+            }
+
+            _link_pull_request_to_seer_run(
+                organization=handoff.seer_run.organization,
+                seer_run=handoff.seer_run,
+                repo_name=result.repo_full_name,
+                provider=result.repo_provider,
+                pr_number=pr_number,
+                log_context=link_log_context,
+                coding_agent_handoff=handoff,
+            )
+
+    # Do this last: it's a network call to Seer, and nothing above depends on
+    # its result except known_to_seer itself (consumed by callers to gate PR
+    # attribution) -- the local bookkeeping above shouldn't wait behind it.
     known_to_seer = update_coding_agent_state(
         agent_id=agent_id, status=status, agent_url=agent_url, result=result
     )
-
-    if handoff is not None and result and result.pr_url:
-        pr_number = parse_pull_request_number(result.pr_url)
-        link_log_context = {
-            **log_context,
-            "repo_name": result.repo_full_name,
-            "provider": result.repo_provider,
-            "pr_number": pr_number,
-        }
-
-        _link_pull_request_to_seer_run(
-            organization=handoff.seer_run.organization,
-            seer_run=handoff.seer_run,
-            repo_name=result.repo_full_name,
-            provider=result.repo_provider,
-            pr_number=pr_number,
-            log_context=link_log_context,
-            coding_agent_handoff=handoff,
-        )
 
     return CodingAgentSyncResult(known_to_seer=known_to_seer, run_id=run_id, group_id=group_id)
