@@ -885,6 +885,45 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('(unknown): Make the button blue')).toBeInTheDocument();
     });
 
+    it('renders GitHub PR review comment feedback with attribution and a link', () => {
+      const commentUrl = 'https://github.com/org/repo/pull/42#discussion_r123';
+      const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
+        ...mockAutofix,
+        runState: {
+          run_id: 123,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          queued_feedback: [
+            {
+              text: 'Please handle the null value.',
+              source: {
+                type: 'github-pr-review-comment',
+                comment: {html_url: commentUrl, user: {login: 'octocat'}},
+              },
+            },
+          ],
+        },
+      };
+
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={autofixWithQueued}
+          section={makeSection('code_changes', 'completed', [
+            [makePatch('org/repo', 'src/app.py')],
+          ])}
+        />,
+        {organization: prIterationOrganization}
+      );
+
+      const feedbackLink = screen.getByRole('link', {
+        name: 'Please handle the null value.',
+      });
+      expect(feedbackLink).toHaveAttribute('href', commentUrl);
+      expect(screen.getByTestId('icon-github')).toBeInTheDocument();
+    });
+
     it('shows the code changes for queued feedback without the feature flag', () => {
       const autofixWithQueued: ReturnType<typeof useExplorerAutofix> = {
         ...mockAutofix,

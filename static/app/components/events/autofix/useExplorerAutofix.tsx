@@ -146,7 +146,15 @@ interface GithubPrCommentFeedbackSource {
   comment?: {html_url?: string; user?: {login: string}};
 }
 
-type RawFeedbackSource = UserUiFeedbackSource | GithubPrCommentFeedbackSource;
+interface GithubPrReviewCommentFeedbackSource {
+  type: 'github-pr-review-comment';
+  comment?: {html_url?: string; user?: {login: string}};
+}
+
+type RawFeedbackSource =
+  | UserUiFeedbackSource
+  | GithubPrCommentFeedbackSource
+  | GithubPrReviewCommentFeedbackSource;
 
 export interface RawFeedback {
   text: string;

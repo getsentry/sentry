@@ -112,6 +112,7 @@ import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotifica
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
 import {useCommandPaletteState} from './commandPaletteStateContext';
+import {FeatureFlagCommandPaletteActions} from './featureFlagCommandPaletteActions';
 
 const DSN_ICONS: React.ReactElement[] = [
   <IconIssues key="issues" />,
@@ -756,6 +757,7 @@ export function GlobalCommandPaletteActions() {
 
       {user.isStaff && (
         <CMDKAction display={{label: t('Admin')}}>
+          <FeatureFlagCommandPaletteActions />
           <CMDKAction
             display={{label: t('Open _admin'), icon: <IconOpen />}}
             keywords={[t('superuser')]}

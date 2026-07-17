@@ -35,7 +35,7 @@ from sentry.tasks.summaries.utils import (
     _project_key_performance_issues_eap,
     _project_key_performance_issues_snuba,
     fetch_past_resolved_issue_links,
-    org_key_errors,
+    org_key_error_issues,
     organization_project_issue_summaries,
     project_past_resolved_issues,
     user_project_ownership,
@@ -343,7 +343,7 @@ class WeeklyReportsTest(
         assert substatus_totals.get(GroupSubStatus.REGRESSED, 0) == 0
         assert sum(substatus_totals.values()) == 2
 
-    def test_org_key_errors_batched(self) -> None:
+    def test_org_key_error_issues_batched(self) -> None:
         self.project.first_event = self.now - timedelta(days=3)
         self.project.save()
         min_ago = (self.now - timedelta(minutes=1)).isoformat()
@@ -376,7 +376,9 @@ class WeeklyReportsTest(
         timestamp = self.now.timestamp()
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
         user_project_ownership(ctx)
-        result = org_key_errors(ctx, [self.project.id], Referrer.REPORTS_KEY_ERRORS.value)
+        result = org_key_error_issues(
+            ctx, [self.project.id], Referrer.REPORTS_KEY_ERROR_ISSUES.value
+        )
         assert result == {self.project.id: [{"events.group_id": event1.group.id, "count()": 1}]}
 
     def test_message_builder_filter_resolved_batched(self) -> None:
@@ -423,20 +425,21 @@ class WeeklyReportsTest(
         ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
         user_project_ownership(ctx)
 
-        key_errors_by_project = org_key_errors(
-            ctx, project_ids=[self.project.id], referrer=Referrer.REPORTS_KEY_ERRORS.value
+        key_error_issues_by_project = org_key_error_issues(
+            ctx, project_ids=[self.project.id], referrer=Referrer.REPORTS_KEY_ERROR_ISSUES.value
         )
-        for project_id, key_errors in key_errors_by_project.items():
-            ctx.projects_context_map[project_id].key_errors_by_id = [
-                (e["events.group_id"], e["count()"]) for e in key_errors
+        for project_id, key_error_issues in key_error_issues_by_project.items():
+            ctx.projects_context_map[project_id].key_error_issues_by_id = [
+                (e["events.group_id"], e["count()"]) for e in key_error_issues
             ]
 
-        key_error_ids = {
-            group_id for group_id, _ in ctx.projects_context_map[self.project.id].key_errors_by_id
+        key_error_issue_ids = {
+            group_id
+            for group_id, _ in ctx.projects_context_map[self.project.id].key_error_issues_by_id
         }
-        assert event1.group.id in key_error_ids
-        assert event3.group.id in key_error_ids
-        assert len(ctx.projects_context_map[self.project.id].key_errors_by_id) == 2
+        assert event1.group.id in key_error_issue_ids
+        assert event3.group.id in key_error_issue_ids
+        assert len(ctx.projects_context_map[self.project.id].key_error_issues_by_id) == 2
 
     def test_project_key_performance_issues_eap_matches_snuba(self) -> None:
         self.project.first_event = self.now - timedelta(days=3)
@@ -930,6 +933,9 @@ class WeeklyReportsTest(
             "new_substatus_count": 0,
             "escalating_substatus_count": 0,
             "regression_substatus_count": 0,
+            "new_substatus_url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&query=is%3Anew&project={self.project.id}",
+            "escalating_substatus_url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&query=is%3Aescalating&project={self.project.id}",
+            "regression_substatus_url": f"http://testserver/organizations/baz/issues/?referrer=weekly_report&notification_uuid={ctx['notification_uuid']}&query=is%3Aregressed&project={self.project.id}",
         }
 
         assert ctx["trends"]["series"][-2][1][0] == {
@@ -1447,7 +1453,7 @@ class WeeklyReportsTest(
         )
         ctx = OrganizationReportContext(self.now.timestamp(), ONE_DAY * 7, self.organization)
         project_context = ProjectContext(self.project)
-        project_context.key_errors_by_group = [(error_group, 10)]
+        project_context.key_error_issues = [(error_group, 10)]
         project_context.key_performance_issues = [(performance_group, None, 10)]
         ctx.projects_context_map = {self.project.id: project_context}
         ctx.project_ownership[user.id] = {self.project.id}
@@ -1874,7 +1880,7 @@ class WeeklyReportsTest(
             assert len(context["trends"]["legend"]) == 0
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
-    def test_enhanced_privacy_hides_key_errors_and_transactions(
+    def test_enhanced_privacy_hides_key_error_issues_and_transactions(
         self, message_builder: mock.MagicMock
     ) -> None:
         self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
@@ -1931,7 +1937,7 @@ class WeeklyReportsTest(
         ctx = factory.create_context()
 
         for project_ctx in ctx.projects_context_map.values():
-            assert project_ctx.key_errors_by_group == []
+            assert project_ctx.key_error_issues == []
             assert project_ctx.key_performance_issues == []
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
@@ -2089,7 +2095,12 @@ class WeeklyReportsTest(
         }
         assert _pct_change(100, 0) is None
         assert _pct_change(0, 0) is None
-        assert _pct_change(100, 100) is None
+        assert _pct_change(100, 100) == {
+            "arrow": "",
+            "pct": "—0%",
+            "bg_color": "#F0F0F2",
+            "text_color": "#80708F",
+        }
 
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_past_resolved_issues_basic(self) -> None:
@@ -2124,7 +2135,7 @@ class WeeklyReportsTest(
         assert results[0][1] >= 1
         assert results[0][2] is False
 
-    @mock.patch("sentry.tasks.summaries.utils._past_resolved_perf_counts")
+    @mock.patch("sentry.tasks.summaries.utils._past_resolved_performance_counts")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_past_resolved_issues_includes_current_performance_categories(
         self, mock_perf_counts: mock.MagicMock

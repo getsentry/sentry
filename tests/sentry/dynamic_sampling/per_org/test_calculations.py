@@ -307,6 +307,31 @@ class TransactionBalancingCalculationsTest(TestCase):
         assert sample_rates == [0.5]
         assert set(result.keys()) == {project_a.id}
 
+    def test_run_transaction_balancing_skips_projects_at_full_sample_rate(self) -> None:
+        org = self.create_organization()
+        project_a = self.create_project(organization=org)
+        project_b = self.create_project(organization=org)
+        config = Mock()
+        config.organization = org
+        config.get_project_sample_rates.return_value = {project_a.id: 0.5, project_b.id: 1.0}
+
+        with patch(
+            "sentry.dynamic_sampling.per_org.calculations.TransactionsRebalancingModel.run",
+            side_effect=lambda model_input: ([], model_input.sample_rate),
+        ) as model_run:
+            result = run_transaction_balancing(
+                config,
+                [_project_volume(project_a.id), _project_volume(project_b.id)],
+                [
+                    _project_transactions(org.id, project_a.id, [("/a", 1.0)]),
+                    _project_transactions(org.id, project_b.id, [("/b", 1.0)]),
+                ],
+            )
+
+        sample_rates = [call.args[-1].sample_rate for call in model_run.call_args_list]
+        assert sample_rates == [0.5]
+        assert set(result.keys()) == {project_a.id}
+
     def test_run_transaction_balancing_skips_projects_without_project_volume(self) -> None:
         org = self.create_organization()
         project_a = self.create_project(organization=org)

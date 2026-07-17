@@ -20,6 +20,7 @@ from sentry.preprod.vcs.pr_comments.snapshot_templates import (
 )
 from sentry.preprod.vcs.pr_comments.tasks import (
     lock_pr_comparisons_for_update,
+    resolve_pr_comment_context,
     save_pr_comment_result,
 )
 from sentry.shared_integrations.exceptions import ApiError
@@ -49,54 +50,19 @@ def create_preprod_snapshot_pr_comment_task(
     is_timeout_check: bool = False,
     **kwargs: Any,
 ) -> None:
-    try:
-        artifact = PreprodArtifact.objects.select_related(
-            "mobile_app_info",
-            "commit_comparison",
-            "project",
-            "project__organization",
-        ).get(id=preprod_artifact_id)
-    except PreprodArtifact.DoesNotExist:
-        logger.exception(
-            "preprod.snapshot_pr_comments.create.artifact_not_found",
-            extra={"preprod_artifact_id": preprod_artifact_id, "caller": caller},
-        )
-        return
-
-    if not artifact.commit_comparison:
-        logger.info(
-            "preprod.snapshot_pr_comments.create.no_commit_comparison",
-            extra={"preprod_artifact_id": artifact.id},
-        )
-        return
-
-    commit_comparison = artifact.commit_comparison
-    if (
-        not commit_comparison.pr_number
-        or not commit_comparison.head_repo_name
-        or not commit_comparison.provider
-    ):
-        logger.info(
-            "preprod.snapshot_pr_comments.create.no_pr_info",
-            extra={
-                "preprod_artifact_id": artifact.id,
-                "pr_number": commit_comparison.pr_number,
-                "head_repo_name": commit_comparison.head_repo_name,
-            },
-        )
-        return
-
-    if not artifact.project.get_option(ENABLED_OPTION_KEY):
-        logger.info(
-            "preprod.snapshot_pr_comments.create.project_disabled",
-            extra={"preprod_artifact_id": artifact.id, "project_id": artifact.project.id},
-        )
-        return
-
-    organization = artifact.project.organization
-    client = get_commit_context_client(
-        organization, commit_comparison.head_repo_name, commit_comparison.provider
+    ctx = resolve_pr_comment_context(
+        preprod_artifact_id,
+        log_prefix="preprod.snapshot_pr_comments",
+        enabled_option_key=ENABLED_OPTION_KEY,
+        caller=caller,
+        feature_flag=None,
+        with_build_configuration=False,
     )
+    if ctx is None:
+        return
+    artifact, commit_comparison, organization, head_repo_name, pr_number, provider = ctx
+
+    client = get_commit_context_client(organization, head_repo_name, provider)
     if not client:
         logger.info(
             "preprod.snapshot_pr_comments.create.no_client",
@@ -109,8 +75,8 @@ def create_preprod_snapshot_pr_comment_task(
     with transaction.atomic(db_alias):
         cc, existing_comment_id = lock_pr_comparisons_for_update(
             organization_id=commit_comparison.organization_id,
-            head_repo_name=commit_comparison.head_repo_name,
-            pr_number=commit_comparison.pr_number,
+            head_repo_name=head_repo_name,
+            pr_number=pr_number,
             target_id=commit_comparison.id,
             comment_type="snapshots",
         )
@@ -222,9 +188,9 @@ def create_preprod_snapshot_pr_comment_task(
 
     post_snapshot_pr_comment_task.delay(
         organization_id=organization.id,
-        repo_name=commit_comparison.head_repo_name,
-        provider=commit_comparison.provider,
-        pr_number=commit_comparison.pr_number,
+        repo_name=head_repo_name,
+        provider=provider,
+        pr_number=pr_number,
         commit_comparison_id=cc_id,
         artifact_id=artifact.id,
         comment_body=comment_body,
