@@ -1,8 +1,10 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 
 from sentry.models.activity import Activity
+from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.seer.smart_assignment.delivery import deliver_smart_assignment_result
 from sentry.seer.smart_assignment.models import SEER_FEATURE_ID, SmartAssignmentScore
@@ -29,11 +31,16 @@ class DeliverSmartAssignmentResultTest(TestCase):
             extras={"trigger": ActivityType.SEER_RCA_STARTED.name},
         )
 
-    def _extras(self) -> dict:
+    def _extras(self) -> dict[str, Any]:
         self.mirror.refresh_from_db()
         return self.mirror.extras
 
-    def _deliver(self, result: dict | None, status: str = "completed", error: str | None = None):
+    def _deliver(
+        self,
+        result: dict[str, Any] | None,
+        status: FeatureRunStatus = "completed",
+        error: str | None = None,
+    ) -> None:
         deliver_smart_assignment_result(
             self.organization.id, str(self.seer_run.uuid), status, result, error
         )
