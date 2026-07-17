@@ -9,7 +9,12 @@ from sentry import audit_log, buffer, tsdb
 from sentry.analytics.events.issue_viewed import IssueViewedEvent
 from sentry.buffer.redis import RedisBuffer
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.issues.action_log.types import ReconcileStatusAction
+from sentry.issues.action_log import action_context_scope
+from sentry.issues.action_log.types import (
+    ActionSource,
+    GroupActionActor,
+    ReconcileStatusAction,
+)
 from sentry.issues.constants import cache_key_for_issue_view
 from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType
 from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -98,13 +103,40 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     @with_feature("projects:issue-action-log-write-to-db")
     def test_group_action_log_entry(self) -> None:
         group = self.create_group()
-        self.create_group_action_log_entry(group=group)
+
+        # activity dual writes to GALE. use action context scope to attribute it to the user rather than system
+        data = {"assignee": str(self.user.id)}
+        with action_context_scope(
+            source=ActionSource.WEB, actor=GroupActionActor.user(self.user.id)
+        ):
+            Activity.objects.create(
+                group=group,
+                project=group.project,
+                type=ActivityType.ASSIGNED.value,
+                user_id=self.user.id,
+                data=data,
+            )
+
         self.login_as(user=self.user)
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
-        assert response.data["actionLog"]
+        activity = response.data["activity"]
+        assert len(activity) == 1
+        entry = activity[0]
+        assert entry["type"] == "assigned"
+        assert entry["user"]["id"] == str(self.user.id)
+        assert entry["sentry_app"] is None
+        assert entry["data"] == {
+            "assignee": str(self.user.id),
+            "assignee_email": None,
+            "assignee_name": None,
+            "assignee_type": None,
+            "integration": None,
+            "rule": None,
+        }
+        assert entry["dateCreated"] is not None
 
     def test_pending_delete_pending_merge_excluded(self) -> None:
         group1 = self.create_group(status=GroupStatus.PENDING_DELETION)

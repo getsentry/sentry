@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import functools
-from typing import ClassVar
+
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 from django.db.models.functions import Now
@@ -16,6 +18,14 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager.base import BaseManager
 from sentry.issues.action_log.types import GroupAction, GroupActionType, GroupActorType
+
+if TYPE_CHECKING:
+    from sentry.models.group import Group
+
+
+class GroupActionLogEntryManager(BaseManager["GroupActionLogEntry"]):
+    def get_actions_for_group(self, group: Group, num: int) -> Sequence[GroupActionLogEntry]:
+        return list(self.filter(group_id=group.id).order_by("-date_added")[:num])
 
 
 class GroupActionLogEntryManager(BaseManager["GroupActionLogEntry"]):
@@ -38,6 +48,8 @@ class GroupActionLogEntry(Model):
     objects: ClassVar[GroupActionLogEntryManager] = GroupActionLogEntryManager()
 
     __relocation_scope__ = RelocationScope.Excluded
+
+    objects: ClassVar[GroupActionLogEntryManager] = GroupActionLogEntryManager()
 
     # The id of the Group currently associated with this action.
     group_id = BoundedBigIntegerField()
