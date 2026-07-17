@@ -1,4 +1,3 @@
-import logging
 import re
 import time
 from collections.abc import Mapping
@@ -7,8 +6,6 @@ from typing import Any, overload
 from sentry.attachments import CachedAttachment, get_attachments_for_event
 from sentry.stacktraces.processing import StacktraceInfo
 from sentry.utils.safe import get_path
-
-logger = logging.getLogger(__name__)
 
 # Regex to guess whether we're dealing with Windows or Unix paths.
 WINDOWS_PATH_RE = re.compile(r"^([a-z]:\\|\\\\)", re.IGNORECASE)
@@ -165,30 +162,15 @@ def is_applecrashreport_event(data):
     return get_path(exceptions, 0, "mechanism", "type") == "applecrashreport"
 
 
-def find_gpu_crash_dump_attachment(data: Any) -> Any:
-    """Return the GPU crash dump attachment for this event, or None.
+def find_gpu_crash_dump_attachment(data: Any) -> CachedAttachment | None:
+    """Return the `.nv-gpudmp` GPU crash dump attachment for this event, or None.
 
-    Matches the canonical `event.nv_gpudmp` type, else any `event.attachment`
-    named `*.nv-gpudmp` — the filename fallback covers Relay versions that
-    downgrade the unknown attachment type until they land native support.
+    Relay classifies it as `event.nv_gpudmp` when it splits the GPU crash onto
+    its own event, so matching that type alone is enough.
     """
     from sentry.lang.native.gpu import GPU_CRASH_DUMP_ATTACHMENT_TYPE
 
-    canonical = get_event_attachment(data, GPU_CRASH_DUMP_ATTACHMENT_TYPE)
-    if canonical is not None:
-        return canonical
-
-    for attachment in get_attachments_for_event(data):
-        if attachment.type != "event.attachment":
-            continue
-        name = getattr(attachment, "name", None) or ""
-        if name.endswith(".nv-gpudmp"):
-            return attachment
-    return None
-
-
-def has_gpu_crash_dump_attachment(data: Any) -> bool:
-    return find_gpu_crash_dump_attachment(data) is not None
+    return get_event_attachment(data, GPU_CRASH_DUMP_ATTACHMENT_TYPE)
 
 
 # CPU crash-report attachment types. Their presence means the event is the CPU
@@ -209,59 +191,21 @@ def is_gpu_crash_event(data: Any) -> bool:
     return all(get_event_attachment(data, ty) is None for ty in _CPU_CRASH_REPORT_TYPES)
 
 
-# Shader debug info accompanies the `.nv-gpudmp`, one `.nvdbg` per shader named
-# by its `shader_debug_info_uid` — the key Aftermath uses to look the bytes back
-# up at decode time. We forward each to teapot keyed by that uid.
+# Shader debug info accompanies the `.nv-gpudmp`, one `.nvdbg` per shader. Relay
+# classifies each as `event.nv_shader_debug`; teapot recovers the shader's
+# `shader_debug_info_uid` from the attachment filename at decode time.
 SHADER_DEBUG_INFO_ATTACHMENT_TYPE = "event.nv_shader_debug"
 
-# The decoder looks up shader debug info by a 32-hex `shader_debug_info_uid`
-# ("{id[0]:016x}{id[1]:016x}"). Two filename shapes carry it (kept in sync with
-# teapot's own `_uid_from_nvdbg_filename`):
-#   * `<32-hex-uid>.nvdbg`      — production SDKs ship the full uid; pass through.
-#   * `<16-hex>-<16-hex>.nvdbg` — the NVIDIA `D3D12HelloNsightAftermath` sample
-#                                 splits id[0]/id[1] with a dash; concatenate.
-_NVDBG_UID_RE = re.compile(r"(?P<uid>[0-9a-fA-F]{32})\.nvdbg$")
-_NVDBG_SPLIT_UID_RE = re.compile(r"(?P<id0>[0-9a-fA-F]{16})-(?P<id1>[0-9a-fA-F]{16})\.nvdbg$")
 
+def find_all_shader_debug_attachments(data: Any) -> list[CachedAttachment]:
+    """Return every shader-debug-info (`.nvdbg`) attachment for this event.
 
-def _uid_from_nvdbg_filename(name: str) -> str | None:
-    """Recover the 32-hex shader_debug_info_uid from a `.nvdbg` filename, or None."""
-    m = _NVDBG_UID_RE.search(name)
-    if m is not None:
-        return m.group("uid").lower()
-    m = _NVDBG_SPLIT_UID_RE.search(name)
-    if m is not None:
-        return (m.group("id0") + m.group("id1")).lower()
-    return None
-
-
-def find_all_shader_debug_attachments(data: Any) -> list[tuple[str, CachedAttachment]]:
-    """Return every shader-debug-info attachment, as `(uid, attachment)` pairs.
-
-    Same type-or-filename fallback as `find_gpu_crash_dump_attachment`; skips
-    attachments whose filename carries no parseable uid.
+    Relay already selected the right set and typed each `event.nv_shader_debug`,
+    so we forward them all untouched — no filename parsing or uid matching here.
     """
-    out: list[tuple[str, CachedAttachment]] = []
-    seen_uids: set[str] = set()
-    for attachment in get_attachments_for_event(data):
-        ty = getattr(attachment, "type", "") or ""
-        name = getattr(attachment, "name", None) or ""
-        if ty != SHADER_DEBUG_INFO_ATTACHMENT_TYPE and not (
-            ty == "event.attachment" and name.endswith(".nvdbg")
-        ):
-            continue
-        uid = _uid_from_nvdbg_filename(name)
-        if uid is None:
-            logger.info(
-                "gpu.shader_debug.unparseable_name",
-                extra={"attachment_name": name, "type": ty},
-            )
-            continue
-        if uid in seen_uids:
-            continue
-        seen_uids.add(uid)
-        out.append((uid, attachment))
-    return out
+    return [
+        a for a in get_attachments_for_event(data) if a.type == SHADER_DEBUG_INFO_ATTACHMENT_TYPE
+    ]
 
 
 class Backoff:
