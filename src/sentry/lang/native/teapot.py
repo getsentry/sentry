@@ -31,9 +31,12 @@ class TeapotAttachment(Protocol):
     """The ``CachedAttachment`` surface the client needs, as a structural type.
 
     Lets callers pass a real ``CachedAttachment``, the ``EventAttachment``
-    adapter from the async task, or a test double.
+    adapter from the async task, or a test double. ``name`` is the attachment
+    filename — for a shader-debug ``.nvdbg`` it carries the
+    ``shader_debug_info_uid`` teapot looks the bytes back up by.
     """
 
+    name: str
     stored_id: str | None
 
     def load_data(self, project: Any) -> bytes: ...
@@ -94,20 +97,19 @@ def _resolve_url() -> str | None:
     return url.rstrip("/") if url else None
 
 
-def _all_stored(
-    dump: TeapotAttachment, shader_debug_info: Iterable[tuple[str, TeapotAttachment]]
-) -> bool:
+def _all_stored(dump: TeapotAttachment, shader_debug_info: Iterable[TeapotAttachment]) -> bool:
     # JSON path requires every attachment in objectstore; else fall to multipart.
     if not dump.stored_id:
         return False
-    return all(att.stored_id for _, att in shader_debug_info)
+    return all(att.stored_id for att in shader_debug_info)
 
 
 class TeapotClient:
     """Synchronous HTTP client for POST /symbolicate.
 
-    `shader_debug_info` is a list of (uid, attachment) pairs (one per shader);
-    an empty list is fine. Raises `TeapotUnavailable` on network errors or
+    `shader_debug_info` is the list of shader-debug `.nvdbg` attachments (one per
+    shader; an empty list is fine) — teapot recovers each shader's uid from the
+    attachment filename. Raises `TeapotUnavailable` on network errors or
     exhausted 5xx retries — callers treat that as "skip", never fatal.
     """
 
@@ -122,7 +124,7 @@ class TeapotClient:
     def symbolicate(
         self,
         dump: TeapotAttachment,
-        shader_debug_info: Sequence[tuple[str, TeapotAttachment]] | None = None,
+        shader_debug_info: Sequence[TeapotAttachment] | None = None,
     ) -> dict[str, Any]:
         shader_debug_info = shader_debug_info or []
         url = f"{self.base_url}/symbolicate"
@@ -143,7 +145,7 @@ class TeapotClient:
         url: str,
         headers: dict[str, str],
         dump: TeapotAttachment,
-        shader_debug_info: Sequence[tuple[str, TeapotAttachment]],
+        shader_debug_info: Sequence[TeapotAttachment],
     ) -> dict[str, Any]:
         """Pass attachments to teapot by reference — bytes stay in objectstore."""
 
@@ -159,11 +161,11 @@ class TeapotClient:
             },
             "shader_debug_info": [
                 {
-                    "uid": uid,
+                    "filename": att.name,
                     "storage_url": get_symbolicator_url(session, _require_stored_id(att)),
                     "storage_token": session.mint_token(),
                 }
-                for uid, att in shader_debug_info
+                for att in shader_debug_info
             ],
         }
         return self._send(
@@ -175,7 +177,7 @@ class TeapotClient:
         url: str,
         headers: dict[str, str],
         dump: TeapotAttachment,
-        shader_debug_info: Sequence[tuple[str, TeapotAttachment]],
+        shader_debug_info: Sequence[TeapotAttachment],
     ) -> dict[str, Any]:
         """Fallback: load bytes and POST them inline when not all in objectstore."""
 
@@ -184,19 +186,20 @@ class TeapotClient:
             "project_id": str(self.project.id),
             "organization_id": str(self.project.organization_id),
         }
-        # list-of-tuples lets us send N `nv_shader_debug.<uid>` fields per request.
+        # A repeated `nv_shader_debug` field per shader; the part filename carries
+        # the uid teapot decodes it by. A list-of-tuples lets the field repeat.
         files: list[tuple[str, tuple[str, bytes, str]]] = [
             (
                 "upload_file",
                 ("dump.nv-gpudmp", dump.load_data(self.project), "application/octet-stream"),
             ),
         ]
-        for uid, att in shader_debug_info:
+        for att in shader_debug_info:
             files.append(
                 (
-                    f"nv_shader_debug.{uid}",
+                    "nv_shader_debug",
                     (
-                        f"{uid}.nvdbg",
+                        att.name,
                         att.load_data(self.project),
                         "application/octet-stream",
                     ),
@@ -270,7 +273,7 @@ def submit_to_teapot(
     project: Any,
     event_id: str,
     dump: TeapotAttachment,
-    shader_debug_info: Sequence[tuple[str, TeapotAttachment]] | None = None,
+    shader_debug_info: Sequence[TeapotAttachment] | None = None,
 ) -> dict[str, Any] | None:
     """Best-effort teapot invocation. Returns None on any failure."""
 

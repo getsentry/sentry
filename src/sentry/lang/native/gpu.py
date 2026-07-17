@@ -189,8 +189,14 @@ def _build_flat_gpu_context(response: Mapping[str, Any]) -> dict[str, Any]:
 def _merge_tags(
     existing: Any,
     extra: Mapping[str, str],
-) -> dict[str, str]:
-    """Merge the event's existing tags (dict or list-of-pairs form) with extras."""
+) -> list[tuple[str, str]]:
+    """Merge the event's existing tags with the GPU extras.
+
+    Returns the pipeline's canonical list-of-pairs form — what ``set_tag`` /
+    ``get_tag`` / ``pop_tag`` in ``event_manager`` operate on (a dict would break
+    them). Accepts either the dict or list-of-pairs input shape; extras win on a
+    key collision.
+    """
 
     merged: dict[str, str] = {}
     if isinstance(existing, dict):
@@ -208,7 +214,7 @@ def _merge_tags(
     for k, v in extra.items():
         if v is not None:
             merged[k] = str(v)
-    return merged
+    return list(merged.items())
 
 
 def _markers_to_breadcrumbs(markers: Any) -> list[dict[str, Any]]:

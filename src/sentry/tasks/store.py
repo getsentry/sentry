@@ -182,8 +182,12 @@ def _do_preprocess_event(
     # teapot in a dedicated isolated task before symbolication/save, so a slow
     # teapot can never back up CPU symbolication. The no-crash-report check keeps
     # us from hijacking a CPU minidump event when the org hasn't opted into the
-    # Relay-side split; `has_attachments` short-circuits the common path cheaply.
-    if has_attachments and is_gpu_crash_event(data):
+    # Relay-side split. `has_attachments` short-circuits the common path cheaply;
+    # reprocessing never sets it, so fall through on `from_reprocessing` too. Back
+    # up the unprocessed event first (as the symbolicate path does) so a later
+    # reprocess can reload it and re-run teapot.
+    if (has_attachments or from_reprocessing) and is_gpu_crash_event(data):
+        reprocessing2.backup_unprocessed_event(data=original_data)
         submit_symbolicate_gpu_crash(
             cache_key=cache_key,
             event_id=event_id,
