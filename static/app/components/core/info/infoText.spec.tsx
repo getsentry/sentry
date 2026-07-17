@@ -1,29 +1,9 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {InfoText} from '@sentry/scraps/info';
 
 describe('InfoText', () => {
-  function getEmotionRules(element: HTMLElement): string[] {
-    const classes = element.className.split(' ').filter(cls => cls.startsWith('css-'));
-    const rules: string[] = [];
-
-    for (const sheet of Array.from(document.styleSheets)) {
-      let sheetRules: CSSRuleList;
-      try {
-        sheetRules = sheet.cssRules;
-      } catch {
-        continue;
-      }
-      for (const rule of Array.from(sheetRules)) {
-        if (classes.some(cls => rule.cssText.includes(cls))) {
-          rules.push(rule.cssText);
-        }
-      }
-    }
-
-    return rules;
-  }
-
   function mockOverflow(width: number, containerWidth: number) {
     Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
       configurable: true,
