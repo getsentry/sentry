@@ -87,6 +87,10 @@ class ConditionError:
     msg: str
 
 
+DetectorResult: TypeAlias = IssueOccurrence | StatusChangeMessage
+
+
+# TODO - delete this in favor of DetectorEvaluation
 @dataclass(frozen=True)
 class DetectorEvaluationResult:
     # TODO - Should group key live at this level?
