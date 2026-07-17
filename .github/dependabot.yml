@@ -1,15 +1,13 @@
 version: 2
 updates:
   - package-ecosystem: npm
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 15
     directory: '/'
     schedule:
       # Going to start with a high interval, and then tone it back
       interval: daily
       timezone: America/Los_Angeles
       time: '15:30'
-    reviewers:
-      - '@getsentry/owners-js-deps'
     labels: []
     # Group dependency updates together in one PR
     # https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#groups
@@ -18,8 +16,12 @@ updates:
       swc-dependencies:
         patterns:
           - '@swc/*'
+      dnd-kit-dependencies:
+        patterns:
+          - '@dnd-kit/*'
       sentry-dependencies:
         patterns:
+          - '@sentry/browser'
           - '@sentry/core'
           - '@sentry/node'
           - '@sentry/react'
@@ -34,11 +36,24 @@ updates:
           - '@emotion/*'
       jest-dependencies:
         patterns:
+          - '@jest/*'
           - 'jest'
           - 'jest-*'
       react-testing-library-dependencies:
         patterns:
           - '@testing-library/*'
+      # Keep React Router updates within the current major version.
+      react-router-dependencies:
+        patterns:
+          - 'react-router*'
+        update-types:
+          - 'minor'
+          - 'patch'
+      tanstack-query-dependencies:
+        patterns:
+          - '@tanstack/eslint-plugin-query'
+          - '@tanstack/query-*'
+          - '@tanstack/react-query*'
       react-dependencies:
         patterns:
           - 'react'
@@ -52,22 +67,16 @@ updates:
 
       # We ignore everything that hasn't yet been upgrade, this way we will
       # only get the _freshest_ of new packages to consider upgrading
-      - dependency-name: '@types/react-router'
       - dependency-name: '@types/react-select'
       - dependency-name: '@types/reflux'
       - dependency-name: 'gettext-parser'
       - dependency-name: 'react-lazyload'
-      - dependency-name: 'react-router'
       - dependency-name: 'react-select'
       - dependency-name: 'reflux'
       - dependency-name: 'sprintf-js'
-      - dependency-name: 'u2f-api'
   - package-ecosystem: 'docker'
     directory: 'self-hosted/'
     schedule:
       interval: 'daily'
-    reviewers:
-      - '@getsentry/dev-infra'
-      - '@getsentry/security'
     # security only updates
     open-pull-requests-limit: 0

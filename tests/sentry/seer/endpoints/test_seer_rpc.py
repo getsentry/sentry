@@ -895,6 +895,7 @@ class TestGetMonitoringProviderConnections(APITestCase):
         assert connection.url == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
         assert connection.identity_id == identity.id
         assert connection.auth_method == "oauth"
+        assert connection.encrypted_access_token is not None
         decrypted = Fernet(TEST_FERNET_KEY.encode("utf-8")).decrypt(
             connection.encrypted_access_token.encode("utf-8")
         )
