@@ -3950,11 +3950,3 @@ register(
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Allows GroupActionLogEntries to be written from Activity creation.
-register(
-    "group_action_log.activity.double-write",
-    default=False,
-    type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
