@@ -19,6 +19,14 @@ export const SEER_EMBED_SCHEMAS = {
       format: z.enum(['absolute', 'relative']).default('absolute'),
     }),
   },
+  docs: {
+    description:
+      'Link to a page in the Sentry documentation. Use this whenever you ' +
+      'reference a Sentry feature or concept that has official docs. ' +
+      'The href MUST be an absolute https://docs.sentry.io/... URL.',
+    level: ['inline'],
+    schema: z.object({href: z.string(), title: z.string()}),
+  },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
 export type SeerEmbedName = keyof typeof SEER_EMBED_SCHEMAS;

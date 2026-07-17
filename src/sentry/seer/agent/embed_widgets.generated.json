@@ -19,5 +19,24 @@
       "required": ["value", "format"],
       "additionalProperties": false
     }
+  },
+  {
+    "name": "docs",
+    "description": "Link to a page in the Sentry documentation. Use this whenever you reference a Sentry feature or concept that has official docs. The href MUST be an absolute https://docs.sentry.io/... URL.",
+    "level": ["inline"],
+    "body": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "href": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": ["href", "title"],
+      "additionalProperties": false
+    }
   }
 ]
