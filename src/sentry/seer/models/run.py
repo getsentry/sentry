@@ -104,9 +104,10 @@ class SeerRunPullRequest(DefaultFieldsModel):
         "sentry.PullRequest", on_delete=models.CASCADE, related_name="seer_run_links"
     )
     # Null for Seer-native PRs. Not unique -- a handoff can report multiple PRs.
+    # SET_NULL, not CASCADE: deleting the handoff shouldn't delete this run<->PR link.
     coding_agent_handoff = FlexibleForeignKey(
         "seer.SeerRunCodingAgentHandoff",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         related_name="pull_request_links",
     )
