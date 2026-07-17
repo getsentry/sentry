@@ -46,6 +46,7 @@ from sentry.issues.derived.processing import (
     PIPELINE,
     GroupLogTimeout,
     PromotionResult,
+    _current_generation_id,
     _entries_after_cursor,
     build_and_promote_derived_data,
     cleanup_stale_processing_rows,
@@ -56,7 +57,7 @@ from sentry.issues.derived.processing import (
 )
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
-from sentry.issues.models.groupderiveddata import GroupDerivedData
+from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
@@ -505,20 +506,22 @@ class ProcessGroupLogTest(TestCase):
 
 @with_feature("projects:issue-action-log-write-to-db")
 class PromoteToLiveTest(TestCase):
-    def test_promote_with_no_existing_live(self) -> None:
+    def test_promote_inserts_when_no_live_row(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
-        row = create_processing_row(group.id)
-        processing._drain_log(row)
-        assert promote_to_live(row) is PromotionResult.PROMOTED
-        assert row.is_live
+        gen = _current_generation_id(group.id)
+        candidate = GroupDerivedData(
+            group_id=group.id, generation_id=gen, cursor_date=EPOCH, cursor_id=0, data={}
+        )
+        processing._drain_log(candidate, persist=False)
+        assert promote_to_live(candidate) is PromotionResult.PROMOTED
 
-        row.refresh_from_db()
-        assert row.is_live
-        assert row.view_count == 1
+        live = GroupDerivedData.objects.get(group_id=group.id, is_live=True)
+        assert live.view_count == 1
+        assert live.generation_id == gen
 
-    def test_promote_replaces_older_live(self) -> None:
+    def test_promote_updates_existing_live_row(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
@@ -528,32 +531,17 @@ class PromoteToLiveTest(TestCase):
 
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
-        new = create_processing_row(group.id)
-        processing._drain_log(new)
-        assert promote_to_live(new) is PromotionResult.PROMOTED
+        gen = _current_generation_id(group.id)
+        candidate = GroupDerivedData(
+            group_id=group.id, generation_id=gen, cursor_date=EPOCH, cursor_id=0, data={}
+        )
+        processing._drain_log(candidate, persist=False)
+        assert promote_to_live(candidate) is PromotionResult.PROMOTED
 
-        assert not GroupDerivedData.objects.filter(id=old_id).exists()
-        assert new.is_live
-        assert new.view_count == 2
-
-    def test_promote_rejected_if_candidate_older(self) -> None:
-        group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
-
-        old_candidate = create_processing_row(group.id)
-        processing._drain_log(old_candidate)
-
-        # Create and promote a newer candidate first
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
-        new_candidate = create_processing_row(group.id)
-        processing._drain_log(new_candidate)
-        assert promote_to_live(new_candidate) is PromotionResult.PROMOTED
-
-        assert promote_to_live(old_candidate) is PromotionResult.SUPERSEDED
-
-        # New candidate is still live
+        # The existing live row was updated in place, not replaced.
         live = GroupDerivedData.objects.get(group_id=group.id, is_live=True)
-        assert live.id == new_candidate.id
+        assert live.id == old_id
+        assert live.view_count == 2
 
     def test_promote_rejected_if_cursor_behind(self) -> None:
         group = self.create_group()
@@ -564,16 +552,43 @@ class PromoteToLiveTest(TestCase):
         live = process_group_log(group.id)
         assert live is not None
 
-        # Create a candidate that only processes the first entry
-        candidate = create_processing_row(group.id)
-        processing._process_batch(PIPELINE, candidate, batch_size=1)
+        # Build a candidate with the same generation as the live row
+        # but only process the first entry so the cursor is behind.
+        candidate = GroupDerivedData(
+            group_id=group.id,
+            generation_id=live.generation_id,
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+        )
+        processing._process_batch(PIPELINE, candidate, batch_size=1, persist=False)
 
-        # Candidate cursor is behind the live row
         assert (candidate.cursor_date, candidate.cursor_id) < (
             live.cursor_date,
             live.cursor_id,
         )
         assert promote_to_live(candidate) is PromotionResult.CURSOR_BEHIND
+
+    def test_promote_rejected_if_stale_generation(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        # Capture generation before more entries arrive
+        stale_gen = _current_generation_id(group.id)
+
+        # Build and promote with current generation
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        build_and_promote_derived_data(group.id)
+        live = GroupDerivedData.objects.get(group_id=group.id, is_live=True)
+        assert live.generation_id > stale_gen
+
+        # A stale rebuild with the old generation can't overwrite even if
+        # it has the same cursor position.
+        stale_candidate = GroupDerivedData(
+            group_id=group.id, generation_id=stale_gen, cursor_date=EPOCH, cursor_id=0, data={}
+        )
+        processing._drain_log(stale_candidate, persist=False)
+        assert promote_to_live(stale_candidate) is PromotionResult.CURSOR_BEHIND
 
     def test_build_and_promote(self) -> None:
         group = self.create_group()
@@ -585,7 +600,7 @@ class PromoteToLiveTest(TestCase):
         assert derived.view_count == 1
         assert derived.data["status"] == "closed"
 
-    def test_build_and_promote_replaces_stale_live(self) -> None:
+    def test_build_and_promote_updates_stale_live(self) -> None:
         group = self.create_group()
         user = self.user
 
@@ -596,10 +611,19 @@ class PromoteToLiveTest(TestCase):
 
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
         build_and_promote_derived_data(group.id)
-        new = GroupDerivedData.objects.get(group_id=group.id, is_live=True)
-        assert new.id != old_id
-        assert new.view_count == 2
-        assert not GroupDerivedData.objects.filter(id=old_id).exists()
+        live = GroupDerivedData.objects.get(group_id=group.id, is_live=True)
+        # Upsert updates the existing live row in place.
+        assert live.id == old_id
+        assert live.view_count == 2
+
+    def test_build_and_promote_no_non_live_rows_on_success(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        build_and_promote_derived_data(group.id)
+        # Common path never persists a non-live row.
+        assert not GroupDerivedData.objects.filter(group_id=group.id, is_live=False).exists()
+        assert GroupDerivedData.objects.filter(group_id=group.id, is_live=True).exists()
 
     def test_cleanup_stale_processing_rows(self) -> None:
         group = self.create_group()
@@ -619,15 +643,19 @@ class PromoteToLiveTest(TestCase):
         for _ in range(5):
             _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
-        row = create_processing_row(group.id)
+        candidate = GroupDerivedData(
+            group_id=group.id, generation_id=0, cursor_date=EPOCH, cursor_id=0, data={}
+        )
 
         # Zero time limit forces bail after first batch
-        drained = processing._drain_log(row, batch_size=2, time_limit=timedelta(0))
+        drained = processing._drain_log(
+            candidate, batch_size=2, time_limit=timedelta(0), persist=False
+        )
         assert not drained
         # Processed one batch (2 entries) but not all 5
-        assert row.cursor_id > 0
+        assert candidate.cursor_id > 0
         entries = list(GroupActionLogEntry.objects.filter(group_id=group.id).order_by("id"))
-        assert row.cursor_id < entries[-1].id
+        assert candidate.cursor_id < entries[-1].id
 
     def test_process_group_log_reenqueues_on_partial_drain(self) -> None:
         group = self.create_group()
@@ -642,12 +670,10 @@ class PromoteToLiveTest(TestCase):
         assert derived is not None
         mock_task.delay.assert_called_once_with(group.id)
 
-    def test_build_and_promote_exhaustion_deletes_row(self) -> None:
+    def test_build_and_promote_exhaustion_leaves_live_row(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
-        # Create a live row, then keep advancing its cursor so the candidate
-        # can never catch up (simulated by patching promote_to_live).
         process_group_log(group.id)
 
         with patch(
@@ -656,12 +682,12 @@ class PromoteToLiveTest(TestCase):
         ):
             build_and_promote_derived_data(group.id)
 
-        # The non-live candidate was cleaned up
+        # No non-live rows persisted (common path is in-memory).
         assert not GroupDerivedData.objects.filter(group_id=group.id, is_live=False).exists()
-        # The original live row is untouched
+        # The original live row is untouched.
         assert GroupDerivedData.objects.filter(group_id=group.id, is_live=True).exists()
 
-    def test_build_and_promote_raises_on_partial_drain(self) -> None:
+    def test_build_and_promote_saves_on_timeout_for_resumption(self) -> None:
         group = self.create_group()
         for _ in range(5):
             _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
@@ -673,30 +699,16 @@ class PromoteToLiveTest(TestCase):
         assert exc_info.value.group_id == group.id
         assert exc_info.value.derived_id is not None
 
-        # The non-live row still exists for resumption
+        # The non-live row was persisted for resumption.
         derived_id = exc_info.value.derived_id
-        row = GroupDerivedData.objects.get(id=derived_id, is_live=False)
-        assert row is not None
+        assert GroupDerivedData.objects.filter(id=derived_id, is_live=False).exists()
 
-        # Resuming with that derived_id completes the promotion
+        # Resuming with that derived_id completes the promotion.
         build_and_promote_derived_data(group.id, derived_id=derived_id)
         promoted = GroupDerivedData.objects.get(group_id=group.id, is_live=True)
-        assert promoted.id == row.id
         assert promoted.view_count == 5
-
-    def test_build_and_promote_breaks_on_superseded(self) -> None:
-        group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
-        process_group_log(group.id)
-
-        with patch(
-            "sentry.issues.derived.processing.promote_to_live",
-            return_value=PromotionResult.SUPERSEDED,
-        ) as mock_promote:
-            build_and_promote_derived_data(group.id)
-
-        # Should only try once, not retry
-        assert mock_promote.call_count == 1
+        # The non-live row was cleaned up after promotion.
+        assert not GroupDerivedData.objects.filter(id=derived_id, is_live=False).exists()
 
 
 # --- Pure Python tests (no DB) ---
