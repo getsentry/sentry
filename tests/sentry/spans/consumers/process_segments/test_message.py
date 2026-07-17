@@ -312,6 +312,15 @@ class TestSpansTask(TestCase):
         process_segment([child_span, segment_span])
         assert conversation_calls() == 1
 
+        mock_incr.reset_mock()
+        child_span, segment_span = self.generate_basic_spans()
+        child_span["attributes"]["gen_ai.conversation.id"] = {
+            "type": "string",
+            "value": "conv-123",
+        }
+        process_segment([child_span, segment_span], skip_enrichment=True)
+        assert conversation_calls() == 1
+
     def test_segment_name_propagation(self) -> None:
         child_span, segment_span = self.generate_basic_spans()
         assert (
