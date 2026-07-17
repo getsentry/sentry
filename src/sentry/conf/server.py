@@ -2364,13 +2364,13 @@ SENTRY_INTERCOM_API_SECRET = ""
 SENTRY_RELAY_STATIC_AUTH: dict[str, Any] = {}
 SENTRY_OBJECTSTORE_CONFIG: dict[str, Any] = {
     "base_url": "http://127.0.0.1:8888",
-    # Test-only token generator with no permissions. Only active when no real
+    # Test-only token generator with read permission. Only active when no real
     # objectstore config is deployed. Exists so mint_token() does not raise in
     # test/dev environments that lack signing keys.
     "token_generator": {
         "kid": "test",
         "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIOrZqzixETRBXsZl85d83N5nwb71ctTZ3/mwu1TX90vG\n-----END PRIVATE KEY-----\n",
-        "permissions": [],
+        "permissions": ["object.read"],
     },
 }
 SENTRY_VIEWER_CONTEXT_ENABLED = True

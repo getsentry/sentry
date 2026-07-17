@@ -190,6 +190,8 @@ def _backfill_project(
     cursor_id: int = 0,
     activation_id: str | None = None,
 ) -> None:
+    from sentry.issues.derived.tasks import process_project_derived_data
+
     batch_size: int = options.get("issues.backfill_group_action_log.batch_size")
     inter_batch_delay_s: int = options.get("issues.backfill_group_action_log.inter_batch_delay_s")
 
@@ -216,6 +218,7 @@ def _backfill_project(
             "backfill_group_action_log.project_completed",
             extra={"project_id": project.id},
         )
+        process_project_derived_data.delay(project_id=project.id)
         return
 
     logger.info(
@@ -312,3 +315,9 @@ def _backfill_project(
         )
         if activation_id:
             mark_spawned(_TASK_KEY, activation_id)
+    else:
+        logger.info(
+            "backfill_group_action_log.project_completed",
+            extra={"project_id": project.id},
+        )
+        process_project_derived_data.delay(project_id=project.id)
