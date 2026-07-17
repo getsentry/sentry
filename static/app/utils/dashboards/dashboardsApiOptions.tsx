@@ -3,7 +3,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {QueryParamValue} from 'sentry/utils/useLocation';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 
-export const MAX_STARRED_DASHBOARDS_IN_NAV = 20;
+const MAX_STARRED_DASHBOARDS_IN_NAV = 20;
 
 export function starredDashboardsApiOptions(organization: Organization) {
   return apiOptions.as<DashboardListItem[]>()(
