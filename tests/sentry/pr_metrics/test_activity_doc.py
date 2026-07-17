@@ -25,9 +25,9 @@ from sentry.pr_metrics.activity_doc import (
     derived_metrics_from_doc,
     extract_event_at,
     has_commits_after_open,
+    human_participant_count,
     is_failing_conclusion,
     new_document,
-    participant_count,
     timeline_events_from_doc,
 )
 
@@ -806,11 +806,11 @@ def test_has_commits_after_open() -> None:
     assert has_commits_after_open(doc) is True
 
 
-def test_participant_count_excludes_bots() -> None:
+def test_human_participant_count_excludes_bots() -> None:
     doc = new_document()
     _comment(doc, sender_login="human", sender_type="User", webhook_id="c1")
     _comment(doc, sender_login="bot[bot]", sender_type="Bot", webhook_id="c2")
-    assert participant_count(doc) == 1
+    assert human_participant_count(doc) == 1
 
 
 def test_derived_metrics_from_doc_mirrors_legacy_shape() -> None:

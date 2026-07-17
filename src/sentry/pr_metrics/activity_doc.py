@@ -13,6 +13,7 @@ per-``(head_sha, app_slug)`` rollups), and **comments** (folded into
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from collections.abc import Mapping
 from typing import Any, TypedDict
 
@@ -443,7 +444,7 @@ def has_commits_after_open(doc: ActivityDoc) -> bool:
     return doc.get("counts", {}).get(PullRequestActivityType.SYNCHRONIZED, 0) > 0
 
 
-def participant_count(doc: ActivityDoc) -> int:
+def human_participant_count(doc: ActivityDoc) -> int:
     """Distinct non-bot participants (CI apps and automation excluded)."""
     return sum(1 for sender_type in doc.get("participants", {}).values() if sender_type != "Bot")
 
@@ -451,6 +452,18 @@ def participant_count(doc: ActivityDoc) -> int:
 def _entry_sender(entry: ActivityEntry) -> tuple[str, str | None]:
     payload = entry.get("payload") or {}
     return payload.get("sender_login") or "", payload.get("sender_type")
+
+
+def _bot_human_counts(
+    events: list[ActivityEntry], event_types: tuple[PullRequestActivityType, ...]
+) -> Counter[str]:
+    """Senders behind the given entry types, split into ``bot``/``human`` counts."""
+    counts: Counter[str] = Counter()
+    for event in events:
+        if event["event_type"] in event_types:
+            _login, sender_type = _entry_sender(event)
+            counts["bot" if sender_type == "Bot" else "human"] += 1
+    return counts
 
 
 def derived_metrics_from_doc(doc: ActivityDoc) -> dict[str, Any]:
@@ -463,22 +476,10 @@ def derived_metrics_from_doc(doc: ActivityDoc) -> dict[str, Any]:
     """
     events = doc.get("events", [])
 
-    review_types = [
-        sender_type
-        for event in events
-        if event["event_type"] == PullRequestActivityType.REVIEW_SUBMITTED
-        for _login, sender_type in [_entry_sender(event)]
-    ]
-    reviews_bot_count = sum(1 for sender_type in review_types if sender_type == "Bot")
-
-    push_types = [
-        sender_type
-        for event in events
-        if event["event_type"]
-        in (PullRequestActivityType.OPENED, PullRequestActivityType.SYNCHRONIZED)
-        for _login, sender_type in [_entry_sender(event)]
-    ]
-    pushes_bot_count = sum(1 for sender_type in push_types if sender_type == "Bot")
+    review_counts = _bot_human_counts(events, (PullRequestActivityType.REVIEW_SUBMITTED,))
+    push_counts = _bot_human_counts(
+        events, (PullRequestActivityType.OPENED, PullRequestActivityType.SYNCHRONIZED)
+    )
 
     # Earliest opener, latest closer (events are in arrival order).
     opened = next(
@@ -499,12 +500,12 @@ def derived_metrics_from_doc(doc: ActivityDoc) -> dict[str, Any]:
     same_actor = (opened[0] == closed[0]) if opened and closed and opened[0] and closed[0] else None
 
     return {
-        "participants_count": participant_count(doc),
+        "participants_count": human_participant_count(doc),
         "reviews_count": doc.get("counts", {}).get(PullRequestActivityType.REVIEW_SUBMITTED, 0),
-        "reviews_bot_count": reviews_bot_count,
-        "reviews_human_count": len(review_types) - reviews_bot_count,
-        "pushes_bot_count": pushes_bot_count,
-        "pushes_human_count": len(push_types) - pushes_bot_count,
+        "reviews_bot_count": review_counts["bot"],
+        "reviews_human_count": review_counts["human"],
+        "pushes_bot_count": push_counts["bot"],
+        "pushes_human_count": push_counts["human"],
         "opened_by_bot": (opened[1] == "Bot") if opened else None,
         "closed_by_bot": (closed[1] == "Bot") if closed else None,
         "opened_and_closed_by_same_actor": same_actor,

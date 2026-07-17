@@ -452,7 +452,7 @@ def _log_reducer_parity(pull_request: PullRequest) -> None:
     reduced = (
         activity_doc.has_commits_after_open(doc),
         doc["counts"].get(PullRequestActivityType.REVIEW_SUBMITTED, 0),
-        activity_doc.participant_count(doc),
+        activity_doc.human_participant_count(doc),
     )
     if legacy != reduced:
         logger.warning(
