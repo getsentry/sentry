@@ -88,15 +88,16 @@ def record_ground_truth(
         return
 
     updates["ground_truth_source"] = activity_type.name
-    _apply(run.id, updates)
-    metrics.incr("smart_assignment.ground_truth.recorded", tags={"trigger": activity_type.name})
+    if _apply(run.id, updates):
+        metrics.incr("smart_assignment.ground_truth.recorded", tags={"trigger": activity_type.name})
 
 
-def _apply(run_id: int, updates: dict[str, Any]) -> None:
+def _apply(run_id: int, updates: dict[str, Any]) -> bool:
     """Merge `updates` into the run mirror's extras under a row lock and, if that
     completes the (prediction, ground truth) pair, emit `smart_assignment.scored`
     once. The lock serializes the prediction and ground-truth writers so neither a
-    lost update nor a double emit is possible."""
+    lost update nor a double emit is possible. Returns whether the updates were
+    persisted -- ``False`` when the row is already a terminal snapshot."""
     with transaction.atomic(using=router.db_for_write(SeerAgentRun)):
         run = SeerAgentRun.objects.select_for_update().select_related("run").get(id=run_id)
         extras = dict(run.extras or {})
@@ -104,7 +105,7 @@ def _apply(run_id: int, updates: dict[str, Any]) -> None:
             # The row is a terminal snapshot once scored. Applying later prediction or
             # ground-truth updates would drift the mirrored fields away from what we
             # actually scored against, leaving `result`/`hit_rank` inconsistent.
-            return
+            return False
         extras.update(updates)
         result, hit_rank = _score(run.run.organization_id, extras)
         if result is not None:
@@ -118,6 +119,7 @@ def _apply(run_id: int, updates: dict[str, Any]) -> None:
             "smart_assignment.scored",
             tags={"result": str(result), "hit_rank": hit_rank, "trigger": extras.get("trigger")},
         )
+    return True
 
 
 def _score(
