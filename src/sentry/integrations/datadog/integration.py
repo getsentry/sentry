@@ -10,9 +10,12 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import CharField
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
-from sentry.identity.datadog.provider import DATADOG_VALID_SITES
 from sentry.constants import ObjectStatus
-from sentry.identity.datadog.provider import MCP_ENDPOINT_PATH, mcp_base_url_for_site
+from sentry.identity.datadog.provider import (
+    DATADOG_VALID_SITES,
+    MCP_ENDPOINT_PATH,
+    mcp_base_url_for_site,
+)
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
