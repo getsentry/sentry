@@ -1640,7 +1640,21 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         metrics.distribution("search.progress_inverted.num_chunks", num_chunks)
 
         if not passers:
-            return self.empty_result
+            # No matches in the chunks we walked. If the walk is exhausted this is a genuinely
+            # empty result; otherwise (stopped early / budget hit) later chunks may still match,
+            # so return an empty page that still lets the client page forward in the walk
+            # direction rather than trapping them on a dead end.
+            if walk_exhausted:
+                return self.empty_result
+            empty = self.empty_result
+            if is_prev:
+                empty.prev.has_results = True
+            else:
+                empty.next.has_results = True
+            if budget_exhausted:
+                metrics.incr("search.progress_inverted_budget_exhausted", skip_internal=False)
+                sentry_sdk.set_tag("search.progress_inverted_budget_exhausted", "true")
+            return empty
 
         # SequencePaginator re-sorts by (int_score, group_id) DESC, so accumulation order is
         # irrelevant; only the set of passers matters.

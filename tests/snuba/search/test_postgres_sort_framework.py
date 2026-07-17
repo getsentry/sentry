@@ -757,6 +757,23 @@ class TestProgressSort(PostgresSortTestBase):
             cursor = page.next
         assert seen == expected
 
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options(
+        {
+            "snuba.search.max-pre-snuba-candidates": 0,
+            # Force the chunk time budget to expire before the first chunk runs, so no
+            # passers are collected while the Postgres walk is not exhausted.
+            "snuba.search.max-total-chunk-time-seconds": 0,
+        }
+    )
+    def test_budget_exhausted_empty_page_still_allows_paging_forward(self):
+        # An empty page from budget exhaustion must not trap the client: next.has_results has
+        # to stay True so they can resume the walk, rather than degrading or dead-ending.
+        self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
+        page = self.make_query(sort_by="progress", query="issue", limit=2)
+        assert list(page) == []
+        assert page.next.has_results
+
 
 class TestDefaultPostgresSortStrategies(TestCase):
     def test_recommended_v2_registered(self):
