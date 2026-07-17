@@ -1,5 +1,4 @@
 from collections.abc import Callable, Sequence
-from enum import StrEnum
 from typing import Any, cast
 
 from django.conf import settings
@@ -504,14 +503,6 @@ def get_trace_metric_names_generic_filter(trace_metric_names: list[str]) -> Gene
 CUSTOM_INBOUND_FILTER_ID_PREFIX = "custom-inbound-filter-"
 
 
-class CustomInboundFilterTarget(StrEnum):
-    """The Relay item type a custom inbound filter applies to."""
-
-    EVENT = "event"
-    LOG = "log"
-    TRACE_METRIC = "trace_metric"
-
-
 def _custom_error_message_condition(values: list[str]) -> RuleCondition:
     """
     Matches events whose exception type, exception value, or log entry message
@@ -545,92 +536,65 @@ def _custom_error_message_condition(values: list[str]) -> RuleCondition:
     }
 
 
-# The target item type is selected by the filter's primary condition type.
-# Filters without a primary condition apply to events, mirroring the legacy
-# `releases` inbound filter.
-_TARGET_BY_PRIMARY_CONDITION = {
-    CustomInboundFilterConditionType.ERROR_MESSAGE: CustomInboundFilterTarget.EVENT,
-    CustomInboundFilterConditionType.LOG_MESSAGE: CustomInboundFilterTarget.LOG,
-    CustomInboundFilterConditionType.METRIC_NAME: CustomInboundFilterTarget.TRACE_METRIC,
-}
-
-# Where a condition type's data lives on an item: either a Relay Getter field
-# path (matched with a glob), or a builder for condition types that span
-# multiple fields.
+# Where a condition type's data lives: either a Relay Getter field path
+# (matched with a glob), or a builder for condition types that span multiple
+# fields. The filter's primary condition type selects the item type the filter
+# applies to and thereby the location table; filters with only release
+# conditions (key None) apply to events, mirroring the legacy `releases`
+# inbound filter.
 _ConditionLocation = str | Callable[[list[str]], RuleCondition]
 
-# A condition type without an entry for the filter's target cannot be expressed
-# on that item type and disables the whole filter.
 _CONDITION_LOCATIONS: dict[
-    CustomInboundFilterTarget, dict[CustomInboundFilterConditionType, _ConditionLocation]
+    CustomInboundFilterConditionType | None,
+    dict[CustomInboundFilterConditionType, _ConditionLocation],
 ] = {
-    CustomInboundFilterTarget.EVENT: {
+    None: {
+        CustomInboundFilterConditionType.RELEASE: "event.release",
+    },
+    CustomInboundFilterConditionType.ERROR_MESSAGE: {
         CustomInboundFilterConditionType.ERROR_MESSAGE: _custom_error_message_condition,
         CustomInboundFilterConditionType.RELEASE: "event.release",
     },
-    CustomInboundFilterTarget.LOG: {
+    CustomInboundFilterConditionType.LOG_MESSAGE: {
         CustomInboundFilterConditionType.LOG_MESSAGE: "log.body",
         CustomInboundFilterConditionType.RELEASE: "log.attributes.sentry.release.value",
     },
-    CustomInboundFilterTarget.TRACE_METRIC: {
+    CustomInboundFilterConditionType.METRIC_NAME: {
         CustomInboundFilterConditionType.METRIC_NAME: "trace_metric.name",
         CustomInboundFilterConditionType.RELEASE: "trace_metric.attributes.sentry.release.value",
     },
 }
 
 
-def _custom_filter_condition(conditions: Any) -> RuleCondition | None:
+def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition | None:
     """
     Translates a custom inbound filter's conditions into a Relay rule condition.
 
     Conditions are combined with AND. Returns None if any condition cannot be
-    translated (unknown type, no usable values, or no location on the target
-    item type): since every condition narrows the match, dropping only the
-    broken condition would filter more data than configured.
+    translated (a type or value shape unknown to this revision, or a type with
+    no location on the item type the filter applies to): since every condition
+    narrows the match, dropping only the broken condition would filter more
+    data than configured.
     """
-    if not isinstance(conditions, list):
+    if not conditions:
         return None
 
     parsed: list[tuple[CustomInboundFilterConditionType, list[str]]] = []
     for condition in conditions:
-        if not isinstance(condition, dict):
-            return None
-
-        raw_type = condition.get("type")
-        if not isinstance(raw_type, str):
-            return None
-
         try:
-            condition_type = CustomInboundFilterConditionType(raw_type)
+            condition_type = CustomInboundFilterConditionType(condition.get("type", ""))
         except ValueError:
             return None
 
         values = condition.get("value")
-        if (
-            not isinstance(values, list)
-            or not values
-            or not all(isinstance(value, str) and value for value in values)
-        ):
+        if not (isinstance(values, list) and values and all(isinstance(v, str) for v in values)):
             return None
 
         parsed.append((condition_type, values))
 
-    if not parsed:
-        return None
+    primary_type = next((ty for ty, _ in parsed if ty in PRIMARY_CONDITION_TYPES), None)
+    locations = _CONDITION_LOCATIONS[primary_type]
 
-    primary_types = {ty for ty, _ in parsed if ty in PRIMARY_CONDITION_TYPES}
-    if len(primary_types) > 1:
-        return None
-    primary_type = next(iter(primary_types), None)
-    target = (
-        _TARGET_BY_PRIMARY_CONDITION.get(primary_type)
-        if primary_type is not None
-        else CustomInboundFilterTarget.EVENT
-    )
-    if target is None:
-        return None
-
-    locations = _CONDITION_LOCATIONS[target]
     rule_conditions: list[RuleCondition] = []
     for condition_type, values in parsed:
         location = locations.get(condition_type)
