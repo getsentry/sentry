@@ -18,7 +18,6 @@ MONITORING_PROVIDERS: dict[str, dict[str, str]] = {
     "datadog": {"name": "Datadog"},
     "datadog_pat": {"name": "Datadog (Personal Access Token)"},
     "gcp": {"name": "Google Cloud Platform"},
-    "gcp_sa": {"name": "Google Cloud Platform (Service Account)"},
 }
 
 

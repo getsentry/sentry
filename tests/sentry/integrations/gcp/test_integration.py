@@ -1,24 +1,35 @@
 from __future__ import annotations
 
+from unittest.mock import Mock
+
 import pytest
 
 from sentry.integrations.gcp.integration import (
-    DEFAULT_ENABLED_SERVICES,
-    GCP_SA_EMAIL_BY_REGION,
-    GcpConnectionStatus,
     GcpIntegration,
     GcpIntegrationProvider,
-    sa_email_for_region,
     validate_gcp_project_id,
 )
-from sentry.integrations.models.integration import Integration
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
 
-class ValidateGcpProjectIdTest(TestCase):
-    def test_valid_project_ids(self) -> None:
+@control_silo_test
+class GcpIntegrationProviderTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.provider = GcpIntegrationProvider()
+        self.provider.pipeline = Mock(organization=Mock(id=self.organization.id))
+
+    def _state(self, **overrides: object) -> dict[str, object]:
+        config: dict[str, object] = {
+            "customer_sa_email": "gcp-sentry@customer-project.iam.gserviceaccount.com",
+            "projects": ["my-gcp-project"],
+        }
+        config.update(overrides)
+        return {"config": config}
+
+    def test_validate_gcp_project_id_accepts_valid_ids(self) -> None:
         for project_id in [
             "my-project",
             "project-123",
@@ -28,105 +39,122 @@ class ValidateGcpProjectIdTest(TestCase):
         ]:
             validate_gcp_project_id(project_id)
 
-    def test_too_short(self) -> None:
-        with pytest.raises(IntegrationConfigurationError, match="Invalid GCP project ID"):
-            validate_gcp_project_id("ab123")
+    def test_validate_gcp_project_id_rejects_invalid_ids(self) -> None:
+        for project_id in [
+            "ab123",  # too short
+            "a" * 31,  # too long
+            "1project",  # starts with digit
+            "my-project-",  # ends with hyphen
+            "My-Project",  # uppercase
+            "my_project",  # underscore
+        ]:
+            with pytest.raises(IntegrationConfigurationError, match="Invalid GCP project ID"):
+                validate_gcp_project_id(project_id)
 
-    def test_too_long(self) -> None:
-        with pytest.raises(IntegrationConfigurationError, match="Invalid GCP project ID"):
-            validate_gcp_project_id("a" * 31)
-
-    def test_starts_with_digit(self) -> None:
-        with pytest.raises(IntegrationConfigurationError, match="Invalid GCP project ID"):
-            validate_gcp_project_id("1project")
-
-    def test_ends_with_hyphen(self) -> None:
-        with pytest.raises(IntegrationConfigurationError, match="Invalid GCP project ID"):
-            validate_gcp_project_id("my-project-")
-
-    def test_uppercase_rejected(self) -> None:
-        with pytest.raises(IntegrationConfigurationError, match="Invalid GCP project ID"):
-            validate_gcp_project_id("My-Project")
-
-    def test_underscore_rejected(self) -> None:
-        with pytest.raises(IntegrationConfigurationError, match="Invalid GCP project ID"):
-            validate_gcp_project_id("my_project")
-
-
-class SaEmailMappingTest(TestCase):
-    def test_known_regions(self) -> None:
-        assert sa_email_for_region("us") == "service-seer@internal-sentry.iam.gserviceaccount.com"
-        assert sa_email_for_region("us2") == "service-seer@sentry-us2.iam.gserviceaccount.com"
-        assert sa_email_for_region("de") == "service-seer@sentry-eu-west3.iam.gserviceaccount.com"
-
-    def test_unknown_region(self) -> None:
-        assert sa_email_for_region("unknown") is None
-
-    def test_all_regions_mapped(self) -> None:
-        assert set(GCP_SA_EMAIL_BY_REGION.keys()) == {"us", "us2", "de"}
-
-
-@control_silo_test
-class GcpIntegrationProviderTest(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.provider = GcpIntegrationProvider()
-
-    def _state(self, **overrides: object) -> dict[str, object]:
-        config: dict[str, object] = {"gcp_project_id": "my-gcp-project"}
-        config.update(overrides)
-        return {"config": config}
-
-    def test_build_integration_stores_metadata(self) -> None:
+    def test_build_integration_returns_correct_data(self) -> None:
         result = self.provider.build_integration(self._state())
 
-        assert result["external_id"] == "my-gcp-project"
-        assert result["name"] == "GCP (my-gcp-project)"
-        assert result["metadata"]["gcp_project_id"] == "my-gcp-project"
-        assert result["metadata"]["display_name"] == "my-gcp-project"
-        assert result["metadata"]["status"] == GcpConnectionStatus.PENDING_VERIFICATION
-        assert result["metadata"]["enabled_services"] == list(DEFAULT_ENABLED_SERVICES)
+        assert result["external_id"] == str(self.organization.id)
+        assert result["name"] == "Google Cloud Platform"
+        assert result["metadata"] == {}
+        assert result["post_install_data"]["customer_sa_email"] == (
+            "gcp-sentry@customer-project.iam.gserviceaccount.com"
+        )
+        assert result["post_install_data"]["projects"] == ["my-gcp-project"]
 
-    def test_build_integration_custom_display_name(self) -> None:
-        result = self.provider.build_integration(self._state(display_name="Production GCP"))
+    def test_build_integration_external_id_isolated_per_org(self) -> None:
+        other_org = self.create_organization(owner=self.user)
+        other_provider = GcpIntegrationProvider()
+        other_provider.pipeline = Mock(organization=Mock(id=other_org.id))
 
-        assert result["metadata"]["display_name"] == "Production GCP"
+        result_self = self.provider.build_integration(self._state())
+        result_other = other_provider.build_integration(self._state())
 
-    def test_build_integration_custom_enabled_services(self) -> None:
-        result = self.provider.build_integration(self._state(enabled_services=["monitoring"]))
+        assert result_self["external_id"] == str(self.organization.id)
+        assert result_other["external_id"] == str(other_org.id)
+        assert result_self["external_id"] != result_other["external_id"]
 
-        assert result["metadata"]["enabled_services"] == ["monitoring"]
+    def test_build_integration_multiple_projects(self) -> None:
+        result = self.provider.build_integration(
+            self._state(projects=["project-prod", "project-staging"])
+        )
+        assert result["post_install_data"]["projects"] == ["project-prod", "project-staging"]
 
     def test_build_integration_requires_config(self) -> None:
         with pytest.raises(IntegrationConfigurationError):
             self.provider.build_integration({})
 
-    def test_build_integration_validates_project_id(self) -> None:
+    def test_build_integration_validates_project_ids(self) -> None:
         with pytest.raises(IntegrationConfigurationError, match="Invalid GCP project ID"):
-            self.provider.build_integration(self._state(gcp_project_id="INVALID"))
+            self.provider.build_integration(self._state(projects=["INVALID"]))
 
-    def test_installation_reads_config(self) -> None:
-        integration = Integration.objects.create(
-            provider="gcp_sa",
-            external_id="my-gcp-project",
-            name="GCP (my-gcp-project)",
-            metadata={
-                "gcp_project_id": "my-gcp-project",
-                "display_name": "My GCP Project",
-                "status": GcpConnectionStatus.ACTIVE,
-                "enabled_services": ["monitoring", "logging"],
+    def test_post_install_sets_org_integration_config(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="gcp",
+            external_id=str(self.organization.id),
+            name="Google Cloud Platform",
+            metadata={},
+        )
+        org_integration = integration.organizationintegration_set.get(
+            organization_id=self.organization.id
+        )
+        assert org_integration.config == {}
+
+        self.provider.post_install(
+            integration,
+            self.organization,
+            extra={
+                "sentry_sa_email": "sentry-abc123@sentry-connectors.iam.gserviceaccount.com",
+                "customer_sa_email": "gcp-sentry@customer-project.iam.gserviceaccount.com",
+                "projects": ["my-gcp-project"],
             },
         )
+
+        org_integration.refresh_from_db()
+        assert org_integration.config["sentry_sa_email"] == (
+            "sentry-abc123@sentry-connectors.iam.gserviceaccount.com"
+        )
+        assert org_integration.config["customer_sa_email"] == (
+            "gcp-sentry@customer-project.iam.gserviceaccount.com"
+        )
+        assert org_integration.config["projects"] == ["my-gcp-project"]
+
+    def test_installation_reads_config_from_org_integration(self) -> None:
+        gcp_config = {
+            "sentry_sa_email": "sentry-abc123@sentry-connectors.iam.gserviceaccount.com",
+            "customer_sa_email": "gcp-sentry@customer-project.iam.gserviceaccount.com",
+            "projects": ["my-gcp-project", "my-gcp-staging"],
+        }
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="gcp",
+            external_id=str(self.organization.id),
+            name="Google Cloud Platform",
+            metadata={},
+            oi_params={"config": gcp_config},
+        )
+
         installation = integration.get_installation(organization_id=self.organization.id)
-
         assert isinstance(installation, GcpIntegration)
-        assert installation.gcp_project_id == "my-gcp-project"
-        assert installation.display_name == "My GCP Project"
-        assert installation.status == GcpConnectionStatus.ACTIVE
-        assert installation.enabled_services == ["monitoring", "logging"]
 
-    def test_provider_is_hidden_single_install_and_flagged(self) -> None:
-        assert self.provider.key == "gcp_sa"
-        assert self.provider.visible is False
-        assert self.provider.allow_multiple is False
-        assert self.provider.requires_feature_flag is True
+        config = installation.gcp_config
+        assert config is not None
+        assert (
+            config["sentry_sa_email"] == "sentry-abc123@sentry-connectors.iam.gserviceaccount.com"
+        )
+        assert config["customer_sa_email"] == "gcp-sentry@customer-project.iam.gserviceaccount.com"
+        assert config["projects"] == ["my-gcp-project", "my-gcp-staging"]
+
+    def test_installation_returns_none_config_without_org_integration(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="gcp",
+            external_id=str(self.organization.id),
+            name="Google Cloud Platform",
+            metadata={},
+        )
+        other_org = self.create_organization(owner=self.user)
+        installation = integration.get_installation(organization_id=other_org.id)
+        assert isinstance(installation, GcpIntegration)
+        assert installation.gcp_config is None

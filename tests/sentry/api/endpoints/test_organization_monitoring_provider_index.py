@@ -23,15 +23,12 @@ class OrganizationMonitoringProviderIndexEndpointTest(APITestCase):
 
         providers = {p["provider"]: p for p in response.data["providers"]}
         assert "gcp" in providers
-        assert "gcp_sa" in providers
         assert "datadog" in providers
         assert "datadog_pat" in providers
         assert providers["gcp"]["name"] == "Google Cloud Platform"
-        assert providers["gcp_sa"]["name"] == "Google Cloud Platform (Service Account)"
         assert providers["datadog"]["name"] == "Datadog"
         assert providers["datadog_pat"]["name"] == "Datadog (Personal Access Token)"
         assert providers["gcp"]["connected"] is False
-        assert providers["gcp_sa"]["connected"] is False
         assert providers["datadog"]["connected"] is False
         assert providers["datadog_pat"]["connected"] is False
 
