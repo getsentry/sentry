@@ -702,9 +702,9 @@ def organization_top_spans(
 ) -> None:
     """Fetch top spans by total duration for the org and populate ctx fields.
 
-    Runs two EAP queries:
-    1. Table query for top spans with aggregate p95 and sum
-    2. Project mapping query to know which projects each span appears in
+    Runs a single EAP query grouped by (span.name, project.id). Each span is
+    assigned to the project with the highest sum(span.duration). Spans typically
+    appear in one project, so per-project aggregates match org-wide values.
 
     The timeseries (daily p95) is fetched separately via run_top_events_timeseries_query.
     """
@@ -728,7 +728,12 @@ def organization_top_spans(
         result = Spans.run_table_query(
             params=snuba_params,
             query_string="is_transaction:1 has:span.name",
-            selected_columns=["span.name", "sum(span.duration)", "p95(span.duration)"],
+            selected_columns=[
+                "span.name",
+                "project.id",
+                "sum(span.duration)",
+                "p95(span.duration)",
+            ],
             orderby=["-sum(span.duration)"],
             offset=0,
             limit=TOP_SPANS_QUERY_LIMIT,
@@ -737,44 +742,23 @@ def organization_top_spans(
             sampling_mode=None,
         )
 
-    top_span_names = []
+    seen_spans: set[str] = set()
     for row in result.get("data", []):
         span_name = row.get("span.name", "")
         if not span_name:
             continue
-        ctx.top_spans.append(
-            {
-                "name": span_name,
-                "p95": row.get("p95(span.duration)", 0),
-                "sum": row.get("sum(span.duration)", 0),
-            }
-        )
-        top_span_names.append(span_name)
-
-    if not top_span_names:
-        return
-
-    with start_span(
-        op="weekly_reports.top_spans_projects", name="weekly_reports.top_spans_projects"
-    ):
-        span_name_filter = _build_span_name_filter(top_span_names)
-        project_result = Spans.run_table_query(
-            params=snuba_params,
-            query_string=f"is_transaction:1 ({span_name_filter})",
-            selected_columns=["span.name", "project.id", "count()"],
-            orderby=["-count()"],
-            offset=0,
-            limit=len(top_span_names) * max(len(projects), 10),
-            referrer=referrer,
-            config=config,
-            sampling_mode=None,
-        )
-
-    for row in project_result.get("data", []):
-        span_name = row.get("span.name", "")
         project_id = row.get("project.id")
-        if span_name and project_id:
+        if project_id:
             ctx.top_spans_projects.setdefault(span_name, set()).add(int(project_id))
+        if span_name not in seen_spans:
+            seen_spans.add(span_name)
+            ctx.top_spans.append(
+                {
+                    "name": span_name,
+                    "p95": row.get("p95(span.duration)", 0),
+                    "sum": row.get("sum(span.duration)", 0),
+                }
+            )
 
 
 def organization_top_spans_timeseries(

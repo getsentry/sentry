@@ -33,31 +33,26 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
 
         ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
 
-        mock_table_data = {
+        mock_data = {
             "data": [
                 {
                     "span.name": "/api/users",
+                    "project.id": self.project.id,
                     "p95(span.duration)": 120.5,
                     "sum(span.duration)": 50000.0,
                 },
                 {
                     "span.name": "/api/orders",
+                    "project.id": self.project.id,
                     "p95(span.duration)": 95.3,
                     "sum(span.duration)": 30000.0,
                 },
             ]
         }
 
-        mock_project_data = {
-            "data": [
-                {"span.name": "/api/users", "project.id": self.project.id, "count()": 100},
-                {"span.name": "/api/orders", "project.id": self.project.id, "count()": 50},
-            ]
-        }
-
         with mock.patch(
             "sentry.tasks.summaries.utils.Spans.run_table_query",
-            side_effect=[mock_table_data, mock_project_data],
+            return_value=mock_data,
         ):
             organization_top_spans(ctx, referrer=Referrer.REPORTS_TOP_SPANS.value)
 
@@ -182,31 +177,32 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
         ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
         user_project_ownership(ctx)
 
-        mock_table_data = {
+        mock_data = {
             "data": [
                 {
                     "span.name": "/api/shared",
+                    "project.id": project_a.id,
                     "p95(span.duration)": 100.0,
                     "sum(span.duration)": 40000.0,
                 },
                 {
+                    "span.name": "/api/shared",
+                    "project.id": project_b.id,
+                    "p95(span.duration)": 95.0,
+                    "sum(span.duration)": 30000.0,
+                },
+                {
                     "span.name": "/api/only-b",
+                    "project.id": project_b.id,
                     "p95(span.duration)": 80.0,
                     "sum(span.duration)": 20000.0,
                 },
             ]
         }
-        mock_project_data = {
-            "data": [
-                {"span.name": "/api/shared", "project.id": project_a.id, "count()": 50},
-                {"span.name": "/api/shared", "project.id": project_b.id, "count()": 30},
-                {"span.name": "/api/only-b", "project.id": project_b.id, "count()": 40},
-            ]
-        }
 
         with mock.patch(
             "sentry.tasks.summaries.utils.Spans.run_table_query",
-            side_effect=[mock_table_data, mock_project_data],
+            return_value=mock_data,
         ):
             organization_top_spans(ctx, referrer=Referrer.REPORTS_TOP_SPANS.value)
 
