@@ -41,21 +41,20 @@ type TraceMetaQueryParams =
 function isEmptyMeta(meta: TraceMeta | EAPTraceMeta): boolean {
   if (isEAPTraceMeta(meta)) {
     return (
-      meta.errorsCount === 0 &&
-      meta.logsCount === 0 &&
-      meta.metricsCount === 0 &&
-      meta.performanceIssuesCount === 0 &&
-      meta.spansCount === 0 &&
-      meta.uptimeCount === 0
+      getTraceMetaErrorCount(meta) === 0 &&
+      getTraceMetaLogsCount(meta) === 0 &&
+      getTraceMetaMetricsCount(meta) === 0 &&
+      getTraceMetaPerformanceIssueCount(meta) === 0 &&
+      getTraceMetaSpanCount(meta) === 0 &&
+      getTraceMetaUptimeCount(meta) === 0
     );
   }
 
   return (
-    meta.errors === 0 &&
-    meta.performance_issues === 0 &&
-    meta.projects === 0 &&
-    meta.span_count === 0 &&
-    meta.transactions === 0
+    getTraceMetaErrorCount(meta) === 0 &&
+    getTraceMetaPerformanceIssueCount(meta) === 0 &&
+    getTraceMetaSpanCount(meta) === 0 &&
+    getTraceMetaTransactionCount(meta) === 0
   );
 }
 
