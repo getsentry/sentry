@@ -158,11 +158,44 @@ class SyncCodingAgentStatusTest(TestCase):
 
         pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="42")
         self.handoff.refresh_from_db()
-        assert self.handoff.pull_request == pull_request
+        assert list(self.handoff.pull_requests) == [pull_request]
 
         link = SeerRunPullRequest.objects.get(pull_request=pull_request)
         assert link.seer_run_id == self.seer_run.id
         assert link.coding_agent_handoff_id == self.handoff.id
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_links_multiple_pull_requests_on_same_handoff(self, mock_update_state: Mock) -> None:
+        """A single handoff isn't constrained to one PR -- e.g. a provider surfacing
+        more than one result for the same agent session must not clobber or drop
+        an earlier link."""
+        mock_update_state.return_value = True
+
+        sync_coding_agent_status(
+            agent_id="agent-1",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+            result=CodingAgentResult(
+                description="Fixed the bug",
+                repo_provider="github",
+                repo_full_name=REPO_NAME,
+                pr_url="https://github.com/getsentry/sentry/pull/42",
+            ),
+        )
+        sync_coding_agent_status(
+            agent_id="agent-1",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+            result=CodingAgentResult(
+                description="Follow-up fix",
+                repo_provider="github",
+                repo_full_name=REPO_NAME,
+                pr_url="https://github.com/getsentry/sentry/pull/43",
+            ),
+        )
+
+        self.handoff.refresh_from_db()
+        assert {pr.key for pr in self.handoff.pull_requests} == {"42", "43"}
 
     @patch("sentry.seer.pull_requests.options.get", return_value=True)
     @patch(MOCK_UPDATE_STATE_PATH)
@@ -194,7 +227,7 @@ class SyncCodingAgentStatusTest(TestCase):
         # The handoff's own status must still update -- only PR linking is gated.
         self.handoff.refresh_from_db()
         assert self.handoff.status == "completed"
-        assert self.handoff.pull_request is None
+        assert not self.handoff.pull_requests.exists()
 
     @patch(MOCK_UPDATE_STATE_PATH)
     def test_does_not_link_pull_request_without_pr_url(self, mock_update_state: Mock) -> None:
@@ -211,7 +244,7 @@ class SyncCodingAgentStatusTest(TestCase):
         )
 
         self.handoff.refresh_from_db()
-        assert self.handoff.pull_request is None
+        assert not self.handoff.pull_requests.exists()
         assert not SeerRunPullRequest.objects.exists()
 
     @patch(MOCK_UPDATE_STATE_PATH)

@@ -164,9 +164,10 @@ class TestCursorWebhook(APITestCase):
         assert response.status_code == 204
         handoff.refresh_from_db()
         assert handoff.status == "completed"
-        assert handoff.pull_request is not None
-        assert handoff.pull_request.repository_id == repo.id
-        assert handoff.pull_request.key == "1"
+        pull_requests = list(handoff.pull_requests)
+        assert len(pull_requests) == 1
+        assert pull_requests[0].repository_id == repo.id
+        assert pull_requests[0].key == "1"
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
     def test_unknown_agent_records_no_attribution(self, mock_update_state):

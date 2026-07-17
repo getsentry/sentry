@@ -104,13 +104,14 @@ class SeerRunPullRequest(DefaultFieldsModel):
         "sentry.PullRequest", on_delete=models.CASCADE, related_name="seer_run_links"
     )
     # Set when this PR was produced by a delegated coding agent handoff (Cursor/GitHub
-    # Copilot/Claude Code) rather than Seer's own coding loop.
+    # Copilot/Claude Code) rather than Seer's own coding loop. Not unique: a single
+    # handoff can in principle report more than one PR (e.g. a provider surfacing
+    # multiple results per session), mirroring why ``seer_run`` above isn't unique.
     coding_agent_handoff = FlexibleForeignKey(
         "seer.SeerRunCodingAgentHandoff",
         on_delete=models.CASCADE,
         null=True,
-        unique=True,
-        related_name="pull_request_link",
+        related_name="pull_request_links",
     )
 
     class Meta:
@@ -157,10 +158,9 @@ class SeerRunCodingAgentHandoff(DefaultFieldsModel):
     extras = models.JSONField(db_default={}, default=dict)
 
     @property
-    def pull_request(self) -> PullRequest | None:
-        """The pull request this handoff produced, via its SeerRunPullRequest link."""
-        link = self.pull_request_link.select_related("pull_request").first()
-        return link.pull_request if link is not None else None
+    def pull_requests(self) -> models.QuerySet[PullRequest]:
+        """The pull requests this handoff produced, via its SeerRunPullRequest links."""
+        return PullRequest.objects.filter(seer_run_links__coding_agent_handoff=self)
 
     class Meta:
         app_label = "seer"
