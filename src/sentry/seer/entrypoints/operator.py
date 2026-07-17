@@ -3,6 +3,8 @@ from typing import Any
 
 from sentry import features, options
 from sentry.constants import DataCategory
+from sentry.issues.action_log.publish import action_context_scope
+from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -662,7 +664,8 @@ def process_autofix_updates(
             return
 
         try:
-            _create_seer_activity(group, event_type, event_payload)
+            with action_context_scope(ActionSource.SEER_EXPLORER, SYSTEM_ACTOR):
+                _create_seer_activity(group, event_type, event_payload)
         except Exception:
             logger.exception(
                 "seer.activity_creation_failed",
