@@ -249,13 +249,15 @@ class ContinuingMNPlusOne(MNPlusOneState):
             metrics.incr("mn_plus_one_db_span_detector.no_db_span")
             return None
 
+        db_span_description = db_span.get("description") or ""
+
         db_span_ids = [span["span_id"] for span in offender_db_spans]
         offender_span_ids = [span["span_id"] for span in offender_spans]
 
         return PerformanceProblem(
             fingerprint=self._fingerprint(db_span["hash"], common_parent_span),
             op="db",
-            desc=db_span["description"],
+            desc=db_span_description,
             type=PerformanceNPlusOneGroupType,
             parent_span_ids=[common_parent_span["span_id"]],
             cause_span_ids=db_span_ids,
@@ -280,7 +282,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
                     name="Offending Spans",
                     value=get_notification_attachment_body(
                         "db",
-                        db_span["description"],
+                        db_span_description,
                     ),
                     # Has to be marked important to be displayed in the notifications
                     important=True,
