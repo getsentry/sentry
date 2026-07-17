@@ -353,6 +353,12 @@ def run_transaction_balancing(
                 "its transactions"
             )
             continue
+        # Mirror the legacy pipeline (boost_low_volume_transactions_of_project): at a 100%
+        # project rate every transaction is kept anyway, so the legacy task skips the model
+        # and writes no cache entry. Skipping here keeps parity and avoids comparison log
+        # lines that would only ever hit cache misses.
+        if sample_rate == 1.0:
+            continue
         named_rates, implicit_rate = TransactionsRebalancingModel().run(
             TransactionsRebalancingInput(
                 classes=[

@@ -10,10 +10,9 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.pullrequest import (
     PullRequestSerializer,
     PullRequestSerializerResponse,
-    PullRequestStatus,
 )
 from sentry.models.group import Group
-from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
+from sentry.models.pullrequest import PullRequest
 from sentry.seer.models.night_shift import (
     SeerNightShiftRun,
     SeerNightShiftRunResult,
@@ -32,11 +31,6 @@ class SeerNightShiftRunResultResponse(TypedDict):
     dateAdded: str
 
 
-class SeerNightShiftRunPullRequestResponse(PullRequestSerializerResponse):
-    # Null if Sentry never observed a webhook event for this PR.
-    status: PullRequestStatus | None
-
-
 # TODO(telkins): this `issues` list is a triage-specific view derived from
 # `results`, kept for the current frontend. Once the UI reads `results`
 # directly (filtering to kind=agentic_triage), drop this key and _serialize_issue.
@@ -49,7 +43,7 @@ class SeerNightShiftRunIssueResponse(TypedDict):
     reason: str | None
     skipReason: str | None
     seerRunId: str | None
-    pullRequests: list[SeerNightShiftRunPullRequestResponse]
+    pullRequests: list[PullRequestSerializerResponse]
     dateAdded: str
 
 
@@ -121,15 +115,15 @@ class SeerNightShiftRunSerializer(Serializer[SeerNightShiftRunResponse]):
             pr_ids_by_seer_run_pk[link.seer_run_id].append(link.pull_request_id)
             pull_requests_by_pk[link.pull_request_id] = link.pull_request
 
-        serialized_pr_by_pk: dict[int, SeerNightShiftRunPullRequestResponse] = {}
+        serialized_pr_by_pk: dict[int, PullRequestSerializerResponse] = {}
         if pull_requests_by_pk:
             prs = list(pull_requests_by_pk.values())
             serialized_pr_by_pk = {
-                pr.id: {**serialized, "status": _get_stored_pull_request_status(pr)}
+                pr.id: serialized
                 for pr, serialized in zip(prs, serialize(prs, user, PullRequestSerializer()))
             }
 
-        pull_requests_by_result_id: dict[int, list[SeerNightShiftRunPullRequestResponse]] = {}
+        pull_requests_by_result_id: dict[int, list[PullRequestSerializerResponse]] = {}
         for r in triage_results:
             seer_run_pk = seer_run_pk_by_result_id.get(r.id)
             pull_requests_by_result_id[r.id] = (
@@ -203,26 +197,11 @@ def _serialize_result(result: SeerNightShiftRunResult) -> SeerNightShiftRunResul
     }
 
 
-def _get_stored_pull_request_status(pull_request: PullRequest) -> PullRequestStatus | None:
-    """No live provider lookup -- this feeds a list endpoint, not a detail view."""
-    if pull_request.state == PullRequestLifecycleState.MERGED:
-        return "merged"
-    if pull_request.state == PullRequestLifecycleState.CLOSED:
-        return "closed"
-    if pull_request.draft is True:
-        return "draft"
-    # `draft` is nullable for older rows, so only trust `open` when we know
-    # the PR is not a draft.
-    if pull_request.state == PullRequestLifecycleState.OPEN and pull_request.draft is False:
-        return "open"
-    return None
-
-
 def _serialize_issue(
     result: SeerNightShiftRunResult,
     group_titles_by_id: Mapping[int, str | None],
     group_short_ids_by_id: Mapping[int, str | None],
-    pull_requests_by_result_id: Mapping[int, list[SeerNightShiftRunPullRequestResponse]],
+    pull_requests_by_result_id: Mapping[int, list[PullRequestSerializerResponse]],
 ) -> SeerNightShiftRunIssueResponse:
     extras = result.extras or {}
     return {

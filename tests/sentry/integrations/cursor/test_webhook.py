@@ -13,6 +13,7 @@ from sentry.models.pullrequest import (
     PullRequestAttributionSignalType,
     PullRequestAttributionSource,
 )
+from sentry.seer.autofix.coding_agent_handoffs import CodingAgentSyncResult
 from sentry.testutils.cases import APITestCase
 
 
@@ -83,7 +84,9 @@ class TestCursorWebhook(APITestCase):
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
     def test_happy_path_finished(self, mock_update_state):
-        mock_update_state.return_value = True
+        mock_update_state.return_value = CodingAgentSyncResult(
+            known_to_seer=True, run_id=None, group_id=None
+        )
         payload = self._build_status_payload(status="FINISHED")
         body = orjson.dumps(payload)
         headers = self._signed_headers(body)
@@ -116,7 +119,9 @@ class TestCursorWebhook(APITestCase):
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
     def test_finished_records_pr_attribution(self, mock_update_state):
-        mock_update_state.return_value = True
+        mock_update_state.return_value = CodingAgentSyncResult(
+            known_to_seer=True, run_id=123, group_id=456
+        )
         repo = self.create_repo(
             self.project, name="testorg/testrepo", provider="integrations:github"
         )
@@ -132,6 +137,11 @@ class TestCursorWebhook(APITestCase):
         assert attribution.source == PullRequestAttributionSource.SEER_DATA
         assert attribution.pull_request.repository_id == repo.id
         assert attribution.pull_request.key == "1"
+        # run_id/group_ids are resolved locally (via SeerRunCodingAgentHandoff ->
+        # SeerRun -> SeerAgentRun) rather than left sparse as they were before.
+        assert attribution.signal_details is not None
+        assert attribution.signal_details["run_id"] == 123
+        assert attribution.signal_details["group_ids"] == [456]
 
     @patch("sentry.seer.autofix.coding_agent_handoffs.update_coding_agent_state")
     def test_finished_updates_seer_run_coding_agent_handoff(self, mock_update_state):
@@ -156,7 +166,9 @@ class TestCursorWebhook(APITestCase):
     def test_unknown_agent_records_no_attribution(self, mock_update_state):
         # Seer returns False (e.g. 404) for agent_ids it doesn't know about —
         # these are Cursor sessions not delegated by Seer, and must not be attributed.
-        mock_update_state.return_value = False
+        mock_update_state.return_value = CodingAgentSyncResult(
+            known_to_seer=False, run_id=None, group_id=None
+        )
         self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
         body = orjson.dumps(self._build_status_payload(status="FINISHED"))
         headers = self._signed_headers(body)
@@ -201,7 +213,9 @@ class TestCursorWebhook(APITestCase):
         self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
 
         # Seer didn't recognize the agent: known_to_seer=False, but a PR is present.
-        mock_update_state.return_value = False
+        mock_update_state.return_value = CodingAgentSyncResult(
+            known_to_seer=False, run_id=None, group_id=None
+        )
         body = orjson.dumps(self._build_status_payload(status="FINISHED"))
         with self.feature("organizations:pr-metrics-attribution"):
             assert self._post_with_headers(body, self._signed_headers(body)).status_code == 204
@@ -211,7 +225,9 @@ class TestCursorWebhook(APITestCase):
 
         # Seer knew the agent but there's no PR to attribute: known_to_seer=True, pr_url absent.
         mock_logger.reset_mock()
-        mock_update_state.return_value = True
+        mock_update_state.return_value = CodingAgentSyncResult(
+            known_to_seer=True, run_id=None, group_id=None
+        )
         body = orjson.dumps(self._build_status_payload(status="FINISHED", pr_url=None))
         with self.feature("organizations:pr-metrics-attribution"):
             assert self._post_with_headers(body, self._signed_headers(body)).status_code == 204
@@ -352,7 +368,9 @@ class TestCursorWebhook(APITestCase):
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
     def test_invalid_pr_url_is_dropped(self, mock_update_state):
         # Non-https scheme must be rejected — the pr_url is nulled out so no attribution fires.
-        mock_update_state.return_value = True
+        mock_update_state.return_value = CodingAgentSyncResult(
+            known_to_seer=True, run_id=None, group_id=None
+        )
         self.create_repo(self.project, name="testorg/testrepo", provider="integrations:github")
 
         for bad_url in [

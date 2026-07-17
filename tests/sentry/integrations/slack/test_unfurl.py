@@ -1211,8 +1211,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert len(unfurls) == 1
         assert mock_client_get.call_args[1]["path"].endswith("/events-heatmap/")
@@ -1257,8 +1256,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        with self.feature("organizations:data-browsing-heat-map-widget"):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
 
         assert unfurls == {}
         assert mock_generate_chart.mock_calls == []
