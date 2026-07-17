@@ -367,6 +367,7 @@ class SanitizationTests(ImportTestCase):
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
 
             with assume_test_silo_mode(SiloMode.CONTROL):
+                assert User.objects.count() == 2
                 assert User.objects.filter(username__iexact="min_user").count() == 0
                 assert User.objects.filter(username__icontains="min_user-").count() == 1
                 assert User.objects.filter(username="existing_sso").count() == 1

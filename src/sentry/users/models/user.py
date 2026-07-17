@@ -10,7 +10,7 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
 from django.db import IntegrityError, models, router, transaction
-from django.db.models import Count, Q, Subquery
+from django.db.models import Count, Subquery
 from django.db.models.functions import Upper
 from django.db.models.query import QuerySet
 from django.dispatch import receiver
@@ -258,11 +258,11 @@ class User(Model, AbstractBaseUser):
                         # new users should set email_unique
                         self.email_unique = self.email
                     elif self.pk is None and is_relocated_user:
-                        # If the user is new, relocated and has email_unique blank email_unique
-                        # to dodge integrity errors.
+                        # If the user is new, relocated blank email_unique to dodge
+                        # integrity errors.
                         self.email_unique = None
                     else:
-                        # existing users with shared email addresses + relocated users should be able to save without fail
+                        # existing users with shared email addresses
                         self.email_unique = (
                             self.email
                             if User.objects.filter(email=self.email).count() == 1
@@ -553,17 +553,28 @@ class User(Model, AbstractBaseUser):
         `exclude_user_id` is the user being updated (excluded from the check); leave it
         as the default when checking a not-yet-saved user (e.g. a relocation import).
         """
-        username_or_primary_taken = (
-            cls.objects.exclude(id=exclude_user_id)
-            .filter(
-                Q(username__iexact=username)
-                | Q(email__iexact=username)
-                | Q(email_unique__iexact=username)
-            )
-            .exists()
+        # XXX: While it is tempting to combine all three of these queries to User
+        # into one, doing so results in poor execution performance as the query planner
+        # cannot effectively use its indexes and falls into SeqScan, while individual queries
+        # hit IndexScan
+        username_taken = (
+            cls.objects.exclude(id=exclude_user_id).filter(username__iexact=username).exists()
         )
-        if username_or_primary_taken:
+        if username_taken:
             return False
+
+        email_username_taken = (
+            cls.objects.exclude(id=exclude_user_id).filter(email__iexact=username).exists()
+        )
+        if email_username_taken:
+            return False
+
+        email_unique_taken = (
+            cls.objects.exclude(id=exclude_user_id).filter(email_unique__iexact=username).exists()
+        )
+        if email_unique_taken:
+            return False
+
         verified_email_taken = (
             UserEmail.objects.filter(email__iexact=username, is_verified=True)
             .exclude(user_id=exclude_user_id)
