@@ -626,6 +626,12 @@ function useHoverOverlay({
     }
   }, [commitStatus, group]);
 
+  useEffect(() => {
+    if (showOnlyOnOverflow && !isOverflowing) {
+      reset();
+    }
+  }, [showOnlyOnOverflow, isOverflowing, reset]);
+
   const overlayProps = useMemo(() => {
     return {
       id: describeById,
