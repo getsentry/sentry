@@ -895,11 +895,11 @@ class TestGetMonitoringProviderConnections(APITestCase):
         assert connection.url == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
         assert connection.identity_id == identity.id
         assert connection.auth_method == "oauth"
-        assert connection.encrypted_access_token is not None
+        assert connection.encrypted_auth_headers is not None
         decrypted = Fernet(TEST_FERNET_KEY.encode("utf-8")).decrypt(
-            connection.encrypted_access_token.encode("utf-8")
+            connection.encrypted_auth_headers["Authorization"].encode("utf-8")
         )
-        assert decrypted.decode("utf-8") == "access-token"
+        assert decrypted.decode("utf-8") == "Bearer access-token"
 
     def test_unknown_organization_returns_empty(self) -> None:
         result = get_monitoring_provider_connections(organization_id=999999, user_id=self.user.id)
@@ -962,11 +962,11 @@ class TestRefreshMonitoringProviderToken(APITestCase):
         result = refresh_monitoring_provider_token(identity_id=self.identity.id)
 
         fernet = Fernet(TEST_FERNET_KEY.encode("utf-8"))
-        decrypted_access_token = fernet.decrypt(
-            result["encrypted_access_token"].encode("utf-8")
+        auth_header = fernet.decrypt(
+            result["encrypted_auth_headers"]["Authorization"].encode("utf-8")
         ).decode("utf-8")
 
-        assert decrypted_access_token == "new-access-token"
+        assert auth_header == "Bearer new-access-token"
         assert result["expires"] is not None
         assert len(responses.calls) == 1
 
