@@ -39,10 +39,23 @@ type TraceMetaQueryParams =
     };
 
 function isEmptyMeta(meta: TraceMeta | EAPTraceMeta): boolean {
+  if (isEAPTraceMeta(meta)) {
+    return (
+      meta.errorsCount === 0 &&
+      meta.logsCount === 0 &&
+      meta.metricsCount === 0 &&
+      meta.performanceIssuesCount === 0 &&
+      meta.spansCount === 0 &&
+      meta.uptimeCount === 0
+    );
+  }
+
   return (
-    getTraceMetaSpanCount(meta) === 0 &&
-    getTraceMetaErrorCount(meta) === 0 &&
-    getTraceMetaPerformanceIssueCount(meta) === 0
+    meta.errors === 0 &&
+    meta.performance_issues === 0 &&
+    meta.projects === 0 &&
+    meta.span_count === 0 &&
+    meta.transactions === 0
   );
 }
 

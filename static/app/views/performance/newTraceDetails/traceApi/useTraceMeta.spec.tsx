@@ -6,6 +6,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 
 import {
   getTraceMetaErrorCount,
+  getTraceMetaLogsCount,
   getTraceMetaMetricsCount,
   getTraceMetaSpanCount,
   useTraceMeta,
@@ -442,6 +443,56 @@ describe('useTraceMeta', () => {
     expect(mockSlug1_14d).toHaveBeenCalledTimes(1);
     expect(mockSlug1_90d).not.toHaveBeenCalled();
     expect(getTraceMetaSpanCount(result.current.data)).toBe(1);
+  });
+
+  it('Does not retry when initial EAP response has logs only', async () => {
+    const org = OrganizationFixture({features: ['trace-spans-format']});
+    const tracesWithoutTimestamp: TraceMetaTrace[] = [
+      {traceSlug: 'slug1', timestamp: undefined},
+    ];
+
+    const mockSlug1_14d = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/trace-meta/slug1/',
+      match: [MockApiClient.matchData({statsPeriod: '14d'})],
+      body: {
+        errorsCount: 0,
+        logsCount: 3,
+        metricsCount: 0,
+        performanceIssuesCount: 0,
+        spansCount: 0,
+        spansCountMap: {},
+        transactionChildCountMap: [],
+        uptimeCount: 0,
+      },
+    });
+
+    const mockSlug1_90d = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/trace-meta/slug1/',
+      match: [MockApiClient.matchData({statsPeriod: '90d'})],
+      body: {
+        errorsCount: 1,
+        logsCount: 4,
+        metricsCount: 0,
+        performanceIssuesCount: 0,
+        spansCount: 1,
+        spansCountMap: {},
+        transactionChildCountMap: [],
+        uptimeCount: 0,
+      },
+    });
+
+    const {result} = renderHookWithProviders(useTraceMeta, {
+      organization: org,
+      initialProps: tracesWithoutTimestamp,
+    });
+
+    await waitFor(() => expect(result.current.status === 'success').toBe(true));
+
+    expect(mockSlug1_14d).toHaveBeenCalledTimes(1);
+    expect(mockSlug1_90d).not.toHaveBeenCalled();
+    expect(getTraceMetaLogsCount(result.current.data)).toBe(3);
   });
 
   it('Does not retry when all traces have timestamps', async () => {
