@@ -3,6 +3,7 @@ import {expectTypeOf} from 'expect-type';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {
   Text,
@@ -11,30 +12,6 @@ import {
 } from '@sentry/scraps/text';
 
 const theme = ThemeFixture();
-
-/**
- * Emotion injects its styles through the CSSOM (`insertRule`), so they are not
- * reflected in `getComputedStyle` under jsdom. Read the generated rules for an
- * element directly off `document.styleSheets` instead.
- */
-function getEmotionRules(element: HTMLElement): string[] {
-  const classes = element.className.split(' ').filter(c => c.startsWith('css-'));
-  const rules: string[] = [];
-  for (const sheet of Array.from(document.styleSheets)) {
-    let sheetRules: CSSRuleList;
-    try {
-      sheetRules = sheet.cssRules;
-    } catch {
-      continue;
-    }
-    for (const rule of Array.from(sheetRules)) {
-      if (classes.some(cls => rule.cssText.includes(cls))) {
-        rules.push(rule.cssText);
-      }
-    }
-  }
-  return rules;
-}
 
 /** The `display` value of the always-applied base declaration (no at-rule). */
 function getBaseDisplay(element: HTMLElement): string | undefined {

@@ -48,6 +48,25 @@ export const documentation = import('!!type-loader!@sentry/scraps/info/infoText'
 </InfoText>
 ```
 
+## Text Truncation
+
+For truncated text, use `mode="overflowOnly"`. This sets `ellipsis` and shows the tooltip only when the text overflows, while keeping the text keyboard accessible without adding an underline.
+
+<Storybook.Demo>
+  <Storybook.SizingWindow display="block" style={{flexGrow: 0, minWidth: 0}}>
+    <InfoText title="Full text" mode="overflowOnly">
+      A long piece of text that will be truncated when the window is resized narrower
+    </InfoText>
+  </Storybook.SizingWindow>
+</Storybook.Demo>
+```jsx
+<Storybook.SizingWindow display="block" style={{flexGrow: 0, minWidth: 0}}>
+  <InfoText title="Full text" mode="overflowOnly">
+    A long piece of text that will be truncated when the window is resized narrower
+  </InfoText>
+</Storybook.SizingWindow>
+```
+
 ## When to Use
 
 Use `InfoText` to:
