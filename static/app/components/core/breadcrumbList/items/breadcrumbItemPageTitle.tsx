@@ -29,9 +29,7 @@ type BreadcrumbTitleAction =
 /**
  * One action, or a list (falsy entries are dropped so consumers can inline conditionals).
  */
-type BreadcrumbTitleActions =
-  | BreadcrumbTitleAction
-  | Array<BreadcrumbTitleAction | false | null>;
+type BreadcrumbTitleActions = BreadcrumbTitleAction | Array<BreadcrumbTitleAction | null>;
 
 /**
  * Renders the typed trailing action objects as a flat, keyed row.
@@ -62,7 +60,7 @@ function renderTrailingActions(trailingActions?: BreadcrumbTitleActions) {
 
   const actions = (
     Array.isArray(trailingActions) ? trailingActions : [trailingActions]
-  ).filter(Boolean) as BreadcrumbTitleAction[];
+  ).filter(action => action !== null);
 
   if (actions.length === 0) {
     return null;
