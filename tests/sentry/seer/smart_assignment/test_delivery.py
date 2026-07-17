@@ -208,6 +208,32 @@ class DeliverSmartAssignmentResultTest(TestCase):
         )
 
     @patch(METRICS_PATH)
+    def test_prediction_lands_on_delivered_run_not_latest_mirror(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        # A race left a second, newer smart-assignment mirror on the same group. Delivery
+        # resolves the exact run from the delivered uuid, so the prediction must land on
+        # that row -- not the latest one by date_added.
+        newer_seer_run = SeerRun.objects.create(
+            organization=self.organization,
+            type=SeerRunType.FEATURE_RUN,
+            last_triggered_at=timezone.now(),
+        )
+        newer_mirror = SeerAgentRun.objects.create(
+            run=newer_seer_run,
+            source=SEER_FEATURE_ID,
+            group=self.group,
+            extras={"trigger": ActivityType.SEER_RCA_STARTED.name},
+        )
+        alice = self.create_user(username="alice")
+        self.create_member(user=alice, organization=self.organization)
+        self._deliver({"candidates": [{"identifier": "alice", "identifier_kind": "username"}]})
+
+        assert self._extras()["predicted_assignee_user_ids"] == [alice.id]
+        newer_mirror.refresh_from_db()
+        assert "predicted_assignee_user_ids" not in (newer_mirror.extras or {})
+
+    @patch(METRICS_PATH)
     def test_untied_run_is_missing_group(self, mock_metrics: MagicMock) -> None:
         # Run mirror was never tied to a group (group_id is NULL): there's nothing to
         # record the prediction against, so it must not count as a delivery success.

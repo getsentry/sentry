@@ -41,15 +41,12 @@ def _get_run(group_id: int) -> SeerAgentRun | None:
     )
 
 
-def record_prediction(group_id: int, predicted_assignee_user_ids: list[int | None]) -> None:
+def record_prediction(run: SeerAgentRun, predicted_assignee_user_ids: list[int | None]) -> None:
     """Record the delivered ranked picks (best-first, each resolved to a user) on the
     run mirror, then score if the ground truth already landed. A position we couldn't
     map to an org user is stored as ``None`` so each candidate keeps its rank; an
     empty list means the agent abstained. Stored so we don't re-treat the run as
     undelivered, but never scored on its own -- scoring waits for ground truth."""
-    run = _get_run(group_id)
-    if run is None:
-        return
     _apply(run.id, {"predicted_assignee_user_ids": predicted_assignee_user_ids})
 
 

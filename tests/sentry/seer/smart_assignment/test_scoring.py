@@ -55,7 +55,7 @@ class RecordPredictionScoringTest(ScoringTestBase):
     def test_exact_when_prediction_matches_user(self, mock_metrics: MagicMock) -> None:
         user = self.create_user()
         run = self._run(actual_assignee_user_id=user.id)
-        record_prediction(self.group.id, [user.id])
+        record_prediction(run, [user.id])
 
         self._assert_result(mock_metrics, SmartAssignmentScore.EXACT, hit_rank=1)
         run.refresh_from_db()
@@ -67,8 +67,8 @@ class RecordPredictionScoringTest(ScoringTestBase):
         team = self.create_team(organization=self.organization)
         alice = self.create_user()
         self.create_member(user=alice, organization=self.organization, teams=[team])
-        self._run(actual_assignee_team_id=team.id)
-        record_prediction(self.group.id, [alice.id])
+        run = self._run(actual_assignee_team_id=team.id)
+        record_prediction(run, [alice.id])
 
         self._assert_result(mock_metrics, SmartAssignmentScore.TEAM)
 
@@ -81,8 +81,8 @@ class RecordPredictionScoringTest(ScoringTestBase):
         bob = self.create_user()
         self.create_member(user=alice, organization=self.organization, teams=[team])
         self.create_member(user=bob, organization=self.organization, teams=[team])
-        self._run(actual_assignee_user_id=bob.id)
-        record_prediction(self.group.id, [alice.id])
+        run = self._run(actual_assignee_user_id=bob.id)
+        record_prediction(run, [alice.id])
 
         self._assert_result(mock_metrics, SmartAssignmentScore.TEAM)
 
@@ -94,8 +94,8 @@ class RecordPredictionScoringTest(ScoringTestBase):
         bob = self.create_user()
         self.create_member(user=alice, organization=self.organization, teams=[team_a])
         self.create_member(user=bob, organization=self.organization, teams=[team_b])
-        self._run(actual_assignee_user_id=bob.id)
-        record_prediction(self.group.id, [alice.id])
+        run = self._run(actual_assignee_user_id=bob.id)
+        record_prediction(run, [alice.id])
 
         self._assert_result(mock_metrics, SmartAssignmentScore.MISS)
 
@@ -105,8 +105,8 @@ class RecordPredictionScoringTest(ScoringTestBase):
         # miss), but the actual assignee is the second-ranked candidate -- still a hit.
         alice = self.create_user()
         bob = self.create_user()
-        self._run(actual_assignee_user_id=bob.id)
-        record_prediction(self.group.id, [alice.id, bob.id])
+        run = self._run(actual_assignee_user_id=bob.id)
+        record_prediction(run, [alice.id, bob.id])
 
         self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=2)
 
@@ -114,8 +114,8 @@ class RecordPredictionScoringTest(ScoringTestBase):
     def test_no_hit_rank_when_actual_absent_from_candidates(self, mock_metrics: MagicMock) -> None:
         alice = self.create_user()
         bob = self.create_user()
-        self._run(actual_assignee_user_id=bob.id)
-        record_prediction(self.group.id, [alice.id])
+        run = self._run(actual_assignee_user_id=bob.id)
+        record_prediction(run, [alice.id])
 
         self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=None)
 
@@ -126,16 +126,16 @@ class RecordPredictionScoringTest(ScoringTestBase):
         # Top pick couldn't be mapped to an org user (None), so the coarse outcome is a
         # miss, but the actual assignee is the rank-2 candidate -- still a hit.
         bob = self.create_user()
-        self._run(actual_assignee_user_id=bob.id)
-        record_prediction(self.group.id, [None, bob.id])
+        run = self._run(actual_assignee_user_id=bob.id)
+        record_prediction(run, [None, bob.id])
 
         self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=2)
 
     @patch(METRICS_PATH)
     def test_unresolved_top_pick_alone_is_miss(self, mock_metrics: MagicMock) -> None:
         bob = self.create_user()
-        self._run(actual_assignee_user_id=bob.id)
-        record_prediction(self.group.id, [None])
+        run = self._run(actual_assignee_user_id=bob.id)
+        record_prediction(run, [None])
 
         self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=None)
 
@@ -144,34 +144,29 @@ class RecordPredictionScoringTest(ScoringTestBase):
         # Team-only ground truth with an unresolved top pick must not read as an EXACT
         # match on the None == None comparison.
         team = self.create_team(organization=self.organization)
-        self._run(actual_assignee_team_id=team.id)
-        record_prediction(self.group.id, [None])
+        run = self._run(actual_assignee_team_id=team.id)
+        record_prediction(run, [None])
 
         self._assert_result(mock_metrics, SmartAssignmentScore.MISS, hit_rank=None)
 
     @patch(METRICS_PATH)
     def test_noop_without_both_sides(self, mock_metrics: MagicMock) -> None:
         # Prediction but no ground truth yet.
-        self._run()
-        record_prediction(self.group.id, [7])
+        run = self._run()
+        record_prediction(run, [7])
         # Ground truth but no (resolvable) prediction (separate group).
         other = self.create_group()
-        self._run(group=other, actual_assignee_user_id=9)
-        record_prediction(other.id, [])
+        other_run = self._run(group=other, actual_assignee_user_id=9)
+        record_prediction(other_run, [])
         mock_metrics.incr.assert_not_called()
 
     @patch(METRICS_PATH)
     def test_scores_only_once(self, mock_metrics: MagicMock) -> None:
         user = self.create_user()
-        self._run(actual_assignee_user_id=user.id)
-        record_prediction(self.group.id, [user.id])
-        record_prediction(self.group.id, [user.id])
+        run = self._run(actual_assignee_user_id=user.id)
+        record_prediction(run, [user.id])
+        record_prediction(run, [user.id])
         assert mock_metrics.incr.call_count == 1
-
-    @patch(METRICS_PATH)
-    def test_noop_without_run(self, mock_metrics: MagicMock) -> None:
-        record_prediction(self.group.id, [7])
-        mock_metrics.incr.assert_not_called()
 
 
 class RecordGroundTruthTest(ScoringTestBase):
