@@ -18,11 +18,7 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-# Pipeline with current aggregators. Versioned because in principle
-# we may want to change it in place and correlate that to existing derived data
-# for invalidation purposes.
-# TODO: Shouldn't it be versioned by a feature set hash? To be sorted out later.
-PIPELINE: Pipeline[GroupActionLogEntry] = Pipeline(AGGREGATORS, version=1)
+PIPELINE: Pipeline[GroupActionLogEntry] = Pipeline(AGGREGATORS)
 
 DEFAULT_BATCH_SIZE = 1000
 INLINE_BATCH_SIZE = 100
@@ -58,10 +54,12 @@ def _entries_after_cursor(
     group_id: int, cursor_date: datetime, cursor_id: int, batch_size: int
 ) -> list[GroupActionLogEntry]:
     return list(
-        GroupActionLogEntry.objects.filter(
-            Q(group_id=group_id)
-            & (Q(date_added__gt=cursor_date) | Q(date_added=cursor_date, id__gt=cursor_id))
-        ).order_by("date_added", "id")[:batch_size]
+        GroupActionLogEntry.objects.filter(group_id=group_id)
+        .extra(
+            where=['ROW("date_added", "id") > ROW(%s, %s)'],
+            params=[cursor_date, cursor_id],
+        )
+        .order_by("date_added", "id")[:batch_size]
     )
 
 

@@ -791,7 +791,7 @@ def render_template_context(
     def top_issues():
         def all_issues():
             for project_ctx in user_projects:
-                for group, count in project_ctx.key_errors_by_group:
+                for group, count in project_ctx.key_error_issues:
                     display = get_group_display(group)
                     (
                         substatus,
@@ -920,9 +920,7 @@ def prepare_template_context(
 ) -> list[Mapping[str, Any]] | list:
     exclusions_by_user: dict[int, set[int]] = {}
     valid_user_ids = [uid for uid in user_ids if uid is not None]
-    if valid_user_ids and features.has(
-        "organizations:weekly-report-project-exclusions", ctx.organization
-    ):
+    if valid_user_ids:
         for exc_user_id, exc_project_id in WeeklyReportProjectExclusion.objects.filter(
             user_id__in=valid_user_ids,
             project__organization_id=ctx.organization.id,

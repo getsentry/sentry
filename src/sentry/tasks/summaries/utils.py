@@ -85,8 +85,8 @@ class ProjectContext:
     def __init__(self, project):
         self.project = project
 
-        self.key_errors_by_id: list[tuple[int, int]] = []
-        self.key_errors_by_group: list[tuple[Group, int]] = []
+        self.key_error_issues_by_id: list[tuple[int, int]] = []
+        self.key_error_issues: list[tuple[Group, int]] = []
         # Array of (Group, count)
         self.key_performance_issues = []
         # Array of (Group, event_count, has_linked_pr_or_commit)
@@ -102,14 +102,14 @@ class ProjectContext:
     def __repr__(self) -> str:
         return "\n".join(
             [
-                f"{self.key_errors_by_group}, ",
+                f"{self.key_error_issues}, ",
                 f"Errors: [Accepted {self.accepted_error_count}]",
             ]
         )
 
     def check_if_project_is_empty(self):
         return (
-            not self.key_errors_by_group
+            not self.key_error_issues
             and not self.key_performance_issues
             and not self.past_resolved_issues
             and not self.accepted_error_count
@@ -129,28 +129,10 @@ def user_project_ownership(ctx: OrganizationReportContext) -> None:
             ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
 
-_KEY_ERRORS_CHUNK_SIZE = 100
+_KEY_ERROR_ISSUES_CHUNK_SIZE = 100
 
 
-def _org_key_errors_snuba(
-    ctx: OrganizationReportContext,
-    project_ids: Sequence[int],
-    referrer: str,
-    per_project_limit: int = 5,
-) -> dict[int, list[dict[str, Any]]]:
-    if not project_ids:
-        return {}
-
-    results: dict[int, list[dict[str, Any]]] = {}
-    for i in range(0, len(project_ids), _KEY_ERRORS_CHUNK_SIZE):
-        chunk = project_ids[i : i + _KEY_ERRORS_CHUNK_SIZE]
-        chunk_results = _org_key_errors_snuba_chunk(ctx, chunk, referrer, per_project_limit)
-        results.update(chunk_results)
-
-    return results
-
-
-def _org_key_errors_snuba_chunk(
+def _org_key_error_issues_chunk(
     ctx: OrganizationReportContext,
     project_ids: Sequence[int],
     referrer: str,
@@ -216,17 +198,24 @@ def _org_key_errors_snuba_chunk(
     return results
 
 
-def org_key_errors(
+def org_key_error_issues(
     ctx: OrganizationReportContext,
     project_ids: Sequence[int],
     referrer: str,
+    per_project_limit: int = 5,
 ) -> dict[int, list[dict[str, Any]]]:
-    op = "weekly_reports.org_key_errors"
+    op = "weekly_reports.org_key_error_issues"
     with start_span(op=op, name=op):
         if not project_ids:
             return {}
 
-        return _org_key_errors_snuba(ctx=ctx, project_ids=project_ids, referrer=referrer)
+        results: dict[int, list[dict[str, Any]]] = {}
+        for i in range(0, len(project_ids), _KEY_ERROR_ISSUES_CHUNK_SIZE):
+            chunk = project_ids[i : i + _KEY_ERROR_ISSUES_CHUNK_SIZE]
+            chunk_results = _org_key_error_issues_chunk(ctx, chunk, referrer, per_project_limit)
+            results.update(chunk_results)
+
+        return results
 
 
 def project_key_performance_issues(ctx: OrganizationReportContext, project: Project, referrer: str):
@@ -385,11 +374,13 @@ def _project_key_performance_issues_eap(
     return normalized_rows
 
 
-def fetch_key_error_groups(ctx: OrganizationReportContext) -> None:
-    # Organization pass. Depends on project_key_errors.
+def fetch_key_error_issues(ctx: OrganizationReportContext) -> None:
+    # Organization pass. Depends on org_key_error_issues.
     all_key_error_group_ids = []
     for project_ctx in ctx.projects_context_map.values():
-        all_key_error_group_ids.extend([group_id for group_id, _ in project_ctx.key_errors_by_id])
+        all_key_error_group_ids.extend(
+            [group_id for group_id, _ in project_ctx.key_error_issues_by_id]
+        )
 
     if len(all_key_error_group_ids) == 0:
         return
@@ -401,17 +392,17 @@ def fetch_key_error_groups(ctx: OrganizationReportContext) -> None:
     for project_ctx in ctx.projects_context_map.values():
         # note Snuba might have groups that have since been deleted
         # we should just ignore those
-        project_ctx.key_errors_by_group = [
+        project_ctx.key_error_issues = [
             (group, count)
             for group, count in (
                 (group_id_to_group.get(group_id), count)
-                for group_id, count in project_ctx.key_errors_by_id
+                for group_id, count in project_ctx.key_error_issues_by_id
             )
             if group is not None
         ]
 
 
-def fetch_key_performance_issue_groups(ctx: OrganizationReportContext):
+def fetch_key_performance_issues(ctx: OrganizationReportContext):
     # Organization pass. Depends on project_key_performance_issue.
     all_groups = []
     for project_ctx in ctx.projects_context_map.values():
@@ -545,7 +536,7 @@ def project_past_resolved_issues(
             or g.type == DEFAULT_TYPE_ID
             or g.issue_category == GroupCategory.ERROR
         ]
-        perf_group_ids = [
+        performance_group_ids = [
             g.id
             for g in valid_candidates
             if g.type is not None
@@ -562,9 +553,11 @@ def project_past_resolved_issues(
             error_counts = _past_resolved_error_counts(ctx, project, error_group_ids, referrer)
             event_counts.update(error_counts)
 
-        if perf_group_ids:
-            perf_counts = _past_resolved_perf_counts(ctx, project, perf_group_ids, referrer)
-            event_counts.update(perf_counts)
+        if performance_group_ids:
+            performance_counts = _past_resolved_performance_counts(
+                ctx, project, performance_group_ids, referrer
+            )
+            event_counts.update(performance_counts)
 
         # has_link is initially False; updated by fetch_past_resolved_issue_links at org level
         scored = []
@@ -624,7 +617,7 @@ def _past_resolved_error_counts(
     return {row["events.group_id"]: row["count()"] for row in rows}
 
 
-def _past_resolved_perf_counts(
+def _past_resolved_performance_counts(
     ctx: OrganizationReportContext,
     project: Project,
     group_ids: list[int],

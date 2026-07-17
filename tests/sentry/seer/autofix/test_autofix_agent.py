@@ -346,6 +346,22 @@ class TestIterationHelpers(TestCase):
         with pytest.raises(AssertionError):
             get_iterations(state)
 
+    @patch("sentry.seer.autofix.autofix_agent.sentry_sdk.capture_message")
+    def test_get_iterations_missing_feedback_reports_without_raising(
+        self, mock_capture: MagicMock
+    ) -> None:
+        # _iteration_block intentionally omits feedback metadata.
+        state = _state_with_blocks([_iteration_block(1)])
+
+        iterations = get_iterations(state)
+
+        assert [it.index for it in iterations] == [1]
+        mock_capture.assert_called_once()
+        assert mock_capture.call_args.args[0] == "PR_ITERATION block missing feedback metadata"
+        assert mock_capture.call_args.kwargs["level"] == "warning"
+        assert mock_capture.call_args.kwargs["extras"]["run_id"] == 67890
+        assert mock_capture.call_args.kwargs["extras"]["iteration_index"] == "1"
+
     def test_get_latest_iteration_index_returns_zero_without_iterations(self) -> None:
         state = _state_with_blocks([])
         assert get_latest_iteration_index(state) == 0

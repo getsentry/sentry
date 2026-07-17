@@ -212,6 +212,34 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             response = self.get_success_response(sort="progress", query="is:unresolved")
         assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
 
+    def test_sort_by_progress_over_cap_uses_native_ordering(self) -> None:
+        # End-to-end guard for the native (cap-free) progress path. Reproduces the prod request
+        # exactly: real endpoint (which always sends date_to=now), derived-progress flag on, and
+        # over the candidate cap. Must rank by progress, not fall back to recency.
+        group_1 = self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        ).group
+        group_2 = self.store_event(
+            data={"timestamp": before_now(hours=1).isoformat(), "fingerprint": ["group-2"]},
+            project_id=self.project.id,
+        ).group
+        # group_2 is older (loses recency) but fix_applied (wins progress).
+        self.create_group_derived_data(group=group_2, progress="fix_applied")
+        self.login_as(user=self.user)
+
+        with (
+            self.options({"snuba.search.max-pre-snuba-candidates": 0}),
+            self.feature(
+                [
+                    "organizations:issue-stream-progress-sort",
+                    "projects:issue-stream-derived-progress",
+                ]
+            ),
+        ):
+            response = self.get_success_response(sort="progress", query="is:unresolved")
+        assert [item["id"] for item in response.data] == [str(group_2.id), str(group_1.id)]
+
     def test_recommended_sort_serves_v2_with_experimental_flag(self) -> None:
         # group_1 has the newer event, so it wins the base recommended score (recency);
         # group_2 is regressed, which only the v2 scorer boosts.
