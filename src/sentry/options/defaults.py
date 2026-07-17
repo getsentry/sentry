@@ -908,6 +908,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# When enabled, gzip request bodies sent to Snuba and set Content-Encoding: gzip.
+# OFF by default and must stay off until Snuba is confirmed to decompress request
+# bodies -- otherwise Snuba receives gzip bytes where it expects JSON/protobuf and
+# queries fail. (Response compression via Accept-Encoding is always on and safe.)
+register(
+    "snuba.request-body-compression",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register(
     "snuba.tagstore.cache-tagkeys-rate",

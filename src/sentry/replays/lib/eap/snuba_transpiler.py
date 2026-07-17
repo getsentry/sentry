@@ -77,7 +77,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.net.http import connection_from_url
 from sentry.utils import json
-from sentry.utils.snuba import RetrySkipTimeout
+from sentry.utils.snuba import SNUBA_RESPONSE_ENCODINGS, RetrySkipTimeout
 from sentry.utils.snuba_rpc import SnubaRPCError
 
 ARITHMETIC_FUNCTION_MAP: dict[str, EAPColumn.BinaryFormula.Op.ValueType] = {
@@ -387,7 +387,7 @@ def execute_query(request: TraceItemTableRequest, referrer: str):
     request_method = "POST"
     request_body = request.SerializeToString()
     request_url = "/rpc/EndpointTraceItemTable/v1"
-    request_headers = {"referer": referrer}
+    request_headers = {"referer": referrer, "accept-encoding": SNUBA_RESPONSE_ENCODINGS}
 
     try:
         _snuba_pool = connection_from_url(

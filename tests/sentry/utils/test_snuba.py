@@ -1,3 +1,4 @@
+import gzip
 import unittest
 from datetime import datetime, timedelta
 from unittest import mock
@@ -15,15 +16,19 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 from sentry.utils.snuba import (
     ROUND_UP,
+    SNUBA_REQUEST_COMPRESSION_MIN_BYTES,
+    SNUBA_RESPONSE_ENCODINGS,
     RateLimitExceeded,
     RetrySkipTimeout,
     SnubaQueryParams,
     SnubaRequest,
     UnqualifiedQueryError,
     _bulk_snuba_query,
+    _maybe_compress_snuba_request_body,
     _prepare_query_params,
     get_json_type,
     get_query_params_to_update_for_projects,
@@ -754,3 +759,70 @@ class SnubaQueryRateLimitTest(TestCase):
             _bulk_snuba_query([make_request("ok"), make_request("rate_limited")])
 
         assert mock.call("allocation_policy.is_successful", True) not in mock_set_tag.call_args_list
+
+
+def _make_snuba_request(referrer: str | None = "test_referrer") -> SnubaRequest:
+    request = Request(
+        dataset="events",
+        app_id="test",
+        query=Query(
+            match=Entity("events"),
+            select=[Function("count", parameters=[], alias="count")],
+        ),
+    )
+    return SnubaRequest(
+        request=request,
+        referrer=referrer,
+        forward=lambda x: x,
+        reverse=lambda x: x,
+    )
+
+
+def test_snuba_request_headers_advertise_response_compression() -> None:
+    # #1: we always advertise Accept-Encoding so Snuba may compress its response;
+    # urllib3 decodes it transparently. Safe even if Snuba ignores the header.
+    headers = _make_snuba_request().headers
+    assert headers["accept-encoding"] == SNUBA_RESPONSE_ENCODINGS
+    assert headers["referer"] == "test_referrer"
+
+
+def test_request_body_not_compressed_when_option_disabled() -> None:
+    headers: dict[str, str] = {}
+    body = "x" * (SNUBA_REQUEST_COMPRESSION_MIN_BYTES + 1)
+    with override_options({"snuba.request-body-compression": False}):
+        result = _maybe_compress_snuba_request_body(body, headers)
+    assert result == body
+    assert "content-encoding" not in headers
+
+
+def test_request_body_compressed_when_option_enabled() -> None:
+    headers: dict[str, str] = {}
+    body = json.dumps({"query": "x" * SNUBA_REQUEST_COMPRESSION_MIN_BYTES})
+    with override_options({"snuba.request-body-compression": True}):
+        result = _maybe_compress_snuba_request_body(body, headers)
+    assert isinstance(result, bytes)
+    assert headers["content-encoding"] == "gzip"
+    # Snuba must be able to recover the original body.
+    assert gzip.decompress(result).decode("utf-8") == body
+    # Compressible payload of this size should actually shrink.
+    assert len(result) < len(body.encode("utf-8"))
+
+
+def test_request_body_bytes_input_compressed_when_option_enabled() -> None:
+    headers: dict[str, str] = {}
+    body = b"b" * (SNUBA_REQUEST_COMPRESSION_MIN_BYTES + 100)
+    with override_options({"snuba.request-body-compression": True}):
+        result = _maybe_compress_snuba_request_body(body, headers)
+    assert isinstance(result, bytes)
+    assert headers["content-encoding"] == "gzip"
+    assert gzip.decompress(result) == body
+
+
+def test_small_request_body_not_compressed_even_when_enabled() -> None:
+    # Below the threshold gzip overhead would inflate the payload, so we skip it.
+    headers: dict[str, str] = {}
+    body = "small body"
+    with override_options({"snuba.request-body-compression": True}):
+        result = _maybe_compress_snuba_request_body(body, headers)
+    assert result == body
+    assert "content-encoding" not in headers

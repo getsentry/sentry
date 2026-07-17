@@ -52,7 +52,12 @@ from urllib3.response import BaseHTTPResponse
 
 from sentry.utils import json, metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
-from sentry.utils.snuba import SnubaError, _snuba_pool
+from sentry.utils.snuba import (
+    SNUBA_RESPONSE_ENCODINGS,
+    SnubaError,
+    _maybe_compress_snuba_request_body,
+    _snuba_pool,
+)
 from sentry.utils.tracing import set_span_data, set_span_tag, start_span, trace
 
 logger = logging.getLogger(__name__)
@@ -401,17 +406,17 @@ def _make_rpc_request(
                     set_span_tag(span, "snuba.referrer", referrer)
                     set_span_data(span, "snuba.query", req)
                 try:
+                    request_headers: dict[str, str] = {"accept-encoding": SNUBA_RESPONSE_ENCODINGS}
+                    if referrer:
+                        request_headers["referer"] = referrer
+                    body = _maybe_compress_snuba_request_body(
+                        req.SerializeToString(), request_headers
+                    )
                     http_resp = _snuba_pool.urlopen(
                         "POST",
                         f"/rpc/{endpoint_name}/{class_version}",
-                        body=req.SerializeToString(),
-                        headers=(
-                            {
-                                "referer": referrer,
-                            }
-                            if referrer
-                            else {}
-                        ),
+                        body=body,
+                        headers=request_headers,
                     )
                 except urllib3.exceptions.HTTPError as err:
                     if isinstance(err, urllib3.exceptions.ReadTimeoutError):

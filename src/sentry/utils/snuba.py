@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import functools
+import gzip
 import logging
 import math
 import os
@@ -26,7 +27,9 @@ from sentry_sdk.tracing_utils import has_span_streaming_enabled
 from snuba_sdk import Column, DeleteQuery, Function, MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 from snuba_sdk.query import SelectableExpression
+from urllib3.util.request import ACCEPT_ENCODING
 
+from sentry import options
 from sentry.api.helpers.error_upsampling import (
     UPSAMPLED_ERROR_AGGREGATION,
     are_any_projects_error_upsampled,
@@ -585,6 +588,39 @@ _snuba_pool = connection_from_url(
 )
 
 
+# Response content-codings we advertise to Snuba via Accept-Encoding. urllib3
+# transparently decompresses any of these when the body is read (`response.data`),
+# because urlopen() defaults to decode_content=True. We reuse urllib3's own
+# constant so we only ever advertise codings it can actually decode -- with our
+# installed extras (brotli, backports-zstd) this is "gzip,deflate,br,zstd".
+SNUBA_RESPONSE_ENCODINGS = ACCEPT_ENCODING
+
+# Don't compress small request bodies: gzip framing overhead can make them larger
+# (a ~70 byte query becomes ~90 bytes), and the transfer savings are negligible.
+SNUBA_REQUEST_COMPRESSION_MIN_BYTES = 1024
+
+
+def _maybe_compress_snuba_request_body(
+    body: str | bytes, headers: MutableMapping[str, str]
+) -> str | bytes:
+    """Optionally gzip a request body destined for Snuba, setting Content-Encoding.
+
+    Gated behind the ``snuba.request-body-compression`` option, which is OFF by
+    default. Unlike response (Accept-Encoding) compression, this does NOT degrade
+    gracefully: it only works if Snuba decompresses request bodies. If it does
+    not, Snuba receives gzip bytes where it expects JSON/protobuf and every query
+    fails -- so keep this disabled until Snuba is confirmed to honor
+    ``Content-Encoding: gzip`` on incoming requests.
+    """
+    if not options.get("snuba.request-body-compression"):
+        return body
+    raw = body.encode("utf-8") if isinstance(body, str) else body
+    if len(raw) < SNUBA_REQUEST_COMPRESSION_MIN_BYTES:
+        return body
+    headers["content-encoding"] = "gzip"
+    return gzip.compress(raw)
+
+
 epoch_naive = datetime(1970, 1, 1, tzinfo=None)
 
 
@@ -1059,6 +1095,9 @@ class SnubaRequest:
         headers: MutableMapping[str, str] = {}
         if self.referrer:
             headers["referer"] = self.referrer
+        # Advertise response compression; Snuba may compress its response and
+        # urllib3 will transparently decode it. Safe even if Snuba ignores it.
+        headers["accept-encoding"] = SNUBA_RESPONSE_ENCODINGS
         return headers
 
 
@@ -1504,8 +1543,10 @@ def _raw_mql_query(request: Request, headers: Mapping[str, str]) -> urllib3.resp
 
         with start_span(op="snuba_mql.run", name=serialized_req) as span:
             set_span_tag(span, "snuba.referrer", referrer)
+            request_headers = dict(headers)
+            request_body = _maybe_compress_snuba_request_body(body, request_headers)
             return _snuba_pool.urlopen(
-                "POST", f"/{request.dataset}/mql", body=body, headers=headers
+                "POST", f"/{request.dataset}/mql", body=request_body, headers=request_headers
             )
 
 
@@ -1521,8 +1562,10 @@ def _raw_snql_query(request: Request, headers: Mapping[str, str]) -> urllib3.res
 
         with start_span(op="snuba_snql.run", name=serialized_req) as span:
             set_span_tag(span, "snuba.referrer", referrer)
+            request_headers = dict(headers)
+            request_body = _maybe_compress_snuba_request_body(body, request_headers)
             return _snuba_pool.urlopen(
-                "POST", f"/{request.dataset}/snql", body=body, headers=headers
+                "POST", f"/{request.dataset}/snql", body=request_body, headers=request_headers
             )
 
 
