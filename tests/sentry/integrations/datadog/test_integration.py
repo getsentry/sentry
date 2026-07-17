@@ -1,9 +1,12 @@
 import hashlib
+import os
+import re
 from typing import Any
 
 import pytest
 import responses
 
+from sentry.identity.datadog.provider import DATADOG_VALID_SITES
 from sentry.integrations.datadog.integration import (
     DatadogIntegration,
     DatadogIntegrationProvider,
@@ -14,6 +17,17 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 MCP_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
+
+
+def test_frontend_datadog_sites_match_backend() -> None:
+    """The frontend site list is hand-maintained in a second language, so guard against it
+    drifting from DATADOG_VALID_SITES (the backend source of truth)."""
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), *([".."] * 4)))
+    fe_path = os.path.join(repo_root, "static/app/utils/seer/datadogSites.ts")
+    with open(fe_path) as f:
+        frontend_sites = set(re.findall(r"value: '([^']+)'", f.read()))
+
+    assert frontend_sites == set(DATADOG_VALID_SITES)
 
 
 def _mock_whoami(whoami: dict[str, Any]) -> None:

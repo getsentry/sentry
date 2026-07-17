@@ -12,24 +12,12 @@ import type {
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
-
-// Datadog sites and their region labels. Keep in sync with DATADOG_VALID_SITES in
-// src/sentry/identity/datadog/provider.py.
-const DATADOG_SITE_OPTIONS = [
-  {value: 'datadoghq.com', label: 'US1 (datadoghq.com)'},
-  {value: 'us3.datadoghq.com', label: 'US3 (us3.datadoghq.com)'},
-  {value: 'us5.datadoghq.com', label: 'US5 (us5.datadoghq.com)'},
-  {value: 'datadoghq.eu', label: 'EU (datadoghq.eu)'},
-  {value: 'ap1.datadoghq.com', label: 'AP1 (ap1.datadoghq.com)'},
-  {value: 'ap2.datadoghq.com', label: 'AP2 (ap2.datadoghq.com)'},
-  {value: 'ddog-gov.com', label: 'US1-FED (ddog-gov.com)'},
-  {value: 'us2.ddog-gov.com', label: 'US2-FED (us2.ddog-gov.com)'},
-];
+import {DATADOG_SITES, DATADOG_SITE_VALUES} from 'sentry/utils/seer/datadogSites';
 
 const credentialsSchema = z.object({
   apiKey: z.string().min(1, t('API key is required')),
   appKey: z.string().min(1, t('Application key is required')),
-  site: z.string().min(1, t('Site is required')),
+  site: z.enum(DATADOG_SITE_VALUES, {error: t('Site is required')}),
 });
 
 function DatadogCredentialsStep({
@@ -71,7 +59,7 @@ function DatadogCredentialsStep({
                 value={field.state.value}
                 onChange={value => field.handleChange(value)}
                 placeholder={t('Select your Datadog site')}
-                options={DATADOG_SITE_OPTIONS}
+                options={DATADOG_SITES}
               />
             </field.Layout.Stack>
           )}

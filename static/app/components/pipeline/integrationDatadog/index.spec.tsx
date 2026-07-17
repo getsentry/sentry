@@ -25,7 +25,7 @@ describe('DatadogCredentialsStep', () => {
 
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Datadog Site'}),
-      'US1 (datadoghq.com)'
+      'datadoghq.com (US1)'
     );
     await userEvent.type(screen.getByLabelText('API Key'), 'api-key');
     await userEvent.type(screen.getByLabelText('Application Key'), 'app-key');

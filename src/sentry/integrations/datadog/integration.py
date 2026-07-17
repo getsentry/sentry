@@ -50,7 +50,7 @@ metadata = IntegrationMetadata(
     aspects={},
 )
 
-_SITE_CHOICES = [(site, f"{region} ({site})") for site, region in DATADOG_VALID_SITES.items()]
+_SITE_CHOICES = [(site, f"{site} ({region})") for site, region in DATADOG_VALID_SITES.items()]
 
 
 class DatadogCredentials(TypedDict):
