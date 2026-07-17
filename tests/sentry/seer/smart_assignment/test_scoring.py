@@ -27,7 +27,7 @@ class ScoringTestBase(TestCase):
         self.group = self.create_group()
 
     def _run(
-        self, group: Group | None = None, trigger: str = STARTED.name, **extras
+        self, group: Group | None = None, trigger: str = STARTED.name, **extras: object
     ) -> SeerAgentRun:
         seer_run = SeerRun.objects.create(
             organization=self.organization,
