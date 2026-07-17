@@ -46,7 +46,7 @@ export function useTransactionAsSpans({
   const result = useSpans(
     {
       search,
-      limit: 1000,
+      limit: 100,
       fields: [
         SpanFields.TRACE,
         SpanFields.SPAN_ID,
