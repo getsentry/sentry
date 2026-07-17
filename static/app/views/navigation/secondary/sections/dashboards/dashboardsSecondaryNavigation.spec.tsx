@@ -48,7 +48,6 @@ describe('DashboardsSecondaryNavigation', () => {
 
     expect(screen.getAllByRole('link').map(el => el.textContent)).toEqual([
       'All Dashboards',
-      'Custom Dashboards',
       'Sentry Built',
       'Dashboard 9999',
       'Dashboard 1',

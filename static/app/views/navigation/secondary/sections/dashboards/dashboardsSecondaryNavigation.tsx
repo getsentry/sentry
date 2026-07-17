@@ -46,29 +46,14 @@ export function DashboardsSecondaryNavigation() {
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="dashboards-all">
           <SecondaryNavigation.List>
-            {hasPrebuiltDashboards ? (
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link
-                  to={`${baseUrl}/?filter=${DashboardFilter.ALL}`}
-                  isActive={isOnDashboardsList && dashboardsTab === DashboardsTab.ALL}
-                  analyticsItemName="dashboards_all_combined"
-                >
-                  {t('All Dashboards')}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            ) : null}
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
                 to={`${baseUrl}/`}
                 end
-                isActive={
-                  hasPrebuiltDashboards
-                    ? isOnDashboardsList && dashboardsTab === DashboardsTab.CUSTOM
-                    : undefined
-                }
-                analyticsItemName="dashboards_all"
+                isActive={isOnDashboardsList && dashboardsTab === DashboardsTab.ALL}
+                analyticsItemName="dashboards_all_combined"
               >
-                {hasPrebuiltDashboards ? t('Custom Dashboards') : t('All Dashboards')}
+                {t('All Dashboards')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
             {hasPrebuiltDashboards ? (

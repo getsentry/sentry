@@ -8,7 +8,7 @@ import pick from 'lodash/pick';
 
 import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -18,7 +18,6 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -68,13 +67,11 @@ const GRID = 'grid';
 const TABLE = 'table';
 
 const DASHBOARDS_TAB_TITLES: Record<DashboardsTab, string> = {
-  [DashboardsTab.CUSTOM]: t('Custom Dashboards'),
   [DashboardsTab.ALL]: t('All Dashboards'),
   [DashboardsTab.PREBUILT]: PREBUILT_DASHBOARD_LABEL,
 };
 
 const DASHBOARDS_TAB_API_QUERY: Record<DashboardsTab, {filter?: DashboardFilter}> = {
-  [DashboardsTab.CUSTOM]: {filter: DashboardFilter.EXCLUDE_PREBUILT},
   [DashboardsTab.ALL]: {},
   [DashboardsTab.PREBUILT]: {filter: DashboardFilter.ONLY_PREBUILT},
 };
@@ -133,10 +130,7 @@ function ManageDashboards() {
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const dashboardsTab = getDashboardsTab(hasPrebuiltDashboards, urlFilter);
   const isOnlyPrebuilt = dashboardsTab === DashboardsTab.PREBUILT;
-  const pageTitle =
-    dashboardsTab === DashboardsTab.CUSTOM && !hasPrebuiltDashboards
-      ? t('All Dashboards')
-      : DASHBOARDS_TAB_TITLES[dashboardsTab];
+  const pageTitle = DASHBOARDS_TAB_TITLES[dashboardsTab];
 
   const areAiFeaturesAllowed =
     !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
@@ -475,32 +469,6 @@ function ManageDashboards() {
   }
 
   function renderDashboards() {
-    if (
-      dashboardsTab === DashboardsTab.CUSTOM &&
-      hasPrebuiltDashboards &&
-      !isLoading &&
-      !dashboards?.length &&
-      !getQuery()
-    ) {
-      return (
-        <EmptyMessage
-          title={t("You haven't created any dashboards.")}
-          action={
-            <LinkButton
-              to={`${location.pathname}?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
-              variant="primary"
-            >
-              {t('Check out Sentry Built dashboards')}
-            </LinkButton>
-          }
-        >
-          {t(
-            'Check out Sentry Built dashboards for common use cases and examples that you can clone to get started.'
-          )}
-        </EmptyMessage>
-      );
-    }
-
     return dashboardsLayout === GRID ? (
       <DashboardGrid
         api={api}
