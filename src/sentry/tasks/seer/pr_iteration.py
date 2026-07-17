@@ -514,11 +514,6 @@ def trigger_pr_iteration_from_comment(
     return None
 
 
-# GitHub's REST pagination is page-number based: the SCM ``cursor`` is the page
-# number and ``per_page`` MUST be sent on every paginated request (the provider
-# reads ``pagination["per_page"]`` unconditionally). The provider's
-# ``next_cursor`` is always truthy, so it can't signal the end — we stop instead
-# when a page comes back shorter than ``per_page``. 100 is GitHub's page-size cap.
 _REVIEW_PAGE_SIZE = 100
 
 
@@ -625,8 +620,8 @@ def trigger_pr_iteration_from_review(
     to recover its GitHub id, looks up the agent run keyed on that id, fetches the
     review's inline comments and summary body, and triggers the iteration with the
     whole review as feedback. Unlike the comment path there is no ``@sentry``
-    command gate and no repo-write-access gate — any submitted review is acted on
-    (our own app's reviews are filtered out upstream in ``review.py``).
+    command gate and no repo-write-access gate — any submitted review is acted on,
+    including our own app's reviews (Seer code review is a signal we iterate on).
     """
     log_extra = {
         "organization_id": organization_id,

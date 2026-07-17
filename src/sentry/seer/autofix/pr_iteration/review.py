@@ -14,17 +14,16 @@ For the listener to actually receive events it MUST be imported into
 singleton. Listeners run asynchronously on taskbroker, are isolated from one
 another, and take a single ``PullRequestReviewEvent`` argument.
 
-The listener filters to submitted reviews (skipping our own app's reviews),
-resolves org/integration/repo context from the event, feature-gates, and hands
-off to ``trigger_pr_iteration_from_review`` which fetches the review's inline
-comments and summary body and dispatches an Autofix PR iteration.
+The listener filters to submitted reviews, resolves org/integration/repo context
+from the event, feature-gates, and hands off to ``trigger_pr_iteration_from_review``
+which fetches the review's inline comments and summary body and dispatches an
+Autofix PR iteration. Reviews from our own app are acted on too — Seer's own code
+review is a signal we want to iterate on.
 """
 
 from __future__ import annotations
 
 import logging
-
-from django.conf import settings
 
 from sentry import features
 from sentry.integrations.services.integration import integration_service
@@ -43,28 +42,6 @@ _PROVIDER_TO_REPO_PROVIDER = {
     "github": "integrations:github",
     "github_enterprise": "integrations:github_enterprise",
 }
-
-
-def _is_own_app_review(author_id: str | None) -> bool:
-    """True if the review was submitted by our own Seer/Sentry GitHub app.
-
-    Acting on our own review output would be a feedback loop, so we skip it.
-    Third-party AI code-review bots are intentionally NOT skipped (decision 6).
-    The review event's ``author.id`` is a ``str`` while the settings are ints,
-    so normalize both sides before comparing (see the plan's type-mismatch note).
-    """
-    if author_id is None:
-        return False
-
-    own_app_ids = {
-        str(app_id)
-        for app_id in (
-            getattr(settings, "SEER_AUTOFIX_GITHUB_APP_USER_ID", None),
-            getattr(settings, "SENTRY_GITHUB_APP_USER_ID", None),
-        )
-        if app_id is not None
-    }
-    return str(author_id) in own_app_ids
 
 
 @scm_event_stream.listen_for(event_type="pull_request_review")
@@ -109,13 +86,6 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
             "autofix.pr_iteration.review_listener.skipped_action",
             extra={**log_extra, "action": event.action},
         )
-        return None
-
-    # A review submitted by our own app is our previous output, not feedback.
-    # Third-party review bots are intended to trigger iterations, so this is a
-    # deliberately narrow skip keyed on our own app's GitHub user id.
-    if _is_own_app_review(author_id):
-        logger.debug("autofix.pr_iteration.review_listener.skipped_own_app", extra=log_extra)
         return None
 
     logger.info("autofix.pr_iteration.review_listener.received", extra=log_extra)

@@ -53,27 +53,22 @@ def _processed_github_comment_ids(
     # Filtered by concrete source class: issue-comment and review-comment ids
     # live in separate GitHub namespaces, so a review comment must only dedupe
     # against prior review comments (and vice versa), never across the two.
-    ids: set[int] = set()
-    for item in _blocks_feedback(run_state.blocks):
-        source = item.source
-        if isinstance(source, source_cls):
-            cid = source.comment.id
-            if cid is not None:
-                ids.add(cid)
-    return ids
+    return {
+        item.source.comment.id
+        for item in _blocks_feedback(run_state.blocks)
+        if isinstance(item.source, source_cls) and item.source.comment.id is not None
+    }
 
 
 def _processed_github_review_ids(run_state: SeerRunState) -> set[int]:
     # Review-body feedback dedupes on the review id (its own GitHub namespace),
     # so a re-delivered ``pull_request_review`` can't re-add its summary body.
-    ids: set[int] = set()
-    for item in _blocks_feedback(run_state.blocks):
-        source = item.source
-        if isinstance(source, GithubPrReviewBodyFeedbackSource):
-            rid = source.review_id
-            if rid is not None:
-                ids.add(rid)
-    return ids
+    return {
+        item.source.review_id
+        for item in _blocks_feedback(run_state.blocks)
+        if isinstance(item.source, GithubPrReviewBodyFeedbackSource)
+        and item.source.review_id is not None
+    }
 
 
 class _GithubPrCommentFeedbackSourceBase(FeedbackSourceBase):

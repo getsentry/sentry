@@ -17,9 +17,6 @@ from sentry.testutils.cases import TestCase
 REVIEW_PATH = "sentry.seer.autofix.pr_iteration.review"
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
 
-SEER_APP_ID = 111111
-SENTRY_APP_ID = 222222
-
 
 class HandlePullRequestReviewForAutofixIterationTest(TestCase):
     def setUp(self) -> None:
@@ -101,30 +98,12 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
             handle_pull_request_review_for_autofix_iteration(self._event(action="edited"))
         mock_delay.assert_not_called()
 
-    @patch(f"{REVIEW_PATH}.settings.SEER_AUTOFIX_GITHUB_APP_USER_ID", SEER_APP_ID)
-    @patch(f"{REVIEW_PATH}.settings.SENTRY_GITHUB_APP_USER_ID", SENTRY_APP_ID)
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
     @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
-    def test_skips_own_app_review(self, mock_contexts: MagicMock, mock_delay: MagicMock) -> None:
+    def test_bot_review_is_acted_on(self, mock_contexts: MagicMock, mock_delay: MagicMock) -> None:
         self._mock_org_contexts(mock_contexts)
-        # Our own app's user id arrives as a string; the settings are ints. The
-        # narrow bot filter must still match after normalizing both sides.
-        with self.feature("organizations:autofix-pr-iteration"):
-            handle_pull_request_review_for_autofix_iteration(
-                self._event(author_id=str(SEER_APP_ID), is_bot=True)
-            )
-        mock_delay.assert_not_called()
-
-    @patch(f"{REVIEW_PATH}.settings.SEER_AUTOFIX_GITHUB_APP_USER_ID", SEER_APP_ID)
-    @patch(f"{REVIEW_PATH}.settings.SENTRY_GITHUB_APP_USER_ID", SENTRY_APP_ID)
-    @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
-    @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
-    def test_third_party_bot_review_is_acted_on(
-        self, mock_contexts: MagicMock, mock_delay: MagicMock
-    ) -> None:
-        self._mock_org_contexts(mock_contexts)
-        # A third-party AI review bot (is_bot True) that is NOT our own app still
-        # triggers an iteration.
+        # Any submitted review triggers an iteration, including bot reviews — our
+        # own app's code review and third-party AI review bots alike.
         with self.feature("organizations:autofix-pr-iteration"):
             handle_pull_request_review_for_autofix_iteration(
                 self._event(author_id="333333", is_bot=True)
