@@ -9,6 +9,7 @@ from sentry.integrations.gcp.integration import (
     GcpIntegrationProvider,
     validate_gcp_project_id,
 )
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -96,8 +97,9 @@ class GcpIntegrationProviderTest(TestCase):
             name="Google Cloud Platform",
             metadata={},
         )
-        org_integration = integration.organizationintegration_set.get(
-            organization_id=self.organization.id
+        org_integration: OrganizationIntegration = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
         )
         assert org_integration.config == {}
 
