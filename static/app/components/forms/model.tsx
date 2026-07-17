@@ -670,13 +670,13 @@ export class FormModel {
           // Show resp msg from API endpoint if possible
           if (Array.isArray(resp.responseJSON[id]) && resp.responseJSON[id].length) {
             // Just take first resp for now
-            this.setError(id, resp.responseJSON[id][0]);
+            this.setError(id, this.normalizeError(resp.responseJSON[id][0]));
           } else if (Array.isArray(nonFieldErrors) && nonFieldErrors.length) {
             addErrorMessage(nonFieldErrors[0], {duration: 10000});
             // Reset saving state
             this.setError(id, '');
           } else if (firstError) {
-            this.setError(id, firstError);
+            this.setError(id, this.normalizeError(firstError));
           } else {
             this.setError(id, defaultErrorMsg);
           }
@@ -760,6 +760,19 @@ export class FormModel {
   /**
    * Set "error" state for field
    */
+  /**
+   * Normalizes an API error value to a string. Some endpoints return structured
+   * error objects like `{code, message, extra}` instead of plain strings. Passing
+   * such an object as a React child would crash the renderer, so we extract the
+   * `.message` property when present.
+   */
+  normalizeError(error: unknown): string {
+    if (error !== null && typeof error === 'object' && 'message' in error) {
+      return String((error as {message: unknown}).message);
+    }
+    return String(error);
+  }
+
   setError(id: string, error: boolean | string) {
     // Note we don't keep error in `this.fieldState` so that we can easily
     // See if the form is in an "error" state with the `isError` getter
@@ -817,7 +830,7 @@ export class FormModel {
         errorDisplayed = true;
       } else if (Array.isArray(resp[id]) && resp[id].length) {
         // Just take first resp for now
-        this.setError(id, resp[id][0]);
+        this.setError(id, this.normalizeError(resp[id][0]));
         errorDisplayed = true;
       }
     });
