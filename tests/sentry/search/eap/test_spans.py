@@ -57,6 +57,7 @@ from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.utils.snuba import SPAN_EAP_COLUMN_MAP
 
 
 class AttributeVisibilityTest(TestCase):
@@ -1120,6 +1121,18 @@ def _make_deprecated_metadata(
         is_in_otel=False,
         visibility=Visibility.PUBLIC,
         deprecation=DeprecationInfo(replacement=replacement, status=status),
+    )
+
+
+def test_reasoning_level_attribute_is_queryable() -> None:
+    attr = SPAN_ATTRIBUTE_DEFINITIONS["gen_ai.request.reasoning.level"]
+
+    assert attr.public_alias == "gen_ai.request.reasoning.level"
+    assert attr.internal_name == "gen_ai.request.reasoning.level"
+    assert attr.search_type == "string"
+    assert (
+        SPAN_EAP_COLUMN_MAP["gen_ai.request.reasoning.level"]
+        == "attr_str[gen_ai.request.reasoning.level]"
     )
 
 

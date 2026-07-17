@@ -1,6 +1,7 @@
 import enum
 import logging
-from datetime import datetime
+import time
+from datetime import datetime, timedelta
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, router, transaction
@@ -12,15 +13,12 @@ from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.derived.tasks import process_group_log_task
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
+from sentry.models.group import Group
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-# Pipeline with current aggregators. Versioned because in principle
-# we may want to change it in place and correlate that to existing derived data
-# for invalidation purposes.
-# TODO: Shouldn't it be versioned by a feature set hash? To be sorted out later.
-PIPELINE: Pipeline[GroupActionLogEntry] = Pipeline(AGGREGATORS, version=1)
+PIPELINE: Pipeline[GroupActionLogEntry] = Pipeline(AGGREGATORS)
 
 DEFAULT_BATCH_SIZE = 1000
 INLINE_BATCH_SIZE = 100
@@ -42,9 +40,6 @@ def _ensure_derived(group_id: int) -> GroupDerivedData:
     except GroupDerivedData.DoesNotExist:
         pass
 
-    # Deferred to avoid circular import: group.py → action_log → processing.py
-    from sentry.models.group import Group
-
     try:
         derived, _created = GroupDerivedData.objects.get_or_create(
             group_id=group_id,
@@ -59,10 +54,12 @@ def _entries_after_cursor(
     group_id: int, cursor_date: datetime, cursor_id: int, batch_size: int
 ) -> list[GroupActionLogEntry]:
     return list(
-        GroupActionLogEntry.objects.filter(
-            Q(group_id=group_id)
-            & (Q(date_added__gt=cursor_date) | Q(date_added=cursor_date, id__gt=cursor_id))
-        ).order_by("date_added", "id")[:batch_size]
+        GroupActionLogEntry.objects.filter(group_id=group_id)
+        .extra(
+            where=['ROW("date_added", "id") > ROW(%s, %s)'],
+            params=[cursor_date, cursor_id],
+        )
+        .order_by("date_added", "id")[:batch_size]
     )
 
 
@@ -148,22 +145,33 @@ def _process_batch(
         return bool(_entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, 1))
 
 
+class GroupLogTimeout(Exception):
+    """Raised when process_group_log cannot finish within its timeout."""
+
+
 def process_group_log(
     group_id: int,
     batch_size: int = DEFAULT_BATCH_SIZE,
     target_pipeline: Pipeline[GroupActionLogEntry] | None = None,
+    timeout: timedelta | None = None,
 ) -> GroupDerivedData:
     """Fully drain all pending entries for a group, processing in batches.
 
     Raises Group.DoesNotExist if the group has been deleted.
+    Raises GroupLogTimeout if *timeout* elapses before all
+    entries are processed.
     """
     p = target_pipeline or PIPELINE
+    timeout_seconds = timeout.total_seconds() if timeout is not None else None
+    start = time.monotonic()
 
     with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
         derived = _ensure_derived(group_id)
 
     has_more = _process_batch(p, derived, group_id, batch_size)
     while has_more:
+        if timeout_seconds is not None and time.monotonic() - start >= timeout_seconds:
+            raise GroupLogTimeout(group_id)
         has_more = _process_batch(p, derived, group_id, batch_size)
 
     return derived

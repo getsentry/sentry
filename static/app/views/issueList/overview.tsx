@@ -157,6 +157,7 @@ function IssueListOverviewInner({
   const {openIssuePreview} = useIssuePreviewDrawer({enabled: isPreviewMode});
   const api = useApi();
   const urlParams = useParams<{viewId?: string}>();
+  const {data: groupSearchView} = useSelectedGroupSearchView();
   const realtimeActiveCookie = Cookies.get('realtimeActive');
   const [realtimeActive, setRealtimeActive] = useState(
     realtimeActiveCookie === undefined || urlParams.viewId
@@ -229,8 +230,11 @@ function IssueListOverviewInner({
   const hasRecommendedSortDefault = organization.features.includes(
     'issue-stream-recommended-sort-default'
   );
-  const defaultSort =
-    initialSort === DEFAULT_ISSUE_STREAM_SORT
+  // The stored sort is the user's preferred sort for the unsaved feed.
+  // Saved views persist their own sort, so they neither read nor write it.
+  const defaultSort = urlParams.viewId
+    ? (groupSearchView?.querySort ?? DEFAULT_ISSUE_STREAM_SORT)
+    : initialSort === DEFAULT_ISSUE_STREAM_SORT
       ? hasRecommendedSortDefault
         ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
         : DEFAULT_ISSUE_STREAM_SORT
@@ -709,7 +713,11 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
-    if (hasRecommendedSortDefault && initialSort === DEFAULT_ISSUE_STREAM_SORT) {
+    if (
+      hasRecommendedSortDefault &&
+      !urlParams.viewId &&
+      initialSort === DEFAULT_ISSUE_STREAM_SORT
+    ) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
     transitionTo({sort: newSort});
@@ -920,8 +928,6 @@ function IssueListOverviewInner({
   // Derive from query (URL state) not initialQuery (prop) so the hint
   // stays accurate if the user edits the search bar.
   const isTaxonomyView = query.includes('issue.category:');
-
-  const {data: groupSearchView} = useSelectedGroupSearchView();
 
   useLLMContext({
     contextHint:

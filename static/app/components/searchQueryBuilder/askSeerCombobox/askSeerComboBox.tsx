@@ -37,6 +37,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
+import {useProjects} from 'sentry/utils/useProjects';
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
 // is updated in response to these changes.
@@ -113,6 +114,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
+  const {projects} = useProjects();
 
   const [searchQuery, setSearchQuery] = useState(() =>
     formatQueryToNaturalLanguage(initialQuery)
@@ -125,6 +127,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     setDisplayAskSeerFeedback,
     askSeerNLQueryRef,
     autoSubmitSeer,
+    setAutoSubmitFromCurrentQuery,
     setAutoSubmitSeer,
     enableAISearch,
   } = useSearchQueryBuilderAI();
@@ -233,7 +236,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
         );
       }
 
-      const readableQuery = generateQueryTokensString(item);
+      const readableQuery = generateQueryTokensString(item, projects);
 
       return (
         <Item
@@ -384,20 +387,30 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   }, [state]);
 
   useLayoutEffect(() => {
-    if (autoSubmitSeer && searchQuery.trim()) {
-      trackAnalytics('ai_query.submitted', {
-        organization,
-        area: analyticsArea,
-        natural_language_query: searchQuery.trim(),
-      });
-      submitQuery(searchQuery.trim());
-      setAutoSubmitSeer(false);
+    if (!autoSubmitSeer) {
+      return;
     }
+
+    if (!searchQuery.trim()) {
+      setAutoSubmitFromCurrentQuery(false);
+      setAutoSubmitSeer(false);
+      return;
+    }
+
+    trackAnalytics('ai_query.submitted', {
+      organization,
+      area: analyticsArea,
+      natural_language_query: searchQuery.trim(),
+    });
+    submitQuery(searchQuery.trim());
+    setAutoSubmitFromCurrentQuery(false);
+    setAutoSubmitSeer(false);
   }, [
     analyticsArea,
     autoSubmitSeer,
     organization,
     searchQuery,
+    setAutoSubmitFromCurrentQuery,
     setAutoSubmitSeer,
     submitQuery,
   ]);
@@ -549,19 +562,18 @@ const InvisibleInput = styled('input')`
   margin-bottom: -1px;
   background: transparent;
 
-  padding-top: ${p => p.theme.space.sm};
-  padding-bottom: ${p => p.theme.space.sm};
-  padding-left: ${p => p.theme.space['3xl']};
-  padding-right: ${p => p.theme.space.sm};
+  padding-top: calc(${p => p.theme.space.xs} + 1px);
+  padding-bottom: calc(${p => p.theme.space.xs} + 1px);
+  padding-left: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.xs});
+  padding-right: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.xs});
 
   &::selection {
     background: rgba(0, 0, 0, 0.2);
   }
 
-  :placeholder-shown {
+  &:not(:focus) {
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   [disabled] {

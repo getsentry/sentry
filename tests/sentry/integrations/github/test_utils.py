@@ -1,6 +1,8 @@
 import pytest
+from rest_framework.response import Response
 
 from sentry.integrations.github.utils import (
+    get_last_page_number,
     is_github_rate_limit_sensitive,
     parse_github_blob_url,
 )
@@ -43,6 +45,34 @@ def test_parse_github_blob_url(repo_url, source_url, expected_branch, expected_p
     branch, path = parse_github_blob_url(repo_url, source_url)
     assert branch == expected_branch
     assert path == expected_path
+
+
+@pytest.mark.parametrize(
+    "link,expected",
+    [
+        # Multi-page offset pagination advertises the last page.
+        (
+            '<https://api.github.com/installation/repositories?per_page=100&page=2>; rel="next", '
+            '<https://api.github.com/installation/repositories?per_page=100&page=9>; rel="last"',
+            9,
+        ),
+        # Single page: no link header at all.
+        (None, None),
+        # Cursor-based pagination: a next link but no last link.
+        ('<https://api.github.com/x?per_page=100&page=2>; rel="next"', None),
+        # On the final page Github only sends the first/prev relations.
+        (
+            '<https://api.github.com/x?per_page=100&page=1>; rel="first", '
+            '<https://api.github.com/x?per_page=100&page=8>; rel="prev"',
+            None,
+        ),
+        # Malformed last link with no page query param.
+        ('<https://api.github.com/x?per_page=100>; rel="last"', None),
+    ],
+)
+def test_get_last_page_number(link: str | None, expected: int | None) -> None:
+    response = Response(headers={"link": link} if link is not None else {})
+    assert get_last_page_number(response) == expected
 
 
 class IsGithubRateLimitSensitiveTest(TestCase):

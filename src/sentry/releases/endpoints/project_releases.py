@@ -154,6 +154,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
         if serializer.is_valid():
             result = serializer.validated_data
             scope.set_tag("version", result["version"])
+            scope.set_attribute("version", result["version"])
 
             new_status = result.get("status")
 
@@ -235,6 +236,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
                 update_org_auth_token_last_used(request.auth, [project.id])
 
             scope.set_tag("success_status", status)
+            scope.set_attribute("success_status", status)
 
             # Disable snuba here as it often causes 429s when overloaded and
             # a freshly created release won't have health data anyways.

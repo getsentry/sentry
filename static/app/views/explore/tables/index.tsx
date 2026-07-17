@@ -15,14 +15,12 @@ import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreA
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTracesTable';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
-import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
-  useQueryParamsAggregateFields,
   useQueryParamsCrossEvents,
-  useQueryParamsFields,
   useSetQueryParamsAggregateFields,
   useSetQueryParamsFields,
 } from 'sentry/views/explore/queryParams/context';
+import {useValidatedSpansTabColumns} from 'sentry/views/explore/spans/hooks/useValidatedSpansTabColumns';
 import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
 import {AggregatesTable} from 'sentry/views/explore/tables/aggregatesTable';
 import {ColumnEditorModal} from 'sentry/views/explore/tables/columnEditorModal';
@@ -46,27 +44,33 @@ export function ExploreTables(props: ExploreTablesProps) {
   const {setTab, tab} = props;
   const crossEvents = useQueryParamsCrossEvents();
   const hasCrossEvents = !!crossEvents?.length;
-
-  const aggregateFields = useQueryParamsAggregateFields();
   const setAggregateFields = useSetQueryParamsAggregateFields();
-
-  const fields = useQueryParamsFields();
   const setFields = useSetQueryParamsFields();
 
-  const {attributes: numberTags} = useSpanItemAttributes({}, 'number');
-  const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
-  const {attributes: booleanTags} = useSpanItemAttributes({}, 'boolean');
+  const {
+    aggregateFields: validatedAggregateFields,
+    attributes: {
+      boolean: validatedBooleanTags,
+      number: validatedNumberTags,
+      string: validatedStringTags,
+    },
+    fieldTypes: validatedFieldTypes,
+    fields: validatedFields,
+    isValidatingColumns,
+  } = useValidatedSpansTabColumns(tab);
 
   const openColumnEditor = () => {
     openModal(
       modalProps => (
         <ColumnEditorModal
           {...modalProps}
-          columns={fields}
+          columns={validatedFields}
           onColumnsChange={setFields}
-          stringTags={stringTags}
-          numberTags={numberTags}
-          booleanTags={booleanTags}
+          stringTags={validatedStringTags}
+          numberTags={validatedNumberTags}
+          booleanTags={validatedBooleanTags}
+          requiredTags={['id']}
+          validatedFieldTypes={validatedFieldTypes}
         />
       ),
       {closeEvents: 'escape-key'}
@@ -78,11 +82,11 @@ export function ExploreTables(props: ExploreTablesProps) {
       modalProps => (
         <AggregateColumnEditorModal
           {...modalProps}
-          columns={aggregateFields.slice()}
+          columns={validatedAggregateFields.slice()}
           onColumnsChange={setAggregateFields}
-          stringTags={stringTags}
-          numberTags={numberTags}
-          booleanTags={booleanTags}
+          stringTags={validatedStringTags}
+          numberTags={validatedNumberTags}
+          booleanTags={validatedBooleanTags}
         />
       ),
       {closeEvents: 'escape-key'}
@@ -131,11 +135,21 @@ export function ExploreTables(props: ExploreTablesProps) {
           </TabList>
         </Tabs>
         {tab === Tab.SPAN ? (
-          <Button onClick={openColumnEditor} icon={<IconEdit />} size="sm">
+          <Button
+            disabled={isValidatingColumns}
+            onClick={openColumnEditor}
+            icon={<IconEdit />}
+            size="sm"
+          >
             {t('Edit Table')}
           </Button>
         ) : tab === Mode.AGGREGATE ? (
-          <Button onClick={openAggregateColumnEditor} icon={<IconEdit />} size="sm">
+          <Button
+            disabled={isValidatingColumns}
+            onClick={openAggregateColumnEditor}
+            icon={<IconEdit />}
+            size="sm"
+          >
             {t('Edit Table')}
           </Button>
         ) : (
@@ -152,9 +166,25 @@ export function ExploreTables(props: ExploreTablesProps) {
           </Tooltip>
         )}
       </Flex>
-      {tab === Tab.SPAN && <SpansTable {...props} />}
+      {tab === Tab.SPAN && (
+        <SpansTable
+          {...props}
+          stringTags={validatedStringTags}
+          numberTags={validatedNumberTags}
+          booleanTags={validatedBooleanTags}
+          validatedFieldTypes={validatedFieldTypes}
+        />
+      )}
       {tab === Tab.TRACE && <TracesTable {...props} />}
-      {tab === Mode.AGGREGATE && <AggregatesTable {...props} />}
+      {tab === Mode.AGGREGATE && (
+        <AggregatesTable
+          {...props}
+          stringTags={validatedStringTags}
+          numberTags={validatedNumberTags}
+          booleanTags={validatedBooleanTags}
+          validatedFieldTypes={validatedFieldTypes}
+        />
+      )}
       {tab === Tab.ATTRIBUTE_BREAKDOWNS && <AttributeBreakdownsContent />}
     </Fragment>
   );

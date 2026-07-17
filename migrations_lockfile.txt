@@ -13,7 +13,7 @@ feedback: 0007_cleanup_failed_safe_deletes
 
 flags: 0001_squashed_0004_add_flag_audit_log_provider_column
 
-hybridcloud: 0001_squashed_0030_remove_orgslugreservationreplica_delete
+hybridcloud: 0032_delete_externalactorreplica
 
 insights: 0001_squashed_0002_backfill_team_starred
 
@@ -29,9 +29,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0025_add_seerrun_referrer_index
+seer: 0027_add_seer_run_coding_agent_handoff
 
-sentry: 1129_drop_saved_search
+sentry: 1137_add_user_upper_indexes
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

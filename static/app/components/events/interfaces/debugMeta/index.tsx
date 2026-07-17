@@ -12,7 +12,7 @@ import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
@@ -291,8 +291,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
               </div>
             </ScrollArea>
           ) : (
-            <Flex
-              direction="column"
+            <Stack
               align="center"
               justify="center"
               gap="md"
@@ -314,7 +313,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
                   {filterSelections.length ? t('Reset filter') : t('Clear search')}
                 </Button>
               )}
-            </Flex>
+            </Stack>
           )}
         </Container>
       </Fragment>

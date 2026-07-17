@@ -20,12 +20,19 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestLifecycleState,
     PullRequestMetrics,
+    PullRequestVerdict,
 )
+from sentry.seer.models import SeerAgentRun, SeerRunPullRequest
 
 _PR_ACTIVITY_ATTRIBUTION_BUFFER = timedelta(hours=30)
 
 
-def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | None = None) -> bool:
+def is_activity_tracking_enabled(
+    organization: Organization,
+    pr: PullRequest | None = None,
+    *,
+    for_terminal_event: bool = False,
+) -> bool:
     """Whether PR activity rows should be written for this organization (and PR).
 
     Gated on the feature flag rollout only — Seer access is not required,
@@ -33,36 +40,56 @@ def is_activity_tracking_enabled(organization: Organization, pr: PullRequest | N
 
     When ``pr`` is supplied, two additional per-PR checks apply in order:
 
-    1. If the PR's ``state`` is already terminal (``CLOSED``, ``MERGED``, or
-       ``SUPERSEDED``), no further activity is needed — this short-circuits
-       without any extra DB queries.
+    1. If the PR's ``state`` is ``SUPERSEDED``, no further activity is needed —
+       this short-circuits without any extra DB queries. ``CLOSED``/``MERGED`` are
+       deliberately *not* short-circuited: the shared
+       ``PullRequestEventWebhook._handle`` upsert stamps the terminal state
+       *before* the webhook-event processors run, so within the very delivery
+       that closed the PR the row already reads terminal — yet the event that
+       records *who* closed it must still be written. The trade-off is that a
+       stray event on an already-terminal PR may also be recorded until the
+       verdict is claimed — an accepted cost for capturing the closer.
 
-    2. A verdict check runs next: if ``PullRequestMetrics`` exists with a
-       non-null verdict (terminal emit or ``JUDGE_IN_PROGRESS`` claim), no
-       further activity is needed.
+    2. A verdict check runs next: activity remains enabled while the verdict is
+       null or ``WAITING_EVENT_COOLDOWN`` so late check events can be captured.
+       All other non-null verdicts (including terminal verdicts and
+       ``JUDGE_IN_PROGRESS``) stop further activity.
 
     3. A time-based buffer gate applies last:
        - Within ``_PR_ACTIVITY_ATTRIBUTION_BUFFER`` (30 h) of ``pr.date_added``,
          activity is always collected — no attribution row is required yet.
        - After that window, activity is collected only when the PR has at
          least one valid ``PullRequestAttribution`` row (``is_valid=True``).
+
+    ``for_terminal_event`` marks a close/merge/reopen webhook: it skips the state
+    and verdict short-circuits (steps 1-2), leaving only the feature flag and the
+    buffer / attribution gate. Two distinct situations need it:
+
+    - Same delivery: the state stamp above means a close/merge event always sees
+      its own PR as terminal already (and a SUPERSEDED PR can still be genuinely
+      closed, which must record the closer).
+    - Later delivery: verdicts are claimed by the deferred emission task
+      *outside* the webhook flow, so a reopen — or a re-close during/after
+      judging — arrives after the claim. No intra-webhook processor reordering
+      can help that case, which is why this bypass exists instead.
+
+    The gates are meant to stop *post*-terminal accumulation, not the terminal
+    event itself.
     """
     if not features.has("organizations:pr-metrics-activity", organization):
         return False
 
     if pr is not None:
-        if pr.state in (
-            PullRequestLifecycleState.CLOSED,
-            PullRequestLifecycleState.MERGED,
-            PullRequestLifecycleState.SUPERSEDED,
-        ):
-            return False
-        verdict_claimed = PullRequestMetrics.objects.filter(
-            pull_request=pr,
-            verdict__isnull=False,
-        ).exists()
-        if verdict_claimed:
-            return False
+        if not for_terminal_event:
+            if pr.state == PullRequestLifecycleState.SUPERSEDED:
+                return False
+            verdict = (
+                PullRequestMetrics.objects.filter(pull_request=pr)
+                .values_list("verdict", flat=True)
+                .first()
+            )
+            if verdict is not None and verdict != PullRequestVerdict.WAITING_EVENT_COOLDOWN:
+                return False
         if timezone.now() - pr.date_added <= _PR_ACTIVITY_ATTRIBUTION_BUFFER:
             return True
         return PullRequestAttribution.objects.filter(
@@ -196,3 +223,29 @@ def resolved_group_ids(pull_request: PullRequest) -> list[int]:
         combined = pr_filter
 
     return sorted(GroupLink.objects.filter(combined).values_list("group_id", flat=True).distinct())
+
+
+def seer_run_link_for_pull_request(pull_request: PullRequest) -> tuple[list[int], int | None]:
+    """Group id and run id for the Seer run that opened this PR, via the local
+    ``SeerRunPullRequest`` link.
+
+    That link is written by the on_completion_hook-driven ``seer.pr_created`` flow
+    (``process_autofix_updates`` -> ``link_seer_run_pull_requests``). It may not
+    exist yet at the "opened" webhook if that flow hasn't landed; the "closed"
+    re-check in ``handle_attribution`` covers that case.
+    """
+    link = (
+        SeerRunPullRequest.objects.select_related("seer_run__agent")
+        .filter(pull_request=pull_request)
+        .first()
+    )
+    if link is None:
+        return [], None
+
+    run_id = link.seer_run.seer_run_state_id
+    try:
+        group_id = link.seer_run.agent.group_id
+    except SeerAgentRun.DoesNotExist:
+        group_id = None
+
+    return ([group_id] if group_id is not None else []), run_id

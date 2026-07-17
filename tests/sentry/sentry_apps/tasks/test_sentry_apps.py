@@ -1600,8 +1600,21 @@ class TestWorkflowNotification(TestCase):
         assert kwargs["url"] == self.sentry_app.webhook_url
         assert kwargs["headers"]["Sentry-Hook-Resource"] == "issue"
         data = json.loads(kwargs["data"])
+        issue_data = data["data"]["issue"]
         assert data["action"] == "resolved"
-        assert data["data"]["issue"]["id"] == str(self.issue.id)
+        assert issue_data["id"] == str(self.issue.id)
+        assert (
+            issue_data["url"]
+            == f"http://testserver/api/0/organizations/{self.organization.slug}/issues/{self.issue.id}/"
+        )
+        assert (
+            issue_data["web_url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{self.issue.id}/"
+        )
+        assert (
+            issue_data["project_url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/?project={self.project.id}"
+        )
 
         # SLO assertions
         assert_success_metric(mock_record)

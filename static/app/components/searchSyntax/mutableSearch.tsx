@@ -214,7 +214,8 @@ function parseToFlatTokens(query: string): Token[] {
           !/\s/.test(rawVal)
         ) {
           const op = t.operator ?? '';
-          text = `${keyName}:${op}${rawVal}`;
+          const negation = t.negated ? '!' : '';
+          text = `${negation}${keyName}:${op}${rawVal}`;
         }
 
         let wildcard: WildcardOperators | undefined;

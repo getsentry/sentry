@@ -1,4 +1,4 @@
-from sentry.issues.action_log.types import RelatedPullRequestClosedAction, SetRegressedAction
+from sentry.issues.action_log.types import PullRequestClosedAction, SetRegressedAction
 from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
@@ -60,7 +60,7 @@ class ActivityToActionTest(TestCase):
             data={"pull_request": 123},
         )
 
-        assert activity_to_action(act) == RelatedPullRequestClosedAction(pull_request=123)
+        assert activity_to_action(act) == PullRequestClosedAction(pull_request=123)
 
     def test_extraneous_data(self) -> None:
         act = Factories.create_group_activity(
@@ -69,7 +69,7 @@ class ActivityToActionTest(TestCase):
             data={"pull_request": 123, "extra_data": 456},
         )
 
-        assert activity_to_action(act) == RelatedPullRequestClosedAction(pull_request=123)
+        assert activity_to_action(act) == PullRequestClosedAction(pull_request=123)
 
     def test_optional_field(self) -> None:
         act = Factories.create_group_activity(
