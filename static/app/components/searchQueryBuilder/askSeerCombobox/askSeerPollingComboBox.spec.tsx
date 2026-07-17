@@ -132,7 +132,18 @@ describe('AskSeerPollingComboBox results', () => {
     );
 
     await submitQuery();
-    await userEvent.click(await screen.findByRole('button', {name: 'Generate again'}));
+    const regenerateButton = await screen.findByRole('button', {
+      name: 'Generate again',
+    });
+    expect(regenerateButton).toBeEnabled();
+
+    const input = screen.getByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.clear(input);
+    expect(regenerateButton).toBeEnabled();
+
+    await userEvent.click(regenerateButton);
 
     expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
     expect(startRequest).toHaveBeenCalledTimes(2);

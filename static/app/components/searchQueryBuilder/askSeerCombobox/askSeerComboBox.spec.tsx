@@ -175,10 +175,15 @@ describe('AskSeerComboBox', () => {
     });
     await userEvent.type(input, 'test{Enter}');
 
-    expect(
-      await screen.findByRole('button', {name: 'Generate again'})
-    ).toBeInTheDocument();
+    const regenerateButton = await screen.findByRole('button', {
+      name: 'Generate again',
+    });
+    expect(regenerateButton).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
+
+    await userEvent.clear(input);
+
+    expect(regenerateButton).toBeEnabled();
   });
 
   it('regenerates results when feedback is unavailable', async () => {
@@ -204,10 +209,11 @@ describe('AskSeerComboBox', () => {
       {organization: reworkedOrganization}
     );
 
-    await userEvent.type(
-      await screen.findByRole('combobox', {name: 'Ask Seer with Natural Language'}),
-      'test{Enter}'
-    );
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.type(input, 'test{Enter}');
+    await userEvent.clear(input);
     await userEvent.click(await screen.findByRole('button', {name: 'Generate again'}));
 
     expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();

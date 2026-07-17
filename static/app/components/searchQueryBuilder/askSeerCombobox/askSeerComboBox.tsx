@@ -515,18 +515,17 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
                   icon={<IconSync />}
                   size="zero"
                   onClick={() => {
-                    if (!searchQuery.trim()) {
-                      setAutoSubmitFromCurrentQuery(false);
-                      setAutoSubmitSeer(false);
+                    const query = searchQuery.trim() || askSeerNLQueryRef.current?.trim();
+                    if (!query) {
                       return;
                     }
 
                     trackAnalytics('ai_query.regenerated', {
                       organization,
                       area: analyticsArea,
-                      natural_language_query: searchQuery.trim(),
+                      natural_language_query: query,
                     });
-                    submitQuery(searchQuery.trim());
+                    submitQuery(query);
                   }}
                 >
                   {t('Generate again')}
