@@ -412,13 +412,15 @@ export function getCompactGroupActivityItem({
     case GroupActivityType.REPROCESS:
       return {
         title: t('Reprocessed'),
-        details: (
-          <Link
-            to={`/organizations/${organization.slug}/issues/?query=reprocessing.original_issue_id:${activity.data.oldGroupId}&referrer=group-activity-reprocesses`}
-          >
-            {tn('into %s new event', 'into %s new events', activity.data.eventCount)}
-          </Link>
-        ),
+        details: tct('into [events]', {
+          events: (
+            <Link
+              to={`/organizations/${organization.slug}/issues/?query=reprocessing.original_issue_id:${activity.data.oldGroupId}&referrer=group-activity-reprocesses`}
+            >
+              {tn('%s new event', '%s new events', activity.data.eventCount)}
+            </Link>
+          ),
+        }),
       };
     case GroupActivityType.MARK_REVIEWED:
       return {
@@ -443,7 +445,7 @@ export function getCompactGroupActivityItem({
       };
     case GroupActivityType.DELETED_ATTACHMENT:
       return {
-        title: t('Attachment deleted'),
+        title: t('Deleted an attachment'),
       };
     case GroupActivityType.SEER_RCA_STARTED:
       return {

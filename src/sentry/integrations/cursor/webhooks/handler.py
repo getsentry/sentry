@@ -234,7 +234,7 @@ class CursorWebhookEndpoint(Endpoint):
             branch_name=branch_name,
         )
 
-        known_to_seer = sync_coding_agent_status(
+        sync_result = sync_coding_agent_status(
             agent_id=agent_id,
             organization_id=self.organization_id,
             status=status,
@@ -242,7 +242,7 @@ class CursorWebhookEndpoint(Endpoint):
             result=result,
         )
 
-        if known_to_seer and status == CodingAgentStatus.COMPLETED and pr_url:
+        if sync_result.known_to_seer and status == CodingAgentStatus.COMPLETED and pr_url:
             try:
                 attribute_delegated_agent_pull_request(
                     organization_id=self.organization_id,
@@ -251,6 +251,10 @@ class CursorWebhookEndpoint(Endpoint):
                     repo_provider=repo_provider,
                     pr_url=pr_url,
                     agent_id=agent_id,
+                    run_id=sync_result.run_id,
+                    group_ids=(
+                        [sync_result.group_id] if sync_result.group_id is not None else None
+                    ),
                 )
             except Exception:
                 logger.exception(
@@ -268,7 +272,7 @@ class CursorWebhookEndpoint(Endpoint):
                     "agent_id": agent_id,
                     "pr_url": pr_url,
                     "repo_full_name": repo_full_name,
-                    "known_to_seer": known_to_seer,
+                    "known_to_seer": sync_result.known_to_seer,
                     "has_pr_url": bool(pr_url),
                 },
             )

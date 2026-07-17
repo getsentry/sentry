@@ -48,10 +48,6 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     );
   }, [widget, dashboardFilters, skipDashboardFilterParens]);
 
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
   // Compute validation error and request options together
   const {queryRequests, validationError} = useMemo(() => {
     try {
@@ -109,13 +105,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
           return apiFetch<SessionApiResponse>(context);
         },
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
+        retry: false,
         retryDelay: getRetryDelay,
         placeholderData: keepPreviousData,
         select: selectJsonWithHeaders,
@@ -234,10 +224,6 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     );
   }, [widget, dashboardFilters, skipDashboardFilterParens]);
 
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
   // Compute validation error and request options together
   const {queryRequests, validationError} = useMemo(() => {
     try {
@@ -282,13 +268,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
           return apiFetch<SessionApiResponse>(context);
         },
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
+        retry: false,
         retryDelay: getRetryDelay,
         placeholderData: keepPreviousData,
         select: selectJsonWithHeaders,

@@ -252,6 +252,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
 )
+register(
+    "auth.email-verification-at-signup.force-in-experiment",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Settings
 register(
@@ -1220,6 +1226,22 @@ register(
     "seer.night_shift.org_tweaks",
     type=Dict,
     default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Safety ceilings on how many smart-assignment Seer runs we dispatch, on top of
+# the feature flag and per-issue dedup. Rolling 24h windows; set to 0 to pause
+# dispatching entirely. See sentry.seer.smart_assignment.trigger.
+register(
+    "seer.smart_assignment.max_dispatches_per_org_per_day",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.smart_assignment.max_dispatches_per_day",
+    type=Int,
+    default=1500,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

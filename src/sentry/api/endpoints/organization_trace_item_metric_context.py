@@ -25,16 +25,11 @@ from sentry.explore.models import (
     TraceMetricTypes,
 )
 from sentry.models.organization import Organization
+from sentry.search.eap.constants import METRIC_NAME_ALIAS, METRIC_TYPE_ALIAS
 from sentry.search.eap.trace_metrics.config import ALLOWED_METRIC_TYPES
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.trace_metrics import TraceMetrics
-
-# Metrics are trace items keyed by the value of the `metric.name` attribute, so
-# metric context is stored as context for that attribute value. A metric name
-# can carry more than one type (e.g. both a counter and a gauge named "foo").
-METRIC_NAME_ALIAS = "metric.name"
-METRIC_TYPE_ALIAS = "metric.type"
 
 
 class OrganizationTraceItemMetricContextPutSerializer(serializers.Serializer[Never]):
@@ -106,21 +101,6 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
         except NoProjects:
             return Response({"detail": "No projects available."}, status=400)
 
-        # Scope to a single project, or org-wide for the all-projects sentinel
-        # (`-1`/`$all`); no subset in between.
-        if self.get_requested_project_params_unchecked(request).has_all_projects_sentinel:
-            scope_project = None
-        elif len(snuba_params.projects) == 1:
-            scope_project = snuba_params.projects[0]
-        else:
-            return Response(
-                {
-                    "detail": "Pass a single `project`, or all projects "
-                    "(`-1`/`$all`) for organization-wide context."
-                },
-                status=400,
-            )
-
         adjusted_start, adjusted_end = adjust_start_end_window(
             snuba_params.start_date, snuba_params.end_date
         )
@@ -161,9 +141,11 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
         }
         # Race-safe: the lookup kwargs match the unique constraints, so a losing
         # concurrent INSERT is caught by update_or_create rather than 500ing.
+        # Metric context is always org-level for now (project-scoped context is
+        # not supported yet), so it is never scoped to a specific project.
         context, created = TraceItemAttributeValueContext.objects.update_or_create(
             organization=organization,
-            project=scope_project,
+            project=None,
             item_type=TraceItemTypes.get_id_for_type_name(
                 SupportedTraceItemType.TRACEMETRICS.value
             ),

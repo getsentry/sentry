@@ -11,6 +11,9 @@ import {
   OnboardingContextProvider,
   useOnboardingContext,
 } from 'sentry/components/onboarding/onboardingContext';
+import {PageCorners} from 'sentry/components/onboarding/pageCorners';
+import {Stepper} from 'sentry/components/onboarding/stepper';
+import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import {Override} from 'sentry/components/override';
 import {Redirect} from 'sentry/components/redirect';
@@ -30,14 +33,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {PageCorners} from 'sentry/views/onboarding/components/pageCorners';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
 import {useHasNewWelcomeUI} from 'sentry/views/onboarding/useHasNewWelcomeUI';
-import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import {NewWelcomeUI} from './components/newWelcome';
 import {OnboardingSkipButton} from './components/onboardingSkipButton';
-import {Stepper} from './components/stepper';
 import {PlatformSelection} from './platformSelection';
 import {ScmConnect} from './scmConnect';
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
