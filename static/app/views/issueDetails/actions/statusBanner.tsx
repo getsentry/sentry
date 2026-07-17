@@ -7,7 +7,7 @@ import {renderArchiveReason} from 'sentry/components/archivedBox';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus, ProgressState} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -16,7 +16,6 @@ import {
 } from 'sentry/views/issueDetails/actions/resolutionReason';
 import {getArchiveDetails} from 'sentry/views/issueDetails/activitySection/activityLineItem/archiveDetails';
 import {ActivityProgressMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/progressMarker/progressMarker';
-import {ProgressState} from 'sentry/views/issueList/utils/progress';
 
 type StatusGroup = Extract<Group, {status: GroupStatus.IGNORED | GroupStatus.RESOLVED}>;
 

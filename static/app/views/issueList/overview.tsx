@@ -230,6 +230,9 @@ function IssueListOverviewInner({
   const hasRecommendedSortDefault = organization.features.includes(
     'issue-stream-recommended-sort-default'
   );
+  const hasIssueStreamProgressUI = organization.features.includes(
+    'issue-stream-progress-ui'
+  );
   // The stored sort is the user's preferred sort for the unsaved feed.
   // Saved views persist their own sort, so they neither read nor write it.
   const defaultSort = urlParams.viewId
@@ -301,11 +304,15 @@ function IssueListOverviewInner({
       params.statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
-    params.expand = ['owners', 'inbox'];
+    params.expand = [
+      'owners',
+      'inbox',
+      ...(hasIssueStreamProgressUI ? ['derivedData'] : []),
+    ];
     params.collapse = ['stats', 'unhandled'];
 
     return params;
-  }, [getEndpointParams, location.query]);
+  }, [getEndpointParams, location.query, hasIssueStreamProgressUI]);
 
   const loadFromCache = useCallback((): boolean => {
     const cache = IssueListCacheStore.getFromCache(requestParams);

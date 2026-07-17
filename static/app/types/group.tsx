@@ -1175,6 +1175,24 @@ export const enum FixabilityScoreThresholds {
   SUPER_LOW = 'super_low',
 }
 
+export enum ProgressState {
+  IDENTIFIED = 'identified',
+  ASSIGNED = 'assigned',
+  DIAGNOSED = 'diagnosed',
+  FIX_PROPOSED = 'fix_proposed',
+  FIX_APPLIED = 'fix_applied',
+}
+
+interface GroupDerivedData {
+  hasOpenFixPr: boolean;
+  hasRootCause: boolean;
+  isAssigned: boolean;
+  lastProgressedAt: string | null;
+  progress: ProgressState;
+  status: 'open' | 'closed';
+  viewCount: number;
+}
+
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
@@ -1209,6 +1227,7 @@ export interface BaseGroup {
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
+  derivedData?: GroupDerivedData;
   inbox?: InboxDetails | null | false;
   integrationIssues?: ExternalIssue[];
   latestEvent?: Event;

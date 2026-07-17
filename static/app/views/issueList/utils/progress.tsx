@@ -2,14 +2,7 @@ import type {ReactNode} from 'react';
 
 import {ProgressMarker, type ProgressMarkerStep} from 'sentry/components/progressMarker';
 import {t} from 'sentry/locale';
-
-export enum ProgressState {
-  IDENTIFIED = 'identified',
-  ASSIGNED = 'assigned',
-  DIAGNOSED = 'diagnosed',
-  FIX_PROPOSED = 'fix_proposed',
-  FIX_APPLIED = 'fix_applied',
-}
+import {ProgressState} from 'sentry/types/group';
 
 const PROGRESS_STATE_LABELS: Record<ProgressState, string> = {
   [ProgressState.IDENTIFIED]: t('Identified'),
