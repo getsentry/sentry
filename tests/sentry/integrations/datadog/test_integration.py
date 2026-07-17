@@ -1,9 +1,12 @@
 import hashlib
+import os
+import re
 from typing import Any
 
 import pytest
 import responses
 
+from sentry.identity.datadog.provider import DATADOG_VALID_SITES
 from sentry.integrations.datadog.integration import (
     DatadogIntegration,
     DatadogIntegrationProvider,
@@ -14,6 +17,17 @@ from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 MCP_URL = "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
+
+
+def test_frontend_datadog_sites_match_backend() -> None:
+    """The frontend site list is hand-maintained in a second language, so guard against it
+    drifting from DATADOG_VALID_SITES (the backend source of truth)."""
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), *([".."] * 4)))
+    fe_path = os.path.join(repo_root, "static/app/utils/seer/datadogSites.ts")
+    with open(fe_path) as f:
+        frontend_sites = set(re.findall(r"value: '([^']+)'", f.read()))
+
+    assert frontend_sites == set(DATADOG_VALID_SITES)
 
 
 def _mock_whoami(whoami: dict[str, Any]) -> None:
@@ -100,6 +114,91 @@ class DatadogIntegrationProviderTest(IntegrationTestCase):
 
         integration.refresh_from_db()
         assert integration.debug_data == {"site": "datadoghq.com"}
+
+    def test_get_organization_config_and_config_data(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="datadog",
+            external_id="dd-ext",
+            metadata={"api_key": "api", "app_key": "app", "site": "datadoghq.com"},
+        )
+        installation = integration.get_installation(organization_id=self.organization.id)
+
+        assert [f["name"] for f in installation.get_organization_config()] == [
+            "site",
+            "api_key",
+            "app_key",
+        ]
+        assert installation.get_config_data()["site"] == "datadoghq.com"
+
+    @responses.activate
+    def test_update_organization_config_revalidates_and_persists(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="datadog",
+            external_id="dd-ext",
+            metadata={"api_key": "old-api", "app_key": "old-app", "site": "datadoghq.com"},
+        )
+        installation = integration.get_installation(organization_id=self.organization.id)
+        _mock_whoami({"user_uuid": "u-1", "org_uuid": "org-123"})
+
+        installation.update_organization_config(
+            {"api_key": "new-api", "app_key": "new-app", "site": "datadoghq.com"}
+        )
+
+        integration.refresh_from_db()
+        assert integration.metadata == {
+            "api_key": "new-api",
+            "app_key": "new-app",
+            "site": "datadoghq.com",
+        }
+        assert responses.calls[0].request.headers["DD-API-KEY"] == "new-api"
+
+    @responses.activate
+    def test_update_organization_config_keeps_omitted_secrets(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="datadog",
+            external_id="dd-ext",
+            metadata={"api_key": "api", "app_key": "app", "site": "datadoghq.com"},
+        )
+        installation = integration.get_installation(organization_id=self.organization.id)
+        _mock_whoami({"user_uuid": "u-1", "org_uuid": "org-123"})
+
+        installation.update_organization_config({"site": "datadoghq.com"})
+
+        integration.refresh_from_db()
+        assert integration.metadata == {"api_key": "api", "app_key": "app", "site": "datadoghq.com"}
+        assert responses.calls[0].request.headers["DD-API-KEY"] == "api"
+
+    @responses.activate
+    def test_update_organization_config_syncs_name_on_site_change(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="datadog",
+            external_id="dd-ext",
+            name="Datadog (datadoghq.com)",
+            metadata={"api_key": "api", "app_key": "app", "site": "datadoghq.com"},
+        )
+        installation = integration.get_installation(organization_id=self.organization.id)
+        eu_url = "https://mcp.datadoghq.eu/api/unstable/mcp-server/mcp"
+        responses.add(responses.POST, eu_url, status=200, headers={"mcp-session-id": "sess-1"})
+        responses.add(
+            responses.POST,
+            eu_url,
+            status=200,
+            json={
+                "result": {
+                    "contents": [{"text": json.dumps({"user_uuid": "u-1", "org_uuid": "org-123"})}]
+                }
+            },
+        )
+
+        installation.update_organization_config({"site": "datadoghq.eu"})
+
+        integration.refresh_from_db()
+        assert integration.metadata["site"] == "datadoghq.eu"
+        assert integration.name == "Datadog (datadoghq.eu)"
 
     def test_provider_is_single_install_and_flagged(self) -> None:
         provider = self.provider()

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from typing import Any, TypedDict, cast
 
 from django.http.request import HttpRequest
@@ -9,6 +9,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework.fields import CharField
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.identity.datadog.provider import DATADOG_VALID_SITES
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -20,6 +21,7 @@ from sentry.integrations.base import (
 from sentry.integrations.datadog.client import validate_datadog_credentials
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
@@ -47,6 +49,8 @@ metadata = IntegrationMetadata(
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/datadog",
     aspects={},
 )
+
+_SITE_CHOICES = [(site, f"{site} ({region})") for site, region in DATADOG_VALID_SITES.items()]
 
 
 class DatadogCredentials(TypedDict):
@@ -99,6 +103,54 @@ class DatadogIntegration(IntegrationInstallation):
 
     def get_client(self) -> Any:
         raise NotImplementedError
+
+    def get_organization_config(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "name": "site",
+                "type": "select",
+                "label": _("Datadog Site"),
+                "choices": _SITE_CHOICES,
+                "required": True,
+            },
+            {
+                "name": "api_key",
+                "type": "secret",
+                "label": _("API Key"),
+                "help": _("Leave blank to keep the current key."),
+                "required": False,
+                "formatMessageValue": False,
+            },
+            {
+                "name": "app_key",
+                "type": "secret",
+                "label": _("Application Key"),
+                "help": _("Leave blank to keep the current key."),
+                "required": False,
+                "formatMessageValue": False,
+            },
+        ]
+
+    def get_config_data(self) -> Mapping[str, Any]:
+        data = dict(super().get_config_data())
+        data["site"] = self.credentials.get("site", "")
+        return data
+
+    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        stored = self.credentials
+        api_key = data.get("api_key") or stored["api_key"]
+        app_key = data.get("app_key") or stored["app_key"]
+        site = data.get("site") or stored["site"]
+
+        validate_datadog_credentials(api_key, app_key, site)
+
+        name = f"Datadog ({site})"
+        new_metadata: DatadogCredentials = {"api_key": api_key, "app_key": app_key, "site": site}
+        integration_service.update_integration(
+            integration_id=self.model.id, name=name, metadata=dict(new_metadata)
+        )
+        self.model.name = name
+        self.model.metadata = dict(new_metadata)
 
 
 class DatadogIntegrationProvider(IntegrationProvider):

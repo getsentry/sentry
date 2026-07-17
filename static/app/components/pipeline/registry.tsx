@@ -4,6 +4,7 @@ import {bitbucketIntegrationPipeline} from './integrationBitbucket';
 import {bitbucketServerIntegrationPipeline} from './integrationBitbucketServer';
 import {claudeCodeIntegrationPipeline} from './integrationClaudeCode';
 import {cursorIntegrationPipeline} from './integrationCursor';
+import {datadogIntegrationPipeline} from './integrationDatadog';
 import {discordIntegrationPipeline} from './integrationDiscord';
 import {githubIntegrationPipeline} from './integrationGitHub';
 import {githubEnterpriseIntegrationPipeline} from './integrationGitHubEnterprise';
@@ -30,6 +31,7 @@ export const PIPELINE_REGISTRY = [
   bitbucketServerIntegrationPipeline,
   claudeCodeIntegrationPipeline,
   cursorIntegrationPipeline,
+  datadogIntegrationPipeline,
   discordIntegrationPipeline,
   dummyIntegrationPipeline,
   githubIntegrationPipeline,
