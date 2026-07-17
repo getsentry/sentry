@@ -9,6 +9,7 @@ import logging
 from typing import NamedTuple
 
 from sentry.models.organization import Organization
+from sentry.models.pullrequest import parse_pull_request_number
 from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.autofix.utils import (
     CodingAgentProviderType,
@@ -22,6 +23,7 @@ from sentry.seer.models.run import (
     SeerRunCodingAgentHandoff,
     SeerRunCodingAgentHandoffExtras,
 )
+from sentry.seer.pull_requests import link_pull_request_to_seer_run
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +78,8 @@ def sync_coding_agent_status(
     agent_url: str | None = None,
     result: CodingAgentResult | None = None,
 ) -> CodingAgentSyncResult:
-    """Update Sentry's own SeerRunCodingAgentHandoff, then Seer's coding agent state.
+    """Update Sentry's own SeerRunCodingAgentHandoff, then Seer's coding agent state,
+    and link the resulting PR (if any) to the handoff's run via SeerRunPullRequest.
 
     ``known_to_seer`` mirrors ``update_coding_agent_state``'s return value (e.g.
     for gating PR attribution). ``run_id``/``group_id`` are populated whenever a
@@ -118,7 +121,27 @@ def sync_coding_agent_status(
             if handoff.provider != CodingAgentProviderType.CURSOR_BACKGROUND_AGENT.value:
                 return CodingAgentSyncResult(known_to_seer=False, run_id=run_id, group_id=group_id)
 
+        if result and result.pr_url:
+            pr_number = parse_pull_request_number(result.pr_url)
+            link_log_context = {
+                **log_context,
+                "repo_name": result.repo_full_name,
+                "provider": result.repo_provider,
+                "pr_number": pr_number,
+            }
+
+            link_pull_request_to_seer_run(
+                organization=handoff.seer_run.organization,
+                seer_run=handoff.seer_run,
+                repo_name=result.repo_full_name,
+                provider=result.repo_provider,
+                pr_number=pr_number,
+                log_context=link_log_context,
+                coding_agent_handoff=handoff,
+            )
+
     known_to_seer = update_coding_agent_state(
         agent_id=agent_id, status=status, agent_url=agent_url, result=result
     )
+
     return CodingAgentSyncResult(known_to_seer=known_to_seer, run_id=run_id, group_id=group_id)
