@@ -59,7 +59,9 @@ def _resolve_identifier_to_user_id(
         # The default excludes users whose password is "!" (SSO-only / no-password
         # accounts), which would silently drop valid org members and mislabel the
         # prediction as "unlinked". Org scoping is enforced by the membership check below.
-        users = user_service.get_by_username(username=value, with_valid_password=False)
+        users = user_service.get_by_username(
+            username=value, with_valid_password=False, is_active=True
+        )
         if not users:
             return None
         user_id = users[0].id
