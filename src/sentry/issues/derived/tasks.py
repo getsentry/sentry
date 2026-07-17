@@ -39,11 +39,11 @@ def process_group_log_task(group_id: int, **kwargs: object) -> None:
 
 
 @instrumented_task(
-    name="sentry.issues.derived.tasks.rebuild_group_derived_data_task",
+    name="sentry.issues.derived.tasks.rebuild_group_derived_data",
     namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )
-def rebuild_group_derived_data_task(
+def rebuild_group_derived_data(
     group_id: int,
     derived_id: int | None = None,
     prior_runs: int = 0,
@@ -59,7 +59,7 @@ def rebuild_group_derived_data_task(
     activation_id = task_state.id if task_state else None
     if activation_id and already_spawned(_REBUILD_GROUP_TASK_KEY, activation_id):
         logger.info(
-            "rebuild_group_derived_data_task.duplicate_skipped",
+            "rebuild_group_derived_data.duplicate_skipped",
             extra={"group_id": group_id, "activation_id": activation_id},
         )
         metrics.incr(
@@ -73,7 +73,7 @@ def rebuild_group_derived_data_task(
     except GroupLogTimeout as e:
         if prior_runs + 1 >= _MAX_REBUILD_RUNS:
             logger.error(
-                "rebuild_group_derived_data_task.max_runs_exceeded",
+                "rebuild_group_derived_data.max_runs_exceeded",
                 extra={
                     "group_id": group_id,
                     "derived_id": e.derived_id,
@@ -82,7 +82,7 @@ def rebuild_group_derived_data_task(
             )
             metrics.incr("issues.derived.rebuild_max_runs_exceeded", sample_rate=1.0)
             return
-        rebuild_group_derived_data_task.delay(
+        rebuild_group_derived_data.delay(
             group_id, derived_id=e.derived_id, prior_runs=prior_runs + 1
         )
         if activation_id:
@@ -409,7 +409,7 @@ def rebuild_project_derived_data_batch(
         except GroupLogTimeout as e:
             # Re-enqueue the single group with its id so the
             # partially-drained row is resumed, then continue the batch.
-            rebuild_group_derived_data_task.delay(group_id, derived_id=e.derived_id)
+            rebuild_group_derived_data.delay(group_id, derived_id=e.derived_id)
         processed += 1
 
         if time.monotonic() - start >= timeout_seconds:

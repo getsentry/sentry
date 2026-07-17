@@ -44,7 +44,7 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="groupderiveddata",
             name="generation_id",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(default=0),
+            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_default=0, default=0),
         ),
         migrations.AlterField(
             model_name="groupderiveddata",

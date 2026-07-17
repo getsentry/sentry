@@ -50,7 +50,6 @@ from sentry.issues.derived.processing import (
     _entries_after_cursor,
     build_and_promote_derived_data,
     cleanup_stale_processing_rows,
-    create_processing_row,
     invalidate_group_derived_data,
     process_group_log,
     promote_to_live,
@@ -343,7 +342,7 @@ class ProcessGroupLogTest(TestCase):
         assert derived is not None
         original_id = derived.id
 
-        with patch("sentry.issues.derived.processing.rebuild_group_derived_data_task") as mock_task:
+        with patch("sentry.issues.derived.processing.rebuild_group_derived_data") as mock_task:
             invalidate_group_derived_data(group.id, hard_delete=False)
             mock_task.delay.assert_called_once_with(group.id)
 
@@ -588,7 +587,7 @@ class PromoteToLiveTest(TestCase):
             group_id=group.id, generation_id=stale_gen, cursor_date=EPOCH, cursor_id=0, data={}
         )
         processing._drain_log(stale_candidate, persist=False)
-        assert promote_to_live(stale_candidate) is PromotionResult.CURSOR_BEHIND
+        assert promote_to_live(stale_candidate) is PromotionResult.SUPERSEDED
 
     def test_build_and_promote(self) -> None:
         group = self.create_group()
@@ -627,7 +626,9 @@ class PromoteToLiveTest(TestCase):
 
     def test_cleanup_stale_processing_rows(self) -> None:
         group = self.create_group()
-        row = create_processing_row(group.id)
+        row = GroupDerivedData.objects.create(
+            group_id=group.id, is_live=False, cursor_date=EPOCH, cursor_id=0, data={}
+        )
 
         assert cleanup_stale_processing_rows(max_age=timedelta(hours=1)) == 0
 

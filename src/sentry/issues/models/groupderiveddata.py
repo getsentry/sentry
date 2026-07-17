@@ -33,8 +33,8 @@ class GroupDerivedData(DefaultFieldsModel):
     ~~~~~~~~~~~~~
     The pipeline is deterministic: replaying the same log produces the same
     state. However, the log is not strictly append-only — historical entries
-    may be inserted, which is a primary reason rebuilds are triggered. Two
-    guards on the live row prevent stale writes:
+    may be inserted, which is a primary reason rebuilds are triggered.
+    Three guards on the live row prevent stale writes:
 
     * **generation_id** — set to ``max(GroupActionLogEntry.id)`` when a
       rebuild starts, capturing the log state the rebuild observed. A write
@@ -46,10 +46,14 @@ class GroupDerivedData(DefaultFieldsModel):
       if the writer's ``(cursor_date, cursor_id)`` is at or ahead of the
       live row's, preventing cursor regression.
 
-    Incremental processing (live-row path) writes per-batch with the cursor
-    guard scoped to the row's ``id``, ``generation_id``, and
-    ``pipeline_hash``. Rebuilds accumulate state in memory and write once
-    via ``promote_to_live``, which uses the generation and cursor guards.
+    * **pipeline_hash** — stamped at row creation, incremental writes only
+      succeed if the pipeline version hasn't changed since the row was
+      read. A pipeline upgrade invalidates in-flight incremental work.
+
+    Incremental processing writes per-batch with all three guards scoped
+    to the row's ``id``. Rebuilds accumulate state in memory and write
+    once via ``promote_to_live``, which uses the generation and cursor
+    guards.
 
     See ``processing.py`` for the full lifecycle.
     """
@@ -63,7 +67,7 @@ class GroupDerivedData(DefaultFieldsModel):
     # ``max(GroupActionLogEntry.id)`` at the start of a rebuild so that
     # the promote guard can reject stale rebuilds that started before a
     # later log mutation triggered a newer rebuild.
-    generation_id = BoundedBigIntegerField(default=0)
+    generation_id = BoundedBigIntegerField(db_default=0, default=0)
 
     cursor_date = models.DateTimeField(default=EPOCH)
     cursor_id = BoundedBigIntegerField(default=0)
