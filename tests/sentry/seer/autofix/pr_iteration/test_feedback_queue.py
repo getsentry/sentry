@@ -1,6 +1,7 @@
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.queue import (
     peek_queued_autofix_feedback,
@@ -37,3 +38,21 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         queued = peek_queued_autofix_feedback(4242)
         assert len(queued) == 1
         assert queued[0].feedback.text == "fix it"
+
+    def test_skips_stale_feedback(self) -> None:
+        feedback = Feedback(
+            source=CheckSuiteFeedbackSource(
+                event={
+                    "check_suite": {
+                        "id": 1,
+                        "head_sha": "abc",
+                        "check_runs_url": "https://github.com/owner/repo/check-runs",
+                        "app": {"name": "CI"},
+                    },
+                    "repository": {"html_url": "https://github.com/owner/repo"},
+                }
+            ),
+        )
+
+        assert self._enqueue(run_id=4343, feedback=feedback) is False
+        assert peek_queued_autofix_feedback(4343) == []

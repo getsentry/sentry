@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, cast
 
+import sentry_sdk
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
@@ -241,6 +242,21 @@ def get_iterations(state: SeerRunState) -> list[Iteration]:
         if metadata.get("step") == AutofixStep.PR_ITERATION.value:
             iter_idx = metadata.get("iteration_index")
             assert iter_idx is not None, "PR_ITERATION block missing iteration_index"
+
+            # PR_ITERATION is always started with feedback today (UI + consume
+            # queue). Missing metadata is unexpected; report but keep going.
+            raw_feedback = metadata.get("feedback")
+            if not raw_feedback or (isinstance(raw_feedback, str) and not raw_feedback.strip()):
+                sentry_sdk.capture_message(
+                    "PR_ITERATION block missing feedback metadata",
+                    level="warning",
+                    extras={
+                        "run_id": state.run_id,
+                        "block_index": i,
+                        "iteration_index": iter_idx,
+                        "block_id": block.id,
+                    },
+                )
 
             iterations.append(Iteration(index=int(iter_idx), start_index=i, blocks=[block]))
         elif iterations:

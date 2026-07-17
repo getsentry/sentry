@@ -33,6 +33,7 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
+from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
@@ -167,6 +168,7 @@ def consume_queued_autofix_feedback(
         # Keyed by (source class, comment id): issue-comment and review-comment
         # ids come from separate GitHub namespaces, so dedupe within each type.
         seen_comment_keys: set[tuple[type, int]] = set()
+        seen_check_suite_ids: set[int] = set()
         for item in queued_items:
             if not item.feedback.source.should_consume(state):
                 logger.info(
@@ -190,6 +192,11 @@ def consume_queued_autofix_feedback(
                     if key in seen_comment_keys:
                         continue
                     seen_comment_keys.add(key)
+            elif isinstance(source, CheckSuiteFeedbackSource):
+                suite_id = source.event.check_suite.id
+                if suite_id in seen_check_suite_ids:
+                    continue
+                seen_check_suite_ids.add(suite_id)
 
             feedback_items.append(item.feedback)
 

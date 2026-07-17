@@ -15,6 +15,9 @@ from sentry.scm.types import (
     PullRequestReviewEvent,
     SubscriptionEvent,
 )
+from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
+    pr_iteration_from_check_suite_listener as pr_iteration_from_check_suite_listener,
+)
 
 # DEFAULT LISTENERS
 #
