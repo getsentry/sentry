@@ -560,46 +560,18 @@ class GetOrCreateContributorTest(TestCase):
         ):
             self._call()
 
-    def test_returns_highest_num_actions_among_duplicates(self) -> None:
-        # Lower-id row has fewer actions; the higher-id row is the current seat
-        # holder and must be returned so actions keep accruing to it.
-        self.create_organization_contributor(
+    def test_returns_existing_when_looked_up_via_different_integration(self) -> None:
+        existing = self.create_organization_contributor(
             organization=self.organization,
             integration=self.integration,
             external_identifier="123",
-            num_actions=1,
-        )
-        seat_holder = self.create_organization_contributor(
-            organization=self.organization,
-            integration=self.other_integration,
-            external_identifier="123",
-            num_actions=5,
         )
 
-        contributor = self._call()
+        contributor = self._call(integration=self.other_integration)
 
         assert contributor is not None
-        assert contributor.id == seat_holder.id
-        assert self._group_count() == 2
-
-    def test_returns_lowest_id_on_num_actions_tie(self) -> None:
-        first = self.create_organization_contributor(
-            organization=self.organization,
-            integration=self.integration,
-            external_identifier="123",
-            num_actions=3,
-        )
-        self.create_organization_contributor(
-            organization=self.organization,
-            integration=self.other_integration,
-            external_identifier="123",
-            num_actions=3,
-        )
-
-        contributor = self._call()
-
-        assert contributor is not None
-        assert contributor.id == first.id
+        assert contributor.id == existing.id
+        assert self._group_count() == 1
 
     @patch("sentry.seer.code_review.contributor_seats.sentry_sdk.capture_exception")
     @patch(
