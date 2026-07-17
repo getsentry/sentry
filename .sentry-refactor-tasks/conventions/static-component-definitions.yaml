@@ -1,0 +1,50 @@
+name: static-component-definitions
+severity: error
+tags: [react, react-compiler, components, performance]
+
+why: |
+  A component type created during another component's render has a new identity
+  on every render. React treats it as a different component, unmounting the old
+  subtree, mounting a new one, and resetting all state below it. This also blocks
+  compiler optimization.
+
+  This convention corresponds to the React Compiler `StaticComponents`
+  diagnostic: "This component is created during render."
+
+  See: https://react.dev/reference/eslint-plugin-react-hooks/lints/static-components
+
+detect: |
+  Flag component definitions created while a component or hook executes:
+    - Nested `function Child()` declarations used as JSX components.
+    - Capitalized arrow/function expressions created during render.
+    - Component factories, HOCs, styled-component calls, or registry lookups
+      performed during render when their result is rendered as a component.
+
+  Do NOT flag ordinary render helper functions that return React nodes but are
+  called as lower-cased functions and do not hold component state. Do not flag a
+  stable component selected from already-created module-level component types.
+
+fix: |
+  Move the component or component-factory call to module scope. Pass changing
+  render data through props. When selecting among existing component types,
+  create each type statically and choose the reference during render.
+
+examples:
+  bad:
+    - |
+      function Parent() {
+        function Child() {
+          return <span>Child</span>;
+        }
+        return <Child />;
+      }
+  good:
+    - |
+      function Child() {
+        return <span>Child</span>;
+      }
+      function Parent() {
+        return <Child />;
+      }
+
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} StaticComponents'

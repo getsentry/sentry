@@ -1,0 +1,40 @@
+name: react-compiler-invariant
+severity: info
+tags: [react, react-compiler, tooling, analyzer]
+
+why: |
+  An `Invariant` diagnostic means the experimental compiler analyzer reached an
+  internal state it did not expect. The audit observed messages such as "this is
+  uninitialized", "this is local", "Expected a variable declaration", and
+  "identifier ... is unnamed". These are not sufficiently specific to prove a
+  Rules of React violation and must not trigger speculative application changes.
+
+  This convention corresponds to the Oxlint React Compiler `Invariant`
+  diagnostic.
+
+  See: https://oxc.rs/docs/guide/usage/linter/rules/react/react-compiler.html
+
+detect: |
+  Use only an actual `react/react-compiler` analyzer result. Flag diagnostics
+  whose compiler category is exactly `Invariant`. Do not infer an invariant
+  failure from source code alone and do not relabel another compiler category as
+  an invariant.
+
+fix: |
+  Re-run the smallest affected file with the latest Oxlint version. If the
+  invariant persists, minimize the source pattern and report it upstream with
+  the Oxlint version, command, location, and exact message. Change application
+  code only if the minimized case independently demonstrates a documented Rules
+  of React violation. Otherwise baseline the analyzer failure until the tool is
+  fixed.
+
+  The original audit used:
+    pnpm dlx oxlint@1.70.0 -A all -D react/react-compiler --react-plugin -f json <file>
+
+examples:
+  bad:
+    - 'react/react-compiler: Invariant: this is uninitialized'
+  good:
+    - 'A minimized upstream report, with application code left unchanged unless a real violation is proven.'
+
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} Invariant'
