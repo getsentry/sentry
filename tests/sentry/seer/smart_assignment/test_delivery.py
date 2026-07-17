@@ -75,6 +75,28 @@ class DeliverSmartAssignmentResultTest(TestCase):
         assert data["predicted_assignee_user_ids"] == [alice.id]
 
     @patch(METRICS_PATH)
+    def test_redelivery_does_not_duplicate_activity(self, mock_metrics: MagicMock) -> None:
+        # A Seer retry/redelivery re-invokes the handler for the same run: the second
+        # delivery must not record a second completion activity (which would re-run
+        # scoring/auto-assignment), and is reported as a distinct `duplicate` outcome.
+        alice = self.create_user(username="alice")
+        self.create_member(user=alice, organization=self.organization)
+        verdict = {"candidates": [{"identifier": "alice", "identifier_kind": "username"}]}
+
+        self._deliver(verdict)
+        self._deliver(verdict)
+
+        assert (
+            Activity.objects.filter(
+                group=self.group, type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value
+            ).count()
+            == 1
+        )
+        mock_metrics.incr.assert_any_call(
+            "smart_assignment.delivery", tags={"outcome": "duplicate"}
+        )
+
+    @patch(METRICS_PATH)
     def test_error_status_records_nothing(self, mock_metrics: MagicMock) -> None:
         self._deliver(None, status="error", error="boom")
         # No prediction recorded on error; the Seer run holds the failure.

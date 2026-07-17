@@ -55,7 +55,11 @@ def _resolve_identifier_to_user_id(
         return users[0].id if users else None
 
     if kind == "username":
-        users = user_service.get_by_username(username=value)
+        # with_valid_password=False: this is identity resolution, not authentication.
+        # The default excludes users whose password is "!" (SSO-only / no-password
+        # accounts), which would silently drop valid org members and mislabel the
+        # prediction as "unlinked". Org scoping is enforced by the membership check below.
+        users = user_service.get_by_username(username=value, with_valid_password=False)
         if not users:
             return None
         user_id = users[0].id
@@ -83,6 +87,8 @@ def deliver_smart_assignment_result(
       - `error`         -- Seer run failed or returned no artifact
       - `missing_group` -- run isn't tied to a group, or the group was deleted before
                            delivery, so there's nothing to record the prediction against
+      - `duplicate`     -- a completion activity already exists for this run (Seer retry
+                           or redelivery), so we skip re-recording it
       - `abstain`       -- completed, but the agent named no one
       - `unlinked`      -- named someone we couldn't map to an org user
       - `resolved`      -- named someone we mapped to a Sentry user
@@ -136,6 +142,25 @@ def deliver_smart_assignment_result(
     if group is None:
         metrics.incr("smart_assignment.delivery", tags={"outcome": "missing_group"})
         logger.warning("smart_assignment.delivery.missing_group", extra=log_extra)
+        return
+
+    # A Seer retry or redelivery re-invokes this handler for the same run. The completion
+    # activity is this feature's system of record, and creating it re-runs scoring/
+    # auto-assignment via the workflow handlers, so skip if we already recorded one for
+    # this run. Activity carries no unique constraint, so this is a best-effort pre-check
+    # keyed on the run (like night_shift's recorded-rows check) rather than a DB guard;
+    # it covers sequential redelivery but not a concurrent-redelivery race. `data` is a
+    # text-backed JSON field (not queryable via a JSON path), so match run_id in Python
+    # over the handful of completion activities a group can accumulate.
+    already_recorded = any(
+        (activity.data or {}).get("run_id") == agent_run.id
+        for activity in Activity.objects.filter(
+            group=group, type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value
+        )
+    )
+    if already_recorded:
+        metrics.incr("smart_assignment.delivery", tags={"outcome": "duplicate"})
+        logger.info("smart_assignment.delivery.duplicate", extra=log_extra)
         return
 
     # Hand the resolved verdict off to the completion path via an activity that points
