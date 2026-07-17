@@ -5,6 +5,7 @@ from datetime import timedelta
 import sentry_sdk
 from taskbroker_client.retry import Retry
 
+from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.per_org.calculations import (
     apply_project_sample_rate_overrides,
     compare_organization_sliding_window_sample_rates,
@@ -36,6 +37,7 @@ from sentry.dynamic_sampling.per_org.telemetry import (
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import telemetry_experience_tasks
@@ -130,7 +132,10 @@ def schedule_per_org_calculations() -> None:
     scheduler = CursoredScheduler(
         name="ds_per_org",
         schedule_key="dynamic-sampling-schedule-per-org-calculations",
-        queryset=Organization.objects.filter(status=OrganizationStatus.ACTIVE),
+        queryset=Organization.objects.filter(
+            status=OrganizationStatus.ACTIVE,
+            id__in=Project.objects.filter(status=ObjectStatus.ACTIVE).values("organization_id"),
+        ),
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
         validate_item=validate_and_track,
