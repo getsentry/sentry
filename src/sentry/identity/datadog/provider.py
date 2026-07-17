@@ -430,6 +430,9 @@ class DatadogPatIdentityProvider(McpIdentityProvider, Provider):
 
     key = IntegrationProviderSlug.DATADOG_PAT
     name = "Datadog (Personal Access Token)"
+    # A PAT connection is a variant of the datadog integration, so it shares its family
+    # and a personal PAT suppresses the org-level datadog fallback.
+    monitoring_family = IntegrationProviderSlug.DATADOG.value
     create_organization_identity = True
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
