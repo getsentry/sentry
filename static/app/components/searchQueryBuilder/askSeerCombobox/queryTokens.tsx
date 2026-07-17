@@ -178,7 +178,7 @@ function NewQueryTokens({
 
     tokens.push(
       <Stack overflow="hidden" key={`${crossEvent.type}-${idx}`}>
-        <ExploreParamTitle>{t('Cross Event Filter')}</ExploreParamTitle>
+        <ExploreParamTitle>{t('Cross Event Filter:')}</ExploreParamTitle>
         <Flex gap="md">
           <Stack gap="xs">
             <ExploreParamTitle>{t('Dataset')}</ExploreParamTitle>
