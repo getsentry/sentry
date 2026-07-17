@@ -1,6 +1,5 @@
 from unittest.mock import patch
 
-from sentry import options
 from sentry.integrations.slack.utils.nudge import should_send_nudge_block
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
