@@ -20,10 +20,10 @@ from sentry.types.activity import ActivityType
 
 
 def get_unassigned_subject(data: ActivityNotificationData) -> list[NotificationTextBlock]:
-    blocks: list[NotificationTextBlock] = []
-    if data.issue_short_id:
-        blocks.append(CodeTextBlock(text=data.issue_short_id))
-    blocks.append(PlainTextBlock(text="was unassigned"))
+    blocks: list[NotificationTextBlock] = [
+        CodeTextBlock(text=data.issue_short_id if data.issue_short_id else "An Issue"),
+        PlainTextBlock(text="was unassigned"),
+    ]
     if data.activity_user_name:
         blocks.append(PlainTextBlock(text=f"by {data.activity_user_name}"))
     return blocks

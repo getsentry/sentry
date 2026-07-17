@@ -32,11 +32,11 @@ def get_assignee_text(data: AssignedNotificationData) -> str:
 
 
 def get_assigned_subject(data: AssignedNotificationData) -> list[NotificationTextBlock]:
-    blocks: list[NotificationTextBlock] = []
     assignee_text = get_assignee_text(data)
-    if data.issue_short_id:
-        blocks.append(CodeTextBlock(text=data.issue_short_id))
-    blocks.append(PlainTextBlock(text=f"was assigned to {assignee_text}"))
+    blocks: list[NotificationTextBlock] = [
+        CodeTextBlock(text=data.issue_short_id if data.issue_short_id else "An Issue"),
+        PlainTextBlock(text=f"was assigned to {assignee_text}"),
+    ]
     if data.activity_user_name:
         blocks.append(PlainTextBlock(text=f"by {data.activity_user_name}"))
     return blocks
@@ -59,7 +59,7 @@ def get_assigned_body_blocks(data: AssignedNotificationData) -> list[Notificatio
     return body_blocks
 
 
-def create_set_resolved_in_release_example() -> AssignedNotificationData:
+def create_assigned_example() -> AssignedNotificationData:
     action_data = create_activity_notification_example(
         ActivityType.ASSIGNED,
         activity_data={
@@ -78,7 +78,7 @@ def create_set_resolved_in_release_example() -> AssignedNotificationData:
 @template_registry.register(NotificationSource.ACTIVITY_ASSIGNED)
 class AssignedActivityTemplate(NotificationTemplate[AssignedNotificationData]):
     category = NotificationCategory.ACTIVITY
-    example_data = create_set_resolved_in_release_example()
+    example_data = create_assigned_example()
 
     def render(self, data: AssignedNotificationData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
