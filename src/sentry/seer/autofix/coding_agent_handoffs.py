@@ -23,7 +23,7 @@ from sentry.seer.models.run import (
     SeerRunCodingAgentHandoff,
     SeerRunCodingAgentHandoffExtras,
 )
-from sentry.seer.pull_requests import _link_pull_request_to_seer_run
+from sentry.seer.pull_requests import link_pull_request_to_seer_run
 
 logger = logging.getLogger(__name__)
 
@@ -130,7 +130,7 @@ def sync_coding_agent_status(
                 "pr_number": pr_number,
             }
 
-            _link_pull_request_to_seer_run(
+            link_pull_request_to_seer_run(
                 organization=handoff.seer_run.organization,
                 seer_run=handoff.seer_run,
                 repo_name=result.repo_full_name,

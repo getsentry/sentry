@@ -54,7 +54,7 @@ def link_seer_run_pull_requests(
             "pr_number": pr_number,
         }
 
-        _link_pull_request_to_seer_run(
+        link_pull_request_to_seer_run(
             organization=organization,
             seer_run=seer_run,
             repo_name=repo_name,
@@ -64,7 +64,7 @@ def link_seer_run_pull_requests(
         )
 
 
-def _link_pull_request_to_seer_run(
+def link_pull_request_to_seer_run(
     *,
     organization: Organization,
     seer_run: SeerRun,
