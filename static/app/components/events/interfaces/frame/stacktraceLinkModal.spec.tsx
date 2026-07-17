@@ -79,6 +79,15 @@ describe('StacktraceLinkModal', () => {
     expect(
       screen.getByRole('link', {name: 'Open Test Integration on GitHub'})
     ).toHaveAttribute('href', 'https://github.com/test-integration');
+    expect(
+      screen.getByText(
+        'We couldn’t find the source file automatically. Paste its GitHub URL so we can link to the source and identify suspect commits.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Find the repository containing this file')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Paste the file URL')).toBeInTheDocument();
   });
 
   it('shows and copies a long filename from a wrapping code block', () => {
@@ -169,9 +178,11 @@ describe('StacktraceLinkModal', () => {
       expect(closeModal).not.toHaveBeenCalled();
     });
     expect(
-      screen.getByText('We don’t have access to that', {exact: false})
+      screen.getByText('We can’t access this repository.', {
+        exact: false,
+      })
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'add your repo.'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Add it'})).toHaveAttribute(
       'href',
       '/settings/org-slug/integrations/github/1/'
     );
@@ -219,7 +230,7 @@ describe('StacktraceLinkModal', () => {
     );
 
     expect(
-      await screen.findByText('Select a suggested file URL or paste one below')
+      await screen.findByText('Copy a suggested URL or paste the file URL')
     ).toBeInTheDocument();
     const suggestion =
       'https://github.com/getsentry/codemap/blob/master/stack/root/file.py';
@@ -264,7 +275,7 @@ describe('StacktraceLinkModal', () => {
     // Wait for component to render, then check that suggestions text is not present
     await waitFor(() => {
       expect(
-        screen.queryByText('Select a suggested file URL or paste one below')
+        screen.queryByText('Copy a suggested URL or paste the file URL')
       ).not.toBeInTheDocument();
     });
   });
@@ -340,8 +351,11 @@ describe('StacktraceLinkModal', () => {
     expect(screen.getByText('Set up Code Mapping')).toBeInTheDocument();
     expect(screen.queryByText('Bitbucket')).not.toBeInTheDocument();
     expect(screen.queryByText('GitHub')).not.toBeInTheDocument();
+    expect(screen.getByText('Open your source code provider')).toBeInTheDocument();
     expect(
-      screen.getByText('Open the repository in your source code provider')
+      screen.getByText(
+        'We couldn’t find the source file automatically. Paste its URL so we can link to the source and identify suspect commits.'
+      )
     ).toBeInTheDocument();
 
     expect(

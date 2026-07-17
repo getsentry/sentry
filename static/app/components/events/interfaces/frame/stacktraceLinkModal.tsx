@@ -116,9 +116,6 @@ export function StacktraceLinkModal({
   const sourceUrl = hasOneSourceCodeIntegration
     ? `https://${sourceCodeIntegration!.domainName}`
     : undefined;
-  const providerName = hasOneSourceCodeIntegration
-    ? sourceCodeIntegration!.name
-    : t('source code');
   const providerDisplayName = sourceCodeIntegration?.provider.name;
 
   const suggestions = uniq(
@@ -241,9 +238,8 @@ export function StacktraceLinkModal({
             <Alert variant="danger">
               {error === 'Could not find repo'
                 ? tct(
-                    'We don’t have access to that [provider] repo. To fix this, [link:add your repo.]',
+                    'We can’t access this repository. [link:Add it] or use a URL from a connected repository.',
                     {
-                      provider: providerName,
                       link: (
                         <Link
                           onClick={onManualSetup}
@@ -264,14 +260,13 @@ export function StacktraceLinkModal({
           <div>
             {hasOneSourceCodeIntegration
               ? tct(
-                  'We couldn’t match this stack frame to a file in the [integration] repository. Find the file and paste its [provider] URL below to enable suspect commits and source code links.',
+                  'We couldn’t find the source file automatically. Paste its [provider] URL so we can link to the source and identify suspect commits.',
                   {
-                    integration: sourceCodeIntegration!.name,
                     provider: providerDisplayName,
                   }
                 )
               : t(
-                  'We couldn’t match this stack frame to a file in your connected repositories. Find the file and paste its URL below to enable suspect commits and source code links.'
+                  'We couldn’t find the source file automatically. Paste its URL so we can link to the source and identify suspect commits.'
                 )}
           </div>
           <StyledList symbol="colored-numeric">
@@ -296,7 +291,7 @@ export function StacktraceLinkModal({
                       </Flex>
                     </ExternalLink>
                   ) : (
-                    t('Open the repository in your source code provider')
+                    t('Open your source code provider')
                   )}
                 </div>
               </Stack>
@@ -309,7 +304,7 @@ export function StacktraceLinkModal({
                 gap="md"
                 maxWidth="calc(100% - 25px - 8px)"
               >
-                <div>{t('Find this file in the repository')}</div>
+                <div>{t('Find the repository containing this file')}</div>
                 <Grid
                   columns="minmax(0, 1fr) auto"
                   align="start"
@@ -339,8 +334,8 @@ export function StacktraceLinkModal({
               >
                 <div>
                   {suggestions.length
-                    ? t('Select a suggested file URL or paste one below')
-                    : t('Paste the file URL below')}
+                    ? t('Copy a suggested URL or paste the file URL')
+                    : t('Paste the file URL')}
                 </div>
                 {suggestions.length ? (
                   <Suggestions>
