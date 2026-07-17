@@ -103,8 +103,7 @@ class SeerRunPullRequest(DefaultFieldsModel):
     pull_request = FlexibleForeignKey(
         "sentry.PullRequest", on_delete=models.CASCADE, related_name="seer_run_links"
     )
-    # Null for PRs from Seer's own coding loop. Not unique: a handoff can report
-    # more than one PR, mirroring why ``seer_run`` above isn't unique either.
+    # Null for Seer-native PRs. Not unique -- a handoff can report multiple PRs.
     coding_agent_handoff = FlexibleForeignKey(
         "seer.SeerRunCodingAgentHandoff",
         on_delete=models.CASCADE,
