@@ -252,6 +252,12 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
 )
+register(
+    "auth.email-verification-at-signup.force-in-experiment",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # User Settings
 register(
@@ -632,6 +638,16 @@ register(
 register(
     "pr_metrics.emit_cooldown_seconds",
     default=3600,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Cutover switch for the reduced per-PR activity document. When on, PR activity is
+# folded into a single PullRequestActivityLog JSON document at webhook time instead
+# of one PullRequestActivity row per event; routing is per-PR (a PR stays on
+# whichever store it started on). Flip this ON only AFTER the code is fully
+# deployed, so a mixed fleet never splits one PR's writes across both stores.
+register(
+    "pr_metrics.activity_document.enabled",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1213,6 +1229,41 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Safety ceilings on how many smart-assignment Seer runs we dispatch, on top of
+# the feature flag and per-issue dedup. Rolling 24h windows; set to 0 to pause
+# dispatching entirely. See sentry.seer.smart_assignment.trigger.
+register(
+    "seer.smart_assignment.max_dispatches_per_org_per_day",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.smart_assignment.max_dispatches_per_day",
+    type=Int,
+    default=1500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "issues.backfill_group_action_log.killswitch",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.batch_size",
+    type=Int,
+    default=500,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "issues.backfill_group_action_log.inter_batch_delay_s",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "seer.supergroups_backfill_lightweight.killswitch",
     type=Bool,
@@ -1554,10 +1605,10 @@ register(
 )
 
 # Brownout schedule for the deprecated alerts API endpoints.
-# 2 minute blackout 12 times a day (every 2 hours, on the hour, UTC).
+# 2 minute blackout 24 times a day (every hour, on the hour, UTC).
 register(
     "api.deprecation.alerts-cron",
-    default="0 */2 * * *",
+    default="0 * * * *",
     type=String,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -3120,6 +3171,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rollout rate for resolution activity notifications via the notification platform
+register(
+    "notifications.platform.resolution-notifications.rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch list of NotificationSource values that should be blocked from being
 # dispatched by the notification platform's NotificationService. Values must match
 # the string values of `sentry.notifications.platform.types.NotificationSource`.
@@ -3819,6 +3878,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Rolls out FutureTrackingProducer as the replays eap_items producer
+register(
+    "tasks.producer.replays-eap-items.rollout",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Rolls out the new TaskProducer to processing_errors tasks
 register(
     "tasks.producer.processing-errors.rollout",
@@ -3836,6 +3903,24 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# List of producer names to roll out poll metrics to. Enables everywhere if
+# list contains "all".
+register(
+    "arroyo.producer.record_poll_metrics",
+    type=Sequence,
+    default=None,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+# Arroyo producer poll metrics should be logged every X poll iterations.
+register(
+    "arroyo.producer.poll_metric_frequency",
+    type=Int,
+    default=10,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "github-enterprise.disallow-domain-mismatch",
     type=Bool,
@@ -3847,5 +3932,29 @@ register(
     "error-embeds.control-silo-address",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Issues derived data — process_project_derived_data task
+# Number of groups per batch task when fanning out project-wide processing.
+register(
+    "issues.derived.project-batch-size",
+    default=500,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of batch tasks to schedule; aborts if exceeded.
+register(
+    "issues.derived.project-max-tasks",
+    default=1000,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Allows GroupActionLogEntries to be written from Activity creation.
+register(
+    "group_action_log.activity.double-write",
+    default=False,
+    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

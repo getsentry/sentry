@@ -10,7 +10,7 @@ from sentry import options
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.seer.endpoints.utils import get_seer_run
-from sentry.seer.models.run import SeerRun, SeerRunPullRequest
+from sentry.seer.models.run import SeerRun, SeerRunCodingAgentHandoff, SeerRunPullRequest
 
 logger = logging.getLogger(__name__)
 
@@ -23,10 +23,15 @@ def _link_pull_request_to_seer_run(
     provider: str | None,
     pr_number: int | str | None,
     log_context: Mapping[str, Any],
+    coding_agent_handoff: SeerRunCodingAgentHandoff | None = None,
 ) -> PullRequest | None:
     """Resolve one reported PR and idempotently link it to ``seer_run`` via
     :class:`SeerRunPullRequest`. Returns the resolved PR, or ``None`` on any
     failure. Best-effort: every failure is logged and swallowed rather than raised.
+
+    Pass ``coding_agent_handoff`` when the PR was produced by a delegated coding
+    agent handoff, so the link records which handoff produced it (a run can hand
+    off to multiple agents, one per repo, so this disambiguates per-agent outcome).
 
     Checks the killswitch itself (rather than leaving it to callers) so every
     write path into :class:`SeerRunPullRequest` is guaranteed to respect it.
@@ -56,7 +61,7 @@ def _link_pull_request_to_seer_run(
     try:
         _, created = SeerRunPullRequest.objects.get_or_create(
             pull_request=resolved.pull_request,
-            defaults={"seer_run": seer_run},
+            defaults={"seer_run": seer_run, "coding_agent_handoff": coding_agent_handoff},
         )
     except Exception:
         logger.exception(

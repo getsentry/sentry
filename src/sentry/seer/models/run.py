@@ -10,6 +10,7 @@ from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, cell_si
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.pullrequest import PullRequest
+from sentry.seer.autofix.constants import CodingAgentStatus
 
 
 class SeerRunType(models.TextChoices):
@@ -102,6 +103,15 @@ class SeerRunPullRequest(DefaultFieldsModel):
     pull_request = FlexibleForeignKey(
         "sentry.PullRequest", on_delete=models.CASCADE, related_name="seer_run_links"
     )
+    # Set when this PR was produced by a delegated coding agent handoff (Cursor/GitHub
+    # Copilot/Claude Code) rather than Seer's own coding loop.
+    coding_agent_handoff = FlexibleForeignKey(
+        "seer.SeerRunCodingAgentHandoff",
+        on_delete=models.CASCADE,
+        null=True,
+        unique=True,
+        related_name="pull_request_link",
+    )
 
     class Meta:
         app_label = "seer"
@@ -114,15 +124,6 @@ class SeerRunPullRequest(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("seer_run_id", "pull_request_id")
-
-
-class SeerRunCodingAgentHandoffStatus(models.TextChoices):
-    """Keep in sync with sentry.seer.autofix.utils.CodingAgentStatus"""
-
-    PENDING = "pending"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
 
 
 class SeerRunCodingAgentHandoffExtras(TypedDict, total=False):
@@ -147,19 +148,19 @@ class SeerRunCodingAgentHandoff(DefaultFieldsModel):
     provider = models.CharField(max_length=256)
     agent_id = models.CharField(max_length=256, unique=True)
     status = models.CharField(
-        max_length=32,
-        choices=SeerRunCodingAgentHandoffStatus.choices,
-        default=SeerRunCodingAgentHandoffStatus.PENDING,
-        db_default=SeerRunCodingAgentHandoffStatus.PENDING,
-    )
-    pull_request = FlexibleForeignKey(
-        "sentry.PullRequest",
-        on_delete=models.CASCADE,
-        null=True,
-        related_name="seer_coding_agent_handoffs",
+        max_length=256,
+        choices=[(s.value, s.value) for s in CodingAgentStatus],
+        default=CodingAgentStatus.PENDING,
+        db_default=CodingAgentStatus.PENDING,
     )
     # See SeerRunCodingAgentHandoffExtras for the expected shape.
     extras = models.JSONField(db_default={}, default=dict)
+
+    @property
+    def pull_request(self) -> PullRequest | None:
+        """The pull request this handoff produced, via its SeerRunPullRequest link."""
+        link = self.pull_request_link.select_related("pull_request").first()
+        return link.pull_request if link is not None else None
 
     class Meta:
         app_label = "seer"

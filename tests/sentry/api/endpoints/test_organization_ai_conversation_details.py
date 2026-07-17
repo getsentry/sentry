@@ -341,6 +341,8 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             operation_type="tool",
             trace_id=trace_id,
             tool_name="search_database",
+            tool_result="found 3 rows",
+            tool_output="tool output payload",
         )
 
         query = {
@@ -357,6 +359,8 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["span.op"] == "gen_ai.execute_tool"
         assert span["gen_ai.operation.type"] == "tool"
         assert span["gen_ai.tool.name"] == "search_database"
+        assert span["gen_ai.tool.call.result"] == "found 3 rows"
+        assert span["gen_ai.tool.output"] == "tool output payload"
 
     def test_stats_period_is_tried_first_then_widened(self) -> None:
         timestamp_15d = before_now(days=15).replace(microsecond=0)

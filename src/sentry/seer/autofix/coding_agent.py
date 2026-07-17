@@ -24,12 +24,12 @@ from sentry.integrations.services.integration import integration_service
 from sentry.models.pullrequest import PullRequestAttributionSignalType
 from sentry.pr_metrics.attribution import attribute_delegated_agent_pull_request
 from sentry.seer.autofix.coding_agent_handoffs import sync_coding_agent_status
+from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.autofix.utils import (
     AutofixState,
     CodingAgentProviderType,
     CodingAgentResult,
     CodingAgentState,
-    CodingAgentStatus,
     StoreCodingAgentStatesRequest,
     make_store_coding_agent_states_request,
 )

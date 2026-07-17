@@ -85,6 +85,7 @@ class BaseRepositoryIntegration(ABC):
         accessible_only: bool = False,
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
+        parallel: bool = False,
     ) -> list[RepositoryInfo]:
         """
         Get a list of available repositories for an installation
@@ -114,6 +115,10 @@ class BaseRepositoryIntegration(ABC):
         pagination cap with more data still available, ``ApiPaginationTruncated``
         is raised with the partial result attached. Providers without a
         pagination cap may accept and ignore this argument.
+
+        ``parallel`` is a hint that pages after the first may be fetched
+        concurrently. Providers that do not implement parallel pagination may
+        accept and ignore this argument.
         """
         raise NotImplementedError
 

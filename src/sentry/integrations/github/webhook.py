@@ -124,6 +124,17 @@ def get_github_external_id(event: Mapping[str, Any], host: str | None = None) ->
     return f"{host}:{external_id}" if host else external_id
 
 
+def get_scm_stream_extra(
+    event: Mapping[str, Any],
+) -> dict[str, str | None | bool | int | float]:
+    """Identifiers an SCM-stream listener needs to resolve org/integration/repo context,
+    surfaced so listeners don't have to re-parse the raw event body."""
+    return {
+        "installation_id": event.get("installation", {}).get("id"),
+        "repository_id": event.get("repository", {}).get("id"),
+    }
+
+
 def get_file_language(filename: str) -> str | None:
     extension = filename.split(".")[-1]
     language = None
@@ -157,7 +168,7 @@ def _handle_pr_webhook_for_autofix_processor(
     if organization and action and user:
         # Because we require that the sentry github integration be installed for autofix, we can piggyback
         # on this webhook for autofix for now. We may move to a separate autofix github integration in the future
-        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
+        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user, repo.id)
 
 
 def _track_contributor_action_processor(
@@ -185,12 +196,11 @@ def _track_contributor_action_processor(
     record_contributor_action(
         organization=organization,
         repo=repo,
-        integration_id=integration.id,
+        integration=integration,
         user_id=author_id,
         user_username=(pull_request.get("user") or {}).get("login"),
         pr_number=pull_request["number"],
         is_opened=event.get("action") == "opened",
-        provider="github",
         logs_extra={"github_event_action": event.get("action")},
         tags={"is_private": is_private},
     )
@@ -1093,6 +1103,7 @@ class PullRequestEventWebhook(GitHubWebhook):
         # Activity must be written before emission so the verdict check in
         # handle_activity sees no verdict yet on the open/sync events, and so the
         # SYNCHRONIZED rows are present when select_verdict runs on the close event.
+        # This ordering is pinned by test_pull_request_processor_order_contract.
         pr_metrics_handle_activity,
         pr_metrics_handle_emission,
     )
@@ -1224,10 +1235,9 @@ class PullRequestEventWebhook(GitHubWebhook):
                 track_contributor_seat(
                     organization=organization,
                     repo=repo,
-                    integration_id=integration.id,
+                    integration=integration,
                     user_id=user["id"],
                     user_username=user["login"],
-                    provider="github",
                     logs_extra={
                         "pr_number": str(number),
                         "github_event_action": event.get("action"),
@@ -1465,7 +1475,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
             {
                 "event_type_hint": request.headers.get(GITHUB_WEBHOOK_TYPE_HEADER_KEY),
                 "event": request.body.decode("utf-8"),
-                "extra": {},
+                "extra": get_scm_stream_extra(event),
                 "received_at": int(time.time()),
                 "sentry_meta": None,
                 "type": IntegrationProviderSlug.GITHUB.value,

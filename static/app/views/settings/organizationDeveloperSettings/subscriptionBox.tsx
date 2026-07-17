@@ -2,12 +2,16 @@ import styled from '@emotion/styled';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {EVENT_CHOICES} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import type {
+  EVENT_CHOICES,
+  WebhookGranularEvent,
+} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {
   PERMISSIONS_MAP,
   RESOURCE_EVENTS,
@@ -18,11 +22,13 @@ import {
 type Resource = (typeof EVENT_CHOICES)[number];
 
 type Props = {
-  checked: boolean;
+  checked: boolean | 'indeterminate';
   disabledFromPermissions: boolean;
   isNew: boolean;
   onChange: (resource: Resource, checked: boolean) => void;
+  onEventChange: (event: WebhookGranularEvent, checked: boolean) => void;
   resource: Resource;
+  selectedEvents: WebhookGranularEvent[];
   webhookDisabled?: boolean;
 };
 
@@ -31,7 +37,9 @@ export function SubscriptionBox({
   disabledFromPermissions,
   isNew,
   onChange,
+  onEventChange,
   resource,
+  selectedEvents,
   webhookDisabled = false,
 }: Props) {
   const {features} = useOrganization();
@@ -60,7 +68,58 @@ export function SubscriptionBox({
     message = t('Cannot enable webhook subscription without specifying a webhook url');
   }
 
+  const granular = features.includes('sentry-apps-granular-events');
   const description = RESOURCE_EVENTS[resource].map(webhookEventLabel).join(', ');
+
+  if (granular) {
+    return (
+      <SubscriptionRow
+        align="start"
+        gap="2xl"
+        padding="lg md"
+        direction={{'screen:xs': 'column', 'screen:md': 'row'}}
+        data-disabled={disabled || undefined}
+      >
+        <Tooltip disabled={!disabled} title={message}>
+          <Flex
+            as="label"
+            align="center"
+            gap="md"
+            flex="none"
+            width={{'screen:xs': '100%', 'screen:md': '180px'}}
+          >
+            <Checkbox
+              aria-label={resource}
+              disabled={disabled}
+              checked={checked}
+              onChange={evt => onChange(resource, evt.target.checked)}
+            />
+            <Text size="md" bold>
+              {webhookResourceLabel(resource)}
+              {isNew && <FeatureBadge type="new" />}
+            </Text>
+          </Flex>
+        </Tooltip>
+        <Grid flex="1" columns="repeat(auto-fill, 220px)" gap="md lg">
+          {RESOURCE_EVENTS[resource].map(event => (
+            <Tooltip key={event} disabled={!disabled} title={message}>
+              <Flex as="label" align="center" gap="sm">
+                <Checkbox
+                  aria-label={event}
+                  disabled={disabled}
+                  checked={selectedEvents.includes(event)}
+                  onChange={evt => onEventChange(event, evt.target.checked)}
+                />
+                <Text size="md" variant="muted">
+                  {webhookEventLabel(event)}
+                </Text>
+              </Flex>
+            </Tooltip>
+          ))}
+        </Grid>
+      </SubscriptionRow>
+    );
+  }
 
   return (
     <Tooltip disabled={!disabled} title={message} key={resource}>
@@ -97,6 +156,13 @@ const SubscriptionGridItem = styled('div')<{disabled: boolean}>`
   margin: ${p => p.theme.space.lg};
   padding: ${p => p.theme.space.lg};
   box-sizing: border-box;
+`;
+
+const SubscriptionRow = styled(Flex)`
+  &[data-disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 `;
 
 const SubscriptionDescription = styled('div')`

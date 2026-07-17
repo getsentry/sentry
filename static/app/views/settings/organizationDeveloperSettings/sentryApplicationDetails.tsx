@@ -59,7 +59,12 @@ import {useParams} from 'sentry/utils/useParams';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import {EVENT_CHOICES} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
+import {
+  EVENT_CHOICES,
+  granularWebhookEvents,
+  WEBHOOK_GRANULAR_EVENT_CHOICES,
+} from 'sentry/views/settings/organizationDeveloperSettings/constants';
 import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
 const AVATAR_STYLES = {
@@ -96,7 +101,9 @@ const sentryAppFormSchema = z
     organization: z.string(),
     isInternal: z.boolean(),
     scopes: z.array(z.enum(ALLOWED_SCOPES)),
-    events: z.array(z.enum(EVENT_CHOICES)),
+    events: z.array(
+      z.union([z.enum(EVENT_CHOICES), z.enum(WEBHOOK_GRANULAR_EVENT_CHOICES)])
+    ),
   })
   .superRefine((data, ctx) => {
     if (!data.name.trim()) {
@@ -351,6 +358,15 @@ function SentryApplicationForm({
     return events.map(event => event.split('.').shift() as WebhookEvent);
   };
 
+  const granular = organization.features.includes('sentry-apps-granular-events');
+
+  // Older API responses only send the consolidated resource list
+  const initialEvents: WebhookSubscription[] = app
+    ? granular
+      ? granularWebhookEvents(app.webhookEvents ?? app.events)
+      : normalize(app.events)
+    : [];
+
   const hasTokenAccess = () => {
     return organization.access.includes('org:write');
   };
@@ -522,7 +538,7 @@ function SentryApplicationForm({
     organization: organization.slug,
     isInternal,
     scopes: app ? [...app.scopes] : [],
-    events: app ? normalize(app.events) : [],
+    events: initialEvents,
   };
 
   const saveSentryAppMutation = useMutation({
@@ -840,7 +856,7 @@ function SentryApplicationForm({
             webhookDisabled={webhookDisabled}
             appPublished={app ? app.status === 'published' : false}
             scopes={app ? [...app.scopes] : []}
-            events={app ? normalize(app.events) : []}
+            events={initialEvents}
             newApp={!app}
             permissionErrors={scopeErrors.permissions}
             continuousIntegrationError={scopeErrors.continuousIntegration}

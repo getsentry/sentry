@@ -6,21 +6,43 @@ outcome.
 from __future__ import annotations
 
 import logging
+from typing import NamedTuple
 
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import parse_pull_request_number
+from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.autofix.utils import (
     CodingAgentProviderType,
     CodingAgentResult,
     CodingAgentState,
-    CodingAgentStatus,
     update_coding_agent_state,
 )
 from sentry.seer.endpoints.utils import get_seer_run
-from sentry.seer.models.run import SeerRunCodingAgentHandoff, SeerRunCodingAgentHandoffExtras
+from sentry.seer.models.run import (
+    SeerAgentRun,
+    SeerRunCodingAgentHandoff,
+    SeerRunCodingAgentHandoffExtras,
+)
 from sentry.seer.pull_requests import _link_pull_request_to_seer_run
 
 logger = logging.getLogger(__name__)
+
+
+class CodingAgentSyncResult(NamedTuple):
+    """Result of :func:`sync_coding_agent_status`.
+
+    ``run_id``/``group_id`` are resolved locally from the handoff's ``seer_run``
+    (and its ``SeerAgentRun`` sibling, populated when the run was launched
+    against an issue) — no Seer round trip needed. Both are ``None`` when no
+    matching handoff row exists locally.
+
+    Being a tuple, this is always truthy — check ``.known_to_seer`` explicitly
+    rather than the result object itself.
+    """
+
+    known_to_seer: bool
+    run_id: int | None
+    group_id: int | None
 
 
 def create_seer_run_coding_agent_handoff(
@@ -55,17 +77,21 @@ def sync_coding_agent_status(
     status: CodingAgentStatus,
     agent_url: str | None = None,
     result: CodingAgentResult | None = None,
-) -> bool:
+) -> CodingAgentSyncResult:
     """Update Sentry's own SeerRunCodingAgentHandoff, then Seer's coding agent state,
     and link the resulting PR (if any) to the handoff's run via SeerRunPullRequest.
 
-    Returns whether Seer recognized this ``agent_id`` (mirrors
-    ``update_coding_agent_state``'s return value, e.g. for gating PR attribution).
+    ``known_to_seer`` mirrors ``update_coding_agent_state``'s return value (e.g.
+    for gating PR attribution). ``run_id``/``group_id`` are populated whenever a
+    matching handoff row exists locally.
     """
     log_context = {"agent_id": agent_id, "organization_id": organization_id}
 
+    run_id: int | None = None
+    group_id: int | None = None
+
     try:
-        handoff = SeerRunCodingAgentHandoff.objects.select_related("seer_run").get(
+        handoff = SeerRunCodingAgentHandoff.objects.select_related("seer_run__agent").get(
             agent_id=agent_id, seer_run__organization_id=organization_id
         )
     except SeerRunCodingAgentHandoff.DoesNotExist:
@@ -73,6 +99,12 @@ def sync_coding_agent_status(
         logger.info("seer.coding_agent_handoff.not_found", extra=log_context)
 
     if handoff is not None:
+        run_id = handoff.seer_run.seer_run_state_id
+        try:
+            group_id = handoff.seer_run.agent.group_id
+        except SeerAgentRun.DoesNotExist:
+            group_id = None
+
         try:
             handoff.status = status.value
             update_fields = ["status", "date_updated"]
@@ -87,38 +119,29 @@ def sync_coding_agent_status(
         except Exception:
             logger.exception("seer.coding_agent_handoff.update_failed", extra=log_context)
             if handoff.provider != CodingAgentProviderType.CURSOR_BACKGROUND_AGENT.value:
-                return False
+                return CodingAgentSyncResult(known_to_seer=False, run_id=run_id, group_id=group_id)
 
     known_to_seer = update_coding_agent_state(
         agent_id=agent_id, status=status, agent_url=agent_url, result=result
     )
 
-    if handoff is None or not result or not result.pr_url:
-        return known_to_seer
+    if handoff is not None and result and result.pr_url:
+        pr_number = parse_pull_request_number(result.pr_url)
+        link_log_context = {
+            **log_context,
+            "repo_name": result.repo_full_name,
+            "provider": result.repo_provider,
+            "pr_number": pr_number,
+        }
 
-    pr_number = parse_pull_request_number(result.pr_url)
-    link_log_context = {
-        **log_context,
-        "repo_name": result.repo_full_name,
-        "provider": result.repo_provider,
-        "pr_number": pr_number,
-    }
+        _link_pull_request_to_seer_run(
+            organization=handoff.seer_run.organization,
+            seer_run=handoff.seer_run,
+            repo_name=result.repo_full_name,
+            provider=result.repo_provider,
+            pr_number=pr_number,
+            log_context=link_log_context,
+            coding_agent_handoff=handoff,
+        )
 
-    pull_request = _link_pull_request_to_seer_run(
-        organization=handoff.seer_run.organization,
-        seer_run=handoff.seer_run,
-        repo_name=result.repo_full_name,
-        provider=result.repo_provider,
-        pr_number=pr_number,
-        log_context=link_log_context,
-    )
-    if pull_request is not None:
-        try:
-            handoff.pull_request = pull_request
-            handoff.save(update_fields=["pull_request", "date_updated"])
-        except Exception:
-            logger.exception(
-                "seer.coding_agent_handoff.pr_link_save_failed", extra=link_log_context
-            )
-
-    return known_to_seer
+    return CodingAgentSyncResult(known_to_seer=known_to_seer, run_id=run_id, group_id=group_id)

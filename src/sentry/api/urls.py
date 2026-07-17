@@ -52,7 +52,13 @@ from sentry.api.endpoints.organization_trace_item_attributes import (
 from sentry.api.endpoints.organization_trace_item_attributes_ranked import (
     OrganizationTraceItemsAttributesRankedEndpoint,
 )
-from sentry.api.endpoints.organization_trace_item_stats import OrganizationTraceItemsStatsEndpoint
+from sentry.api.endpoints.organization_trace_item_metric_context import (
+    OrganizationTraceItemMetricContextEndpoint,
+)
+from sentry.api.endpoints.organization_trace_item_metrics import (
+    OrganizationTraceItemMetricsEndpoint,
+)
+from sentry.api.endpoints.organization_trace_item_stats import OrganizationTraceItemStatsEndpoint
 from sentry.api.endpoints.organization_unsubscribe import (
     OrganizationUnsubscribeIssue,
     OrganizationUnsubscribeProject,
@@ -149,6 +155,10 @@ from sentry.dashboards.endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsEndpoint
+from sentry.dashboards.endpoints.organization_dashboards_starred import (
+    OrganizationDashboardsStarredEndpoint,
+    OrganizationDashboardsStarredOrderEndpoint,
+)
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.data_secrecy.api.waive_data_secrecy import WaiveDataSecrecyEndpoint
@@ -279,9 +289,6 @@ from sentry.integrations.api.endpoints.organization_repository_details import (
 )
 from sentry.integrations.api.endpoints.organization_repository_platforms import (
     OrganizationRepositoryPlatformsEndpoint,
-)
-from sentry.integrations.api.endpoints.organization_repository_platforms_test import (
-    OrganizationRepositoryPlatformsTestEndpoint,
 )
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
@@ -1517,6 +1524,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-dashboards",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/$",
+        OrganizationDashboardsStarredEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboard-starred",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/dashboards/starred/order/$",
+        OrganizationDashboardsStarredOrderEndpoint.as_view(),
+        name="sentry-api-0-organization-dashboard-starred-order",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/dashboards/widgets/$",
         OrganizationDashboardWidgetDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-dashboard-widget-details",
@@ -1742,6 +1759,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-trace-item-attribute-context",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/trace-items/metrics/(?P<metric>[^/]+)/context/$",
+        OrganizationTraceItemMetricContextEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-metric-context",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/attributes/(?P<key>[^/]+)/values/$",
         OrganizationTraceItemAttributeValuesEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-attribute-values",
@@ -1752,8 +1774,13 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-trace-item-attributes-ranked",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/trace-items/metrics/$",
+        OrganizationTraceItemMetricsEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-item-metrics",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace-items/stats/$",
-        OrganizationTraceItemsStatsEndpoint.as_view(),
+        OrganizationTraceItemStatsEndpoint.as_view(),
         name="sentry-api-0-organization-trace-item-stats",
     ),
     re_path(
@@ -2201,11 +2228,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/platforms/$",
         OrganizationRepositoryPlatformsEndpoint.as_view(),
         name="sentry-api-0-organization-repository-platforms",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/repos/(?P<repo_id>[^/]+)/platforms-test/$",
-        OrganizationRepositoryPlatformsTestEndpoint.as_view(),
-        name="sentry-api-0-organization-repository-platforms-test",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/legacy-webhooks/$",
