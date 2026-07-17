@@ -36,7 +36,11 @@ from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializerSnuba,
     StreamGroupSerializerSnubaResponse,
 )
-from sentry.api.utils import get_date_range_from_stats_period, handle_query_errors, to_valid_int_id_list
+from sentry.api.utils import (
+    get_date_range_from_stats_period,
+    handle_query_errors,
+    to_valid_int_id_list,
+)
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
