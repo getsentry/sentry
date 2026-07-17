@@ -107,6 +107,9 @@ function AdminUserEditForm({
     mutationFn: (data: UserUpdatePayload) =>
       fetchMutation<User>({url: userEndpoint, method: 'PUT', data}),
     onSuccess: response => {
+      // Update the detail cache so the breadcrumb reflects the new name without
+      // waiting for a refetch. The users list uses staleTime: 0, so it refreshes
+      // on its own when navigated back to.
       queryClient.setQueryData(userDetailsQueryOptions(user.id).queryKey, prev => ({
         json: response,
         headers: prev?.headers ?? {},
@@ -171,7 +174,6 @@ function AdminUserEditForm({
 
   return (
     <Fragment>
-      <BreadcrumbTitle title={user.name || user.email} />
       <form.AppForm form={form}>
         <form.FieldGroup title={t('User details')}>
           <form.AppField name="name">
@@ -279,15 +281,18 @@ function AdminUserEdit() {
 
   const {
     data: user,
-    isPending,
+    isLoading,
+    isPlaceholderData,
     isError,
     error,
     refetch,
   } = useQuery({
     ...userDetailsQueryOptions(id),
-    // The user may have already been loaded by the users list, so seed it from
-    // that cache to render instantly and avoid a loading state.
-    initialData: () => {
+    // Seed from the users list cache as a temporary fallback so the breadcrumb
+    // has a name while the detail request loads. Unlike initialData, this isn't
+    // written to the cache, so the detail fetch always runs and the form only
+    // renders once authoritative data has loaded.
+    placeholderData: () => {
       const listQueries = queryClient.getQueriesData<ApiResponse<User[]>>({
         queryKey: [getApiUrl('/users/')],
       });
@@ -301,27 +306,27 @@ function AdminUserEdit() {
     },
   });
 
-  if (isPending) {
-    return <LoadingIndicator />;
-  }
-
   const notFound = error instanceof RequestError && error.status === 404;
 
-  if (isError && !notFound) {
-    return <LoadingError onRetry={refetch} />;
-  }
-
-  if (notFound || !user) {
-    return (
-      <Alert.Container>
-        <Alert variant="warning" showIcon={false}>
-          {t('The user you were looking for was not found.')}
-        </Alert>
-      </Alert.Container>
-    );
-  }
-
-  return <AdminUserEditForm user={user} userEndpoint={userEndpoint} />;
+  return (
+    <Fragment>
+      {/* Fall back to the placeholder user's name until the detail loads. */}
+      {user && <BreadcrumbTitle title={user.name || user.email} />}
+      {isLoading || isPlaceholderData ? (
+        <LoadingIndicator />
+      ) : isError && !notFound ? (
+        <LoadingError onRetry={refetch} />
+      ) : notFound || !user ? (
+        <Alert.Container>
+          <Alert variant="warning" showIcon={false}>
+            {t('The user you were looking for was not found.')}
+          </Alert>
+        </Alert.Container>
+      ) : (
+        <AdminUserEditForm user={user} userEndpoint={userEndpoint} />
+      )}
+    </Fragment>
+  );
 }
 
 export default AdminUserEdit;
