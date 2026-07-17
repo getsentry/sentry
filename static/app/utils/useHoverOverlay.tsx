@@ -496,6 +496,9 @@ function useHoverOverlay({
         isValidElement(triggerChildren) &&
         (skipWrapper || typeof triggerChildren.type === 'string')
       ) {
+        const childRef = (triggerChildren.props as any).ref;
+        const mergedRef = childRef ? mergeRefs(childRef, setTriggerElement) : setTriggerElement;
+
         if (showUnderline) {
           const triggerStyle = {
             ...(triggerChildren.props as any).style,
@@ -505,7 +508,7 @@ function useHoverOverlay({
           return cloneElement<any>(
             triggerChildren,
             Object.assign(mergeProps(triggerChildren.props as any, providedProps), {
-              ref: mergeRefs((triggerChildren.props as any).ref, setTriggerElement),
+              ref: mergedRef,
               style: triggerStyle,
             })
           );
@@ -515,7 +518,7 @@ function useHoverOverlay({
         return cloneElement<any>(
           triggerChildren,
           Object.assign(mergeProps(triggerChildren.props as any, providedProps), {
-            ref: mergeRefs((triggerChildren.props as any).ref, setTriggerElement),
+            ref: mergedRef,
             style: (triggerChildren.props as any).style,
           })
         );
