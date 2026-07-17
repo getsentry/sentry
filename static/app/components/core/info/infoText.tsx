@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {DistributedOmit} from 'type-fest';
 
@@ -25,6 +26,7 @@ export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'sp
   ...textProps
 }: InfoTextProps<T>) {
   const isOverflowOnly = mode === 'overflowOnly';
+  const [isOverflowing, setIsOverflowing] = useState(false);
   // Text's ellipsis props are mutually exclusive with display and wrap.
   const textPropsWithMode = {
     ...textProps,
@@ -40,12 +42,16 @@ export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'sp
       position={position}
       maxWidth={maxWidth}
       showOnlyOnOverflow={isOverflowOnly}
+      onOverflowChange={isOverflowOnly ? setIsOverflowing : undefined}
       skipWrapper
       isHoverable
       showUnderline={!isOverflowOnly}
       underlineColor={textProps.variant === 'inherit' ? undefined : textProps.variant}
     >
-      <StyledText {...textPropsWithMode} tabIndex={0}>
+      <StyledText
+        {...textPropsWithMode}
+        tabIndex={isOverflowOnly && !isOverflowing ? undefined : 0}
+      >
         {children}
       </StyledText>
     </Tooltip>
