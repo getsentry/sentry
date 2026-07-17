@@ -183,7 +183,7 @@ def _is_conclusive_evaluation(evaluation: DataConditionGroupEvaluation) -> bool:
     logic_type = evaluation.data.get("logic_type")
 
     match logic_type:
-        case DataConditionGroup.Type.ALL:
+        case DataConditionGroup.Type.ALL | DataConditionGroup.Type.NONE:
             return not evaluation.outcome.triggered
         case DataConditionGroup.Type.ANY | DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
             return evaluation.outcome.triggered

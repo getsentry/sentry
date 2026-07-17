@@ -347,6 +347,32 @@ class TestEvaluateConditionGroupWithSlowConditions(TestCase):
         ]
         assert remaining_conditions == []
 
+    def test_short_circuit_with_none(self) -> None:
+        # A NONE group is conclusively not triggered once a fast condition
+        # matches, so the pending slow condition should not be evaluated.
+        self.data_condition_group.update(logic_type=DataConditionGroup.Type.NONE)
+        group_evaluation, remaining_conditions = process_data_condition_group(
+            self.data_condition_group,
+            10,
+        )
+
+        assert group_evaluation.outcome.triggered is False
+        assert group_evaluation.data["condition_evaluations"] == []
+        assert remaining_conditions == []
+
+    def test_no_short_circuit_with_none(self) -> None:
+        # A NONE group is not yet conclusive when no fast condition matches, so
+        # the slow condition must still be evaluated before deciding the group.
+        self.data_condition_group.update(logic_type=DataConditionGroup.Type.NONE)
+        group_evaluation, remaining_conditions = process_data_condition_group(
+            self.data_condition_group,
+            1,
+        )
+
+        assert group_evaluation.outcome.triggered is True
+        assert group_evaluation.data["condition_evaluations"] == []
+        assert remaining_conditions == [self.slow_condition]
+
 
 class TestGetSlowConditionsForGroups(TestCase):
     def setUp(self) -> None:
