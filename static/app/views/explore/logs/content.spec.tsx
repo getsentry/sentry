@@ -183,7 +183,7 @@ describe('LogsPage', () => {
     expect(sdkMock).toHaveBeenCalled();
 
     await waitFor(() => {
-      expect(screen.getByText('Your Source for Log-ical Data')).toBeInTheDocument();
+      expect(screen.getByText('Logs in Sentry')).toBeInTheDocument();
     });
   });
 

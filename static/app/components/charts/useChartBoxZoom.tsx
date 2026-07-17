@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {type MutableRefObject, useCallback, useEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import type {ECharts} from 'echarts';
 
@@ -42,6 +42,7 @@ interface UseChartBoxZoomProps {
 }
 
 interface BoxZoomOptions {
+  isDraggingRef: MutableRefObject<boolean>;
   onChartReady: EChartChartReadyHandler;
 }
 
@@ -73,6 +74,8 @@ export function useChartBoxZoom({
   // listeners.
   const cleanupRef = useRef<(() => void) | null>(null);
 
+  const isDraggingRef = useRef(false);
+
   const onZoomRef = useRef(onZoom);
   onZoomRef.current = onZoom;
 
@@ -99,7 +102,6 @@ export function useChartBoxZoom({
     let bounds: RectangularBounds | null = null;
     let $overlay: HTMLDivElement | null = null;
     let pointerId: number | null = null;
-
     let restoreTooltipTimer: ReturnType<typeof setTimeout> | null = null;
 
     function teardown() {
@@ -116,27 +118,18 @@ export function useChartBoxZoom({
       bounds = null;
     }
 
-    // Re-enable the hover tooltip. Guarded against a disposed instance so a late
-    // restore (the deferred timer, or a scroll/resize firing during unmount)
-    // can't call `setOption` on a torn-down chart.
-    function showTooltip() {
-      if (!chartInstance.isDisposed()) {
-        chartInstance.setOption({tooltip: {show: true}}, {silent: true});
-      }
-    }
-
-    // Tears down the drag and re-enables the tooltip. Restore is immediate for a
-    // click/cancel; only an actual zoom delays it, so the tooltip doesn't flash
-    // under the cursor during the navigation/refetch that a zoom kicks off.
+    // Ends the drag and re-enables the tooltip. Restore is immediate for a
+    // click/cancel. Restore is delayed for a drag zoom, so the tooltip doesn't
+    // flash under the cursor.
     function endDrag(delayTooltipRestore = false) {
       teardown();
       if (delayTooltipRestore) {
         restoreTooltipTimer = setTimeout(() => {
           restoreTooltipTimer = null;
-          showTooltip();
+          isDraggingRef.current = false;
         }, TOOLTIP_RESTORE_DELAY_MS);
       } else {
-        showTooltip();
+        isDraggingRef.current = false;
       }
     }
 
@@ -167,23 +160,24 @@ export function useChartBoxZoom({
       }
 
       bounds = currentBounds;
+      isDraggingRef.current = true;
       start = point;
       pointerId = evt.pointerId;
-      // Route every subsequent event for this pointer to the chart element —
-      // even outside the window — so we always get the terminating `pointerup`
-      // and never leave a drag half-open.
-      dom.setPointerCapture(pointerId);
 
+      // A new drag starting during a pending restore cancels it.
       if (restoreTooltipTimer !== null) {
         clearTimeout(restoreTooltipTimer);
         restoreTooltipTimer = null;
       }
 
-      // Hide the tooltip for the drag so it doesn't render over the selection.
-      // `lazyUpdate` defers the re-render off the pointerdown so the press is
-      // snappy and we don't lose an active reference to the rectangle which
-      // sometimes happens on chart re-render
-      chartInstance.setOption({tooltip: {show: false}}, {silent: true, lazyUpdate: true});
+      // Route every subsequent event for this pointer to the chart element —
+      // even outside the window — so we always get the terminating `pointerup`
+      // and never leave a drag half-open.
+      dom.setPointerCapture(pointerId);
+
+      // Hide an already-open tooltip. Note that `hideTip` is much cheaper than
+      // `setOption`
+      chartInstance.dispatchAction({type: 'hideTip'});
 
       $overlay = createOverlay(overlayStyleRef.current);
       document.body.appendChild($overlay);
@@ -209,16 +203,11 @@ export function useChartBoxZoom({
       dom.removeEventListener('pointerdown', onPointerDown, true);
       document.removeEventListener('scroll', cancelDragOnChartMove, true);
       resizeObserver.disconnect();
-      // If torn down mid-drag, the tooltip was hidden — re-enable it so a
-      // surviving instance isn't left with tooltips off (`showTooltip` guards
-      // the common unmount/recreate case where the instance is already gone).
-      if (bounds) {
-        showTooltip();
-      }
-      teardown();
       if (restoreTooltipTimer !== null) {
         clearTimeout(restoreTooltipTimer);
       }
+      isDraggingRef.current = false;
+      teardown();
     };
 
     function onPointerMove(evt: PointerEvent) {
@@ -283,15 +272,14 @@ export function useChartBoxZoom({
 
   useEffect(() => () => cleanupRef.current?.(), []);
 
-  return {onChartReady};
+  return {onChartReady, isDraggingRef};
 }
 
 // Ignore selections smaller than this (px, on either axis): treat them as a
 // click rather than a zoom.
 const MIN_DRAG_PX = 5;
 
-// How long, in ms, after the drag ends before the hover tooltip is re-enabled,
-// so it doesn't snap back under the cursor the instant the drag ends.
+// How long, in ms, after a zoom before the hover tooltip is re-enabled.
 const TOOLTIP_RESTORE_DELAY_MS = 200;
 
 /** The chart DOM's top-left in client (viewport) space. */
