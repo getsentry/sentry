@@ -37,7 +37,6 @@ from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.seer.agent.client import (
     _trigger_explorer_indexes_if_needed,
     get_available_monitoring_providers,
-    get_monitoring_provider_connections,
 )
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
@@ -45,6 +44,7 @@ from sentry.seer.agent.client_utils import (
     make_agent_chat_request,
     make_feature_run_request,
 )
+from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, make_search_agent_start_request
 from sentry.sentry_apps.services.app.service import app_service
