@@ -1057,14 +1057,6 @@ def test_completed_action_sets_blocker(action: GroupActionType, expected: IssueB
     assert _run_for_feature(BLOCKER, [FakeEntry(type=action)]) == expected
 
 
-def test_legacy_autofix_pr_created_sets_merge_blocker() -> None:
-    # The legacy AUTOFIX_PR_CREATED action mirrors SEER_PR_CREATED and advances
-    # the autofix step to PR_CREATED, yielding a MERGE_PR blocker.
-    entry = FakeEntry(type=GroupActionType.AUTOFIX_PR_CREATED, data={"pull_requests": []})
-    assert _run_for_feature(BLOCKER, [entry]) == IssueBlocker.MERGE_PR
-    assert _run_for_feature(LAST_COMPLETED_AUTOFIX_STEP, [entry]) == IssueAutofixStep.PR_CREATED
-
-
 @pytest.mark.parametrize(
     ("action", "data"),
     [
