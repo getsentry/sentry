@@ -42,12 +42,12 @@ MAX_RUNS_PER_GROUP = 50
 NON_FAILING_CONCLUSIONS = frozenset({"success", "neutral", "skipped"})
 ABORTED_CONCLUSIONS = frozenset({"cancelled", "stale"})
 
-# Comment webhooks fold into ``participants`` only — no entry, no count.
+# Comment events fold into ``participants`` only — no entry, no count — because
+# their per-comment volume is exactly what this design sheds.
 _COMMENT_EVENT_TYPES = frozenset(
     {
         PullRequestActivityType.COMMENT_CREATED,
         PullRequestActivityType.COMMENT_EDITED,
-        PullRequestActivityType.COMMENT_DELETED,
     }
 )
 

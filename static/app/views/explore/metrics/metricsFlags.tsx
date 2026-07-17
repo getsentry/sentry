@@ -41,8 +41,5 @@ export const canUseMetricsPiiScrubbingUI = (organization: Organization) => {
 };
 
 export const canUseMetricsHeatMap = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) &&
-    organization.features.includes('data-browsing-heat-map-widget')
-  );
+  return canUseMetricsUI(organization);
 };

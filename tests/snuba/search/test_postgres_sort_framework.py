@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_search import convert_query_values, parse_search_query
+from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -97,7 +98,9 @@ class PostgresSortTestBase(TestCase, SnubaTestCase):
             self.store_group(group)
             self.groups.append(group)
 
-    def make_query(self, sort_by, query=None, limit=None, cursor=None):
+    def make_query(
+        self, sort_by, query=None, limit=None, cursor=None, date_to=None, environments=None
+    ):
         search_filters: list[Any] = []
         if query:
             search_filters = list(
@@ -109,11 +112,11 @@ class PostgresSortTestBase(TestCase, SnubaTestCase):
         return self.backend.query(
             [self.project],
             search_filters=search_filters,
-            environments=None,
+            environments=environments,
             count_hits=False,
             sort_by=sort_by,
             date_from=None,
-            date_to=None,
+            date_to=date_to,
             cursor=cursor,
             referrer=Referrer.TESTING_TEST,
             **kwargs,
@@ -347,6 +350,7 @@ class TestFallbackBehavior(PostgresSortTestBase):
                 actor=None,
                 start=before_now(days=90),
                 end=timezone.now(),
+                allow_postgres_only_search=False,
                 referrer=Referrer.TESTING_TEST.value,
             )
             assert result is None
@@ -609,6 +613,81 @@ class TestProgressSort(PostgresSortTestBase):
         )
         # groups[2] has no derived data -> identified (lowest rank), sorts last.
         assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_native_ordering_past_candidate_cap(self):
+        # With the cap at 0, the in-memory path overflows and (pre-Tier-1) would degrade to a
+        # plain last_seen sort. The native ORDER BY must instead rank correctly, exercising all
+        # three derived-data states: a normal row, a null-progress row (closed -> fix_applied),
+        # and a missing row (-> identified).
+        self.create_group_derived_data(group=self.groups[0], progress="diagnosed")
+        self.create_group_derived_data(group=self.groups[1], progress=None)
+        # groups[2] intentionally has no derived row -> identified (lowest rank).
+
+        # fix_applied (g1) > diagnosed (g0) > identified (g2), independent of last_seen order.
+        assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
+
+        # Paginating the native path must not overlap or drop rows across pages.
+        page1 = self.make_query(sort_by="progress", limit=2)
+        assert list(page1) == [self.groups[1], self.groups[0]]
+        page2 = self.make_query(sort_by="progress", limit=2, cursor=page1.next)
+        assert list(page2) == [self.groups[2]]
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_native_ordering_paginates_across_score_tie(self):
+        # Identical rank + last_progressed_at -> identical score, so ordering falls to the -id
+        # tiebreak; paging one-at-a-time across the tie must not drop or duplicate a row.
+        ts = before_now(days=2)
+        for group in self.groups:
+            self.create_group_derived_data(group=group, progress="diagnosed", last_progressed_at=ts)
+
+        expected = sorted(self.groups, key=lambda g: g.id, reverse=True)
+        seen = []
+        cursor = None
+        for _ in self.groups:
+            page = self.make_query(sort_by="progress", limit=1, cursor=cursor)
+            seen.extend(page)
+            cursor = page.next
+        assert seen == expected
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_environment_scoping_bypasses_native_path(self):
+        # Environment scoping lives in Snuba; the Postgres-only native path can't honor it, so
+        # an environment-filtered query must fall through to Snuba. All fixture groups are in
+        # `production`, so membership is unchanged — this isolates the path choice: if native
+        # ran, the over-cap result would be progress-ranked; via Snuba it degrades to recency.
+        self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
+        # groups[1]/[2] default to identified; native would rank groups[0] first.
+        production = Environment.get_or_create(self.project, "production")
+        results = list(self.make_query(sort_by="progress", environments=[production]))
+        # Recency order (native bypassed): newest first is groups[2], [1], [0].
+        assert results == [self.groups[2], self.groups[1], self.groups[0]]
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_explicit_date_to_bypasses_native_path(self):
+        # Group.last_seen is the issue's global max event time, not its max within the window,
+        # so the native (Postgres-only) path can't honor an upper time bound correctly. An
+        # explicit date_to must fall through to Snuba, which scopes to in-window events.
+        # groups[2] is the newest (last_seen == base_datetime); a date_to before it excludes it.
+        self.create_group_derived_data(group=self.groups[2], progress="fix_applied")
+        results = self.make_query(
+            sort_by="progress", date_to=self.base_datetime - timedelta(days=1)
+        )
+        assert self.groups[2] not in set(results)
+        assert set(results) == {self.groups[0], self.groups[1]}
+
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_snuba_filter_over_cap_does_not_use_native_ordering(self):
+        # A Snuba-side filter disqualifies the native path, so over the cap the sort still
+        # falls through to the chunked recency path rather than ranking by progress.
+        with self.feature("projects:issue-stream-derived-progress"):
+            self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
+            results = self.make_query(sort_by="progress", query="issue 1")
+        assert list(results) == [self.groups[1]]
 
 
 class TestDefaultPostgresSortStrategies(TestCase):

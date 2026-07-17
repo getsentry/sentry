@@ -73,7 +73,9 @@ from sentry.integrations.models.integration_feature import (
 )
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.hostname import instance_hostname
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -90,7 +92,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.custominboundfilter import CustomInboundFilter
-from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
 from sentry.models.dashboard_widget import (
     DashboardWidget,
     DashboardWidgetDisplayTypes,
@@ -107,6 +109,7 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.organization import Organization
+from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
@@ -2036,6 +2039,23 @@ class Factories:
         return integration
 
     @staticmethod
+    def create_organization_contributor(
+        organization: Organization,
+        integration: Integration | RpcIntegration,
+        external_identifier: str,
+        **kwargs: Any,
+    ) -> OrganizationContributors:
+        kwargs.setdefault("provider", integration.provider)
+        kwargs.setdefault("hostname", instance_hostname(integration))
+
+        return OrganizationContributors.objects.create(
+            organization=organization,
+            integration_id=integration.id,
+            external_identifier=external_identifier,
+            **kwargs,
+        )
+
+    @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_provider_integration(**integration_params: Any) -> Integration:
         return Integration.objects.create(**integration_params)
@@ -2326,6 +2346,25 @@ class Factories:
             title = petname.generate(2, " ", letters=10).title()
         return Dashboard.objects.create(
             organization=organization, title=title, created_by_id=created_by.id, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_dashboard_favorite_user(
+        dashboard: Dashboard,
+        user: User,
+        organization: Organization | None = None,
+        position: int | None = None,
+        **kwargs,
+    ) -> DashboardFavoriteUser:
+        if organization is None:
+            organization = dashboard.organization
+        return DashboardFavoriteUser.objects.create(
+            dashboard=dashboard,
+            user_id=user.id,
+            organization=organization,
+            position=position,
+            **kwargs,
         )
 
     @staticmethod

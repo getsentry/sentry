@@ -1,6 +1,10 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+from django.db import IntegrityError
+
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.utils.hostname import InstanceHostnameError
 from sentry.models.organizationcontributors import (
@@ -11,6 +15,7 @@ from sentry.models.organizationcontributors import (
 from sentry.models.project import Project
 from sentry.seer.code_review.contributor_seats import (
     _is_autofix_enabled_for_repo,
+    get_or_create_contributor,
     record_contributor_action,
     should_increment_contributor_seat,
     track_contributor_seat,
@@ -262,9 +267,9 @@ class TrackContributorSeatTest(TestCase):
         mock_logger: MagicMock,
         mock_assign_seat: MagicMock,
     ) -> None:
-        OrganizationContributors.objects.create(
+        self.create_organization_contributor(
             organization=self.organization,
-            integration_id=self.integration.id,
+            integration=self.integration,
             external_identifier="12345",
             provider=self.integration.provider,
             alias="testuser",
@@ -413,9 +418,9 @@ class RecordContributorActionTest(TestCase):
     def test_increments_and_assigns_at_threshold(
         self, mock_should: MagicMock, mock_assign: MagicMock
     ) -> None:
-        OrganizationContributors.objects.create(
+        self.create_organization_contributor(
             organization=self.organization,
-            integration_id=self.integration.id,
+            integration=self.integration,
             external_identifier="123",
             provider=self.integration.provider,
             alias="alice",
@@ -436,9 +441,9 @@ class RecordContributorActionTest(TestCase):
     def test_increments_and_assigns_above_threshold(
         self, mock_should: MagicMock, mock_assign: MagicMock
     ) -> None:
-        OrganizationContributors.objects.create(
+        self.create_organization_contributor(
             organization=self.organization,
-            integration_id=self.integration.id,
+            integration=self.integration,
             external_identifier="123",
             provider=self.integration.provider,
             alias="alice",
@@ -467,4 +472,143 @@ class RecordContributorActionTest(TestCase):
             external_identifier="123",
         ).exists()
         assert self._action_count() == 0
+        mock_capture.assert_called_once()
+
+
+class GetOrCreateContributorTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:1"
+        )
+        # Second github integration -> same provider/hostname, so rows created via
+        # each land in the same (org, provider, hostname, external_identifier) group.
+        self.other_integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="github:2"
+        )
+
+    def _call(
+        self,
+        integration: Integration | None = None,
+        external_identifier: str = "123",
+        alias: str | None = "alice",
+    ) -> OrganizationContributors | None:
+        return get_or_create_contributor(
+            organization=self.organization,
+            integration=integration or self.integration,
+            external_identifier=external_identifier,
+            alias=alias,
+        )
+
+    def _group_count(self, external_identifier: str = "123") -> int:
+        return OrganizationContributors.objects.filter(
+            organization_id=self.organization.id, external_identifier=external_identifier
+        ).count()
+
+    def test_creates_when_none_exists(self) -> None:
+        contributor = self._call()
+
+        assert contributor is not None
+        assert OrganizationContributors.objects.filter(id=contributor.id).exists()
+        assert contributor.provider == "github"
+        assert contributor.hostname == "github.com"
+        assert contributor.external_identifier == "123"
+        assert contributor.alias == "alice"
+
+    def test_returns_existing_without_creating(self) -> None:
+        existing = self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
+            external_identifier="123",
+        )
+
+        contributor = self._call()
+
+        assert contributor is not None
+        assert contributor.id == existing.id
+        assert self._group_count() == 1
+
+    @patch("sentry.seer.code_review.contributor_seats.get_canonical_contributor")
+    def test_integrityerror_returns_existing_on_race(self, mock_get_canonical: MagicMock) -> None:
+        existing = self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
+            external_identifier="123",
+        )
+        # Race: first lookup misses, our create loses to a concurrent insert
+        # (IntegrityError), retry lookup finds the winner.
+        mock_get_canonical.side_effect = [None, existing]
+        with patch.object(
+            OrganizationContributors.objects, "create", side_effect=IntegrityError("dupe")
+        ):
+            contributor = self._call()
+
+        assert contributor is not None
+        assert contributor.id == existing.id
+
+    @patch("sentry.seer.code_review.contributor_seats.get_canonical_contributor")
+    def test_integrityerror_reraises_when_still_missing(
+        self, mock_get_canonical: MagicMock
+    ) -> None:
+        # Both lookups miss but create keeps failing -> propagate.
+        mock_get_canonical.side_effect = [None, None]
+        with (
+            patch.object(
+                OrganizationContributors.objects, "create", side_effect=IntegrityError("dupe")
+            ),
+            pytest.raises(IntegrityError),
+        ):
+            self._call()
+
+    def test_returns_highest_num_actions_among_duplicates(self) -> None:
+        # Lower-id row has fewer actions; the higher-id row is the current seat
+        # holder and must be returned so actions keep accruing to it.
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
+            external_identifier="123",
+            num_actions=1,
+        )
+        seat_holder = self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.other_integration,
+            external_identifier="123",
+            num_actions=5,
+        )
+
+        contributor = self._call()
+
+        assert contributor is not None
+        assert contributor.id == seat_holder.id
+        assert self._group_count() == 2
+
+    def test_returns_lowest_id_on_num_actions_tie(self) -> None:
+        first = self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
+            external_identifier="123",
+            num_actions=3,
+        )
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.other_integration,
+            external_identifier="123",
+            num_actions=3,
+        )
+
+        contributor = self._call()
+
+        assert contributor is not None
+        assert contributor.id == first.id
+
+    @patch("sentry.seer.code_review.contributor_seats.sentry_sdk.capture_exception")
+    @patch(
+        "sentry.seer.code_review.contributor_seats.instance_hostname",
+        side_effect=InstanceHostnameError("missing"),
+    )
+    def test_returns_none_on_missing_hostname(
+        self, mock_hostname: MagicMock, mock_capture: MagicMock
+    ) -> None:
+        assert self._call() is None
+        assert self._group_count() == 0
         mock_capture.assert_called_once()
