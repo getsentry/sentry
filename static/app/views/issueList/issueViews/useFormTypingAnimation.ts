@@ -1,12 +1,11 @@
 import {useCallback, useEffect, useRef} from 'react';
 
-import type {FormModel} from 'sentry/components/forms/model';
-
 interface TriggerFormTypingAnimationParams {
-  fieldName: string;
-  formModel: FormModel;
+  /**
+   * Called with the incremental (and finally the full) text as the animation runs.
+   */
+  setValue: (value: string) => void;
   text: string;
-  quiet?: boolean;
   speed?: number;
 }
 
@@ -18,7 +17,8 @@ interface UseFormTypingAnimationOptions {
 }
 
 /**
- * Animates text directly into a form field value.
+ * Animates text into a form field by repeatedly calling `setValue` with a
+ * growing slice of the text. The consumer decides how to apply the value.
  */
 export function useFormTypingAnimation({
   speed: defaultSpeed = 70,
@@ -39,24 +39,19 @@ export function useFormTypingAnimation({
   useEffect(() => cancelFormTypingAnimation, [cancelFormTypingAnimation]);
 
   const triggerFormTypingAnimation = useCallback(
-    ({
-      formModel,
-      fieldName,
-      text,
-      speed = defaultSpeed,
-    }: TriggerFormTypingAnimationParams) => {
+    ({setValue, text, speed = defaultSpeed}: TriggerFormTypingAnimationParams) => {
       cancelFormTypingAnimation();
 
       const runId = runIdRef.current;
 
       if (!text.length) {
-        formModel.setValue(fieldName, '', {quiet: true});
+        setValue('');
         return;
       }
 
       currentIndexRef.current = 0;
       lastUpdateTimeRef.current = performance.now();
-      formModel.setValue(fieldName, '', {quiet: true});
+      setValue('');
 
       const interval = 1000 / Math.max(1, speed);
 
@@ -71,7 +66,7 @@ export function useFormTypingAnimation({
         if (charsToAdd > 0) {
           const nextIndex = Math.min(text.length, currentIndexRef.current + charsToAdd);
           if (nextIndex > currentIndexRef.current) {
-            formModel.setValue(fieldName, text.slice(0, nextIndex), {quiet: true});
+            setValue(text.slice(0, nextIndex));
             currentIndexRef.current = nextIndex;
             lastUpdateTimeRef.current = timestamp;
           }
@@ -83,8 +78,7 @@ export function useFormTypingAnimation({
         }
 
         animationFrameRef.current = null;
-        // The last setValue is not quiet to trigger form validation
-        formModel.setValue(fieldName, text);
+        setValue(text);
       };
 
       animationFrameRef.current = window.requestAnimationFrame(animate);
