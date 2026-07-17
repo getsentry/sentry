@@ -43,12 +43,12 @@ from sentry.integrations.project_management.metrics import (
 )
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.issues.action_log import (
+    action_context_scope,
     publish_action,
     resolve_action_actor,
     resolve_action_source,
 )
 from sentry.issues.action_log.types import (
-    CreateExternalIssueAction,
     LinkExternalIssueAction,
     UnlinkExternalIssueAction,
 )
@@ -345,18 +345,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             )
         installation.store_issue_last_defaults(group.project, request.user, request.data)
 
-        self.create_issue_activity(request, group, installation, external_issue, new=True)
-
-        publish_action(
-            CreateExternalIssueAction(
-                provider=integration.provider,
-                external_issue_key=external_issue.key,
-            ),
-            source=resolve_action_source(request),
-            group_id=group.id,
-            project=group.project,
-            actor=resolve_action_actor(request),
-        )
+        with action_context_scope(resolve_action_source(request), resolve_action_actor(request)):
+            self.create_issue_activity(request, group, installation, external_issue, new=True)
 
         # TODO(jess): return serialized issue
         url = data.get("url") or installation.get_issue_url(external_issue.key)
@@ -499,7 +489,8 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
                 lifecycle.record_halt(exc)
                 return Response({"non_field_errors": ["That issue is already linked"]}, status=400)
 
-        self.create_issue_activity(request, group, installation, external_issue, new=False)
+        with action_context_scope(resolve_action_source(request), resolve_action_actor(request)):
+            self.create_issue_activity(request, group, installation, external_issue, new=False)
 
         publish_action(
             LinkExternalIssueAction(

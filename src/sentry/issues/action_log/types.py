@@ -66,7 +66,6 @@ class GroupActionType(IntEnum):
     SUBSCRIBE = 14
     UNSUBSCRIBE = 15
     TRIGGER_AUTOFIX = 17
-    CREATE_EXTERNAL_ISSUE = 18
     LINK_EXTERNAL_ISSUE = 19
     UNLINK_EXTERNAL_ISSUE = 20
     CREATE_PLATFORM_EXTERNAL_ISSUE = 21
@@ -91,7 +90,7 @@ class GroupActionType(IntEnum):
     SET_PUBLIC = 1004
     SET_PRIVATE = 1005
     SET_REGRESSED = 1006
-    CREATE_ISSUE = 1007
+    CREATE_EXTERNAL_ISSUE = 1007
     COMMENT = 1008
     # Note that ActivityTypes 9 & 10 are not Group-level, so they are not carried here.
     ASSIGN = 1011
@@ -326,15 +325,6 @@ class TriggerAutofixAction(GroupAction):
         return GroupActionType.TRIGGER_AUTOFIX
 
 
-class CreateExternalIssueAction(GroupAction):
-    provider: str
-    external_issue_key: str
-
-    @classmethod
-    def get_type(cls) -> GroupActionType:
-        return GroupActionType.CREATE_EXTERNAL_ISSUE
-
-
 class LinkExternalIssueAction(GroupAction):
     provider: str
     external_issue_key: str
@@ -496,16 +486,17 @@ class SetPrivateAction(GroupAction):
         return GroupActionType.SET_PRIVATE
 
 
-class CreateIssueAction(GroupAction):
-    title: str
+class CreateExternalIssueAction(GroupAction):
+    title: Optional[str] = None
     provider: str
-    location: str
-    label: str
+    external_issue_key: Optional[str] = None
+    location: Optional[str] = None
+    label: Optional[str] = None
     new: Optional[bool] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
-        return GroupActionType.CREATE_ISSUE
+        return GroupActionType.CREATE_EXTERNAL_ISSUE
 
 
 class SetResolvedInReleaseAction(GroupAction):

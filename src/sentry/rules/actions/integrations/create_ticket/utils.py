@@ -41,6 +41,8 @@ def create_link(
     event: GroupEvent,
     response: Response,
 ) -> None:
+    from sentry.issues.action_log import ActionSource, action_context_scope
+
     """
     After creating the event on a third-party service, create a link to the
     external resource in the DB. TODO make this a transaction.
@@ -74,17 +76,18 @@ def create_link(
         data={"provider": integration.provider},
     )
     issue_url = response.get("url") or installation.get_issue_url(external_issue.key)
-    Activity.objects.create_group_activity(
-        group=event.group,
-        type=ActivityType.CREATE_ISSUE,
-        data={
-            "title": external_issue.title,
-            "provider": installation.model.get_provider().name,
-            "location": issue_url,
-            "label": installation.get_issue_display_name(external_issue) or external_issue.key,
-            "new": True,
-        },
-    )
+    with action_context_scope(ActionSource.SYSTEM):
+        Activity.objects.create_group_activity(
+            group=event.group,
+            type=ActivityType.CREATE_ISSUE,
+            data={
+                "title": external_issue.title,
+                "provider": installation.model.get_provider().name,
+                "location": issue_url,
+                "label": installation.get_issue_display_name(external_issue) or external_issue.key,
+                "new": True,
+            },
+        )
 
 
 def build_description_workflow_engine_ui(
