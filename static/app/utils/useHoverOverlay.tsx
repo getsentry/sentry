@@ -497,7 +497,7 @@ function useHoverOverlay({
         (skipWrapper || typeof triggerChildren.type === 'string')
       ) {
         const childRef = (triggerChildren.props as any).ref;
-        
+
         // Create a merged ref callback that updates when the child ref changes
         // and properly handles React 19 cleanup functions
         const mergedRef = useMemo(() => {
