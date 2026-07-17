@@ -21,7 +21,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "1137_add_user_upper_indexes"),
+        ("sentry", "1138_groupactionlogentry_date_updated_db_default"),
     ]
 
     operations = [
