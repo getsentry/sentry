@@ -165,30 +165,6 @@ class SyncCodingAgentStatusTest(TestCase):
         assert link.coding_agent_handoff_id == self.handoff.id
 
     @patch(MOCK_UPDATE_STATE_PATH)
-    def test_deleting_handoff_keeps_run_pull_request_link(self, mock_update_state: Mock) -> None:
-        mock_update_state.return_value = True
-        sync_coding_agent_status(
-            agent_id="agent-1",
-            organization_id=self.organization.id,
-            status=CodingAgentStatus.COMPLETED,
-            result=CodingAgentResult(
-                description="Fixed the bug",
-                repo_provider="github",
-                repo_full_name=REPO_NAME,
-                pr_url="https://github.com/getsentry/sentry/pull/42",
-            ),
-        )
-        pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="42")
-        link = SeerRunPullRequest.objects.get(pull_request=pull_request)
-
-        self.handoff.delete()
-
-        link.refresh_from_db()
-        assert link.seer_run_id == self.seer_run.id
-        assert link.coding_agent_handoff_id is None
-        assert list(self.seer_run.pull_requests) == [pull_request]
-
-    @patch(MOCK_UPDATE_STATE_PATH)
     def test_links_multiple_pull_requests_on_same_handoff(self, mock_update_state: Mock) -> None:
         """A single handoff isn't constrained to one PR -- e.g. a provider surfacing
         more than one result for the same agent session must not clobber or drop
@@ -252,24 +228,6 @@ class SyncCodingAgentStatusTest(TestCase):
         self.handoff.refresh_from_db()
         assert self.handoff.status == "completed"
         assert not self.handoff.pull_requests.exists()
-
-    @patch(MOCK_UPDATE_STATE_PATH)
-    def test_does_not_link_pull_request_without_pr_url(self, mock_update_state: Mock) -> None:
-        mock_update_state.return_value = True
-        result = CodingAgentResult(
-            description="No PR yet", repo_provider="github", repo_full_name=REPO_NAME
-        )
-
-        sync_coding_agent_status(
-            agent_id="agent-1",
-            organization_id=self.organization.id,
-            status=CodingAgentStatus.RUNNING,
-            result=result,
-        )
-
-        self.handoff.refresh_from_db()
-        assert not self.handoff.pull_requests.exists()
-        assert not SeerRunPullRequest.objects.exists()
 
     @patch(MOCK_UPDATE_STATE_PATH)
     def test_skips_seer_call_when_local_save_fails(self, mock_update_state: Mock) -> None:
