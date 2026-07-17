@@ -62,7 +62,7 @@ class OrganizationContributors(DefaultFieldsModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["organization_id", "provider", "hostname", "external_identifier"],
-                name="sentry_orgcont_unique_org_cont",
+                name="sentry_orgcont_unique_contributor",
             ),
         ]
         indexes = [

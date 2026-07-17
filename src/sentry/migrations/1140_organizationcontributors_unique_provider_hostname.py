@@ -25,20 +25,15 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.RemoveConstraint(
-            model_name="organizationcontributors",
-            name="sentry_orgcont_unique_org_cont",
-        ),
         migrations.AddConstraint(
             model_name="organizationcontributors",
             constraint=models.UniqueConstraint(
-                fields=(
-                    "organization_id",
-                    "provider",
-                    "hostname",
-                    "external_identifier",
-                ),
-                name="sentry_orgcont_unique_org_cont",
+                fields=("organization_id", "provider", "hostname", "external_identifier"),
+                name="sentry_orgcont_unique_contributor",
             ),
+        ),
+        migrations.RemoveConstraint(
+            model_name="organizationcontributors",
+            name="sentry_orgcont_unique_org_cont",
         ),
     ]
