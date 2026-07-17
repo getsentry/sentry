@@ -39,7 +39,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
-from sentry.api.endpoints.internal.llm_proxy_key import make_llm_proxy_key
 from sentry.api.endpoints.project_trace_item_details import convert_rpc_attribute_to_json
 from sentry.api.utils import get_date_range_from_params
 from sentry.auth.exceptions import IdentityNotValid
@@ -1108,9 +1107,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     # Monitoring provider tokens (MCP)
     "get_monitoring_provider_connections": seer_rpc(get_monitoring_provider_connections),
     "refresh_monitoring_provider_token": seer_rpc(refresh_monitoring_provider_token),
-    #
-    # LLM Proxy
-    "make_llm_proxy_key": seer_rpc(make_llm_proxy_key),
 }
 
 
