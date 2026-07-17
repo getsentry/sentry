@@ -9,13 +9,17 @@ from pydantic import BaseModel, Field, ValidationError, parse_raw_as, root_valid
 
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
+    GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.utils import json
 
 FeedbackSource = Annotated[
-    UserUIFeedbackSource | GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource,
+    UserUIFeedbackSource
+    | GithubPrCommentFeedbackSource
+    | GithubPrReviewCommentFeedbackSource
+    | GithubPrReviewBodyFeedbackSource,
     Field(discriminator="type"),
 ]
 

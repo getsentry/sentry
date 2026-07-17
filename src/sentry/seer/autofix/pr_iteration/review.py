@@ -14,14 +14,22 @@ For the listener to actually receive events it MUST be imported into
 singleton. Listeners run asynchronously on taskbroker, are isolated from one
 another, and take a single ``PullRequestReviewEvent`` argument.
 
-This is scaffolding: it filters, logs, and leaves the Autofix dispatch as a
-follow-up (see the TODO below).
+The listener filters to submitted reviews (skipping our own app's reviews),
+resolves org/integration/repo context from the event, feature-gates, and hands
+off to ``trigger_pr_iteration_from_review`` which fetches the review's inline
+comments and summary body and dispatches an Autofix PR iteration.
 """
 
 from __future__ import annotations
 
 import logging
 
+from django.conf import settings
+
+from sentry import features
+from sentry.integrations.services.integration import integration_service
+from sentry.models.organization import Organization
+from sentry.models.repository import Repository
 from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import PullRequestReviewEvent
 
@@ -30,12 +38,45 @@ logger = logging.getLogger(__name__)
 # We only care about a freshly submitted PR review
 _HANDLED_ACTIONS = frozenset({"submitted"})
 
+# SCM provider name (from the subscription event) -> Sentry repository provider.
+_PROVIDER_TO_REPO_PROVIDER = {
+    "github": "integrations:github",
+    "github_enterprise": "integrations:github_enterprise",
+}
+
+
+def _is_own_app_review(author_id: str | None) -> bool:
+    """True if the review was submitted by our own Seer/Sentry GitHub app.
+
+    Acting on our own review output would be a feedback loop, so we skip it.
+    Third-party AI code-review bots are intentionally NOT skipped (decision 6).
+    The review event's ``author.id`` is a ``str`` while the settings are ints,
+    so normalize both sides before comparing (see the plan's type-mismatch note).
+    """
+    if author_id is None:
+        return False
+
+    own_app_ids = {
+        str(app_id)
+        for app_id in (
+            getattr(settings, "SEER_AUTOFIX_GITHUB_APP_USER_ID", None),
+            getattr(settings, "SENTRY_GITHUB_APP_USER_ID", None),
+        )
+        if app_id is not None
+    }
+    return str(author_id) in own_app_ids
+
 
 @scm_event_stream.listen_for(event_type="pull_request_review")
 def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEvent) -> None:
     """
-    SCM listener for ``pull_request_review`` events that (eventually) triggers an
-    Autofix PR iteration from a submitted review.
+    SCM listener for ``pull_request_review`` events that triggers an Autofix PR
+    iteration from a submitted review.
+
+    GitHub wraps every inline comment in a review (including the standalone
+    "Add single comment" path, which fires ``pull_request_review`` with
+    ``state: commented``), so acting on submitted reviews covers both batch
+    reviews and single inline comments.
     """
     review = event.pull_request_review
     subscription = event.subscription_event
@@ -48,12 +89,16 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
     installation_id = extra.get("installation_id")
     repository_id = extra.get("repository_id")
 
+    provider = subscription.get("type")
+    author_id = event.author.get("id")
+
     log_extra = {
-        "provider": subscription.get("type"),
+        "provider": provider,
         "review_id": review.get("id"),
         "review_state": review.get("state"),
         "pull_request_id": review.get("pull_request_id"),
         "author": event.author.get("username"),
+        "author_id": author_id,
         "is_bot": event.is_bot,
         "installation_id": installation_id,
         "repository_id": repository_id,
@@ -67,17 +112,84 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
         return None
 
     # A review submitted by our own app is our previous output, not feedback.
-    if event.is_bot:
-        logger.debug("autofix.pr_iteration.review_listener.skipped_bot", extra=log_extra)
+    # Third-party review bots are intended to trigger iterations, so this is a
+    # deliberately narrow skip keyed on our own app's GitHub user id.
+    if _is_own_app_review(author_id):
+        logger.debug("autofix.pr_iteration.review_listener.skipped_own_app", extra=log_extra)
         return None
 
     logger.info("autofix.pr_iteration.review_listener.received", extra=log_extra)
 
-    # TODO: with installation_id + repository_id in hand, resolve the integration
-    # via ``integration_service.organization_contexts`` (control-silo RPC, since
-    # this listener runs in the region) and the matching repos via the ORM, then
-    # gate on ``organizations:autofix-pr-iteration``, normalize the review into a
-    # Feedback source, and dispatch an Autofix PR iteration per (org, repo)
-    # (mirror `_dispatch_autofix_iteration_from_comment` in `mention.py`).
-    logger.info("autofix.pr_iteration.review_listener.todo_dispatch", extra=log_extra)
+    repo_provider = _PROVIDER_TO_REPO_PROVIDER.get(provider) if provider else None
+    if repo_provider is None:
+        logger.warning("autofix.pr_iteration.review_listener.unsupported_provider", extra=log_extra)
+        return None
+
+    if installation_id is None or repository_id is None:
+        logger.info("autofix.pr_iteration.review_listener.missing_ids", extra=log_extra)
+        return None
+
+    # ``pull_request_id`` on the event is the PR *number* (the GitHub REST path
+    # uses it); the numeric GitHub PR id needed for the run lookup is recovered
+    # in the task via ``get_pull_request``.
+    try:
+        pr_number = int(review["pull_request_id"])
+    except (TypeError, ValueError):
+        logger.warning("autofix.pr_iteration.review_listener.bad_pr_number", extra=log_extra)
+        return None
+
+    try:
+        review_id = int(review["id"])
+    except (TypeError, ValueError):
+        logger.warning("autofix.pr_iteration.review_listener.bad_review_id", extra=log_extra)
+        return None
+
+    # This listener runs in the region with only the two ids, so it resolves the
+    # integration (control-silo RPC) and repos (ORM) itself, rather than being
+    # handed a resolved org/repo/integration like the legacy comment webhook.
+    result = integration_service.organization_contexts(
+        external_id=str(installation_id), provider=provider
+    )
+    integration = result.integration
+    installs = result.organization_integrations
+    if integration is None or not installs:
+        logger.info("autofix.pr_iteration.review_listener.no_integration", extra=log_extra)
+        return None
+
+    org_ids = [install.organization_id for install in installs]
+    organizations = {org.id: org for org in Organization.objects.filter(id__in=org_ids)}
+    repos = Repository.objects.filter(
+        organization_id__in=org_ids,
+        provider=repo_provider,
+        external_id=str(repository_id),
+    )
+
+    dispatched = False
+    for repo in repos:
+        organization = organizations.get(repo.organization_id)
+        if organization is None:
+            continue
+
+        repo_log_extra = {**log_extra, "organization_id": organization.id, "repo_id": repo.id}
+        if not features.has("organizations:autofix-pr-iteration", organization):
+            logger.info(
+                "autofix.pr_iteration.review_listener.feature_disabled", extra=repo_log_extra
+            )
+            continue
+
+        from sentry.tasks.seer.pr_iteration import trigger_pr_iteration_from_review
+
+        logger.info("autofix.pr_iteration.review_listener.scheduled", extra=repo_log_extra)
+        trigger_pr_iteration_from_review.delay(
+            organization_id=organization.id,
+            repo_id=repo.id,
+            integration_id=integration.id,
+            pr_number=pr_number,
+            review_id=review_id,
+        )
+        dispatched = True
+
+    if not dispatched:
+        logger.info("autofix.pr_iteration.review_listener.no_repo", extra=log_extra)
+
     return None

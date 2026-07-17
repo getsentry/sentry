@@ -13,6 +13,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubIssueComment,
     GithubPrCommentFeedbackSource,
+    GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
@@ -247,6 +248,65 @@ class GithubPrReviewCommentTextTest(TestCase):
         feedback = _review_feedback(file_path=None, line=None)
         assert feedback.text == "fix it"
         assert feedback.ui_text == "fix it"
+
+
+class GithubPrReviewCommentRequireCommandTest(TestCase):
+    def test_verbatim_body_when_command_not_required(self) -> None:
+        # The review path opts out of the @sentry command gate, so the raw body
+        # is used verbatim even without a command.
+        source = GithubPrReviewCommentFeedbackSource(
+            comment={"id": 1, "body": "please rename this", "path": "a.py", "line": 5},
+            require_command=False,
+        )
+        assert source.comment_feedback == "please rename this"
+        assert source.text == "Inline comment on a.py:5:\nplease rename this"
+
+    def test_require_command_round_trips(self) -> None:
+        source = GithubPrReviewCommentFeedbackSource(
+            comment={"id": 1, "body": "no command", "path": "a.py", "line": 5},
+            require_command=False,
+        )
+        parsed = parse_feedback(Feedback(source=source).json())
+        assert isinstance(parsed[0].source, GithubPrReviewCommentFeedbackSource)
+        assert parsed[0].source.require_command is False
+        assert parsed[0].text == "Inline comment on a.py:5:\nno command"
+
+    def test_still_gates_by_default(self) -> None:
+        with pytest.raises(ValidationError):
+            GithubPrReviewCommentFeedbackSource(comment={"id": 1, "body": "not a command"})
+
+
+class GithubPrReviewBodyTest(TestCase):
+    def test_text_is_body(self) -> None:
+        source = GithubPrReviewBodyFeedbackSource(review_id=5, body="overall summary")
+        assert source.text == "overall summary"
+        assert Feedback(source=source).text == "overall summary"
+
+    def test_round_trips(self) -> None:
+        source = GithubPrReviewBodyFeedbackSource(
+            review_id=5, body="overall summary", html_url="https://x/5"
+        )
+        parsed = parse_feedback(Feedback(source=source).json())
+        assert isinstance(parsed[0].source, GithubPrReviewBodyFeedbackSource)
+        assert parsed[0].source.review_id == 5
+        assert parsed[0].source.body == "overall summary"
+        assert parsed[0].source.html_url == "https://x/5"
+
+    def test_should_consume_false_when_review_already_processed(self) -> None:
+        processed = Feedback(source=GithubPrReviewBodyFeedbackSource(review_id=5, body="a"))
+        state = _run_state(blocks=[_feedback_block(processed)])
+        source = GithubPrReviewBodyFeedbackSource(review_id=5, body="a")
+        assert source.should_consume(state) is False
+
+    def test_should_consume_true_when_review_unseen(self) -> None:
+        processed = Feedback(source=GithubPrReviewBodyFeedbackSource(review_id=5, body="a"))
+        state = _run_state(blocks=[_feedback_block(processed)])
+        source = GithubPrReviewBodyFeedbackSource(review_id=6, body="b")
+        assert source.should_consume(state) is True
+
+    def test_should_consume_true_when_review_id_missing(self) -> None:
+        source = GithubPrReviewBodyFeedbackSource(body="a")
+        assert source.should_consume(_run_state()) is True
 
 
 class ConsumeTaskTest(TestCase):

@@ -63,6 +63,7 @@ class AutofixReferrer(enum.StrEnum):
     MCP = "api.mcp"
     WEB = "api.web"
     GITHUB_PR_COMMENT = "github.pr_comment"
+    GITHUB_PR_REVIEW = "github.pr_review"
     UNKNOWN = "unknown"
 
 

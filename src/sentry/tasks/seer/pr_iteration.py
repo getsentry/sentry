@@ -11,7 +11,12 @@ from scm.types import (
     CreatePullRequestCommentReactionProtocol,
     CreateReviewCommentReactionProtocol,
     GetRepositoryUserPermissionProtocol,
+    GetReviewCommentsProtocol,
+    ListPullRequestReviewsProtocol,
+    PaginationParams,
     Reaction,
+    Review,
+    ReviewComment,
 )
 from taskbroker_client.retry import Retry
 
@@ -36,7 +41,9 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
+    GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
+    GithubPullRequestReviewComment,
 )
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
@@ -164,9 +171,10 @@ def consume_queued_autofix_feedback(
             return
 
         feedback_items = []
-        # Keyed by (source class, comment id): issue-comment and review-comment
-        # ids come from separate GitHub namespaces, so dedupe within each type.
-        seen_comment_keys: set[tuple[type, int]] = set()
+        # Keyed by (source class, id): comment ids, review-comment ids, and
+        # review ids come from separate GitHub namespaces, so dedupe within each
+        # concrete source type.
+        seen_keys: set[tuple[type, int]] = set()
         for item in queued_items:
             if not item.feedback.source.should_consume(state):
                 logger.info(
@@ -181,15 +189,19 @@ def consume_queued_autofix_feedback(
                 continue
 
             source = item.feedback.source
+            dedupe_id: int | None = None
             if isinstance(
                 source, (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource)
             ):
-                comment_id = source.comment.id
-                if comment_id is not None:
-                    key = (type(source), comment_id)
-                    if key in seen_comment_keys:
-                        continue
-                    seen_comment_keys.add(key)
+                dedupe_id = source.comment.id
+            elif isinstance(source, GithubPrReviewBodyFeedbackSource):
+                dedupe_id = source.review_id
+
+            if dedupe_id is not None:
+                key = (type(source), dedupe_id)
+                if key in seen_keys:
+                    continue
+                seen_keys.add(key)
 
             feedback_items.append(item.feedback)
 
@@ -498,5 +510,241 @@ def trigger_pr_iteration_from_comment(
             "repo_id": repo_id,
         },
     )
+
+    return None
+
+
+# GitHub's REST pagination is page-number based: the SCM ``cursor`` is the page
+# number and ``per_page`` MUST be sent on every paginated request (the provider
+# reads ``pagination["per_page"]`` unconditionally). The provider's
+# ``next_cursor`` is always truthy, so it can't signal the end — we stop instead
+# when a page comes back shorter than ``per_page``. 100 is GitHub's page-size cap.
+_REVIEW_PAGE_SIZE = 100
+
+
+def _fetch_all_review_comments(
+    scm: GetReviewCommentsProtocol,
+    *,
+    pr_number: int,
+    review_id: int,
+) -> list[ReviewComment]:
+    """Page through every inline comment attached to a submitted review."""
+    comments: list[ReviewComment] = []
+    page = 1
+    while True:
+        pagination: PaginationParams = {"cursor": str(page), "per_page": _REVIEW_PAGE_SIZE}
+        result = scm_actions.get_review_comments(scm, str(pr_number), str(review_id), pagination)
+        batch = result["data"]
+        comments.extend(batch)
+        if len(batch) < _REVIEW_PAGE_SIZE:
+            return comments
+        page += 1
+
+
+def _fetch_review_body(
+    scm: ListPullRequestReviewsProtocol,
+    *,
+    pr_number: int,
+    review_id: int,
+) -> Review | None:
+    """Find the submitted review's summary body by paging the PR's reviews."""
+    page = 1
+    while True:
+        pagination: PaginationParams = {"cursor": str(page), "per_page": _REVIEW_PAGE_SIZE}
+        result = scm_actions.list_pull_request_reviews(scm, str(pr_number), pagination)
+        batch = result["data"]
+        for review in batch:
+            if str(review["id"]) == str(review_id):
+                return review
+        if len(batch) < _REVIEW_PAGE_SIZE:
+            return None
+        page += 1
+
+
+def _build_review_feedback(
+    inline_comments: list[ReviewComment],
+    review_body: str | None,
+    *,
+    review_id: int,
+    review_html_url: str | None,
+) -> list[Feedback]:
+    """Normalize a submitted review into feedback items.
+
+    Each inline comment becomes an anchored ``GithubPrReviewCommentFeedbackSource``
+    (command gate relaxed) and the review's summary body, if any, becomes its own
+    non-anchored ``GithubPrReviewBodyFeedbackSource``.
+    """
+    feedback: list[Feedback] = []
+
+    for comment in inline_comments:
+        author = comment.get("author")
+        # The SCM-normalized ``ReviewComment`` carries ``file_path`` / ``author``
+        # while the reusable source reads the webhook-shaped ``path`` / ``user``,
+        # so map the fields explicitly before constructing it.
+        review_comment = GithubPullRequestReviewComment(
+            id=comment["id"],
+            body=comment.get("body"),
+            url=comment.get("url"),
+            path=comment.get("file_path"),
+            line=comment.get("line"),
+            start_line=comment.get("start_line"),
+            user={"login": author["username"] if author else None},
+        )
+        source = GithubPrReviewCommentFeedbackSource(comment=review_comment, require_command=False)
+        feedback.append(Feedback(source=source))
+
+    if review_body:
+        body_source = GithubPrReviewBodyFeedbackSource(
+            review_id=review_id,
+            body=review_body,
+            html_url=review_html_url,
+        )
+        feedback.append(Feedback(source=body_source))
+
+    return feedback
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.trigger_pr_iteration_from_review",
+    namespace=seer_tasks,
+    processing_deadline_duration=65,
+    retry=Retry(times=1),
+)
+def trigger_pr_iteration_from_review(
+    *,
+    organization_id: int,
+    repo_id: int,
+    integration_id: int,
+    pr_number: int,
+    review_id: int,
+) -> None:
+    """
+    Resolve the Autofix run behind a submitted PR review and kick off an iteration.
+
+    Runs async because it makes external GitHub and Seer calls: it fetches the PR
+    to recover its GitHub id, looks up the agent run keyed on that id, fetches the
+    review's inline comments and summary body, and triggers the iteration with the
+    whole review as feedback. Unlike the comment path there is no ``@sentry``
+    command gate and no repo-write-access gate — any submitted review is acted on
+    (our own app's reviews are filtered out upstream in ``review.py``).
+    """
+    log_extra = {
+        "organization_id": organization_id,
+        "repo_id": repo_id,
+        "pr_number": pr_number,
+        "review_id": review_id,
+    }
+
+    repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
+    if repo is None:
+        logger.info("autofix.pr_iteration.review_trigger.missing_repo", extra=log_extra)
+        return None
+    if repo.provider is None:
+        logger.warning("autofix.pr_iteration.review_trigger.no_provider", extra=log_extra)
+        return None
+
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if integration is None:
+        logger.warning("autofix.pr_iteration.review_trigger.missing_integration", extra=log_extra)
+        return None
+
+    client = integration.get_installation(organization_id=organization_id).get_client()
+    try:
+        # Async task: the PR may be deleted, made private, or GitHub may return a
+        # transient error between webhook receipt and execution.
+        pull_request = client.get_pull_request(repo.name, str(pr_number))
+    except ApiError:
+        logger.warning(
+            "autofix.pr_iteration.review_trigger.get_pull_request_failed",
+            extra=log_extra,
+            exc_info=True,
+        )
+        return None
+    pr_id = pull_request.get("id")
+    if pr_id is None:
+        return None
+
+    agent_state = get_agent_state_from_pr_id(organization_id, repo.provider, pr_id)
+    if agent_state is None or not agent_state.repo_pr_states:
+        metrics.incr("autofix.pr_iteration.review_trigger.no_run")
+        logger.info(
+            "autofix.pr_iteration.review_trigger.no_run",
+            extra={**log_extra, "pr_id": pr_id},
+        )
+        return None
+
+    try:
+        scm = make_scm(organization_id, repo_id, referrer="seer")
+    except Exception:
+        logger.warning(
+            "autofix.pr_iteration.review_trigger.scm_init_failed", extra=log_extra, exc_info=True
+        )
+        return None
+
+    if not isinstance(scm, GetReviewCommentsProtocol) or not isinstance(
+        scm, ListPullRequestReviewsProtocol
+    ):
+        logger.warning("autofix.pr_iteration.review_trigger.unsupported_provider", extra=log_extra)
+        return None
+
+    inline_comments = _fetch_all_review_comments(scm, pr_number=pr_number, review_id=review_id)
+    review = _fetch_review_body(scm, pr_number=pr_number, review_id=review_id)
+    review_body = (review.get("body") or "").strip() if review else None
+    review_html_url = review.get("html_url") if review else None
+
+    # Skip genuinely empty reviews — no body text AND no inline comments — there
+    # is nothing to act on (e.g. a bare approve with no message). A review with
+    # any content (even "looks good") is passed through to the agent.
+    if not review_body and not inline_comments:
+        logger.info("autofix.pr_iteration.review_trigger.empty_review", extra=log_extra)
+        return None
+
+    feedback_items = _build_review_feedback(
+        inline_comments,
+        review_body,
+        review_id=review_id,
+        review_html_url=review_html_url,
+    )
+    if not feedback_items:
+        logger.info("autofix.pr_iteration.review_trigger.no_feedback", extra=log_extra)
+        return None
+
+    group_id = agent_state.metadata.get("group_id") if agent_state.metadata else None
+    if group_id is None:
+        raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
+
+    for feedback_obj in feedback_items:
+        try_enqueue_autofix_feedback(
+            run_id=agent_state.run_id,
+            organization_id=organization_id,
+            group_id=group_id,
+            feedback=feedback_obj,
+            referrer=AutofixReferrer.GITHUB_PR_REVIEW,
+            run_state=agent_state,
+        )
+
+    # A single consume pass drains everything queued above; trigger once using
+    # the first item to decide the countdown (all share the same run).
+    trigger_consume_pr_iteration_feedback(
+        run_id=agent_state.run_id,
+        organization_id=organization_id,
+        feedback=feedback_items[0],
+        run_state=agent_state,
+    )
+
+    # Ack each inline comment we acted on with :eyes:, mirroring the single-comment
+    # path. A review's summary body has no reaction target on GitHub, so only the
+    # inline comments are reacted to.
+    for comment in inline_comments:
+        _add_comment_reaction(
+            scm,
+            source_type="github-pr-review-comment",
+            pr_number=pr_number,
+            comment_id=int(comment["id"]),
+            reaction="eyes",
+        )
+
+    metrics.incr("autofix.pr_iteration.review_trigger.success")
+    logger.info("autofix.pr_iteration.review_trigger.success", extra=log_extra)
 
     return None

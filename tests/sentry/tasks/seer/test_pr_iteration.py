@@ -11,6 +11,7 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedba
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
+    GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
@@ -491,6 +492,50 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_pop.return_value = [
             self._queued(issue_feedback),
             self._queued(self._review_feedback(777)),
+        ]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert len(mock_trigger.call_args.kwargs["feedback"]) == 2
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_collapses_duplicate_review_body_ids_in_batch(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        body = lambda: Feedback(
+            source=GithubPrReviewBodyFeedbackSource(review_id=500, body="summary")
+        )
+        mock_pop.return_value = [self._queued(body()), self._queued(body())]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert len(mock_trigger.call_args.kwargs["feedback"]) == 1
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_review_body_and_comment_not_collapsed(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # A review body item and an inline comment item both flow through — they
+        # dedupe on separate id namespaces.
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(
+                Feedback(source=GithubPrReviewBodyFeedbackSource(review_id=1, body="summary"))
+            ),
+            self._queued(self._review_feedback(1)),
         ]
 
         self._call()

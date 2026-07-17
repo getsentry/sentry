@@ -63,8 +63,23 @@ def _processed_github_comment_ids(
     return ids
 
 
+def _processed_github_review_ids(run_state: SeerRunState) -> set[int]:
+    # Review-body feedback dedupes on the review id (its own GitHub namespace),
+    # so a re-delivered ``pull_request_review`` can't re-add its summary body.
+    ids: set[int] = set()
+    for item in _blocks_feedback(run_state.blocks):
+        source = item.source
+        if isinstance(source, GithubPrReviewBodyFeedbackSource):
+            rid = source.review_id
+            if rid is not None:
+                ids.add(rid)
+    return ids
+
+
 class _GithubPrCommentFeedbackSourceBase(FeedbackSourceBase):
     comment: GithubIssueComment
+    # We still require command for pr comments
+    require_command: bool = True
     # Derived from `comment` by `_parse_comment` — the single place a comment is
     # turned into feedback. Declared as a field (default "") so it serializes,
     # mirroring `CheckSuiteFeedbackSource.app_name`.
@@ -74,10 +89,15 @@ class _GithubPrCommentFeedbackSourceBase(FeedbackSourceBase):
     def _parse_comment(cls, values: dict[str, Any]) -> dict[str, Any]:
         comment = values.get("comment")
         body = comment.body if isinstance(comment, GithubIssueComment) else None
-        command = sentry_command(body)
-        if not isinstance(command, SentryIterateCommand):
-            raise ValueError("github-pr-comment feedback comment is not a @sentry iterate command")
-        values["comment_feedback"] = command.feedback
+        if values.get("require_command", True):
+            command = sentry_command(body)
+            if not isinstance(command, SentryIterateCommand):
+                raise ValueError(
+                    "github-pr-comment feedback comment is not a @sentry iterate command"
+                )
+            values["comment_feedback"] = command.feedback
+        else:
+            values["comment_feedback"] = body or ""
         return values
 
     @property
@@ -147,11 +167,37 @@ class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
         return self.comment_feedback
 
 
+class GithubPrReviewBodyFeedbackSource(FeedbackSourceBase):
+    """The summary body of a submitted GitHub PR review.
+
+    Unlike an inline review comment this has no diff anchor — it is the free-form
+    text a reviewer types when submitting a review. Emitted as its own feedback
+    item alongside the inline-comment sources (see decision 1 in the plan). No
+    ``@sentry`` command gate: any non-empty review body is acted on.
+    """
+
+    type: Literal["github-pr-review-body"] = "github-pr-review-body"
+    # The GitHub review id, used to dedupe re-delivered reviews.
+    review_id: int | None = None
+    body: str = ""
+    html_url: str | None = None
+
+    @property
+    def text(self) -> str:
+        return self.body
+
+    def should_consume(self, run_state: SeerRunState) -> bool:
+        if self.review_id is None:
+            return True
+        return self.review_id not in _processed_github_review_ids(run_state)
+
+
 __all__ = (
     "GithubIssueComment",
     "GithubPrCommentFeedbackSource",
     "GithubPrCommentFeedbackType",
     "GithubPrCommentUser",
+    "GithubPrReviewBodyFeedbackSource",
     "GithubPrReviewCommentFeedbackSource",
     "GithubPullRequestReviewComment",
 )
