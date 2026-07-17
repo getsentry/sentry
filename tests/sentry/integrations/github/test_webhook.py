@@ -40,6 +40,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import ExternalActorSource, ExternalProviders
 from sentry.middleware.integrations.parsers.github import GithubRequestParser
+from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
@@ -51,6 +52,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 
@@ -1767,6 +1769,65 @@ class PullRequestEventWebhookTest(APITestCase):
         assert pr.draft is None
 
         assert mock_metrics.incr.call_count == 1
+
+    @patch("sentry.integrations.github.webhook.track_contributor_seat")
+    def test_pr_lifecycle_activities_are_attributed_to_acting_user(
+        self, _mock_track_contributor_seat: MagicMock
+    ) -> None:
+        group = self.create_group(project=self.project, short_id=7)
+
+        with self.feature("organizations:pr-lifecycle-activity"):
+            integration = self._create_integration_and_send_pull_request_opened_event()
+            self.create_external_user(
+                user=self.user,
+                organization=self.organization,
+                integration=integration,
+                provider=ExternalProviders.GITHUB.value,
+                external_name="@octocat",
+                external_id="583231",
+            )
+            other_user = self.create_user(email="other@example.com")
+            self.create_member(organization=self.organization, user=other_user)
+            self.create_external_user(
+                user=other_user,
+                organization=self.organization,
+                integration=integration,
+                provider=ExternalProviders.GITHUB.value,
+                external_name="@octocat",
+                external_id="999999",
+            )
+
+            closed = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            closed["action"] = "closed"
+            closed["pull_request"]["state"] = "closed"
+            closed["sender"] = {"id": 583231, "login": "octocat"}
+            self._post_pull_request_event(json.dumps(closed).encode())
+
+            reopened = json.loads(PULL_REQUEST_OPENED_EVENT_EXAMPLE)
+            reopened["action"] = "reopened"
+            reopened["sender"] = {"id": 583231, "login": "octocat"}
+            self._post_pull_request_event(json.dumps(reopened).encode())
+
+            merged = json.loads(PULL_REQUEST_CLOSED_EVENT_EXAMPLE)
+            merged["pull_request"]["body"] = f"Fixes {group.qualified_short_id}"
+            merged["pull_request"]["merged_by"] = {"id": 583231, "login": "octocat"}
+            self._post_pull_request_event(json.dumps(merged).encode())
+
+        closed_activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.PULL_REQUEST_CLOSED.value,
+        )
+        assert closed_activity.user_id == self.user.id
+        reopened_activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.PULL_REQUEST_REOPENED.value,
+        )
+        assert reopened_activity.user_id == self.user.id
+        merged_activity = Activity.objects.get(
+            group=group,
+            type=ActivityType.PULL_REQUEST_MERGED.value,
+        )
+        assert merged_activity.user_id == self.user.id
 
     def assert_group_link(self, group, pr):
         link = GroupLink.objects.get()
