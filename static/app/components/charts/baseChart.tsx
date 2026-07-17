@@ -6,7 +6,7 @@ import 'echarts/lib/component/visualMap';
 import 'echarts/theme/v5.js';
 import 'zrender/lib/svg/svg';
 
-import {useId, useMemo} from 'react';
+import {useEffect, useId, useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -407,6 +407,16 @@ export function BaseChart({
     (series.length
       ? theme.chart.getColorPalette(series.length)
       : theme.chart.getColorPalette('all'));
+
+  // When series data changes, dismiss any active axis tooltip. This prevents ECharts'
+  // internal `_refreshUpdateTimeout` from re-showing the tooltip with stale
+  // `_lastDataByCoordSys` data (containing series indices that no longer exist after the
+  // chart re-renders), which would cause a TypeError in TooltipView.getDataParams.
+  useEffect(() => {
+    const chartInstance =
+      ref && typeof ref !== 'function' ? ref.current?.getEchartsInstance() : undefined;
+    chartInstance?.dispatchAction({type: 'hideTip'});
+  }, [series, ref]);
 
   const resolvedSeries = useMemo(() => {
     const previousPeriodColors =
