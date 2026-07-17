@@ -89,11 +89,12 @@ def _process_segment(
             return [make_compatible(span) for span in unprocessed_spans]
 
     segment_span, spans = _enrich_spans(unprocessed_spans)
-    if segment_span is None:
-        return spans
 
     if any(attribute_value(s, ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID) for s in spans):
         metrics.incr("spans.consumers.process_segments.gen_ai_conversation")
+
+    if segment_span is None:
+        return spans
 
     try:
         with metrics.timer("spans.consumers.process_segments.get_project"):
