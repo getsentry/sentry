@@ -27,6 +27,7 @@ from sentry.lang.native.gpu import (
 from sentry.lang.native.teapot import (
     TeapotClient,
     TeapotUnavailable,
+    _uid_from_nvdbg_filename,
     submit_to_teapot,
 )
 
@@ -261,8 +262,8 @@ def test_client_multipart_success() -> None:
 
 
 def test_client_multipart_carries_shader_debug_attachments() -> None:
-    """Each .nvdbg is sent as a repeated `nv_shader_debug` field whose part
-    filename carries the uid teapot decodes it by."""
+    """Each .nvdbg becomes its own `nv_shader_debug.<uid>` field, the uid derived
+    from the attachment filename."""
 
     project = _FakeProject()
     dump = _FakeAttachment(b"dump-bytes")
@@ -285,12 +286,29 @@ def test_client_multipart_carries_shader_debug_attachments() -> None:
         TeapotClient(project, "abc").symbolicate(dump, [nvdbg1, nvdbg2])
 
     files = mock_post.call_args.kwargs["files"]
-    # `files` is a list-of-tuples so the `nv_shader_debug` field can repeat; each
-    # entry is (field_name, (filename, bytes, content_type)).
-    assert any(field == "upload_file" for field, _ in files)
-    shaders = {payload[0]: payload[1] for field, payload in files if field == "nv_shader_debug"}
-    assert shaders["aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.nvdbg"] == b"nvdbg-bytes-1"
-    assert shaders["bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.nvdbg"] == b"nvdbg-bytes-2"
+    # `files` is a list-of-tuples (the only way to repeat field names); teapot
+    # keys each shader by the uid in the `nv_shader_debug.<uid>` field name.
+    by_field = {field_name: payload for field_name, payload in files}
+    assert "upload_file" in by_field
+    assert by_field[f"nv_shader_debug.{'a' * 32}"][1] == b"nvdbg-bytes-1"
+    assert by_field[f"nv_shader_debug.{'b' * 32}"][1] == b"nvdbg-bytes-2"
+
+
+@pytest.mark.parametrize(
+    "filename,expected",
+    [
+        # Production SDKs ship the full 32-hex uid.
+        ("59339c1ea893474000000210749de540.nvdbg", "59339c1ea893474000000210749de540"),
+        # The NVIDIA D3D12HelloNsightAftermath sample splits id[0]/id[1] with a dash.
+        ("shader-59339c1ea8934740-00000210749de540.nvdbg", "59339c1ea893474000000210749de540"),
+        # Uppercase normalizes to the decoder's lowercase key.
+        ("ABCDEF0123456789ABCDEF0123456789.nvdbg", "abcdef0123456789abcdef0123456789"),
+        # No parseable uid (caller falls back to the raw filename).
+        ("garbage.txt", None),
+    ],
+)
+def test_uid_from_nvdbg_filename(filename: str, expected: str | None) -> None:
+    assert _uid_from_nvdbg_filename(filename) == expected
 
 
 def test_client_retries_on_503() -> None:
@@ -466,7 +484,7 @@ def test_client_uses_json_path_when_all_attachments_stored() -> None:
     assert body["dump"]["storage_url"] == "http://objectstore/dump-obj-id"
     assert body["dump"]["storage_token"] == "token-dump"
     assert len(body["shader_debug_info"]) == 1
-    assert body["shader_debug_info"][0]["filename"] == "cafebabecafebabecafebabecafebabe.nvdbg"
+    assert body["shader_debug_info"][0]["uid"] == "cafebabecafebabecafebabecafebabe"
     assert body["shader_debug_info"][0]["storage_url"] == "http://objectstore/nvdbg-obj-id"
     assert body["shader_debug_info"][0]["storage_token"] == "token-nvdbg"
 
@@ -499,9 +517,7 @@ def test_client_falls_back_to_multipart_when_any_attachment_lacks_stored_id() ->
     files = mock_post.call_args.kwargs["files"]
     by_field = {field_name: payload for field_name, payload in files}
     assert by_field["upload_file"][1] == b"dump-bytes"
-    shader = next(payload for field, payload in files if field == "nv_shader_debug")
-    assert shader[0] == "cafebabecafebabecafebabecafebabe.nvdbg"
-    assert shader[1] == b"nvdbg-bytes"
+    assert by_field[f"nv_shader_debug.{'cafebabe' * 4}"][1] == b"nvdbg-bytes"
 
 
 # ---------------------------------------------------------------------------
