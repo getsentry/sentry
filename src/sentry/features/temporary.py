@@ -255,6 +255,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-smart-assignment-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display nightshift settings
     manager.add("organizations:seer-night-shift-settings", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Display the Seer Night Shift UI
+    manager.add("organizations:seer-night-shift-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Roll out structured LLM page context on STRUCTURED_CONTEXT_ROUTES to all orgs
     manager.add("organizations:seer-explorer-structured-context-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable context engine experimental contexts
