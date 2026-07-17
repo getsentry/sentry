@@ -14,7 +14,7 @@ import {
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
-import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {mergeProps} from '@react-aria/utils';
 
 import {NODE_ENV} from 'sentry/constants/env';
 import type {Theme} from 'sentry/utils/theme';
@@ -468,24 +468,6 @@ function useHoverOverlay({
     }, displayTimeout ?? CLOSE_DELAY);
   }, [isHoverable, displayTimeout, commitStatus, group]);
 
-  // Store the current child ref to avoid recreating the merged callback
-  const childRefRef = useRef<React.Ref<HTMLElement> | undefined>(undefined);
-
-  // Create a stable merged ref callback that doesn't change on every render
-  const mergedRefCallback = useCallback((node: HTMLElement | null) => {
-    setTriggerElement(node);
-
-    // Forward to the child's ref if it exists
-    const childRef = childRefRef.current;
-    if (childRef) {
-      if (typeof childRef === 'function') {
-        childRef(node);
-      } else if (childRef && typeof childRef === 'object') {
-        (childRef as React.MutableRefObject<HTMLElement | null>).current = node;
-      }
-    }
-  }, []);
-
   /**
    * Wraps the passed in react elements with a container that has the proper
    * event handlers to trigger the overlay.
@@ -515,10 +497,37 @@ function useHoverOverlay({
         (skipWrapper || typeof triggerChildren.type === 'string')
       ) {
         const childRef = (triggerChildren.props as any).ref;
-        // Store the child ref for use in the merged callback
-        childRefRef.current = childRef;
-        // Use the stable merged ref callback instead of creating a new one
-        const mergedRef = childRef ? mergedRefCallback : setTriggerElement;
+        
+        // Create a merged ref callback that updates when the child ref changes
+        // and properly handles React 19 cleanup functions
+        const mergedRef = useMemo(() => {
+          if (!childRef) {
+            return setTriggerElement;
+          }
+
+          // Store cleanup function from child ref (React 19)
+          let childCleanup: (() => void) | void;
+
+          return (node: HTMLElement | null) => {
+            // Call cleanup from previous child ref invocation
+            if (childCleanup) {
+              childCleanup();
+              childCleanup = undefined;
+            }
+
+            // Always update our internal trigger element state
+            setTriggerElement(node);
+
+            // Forward to child ref and store any cleanup function
+            if (childRef) {
+              if (typeof childRef === 'function') {
+                childCleanup = childRef(node);
+              } else if (typeof childRef === 'object' && childRef !== null) {
+                (childRef as React.MutableRefObject<HTMLElement | null>).current = node;
+              }
+            }
+          };
+        }, [childRef]);
 
         if (showUnderline) {
           const triggerStyle = {
