@@ -12,10 +12,12 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import Feature from 'sentry/components/acl/feature';
 import {DateTime} from 'sentry/components/dateTime';
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {NoAccess} from 'sentry/components/noAccess';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -959,4 +961,18 @@ function getExplorerRunIds(row: WorkflowRow): Array<number | string> {
   return [];
 }
 
-export default SeerWorkflows;
+function SeerWorkflowsPage() {
+  const organization = useOrganization();
+
+  return (
+    <Feature
+      features="organizations:seer-night-shift-ui"
+      organization={organization}
+      renderDisabled={NoAccess}
+    >
+      <SeerWorkflows />
+    </Feature>
+  );
+}
+
+export default SeerWorkflowsPage;

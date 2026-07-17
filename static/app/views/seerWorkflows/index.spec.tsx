@@ -5,10 +5,16 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import SeerWorkflows from 'sentry/views/seerWorkflows';
 
 describe('SeerWorkflows', () => {
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({features: ['seer-night-shift-ui']});
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+  });
+
+  it('shows no access when the UI feature is disabled', () => {
+    render(<SeerWorkflows />, {organization: OrganizationFixture()});
+
+    expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
   it('renders list of runs', async () => {
