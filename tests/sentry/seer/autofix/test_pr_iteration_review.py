@@ -190,6 +190,8 @@ class TriggerPrIterationFromReviewTest(TestCase):
         line: int | None = 42,
         start_line: int | None = 40,
     ) -> dict[str, Any]:
+        # The SCM normalizes line positions to ``DiffLine`` dicts ({"head": N}),
+        # not plain ints — mirror that so the flattening path is exercised.
         return {
             "id": comment_id,
             "unique_id": None,
@@ -197,8 +199,8 @@ class TriggerPrIterationFromReviewTest(TestCase):
             "file_path": file_path,
             "body": body,
             "author": {"id": "999", "username": "reviewer"},
-            "line": line,
-            "start_line": start_line,
+            "line": {"head": line} if line is not None else None,
+            "start_line": {"head": start_line} if start_line is not None else None,
             "review_id": "500",
         }
 

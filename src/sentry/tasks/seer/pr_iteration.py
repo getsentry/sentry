@@ -10,6 +10,7 @@ from scm.manager import SourceCodeManager
 from scm.types import (
     CreatePullRequestCommentReactionProtocol,
     CreateReviewCommentReactionProtocol,
+    DiffLine,
     GetRepositoryUserPermissionProtocol,
     GetReviewCommentsProtocol,
     ListPullRequestReviewsProtocol,
@@ -579,6 +580,18 @@ def _fetch_review_body(
         page += 1
 
 
+def _diff_line_number(diff_line: DiffLine | None) -> int | None:
+    """Flatten an SCM ``DiffLine`` to a single line number for display.
+
+    A ``DiffLine`` carries the line's position on the head and/or base side of the
+    diff (see ``scm.types.DiffLine``). The anchor is display context only, so
+    prefer the head (post-image) side and fall back to the base side.
+    """
+    if not diff_line:
+        return None
+    return diff_line.get("head") or diff_line.get("base")
+
+
 def _build_review_feedback(
     inline_comments: list[ReviewComment],
     review_body: str | None,
@@ -598,14 +611,15 @@ def _build_review_feedback(
         author = comment.get("author")
         # The SCM-normalized ``ReviewComment`` carries ``file_path`` / ``author``
         # while the reusable source reads the webhook-shaped ``path`` / ``user``,
-        # so map the fields explicitly before constructing it.
+        # so map the fields explicitly before constructing it. ``line`` /
+        # ``start_line`` are ``DiffLine`` dicts now, so flatten to a line number.
         review_comment = GithubPullRequestReviewComment(
             id=comment["id"],
             body=comment.get("body"),
             url=comment.get("url"),
             path=comment.get("file_path"),
-            line=comment.get("line"),
-            start_line=comment.get("start_line"),
+            line=_diff_line_number(comment.get("line")),
+            start_line=_diff_line_number(comment.get("start_line")),
             user={"login": author["username"] if author else None},
         )
         source = GithubPrReviewCommentFeedbackSource(comment=review_comment, require_command=False)
