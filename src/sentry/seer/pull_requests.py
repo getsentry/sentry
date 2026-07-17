@@ -15,6 +15,55 @@ from sentry.seer.models.run import SeerRun, SeerRunCodingAgentHandoff, SeerRunPu
 logger = logging.getLogger(__name__)
 
 
+def link_seer_run_pull_requests(
+    *,
+    organization: Organization,
+    seer_run_state_id: int | None,
+    pull_requests: Sequence[Mapping[str, Any]],
+) -> None:
+    """Link each PR in a ``seer.pr_created`` event to its run's :class:`SeerRun`.
+
+    Idempotent (first run to claim a PR keeps it) and best-effort: every failure
+    is logged and swallowed.
+    """
+    if options.get("seer.pull-request-linking.killswitch.enabled"):
+        return
+
+    if seer_run_state_id is None:
+        return
+
+    seer_run = get_seer_run(seer_run_state_id, organization)
+    if seer_run is None:
+        logger.info(
+            "seer.pr_link.run_not_found",
+            extra={"organization_id": organization.id, "seer_run_state_id": seer_run_state_id},
+        )
+        return
+
+    for entry in pull_requests:
+        repo_name = entry.get("repo_name")
+        provider = entry.get("provider")
+        pr_payload = entry.get("pull_request") or {}
+        pr_number = pr_payload.get("pr_number")
+
+        log_context = {
+            "organization_id": organization.id,
+            "seer_run_state_id": seer_run_state_id,
+            "repo_name": repo_name,
+            "provider": provider,
+            "pr_number": pr_number,
+        }
+
+        _link_pull_request_to_seer_run(
+            organization=organization,
+            seer_run=seer_run,
+            repo_name=repo_name,
+            provider=provider,
+            pr_number=pr_number,
+            log_context=log_context,
+        )
+
+
 def _link_pull_request_to_seer_run(
     *,
     organization: Organization,
@@ -77,52 +126,3 @@ def _link_pull_request_to_seer_run(
         )
 
     return resolved.pull_request
-
-
-def link_seer_run_pull_requests(
-    *,
-    organization: Organization,
-    seer_run_state_id: int | None,
-    pull_requests: Sequence[Mapping[str, Any]],
-) -> None:
-    """Link each PR in a ``seer.pr_created`` event to its run's :class:`SeerRun`.
-
-    Idempotent (first run to claim a PR keeps it) and best-effort: every failure
-    is logged and swallowed.
-    """
-    if options.get("seer.pull-request-linking.killswitch.enabled"):
-        return
-
-    if seer_run_state_id is None:
-        return
-
-    seer_run = get_seer_run(seer_run_state_id, organization)
-    if seer_run is None:
-        logger.info(
-            "seer.pr_link.run_not_found",
-            extra={"organization_id": organization.id, "seer_run_state_id": seer_run_state_id},
-        )
-        return
-
-    for entry in pull_requests:
-        repo_name = entry.get("repo_name")
-        provider = entry.get("provider")
-        pr_payload = entry.get("pull_request") or {}
-        pr_number = pr_payload.get("pr_number")
-
-        log_context = {
-            "organization_id": organization.id,
-            "seer_run_state_id": seer_run_state_id,
-            "repo_name": repo_name,
-            "provider": provider,
-            "pr_number": pr_number,
-        }
-
-        _link_pull_request_to_seer_run(
-            organization=organization,
-            seer_run=seer_run,
-            repo_name=repo_name,
-            provider=provider,
-            pr_number=pr_number,
-            log_context=log_context,
-        )

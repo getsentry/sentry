@@ -103,10 +103,8 @@ class SeerRunPullRequest(DefaultFieldsModel):
     pull_request = FlexibleForeignKey(
         "sentry.PullRequest", on_delete=models.CASCADE, related_name="seer_run_links"
     )
-    # Set when this PR was produced by a delegated coding agent handoff (Cursor/GitHub
-    # Copilot/Claude Code) rather than Seer's own coding loop. Not unique: a single
-    # handoff can in principle report more than one PR (e.g. a provider surfacing
-    # multiple results per session), mirroring why ``seer_run`` above isn't unique.
+    # Null for PRs from Seer's own coding loop. Not unique: a handoff can report
+    # more than one PR, mirroring why ``seer_run`` above isn't unique either.
     coding_agent_handoff = FlexibleForeignKey(
         "seer.SeerRunCodingAgentHandoff",
         on_delete=models.CASCADE,
