@@ -1,0 +1,95 @@
+name: no-effect-set-state
+severity: warning
+tags: [react, react-compiler, effects, performance]
+
+why: |
+  Synchronously calling a state setter inside an Effect forces React to render
+  once with the old value and immediately render again with the new value. In
+  many cases the value can be calculated during render, reset with a key, or
+  updated at the event boundary instead. Effects should primarily synchronize
+  React with external systems.
+
+  This convention corresponds to the React Compiler `EffectSetState`
+  diagnostic: "Avoid calling setState() directly within an effect."
+
+  See: https://react.dev/reference/eslint-plugin-react-hooks/lints/set-state-in-effect
+  See also: https://react.dev/learn/you-might-not-need-an-effect
+
+detect: |
+  Flag an unconditional or synchronously reachable call to a React state setter
+  in a `useEffect` or `useLayoutEffect` body.
+
+  Include setters returned by `useState` and dispatches that synchronously update
+  local React state. Flag a setter hidden behind a local helper when the helper
+  is called synchronously by the Effect.
+
+  Do NOT flag state updates that occur later in a genuine external-system
+  callback, such as a subscription handler, observer, timer, or resolved network
+  request. Do not flag cleanup updates without first checking whether they are
+  guarding an external lifecycle that cannot be represented another way. When
+  an Effect only copies or derives local state from props/other state, report it
+  under `no-derived-state` instead so the same code is not reported twice.
+
+fix: |
+  Choose the fix that matches the reason for the state:
+    - Derive values directly during render; use `useMemo` only when expensive.
+    - Reset an entire component subtree by changing its `key`.
+    - Update related state in the event handler that caused the change.
+    - Subscribe to an external store with `useSyncExternalStore`.
+    - Keep the Effect when an external callback causes the later update.
+
+  Do not silence the finding by deferring the setter with a zero-delay timer.
+
+examples:
+  bad:
+    - |
+      function Component({data}) {
+        const [items, setItems] = useState([]);
+
+        useEffect(() => {
+          setItems(data); // Extra render, use initial state instead
+        }, [data]);
+      }
+    - |
+      function Component() {
+        const [loading, setLoading] = useState(false);
+
+        useEffect(() => {
+          setLoading(true); // Synchronous, causes extra render
+          fetchData().then(() => setLoading(false));
+        }, []);
+      }
+    - |
+      function Component({rawData}) {
+        const [processed, setProcessed] = useState([]);
+
+        useEffect(() => {
+          setProcessed(rawData.map(transform)); // Should derive in render
+        }, [rawData]);
+      }
+    - |
+      function Component({selectedId, items}) {
+        const [selected, setSelected] = useState(null);
+
+        useEffect(() => {
+          setSelected(items.find(i => i.id === selectedId));
+        }, [selectedId, items]);
+      }
+  good:
+    - |
+      function Component({selectedId, items}) {
+        const selected = items.find(i => i.id === selectedId);
+        return <div>{selected?.name}</div>;
+      }
+    - |
+      function Tooltip() {
+        const ref = useRef(null);
+        const [tooltipHeight, setTooltipHeight] = useState(0);
+
+        useLayoutEffect(() => {
+          const { height } = ref.current.getBoundingClientRect();
+          setTooltipHeight(height);
+        }, []);
+      }
+
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} EffectSetState EffectDerivationsOfState no-derived-state.detect.sh'
