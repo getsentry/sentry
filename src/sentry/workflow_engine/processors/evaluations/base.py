@@ -34,6 +34,8 @@ class BaseWorkflowEngineEvaluation[R, D]:
     def outcome(self) -> TriggerResult:
         if self.triggered is not None:
             triggered = self.triggered
+        elif isinstance(self.result, bool):
+            triggered = self.result
         elif isinstance(self.result, Collection):
             triggered = len(self.result) > 0
         else:
