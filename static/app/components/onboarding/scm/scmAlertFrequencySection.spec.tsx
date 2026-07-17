@@ -21,6 +21,7 @@ const notificationProps: IssueAlertNotificationProps = {
   integration: undefined,
   channel: undefined,
   providersToIntegrations: {},
+  queryError: false,
   querySuccess: true,
   shouldRenderSetupButton: false,
   setActions: jest.fn(),

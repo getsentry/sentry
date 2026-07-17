@@ -645,25 +645,6 @@ def get_native_symbolication_functions(
     return functions
 
 
-def get_native_symbolication_function(
-    data: Mapping[str, Any], stacktraces: list[StacktraceInfo]
-) -> SymbolicatorFunction | None:
-    """
-    Returns the appropriate symbolication function (or `None`) that will process
-    the event, based on the Event `data`, and the supplied `stacktraces`.
-
-    This is a **legacy** function used for old tasks.
-    """
-    if is_minidump_event(data):
-        return SymbolicatorFunction.minidump
-    elif is_applecrashreport_event(data):
-        return SymbolicatorFunction.applecrashreport
-    elif is_native_event(data, stacktraces):
-        return SymbolicatorFunction.native
-    else:
-        return None
-
-
 def get_required_attachment_types(data) -> set[str]:
     if is_minidump_event(data):
         return {MINIDUMP_ATTACHMENT_TYPE}

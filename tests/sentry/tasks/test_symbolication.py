@@ -5,7 +5,7 @@ import pytest
 
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorFunction
 from sentry.tasks.store import preprocess_event
-from sentry.tasks.symbolication import symbolicate_event, symbolicate_js_event
+from sentry.tasks.symbolication import symbolicate_event
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -229,59 +229,3 @@ def test_symbolicate_minidump_and_native_stacktrace(
     native_frames = exceptions[1]["stacktrace"]["frames"]
     assert [f["function"] for f in native_frames] == ["worker_thread"]
     assert [f["data"]["symbolicator_status"] for f in native_frames] == ["symbolicated"]
-
-
-@django_db_all
-def test_symbolicate_event_with_legacy_symbolicate_platforms(
-    default_project,
-    mock_event_processing_store,
-    mock_process_event,
-    mock_save_event,
-):
-    """
-    Tasks that were enqueued before the switch from `symbolicate_platforms` to
-    `symbolicate_functions` still carry the legacy `symbolicate_platforms`
-    kwarg (a list of `SymbolicatorPlatform` names). Such in-flight tasks must
-    still run through all remaining symbolication rounds and hand the event
-    over to processing.
-    """
-    data = {
-        "platform": "javascript",
-        "project": default_project.id,
-        "event_id": EVENT_ID,
-        "exception": {
-            "values": [
-                {"stacktrace": {"frames": [{"platform": "native", "instruction_addr": "0x2a2a3d"}]}}
-            ]
-        },
-    }
-    mock_event_processing_store.get.return_value = data
-
-    # `autospec=True` so that the enum member itself is recorded as the first
-    # call argument.
-    with (
-        mock.patch.object(
-            SymbolicatorFunction, "__call__", autospec=True, return_value=None
-        ) as mock_symbolication_function,
-        TaskRunner(),
-    ):
-        # An event with both a JS and a native stacktrace was submitted by the
-        # old code: the js platform was popped and submitted to
-        # `symbolicate_js_event`, with the native platform remaining in
-        # `symbolicate_platforms`.
-        symbolicate_js_event.delay(
-            cache_key="e:1",
-            start_time=1,
-            event_id=EVENT_ID,
-            symbolicate_platforms=["native"],
-        )
-
-    # Both symbolication rounds ran: js first, then the remaining native round.
-    invoked_functions = [call.args[0] for call in mock_symbolication_function.call_args_list]
-    assert invoked_functions == [SymbolicatorFunction.js, SymbolicatorFunction.native]
-
-    # The event was never flagged with a processing error and moved on to
-    # processing.
-    assert mock_event_processing_store.store.call_count == 0
-    assert mock_process_event.delay.call_count == 1
-    assert mock_save_event.delay.call_count == 0

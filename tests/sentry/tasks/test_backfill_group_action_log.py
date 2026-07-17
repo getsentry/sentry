@@ -454,3 +454,10 @@ class BackfillGroupActionLogForProjectTest(TestCase):
             )
 
         mock_reset.assert_not_called()
+
+    @patch("sentry.issues.derived.tasks.process_project_derived_data.delay")
+    def test_triggers_derived_data_on_completion(self, mock_derived: Any) -> None:
+        with self._options():
+            backfill_group_action_log_for_project(self.project.id)
+
+        mock_derived.assert_called_once_with(project_id=self.project.id)
