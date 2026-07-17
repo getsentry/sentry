@@ -176,6 +176,19 @@ def _check_suite_iteration_cap_reached(run_state: SeerRunState) -> bool:
     return True
 
 
+def _processed_check_suite_ids(run_state: SeerRunState) -> set[int]:
+    """Check suite ids already turned into feedback on this run (for consume dedupe)."""
+    from sentry.seer.autofix.autofix_agent import get_iterations
+    from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import _blocks_feedback
+
+    ids: set[int] = set()
+    for iteration in get_iterations(run_state):
+        for item in _blocks_feedback(iteration.blocks):
+            if isinstance(item.source, CheckSuiteFeedbackSource):
+                ids.add(item.source.event.check_suite.id)
+    return ids
+
+
 class CheckSuiteFeedbackSource(FeedbackSourceBase):
     type: Literal["check-suite"] = "check-suite"
     event: GithubCheckSuiteEvent
@@ -303,6 +316,8 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
 
     def should_consume(self, run_state: SeerRunState) -> bool:
         head_sha, repo_name, matched = self._matches_current_head(run_state)
+        suite_id = self.event.check_suite.id
+        already_processed = suite_id in _processed_check_suite_ids(run_state)
         logger.info(
             "autofix.pr_iteration.check_suite.should_consume.evaluated",
             extra={
@@ -310,10 +325,14 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
                 "head_sha": head_sha,
                 "repo_name": repo_name,
                 "matched": matched,
+                "check_suite_id": suite_id,
+                "already_processed": already_processed,
                 "repo_pr_state_count": len(run_state.repo_pr_states),
             },
         )
-        return matched
+        # Dedupe against prior check-suite feedback so webhook retries of the same
+        # suite can't burn iterations when the PR head is unchanged.
+        return matched and not already_processed
 
     def should_trigger(self, run_state: SeerRunState) -> ConsumeTask | None:
         if _check_suite_iteration_cap_reached(run_state):

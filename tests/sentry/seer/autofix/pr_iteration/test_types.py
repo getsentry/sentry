@@ -403,6 +403,52 @@ class CheckSuiteShouldConsumeTest(TestCase):
 
         assert source.should_consume(_run_state()) is False
 
+    def test_false_when_check_suite_already_processed(self) -> None:
+        source = CheckSuiteFeedbackSource(event=self._event())
+        prior = Feedback(source=CheckSuiteFeedbackSource(event=self._event()))
+        block = MemoryBlock(
+            id="iter-0",
+            message=Message(
+                role="assistant",
+                metadata={
+                    "step": "pr_iteration",
+                    "iteration_index": "0",
+                    "feedback": serialize_feedback([prior]),
+                },
+            ),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        state = _run_state(
+            blocks=[block],
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
+        )
+
+        assert source.should_consume(state) is False
+
+    def test_true_when_different_check_suite_id(self) -> None:
+        source = CheckSuiteFeedbackSource(event=self._event())
+        other_event = self._event()
+        other_event["check_suite"] = {**other_event["check_suite"], "id": 99}
+        prior = Feedback(source=CheckSuiteFeedbackSource(event=other_event))
+        block = MemoryBlock(
+            id="iter-0",
+            message=Message(
+                role="assistant",
+                metadata={
+                    "step": "pr_iteration",
+                    "iteration_index": "0",
+                    "feedback": serialize_feedback([prior]),
+                },
+            ),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        state = _run_state(
+            blocks=[block],
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
+        )
+
+        assert source.should_consume(state) is True
+
 
 class CheckSuiteShouldTriggerTest(TestCase):
     def _source(self, head_sha="abc") -> CheckSuiteFeedbackSource:
