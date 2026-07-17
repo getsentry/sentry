@@ -1,6 +1,4 @@
 version: 2
-# Dependabot reviewer configuration was removed in favor of CODEOWNERS:
-# https://github.blog/changelog/2025-08-08-dependabot-reviewers-configuration-option-is-replaced-by-code-owners/
 updates:
   - package-ecosystem: npm
     open-pull-requests-limit: 15
