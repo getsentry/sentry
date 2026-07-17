@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict, cast
 
@@ -18,6 +17,7 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.errors import OrganizationIntegrationNotFound
+from sentry.integrations.gcp.utils import generate_sentry_sa, validate_gcp_project_id
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -26,8 +26,6 @@ from sentry.organizations.services.organization import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
-
-GCP_PROJECT_ID_RE = re.compile(r"^[a-z][a-z0-9-]{4,28}[a-z0-9]$")
 
 DESCRIPTION = """
 Connect your Google Cloud Platform projects so Seer can pull in infrastructure
@@ -58,15 +56,7 @@ class GcpConfig(TypedDict):
     projects: list[str]
 
 
-def validate_gcp_project_id(project_id: str) -> None:
-    if not GCP_PROJECT_ID_RE.match(project_id):
-        raise IntegrationConfigurationError(
-            "Invalid GCP project ID. Must be 6-30 characters: lowercase letters, "
-            "digits, and hyphens. Must start with a letter and cannot end with a hyphen."
-        )
-
-
-class GcpConfigSerializer(CamelSnakeSerializer["GcpConfigInput"]):
+class GcpConfigInputSerializer(CamelSnakeSerializer["GcpConfigInput"]):
     customer_sa_email = CharField(required=True, max_length=255)
     projects = ListField(child=CharField(max_length=64), required=True, min_length=1)
 
@@ -76,14 +66,35 @@ class GcpConfigInput(TypedDict):
     projects: list[str]
 
 
-class GcpConfigApiStep:
-    step_name = "gcp_config"
+class GcpSaGenerationApiStep:
+    step_name = "gcp_sa_generation"
+
+    def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
+        assert pipeline.organization is not None
+        sentry_sa_email = generate_sentry_sa(pipeline.organization.id)
+        pipeline.bind_state("sentry_sa_email", sentry_sa_email)
+        return {"sentry_sa_email": sentry_sa_email}
+
+    def get_serializer_cls(self) -> type | None:
+        return None
+
+    def handle_post(
+        self,
+        validated_data: Any,
+        pipeline: IntegrationPipeline,
+        request: HttpRequest,
+    ) -> PipelineStepResult:
+        return PipelineStepResult.advance()
+
+
+class GcpCustomerConfigApiStep:
+    step_name = "gcp_customer_config"
 
     def get_step_data(self, pipeline: IntegrationPipeline, request: HttpRequest) -> dict[str, Any]:
         return {}
 
     def get_serializer_cls(self) -> type:
-        return GcpConfigSerializer
+        return GcpConfigInputSerializer
 
     def handle_post(
         self,
@@ -124,13 +135,14 @@ class GcpIntegrationProvider(IntegrationProvider):
     allow_multiple = False
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
-        return [GcpConfigApiStep()]
+        return [GcpSaGenerationApiStep(), GcpCustomerConfigApiStep()]
 
     def build_integration(self, state: Mapping[str, Any]) -> IntegrationData:
         config = state.get("config", {})
         if not config:
             raise IntegrationConfigurationError("Missing configuration data")
 
+        sentry_sa_email: str = state["sentry_sa_email"]
         customer_sa_email: str = config["customer_sa_email"]
         projects: list[str] = config["projects"]
 
@@ -145,6 +157,7 @@ class GcpIntegrationProvider(IntegrationProvider):
             "name": "Google Cloud Platform",
             "metadata": {},
             "post_install_data": {
+                "sentry_sa_email": sentry_sa_email,
                 "customer_sa_email": customer_sa_email,
                 "projects": projects,
             },
@@ -161,12 +174,8 @@ class GcpIntegrationProvider(IntegrationProvider):
             organization_id=organization.id,
             integration_id=integration.id,
         )
-
-        # TODO(shashjar): Create per-customer SA in sentry-connectors via GCP IAM API and populate sentry_sa_email. For now, this is a placeholder.
-        sentry_sa_email = extra.get("sentry_sa_email", "")
-
         gcp_config: GcpConfig = {
-            "sentry_sa_email": sentry_sa_email,
+            "sentry_sa_email": extra["sentry_sa_email"],
             "customer_sa_email": extra["customer_sa_email"],
             "projects": extra["projects"],
         }

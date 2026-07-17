@@ -7,9 +7,11 @@ import pytest
 from sentry.integrations.gcp.integration import (
     GcpIntegration,
     GcpIntegrationProvider,
-    validate_gcp_project_id,
+    GcpSaGenerationApiStep,
 )
+from sentry.integrations.gcp.utils import generate_sentry_sa, validate_gcp_project_id
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.pipeline.types import PipelineStepResult
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -28,7 +30,28 @@ class GcpIntegrationProviderTest(TestCase):
             "projects": ["my-gcp-project"],
         }
         config.update(overrides)
-        return {"config": config}
+        return {
+            "config": config,
+            "sentry_sa_email": generate_sentry_sa(self.organization.id),
+        }
+
+    def test_sa_generation_step_returns_sentry_sa_email(self) -> None:
+        step = GcpSaGenerationApiStep()
+        pipeline = Mock(organization=Mock(id=self.organization.id))
+        request = Mock()
+
+        step_data = step.get_step_data(pipeline, request)
+
+        expected_email = (
+            f"sentry-org-{self.organization.id}@sentry-connectors.iam.gserviceaccount.com"
+        )
+        assert step_data["sentry_sa_email"] == expected_email
+        pipeline.bind_state.assert_called_with("sentry_sa_email", expected_email)
+
+    def test_sa_generation_step_advances_on_post(self) -> None:
+        step = GcpSaGenerationApiStep()
+        result = step.handle_post(None, Mock(), Mock())
+        assert result == PipelineStepResult.advance()
 
     def test_validate_gcp_project_id_accepts_valid_ids(self) -> None:
         for project_id in [
@@ -58,6 +81,9 @@ class GcpIntegrationProviderTest(TestCase):
         assert result["external_id"] == str(self.organization.id)
         assert result["name"] == "Google Cloud Platform"
         assert result["metadata"] == {}
+        assert result["post_install_data"]["sentry_sa_email"] == generate_sentry_sa(
+            self.organization.id
+        )
         assert result["post_install_data"]["customer_sa_email"] == (
             "gcp-sentry@customer-project.iam.gserviceaccount.com"
         )
