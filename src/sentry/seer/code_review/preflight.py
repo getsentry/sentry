@@ -112,7 +112,7 @@ class CodeReviewPreflightService:
             hostname = instance_hostname(self.integration)
         except InstanceHostnameError as e:
             sentry_sdk.capture_exception(e)
-            return PreflightDenialReason.ORG_CONTRIBUTOR_NOT_FOUND
+            return PreflightDenialReason.BILLING_MISSING_CONTRIBUTOR_INFO
 
         try:
             contributor = OrganizationContributors.objects.get(
