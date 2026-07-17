@@ -14,7 +14,7 @@ function readFrontmatter(file: string) {
     .match(/^---\s*\n([\s\S]*?)\n---/)?.[1];
   const data = block && parseYaml(block);
   return data && typeof data === 'object'
-    ? {title: data.title, description: data.description, category: data.category}
+    ? {category: data.category, figma: data.resources?.figma}
     : undefined;
 }
 
@@ -51,6 +51,9 @@ export class StoryManifestPlugin implements RspackPluginInstance {
   private manifest = createManifest();
   private pending = new Set<string>();
   private timer?: NodeJS.Timeout;
+  // Seed the module here because writeModule() is only available after Rspack's
+  // Rust compiler is initialized.
+  // https://rspack.rs/plugins/rspack/virtual-modules-plugin#dynamic-module-creation
   private readonly virtualModules = new rspack.experiments.VirtualModulesPlugin({
     [modulePath]: this.manifest.source,
   });
@@ -59,6 +62,10 @@ export class StoryManifestPlugin implements RspackPluginInstance {
   apply(compiler: Compiler) {
     this.virtualModules.apply(compiler);
     compiler.hooks.watchRun.tap('StoryManifestPlugin', () => {
+      // rspack.config.ts excludes Story files from Rspack's watcher so the
+      // manifest can update first. Debounce the duplicate events emitted by
+      // editors that save by replacing a file.
+      // https://rspack.rs/config/watch#watchoptionsignored
       this.watcher ??= fs.watch(appDir, {recursive: true}, (_event, filename) => {
         if (filename && /(?:\.stories\.tsx|\.mdx)$/.test(filename)) {
           const file = path.join(appDir, filename);
@@ -86,6 +93,10 @@ export class StoryManifestPlugin implements RspackPluginInstance {
       this.virtualModules.writeModule(modulePath, next.source);
     }
     if (!manifestChanged || changedExistingStory) {
+      // Pass exact paths back to Rspack so incremental compilation can
+      // distinguish modified modules from removals. This is the Rspack-specific
+      // part of our custom watcher integration.
+      // https://rspack.rs/api/javascript-api/compiler#watch
       compiler.watching?.invalidateWithChangesAndRemovals(changed, removed);
     }
     this.pending.clear();
