@@ -558,6 +558,82 @@ class SeerOperatorTest(TestCase):
             assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_rca_started_activity_attributes_initiating_user(self, _mock_has_access):
+        self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=MOCK_RUN_ID,
+            user_id=self.user.id,
+            referrer=AutofixReferrer.WEB.value,
+        )
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
+
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_RCA_STARTED.value)
+        assert activity.user_id == self.user.id
+        assert activity.data == {"run_id": MOCK_RUN_ID}
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_rca_started_activity_includes_fixability_start_reason(self, _mock_has_access):
+        self._assert_automatic_start_reason(
+            AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
+            "issue_predicted_fixable",
+        )
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_rca_started_activity_includes_night_shift_start_reason(self, _mock_has_access):
+        self._assert_automatic_start_reason(AutofixReferrer.NIGHT_SHIFT, "night_shift")
+
+    def _assert_automatic_start_reason(
+        self, referrer: AutofixReferrer, expected_start_reason: str
+    ) -> None:
+        self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=MOCK_RUN_ID,
+            referrer=referrer.value,
+        )
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_ROOT_CAUSE_STARTED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
+
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_RCA_STARTED.value)
+        assert activity.user_id is None
+        assert activity.data == {
+            "run_id": MOCK_RUN_ID,
+            "start_reason": expected_start_reason,
+        }
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_seer_user_attribution_only_applies_to_rca_started(self, _mock_has_access):
+        self.create_seer_run(
+            organization=self.organization,
+            seer_run_state_id=MOCK_RUN_ID,
+            user_id=self.user.id,
+            referrer=AutofixReferrer.WEB.value,
+        )
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+
+        process_autofix_updates(
+            event_type=SentryAppEventType.SEER_SOLUTION_STARTED,
+            event_payload=event_payload,
+            organization_id=self.organization.id,
+        )
+
+        activity = Activity.objects.get(
+            group=self.group, type=ActivityType.SEER_SOLUTION_STARTED.value
+        )
+        assert activity.user_id is None
+        assert activity.data == {"run_id": MOCK_RUN_ID}
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_seer_event_creates_activity_rca_completed(self, _mock_has_access):
         event_payload = {
             "run_id": MOCK_RUN_ID,
