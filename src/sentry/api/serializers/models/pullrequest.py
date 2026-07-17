@@ -9,11 +9,29 @@ from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.api.serializers.models.repository import RepositorySerializerResponse
 from sentry.api.serializers.release_details_types import Author
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.pullrequest import PullRequest, PullRequestAttribution
+from sentry.models.pullrequest import (
+    PullRequest,
+    PullRequestAttribution,
+    PullRequestLifecycleState,
+)
 from sentry.models.repository import Repository
 from sentry.pr_metrics.attribution import is_seer_attribution
 
 PullRequestStatus = Literal["merged", "open", "closed", "draft", "unknown"]
+
+
+def get_stored_pull_request_status(pull_request: PullRequest) -> PullRequestStatus | None:
+    if pull_request.state == PullRequestLifecycleState.MERGED:
+        return "merged"
+    if pull_request.state == PullRequestLifecycleState.CLOSED:
+        return "closed"
+    if pull_request.draft is True:
+        return "draft"
+    # `draft` is nullable for older rows, so only trust `open` when we know the PR
+    # is not a draft.
+    if pull_request.state == PullRequestLifecycleState.OPEN and pull_request.draft is False:
+        return "open"
+    return None
 
 
 class PullRequestSerializerResponse(TypedDict):
@@ -21,6 +39,8 @@ class PullRequestSerializerResponse(TypedDict):
     title: str | None
     message: str | None
     dateCreated: datetime
+    mergedAt: datetime | None
+    status: PullRequestStatus | None
     repository: RepositorySerializerResponse
     author: Author
     externalUrl: str
@@ -37,7 +57,6 @@ LinkedPullRequestAttributionResponse = LinkedPullRequestSeerAttributionResponse
 class LinkedPullRequestResponse(PullRequestSerializerResponse):
     attribution: LinkedPullRequestAttributionResponse | None
     dateLinked: datetime
-    status: PullRequestStatus
 
 
 def get_users_for_pull_requests(item_list, user=None):
@@ -80,6 +99,8 @@ class PullRequestSerializer(Serializer[PullRequestSerializerResponse]):
             "title": obj.title,
             "message": obj.message,
             "dateCreated": obj.date_added,
+            "mergedAt": obj.merged_at,
+            "status": get_stored_pull_request_status(obj),
             "repository": attrs["repository"],
             "author": attrs["user"],
             "externalUrl": attrs["external_url"],
