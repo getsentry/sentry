@@ -550,6 +550,7 @@ export type SuggestedOwnerReason =
   | 'suspectCommit'
   | 'ownershipRule'
   | 'projectOwnership'
+  | 'seerSuggested'
   // TODO: codeowners may no longer exist
   | 'codeowners';
 

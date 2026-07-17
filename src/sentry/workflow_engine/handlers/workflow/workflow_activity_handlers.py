@@ -97,8 +97,8 @@ def seer_activity_handler(
     logger.info("workflow_engine.seer_activity_handler.complete", extra=logging_ctx)
 
 
-@workflow_activity_registry.register("smart_assignment")
-def smart_assignment_activity_handler(
+@workflow_activity_registry.register("smart_assignment_trigger")
+def smart_assignment_trigger_handler(
     group: Group,
     activity: Activity,
     detector_id: DetectorId | None = None,
@@ -122,6 +122,33 @@ def smart_assignment_activity_handler(
     from sentry.seer.smart_assignment.trigger import trigger_smart_assignment
 
     trigger_smart_assignment(group, activity_type, activity)
+
+
+@workflow_activity_registry.register("smart_assignment_completed")
+def smart_assignment_completed_handler(
+    group: Group,
+    activity: Activity,
+    detector_id: DetectorId | None = None,
+) -> None:
+    """Act on a delivered smart-assignment verdict.
+
+    Fires off the SMART_ASSIGNMENT_COMPLETED activity that delivery records when Seer
+    returns a result (the activity references the originating Seer run). Invoked
+    unconditionally for every group activity, so it self-filters and delegates scoring
+    and auto-assignment to process_smart_assignment_completion -- decoupled from the
+    dispatch/ground-truth path that reacts to the *triggering* activities.
+    """
+    try:
+        activity_type = ActivityType(activity.type)
+    except ValueError:
+        return
+
+    if activity_type != ActivityType.SMART_ASSIGNMENT_COMPLETED:
+        return
+
+    from sentry.seer.smart_assignment.completion import process_smart_assignment_completion
+
+    process_smart_assignment_completion(group, activity)
 
 
 @workflow_activity_registry.register("generic_activity")
