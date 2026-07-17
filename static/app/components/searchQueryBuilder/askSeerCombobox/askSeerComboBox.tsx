@@ -429,6 +429,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   }
 
   const hasResults = (data?.queries?.length ?? 0) > 0;
+  const isDisplayingResults = !isPending && !isError && hasResults;
 
   return (
     <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
@@ -502,7 +503,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
               <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
             </Stack>
           )}
-          {openForm && (!hasAskSeerUxRework || hasResults) && (
+          {openForm && (!hasAskSeerUxRework || isDisplayingResults) && (
             <SeerFooter onMouseDown={e => e.preventDefault()}>
               <Button
                 size="xs"
