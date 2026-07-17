@@ -199,6 +199,7 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
         pr_url: str = "https://github.com/getsentry/sentry/pull/42",
         agent_id: str | None = "agent-1",
         run_id: int | None = None,
+        group_ids: list[int] | None = None,
         organization_id: int | None = None,
         has_feature: bool = True,
     ) -> None:
@@ -213,6 +214,7 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
                 pr_url=pr_url,
                 agent_id=agent_id,
                 run_id=run_id,
+                group_ids=group_ids,
             )
 
     def test_records_the_given_signal_type(self) -> None:
@@ -236,6 +238,7 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
                 "agent_id": "agent-1",
                 "pr_url": f"https://github.com/getsentry/sentry/pull/{pr_number}",
                 "run_id": None,
+                "group_ids": [],
             }
 
     def test_includes_run_id_in_signal_details(self) -> None:
@@ -250,6 +253,23 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
             "agent_id": "agent-1",
             "pr_url": "https://github.com/getsentry/sentry/pull/77",
             "run_id": 9999,
+            "group_ids": [],
+        }
+
+    def test_includes_group_ids_in_signal_details(self) -> None:
+        self._attribute(
+            pr_url="https://github.com/getsentry/sentry/pull/78",
+            run_id=9999,
+            group_ids=[self.group.id],
+        )
+
+        pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="78")
+        attribution = PullRequestAttribution.objects.get(pull_request=pull_request)
+        assert attribution.signal_details == {
+            "agent_id": "agent-1",
+            "pr_url": "https://github.com/getsentry/sentry/pull/78",
+            "run_id": 9999,
+            "group_ids": [self.group.id],
         }
 
     def test_noop_when_feature_disabled(self) -> None:

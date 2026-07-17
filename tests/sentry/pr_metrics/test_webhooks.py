@@ -2411,6 +2411,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             "agent_id": "agent-1",
             "pr_url": "https://github.com/org/repo/pull/42",
             "run_id": 123,
+            "group_ids": [],
         }
         assert self._candidate_outcome(mock_incr) == {
             "provider": "claude_code",
