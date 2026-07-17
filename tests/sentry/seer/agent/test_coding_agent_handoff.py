@@ -138,7 +138,7 @@ class TestLaunchCodingAgents(TestCase):
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")
-    def test_marks_handoffs_failed_when_seer_storage_errors(self, mock_validate, mock_store):
+    def test_leaves_handoffs_alone_when_seer_storage_errors(self, mock_validate, mock_store):
         self.create_seer_run(self.organization, seer_run_state_id=self.run_id)
         mock_store.side_effect = SeerApiError("Seer unavailable", status=503)
         installation = FakeCodingAgentInstallation(_state("agent-123"))
@@ -156,7 +156,7 @@ class TestLaunchCodingAgents(TestCase):
         assert len(result["successes"]) == 1
 
         handoff = SeerRunCodingAgentHandoff.objects.get(agent_id="agent-123")
-        assert handoff.status == "failed"
+        assert handoff.status == "pending"
 
     @patch("sentry.seer.agent.coding_agent_handoff.store_coding_agent_states_to_seer")
     @patch("sentry.seer.agent.coding_agent_handoff.validate_and_get_integration")

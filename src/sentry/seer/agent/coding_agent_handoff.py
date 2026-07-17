@@ -27,10 +27,8 @@ from sentry.seer.autofix.coding_agent import (
     validate_and_get_integration,
 )
 from sentry.seer.autofix.coding_agent_handoffs import create_seer_run_coding_agent_handoff
-from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.autofix.utils import CodingAgentState, extract_api_error_message
 from sentry.seer.models import SeerRepoDefinition
-from sentry.seer.models.run import SeerRunCodingAgentHandoff
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
@@ -213,13 +211,6 @@ def launch_coding_agents(
                 "repos": [f"{r.owner}/{r.name}" for r in repos],
             },
         )
-        try:
-            SeerRunCodingAgentHandoff.objects.filter(
-                agent_id__in=[state.id for state in states_to_store],
-                seer_run__organization_id=organization.id,
-            ).update(status=CodingAgentStatus.FAILED)
-        except Exception:
-            logger.exception("seer.coding_agent_handoff.mark_failed_error")
 
     logger.info(
         "explorer.coding_agent.launch_result",
