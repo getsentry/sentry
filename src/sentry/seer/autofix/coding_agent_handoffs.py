@@ -140,7 +140,6 @@ def sync_coding_agent_status(
                 coding_agent_handoff=handoff,
             )
 
-    # Do this last -- it's the only network call here, and nothing above needs its result.
     known_to_seer = update_coding_agent_state(
         agent_id=agent_id, status=status, agent_url=agent_url, result=result
     )
