@@ -1279,6 +1279,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         actor: Any | None,
         start: datetime,
         end: datetime,
+        allow_postgres_only_search: bool,
         aggregate_kwargs: TrendsSortWeights | None = None,
         *,
         referrer: str,
@@ -1309,19 +1310,30 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # Snuba-side filters, ORDER BY the score natively instead of scoring candidates in
         # memory. Lifts the max-candidates cap for the common issue-stream case, past which the
         # in-memory path degrades to a plain last_seen sort.
+        #
+        # Gated to queries Snuba isn't needed to answer correctly:
+        # - no environment scoping: env filtering and env-scoped values live in Snuba; the
+        #   Postgres queryset only has lifetime GroupEnvironment membership, not window scoping.
+        # - no explicit upper time bound (allow_postgres_only_search): Group.last_seen is the
+        #   issue's global max event time, not its max within [start, end], so a Postgres-only
+        #   window bound would wrongly drop issues with events both inside and after `end`.
+        # - not a prev cursor: BasePaginator only reverses its own key for a prev page, leaving
+        #   the native order's secondary -id tiebreak unflipped, which can drop/dup a row across
+        #   a score tie when paging backward.
+        # Anything else falls through to the Snuba path, which scopes both correctly.
         if (
             strategy.native_order_by is not None
             and not has_snuba_filters
+            and not environments
+            and allow_postgres_only_search
+            and not (cursor is not None and cursor.is_prev)
             and _has_derived_progress(actor, projects)
         ):
             with start_span(
                 op="search.postgres_sort.native_order_by",
                 name="search.postgres_sort.native_order_by",
             ):
-                # Skipping Snuba means we apply the upper window bound ourselves.
-                ordered_queryset, order_by = strategy.native_order_by(
-                    group_queryset.filter(last_seen__lte=end)
-                )
+                ordered_queryset, order_by = strategy.native_order_by(group_queryset)
                 return Paginator(
                     ordered_queryset.using_replica(), order_by=order_by, **paginator_options
                 ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
@@ -1538,6 +1550,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 actor=actor,
                 start=start,
                 end=end,
+                allow_postgres_only_search=allow_postgres_only_search,
                 aggregate_kwargs=aggregate_kwargs,
                 referrer=referrer,
             )

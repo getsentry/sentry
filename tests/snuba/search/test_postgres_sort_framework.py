@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_search import convert_query_values, parse_search_query
+from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -97,7 +98,9 @@ class PostgresSortTestBase(TestCase, SnubaTestCase):
             self.store_group(group)
             self.groups.append(group)
 
-    def make_query(self, sort_by, query=None, limit=None, cursor=None, date_to=None):
+    def make_query(
+        self, sort_by, query=None, limit=None, cursor=None, date_to=None, environments=None
+    ):
         search_filters: list[Any] = []
         if query:
             search_filters = list(
@@ -109,7 +112,7 @@ class PostgresSortTestBase(TestCase, SnubaTestCase):
         return self.backend.query(
             [self.project],
             search_filters=search_filters,
-            environments=None,
+            environments=environments,
             count_hits=False,
             sort_by=sort_by,
             date_from=None,
@@ -650,9 +653,40 @@ class TestProgressSort(PostgresSortTestBase):
 
     @with_feature("projects:issue-stream-derived-progress")
     @override_options({"snuba.search.max-pre-snuba-candidates": 0})
-    def test_native_ordering_respects_window_end(self):
-        # The native path skips Snuba, so it must apply the upper time bound itself. groups[2]
-        # is the newest (last_seen == base_datetime); a date_to before it must exclude it.
+    def test_prev_cursor_paginates_back_across_score_tie(self):
+        # The native path can't reverse its composite (score, -id) order for a prev cursor, so
+        # backward paging over a score tie falls through to Snuba. Stepping forward then back
+        # must land on the original page rather than dropping or duplicating a tied row.
+        ts = before_now(days=2)
+        for group in self.groups:
+            self.create_group_derived_data(group=group, progress="diagnosed", last_progressed_at=ts)
+
+        page1 = self.make_query(sort_by="progress", limit=1)
+        page2 = self.make_query(sort_by="progress", limit=1, cursor=page1.next)
+        previous = self.make_query(sort_by="progress", limit=1, cursor=page2.prev)
+        assert list(previous) == list(page1)
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_environment_scoping_bypasses_native_path(self):
+        # Environment scoping lives in Snuba; the Postgres-only native path can't honor it, so
+        # an environment-filtered query must fall through to Snuba. All fixture groups are in
+        # `production`, so membership is unchanged — this isolates the path choice: if native
+        # ran, the over-cap result would be progress-ranked; via Snuba it degrades to recency.
+        self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
+        # groups[1]/[2] default to identified; native would rank groups[0] first.
+        production = Environment.get_or_create(self.project, "production")
+        results = list(self.make_query(sort_by="progress", environments=[production]))
+        # Recency order (native bypassed): newest first is groups[2], [1], [0].
+        assert results == [self.groups[2], self.groups[1], self.groups[0]]
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_explicit_date_to_bypasses_native_path(self):
+        # Group.last_seen is the issue's global max event time, not its max within the window,
+        # so the native (Postgres-only) path can't honor an upper time bound correctly. An
+        # explicit date_to must fall through to Snuba, which scopes to in-window events.
+        # groups[2] is the newest (last_seen == base_datetime); a date_to before it excludes it.
         self.create_group_derived_data(group=self.groups[2], progress="fix_applied")
         results = self.make_query(
             sort_by="progress", date_to=self.base_datetime - timedelta(days=1)
