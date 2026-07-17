@@ -468,6 +468,24 @@ function useHoverOverlay({
     }, displayTimeout ?? CLOSE_DELAY);
   }, [isHoverable, displayTimeout, commitStatus, group]);
 
+  // Store the current child ref to avoid recreating the merged callback
+  const childRefRef = useRef<React.Ref<HTMLElement> | undefined>(undefined);
+
+  // Create a stable merged ref callback that doesn't change on every render
+  const mergedRefCallback = useCallback((node: HTMLElement | null) => {
+    setTriggerElement(node);
+
+    // Forward to the child's ref if it exists
+    const childRef = childRefRef.current;
+    if (childRef) {
+      if (typeof childRef === 'function') {
+        childRef(node);
+      } else if (childRef && typeof childRef === 'object') {
+        (childRef as React.MutableRefObject<HTMLElement | null>).current = node;
+      }
+    }
+  }, []);
+
   /**
    * Wraps the passed in react elements with a container that has the proper
    * event handlers to trigger the overlay.
@@ -497,9 +515,10 @@ function useHoverOverlay({
         (skipWrapper || typeof triggerChildren.type === 'string')
       ) {
         const childRef = (triggerChildren.props as any).ref;
-        const mergedRef = childRef
-          ? mergeRefs(childRef, setTriggerElement)
-          : setTriggerElement;
+        // Store the child ref for use in the merged callback
+        childRefRef.current = childRef;
+        // Use the stable merged ref callback instead of creating a new one
+        const mergedRef = childRef ? mergedRefCallback : setTriggerElement;
 
         if (showUnderline) {
           const triggerStyle = {
