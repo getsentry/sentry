@@ -88,7 +88,7 @@ class HTTPOverheadDetectorTest(TestCase):
                 op="http",
                 desc="/api/endpoint/123",
                 type=PerformanceHTTPOverheadGroupType,
-                parent_span_ids=None,
+                parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=[
                     "bbbbbbbbbbbbbbbb",
@@ -137,7 +137,7 @@ class HTTPOverheadDetectorTest(TestCase):
                 op="http",
                 desc="/api/endpoint/slowest",
                 type=PerformanceHTTPOverheadGroupType,
-                parent_span_ids=None,
+                parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=[
                     "bbbbbbbbbbbbbbbb",
@@ -211,7 +211,7 @@ class HTTPOverheadDetectorTest(TestCase):
                 op="http",
                 desc="/api/endpoint/123",
                 type=PerformanceHTTPOverheadGroupType,
-                parent_span_ids=None,
+                parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=[
                     "bbbbbbbbbbbbbbbb",
@@ -241,7 +241,7 @@ class HTTPOverheadDetectorTest(TestCase):
                 op="http",
                 desc="/api/endpoint/123",
                 type=PerformanceHTTPOverheadGroupType,
-                parent_span_ids=None,
+                parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=[
                     "bbbbbbbbbbbbbbbb",

@@ -12,9 +12,9 @@ class PerformanceProblem:
     op: str
     desc: str
     type: type[GroupType]
-    parent_span_ids: Sequence[str] | None
+    parent_span_ids: Sequence[str]
     # For related spans that caused the bad spans
-    cause_span_ids: Sequence[str] | None
+    cause_span_ids: Sequence[str]
     # The actual bad spans
     offender_span_ids: Sequence[str]
     # Evidence to be used for the group

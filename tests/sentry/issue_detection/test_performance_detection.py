@@ -324,7 +324,7 @@ class PerformanceDetectionTest(TestCase):
                 op="http",
                 desc="GET https://my-api.io/api/users?page=1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
-                parent_span_ids=None,
+                parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=[
                     "96e0ae187b5481a1",
@@ -336,7 +336,7 @@ class PerformanceDetectionTest(TestCase):
                 ],
                 evidence_data={
                     "op": "http",
-                    "parent_span_ids": None,
+                    "parent_span_ids": [],
                     "cause_span_ids": [],
                     "offender_span_ids": [
                         "96e0ae187b5481a1",

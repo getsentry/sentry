@@ -278,8 +278,8 @@ def _compare_problems(
     return diffs
 
 
-def _are_equivalent_lists(list1: Sequence[Any] | None, list2: Sequence[Any] | None) -> bool:
+def _are_equivalent_lists(list1: Sequence[Any], list2: Sequence[Any]) -> bool:
     """
-    Given two nullable lists, check for equality, ignoring list order.
+    Given two lists, check for equality, ignoring list order.
     """
-    return set(list1 or []) == set(list2 or [])
+    return set(list1) == set(list2)
