@@ -95,6 +95,17 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["firstRelease"] is None
         assert response.data["lastRelease"] is None
 
+    @with_feature("projects:issue-action-log-write-to-db")
+    def test_group_action_log_entry(self) -> None:
+        group = self.create_group()
+        self.create_group_action_log_entry(group=group)
+        self.login_as(user=self.user)
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+        response = self.client.get(url, format="json")
+
+        assert response.data["actionLog"]
+
     def test_pending_delete_pending_merge_excluded(self) -> None:
         group1 = self.create_group(status=GroupStatus.PENDING_DELETION)
         group2 = self.create_group(status=GroupStatus.DELETION_IN_PROGRESS)

@@ -55,6 +55,7 @@ from sentry.issues.constants import (
 from sentry.issues.derived.features import STATUS, IssueStatus
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
@@ -373,6 +374,18 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     "count": get_group_global_count(group),
                 }
             )
+
+            if features.has(
+                "projects:issue-action-log-write-to-db", group.project, actor=request.user
+            ):
+                action_log = GroupActionLogEntry.objects.filter(group_id=group.id).first()
+
+                if not action_log:
+                    logger.info(
+                        "group_details.groupactionlogeentry.not_found", extra={"group_id": group.id}
+                    )
+                else:
+                    data.update({"actionLog": serialize(action_log, request.user)})
 
             if "stats" not in collapse:
                 hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)
