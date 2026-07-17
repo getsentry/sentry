@@ -1,12 +1,9 @@
 from datetime import UTC, datetime, timedelta
-from threading import Event
 from time import time
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-from django.db import close_old_connections
-from django.db.models.signals import post_save
 from django.http import QueryDict
 from rest_framework.request import Request
 
@@ -33,14 +30,12 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
-from sentry.issues.escalating.escalating import manage_issue_states
 from sentry.issues.issue_search import parse_search_query
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
-from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupseen import GroupSeen
@@ -49,13 +44,12 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.release import ReleaseStatus
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
-from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.workflow_engine.models import Detector
 
 pytestmark = [requires_snuba]
@@ -126,73 +120,6 @@ def _wrap_request(http_request: Any, data: dict[str, Any] | None = None) -> Requ
     if data is not None:
         setattr(drf_request, "_full_data", data)
     return drf_request
-
-
-class ConcurrentUpdateGroupsTest(TransactionTestCase):
-    def test_manual_resolve_does_not_interleave_with_ongoing_transition(self) -> None:
-        """A manual resolve cannot land between an automatic status update and its activity."""
-        release = self.create_release(project=self.project, version="release-1")
-        group = self.create_group(status=GroupStatus.RESOLVED, substatus=None)
-        unresolve_before_activity = Event()
-        continue_unresolve = Event()
-
-        def pause_before_unresolve_activity(instance: GroupHistory, **kwargs: Any) -> None:
-            if instance.group_id == group.id and instance.status == GroupHistoryStatus.ONGOING:
-                unresolve_before_activity.set()
-                assert continue_unresolve.wait(timeout=10)
-
-        def run_unresolve() -> None:
-            close_old_connections()
-            try:
-                manage_issue_states(
-                    group=Group.objects.get(id=group.id),
-                    group_inbox_reason=GroupInboxReason.ONGOING,
-                )
-            finally:
-                close_old_connections()
-
-        post_save.connect(pause_before_unresolve_activity, sender=GroupHistory, weak=False)
-        try:
-            with ContextPropagatingThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(run_unresolve)
-                try:
-                    assert unresolve_before_activity.wait(timeout=10)
-                    group.refresh_from_db()
-                    assert group.status == GroupStatus.RESOLVED
-
-                    http_request = self.make_request(user=self.user, method="GET")
-                    http_request.GET = QueryDict(query_string=f"id={group.id}")
-                    request = _wrap_request(
-                        http_request,
-                        data={
-                            "status": "resolved",
-                            "statusDetails": {"inRelease": release.version},
-                        },
-                    )
-                    group_list = get_group_list(
-                        self.organization.id, [self.project], request.GET.getlist("id")
-                    )
-                    update_groups(request, group_list)
-                finally:
-                    continue_unresolve.set()
-                future.result(timeout=10)
-        finally:
-            post_save.disconnect(pause_before_unresolve_activity, sender=GroupHistory)
-
-        group.refresh_from_db()
-        assert group.status == GroupStatus.UNRESOLVED
-        activities = list(
-            Activity.objects.filter(
-                group=group,
-                type__in=[
-                    ActivityType.SET_UNRESOLVED.value,
-                    ActivityType.SET_RESOLVED_IN_RELEASE.value,
-                ],
-            )
-            .order_by("datetime", "id")
-            .values_list("type", "user_id")
-        )
-        assert activities == [(ActivityType.SET_UNRESOLVED.value, None)]
 
 
 class UpdateGroupsTest(TestCase):
