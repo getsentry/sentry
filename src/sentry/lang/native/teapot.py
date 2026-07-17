@@ -12,6 +12,7 @@ on transient 5xx. Two wire formats, picked per request:
 from __future__ import annotations
 
 import logging
+import re
 import time
 from collections.abc import Iterable, Sequence
 from typing import Any, Protocol
@@ -25,6 +26,26 @@ from sentry import options
 from sentry.objectstore import get_attachments_session, get_symbolicator_url
 
 logger = logging.getLogger(__name__)
+
+# teapot keys each shader debug attachment by its 32-hex `shader_debug_info_uid`
+# — the value Aftermath asks for via `shaderDebugInfoLookupCb` at decode time.
+# Relay preserves the SDK filename, which carries the uid in one of two shapes:
+#   * `<32-hex-uid>.nvdbg`      — production SDKs ship the full uid.
+#   * `<16-hex>-<16-hex>.nvdbg` — the NVIDIA D3D12HelloNsightAftermath sample
+#                                 splits id[0]/id[1] with a dash; concatenate.
+_NVDBG_UID_RE = re.compile(r"([0-9a-fA-F]{32})\.nvdbg$")
+_NVDBG_SPLIT_UID_RE = re.compile(r"([0-9a-fA-F]{16})-([0-9a-fA-F]{16})\.nvdbg$")
+
+
+def _uid_from_nvdbg_filename(name: str) -> str | None:
+    """Recover the 32-hex `shader_debug_info_uid` from a `.nvdbg` filename, or None."""
+    m = _NVDBG_UID_RE.search(name)
+    if m is not None:
+        return m.group(1).lower()
+    m = _NVDBG_SPLIT_UID_RE.search(name)
+    if m is not None:
+        return (m.group(1) + m.group(2)).lower()
+    return None
 
 
 class TeapotAttachment(Protocol):
@@ -108,9 +129,10 @@ class TeapotClient:
     """Synchronous HTTP client for POST /symbolicate.
 
     `shader_debug_info` is the list of shader-debug `.nvdbg` attachments (one per
-    shader; an empty list is fine) — teapot recovers each shader's uid from the
-    attachment filename. Raises `TeapotUnavailable` on network errors or
-    exhausted 5xx retries — callers treat that as "skip", never fatal.
+    shader; an empty list is fine); we key each to teapot by the
+    `shader_debug_info_uid` recovered from its filename. Raises `TeapotUnavailable`
+    on network errors or exhausted 5xx retries — callers treat that as "skip",
+    never fatal.
     """
 
     def __init__(self, project: Any, event_id: str) -> None:
@@ -161,7 +183,7 @@ class TeapotClient:
             },
             "shader_debug_info": [
                 {
-                    "filename": att.name,
+                    "uid": _uid_from_nvdbg_filename(att.name) or att.name,
                     "storage_url": get_symbolicator_url(session, _require_stored_id(att)),
                     "storage_token": session.mint_token(),
                 }
@@ -186,8 +208,8 @@ class TeapotClient:
             "project_id": str(self.project.id),
             "organization_id": str(self.project.organization_id),
         }
-        # A repeated `nv_shader_debug` field per shader; the part filename carries
-        # the uid teapot decodes it by. A list-of-tuples lets the field repeat.
+        # One `nv_shader_debug.<uid>` field per shader — teapot keys off the uid
+        # in the field name. A list-of-tuples lets the field name repeat.
         files: list[tuple[str, tuple[str, bytes, str]]] = [
             (
                 "upload_file",
@@ -195,9 +217,10 @@ class TeapotClient:
             ),
         ]
         for att in shader_debug_info:
+            uid = _uid_from_nvdbg_filename(att.name) or att.name
             files.append(
                 (
-                    "nv_shader_debug",
+                    f"nv_shader_debug.{uid}",
                     (
                         att.name,
                         att.load_data(self.project),
