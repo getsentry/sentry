@@ -31,7 +31,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0027_add_seer_run_coding_agent_handoff
 
-sentry: 1138_groupactionlogentry_date_updated_db_default
+sentry: 1139_add_pipeline_hash_to_groupderiveddata
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
