@@ -35,7 +35,6 @@ const TEXT_LIKE_INTRINSICS = new Set([
 ]);
 const TOOLTIP_PROPS_SUPPORTED_BY_INFO_TEXT = new Set(['title', 'showUnderline']);
 const TOOLTIP_PROPS_TO_STRIP = new Set(['showUnderline']);
-const TOOLTIP_PROPS_TO_RENAME = new Map([['showOnlyOnOverflow', 'mode="overflowOnly"']]);
 
 function getElementName(nameNode: TSESTree.JSXTagNameExpression): string {
   switch (nameNode.type) {
@@ -123,12 +122,7 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
           return isTextLikeExpression(child.expression);
         case AST_NODE_TYPES.JSXElement: {
           const name = getElementName(child.openingElement.name);
-          // Text is intended to render text content, so do not require the
-          // expression inside it to be statically recognizable as text.
-          if (textNames.includes(name)) {
-            return true;
-          }
-          if (TEXT_LIKE_INTRINSICS.has(name)) {
+          if (TEXT_LIKE_INTRINSICS.has(name) || textNames.includes(name)) {
             return allChildrenAreTextLike(child.children);
           }
           return false;
@@ -185,19 +179,6 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
         if (attr.type !== AST_NODE_TYPES.JSXAttribute) {
           return false;
         }
-
-        if (
-          attr.name.type === AST_NODE_TYPES.JSXIdentifier &&
-          attr.name.name === 'showOnlyOnOverflow'
-        ) {
-          return (
-            attr.value === null ||
-            (attr.value.type === AST_NODE_TYPES.JSXExpressionContainer &&
-              attr.value.expression.type === AST_NODE_TYPES.Literal &&
-              attr.value.expression.value === true)
-          );
-        }
-
         return (
           attr.name.type === AST_NODE_TYPES.JSXIdentifier &&
           TOOLTIP_PROPS_SUPPORTED_BY_INFO_TEXT.has(attr.name.name)
@@ -228,8 +209,7 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
 
     function getAttributeText(
       attributes: TSESTree.JSXOpeningElement['attributes'],
-      stripNames?: Set<string>,
-      renameNames?: Map<string, string>
+      stripNames?: Set<string>
     ) {
       return attributes
         .filter(attr => {
@@ -242,15 +222,7 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
             stripNames.has(attr.name.name)
           );
         })
-        .map(attr => {
-          if (
-            attr.type === AST_NODE_TYPES.JSXAttribute &&
-            attr.name.type === AST_NODE_TYPES.JSXIdentifier
-          ) {
-            return renameNames?.get(attr.name.name) ?? context.sourceCode.getText(attr);
-          }
-          return context.sourceCode.getText(attr);
-        })
+        .map(attr => context.sourceCode.getText(attr))
         .join(' ');
     }
 
@@ -286,8 +258,7 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
                         const attributes = [
                           getAttributeText(
                             node.openingElement.attributes,
-                            TOOLTIP_PROPS_TO_STRIP,
-                            TOOLTIP_PROPS_TO_RENAME
+                            TOOLTIP_PROPS_TO_STRIP
                           ),
                           getAttributeText(textChild.openingElement.attributes),
                         ];
@@ -316,18 +287,11 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
                         ),
                       ];
                       for (const attr of node.openingElement.attributes) {
-                        if (attr.type !== AST_NODE_TYPES.JSXAttribute) {
-                          continue;
-                        }
-
-                        if (attr.name.type !== AST_NODE_TYPES.JSXIdentifier) {
-                          continue;
-                        }
-
-                        const replacement = TOOLTIP_PROPS_TO_RENAME.get(attr.name.name);
-                        if (replacement !== undefined) {
-                          fixes.push(fixer.replaceText(attr, replacement));
-                        } else if (TOOLTIP_PROPS_TO_STRIP.has(attr.name.name)) {
+                        if (
+                          attr.type === AST_NODE_TYPES.JSXAttribute &&
+                          attr.name.type === AST_NODE_TYPES.JSXIdentifier &&
+                          TOOLTIP_PROPS_TO_STRIP.has(attr.name.name)
+                        ) {
                           const src = context.sourceCode.getText();
                           let start = attr.range[0];
                           while (start > 0 && src[start - 1] === ' ') {
