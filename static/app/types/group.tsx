@@ -4,7 +4,6 @@ import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
 import type {ParsedOwnershipRule} from 'sentry/types/ownership';
 import type {FieldKind} from 'sentry/utils/fields';
-import type {ProgressState} from 'sentry/views/issueList/utils/progress';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
@@ -1176,7 +1175,15 @@ export const enum FixabilityScoreThresholds {
   SUPER_LOW = 'super_low',
 }
 
-export interface GroupDerivedData {
+export enum ProgressState {
+  IDENTIFIED = 'identified',
+  ASSIGNED = 'assigned',
+  DIAGNOSED = 'diagnosed',
+  FIX_PROPOSED = 'fix_proposed',
+  FIX_APPLIED = 'fix_applied',
+}
+
+interface GroupDerivedData {
   hasOpenFixPr: boolean;
   hasRootCause: boolean;
   isAssigned: boolean;

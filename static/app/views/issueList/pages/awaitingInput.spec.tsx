@@ -10,7 +10,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {TagStore} from 'sentry/stores/tagStore';
-import {ProgressState} from 'sentry/views/issueList/utils/progress';
+import {ProgressState} from 'sentry/types/group';
 
 import AwaitingInputPage from './awaitingInput';
 
