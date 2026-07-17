@@ -2911,7 +2911,7 @@ function buildRoutes(): RouteObject[] {
       },
       {
         path: ':projectId/events/:eventId/',
-        component: errorHandler(ProjectEventRedirect),
+        redirectTo: '/organizations/:orgId/projects/:projectId/events/:eventId/',
       },
     ],
   };
