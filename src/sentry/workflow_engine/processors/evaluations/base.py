@@ -32,8 +32,8 @@ class BaseWorkflowEngineEvaluation[R, D]:
 
     @cached_property
     def outcome(self) -> TriggerResult:
-        if isinstance(self.result, bool):
-            triggered = self.result
+        if self.triggered is not None:
+            triggered = self.triggered
         elif isinstance(self.result, Collection):
             triggered = len(self.result) > 0
         else:
