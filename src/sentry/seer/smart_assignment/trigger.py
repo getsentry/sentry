@@ -15,6 +15,7 @@ from sentry.seer.smart_assignment.models import (
     SEER_FEATURE_ID,
     SmartAssignmentPayload,
 )
+from sentry.seer.smart_assignment.scoring import record_ground_truth
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 
@@ -31,15 +32,16 @@ def trigger_smart_assignment(
     activity_type: ActivityType,
     activity: Activity | None = None,
 ) -> None:
-    """Gate + dispatch a prediction for `group`.
+    """Gate + dispatch a prediction for `group`, and record ground truth.
 
-    Dispatches a Seer run the first time (deduped to one run per group, and subject
-    to per-org / global daily caps). `activity_type` is what triggered us (a Seer AI
-    step starting, an assignment, or a resolution); `activity` is the triggering
-    activity, stamped with a pointer to the run it kicked off. No-op unless the org
-    is flagged. Automatic resolutions (no acting user, e.g. resolved by age) are
-    skipped entirely -- we only treat a resolution as signal when a human resolved
-    the issue, since then they probably should have been the assignee.
+    to per-org / global daily caps); records the observed ground truth for assignment
+    and resolution activities either way. Note the caps only gate new dispatches --
+    ground truth is still recorded for already-predicted issues. `activity_type` is
+    what triggered us; `activity` is the triggering activity (stamped with a pointer
+    to the run, and for a resolution supplies the resolving user). No-op unless the
+    org is flagged. Automatic resolutions (no acting user, e.g. resolved by age) are
+    skipped entirely -- we only treat a resolution as signal when a human resolved the
+    issue, since then they probably should have been the assignee.
     """
     organization = group.organization
 
@@ -57,6 +59,8 @@ def trigger_smart_assignment(
     # is our durable record that a run was dispatched.
     if not _already_predicted(group) and not _dispatch_rate_limited(organization):
         _dispatch(group, activity_type, activity)
+
+    record_ground_truth(group, activity_type, activity)
 
 
 def _already_predicted(group: Group) -> bool:
