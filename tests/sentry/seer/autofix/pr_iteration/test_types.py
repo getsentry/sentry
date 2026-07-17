@@ -15,7 +15,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteAutofixRun,
     CheckSuiteFeedbackSource,
     get_check_suite_url,
-    resolve_check_suite_repository,
+    resolve_check_suite_repositories,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubIssueComment,
@@ -491,28 +491,28 @@ class CheckSuiteShouldTriggerTest(TestCase):
         assert self._source_with_autofix_run().should_trigger(_run_state()) == ConsumeTask.Now
 
 
-class ResolveCheckSuiteRepositoryTest(TestCase):
-    def test_none_when_missing_ids(self) -> None:
+class ResolveCheckSuiteRepositoriesTest(TestCase):
+    def test_empty_when_missing_ids(self) -> None:
         assert (
-            resolve_check_suite_repository(
+            resolve_check_suite_repositories(
                 CheckSuiteFeedbackSource(event=_check_suite_event()).event
             )
-            is None
+            == []
         )
         assert (
-            resolve_check_suite_repository(
+            resolve_check_suite_repositories(
                 CheckSuiteFeedbackSource(
                     event={**_check_suite_event(), "installation": {"id": 1}}
                 ).event
             )
-            is None
+            == []
         )
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.integration_service.organization_contexts")
-    def test_none_when_no_integration(self, mock_contexts: MagicMock) -> None:
+    def test_empty_when_no_integration(self, mock_contexts: MagicMock) -> None:
         mock_contexts.return_value = MagicMock(integration=None, organization_integrations=[])
 
-        result = resolve_check_suite_repository(
+        result = resolve_check_suite_repositories(
             CheckSuiteFeedbackSource(
                 event={
                     **_check_suite_event(),
@@ -522,10 +522,10 @@ class ResolveCheckSuiteRepositoryTest(TestCase):
             ).event
         )
 
-        assert result is None
+        assert result == []
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.integration_service.organization_contexts")
-    def test_returns_matching_repo(self, mock_contexts: MagicMock) -> None:
+    def test_returns_matching_repos(self, mock_contexts: MagicMock) -> None:
         repo = self.create_repo(
             project=self.project,
             provider="integrations:github",
@@ -537,7 +537,7 @@ class ResolveCheckSuiteRepositoryTest(TestCase):
             organization_integrations=[MagicMock(organization_id=self.organization.id)],
         )
 
-        result = resolve_check_suite_repository(
+        result = resolve_check_suite_repositories(
             CheckSuiteFeedbackSource(
                 event={
                     **_check_suite_event(),
@@ -547,15 +547,10 @@ class ResolveCheckSuiteRepositoryTest(TestCase):
             ).event
         )
 
-        assert result is not None
-        assert result.id == repo.id
+        assert [r.id for r in result] == [repo.id]
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.integration_service.organization_contexts")
     def test_returns_all_matching_repos_across_orgs(self, mock_contexts: MagicMock) -> None:
-        from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
-            resolve_check_suite_repositories,
-        )
-
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
         repo_a = self.create_repo(

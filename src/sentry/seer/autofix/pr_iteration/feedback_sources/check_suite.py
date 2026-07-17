@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from datetime import timedelta
+from functools import cached_property
 from typing import Literal
 
-from pydantic import BaseModel, Field, PrivateAttr, root_validator
+import sentry_sdk
+from pydantic import BaseModel, Field, root_validator
 from scm import actions as scm_actions
 from scm.helpers import iter_all_pages
 from scm.types import ListCheckRunsForRefProtocol
@@ -14,7 +17,9 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.seer.agent.client_models import SeerRunState
+from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask, FeedbackSourceBase
+from sentry.seer.models import SeerApiError
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +88,13 @@ def get_check_suite_url(event: GithubCheckSuiteEvent) -> str:
     )
 
 
-def resolve_check_suite_repository(event: GithubCheckSuiteEvent) -> Repository | None:
+def resolve_check_suite_repositories(event: GithubCheckSuiteEvent) -> list[Repository]:
+    """All Sentry repos matching this GitHub check-suite installation + external id.
+
+    A single GitHub App installation can be linked to multiple Sentry orgs, each
+    with its own ``Repository`` row. Callers that need an org-scoped Seer run
+    should try each candidate rather than assuming ``.first()`` is correct.
+    """
     installation_id = event.installation.id if event.installation else None
     repository_id = event.repository.id
     if installation_id is None or repository_id is None:
@@ -91,7 +102,7 @@ def resolve_check_suite_repository(event: GithubCheckSuiteEvent) -> Repository |
             "autofix.pr_iteration.check_suite.repository.missing_ids",
             extra={"installation_id": installation_id, "repository_id": repository_id},
         )
-        return None
+        return []
 
     contexts = integration_service.organization_contexts(
         provider=IntegrationProviderSlug.GITHUB.value,
@@ -107,28 +118,37 @@ def resolve_check_suite_repository(event: GithubCheckSuiteEvent) -> Repository |
                 "organization_integration_count": len(contexts.organization_integrations),
             },
         )
-        return None
+        return []
 
-    repo = (
+    organization_ids = [oi.organization_id for oi in contexts.organization_integrations]
+    repos = list(
         Repository.objects.filter(
-            organization_id__in=[oi.organization_id for oi in contexts.organization_integrations],
+            organization_id__in=organization_ids,
             provider=_SEER_GITHUB_PROVIDER,
             external_id=str(repository_id),
-        )
-        .exclude(status=ObjectStatus.HIDDEN)
-        .first()
+        ).exclude(status=ObjectStatus.HIDDEN)
     )
     logger.info(
         "autofix.pr_iteration.check_suite.repository.resolved",
         extra={
             "installation_id": installation_id,
             "repository_id": repository_id,
-            "organization_ids": [oi.organization_id for oi in contexts.organization_integrations],
-            "repo_id": repo.id if repo else None,
-            "repo_name": repo.name if repo else None,
+            "organization_ids": organization_ids,
+            "repo_ids": [repo.id for repo in repos],
+            "repo_organization_ids": [repo.organization_id for repo in repos],
         },
     )
-    return repo
+    return repos
+
+
+@dataclass(frozen=True)
+class CheckSuiteAutofixRun:
+    """The Autofix run tied to a check-suite PR, plus the Sentry repo used to find it."""
+
+    repository: Repository
+    run_state: SeerRunState
+    pr_id: int
+    group_id: int
 
 
 def _check_suite_iteration_cap_reached(run_state: SeerRunState) -> bool:
@@ -199,15 +219,54 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     def ui_text(self) -> str | None:
         return f"check suite for app {self.app_name} failed"
 
-    _repository: Repository | None = PrivateAttr(default=None)
-    _repository_resolved: bool = PrivateAttr(default=False)
+    @cached_property
+    def repositories(self) -> list[Repository]:
+        return resolve_check_suite_repositories(self.event)
 
-    @property
-    def repository(self) -> Repository | None:
-        if not self._repository_resolved:
-            self._repository = resolve_check_suite_repository(self.event)
-            self._repository_resolved = True
-        return self._repository
+    @cached_property
+    def autofix_run(self) -> CheckSuiteAutofixRun | None:
+        """Find the single Autofix run for this check suite's PR(s).
+
+        Assumes one Autofix run ↔ PR in Sentry. Tries each PR × candidate org until
+        Seer returns a run with ``repo_pr_states`` and a ``group_id``.
+        """
+        repos = self.repositories
+        if not repos:
+            return None
+
+        for pr_id in (pr.id for pr in self.event.check_suite.pull_requests):
+            for candidate in repos:
+                try:
+                    state = get_agent_state_from_pr_id(
+                        candidate.organization_id, _SEER_GITHUB_PROVIDER, pr_id
+                    )
+                except SeerApiError as e:
+                    sentry_sdk.capture_exception(e)
+                    continue
+
+                if state is None or not state.repo_pr_states:
+                    continue
+
+                group_id = state.metadata.get("group_id") if state.metadata else None
+                if not group_id:
+                    logger.warning(
+                        "autofix.pr_iteration.check_suite.missing_group_id",
+                        extra={
+                            "organization_id": candidate.organization_id,
+                            "pr_id": pr_id,
+                            "run_id": state.run_id,
+                        },
+                    )
+                    continue
+
+                return CheckSuiteAutofixRun(
+                    repository=candidate,
+                    run_state=state,
+                    pr_id=pr_id,
+                    group_id=group_id,
+                )
+
+        return None
 
     def _matches_current_head(self, run_state: SeerRunState) -> tuple[str | None, str | None, bool]:
         """Whether the check suite ran on the PR's *current* head commit.
@@ -275,16 +334,18 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             )
             return ConsumeTask.Now
 
-        repo = self.repository
-        if repo is None:
-            logger.info(
-                "autofix.pr_iteration.check_suite.should_trigger.no_repository",
+        resolved = self.autofix_run
+        if resolved is None:
+            # Listener only calls should_trigger after resolving a run; missing
+            # here means a bug or a test that skipped resolution.
+            logger.error(
+                "autofix.pr_iteration.check_suite.should_trigger.missing_autofix_run",
                 extra={"run_id": run_state.run_id, "head_sha": head_sha},
             )
             return ConsumeTask.Now
 
-        organization_id = repo.organization_id
-        repo_id = repo.id
+        organization_id = resolved.repository.organization_id
+        repo_id = resolved.repository.id
 
         # Importing the SCM factory while feedback models are initialized pulls
         # in integration handlers before Django finishes registering apps.
@@ -343,6 +404,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
 
 
 __all__ = (
+    "CheckSuiteAutofixRun",
     "CheckSuiteFeedbackSource",
     "GithubCheckSuite",
     "GithubCheckSuiteApp",
@@ -351,5 +413,5 @@ __all__ = (
     "GithubCheckSuitePullRequest",
     "GithubCheckSuiteRepository",
     "get_check_suite_url",
-    "resolve_check_suite_repository",
+    "resolve_check_suite_repositories",
 )

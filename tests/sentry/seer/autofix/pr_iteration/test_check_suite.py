@@ -9,6 +9,7 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedba
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CHECK_SUITE_ITERATION_HARD_CAP,
+    CheckSuiteAutofixRun,
     CheckSuiteFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
@@ -290,7 +291,14 @@ def _run_state(*, blocks: list[MemoryBlock]) -> SeerRunState:
 
 class CheckSuiteHardCapTest(TestCase):
     def _source(self) -> CheckSuiteFeedbackSource:
-        return _check_suite_source()
+        source = _check_suite_source()
+        source.__dict__["autofix_run"] = CheckSuiteAutofixRun(
+            repository=MagicMock(organization_id=1, id=2),
+            run_state=_run_state(blocks=[]),
+            pr_id=1,
+            group_id=1,
+        )
+        return source
 
     def _run_state_on_head(self, *, blocks: list[MemoryBlock]) -> SeerRunState:
         state = _run_state(blocks=blocks)
@@ -309,17 +317,23 @@ class CheckSuiteHardCapTest(TestCase):
 
         assert not self._source().should_queue(self._run_state_on_head(blocks=blocks))
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories", return_value=[])
-    def test_not_capped_when_fewer_than_cap_iterations(self, _mock: MagicMock) -> None:
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", return_value=[{"data": []}])
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch("sentry.scm.factory.new")
+    def test_not_capped_when_fewer_than_cap_iterations(self, mock_new: MagicMock, _pages) -> None:
+        mock_new.return_value = MagicMock()
         cap = CHECK_SUITE_ITERATION_HARD_CAP
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap - 1)]
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories", return_value=[])
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", return_value=[{"data": []}])
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch("sentry.scm.factory.new")
     def test_not_capped_when_one_iteration_has_non_check_suite_feedback(
-        self, _mock: MagicMock
+        self, mock_new: MagicMock, _pages
     ) -> None:
+        mock_new.return_value = MagicMock()
         cap = CHECK_SUITE_ITERATION_HARD_CAP
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap - 1)]
         blocks.append(
@@ -332,8 +346,7 @@ class CheckSuiteHardCapTest(TestCase):
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
 
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories", return_value=[])
-    def test_only_last_n_iterations_considered(self, _mock: MagicMock) -> None:
+    def test_only_last_n_iterations_considered(self) -> None:
         cap = CHECK_SUITE_ITERATION_HARD_CAP
         blocks = [_iteration_block(0, Feedback(source=UserUIFeedbackSource(user_id=1)))]
         blocks += [_iteration_block(i, _check_suite_feedback()) for i in range(1, cap + 1)]
@@ -341,8 +354,11 @@ class CheckSuiteHardCapTest(TestCase):
         assert self._source().should_trigger(_run_state(blocks=blocks)) is None
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.CHECK_SUITE_ITERATION_HARD_CAP", 0)
-    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories", return_value=[])
-    def test_cap_disabled_when_zero(self, _mock: MagicMock) -> None:
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", return_value=[{"data": []}])
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch("sentry.scm.factory.new")
+    def test_cap_disabled_when_zero(self, mock_new: MagicMock, _pages) -> None:
+        mock_new.return_value = MagicMock()
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(10)]
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
