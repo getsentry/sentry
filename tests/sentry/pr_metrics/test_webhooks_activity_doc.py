@@ -18,6 +18,8 @@ from sentry.models.pullrequest import (
     PullRequestActivity,
     PullRequestActivityLog,
     PullRequestActivityType,
+    PullRequestMetrics,
+    PullRequestVerdict,
 )
 from sentry.pr_metrics.webhooks import (
     handle_activity,
@@ -174,6 +176,7 @@ class ActivityDocumentWritePathTest(TestCase):
         *,
         conclusion: str = "failure",
         updated_at: str = "2026-07-10T12:00:00Z",
+        head_sha: str = "headsha1",
         webhook_id: str = "cs1",
     ) -> None:
         handle_check_suite(
@@ -181,7 +184,7 @@ class ActivityDocumentWritePathTest(TestCase):
             event={
                 "action": "completed",
                 "check_suite": {
-                    "head_sha": "headsha1",
+                    "head_sha": head_sha,
                     "conclusion": conclusion,
                     "app": {"slug": "github-actions"},
                     "latest_check_runs_count": 6,
@@ -201,6 +204,7 @@ class ActivityDocumentWritePathTest(TestCase):
         check_name: str = "test",
         conclusion: str = "failure",
         completed_at: str = "2026-07-10T12:00:00Z",
+        head_sha: str = "headsha1",
         webhook_id: str = "cr1",
     ) -> None:
         handle_check_run(
@@ -209,13 +213,50 @@ class ActivityDocumentWritePathTest(TestCase):
                 "action": "completed",
                 "check_run": {
                     "name": check_name,
-                    "head_sha": "headsha1",
+                    "head_sha": head_sha,
                     "conclusion": conclusion,
                     "app": {"slug": "github-actions"},
                     "completed_at": completed_at,
                     "pull_requests": [{"number": 42, "base": {"repo": {"id": 99}}}],
                 },
                 "sender": {"id": 5, "login": "ci[bot]", "type": "Bot"},
+            },
+            organization=self.organization,
+            repo=self.repo,
+            github_delivery_id=webhook_id,
+        )
+
+    def _comment_deleted(
+        self, *, webhook_id: str = "cd1", sender: dict[str, Any] | None = None
+    ) -> None:
+        handle_comment(
+            github_event=GithubWebhookType.ISSUE_COMMENT,
+            event={
+                "action": "deleted",
+                "issue": {
+                    "number": 42,
+                    "created_at": "2026-07-10T10:00:00Z",
+                    "title": "T",
+                    "pull_request": {"url": "https://api.github.com/pulls/42"},
+                },
+                "comment": {"author_association": "MEMBER"},
+                "sender": sender or {"id": 7, "login": "human", "type": "User"},
+            },
+            organization=self.organization,
+            repo=self.repo,
+            github_delivery_id=webhook_id,
+        )
+
+    def _review_comment_deleted(
+        self, *, webhook_id: str = "rcd1", sender: dict[str, Any] | None = None
+    ) -> None:
+        handle_review_comment(
+            github_event=GithubWebhookType.PULL_REQUEST_REVIEW_COMMENT,
+            event={
+                "action": "deleted",
+                "pull_request": self._pull_request_payload(),
+                "comment": {"author_association": "MEMBER"},
+                "sender": sender or {"id": 8, "login": "human", "type": "User"},
             },
             organization=self.organization,
             repo=self.repo,
@@ -429,3 +470,124 @@ class ActivityDocumentWritePathTest(TestCase):
             )
         group = next(iter(self._doc()["checks"].values()))
         assert group["runs"] == {}
+
+    # --- new-path-only captures -------------------------------------------
+
+    def test_reopened_recorded_on_document(self) -> None:
+        with override_options(DOC_ON):
+            self._activity(action="reopened", webhook_id="ro1")
+        entry = self._doc()["events"][0]
+        assert entry["event_type"] == PullRequestActivityType.REOPENED
+        assert entry["event_at"] is None
+        assert entry["payload"]["sender_login"] == "author"
+
+    def test_reopened_ignored_when_option_off(self) -> None:
+        self._activity(action="reopened")
+        assert self._doc_or_none() is None
+        assert self._rows() == 0
+
+    def test_reopened_ignored_when_pr_on_legacy_store(self) -> None:
+        # A PR already on the legacy store never gets doc-only captures; the legacy
+        # path is left untouched (no reopened row — it was never a legacy action).
+        PullRequestActivity.objects.create(
+            pull_request=self.pr,
+            webhook_id="pre",
+            event_type=PullRequestActivityType.OPENED,
+            payload={},
+        )
+        with override_options(DOC_ON):
+            self._activity(action="reopened", webhook_id="ro1")
+        assert self._doc_or_none() is None
+        assert self._rows() == 1
+
+    def test_edited_captures_changed_field_names_only(self) -> None:
+        with override_options(DOC_ON):
+            self._activity(
+                action="edited",
+                webhook_id="ed1",
+                changes={"title": {"from": "old secret title"}, "base": {"ref": {"from": "main"}}},
+            )
+        entry = self._doc()["events"][0]
+        assert entry["event_type"] == PullRequestActivityType.EDITED
+        assert entry["event_at"] is None
+        assert entry["payload"]["changed_fields"] == ["base", "title"]
+        # The old title/body TEXT must never be stored.
+        assert "old secret title" not in str(entry["payload"])
+
+    def test_terminal_event_recorded_despite_claimed_verdict(self) -> None:
+        # By the time the close processor runs, the PR is often already stamped
+        # terminal with a claimed verdict; the terminal event must still land on the
+        # document (the gate stops only post-terminal accumulation).
+        PullRequestMetrics.objects.create(
+            pull_request=self.pr, verdict=PullRequestVerdict.MERGED_UNCHANGED
+        )
+        with override_options(DOC_ON):
+            self._activity(
+                action="closed",
+                webhook_id="close1",
+                pull_request=self._pull_request_payload(closed_at="2026-07-10T11:00:00Z"),
+            )
+        assert [e["event_type"] for e in self._doc()["events"]] == [PullRequestActivityType.CLOSED]
+
+    def test_non_terminal_event_still_blocked_by_claimed_verdict(self) -> None:
+        # The relaxation is terminal-only: a non-terminal event on a settled PR is
+        # still dropped, so nothing is even written.
+        PullRequestMetrics.objects.create(
+            pull_request=self.pr, verdict=PullRequestVerdict.MERGED_UNCHANGED
+        )
+        with override_options(DOC_ON):
+            self._activity(action="synchronize", webhook_id="s1", before="a", after="b")
+        assert self._doc_or_none() is None
+
+    def test_comment_deletions_are_ignored(self) -> None:
+        # Deliberately not captured on either store: without the deleted comment's
+        # content, a sender+timestamp entry is too little signal to act on.
+        with override_options(DOC_ON):
+            self._comment_deleted(webhook_id="cd1", sender={"login": "human", "type": "User"})
+            self._review_comment_deleted(
+                webhook_id="rcd1", sender={"login": "human", "type": "User"}
+            )
+        assert self._doc_or_none() is None
+        assert self._rows() == 0
+
+    def test_check_group_keyed_on_head_sha(self) -> None:
+        with override_options(DOC_ON):
+            self._check_run(check_name="t", conclusion="failure", webhook_id="cr1")
+        assert "headsha1|github-actions" in self._doc()["checks"]
+
+    def test_check_groups_split_by_head_sha(self) -> None:
+        with override_options(DOC_ON):
+            self._check_suite(head_sha="headsha1", webhook_id="cs1")
+            self._check_suite(head_sha="headsha2", webhook_id="cs2")
+        assert set(self._doc()["checks"].keys()) == {
+            "headsha1|github-actions",
+            "headsha2|github-actions",
+        }
+
+    def test_auto_merge_enabled_captures_sender_on_document(self) -> None:
+        with override_options(DOC_ON):
+            self._activity(
+                action="auto_merge_enabled",
+                webhook_id="am1",
+                sender={"id": 3, "login": "maintainer", "type": "User"},
+                pull_request=self._pull_request_payload(auto_merge={"merge_method": "squash"}),
+            )
+        doc = self._doc()
+        entry = doc["events"][0]
+        assert entry["event_type"] == PullRequestActivityType.AUTO_MERGE_ENABLED
+        assert entry["payload"]["sender_login"] == "maintainer"
+        assert entry["payload"]["merge_method"] == "squash"
+        assert doc["participants"] == {"maintainer": "User"}
+
+    def test_auto_merge_sender_stays_empty_on_legacy_path(self) -> None:
+        # On the legacy path the sender is left empty so it isn't folded into that
+        # path's participants_count — frozen behavior.
+        self._activity(
+            action="auto_merge_enabled",
+            webhook_id="am1",
+            sender={"id": 3, "login": "maintainer", "type": "User"},
+            pull_request=self._pull_request_payload(auto_merge={"merge_method": "squash"}),
+        )
+        row = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert row.payload["sender_login"] == ""
+        assert row.payload["merge_method"] == "squash"

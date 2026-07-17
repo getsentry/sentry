@@ -1111,6 +1111,7 @@ class TestRecordPrAttribution(APITestCase):
             "agent_id": "agent-abc-123",
             "pr_url": self._DEFAULT_PR_URL,
             "run_id": 42,
+            "group_ids": [],
         }
 
     def test_delegated_signal_details_defaults_nullable_fields(self) -> None:
@@ -1121,6 +1122,7 @@ class TestRecordPrAttribution(APITestCase):
             "agent_id": None,
             "pr_url": self._DEFAULT_PR_URL,
             "run_id": None,
+            "group_ids": [],
         }
 
     def test_invalid_delegated_signal_details_raises(self) -> None:
