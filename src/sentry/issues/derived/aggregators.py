@@ -1,6 +1,8 @@
 from sentry.issues.action_log.types import (
     ArchiveAction,
     AssignAction,
+    AutofixCodingCompleteAction,
+    AutofixPrCreatedAction,
     PullRequestClosedAction,
     PullRequestMergedAction,
     PullRequestReopenedAction,
@@ -9,7 +11,15 @@ from sentry.issues.action_log.types import (
     ResolveAction,
     ResolvedInPullRequestAction,
     RootCauseIdentifiedAction,
+    SeerCodingCompletedAction,
+    SeerCodingStartedAction,
+    SeerIterationCompletedAction,
+    SeerIterationStartedAction,
+    SeerPRCreatedAction,
     SeerRCACompletedAction,
+    SeerRCAStartedAction,
+    SeerSolutionCompletedAction,
+    SeerSolutionStartedAction,
     SetRegressedAction,
     SetResolvedByAgeAction,
     SetResolvedInCommitAction,
@@ -19,9 +29,11 @@ from sentry.issues.action_log.types import (
     ViewAction,
 )
 from sentry.issues.derived.features import (
+    BLOCKER,
     HAS_OPEN_FIX_PR,
     HAS_ROOT_CAUSE,
     IS_ASSIGNED,
+    LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
     PROGRESS,
     STATUS,
@@ -37,6 +49,7 @@ from sentry.issues.derived.framework import (
 )
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.progress_state import IssueProgressState
+from sentry.types.group import IssueAutofixStep, IssueBlocker
 
 
 @aggregator((VIEW_COUNT,), scope=(ViewAction,))
@@ -192,6 +205,83 @@ def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorRe
     return None
 
 
+@aggregator(
+    (LAST_COMPLETED_AUTOFIX_STEP,),
+    scope=(
+        AutofixCodingCompleteAction,
+        AutofixPrCreatedAction,
+        RootCauseIdentifiedAction,
+        SeerCodingCompletedAction,
+        SeerCodingStartedAction,
+        SeerIterationCompletedAction,
+        SeerIterationStartedAction,
+        SeerPRCreatedAction,
+        SeerRCACompletedAction,
+        SeerRCAStartedAction,
+        SeerSolutionCompletedAction,
+        SeerSolutionStartedAction,
+    ),
+)
+def track_last_completed_autofix_step(
+    state: StateView, entry: GroupActionLogEntry
+) -> AggregatorResult:
+    """Track how far along we are in the autofix flow. This feeds into the `BLOCKER` feature."""
+    current_step = state[LAST_COMPLETED_AUTOFIX_STEP]
+    new_step = current_step
+
+    match entry.action:
+        case RootCauseIdentifiedAction() | SeerRCAStartedAction() | SeerRCACompletedAction():
+            new_step = IssueAutofixStep.ROOT_CAUSE
+        case SeerSolutionStartedAction() | SeerSolutionCompletedAction():
+            new_step = IssueAutofixStep.SOLUTION
+        case (
+            AutofixCodingCompleteAction() | SeerCodingStartedAction() | SeerCodingCompletedAction()
+        ):
+            new_step = IssueAutofixStep.CODE_CHANGES
+        case AutofixPrCreatedAction() | SeerPRCreatedAction():
+            new_step = IssueAutofixStep.PR_CREATED
+        case SeerIterationStartedAction() | SeerIterationCompletedAction():
+            new_step = IssueAutofixStep.PR_ITERATION
+
+    if new_step != current_step:
+        return emit(LAST_COMPLETED_AUTOFIX_STEP.value(new_step))
+    return None
+
+
+@aggregator(
+    (BLOCKER,),
+    deps=(STATUS, HAS_OPEN_FIX_PR, LAST_COMPLETED_AUTOFIX_STEP),
+)
+def track_blocker(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    """Track the human action blocking the issue's progress toward resolution.
+    If there are open PRs, the blocker is MERGE_PR.
+    If there aren't any open PRs, the blocker is decided by the last completed autofix step.
+    """
+    current = state[BLOCKER]
+    new_blocker = current
+
+    if state[STATUS] != IssueStatus.OPEN:
+        new_blocker = IssueBlocker.NONE
+    elif state[HAS_OPEN_FIX_PR]:
+        new_blocker = IssueBlocker.MERGE_PR
+    else:
+        match state[LAST_COMPLETED_AUTOFIX_STEP]:
+            case IssueAutofixStep.NONE:
+                new_blocker = IssueBlocker.NONE
+            case IssueAutofixStep.ROOT_CAUSE:
+                new_blocker = IssueBlocker.APPROVE_ROOT_CAUSE
+            case IssueAutofixStep.SOLUTION:
+                new_blocker = IssueBlocker.APPROVE_PLAN
+            case IssueAutofixStep.CODE_CHANGES:
+                new_blocker = IssueBlocker.APPROVE_CODE_CHANGES
+            case IssueAutofixStep.PR_CREATED | IssueAutofixStep.PR_ITERATION:
+                new_blocker = IssueBlocker.MERGE_PR
+
+    if new_blocker != current:
+        return emit(BLOCKER.value(new_blocker))
+    return None
+
+
 AGGREGATORS: list[Aggregator[GroupActionLogEntry]] = [
     track_views,
     track_status,
@@ -199,4 +289,6 @@ AGGREGATORS: list[Aggregator[GroupActionLogEntry]] = [
     track_root_cause,
     track_open_fix_prs,
     track_progress,
+    track_last_completed_autofix_step,
+    track_blocker,
 ]
