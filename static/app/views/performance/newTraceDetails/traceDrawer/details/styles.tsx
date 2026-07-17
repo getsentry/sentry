@@ -949,7 +949,7 @@ function NodeActions(props: {
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
             href={
-              getTransactionsDeprecation(props.organization)
+              getTransactionsDeprecation(props.organization) && isEAPSpanNode(props.node)
                 ? `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`
                 : `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/events/${transactionId}/json/`
             }
