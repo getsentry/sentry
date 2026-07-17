@@ -271,12 +271,17 @@ class ScheduleWebhooksTest(TestCase):
 
 
 def create_payloads(num: int, mailbox: str, provider: str | None = None) -> list[WebhookPayload]:
+    # Keep path aligned with provider so responses mocks aren't misleading.
+    request_path = (
+        f"/extensions/{provider}/webhook/" if provider else "/extensions/github/webhook/"
+    )
     created = []
     for _ in range(0, num):
         hook = Factories.create_webhook_payload(
             mailbox_name=mailbox,
             cell_name="us",
             provider=provider,
+            request_path=request_path,
         )
         created.append(hook)
     return created
@@ -327,7 +332,7 @@ class DrainMailboxTest(TestCase):
     @responses.activate
     @override_cells(cell_config)
     def test_drain_stops_on_failure_for_non_allowlisted_provider(self) -> None:
-        url = "http://us.testserver/extensions/github/webhook/"
+        url = "http://us.testserver/extensions/jira/webhook/"
         responses.add(responses.POST, url, status=200, body="")
         responses.add(responses.POST, url, status=500, body="")
         records = create_payloads(5, "jira:123", provider="jira")
@@ -666,7 +671,7 @@ class DrainMailboxParallelTest(TestCase):
     @responses.activate
     @override_cells(cell_config)
     def test_drain_stops_on_failure_for_non_allowlisted_provider(self) -> None:
-        url = "http://us.testserver/extensions/github/webhook/"
+        url = "http://us.testserver/extensions/jira/webhook/"
         responses.add(responses.POST, url, status=200, body="")
         responses.add(responses.POST, url, status=500, body="")
         records = create_payloads(5, "jira:123", provider="jira")
