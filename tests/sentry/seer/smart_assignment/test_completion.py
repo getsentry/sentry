@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.utils import timezone
 
 from sentry.models.activity import Activity, ActivityIntegration
@@ -9,6 +11,7 @@ from sentry.seer.smart_assignment.completion import process_smart_assignment_com
 from sentry.seer.smart_assignment.models import SEER_FEATURE_ID
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
 
 AUTO_ASSIGN_FLAG = "organizations:seer-smart-assignment-assign"
 
@@ -41,11 +44,11 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
             },
         )
 
-    def _extras(self) -> dict:
+    def _extras(self) -> dict[str, Any]:
         self.mirror.refresh_from_db()
         return self.mirror.extras
 
-    def _member(self, username: str = "alice"):
+    def _member(self, username: str = "alice") -> User:
         user = self.create_user(username=username)
         self.create_member(user=user, organization=self.organization)
         return user
