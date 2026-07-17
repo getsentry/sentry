@@ -1,15 +1,23 @@
+import {useEffect} from 'react';
 import {destroyAnnouncer} from '@react-aria/live-announcer';
 import {mutationOptions} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
+import * as analytics from 'sentry/utils/analytics';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
+import {
+  AsyncSDKIntegrationContextProvider,
+  useAsyncSDKIntegrationStore,
+} from 'sentry/views/app/asyncSDKIntegrationProvider';
 
 const defaultProps = {
   enableAISearch: true,
@@ -36,6 +44,29 @@ const askSeerMutationOptions = mutationOptions({
 const {organization} = initializeOrg({
   organization: {features: ['gen-ai-features'], hideAiFeatures: false},
 });
+
+const feedbackIntegration = {
+  createForm: jest.fn(),
+} as unknown as FeedbackIntegration;
+
+function FeedbackProvider({children}: {children: React.ReactNode}) {
+  return (
+    <AsyncSDKIntegrationContextProvider>
+      <InstallFeedbackIntegration />
+      <GlobalFeedbackForm>{children}</GlobalFeedbackForm>
+    </AsyncSDKIntegrationContextProvider>
+  );
+}
+
+function InstallFeedbackIntegration() {
+  const {setState} = useAsyncSDKIntegrationStore();
+
+  useEffect(() => {
+    setState({Feedback: feedbackIntegration});
+  }, [setState]);
+
+  return null;
+}
 
 describe('AskSeerComboBox', () => {
   beforeEach(() => {
@@ -112,6 +143,79 @@ describe('AskSeerComboBox', () => {
 
     const header = await screen.findByText(/Describe what you're looking for./);
     expect(header).toBeInTheDocument();
+  });
+
+  it('only shows the reworked footer after results are displayed', async () => {
+    const reworkedOrganization = {
+      ...organization,
+      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
+    };
+
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization: reworkedOrganization, additionalWrapper: FeedbackProvider}
+    );
+
+    expect(
+      await screen.findByText(/Describe what you're looking for./)
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Generate again'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Give Feedback'})).not.toBeInTheDocument();
+
+    const input = screen.getByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.type(input, 'test{Enter}');
+
+    expect(
+      await screen.findByRole('button', {name: 'Generate again'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Give Feedback'})).toBeInTheDocument();
+  });
+
+  it('regenerates the displayed mutation results', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const queryRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      method: 'POST',
+      body: {status: 'ok', queries: [{query: 'span.duration:>30s'}]},
+    });
+    const reworkedOrganization = {
+      ...organization,
+      features: [...organization.features, 'gen-ai-ask-seer-ux-rework'],
+    };
+
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization: reworkedOrganization, additionalWrapper: FeedbackProvider}
+    );
+
+    await userEvent.type(
+      await screen.findByRole('combobox', {name: 'Ask Seer with Natural Language'}),
+      'test{Enter}'
+    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Generate again'}));
+
+    await waitFor(() => expect(queryRequest).toHaveBeenCalledTimes(2));
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith('ai_query.regenerated', {
+      organization: reworkedOrganization,
+      area: '',
+      natural_language_query: 'test',
+    });
   });
 
   it('closes seer search when close button is clicked', async () => {
