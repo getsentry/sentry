@@ -342,7 +342,7 @@ class ProcessGroupLogTest(TestCase):
         assert derived is not None
         original_id = derived.id
 
-        with patch("sentry.issues.derived.tasks.rebuild_group_derived_data_task") as mock_task:
+        with patch("sentry.issues.derived.processing.rebuild_group_derived_data_task") as mock_task:
             invalidate_group_derived_data(group.id, hard_delete=False)
             mock_task.delay.assert_called_once_with(group.id)
 
@@ -489,7 +489,7 @@ class ProcessGroupLogTest(TestCase):
 
         with self.options({"issues.derived-data.create-on-demand": False}):
             # Publish with async strategy so inline processing doesn't create a row
-            with patch("sentry.issues.derived.tasks.process_group_log_task"):
+            with patch("sentry.issues.derived.processing.process_group_log_task"):
                 _publish(
                     group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
                 )
@@ -635,7 +635,7 @@ class PromoteToLiveTest(TestCase):
 
         with (
             patch("sentry.issues.derived.processing._drain_log", return_value=False),
-            patch("sentry.issues.derived.tasks.process_group_log_task") as mock_task,
+            patch("sentry.issues.derived.processing.process_group_log_task") as mock_task,
         ):
             derived = process_group_log(group.id)
 

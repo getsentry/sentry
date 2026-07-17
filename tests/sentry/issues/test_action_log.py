@@ -650,7 +650,7 @@ class TestPublishActionWrite(TestCase):
 
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
 
-    @patch("sentry.issues.derived.tasks.process_group_log_task")
+    @patch("sentry.issues.derived.processing.process_group_log_task")
     def test_force_async_derived_dispatches_task(self, mock_task: MagicMock) -> None:
         with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
             publish_action(
@@ -669,7 +669,7 @@ class TestPublishActionWrite(TestCase):
         # Task was dispatched instead
         mock_task.delay.assert_called_once_with(self.group.id)
 
-    @patch("sentry.issues.derived.tasks.process_group_log_task")
+    @patch("sentry.issues.derived.processing.process_group_log_task")
     def test_inline_derived_processes_without_task(self, mock_task: MagicMock) -> None:
         with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
             publish_action(
