@@ -3,11 +3,10 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
-from functools import cached_property
 from typing import Literal
 
 import sentry_sdk
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, PrivateAttr, root_validator
 from scm import actions as scm_actions
 from scm.helpers import iter_all_pages
 from scm.types import ListCheckRunsForRefProtocol
@@ -192,8 +191,18 @@ def _processed_check_suite_ids(run_state: SeerRunState) -> set[int]:
 class CheckSuiteFeedbackSource(FeedbackSourceBase):
     type: Literal["check-suite"] = "check-suite"
     event: GithubCheckSuiteEvent
+    # Derived scalars set in ``_populate_event_fields`` (same pattern as
+    # ``GithubPrCommentFeedbackSource.comment_feedback``).
     app_name: str = ""
     check_suite_url: str = ""
+
+    # Lazy DB/Seer resolution — not serializable, never part of Redis payload.
+    # Kept as PrivateAttr (not ``@cached_property``) so pydantic never sees the
+    # Django/Seer objects when ``Feedback.json()`` / ``QueuedAutofixFeedback.json()``
+    # runs after the listener has resolved them.
+    _repositories: list[Repository] | None = PrivateAttr(default=None)
+    _autofix_run: CheckSuiteAutofixRun | None = PrivateAttr(default=None)
+    _autofix_run_resolved: bool = PrivateAttr(default=False)
 
     @root_validator
     def _populate_event_fields(cls, values: dict[str, object]) -> dict[str, object]:
@@ -232,12 +241,13 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     def ui_text(self) -> str | None:
         return f"check suite for app {self.app_name} failed"
 
-    @cached_property
+    @property
     def repositories(self) -> list[Repository]:
-        return resolve_check_suite_repositories(self.event)
+        if self._repositories is None:
+            self._repositories = resolve_check_suite_repositories(self.event)
+        return self._repositories
 
-    @cached_property
-    def autofix_run(self) -> CheckSuiteAutofixRun | None:
+    def _resolve_autofix_run(self) -> CheckSuiteAutofixRun | None:
         """Find the single Autofix run for this check suite's PR(s).
 
         Assumes one Autofix run ↔ PR in Sentry. Tries each PR × candidate org until
@@ -247,7 +257,11 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         if not repos:
             return None
 
-        for pr_id in (pr.id for pr in self.event.check_suite.pull_requests):
+        pull_requests = self.event.check_suite.pull_requests
+        if not pull_requests:
+            return None
+
+        for pr_id in (pr.id for pr in pull_requests):
             for candidate in repos:
                 try:
                     state = get_agent_state_from_pr_id(
@@ -257,7 +271,9 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
                     sentry_sdk.capture_exception(e)
                     continue
 
-                if state is None or not state.repo_pr_states:
+                if state is None:
+                    continue
+                if not state.repo_pr_states:
                     continue
 
                 group_id = state.metadata.get("group_id") if state.metadata else None
@@ -280,6 +296,13 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
                 )
 
         return None
+
+    @property
+    def autofix_run(self) -> CheckSuiteAutofixRun | None:
+        if not self._autofix_run_resolved:
+            self._autofix_run = self._resolve_autofix_run()
+            self._autofix_run_resolved = True
+        return self._autofix_run
 
     def _matches_current_head(self, run_state: SeerRunState) -> tuple[str | None, str | None, bool]:
         """Whether the check suite ran on the PR's *current* head commit.

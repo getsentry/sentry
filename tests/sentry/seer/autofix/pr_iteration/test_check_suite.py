@@ -292,12 +292,13 @@ def _run_state(*, blocks: list[MemoryBlock]) -> SeerRunState:
 class CheckSuiteHardCapTest(TestCase):
     def _source(self) -> CheckSuiteFeedbackSource:
         source = _check_suite_source()
-        source.__dict__["autofix_run"] = CheckSuiteAutofixRun(
+        source._autofix_run = CheckSuiteAutofixRun(
             repository=MagicMock(organization_id=1, id=2),
             run_state=_run_state(blocks=[]),
             pr_id=1,
             group_id=1,
         )
+        source._autofix_run_resolved = True
         return source
 
     def _run_state_on_head(self, *, blocks: list[MemoryBlock]) -> SeerRunState:

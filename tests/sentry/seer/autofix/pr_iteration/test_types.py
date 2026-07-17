@@ -468,12 +468,13 @@ class CheckSuiteShouldTriggerTest(TestCase):
         self, head_sha="abc", *, repo: MagicMock | None = None
     ) -> CheckSuiteFeedbackSource:
         source = self._source(head_sha=head_sha)
-        source.__dict__["autofix_run"] = CheckSuiteAutofixRun(
+        source._autofix_run = CheckSuiteAutofixRun(
             repository=repo or MagicMock(organization_id=1, id=2),
             run_state=_run_state(),
             pr_id=1,
             group_id=1,
         )
+        source._autofix_run_resolved = True
         return source
 
     def test_now_when_no_head_sha(self) -> None:
@@ -481,7 +482,8 @@ class CheckSuiteShouldTriggerTest(TestCase):
 
     def test_now_when_autofix_run_missing(self) -> None:
         source = self._source()
-        source.__dict__["autofix_run"] = None
+        source._autofix_run = None
+        source._autofix_run_resolved = True
 
         assert source.should_trigger(_run_state()) == ConsumeTask.Now
 
