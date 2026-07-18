@@ -213,6 +213,53 @@ class RefsChangedWebhookTest(WebhookTestBase):
             status_code=400,
         )
 
+    @patch("sentry.integrations.bitbucket_server.client.BitbucketServerClient.get_commits")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_new_ref_push_skips_get_commits(
+        self, mock_record: MagicMock, mock_get_commits: MagicMock
+    ) -> None:
+        """
+        When fromHash is all zeros (new tag or branch creation), get_commits must NOT be
+        called — passing since=None would fetch the entire repo history and produce a
+        truncated JSON response (JSONDecodeError).
+        """
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.integration.add_organization(self.organization, default_auth_id=self.identity.id)
+
+        self.create_repository()
+
+        payload = {
+            "changes": [
+                {
+                    "fromHash": "0" * 40,
+                    "toHash": "abcdef1234567890abcdef1234567890abcdef12",
+                    "ref": {
+                        "displayId": "refs/tags/v1.0.0",
+                        "id": "refs/tags/v1.0.0",
+                        "type": "TAG",
+                    },
+                    "refId": "refs/tags/v1.0.0",
+                    "type": "ADD",
+                }
+            ],
+            "repository": {
+                "id": "{b128e0f6-196a-4dde-b72d-f42abc6dc239}",
+                "project": {"key": "my-project"},
+                "slug": "marcos",
+            },
+        }
+
+        self.get_success_response(
+            self.organization.id,
+            self.integration.id,
+            raw_data=orjson.dumps(payload),
+            extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
+            status_code=204,
+        )
+
+        mock_get_commits.assert_not_called()
+        assert_success_metric(mock_record)
+
     @responses.activate
     def test_handle_unreachable_host(self) -> None:
         responses.add(

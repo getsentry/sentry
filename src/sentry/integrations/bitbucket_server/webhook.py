@@ -100,6 +100,13 @@ class PushEventWebhook(BitbucketServerWebhook):
 
             for change in event["changes"]:
                 from_hash = None if change.get("fromHash") == "0" * 40 else change.get("fromHash")
+                if from_hash is None:
+                    # New ref (tag/branch creation) — fromHash is all zeros, meaning there
+                    # is no prior state to diff against. Fetching with since=None would pull
+                    # the entire repository history, causing unbounded queries and truncated
+                    # JSON responses. Commit tracking for a brand-new ref is also meaningless
+                    # without a previous state, so skip it.
+                    continue
                 try:
                     commits = client.get_commits(
                         project_name, repo_name, from_hash, change.get("toHash")
