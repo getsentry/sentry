@@ -22,9 +22,11 @@ from sentry.integrations.source_code_management.commit_context import (
 )
 from sentry.integrations.source_code_management.metrics import CommitContextHaltReason
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.issues.action_log import get_action_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
+from sentry.models.projectownership import ProjectOwnership
 from sentry.models.pullrequest import (
     CommentType,
     PullRequest,
@@ -1146,6 +1148,52 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 selected_code_mapping_id=self.code_mapping.id,
             ),
         )
+
+    @patch(
+        "sentry.integrations.github.integration.GitHubIntegration.get_commit_context_all_frames",
+    )
+    def test_handle_auto_assignment_called_within_action_context_scope(
+        self, mock_get_commit_context: MagicMock
+    ) -> None:
+        """
+        Regression test for Sentry event 2a0880f3db5b47eb94407422f4166af1.
+
+        process_commit_context must set action_context_scope before calling
+        handle_auto_assignment. Without it, any Activity created inside the
+        assignment stack calls publish_action_from_context with a None context,
+        which logs an error ("publish_action_from_context called without ActionContext").
+        """
+        mock_get_commit_context.return_value = [self.blame_existing_commit]
+
+        captured_contexts: list = []
+        mock_handle = MagicMock(side_effect=lambda *a, **kw: captured_contexts.append(get_action_context()))
+
+        existing_commit = self.create_commit(
+            project=self.project,
+            repo=self.repo,
+            author=self.commit_author,
+            key="existing-commit",
+        )
+        existing_commit.update(message="")
+
+        with patch.object(ProjectOwnership, "handle_auto_assignment", mock_handle):
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+
+        assert mock_handle.called, "handle_auto_assignment was not called"
+        assert len(captured_contexts) == 1
+        ctx = captured_contexts[0]
+        assert ctx is not None, (
+            "action_context_scope was not set when handle_auto_assignment was called; "
+            "this would cause 'publish_action_from_context called without ActionContext' errors"
+        )
+        assert ctx.source == "process_commit_context"
 
 
 @patch(

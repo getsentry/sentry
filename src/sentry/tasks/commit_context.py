@@ -21,6 +21,7 @@ from sentry.integrations.utils.commit_context import (
     find_commit_context_for_event_all_frames,
     get_or_create_commit_from_blame,
 )
+from sentry.issues.action_log import action_context_scope
 from sentry.issues.auto_source_code_config.code_mapping import get_sorted_code_mapping_configs
 from sentry.locks import locks
 from sentry.models.commit import Commit
@@ -181,18 +182,19 @@ def process_commit_context(
             if installation and isinstance(installation, CommitContextIntegration):
                 installation.queue_pr_comment_task_if_needed(project, commit, group_owner, group_id)
 
-            ProjectOwnership.handle_auto_assignment(
-                project_id=project.id,
-                organization_id=project.organization_id,
-                group=group_owner.group,
-                logging_extra={
-                    "event_id": event_id,
-                    "group_id": group_id,
-                    "project_id": str(project.id),
-                    "organization_id": project.organization_id,
-                    "source": "process_commit_context",
-                },
-            )
+            with action_context_scope(source="process_commit_context"):
+                ProjectOwnership.handle_auto_assignment(
+                    project_id=project.id,
+                    organization_id=project.organization_id,
+                    group=group_owner.group,
+                    logging_extra={
+                        "event_id": event_id,
+                        "group_id": group_id,
+                        "project_id": str(project.id),
+                        "organization_id": project.organization_id,
+                        "source": "process_commit_context",
+                    },
+                )
             metrics.incr(
                 "sentry.tasks.process_commit_context.success",
                 tags={
