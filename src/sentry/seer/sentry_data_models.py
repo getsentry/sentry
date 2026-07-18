@@ -862,9 +862,11 @@ class ExecuteTimeseriesQueryErrorResponse(BaseModel):
 class MonitoringProviderConnectionData(BaseModel):
     provider_key: str
     url: str
-    encrypted_access_token: str
-    identity_id: int
+    encrypted_access_token: str | None = None
+    encrypted_auth_headers: dict[str, str] | None = None
+    identity_id: int | None = None
     auth_method: str
+    refreshable: bool = True
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]
