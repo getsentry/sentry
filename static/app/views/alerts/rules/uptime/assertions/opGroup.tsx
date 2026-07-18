@@ -71,7 +71,7 @@ export function AssertionOpGroup({
   const handleAddOp = (newOp: UptimeOp) => {
     const newGroupOp: UptimeGroupOp = {
       ...groupOp,
-      children: [...groupOp.children, newOp],
+      children: [...(groupOp.children ?? []), newOp],
     };
     onChange(
       isNegated ? {id: notId, op: UptimeOpType.NOT, operand: newGroupOp} : newGroupOp
@@ -79,7 +79,7 @@ export function AssertionOpGroup({
   };
 
   const handleUpdateChild = (index: number, updatedOp: UptimeOp) => {
-    const newChildren = [...groupOp.children];
+    const newChildren = [...(groupOp.children ?? [])];
     newChildren[index] = updatedOp;
     const newGroupOp: UptimeGroupOp = {...groupOp, children: newChildren};
     onChange(
@@ -88,7 +88,7 @@ export function AssertionOpGroup({
   };
 
   const handleRemoveChild = (index: number) => {
-    const newChildren = groupOp.children.filter((_, i) => i !== index);
+    const newChildren = (groupOp.children ?? []).filter((_, i) => i !== index);
     const newGroupOp: UptimeGroupOp = {...groupOp, children: newChildren};
     onChange(
       isNegated ? {id: notId, op: UptimeOpType.NOT, operand: newGroupOp} : newGroupOp
@@ -169,7 +169,7 @@ export function AssertionOpGroup({
     }
   };
 
-  const opList = groupOp.children.map((child, index) => {
+  const opList = (groupOp.children ?? []).map((child, index) => {
     const dropProps = {
       disabled: innerDroppableDisabled,
       groupId: value.id,
@@ -205,7 +205,7 @@ export function AssertionOpGroup({
     );
   }
 
-  const isEmptyGroup = groupOp.children.length === 0;
+  const isEmptyGroup = (groupOp.children ?? []).length === 0;
 
   return (
     <GroupContainer op={groupOp} isDragging={isDragging} role="group" ref={setNodeRef}>
