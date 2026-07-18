@@ -474,6 +474,34 @@ class ProcessGroupLogTest(TestCase):
         assert derived.cursor_id == first_cursor
         assert derived.pipeline_hash == "reset"
 
+    def test_generation_id_change_skips_incremental_write(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        derived = process_group_log(group.id)
+        assert derived is not None
+        first_cursor = derived.cursor_id
+
+        GroupActionLogEntry.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.SYSTEM,
+            actor_id=0,
+            source=SOURCE,
+            data={},
+        )
+
+        # Simulate a rebuild promoting a new generation between our read
+        # and the UPDATE in _process_batch.
+        GroupDerivedData.objects.filter(id=derived.id).update(generation_id=999999)
+
+        processing._process_batch(processing.PIPELINE, derived, 1)
+
+        derived.refresh_from_db()
+        assert derived.cursor_id == first_cursor
+        assert derived.generation_id == 999999
+
     def test_invalidate_and_reprocess_restores_pipeline_hash(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
@@ -710,6 +738,30 @@ class PromoteToLiveTest(TestCase):
         assert promoted.view_count == 5
         # The non-live row was cleaned up after promotion.
         assert not GroupDerivedData.objects.filter(id=derived_id, is_live=False).exists()
+
+    def test_resumed_rebuild_advances_cursor_on_repeat_timeout(self) -> None:
+        group = self.create_group()
+        for _ in range(5):
+            _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        # First run: drain 2 entries then timeout.
+        with pytest.raises(GroupLogTimeout) as exc_info:
+            build_and_promote_derived_data(group.id, batch_size=2, time_limit=timedelta(0))
+
+        derived_id = exc_info.value.derived_id
+        assert derived_id is not None
+        first_cursor = GroupDerivedData.objects.get(id=derived_id).cursor_id
+        assert first_cursor > 0
+
+        # Second run resumes and times out again — cursor must advance.
+        with pytest.raises(GroupLogTimeout) as exc_info:
+            build_and_promote_derived_data(
+                group.id, derived_id=derived_id, batch_size=2, time_limit=timedelta(0)
+            )
+
+        assert exc_info.value.derived_id == derived_id
+        second_cursor = GroupDerivedData.objects.get(id=derived_id).cursor_id
+        assert second_cursor > first_cursor
 
 
 # --- Pure Python tests (no DB) ---
