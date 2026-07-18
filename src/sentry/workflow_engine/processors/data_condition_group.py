@@ -67,34 +67,27 @@ def evaluate_condition_group_results(
     logic_type: DataConditionGroup.Type,
 ) -> DataConditionGroupEvaluation:
     logic_result = TriggerResult.FALSE
-    passing_evaluations: list[DataConditionEvaluation] = []
+    outcomes = [condition_result.outcome for condition_result in condition_results]
 
     match logic_type:
         case DataConditionGroup.Type.NONE:
-            logic_result = TriggerResult.none(
-                condition_result.outcome for condition_result in condition_results
-            )
+            logic_result = TriggerResult.none(outcomes)
         case DataConditionGroup.Type.ANY | DataConditionGroup.Type.ANY_SHORT_CIRCUIT:
-            logic_result = TriggerResult.any(
-                condition_result.outcome for condition_result in condition_results
-            )
-
-            if logic_result.triggered:
-                passing_evaluations = [
-                    condition_result
-                    for condition_result in condition_results
-                    if condition_result.outcome.triggered
-                ]
+            logic_result = TriggerResult.any(outcomes)
         case DataConditionGroup.Type.ALL:
-            conditions_met = [condition_result.outcome for condition_result in condition_results]
-            logic_result = TriggerResult.all(conditions_met)
+            logic_result = TriggerResult.all(outcomes)
 
-            if logic_result.triggered:
-                passing_evaluations = [
-                    condition_result
-                    for condition_result in condition_results
-                    if condition_result.outcome.triggered
-                ]
+    # When the group didn't trigger, or it's a NONE group (which triggers precisely
+    # when nothing matched), this is empty.
+    passing_evaluations = (
+        [
+            condition_result
+            for condition_result in condition_results
+            if condition_result.outcome.triggered
+        ]
+        if logic_result.triggered
+        else []
+    )
 
     return DataConditionGroupEvaluation(
         result=logic_result.triggered,
