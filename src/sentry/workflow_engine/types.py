@@ -6,7 +6,17 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from logging import Logger
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Sequence, TypeAlias, TypedDict, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ClassVar,
+    Generic,
+    Literal,
+    Sequence,
+    TypeAlias,
+    TypedDict,
+    TypeVar,
+)
 
 from django.db.models import Q
 from sentry_sdk import logger as sentry_logger
@@ -88,6 +98,8 @@ class ConditionError:
 
 
 type DetectorResult = IssueOccurrence | StatusChangeMessage | None
+type WorkflowEvaluationDeferred = Literal["deferred"]
+type WorkflowEvaluationResult = Sequence[Action] | WorkflowEvaluationDeferred
 
 
 class _WorkflowEventLocalCache(TypedDict, total=False):
