@@ -9,7 +9,7 @@ type InfoTextBaseProps<T extends 'span' | 'p' | 'label' | 'div' | 'time'> =
   DistributedOmit<TextProps<T>, 'title' | 'variant' | 'ellipsis' | 'underline'> & {
     title: React.ReactNode;
     variant?: TooltipProps['underlineColor'] | 'inherit';
-  } & Pick<TooltipProps, 'position' | 'maxWidth' | 'delay' | 'disabled'>;
+  } & Pick<TooltipProps, 'position' | 'maxWidth' | 'delay'>;
 
 export type InfoTextProps<T extends 'span' | 'p' | 'label' | 'div' | 'time'> =
   | (InfoTextBaseProps<T> & {mode?: undefined})
@@ -23,7 +23,6 @@ export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'sp
   position,
   maxWidth,
   delay,
-  disabled,
   mode,
   ...textProps
 }: InfoTextProps<T>) {
@@ -44,7 +43,6 @@ export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'sp
       position={position}
       maxWidth={maxWidth}
       delay={delay}
-      disabled={disabled}
       showOnlyOnOverflow={isOverflowOnly}
       onOverflowChange={isOverflowOnly ? setIsOverflowing : undefined}
       skipWrapper
@@ -54,7 +52,7 @@ export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'sp
     >
       <StyledText
         {...textPropsWithMode}
-        tabIndex={disabled || (isOverflowOnly && !isOverflowing) ? undefined : 0}
+        tabIndex={isOverflowOnly && !isOverflowing ? undefined : 0}
       >
         {children}
       </StyledText>

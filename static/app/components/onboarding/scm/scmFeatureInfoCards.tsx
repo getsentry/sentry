@@ -113,9 +113,8 @@ export function ScmFeatureInfoCards({
                         <Placeholder height="20px" width="100px" />
                       ) : (
                         <InfoText
-                          title={meta.volumeTooltip}
+                          title={isDisabled ? null : meta.volumeTooltip}
                           delay={100}
-                          disabled={isDisabled}
                           variant="muted"
                           size="sm"
                           density="comfortable"
