@@ -15,9 +15,10 @@ from sentry.seer.anomaly_detection.types import (
     DetectHistoricalAnomaliesRequest,
     TimeSeriesPoint,
 )
-from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -37,14 +38,12 @@ SEER_RETRIES = Retry(
 def make_detect_historical_anomalies_request(
     body: DetectHistoricalAnomaliesRequest,
     connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or seer_anomaly_detection_connection_pool,
         SEER_ANOMALY_DETECTION_ENDPOINT_URL,
         body=json.dumps(body).encode("utf-8"),
         retries=SEER_RETRIES,
-        viewer_context=viewer_context,
     )
 
 
@@ -136,16 +135,20 @@ def get_historical_anomaly_data_from_seer_preview(
         "config": config,
         "context": context,
     }
-    viewer_context = SeerViewerContext(organization_id=organization_id)
-    try:
-        response = make_detect_historical_anomalies_request(body, viewer_context=viewer_context)
-    except (TimeoutError, MaxRetryError):
-        logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
-        return None
+    with viewer_context_scope(
+        ViewerContext(organization_id=organization_id, project_id=project_id)
+    ):
+        try:
+            response = make_detect_historical_anomalies_request(body)
+        except (TimeoutError, MaxRetryError):
+            logger.warning(
+                "Timeout error when hitting anomaly detection endpoint", extra=extra_data
+            )
+            return None
 
-    error = handle_seer_error_responses(response, config, context, extra_data)
-    if error:
-        return None
+        error = handle_seer_error_responses(response, config, context, extra_data)
+        if error:
+            return None
 
-    results: DetectAnomaliesResponse = json.loads(response.data.decode("utf-8"))
-    return results.get("timeseries")
+        results: DetectAnomaliesResponse = json.loads(response.data.decode("utf-8"))
+        return results.get("timeseries")

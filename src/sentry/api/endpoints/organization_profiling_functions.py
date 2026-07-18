@@ -20,13 +20,13 @@ from sentry.models.organization import Organization
 from sentry.search.events.builder.profile_functions import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.seer.breakpoints import BreakpointData, BreakpointRequest, detect_breakpoints
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import parse_stats_period, validate_interval
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 TOP_FUNCTIONS_LIMIT = 50
 FUNCTIONS_PER_QUERY = 10
@@ -81,8 +81,6 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
     def get(self, request: Request, organization: Organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)
-
-        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -189,7 +187,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
                 "sort": data["trend"].as_sort(),
             }
 
-            return detect_breakpoints(trends_request, viewer_context=viewer_context)["data"]
+            return detect_breakpoints(trends_request)["data"]
 
         stats_data = self.get_event_stats_data(
             request,
@@ -202,7 +200,10 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
             query=data.get("query"),
         )
 
-        trending_functions = get_trends_data(stats_data)
+        with viewer_context_scope(
+            ViewerContext(organization_id=organization.id, user_id=request.user.id)
+        ):
+            trending_functions = get_trends_data(stats_data)
 
         all_trending_functions_count = len(trending_functions)
         set_span_attribute("profiling.top_functions", all_trending_functions_count)

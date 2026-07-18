@@ -39,7 +39,6 @@ from sentry.seer.signed_seer_api import (
     OrgProjectKnowledgeIndexRequest,
     OrgProjectKnowledgeProjectData,
     RepoDetails,
-    SeerViewerContext,
     make_index_sentry_knowledge_request,
     make_org_project_knowledge_index_request,
     make_org_repo_knowledge_index_request,
@@ -50,6 +49,7 @@ from sentry.utils.hashlib import md5_text
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.utils.tracing import start_span
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -129,22 +129,20 @@ def index_org_project_knowledge(org_id: int) -> None:
 
     payload = OrgProjectKnowledgeIndexRequest(org_id=org_id, projects=project_data)
 
-    viewer_context = SeerViewerContext(organization_id=org_id)
-
-    try:
-        response = make_org_project_knowledge_index_request(
-            payload,
-            timeout=30,
-            viewer_context=viewer_context,
-        )
-        if response.status >= 400:
-            raise SeerApiError("Seer request failed", response.status)
-    except Exception:
-        logger.exception(
-            "Failed to call Seer org-project-knowledge endpoint",
-            extra={"org_id": org_id, "num_projects": len(project_data)},
-        )
-        raise
+    with viewer_context_scope(ViewerContext(organization_id=org_id)):
+        try:
+            response = make_org_project_knowledge_index_request(
+                payload,
+                timeout=30,
+            )
+            if response.status >= 400:
+                raise SeerApiError("Seer request failed", response.status)
+        except Exception:
+            logger.exception(
+                "Failed to call Seer org-project-knowledge endpoint",
+                extra={"org_id": org_id, "num_projects": len(project_data)},
+            )
+            raise
 
     logger.info(
         "Successfully called Seer org-project-knowledge endpoint",
@@ -298,12 +296,13 @@ def index_repos(organization_id: int, *args, **kwargs) -> None:
                     "integration_id": repo.integration_id,
                 }
 
-    viewer_context = SeerViewerContext(organization_id=organization_id)
-    response = make_org_repo_knowledge_index_request(
-        AgentIndexOrgRepoRequest(org_id=organization.id, repos=list(org_repo_definitions.values())),
-        timeout=30,
-        viewer_context=viewer_context,
-    )
+    with viewer_context_scope(ViewerContext(organization_id=organization_id)):
+        response = make_org_repo_knowledge_index_request(
+            AgentIndexOrgRepoRequest(
+                org_id=organization.id, repos=list(org_repo_definitions.values())
+            ),
+            timeout=30,
+        )
 
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)

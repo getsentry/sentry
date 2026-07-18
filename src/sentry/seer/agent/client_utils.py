@@ -250,7 +250,7 @@ def enqueue_seer_run(
     organization: Organization,
     run_type: SeerRunType,
     body: Mapping[str, Any],
-    viewer_context: SeerViewerContext | None,
+    viewer_context: SeerViewerContext | None = None,
     user_id: int | None = None,
     referrer: str | None = None,
     flush: bool = True,

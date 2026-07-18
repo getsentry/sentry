@@ -120,7 +120,7 @@ from sentry.receivers.features import record_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.releases.auto_creation import should_auto_create_releases
 from sentry.reprocessing2 import is_reprocessed_event
-from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.signals import (
     first_event_received,
@@ -152,6 +152,7 @@ from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
 from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 from sentry.utils.tracing import set_span_tag, start_span, trace
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
     ensure_association_with_detector,
@@ -1978,7 +1979,6 @@ def make_severity_score_request(
     body: SeverityScoreRequest,
     connection_pool: HTTPConnectionPool | None = None,
     timeout: int | float | None = None,
-    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     payload: SeverityScoreRequest = {**body}
     if options.get("processing.severity-backlog-test.timeout"):
@@ -1990,7 +1990,6 @@ def make_severity_score_request(
         "/v0/issues/severity-score",
         body=orjson.dumps(payload),
         timeout=timeout,
-        viewer_context=viewer_context,
     )
 
 
@@ -2211,13 +2210,16 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                     "issues.severity.seer-timeout",
                     settings.SEER_SEVERITY_TIMEOUT,
                 )
-                viewer_context = SeerViewerContext(organization_id=event.project.organization_id)
-                response = make_severity_score_request(
-                    payload,
-                    connection_pool=severity_connection_pool,
-                    timeout=timeout,
-                    viewer_context=viewer_context,
-                )
+                with viewer_context_scope(
+                    ViewerContext(
+                        organization_id=event.project.organization_id, project_id=event.project_id
+                    )
+                ):
+                    response = make_severity_score_request(
+                        payload,
+                        connection_pool=severity_connection_pool,
+                        timeout=timeout,
+                    )
                 severity = orjson.loads(response.data).get("severity")
                 reason = "ml"
         except MaxRetryError:

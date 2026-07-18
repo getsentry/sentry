@@ -18,9 +18,9 @@ from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.seer.seer_setup import has_seer_access
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,6 @@ SEER_RETRIES = Retry(total=1, backoff_factor=3)  # 1 retry after a 3 second dela
 
 def get_summary_from_seer(
     feedback_msgs: list[str],
-    viewer_context: SeerViewerContext | None = None,
 ) -> str | None:
     request_body = SummarizeFeedbacksRequest(feedbacks=feedback_msgs)
     try:
@@ -46,7 +45,6 @@ def get_summary_from_seer(
             request_body,
             timeout=SEER_TIMEOUT_S,
             retries=SEER_RETRIES,
-            viewer_context=viewer_context,
         )
     except Exception:
         logger.exception(
@@ -94,8 +92,6 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
             return Response(
                 {"detail": "AI summaries are not available for this organization."}, status=403
             )
-
-        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
 
         try:
             start, end = get_date_range_from_stats_period(
@@ -162,7 +158,10 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
         if len(feedback_msgs) < MIN_FEEDBACKS_TO_SUMMARIZE:
             logger.error("Too few feedbacks to summarize after enforcing the character limit")
 
-        summary = get_summary_from_seer(feedback_msgs, viewer_context=viewer_context)
+        with viewer_context_scope(
+            ViewerContext(organization_id=organization.id, user_id=request.user.id)
+        ):
+            summary = get_summary_from_seer(feedback_msgs)
         if summary is None:
             return Response(
                 {"detail": "Failed to generate a summary for a list of feedbacks"}, status=500

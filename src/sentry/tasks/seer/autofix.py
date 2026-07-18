@@ -31,6 +31,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import ingest_errors_tasks, issues_tasks
 from sentry.utils import metrics
 from sentry.utils.cache import cache
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +77,10 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
             )
         )
 
-    get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)
+    with viewer_context_scope(
+        ViewerContext(organization_id=organization.id, project_id=group.project_id)
+    ):
+        get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)
 
 
 @instrumented_task(
@@ -115,9 +119,12 @@ def generate_issue_summary_only(group_id: int) -> None:
         )
 
     # Generate and cache the summary
-    get_issue_summary(
-        group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
-    )
+    with viewer_context_scope(
+        ViewerContext(organization_id=organization.id, project_id=group.project_id)
+    ):
+        get_issue_summary(
+            group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
+        )
 
     get_and_update_group_fixability_score(group, force_generate=True)
 

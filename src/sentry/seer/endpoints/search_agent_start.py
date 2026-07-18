@@ -19,7 +19,8 @@ from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplo
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import SearchAgentStartRequest, SeerViewerContext
+from sentry.seer.signed_seer_api import SearchAgentStartRequest
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,6 @@ def send_search_agent_start_request(
     timezone: str | None = None,
     model_name: str | None = None,
     metric_context: dict[str, Any] | None = None,
-    viewer_context: SeerViewerContext | None = None,
 ) -> SeerRun:
     """Create the SeerRun mirror and enqueue the outbox that starts the agent in Seer."""
     body = SearchAgentStartRequest(
@@ -91,7 +91,6 @@ def send_search_agent_start_request(
         organization=organization,
         run_type=SeerRunType.ASSISTED_QUERY,
         body=body,
-        viewer_context=viewer_context,
         user_id=user_id,
     )
 
@@ -175,21 +174,20 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         user_email = user_org_context.get("user_email")
         timezone = user_org_context.get("user_timezone")
         try:
-            viewer_context = SeerViewerContext(
-                organization_id=organization.id, user_id=request.user.id
-            )
-            result = send_search_agent_start_request(
-                organization=organization,
-                user_id=request.user.id,
-                project_ids=project_ids,
-                natural_language_query=natural_language_query,
-                strategy=strategy,
-                user_email=user_email,
-                timezone=timezone,
-                model_name=model_name,
-                metric_context=metric_context,
-                viewer_context=viewer_context,
-            )
+            with viewer_context_scope(
+                ViewerContext(organization_id=organization.id, user_id=request.user.id)
+            ):
+                result = send_search_agent_start_request(
+                    organization=organization,
+                    user_id=request.user.id,
+                    project_ids=project_ids,
+                    natural_language_query=natural_language_query,
+                    strategy=strategy,
+                    user_email=user_email,
+                    timezone=timezone,
+                    model_name=model_name,
+                    metric_context=metric_context,
+                )
             return Response(
                 {
                     "run_id": result.seer_run_state_id,

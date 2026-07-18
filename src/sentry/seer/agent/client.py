@@ -57,7 +57,6 @@ from sentry.seer.models import (
 )
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.seer.context_engine_index import build_service_map, index_org_project_knowledge
 from sentry.tasks.seer.explorer_index import dispatch_explorer_index_projects
 from sentry.users.models.user import User
@@ -66,6 +65,7 @@ from sentry.utils.prompts import (
     get_prompt_activities_for_user,
     seer_monitoring_provider_dont_ask_feature,
 )
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -373,11 +373,15 @@ class SeerAgentClient:
         if not has_access:
             raise SeerPermissionError(error or "Access denied")
 
-    def _build_viewer_context(self) -> SeerViewerContext:
-        context = SeerViewerContext(organization_id=self.organization.id)
+    def _build_viewer_context(self) -> ViewerContext:
+        user_id = None
         if self.user and hasattr(self.user, "id") and self.user.id is not None:
-            context["user_id"] = self.user.id
-        return context
+            user_id = self.user.id
+        return ViewerContext(
+            organization_id=self.organization.id,
+            user_id=user_id,
+            project_id=self.project.id if self.project else None,
+        )
 
     def start_run(
         self,
@@ -513,16 +517,16 @@ class SeerAgentClient:
                 extras=({"category_value": self.category_value} if self.category_value else {}),
             )
 
-        return enqueue_seer_run(
-            organization=self.organization,
-            run_type=SeerRunType.EXPLORER,
-            body=chat_body,
-            on_run_created=_create_agent_run,
-            viewer_context=self.viewer_context,
-            user_id=user_id,
-            referrer=metadata.get("referrer") if metadata else None,
-            flush=True,
-        )
+        with viewer_context_scope(self.viewer_context):
+            return enqueue_seer_run(
+                organization=self.organization,
+                run_type=SeerRunType.EXPLORER,
+                body=chat_body,
+                on_run_created=_create_agent_run,
+                user_id=user_id,
+                referrer=metadata.get("referrer") if metadata else None,
+                flush=True,
+            )
 
     def start_feature_run(
         self,
@@ -567,20 +571,20 @@ class SeerAgentClient:
             if on_run_created is not None:
                 on_run_created(run)
 
-        return enqueue_seer_run(
-            organization=self.organization,
-            run_type=SeerRunType.FEATURE_RUN,
-            on_run_created=_create_agent_run,
-            body=SeerFeatureRunRequest(
-                feature_id=feature_id,
-                payload=payload,
-                agent_run_options=self._build_agent_run_options(),
-            ),
-            viewer_context=self.viewer_context,
-            user_id=user_id,
-            referrer=feature_id,
-            flush=flush,
-        )
+        with viewer_context_scope(self.viewer_context):
+            return enqueue_seer_run(
+                organization=self.organization,
+                run_type=SeerRunType.FEATURE_RUN,
+                on_run_created=_create_agent_run,
+                body=SeerFeatureRunRequest(
+                    feature_id=feature_id,
+                    payload=payload,
+                    agent_run_options=self._build_agent_run_options(),
+                ),
+                user_id=user_id,
+                referrer=feature_id,
+                flush=flush,
+            )
 
     def _build_agent_run_options(self, *, override_ce_enable: bool = True) -> dict[str, Any]:
         """Resolve org-flag-driven agent run options, shared by start_run and start_feature_run."""
@@ -775,7 +779,8 @@ class SeerAgentClient:
         ):
             agent_run_options["enable_streaming"] = True
 
-        response = make_agent_chat_request(chat_body, viewer_context=self.viewer_context)
+        with viewer_context_scope(self.viewer_context):
+            response = make_agent_chat_request(chat_body)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -807,16 +812,16 @@ class SeerAgentClient:
             SeerApiError: If the Seer API request fails
             TimeoutError: If polling exceeds poll_timeout when blocking=True
         """
-        if blocking:
-            state = poll_until_done(
-                run_id,
-                self.organization,
-                poll_interval,
-                poll_timeout,
-                viewer_context=self.viewer_context,
-            )
-        else:
-            state = fetch_run_status(run_id, self.organization, viewer_context=self.viewer_context)
+        with viewer_context_scope(self.viewer_context):
+            if blocking:
+                state = poll_until_done(
+                    run_id,
+                    self.organization,
+                    poll_interval,
+                    poll_timeout,
+                )
+            else:
+                state = fetch_run_status(run_id, self.organization)
 
         return state
 
@@ -912,7 +917,8 @@ class SeerAgentClient:
         if query is not None:
             runs_body["query"] = query
 
-        response = make_agent_runs_request(runs_body, viewer_context=self.viewer_context)
+        with viewer_context_scope(self.viewer_context):
+            response = make_agent_runs_request(runs_body)
 
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
@@ -927,7 +933,8 @@ class SeerAgentClient:
             run_id=run_id,
             organization_id=self.organization.id,
         )
-        return make_agent_repos_request(body, viewer_context=self.viewer_context)
+        with viewer_context_scope(self.viewer_context):
+            return make_agent_repos_request(body)
 
     def push_changes(
         self,
@@ -984,7 +991,8 @@ class SeerAgentClient:
             organization_id=self.organization.id,
             payload=payload,
         )
-        response = make_agent_update_request(update_body, viewer_context=self.viewer_context)
+        with viewer_context_scope(self.viewer_context):
+            response = make_agent_update_request(update_body)
         if response.status >= 400:
             raise SeerApiError("Seer request failed", response.status)
 
@@ -995,7 +1003,8 @@ class SeerAgentClient:
         start_time = time.time()
 
         while True:
-            state = fetch_run_status(run_id, self.organization, viewer_context=self.viewer_context)
+            with viewer_context_scope(self.viewer_context):
+                state = fetch_run_status(run_id, self.organization)
 
             # Check if any PRs are still being created
             any_creating = any(

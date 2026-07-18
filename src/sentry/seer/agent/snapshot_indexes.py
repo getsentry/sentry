@@ -6,10 +6,10 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.sentry_data_models import AgentExportIndexesResponse
 from sentry.seer.signed_seer_api import (
     AgentExportIndexesRequest,
-    SeerViewerContext,
     make_agent_export_indexes_request,
 )
 from sentry.utils.json import JSONDecodeError
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +20,9 @@ def export_agent_indexes(*, org_id: int) -> AgentExportIndexesResponse:
     Intended for local eval DB seeding — calls the Seer export endpoint and
     returns the serialized table data.
     """
-    viewer_context = SeerViewerContext(organization_id=org_id)
     body = AgentExportIndexesRequest(org_id=org_id)
-    response = make_agent_export_indexes_request(body, viewer_context=viewer_context)
+    with viewer_context_scope(ViewerContext(organization_id=org_id)):
+        response = make_agent_export_indexes_request(body)
     if response.status >= 400:
         raise SeerApiError("Seer export-indexes request failed", response.status)
 

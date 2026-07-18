@@ -16,11 +16,11 @@ from sentry.seer.code_review.models import (
     SeerCodeReviewTaskRequestForPrReview,
 )
 from sentry.seer.code_review.utils import transform_webhook_to_codegen_request
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
 from sentry.utils import json, metrics
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
 from ..utils import (
@@ -116,11 +116,12 @@ def process_github_webhook_event(
     status = "success"
     try:
         sentry_sdk.set_tags(tags)
-        viewer_context: SeerViewerContext | None = None
-        if org_id := tags.get("sentry_organization_id"):
-            viewer_context = SeerViewerContext(organization_id=int(org_id))
-
-        make_seer_request(path=seer_path, payload=event_payload, viewer_context=viewer_context)
+        org_id = tags.get("sentry_organization_id")
+        if org_id:
+            with viewer_context_scope(ViewerContext(organization_id=int(org_id))):
+                make_seer_request(path=seer_path, payload=event_payload)
+        else:
+            make_seer_request(path=seer_path, payload=event_payload)
     except Exception as e:
         status = e.__class__.__name__
         raise

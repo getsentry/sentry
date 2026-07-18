@@ -29,12 +29,12 @@ from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events import fields
 from sentry.seer.endpoints.compare import compare_distributions
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils import snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.snuba_rpc import trace_item_stats_rpc
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -105,21 +105,22 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
             {"referrer": Referrer.API_TRACE_EXPLORER_STATS.value},
         )
 
-        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
-        scored_attrs_rrr = compare_distributions(
-            baseline=cohort_2_distribution,
-            outliers=cohort_1_distribution,
-            total_outliers=total_outliers,
-            total_baseline=total_baseline,
-            config={
-                "topKAttributes": 75,
-                "topKBuckets": 75,
-            },
-            meta={
-                "referrer": Referrer.API_TRACE_EXPLORER_STATS.value,
-            },
-            viewer_context=viewer_context,
-        )
+        with viewer_context_scope(
+            ViewerContext(organization_id=organization.id, user_id=request.user.id)
+        ):
+            scored_attrs_rrr = compare_distributions(
+                baseline=cohort_2_distribution,
+                outliers=cohort_1_distribution,
+                total_outliers=total_outliers,
+                total_baseline=total_baseline,
+                config={
+                    "topKAttributes": 75,
+                    "topKBuckets": 75,
+                },
+                meta={
+                    "referrer": Referrer.API_TRACE_EXPLORER_STATS.value,
+                },
+            )
         logger.info("scored_attrs_rrr: %s", scored_attrs_rrr)
 
         rrr_results = scored_attrs_rrr.get("results", [])

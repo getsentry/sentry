@@ -23,8 +23,8 @@ from sentry.replays.lib.storage import storage
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.seer.seer_setup import has_seer_access
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.utils.tracing import start_span
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +68,6 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     def _make_seer_start_request(
         self,
         body: ReplaySummaryStartRequest,
-        viewer_context: SeerViewerContext | None = None,
     ) -> Response:
         """Make a start-summary request to Seer with error handling."""
         serialized = orjson.dumps(body)
@@ -89,7 +88,6 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                 body,
                 timeout=5,
                 retries=0,
-                viewer_context=viewer_context,
             )
         except Exception:
             logger.exception(
@@ -114,7 +112,6 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     def _make_seer_state_request(
         self,
         body: ReplaySummaryStateRequest,
-        viewer_context: SeerViewerContext | None = None,
     ) -> Response:
         """Make a poll-state request to Seer with error handling."""
         try:
@@ -122,7 +119,6 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                 body,
                 timeout=5,
                 retries=0,
-                viewer_context=viewer_context,
             )
         except Exception:
             logger.exception(
@@ -177,19 +173,21 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
             # Since this endpoint is polled, we skip checking Seer permissions here for performance.
             # Both the frontend and summary generation are gated by the same permissions.
 
-            viewer_context = SeerViewerContext(
-                organization_id=project.organization_id, user_id=request.user.id
-            )
-
             # Request Seer for the state of the summary task.
-            return self._make_seer_state_request(
-                ReplaySummaryStateRequest(
-                    replay_id=replay_id,
-                    organization_id=project.organization.id,
+            with viewer_context_scope(
+                ViewerContext(
+                    organization_id=project.organization_id,
+                    user_id=request.user.id,
                     project_id=project.id,
-                ),
-                viewer_context=viewer_context,
-            )
+                )
+            ):
+                return self._make_seer_state_request(
+                    ReplaySummaryStateRequest(
+                        replay_id=replay_id,
+                        organization_id=project.organization.id,
+                        project_id=project.id,
+                    ),
+                )
 
     def post(self, request: Request, project: Project, replay_id: str) -> Response:
         """Download replay segment data and parse it into logs. Then post to Seer to start a summary task."""
@@ -282,8 +280,11 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
             if temperature is not None:
                 start_request["temperature"] = temperature
 
-            viewer_context = SeerViewerContext(
-                organization_id=project.organization_id, user_id=request.user.id
-            )
-
-            return self._make_seer_start_request(start_request, viewer_context=viewer_context)
+            with viewer_context_scope(
+                ViewerContext(
+                    organization_id=project.organization_id,
+                    user_id=request.user.id,
+                    project_id=project.id,
+                )
+            ):
+                return self._make_seer_start_request(start_request)

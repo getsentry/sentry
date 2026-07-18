@@ -17,7 +17,6 @@ from sentry.grouping.ingest.grouphash_metadata import (
 from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.seer.similarity.config import (
     get_grouping_model_version,
     should_send_to_seer_for_training,
@@ -43,6 +42,7 @@ from sentry.utils import metrics
 from sentry.utils.circuit_breaker2 import CircuitBreaker, CountBasedTripStrategy
 from sentry.utils.safe import get_path
 from sentry.utils.tracing import trace
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -362,12 +362,13 @@ def get_seer_similar_issues(
 
     request_data, seer_request_metric_tags = _build_seer_request(event, variants)
 
-    viewer_context = SeerViewerContext(organization_id=event.project.organization_id)
-    seer_results, model_used = get_similarity_data_from_seer(
-        request_data,
-        {**seer_request_metric_tags, "hybrid_fingerprint": event_has_hybrid_fingerprint},
-        viewer_context=viewer_context,
-    )
+    with viewer_context_scope(
+        ViewerContext(organization_id=event.project.organization_id, project_id=event.project.id)
+    ):
+        seer_results, model_used = get_similarity_data_from_seer(
+            request_data,
+            {**seer_request_metric_tags, "hybrid_fingerprint": event_has_hybrid_fingerprint},
+        )
 
     # All of these will get overridden if we find a usable match
     matching_seer_result = None  # JSON of result data
@@ -434,9 +435,12 @@ def get_seer_similar_issues(
 
         # We only want this for the side effect, and we know it'll return no matches, so we don't
         # bother to capture the return value.
-        get_similarity_data_from_seer(
-            request_data, seer_request_metric_tags, viewer_context=viewer_context
-        )
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=event.project.organization_id, project_id=event.project.id
+            )
+        ):
+            get_similarity_data_from_seer(request_data, seer_request_metric_tags)
 
     is_hybrid_fingerprint_case = (
         event_has_hybrid_fingerprint
@@ -726,21 +730,21 @@ def maybe_send_seer_for_new_model_training(
 
     request_data, metric_tags = _build_seer_request(event, variants, training_mode=True)
 
-    viewer_context = SeerViewerContext(organization_id=event.project.organization_id)
-    try:
-        get_similarity_data_from_seer(
-            request_data, metric_tags, raise_on_error=True, viewer_context=viewer_context
-        )
-    except Exception as e:
-        sentry_sdk.capture_exception(
-            e,
-            tags={
-                "event": event.event_id,
-                "project": event.project.id,
-                "grouphash": existing_grouphash.hash,
-            },
-        )
-        return
+    with viewer_context_scope(
+        ViewerContext(organization_id=event.project.organization_id, project_id=event.project.id)
+    ):
+        try:
+            get_similarity_data_from_seer(request_data, metric_tags, raise_on_error=True)
+        except Exception as e:
+            sentry_sdk.capture_exception(
+                e,
+                tags={
+                    "event": event.event_id,
+                    "project": event.project.id,
+                    "grouphash": existing_grouphash.hash,
+                },
+            )
+            return
 
     metrics.incr(
         "grouping.similarity.get_seer_similar_issues",

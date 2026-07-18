@@ -20,23 +20,21 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import (
     SearchAgentStateRequest,
-    SeerViewerContext,
     make_search_agent_state_request,
 )
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
 
-def fetch_search_agent_state(
-    run_id: int, organization_id: int, viewer_context: SeerViewerContext | None = None
-) -> dict[str, Any]:
+def fetch_search_agent_state(run_id: int, organization_id: int) -> dict[str, Any]:
     """
     Fetch the current state of a search agent run from Seer.
 
     Calls POST /v1/assisted-query/state with the run_id and organization_id.
     """
     body = SearchAgentStateRequest(run_id=run_id, organization_id=organization_id)
-    response = make_search_agent_state_request(body, timeout=10, viewer_context=viewer_context)
+    response = make_search_agent_state_request(body, timeout=10)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     return response.json()
@@ -110,12 +108,10 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
         seer_run_id = resolved.seer_run_state_id
 
         try:
-            viewer_context = SeerViewerContext(
-                organization_id=organization.id, user_id=request.user.id
-            )
-            data = fetch_search_agent_state(
-                seer_run_id, organization.id, viewer_context=viewer_context
-            )
+            with viewer_context_scope(
+                ViewerContext(organization_id=organization.id, user_id=request.user.id)
+            ):
+                data = fetch_search_agent_state(seer_run_id, organization.id)
             data["sentry_run_id"] = resolved.uuid
             return Response(data)
 

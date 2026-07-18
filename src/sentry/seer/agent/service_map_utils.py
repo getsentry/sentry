@@ -21,13 +21,13 @@ from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
-    SeerViewerContext,
     ServiceMapUpdateRequest,
     make_service_map_update_request,
 )
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.tracing import set_span_data, start_span
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -318,7 +318,7 @@ def _send_to_seer(org_id: int, nodes: list[dict], edges: list[dict]) -> None:
         },
     )
 
-    viewer_context = SeerViewerContext(organization_id=org_id)
-    response = make_service_map_update_request(body, timeout=30, viewer_context=viewer_context)
+    with viewer_context_scope(ViewerContext(organization_id=org_id)):
+        response = make_service_map_update_request(body, timeout=30)
     if response.status >= 400:
         raise SeerApiError("Seer service map update failed", response.status)

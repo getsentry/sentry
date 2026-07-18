@@ -21,10 +21,10 @@ from sentry.models.organization import Organization
 from sentry.seer.models.seer_api_models import SeerApiError
 from sentry.seer.signed_seer_api import (
     OneShotRunRequest,
-    SeerViewerContext,
     make_oneshot_request,
 )
 from sentry.utils import metrics
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -56,15 +56,15 @@ def call_seer_oneshot(
     Seer task endpoints require viewer context with an organization, so
     ``organization`` is mandatory.
     """
-    viewer_context = SeerViewerContext(organization_id=organization.id)
+    vc_kwargs: dict[str, Any] = {"organization_id": organization.id}
     if user_id is not None:
-        viewer_context["user_id"] = user_id
+        vc_kwargs["user_id"] = user_id
 
-    response = make_request(
-        body,
-        timeout=timeout if timeout is not None else settings.SEER_DEFAULT_TIMEOUT,
-        viewer_context=viewer_context,
-    )
+    with viewer_context_scope(ViewerContext(**vc_kwargs)):
+        response = make_request(
+            body,
+            timeout=timeout if timeout is not None else settings.SEER_DEFAULT_TIMEOUT,
+        )
 
     if response.status >= 400:
         metrics.incr(

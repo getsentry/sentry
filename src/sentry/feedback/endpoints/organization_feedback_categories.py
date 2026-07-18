@@ -26,8 +26,8 @@ from sentry.feedback.lib.seer_api import (
 from sentry.grouping.utils import hash_from_values
 from sentry.models.organization import Organization
 from sentry.seer.seer_setup import has_seer_access
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.utils.cache import cache
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -107,8 +107,6 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
             return Response(
                 {"detail": "AI categorization is not available for this organization."}, status=403
             )
-
-        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
 
         try:
             start, end = get_date_range_from_stats_period(
@@ -190,27 +188,29 @@ class OrganizationFeedbackCategoriesEndpoint(OrganizationEndpoint):
         )
 
         if len(context_feedbacks) >= THRESHOLD_TO_GET_ASSOCIATED_LABELS:
-            try:
-                response = make_label_groups_request(
-                    seer_request,
-                    timeout=SEER_TIMEOUT_S,
-                    retries=SEER_RETRIES,
-                    viewer_context=viewer_context,
-                )
-            except Exception:
-                logger.exception("Seer failed to generate user feedback label groups")
-                return Response(
-                    {"detail": "Failed to generate user feedback label groups"}, status=500
-                )
-            if response.status < 200 or response.status >= 300:
-                logger.error(
-                    "Seer failed to generate user feedback label groups",
-                    extra={"status_code": response.status, "response_data": response.data},
-                )
-                return Response(
-                    {"detail": "Failed to generate user feedback label groups"}, status=500
-                )
-            label_groups = response.json()["data"]
+            with viewer_context_scope(
+                ViewerContext(organization_id=organization.id, user_id=request.user.id)
+            ):
+                try:
+                    response = make_label_groups_request(
+                        seer_request,
+                        timeout=SEER_TIMEOUT_S,
+                        retries=SEER_RETRIES,
+                    )
+                except Exception:
+                    logger.exception("Seer failed to generate user feedback label groups")
+                    return Response(
+                        {"detail": "Failed to generate user feedback label groups"}, status=500
+                    )
+                if response.status < 200 or response.status >= 300:
+                    logger.error(
+                        "Seer failed to generate user feedback label groups",
+                        extra={"status_code": response.status, "response_data": response.data},
+                    )
+                    return Response(
+                        {"detail": "Failed to generate user feedback label groups"}, status=500
+                    )
+                label_groups = response.json()["data"]
         else:
             # If there are less than THRESHOLD_TO_GET_ASSOCIATED_LABELS feedbacks, we don't ask for associated labels
             # The more feedbacks there are, the LLM does a better job of generating associated labels since it has more context

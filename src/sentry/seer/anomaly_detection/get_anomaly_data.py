@@ -25,10 +25,11 @@ from sentry.seer.anomaly_detection.types import (
     TimeSeriesPoint,
 )
 from sentry.seer.anomaly_detection.utils import get_aggregate_type, translate_direction
-from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -67,28 +68,24 @@ SEER_RETRIES = Retry(
 def make_detect_anomalies_request(
     body: DetectAnomaliesRequest,
     connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or SEER_ANOMALY_DETECTION_CONNECTION_POOL,
         SEER_ANOMALY_DETECTION_ENDPOINT_URL,
         body=json.dumps(body).encode("utf-8"),
         retries=SEER_RETRIES,
-        viewer_context=viewer_context,
     )
 
 
 def make_get_anomaly_threshold_data_request(
     body: GetAnomalyThresholdDataRequest,
     connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         connection_pool or SEER_ANOMALY_DETECTION_CONNECTION_POOL,
         SEER_ANOMALY_DETECTION_ALERT_DATA_URL,
         body=json.dumps(body).encode("utf-8"),
         retries=SEER_RETRIES,
-        viewer_context=viewer_context,
     )
 
 
@@ -143,10 +140,13 @@ def get_anomaly_data_from_seer(
     extra_data["dataset"] = snuba_query.dataset
     try:
         logger.info("Sending subscription update data to Seer", extra=extra_data)
-        viewer_context = SeerViewerContext(organization_id=subscription.project.organization_id)
-        response = make_detect_anomalies_request(
-            detect_anomalies_request, viewer_context=viewer_context
-        )
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=subscription.project.organization_id,
+                project_id=subscription.project_id,
+            )
+        ):
+            response = make_detect_anomalies_request(detect_anomalies_request)
     except (TimeoutError, MaxRetryError):
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
         return None
@@ -229,12 +229,16 @@ def get_anomaly_threshold_data_from_seer(
         start=start,
         end=end,
     )
-    viewer_context = SeerViewerContext(organization_id=subscription.project.organization_id)
-    try:
-        response = make_get_anomaly_threshold_data_request(body, viewer_context=viewer_context)
-    except (TimeoutError, MaxRetryError):
-        logger.warning("anomaly_threshold.timeout_error_hitting_seer_endpoint")
-        return None
+    with viewer_context_scope(
+        ViewerContext(
+            organization_id=subscription.project.organization_id, project_id=subscription.project_id
+        )
+    ):
+        try:
+            response = make_get_anomaly_threshold_data_request(body)
+        except (TimeoutError, MaxRetryError):
+            logger.warning("anomaly_threshold.timeout_error_hitting_seer_endpoint")
+            return None
 
     if response.status >= 400:
         logger.error(

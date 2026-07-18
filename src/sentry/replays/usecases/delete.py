@@ -34,7 +34,6 @@ from sentry.replays.query import replay_url_parser_config
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.aggregate import search_config as agg_search_config
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import (
@@ -44,6 +43,7 @@ from sentry.utils.snuba import (
     SnubaError,
     UnexpectedResponseError,
 )
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 SNUBA_RETRY_EXCEPTIONS = (
     RateLimitExceeded,
@@ -200,15 +200,15 @@ def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: l
         project_id=project_id,
     )
 
-    viewer_context = SeerViewerContext(organization_id=organization_id)
-
     try:
-        response = make_replay_delete_request(
-            seer_request,
-            timeout=5,
-            retries=Retry(total=1, backoff_factor=3),  # 1 retry after a 3 second delay.
-            viewer_context=viewer_context,
-        )
+        with viewer_context_scope(
+            ViewerContext(organization_id=organization_id, project_id=project_id)
+        ):
+            response = make_replay_delete_request(
+                seer_request,
+                timeout=5,
+                retries=Retry(total=1, backoff_factor=3),  # 1 retry after a 3 second delay.
+            )
     except Exception:
         logger.exception(
             "Failed to delete replay data from Seer",

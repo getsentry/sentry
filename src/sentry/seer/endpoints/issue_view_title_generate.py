@@ -14,9 +14,9 @@ from sentry.models.organization import Organization
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import (
     LlmGenerateRequest,
-    SeerViewerContext,
     make_llm_generate_request,
 )
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -52,9 +52,7 @@ class IssueViewTitleGeneratePermission(OrganizationPermission):
     }
 
 
-def generate_title_from_query(
-    query: str, viewer_context: SeerViewerContext | None = None
-) -> str | None:
+def generate_title_from_query(query: str) -> str | None:
     truncated_query = query[:MAX_QUERY_LENGTH] if len(query) > MAX_QUERY_LENGTH else query
 
     body = LlmGenerateRequest(
@@ -68,7 +66,7 @@ def generate_title_from_query(
         temperature=0.2,
         max_tokens=100,
     )
-    response = make_llm_generate_request(body, timeout=10, viewer_context=viewer_context)
+    response = make_llm_generate_request(body, timeout=10)
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
     data = response.json()
@@ -96,10 +94,10 @@ class IssueViewTitleGenerateEndpoint(OrganizationEndpoint):
             )
 
         try:
-            viewer_context = SeerViewerContext(
-                organization_id=organization.id, user_id=request.user.id
-            )
-            title = generate_title_from_query(query, viewer_context=viewer_context)
+            with viewer_context_scope(
+                ViewerContext(organization_id=organization.id, user_id=request.user.id)
+            ):
+                title = generate_title_from_query(query)
             if not title or not title.strip():
                 logger.error(
                     "No title returned from Seer",

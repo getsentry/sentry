@@ -13,7 +13,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.signed_seer_api import (
     LightweightRCAClusterRequest,
-    SeerViewerContext,
     make_lightweight_rca_cluster_request,
 )
 from sentry.seer.similarity.utils import (
@@ -29,6 +28,7 @@ from sentry.types.group import UNRESOLVED_SUBSTATUS_CHOICES
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import SnubaError, bulk_snuba_queries
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -164,57 +164,57 @@ def _backfill_org(
     failure_count = 0
     success_count = 0
     last_processed_group_id = last_group_id
-    viewer_context = SeerViewerContext(organization_id=organization_id)
 
-    for group, serialized_event in group_event_pairs:
-        try:
-            body = LightweightRCAClusterRequest(
-                group_id=group.id,
-                issue={
-                    "id": group.id,
-                    "title": group.title,
-                    "short_id": group.qualified_short_id,
-                    "events": [serialized_event],
-                },
-                organization_slug=organization.slug,
-                organization_id=organization_id,
-                project_id=group.project_id,
-            )
-            response = make_lightweight_rca_cluster_request(
-                body, timeout=30, viewer_context=viewer_context
-            )
-            if response.status >= 400:
-                logger.warning(
-                    "supergroups_backfill_lightweight.seer_error",
-                    extra={
-                        "group_id": group.id,
-                        "project_id": group.project_id,
-                        "status": response.status,
+    with viewer_context_scope(
+        ViewerContext(organization_id=organization_id, project_id=project.id)
+    ):
+        for group, serialized_event in group_event_pairs:
+            try:
+                body = LightweightRCAClusterRequest(
+                    group_id=group.id,
+                    issue={
+                        "id": group.id,
+                        "title": group.title,
+                        "short_id": group.qualified_short_id,
+                        "events": [serialized_event],
                     },
+                    organization_slug=organization.slug,
+                    organization_id=organization_id,
+                    project_id=group.project_id,
+                )
+                response = make_lightweight_rca_cluster_request(body, timeout=30)
+                if response.status >= 400:
+                    logger.warning(
+                        "supergroups_backfill_lightweight.seer_error",
+                        extra={
+                            "group_id": group.id,
+                            "project_id": group.project_id,
+                            "status": response.status,
+                        },
+                    )
+                    failure_count += 1
+                else:
+                    success_count += 1
+            except Exception:
+                logger.exception(
+                    "supergroups_backfill_lightweight.group_failed",
+                    extra={"group_id": group.id, "project_id": group.project_id},
                 )
                 failure_count += 1
-            else:
-                success_count += 1
-        except Exception:
-            logger.exception(
-                "supergroups_backfill_lightweight.group_failed",
-                extra={"group_id": group.id, "project_id": group.project_id},
-            )
-            failure_count += 1
 
-        last_processed_group_id = group.id
+            last_processed_group_id = group.id
 
-        if max_failures_per_batch > 0 and failure_count >= max_failures_per_batch:
-            logger.error(
-                "supergroups_backfill_lightweight.max_failures_reached",
-                extra={
-                    "organization_id": organization_id,
-                    "project_id": project.id,
-                    "failure_count": failure_count,
-                    "last_processed_group_id": last_processed_group_id,
-                },
-            )
-            break
+            if max_failures_per_batch > 0 and failure_count >= max_failures_per_batch:
+                logger.error(
+                    "supergroups_backfill_lightweight.max_failures_reached",
+                    extra={
+                        "organization_id": organization_id,
+                        "project_id": project.id,
+                        "failure_count": failure_count,
+                        "last_processed_group_id": last_processed_group_id,
+                    },
+                )
+                break
 
     metrics.incr(
         "seer.supergroups_backfill_lightweight.groups_processed",

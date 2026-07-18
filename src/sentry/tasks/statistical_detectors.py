@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 from collections.abc import Generator, Iterable
 from datetime import UTC, datetime, timedelta
@@ -37,7 +38,6 @@ from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import SnubaParams
 from sentry.seer.breakpoints import BreakpointData
-from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba import functions
@@ -65,6 +65,7 @@ from sentry.utils.iterators import chunked
 from sentry.utils.math import ExponentialMovingAverage
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import SnubaTSResult, raw_snql_query
+from sentry.viewer_context import ViewerContext, viewer_context_scope
 
 logger = logging.getLogger("sentry.tasks.statistical_detectors")
 
@@ -370,18 +371,20 @@ def _detect_transaction_change_points(
         (projects_by_id[item[0]], item[1]) for item in transactions if item[0] in projects_by_id
     ]
 
-    viewer_context = None
+    _vc_scope = contextlib.nullcontext()
     if transaction_pairs:
         project = transaction_pairs[0][0]
-        viewer_context = SeerViewerContext(organization_id=project.organization_id)
+        _vc_scope = viewer_context_scope(
+            ViewerContext(organization_id=project.organization_id, project_id=project.id)
+        )
 
-    regressions = EndpointRegressionDetector.detect_regressions(
-        transaction_pairs,
-        start,
-        "p95(transaction.duration)",
-        TIMESERIES_PER_BATCH,
-        viewer_context=viewer_context,
-    )
+    with _vc_scope:
+        regressions = EndpointRegressionDetector.detect_regressions(
+            transaction_pairs,
+            start,
+            "p95(transaction.duration)",
+            TIMESERIES_PER_BATCH,
+        )
     regressions = EndpointRegressionDetector.save_regressions_with_versions(regressions)
 
     breakpoint_count = 0
@@ -469,14 +472,20 @@ def _detect_function_change_points(
         (projects_by_id[item[0]], item[1]) for item in functions_list if item[0] in projects_by_id
     ]
 
-    viewer_context = None
+    _vc_scope = contextlib.nullcontext()
     if function_pairs:
         project = function_pairs[0][0]
-        viewer_context = SeerViewerContext(organization_id=project.organization_id)
+        _vc_scope = viewer_context_scope(
+            ViewerContext(organization_id=project.organization_id, project_id=project.id)
+        )
 
-    regressions = FunctionRegressionDetector.detect_regressions(
-        function_pairs, start, "p95()", TIMESERIES_PER_BATCH, viewer_context=viewer_context
-    )
+    with _vc_scope:
+        regressions = FunctionRegressionDetector.detect_regressions(
+            function_pairs,
+            start,
+            "p95()",
+            TIMESERIES_PER_BATCH,
+        )
     regressions = FunctionRegressionDetector.save_regressions_with_versions(regressions)
 
     breakpoint_count = 0
