@@ -66,12 +66,12 @@ from sentry.snuba.metrics.utils import (
     DATASET_COLUMNS,
     FIELD_ALIAS_MAPPINGS,
     FILTERABLE_TAGS,
-    MetricOperationType,
     NON_RESOLVABLE_TAG_VALUES,
     TS_COL_GROUP,
     DerivedMetricParseException,
     MetricDoesNotExistException,
     MetricEntity,
+    MetricOperationType,
     get_num_intervals,
     get_timestamp_column_name,
     require_rhs_condition_resolution,
@@ -895,9 +895,7 @@ class SnubaQueryBuilder:
                 metric_expression = metric_object_factory(
                     metric_action_by_field.field.op, metric_action_by_field.field.metric_mri
                 )
-                metric_params = _coerce_metric_operation_params(
-                    metric_action_by_field.field.params
-                )
+                metric_params = _coerce_metric_operation_params(metric_action_by_field.field.params)
 
                 if groupby_field is not None:
                     return metric_expression.generate_groupby_statements(
@@ -954,9 +952,7 @@ class SnubaQueryBuilder:
                         raise InvalidParams(
                             f"Cannot resolve non-string RHS {condition.rhs} for {metric_op}"
                         )
-                    resolved_rhs = resolve_tag_value(
-                        self._use_case_id, self._org_id, condition.rhs
-                    )
+                    resolved_rhs = resolve_tag_value(self._use_case_id, self._org_id, condition.rhs)
                 else:
                     resolved_rhs = condition.rhs
                 try:
@@ -1104,7 +1100,9 @@ class SnubaQueryBuilder:
                 series_limit = self._metrics_query.max_limit
 
             if self._use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS]:
-                interval = self._metrics_query.interval or self._metrics_query.granularity.granularity
+                interval = (
+                    self._metrics_query.interval or self._metrics_query.granularity.granularity
+                )
                 time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
                     interval
                 )
