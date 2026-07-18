@@ -2,6 +2,7 @@ import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import {css, type Theme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
@@ -232,7 +233,7 @@ const BodyCell = memo(function BodyCell({
           {isUUID(dataRow.conversationId) ? (
             dataRow.conversationId.slice(0, 8)
           ) : (
-            <Tooltip
+            <InfoText
               title={
                 <Flex align="center" gap="xs">
                   <Text wordBreak="break-word">{dataRow.conversationId}</Text>
@@ -245,13 +246,11 @@ const BodyCell = memo(function BodyCell({
                   />
                 </Flex>
               }
-              isHoverable
-              skipWrapper
+              as="div"
+              variant="inherit"
             >
-              <Text as="div" ellipsis variant="inherit">
-                {dataRow.conversationId}
-              </Text>
-            </Tooltip>
+              {dataRow.conversationId}
+            </InfoText>
           )}
         </Link>
       );
@@ -278,9 +277,9 @@ const BodyCell = memo(function BodyCell({
         <Flex align="center" gap="xs" minWidth={0}>
           <IconUser size="md" />
           {displayName ? (
-            <Tooltip title={displayName} showOnlyOnOverflow skipWrapper>
-              <Text ellipsis>{displayName}</Text>
-            </Tooltip>
+            <InfoText title={displayName} mode="overflowOnly">
+              {displayName}
+            </InfoText>
           ) : (
             <Text>&mdash;</Text>
           )}
@@ -368,35 +367,30 @@ function ToolCallsCell({
   // number's own box, so the anchor and the hoverable-card handoff are unchanged.
   return (
     <Flex flex="1" align="center" position="relative">
-      <Tooltip
-        isHoverable
-        skipWrapper
+      <InfoText
         position="top"
         maxWidth={400}
         title={<ConversationToolCallsBreakdown conversationId={dataRow.conversationId} />}
+        tabIndex={0}
+        css={(theme: Theme) => css`
+          text-decoration: underline dotted ${theme.tokens.content.secondary};
+          text-decoration-thickness: 0.75px;
+          text-underline-offset: 1.25px;
+          outline: none;
+
+          &::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+          }
+
+          &:focus-visible {
+            ${theme.focusRing()}
+          }
+        `}
       >
-        <Text
-          tabIndex={0}
-          css={(theme: Theme) => css`
-            text-decoration: underline dotted ${theme.tokens.content.secondary};
-            text-decoration-thickness: 0.75px;
-            text-underline-offset: 1.25px;
-            outline: none;
-
-            &::before {
-              content: '';
-              position: absolute;
-              inset: 0;
-            }
-
-            &:focus-visible {
-              ${theme.focusRing()}
-            }
-          `}
-        >
-          {formatAbbreviatedNumber(dataRow.toolCalls)}
-        </Text>
-      </Tooltip>
+        {formatAbbreviatedNumber(dataRow.toolCalls)}
+      </InfoText>
     </Flex>
   );
 }

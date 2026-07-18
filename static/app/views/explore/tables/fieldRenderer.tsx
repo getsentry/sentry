@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Container as ScrapsContainer} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -187,9 +188,7 @@ function BaseExploreFieldRenderer({
       }
       rendered = (
         <ScrapsContainer maxWidth="fit-content">
-          <Tooltip
-            isHoverable
-            showUnderline
+          <InfoText
             title={
               <Text>
                 {tct(
@@ -214,9 +213,10 @@ function BaseExploreFieldRenderer({
                 )}
               </Text>
             }
+            variant="muted"
           >
-            <Text variant="muted">{rendered}</Text>
-          </Tooltip>
+            {rendered}
+          </InfoText>
         </ScrapsContainer>
       );
     } else {
@@ -253,9 +253,7 @@ function BaseExploreFieldRenderer({
 
       rendered = (
         <ScrapsContainer maxWidth="fit-content">
-          <Tooltip
-            isHoverable
-            showUnderline
+          <InfoText
             title={
               <Text>
                 {tct('Span is older than 30 days. [similarSpans] in the past 24 hours.', {
@@ -276,9 +274,10 @@ function BaseExploreFieldRenderer({
                 })}
               </Text>
             }
+            variant="muted"
           >
-            <Text variant="muted">{rendered}</Text>
-          </Tooltip>
+            {rendered}
+          </InfoText>
         </ScrapsContainer>
       );
     } else {

@@ -68,4 +68,14 @@ describe('InfoText', () => {
 
     expect(screen.getByText('Text content')).toHaveAttribute('tabindex', '0');
   });
+
+  it('does not make disabled InfoText keyboard interactive', () => {
+    render(
+      <InfoText title="Tooltip content" disabled>
+        Text content
+      </InfoText>
+    );
+
+    expect(screen.getByText('Text content')).not.toHaveAttribute('tabindex');
+  });
 });

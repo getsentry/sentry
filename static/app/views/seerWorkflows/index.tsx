@@ -6,6 +6,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -507,11 +508,9 @@ const STATUS_VARIANT: Record<
 function StatusIcon({status}: {status: RunStatus}) {
   const {Icon, label, text} = STATUS_VARIANT[status];
   return (
-    <Tooltip title={label} skipWrapper>
-      <Text variant={text} aria-label={label}>
-        <Icon size="sm" />
-      </Text>
-    </Tooltip>
+    <InfoText title={label} variant={text} aria-label={label}>
+      <Icon size="sm" />
+    </InfoText>
   );
 }
 

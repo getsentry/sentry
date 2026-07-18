@@ -6,10 +6,10 @@ import {Text, type TextProps} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 type InfoTextBaseProps<T extends 'span' | 'p' | 'label' | 'div' | 'time'> =
-  DistributedOmit<TextProps<T>, 'title' | 'variant' | 'ellipsis'> & {
+  DistributedOmit<TextProps<T>, 'title' | 'variant' | 'ellipsis' | 'underline'> & {
     title: React.ReactNode;
     variant?: TooltipProps['underlineColor'] | 'inherit';
-  } & Pick<TooltipProps, 'position' | 'maxWidth'>;
+  } & Pick<TooltipProps, 'position' | 'maxWidth' | 'delay' | 'disabled'>;
 
 export type InfoTextProps<T extends 'span' | 'p' | 'label' | 'div' | 'time'> =
   | (InfoTextBaseProps<T> & {mode?: undefined})
@@ -22,6 +22,8 @@ export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'sp
   children,
   position,
   maxWidth,
+  delay,
+  disabled,
   mode,
   ...textProps
 }: InfoTextProps<T>) {
@@ -41,6 +43,8 @@ export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'sp
       title={title}
       position={position}
       maxWidth={maxWidth}
+      delay={delay}
+      disabled={disabled}
       showOnlyOnOverflow={isOverflowOnly}
       onOverflowChange={isOverflowOnly ? setIsOverflowing : undefined}
       skipWrapper
@@ -50,7 +54,7 @@ export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'sp
     >
       <StyledText
         {...textPropsWithMode}
-        tabIndex={isOverflowOnly && !isOverflowing ? undefined : 0}
+        tabIndex={disabled || (isOverflowOnly && !isOverflowing) ? undefined : 0}
       >
         {children}
       </StyledText>
