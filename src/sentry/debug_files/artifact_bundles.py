@@ -20,6 +20,7 @@ from sentry.models.artifactbundle import (
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
 )
+from sentry.models.files import File
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import metrics, redis
@@ -98,6 +99,10 @@ def index_artifact_bundles_for_release(
                 continue
 
             index_urls_in_bundle(organization_id, artifact_bundle, archive)
+        except File.DoesNotExist:
+            # The backing file was deleted before the indexing task ran (e.g. by a concurrent
+            # deletion task). This is an expected race condition, so we silently skip it.
+            metrics.incr("artifact_bundle_indexing.bundle_file_deleted")
         except Exception as e:
             # We want to catch the error and continue execution, since we can try to index the other bundles.
             metrics.incr("artifact_bundle_indexing.index_single_artifact_bundle_error")
