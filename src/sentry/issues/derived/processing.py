@@ -1,7 +1,8 @@
 import enum
 import logging
 import time
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
+from typing import NamedTuple
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, router, transaction
@@ -16,6 +17,7 @@ from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
 from sentry.models.group import Group
 from sentry.utils import metrics
+from sentry.workflow_engine.caches.mapping import CacheMapping
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +29,25 @@ INLINE_BATCH_SIZE = 100
 # Fields that constitute the derived state, written by promote_to_live.
 # Derived by excluding identity and metadata fields from the model — new
 # columns are automatically included unless explicitly excluded here.
-_IDENTITY_FIELDS = frozenset({"id", "group_id", "is_live", "date_added", "date_updated"})
+_IDENTITY_FIELDS = frozenset({"id", "group_id", "date_added", "date_updated"})
 _STATE_FIELDS = tuple(
     f.attname for f in GroupDerivedData._meta.concrete_fields if f.attname not in _IDENTITY_FIELDS
+)
+
+
+class RebuildId(NamedTuple):
+    """Uniquely identifies a rebuild attempt for a group."""
+
+    group_id: int
+    generation_id: int
+    pipeline_hash: str
+
+
+# Cache for in-progress rebuild state.
+_rebuild_cache = CacheMapping[RebuildId, GroupDerivedData](
+    lambda k: f"{k.group_id}:{k.generation_id}:{k.pipeline_hash}",
+    namespace="gdd-rebuild",
+    ttl_seconds=86400,
 )
 
 
@@ -40,18 +58,16 @@ class ProcessingStrategy(enum.Enum):
 
 
 def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData | None:
-    """Get the live GroupDerivedData row for a group, optionally creating one.
+    """Get the GroupDerivedData row for a group, optionally creating one.
 
-    When ``issues.derived-data.create-on-demand`` is enabled, a live row is
+    When ``issues.derived-data.create-on-demand`` is enabled, a row is
     created if none exists. When disabled, returns None — processing will be
     a no-op until a backfill task creates and promotes a row.
 
     Raises Group.DoesNotExist if the group has been deleted.
     """
-    # Fast path: read-only check avoids a write attempt when the row exists
-    # or when on-demand creation is disabled.
     try:
-        return GroupDerivedData.objects.get(group_id=group_id, is_live=True)
+        return GroupDerivedData.objects.get(group_id=group_id)
     except GroupDerivedData.DoesNotExist:
         pass
 
@@ -64,7 +80,6 @@ def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData | Non
     generation_id = _current_generation_id(group_id)
     derived, _created = GroupDerivedData.objects.get_or_create(
         group_id=group_id,
-        is_live=True,
         defaults={
             "generation_id": generation_id,
             "cursor_date": EPOCH,
@@ -177,9 +192,9 @@ def _process_batch(
 class GroupLogTimeout(Exception):
     """Raised when processing cannot finish within its time budget."""
 
-    def __init__(self, group_id: int, derived_id: int | None = None) -> None:
+    def __init__(self, group_id: int, rebuild_id: RebuildId | None = None) -> None:
         self.group_id = group_id
-        self.derived_id = derived_id
+        self.rebuild_id = rebuild_id
         super().__init__(group_id)
 
 
@@ -221,9 +236,9 @@ def process_group_log(
     pipeline: Pipeline[GroupActionLogEntry] | None = None,
     timeout: timedelta | None = None,
 ) -> GroupDerivedData | None:
-    """Fully drain all pending entries for a group's live row.
+    """Fully drain all pending entries for a group's row.
 
-    Returns None if no live row exists and on-demand creation is disabled.
+    Returns None if no row exists and on-demand creation is disabled.
     Raises Group.DoesNotExist if the group has been deleted.
     Raises GroupLogTimeout if *timeout* elapses before all
     entries are processed.
@@ -249,7 +264,7 @@ def process_group_log(
 def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy) -> None:
     """Trigger derived data processing for a group.
 
-    Silently returns if the group has been deleted or no live row exists.
+    Silently returns if the group has been deleted or no row exists.
 
     Strategy controls how processing is dispatched:
       SYNC   — process all pending actions now
@@ -290,7 +305,7 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
 
 
 # ---------------------------------------------------------------------------
-# Non-live row lifecycle: build in memory, upsert live, cleanup
+# Rebuild lifecycle: build in memory, upsert live, cache partial progress
 # ---------------------------------------------------------------------------
 
 
@@ -304,36 +319,44 @@ def _current_generation_id(group_id: int) -> int:
     return result["id__max"] or 0
 
 
+def _save_rebuild_state(rebuild_id: RebuildId, derived: GroupDerivedData) -> None:
+    """Persist in-progress rebuild state to cache for later resumption."""
+    _rebuild_cache.set(rebuild_id, derived)
+
+
+def _load_rebuild_state(rebuild_id: RebuildId) -> GroupDerivedData | None:
+    """Load in-progress rebuild state from cache into an unsaved instance."""
+    return _rebuild_cache.get(rebuild_id)
+
+
 class PromotionResult(enum.Enum):
     PROMOTED = "promoted"
-    SUPERSEDED = "superseded"  # live row has a newer generation_id
-    CURSOR_BEHIND = "cursor_behind"  # same generation, live cursor is ahead
+    SUPERSEDED = "superseded"  # row has a newer generation_id
+    CURSOR_BEHIND = "cursor_behind"  # same generation, cursor is ahead
 
 
 def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
-    """Upsert the candidate's state into the live row for its group.
+    """Upsert the candidate's state into the row for its group.
 
-    If a live row exists and the candidate's generation and cursor are at
-    or ahead of the live row, the live row is updated in place.  If no live
-    row exists, one is created.
+    If a row exists and the candidate's generation and cursor are at
+    or ahead, the row is updated in place.  If no row exists, one is created.
 
-    Returns SUPERSEDED when the live row has a higher generation_id (a
+    Returns SUPERSEDED when the row has a higher generation_id (a
     newer rebuild already won).  Returns CURSOR_BEHIND when the generation
-    matches but the live row's cursor is more advanced.
+    matches but the row's cursor is more advanced.
 
     The candidate object itself is not modified or persisted — it may be an
     unsaved in-memory instance used only to carry the computed state.
     """
     values = {f: getattr(candidate, f) for f in _STATE_FIELDS}
 
-    # Try updating the existing live row.  The guard requires that the
-    # candidate's generation_id is >= the live row's (so a stale rebuild
+    # Try updating the existing row.  The guard requires that the
+    # candidate's generation_id is >= the row's (so a stale rebuild
     # can't overwrite a newer one), and within the same generation the
     # cursor must be at or ahead.
     updated = (
         GroupDerivedData.objects.filter(
             group_id=candidate.group_id,
-            is_live=True,
         )
         .filter(
             Q(generation_id__lt=candidate.generation_id)
@@ -353,23 +376,22 @@ def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
     if updated:
         return PromotionResult.PROMOTED
 
-    # No rows updated — either the live row's generation/cursor is ahead,
-    # or no live row exists yet.  Try inserting; IntegrityError means a
-    # live row exists whose generation/cursor we didn't beat.  The
+    # No rows updated — either the row's generation/cursor is ahead,
+    # or no row exists yet.  Try inserting; IntegrityError means a
+    # row exists whose generation/cursor we didn't beat.  The
     # savepoint ensures the IntegrityError doesn't poison the outer
     # transaction, allowing the follow-up query to run.
     try:
         with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
             GroupDerivedData.objects.create(
                 group_id=candidate.group_id,
-                is_live=True,
                 **values,
             )
     except IntegrityError:
-        # Distinguish: is the live row from a newer generation, or same
+        # Distinguish: is the row from a newer generation, or same
         # generation with a more advanced cursor?
         live_gen = (
-            GroupDerivedData.objects.filter(group_id=candidate.group_id, is_live=True)
+            GroupDerivedData.objects.filter(group_id=candidate.group_id)
             .values_list("generation_id", flat=True)
             .first()
         )
@@ -386,60 +408,62 @@ MAX_PROMOTION_ATTEMPTS = 5
 def build_and_promote_derived_data(
     group_id: int,
     batch_size: int = DEFAULT_BATCH_SIZE,
-    derived_id: int | None = None,
+    rebuild_id: RebuildId | None = None,
     time_limit: timedelta = DEFAULT_TIME_LIMIT,
 ) -> None:
-    """Build derived data from scratch and upsert into the live row.
+    """Build derived data from scratch and upsert into the row.
 
     The common path works entirely in memory: a transient GroupDerivedData
     is populated by draining the action log, then its state is upserted
-    into the live row (2-3 queries total for single-batch groups).
+    into the row (2-3 queries total for single-batch groups).
 
-    When *derived_id* is provided, a previously persisted non-live row is
-    loaded and resumed.  This happens after a prior run timed out and saved
-    its partial progress to the database.
+    When *rebuild_id* is provided, previously cached partial progress is
+    loaded and resumed.  This happens after a prior run timed out and
+    saved its state to cache.
 
-    If promotion fails because the live row's cursor is ahead (it received
+    If promotion fails because the row's cursor is ahead (it received
     incremental updates while we were building), we drain additional entries
     to catch up and retry, bounded by MAX_PROMOTION_ATTEMPTS.
 
-    Raises GroupLogTimeout (with ``derived_id`` set) if the time-limited
-    drain could not finish, so the caller can re-enqueue with the id.
+    Raises GroupLogTimeout (with ``rebuild_id`` set) if the time-limited
+    drain could not finish, so the caller can re-enqueue.
     """
-    if derived_id is not None:
-        derived = GroupDerivedData.objects.filter(id=derived_id, is_live=False).first()
+    derived: GroupDerivedData | None = None
+    if rebuild_id is not None:
+        derived = _load_rebuild_state(rebuild_id)
         if derived is None:
             logger.info(
-                "issues.derived.build_and_promote.no_row",
-                extra={"group_id": group_id, "derived_id": derived_id},
+                "issues.derived.build_and_promote.cache_miss",
+                extra={"group_id": group_id, "rebuild_id": rebuild_id},
             )
-            return
-    else:
+
+    if derived is None:
         # Capture the current log generation before we start draining.
         # This lets promote_to_live reject stale rebuilds that started
         # before a later log mutation triggered a newer rebuild.
         generation_id = _current_generation_id(group_id)
+        pipeline_hash = PIPELINE.pipeline_hash
+        rebuild_id = RebuildId(group_id, generation_id, pipeline_hash)
 
-        # In-memory only — not saved to the database unless we time out.
+        # In-memory only — cached on timeout for resumption.
         derived = GroupDerivedData(
             group_id=group_id,
-            is_live=False,
             generation_id=generation_id,
             cursor_date=EPOCH,
             cursor_id=0,
             data={},
-            pipeline_hash=PIPELINE.pipeline_hash,
+            pipeline_hash=pipeline_hash,
         )
+    else:
+        rebuild_id = RebuildId(group_id, derived.generation_id, derived.pipeline_hash or "")
 
     result = PromotionResult.CURSOR_BEHIND
+    attempt = 0
     for attempt in range(MAX_PROMOTION_ATTEMPTS):
         drained = _drain_log(derived, batch_size, time_limit=time_limit, persist=False)
         if not drained:
-            # Persist current progress for resumption.  For fresh builds
-            # this creates the row; for resumed builds it advances the
-            # cursor so the next run picks up where we left off.
-            derived.save()
-            raise GroupLogTimeout(group_id, derived_id=derived.pk)
+            _save_rebuild_state(rebuild_id, derived)
+            raise GroupLogTimeout(group_id, rebuild_id=rebuild_id)
 
         result = promote_to_live(derived)
         if result is PromotionResult.PROMOTED:
@@ -452,18 +476,14 @@ def build_and_promote_derived_data(
                     "attempts": attempt + 1,
                 },
             )
-            # Clean up the non-live row if it was persisted for resumption.
-            if derived.pk is not None:
-                derived.delete()
+            _rebuild_cache.delete(rebuild_id)
             return
 
         if result is PromotionResult.SUPERSEDED:
             # A newer rebuild already won — retrying is futile.
             break
 
-    # Clean up non-live row if persisted.
-    if derived.pk is not None:
-        derived.delete()
+    _rebuild_cache.delete(rebuild_id)
 
     if result is PromotionResult.CURSOR_BEHIND:
         metrics.incr("issues.derived.promotion_exhausted", sample_rate=1.0)
@@ -484,18 +504,6 @@ def build_and_promote_derived_data(
     )
 
 
-def cleanup_stale_processing_rows(
-    max_age: timedelta = timedelta(days=2),
-) -> int:
-    """Delete non-live rows older than *max_age* that were never promoted."""
-    cutoff = datetime.now(UTC) - max_age
-    deleted, _ = GroupDerivedData.objects.filter(
-        is_live=False,
-        date_added__lt=cutoff,
-    ).delete()
-    return deleted
-
-
 # ---------------------------------------------------------------------------
 # Invalidation
 # ---------------------------------------------------------------------------
@@ -511,15 +519,15 @@ def invalidate_group_derived_data(
 
     *hard_delete* controls the strategy:
 
-    - ``True`` (default): delete the live row immediately and kick off an
+    - ``True`` (default): delete the row immediately and kick off an
       async task to rebuild from scratch. Use this when the existing data is
       known to be wrong and must not be served.
-    - ``False``: leave the current live row in place and kick off a background
-      build-and-promote. The existing live row continues serving reads until
+    - ``False``: leave the current row in place and kick off a background
+      build-and-promote. The existing row continues serving reads until
       the replacement is ready.
 
     If *cursor* is ``(date_added, id)`` of the earliest affected entry, the
-    invalidation only fires when the live row's cursor is at or past that
+    invalidation only fires when the row's cursor is at or past that
     point; otherwise the mutation is still ahead of processing and no
     invalidation is needed. *cursor* is only meaningful with
     ``hard_delete=True``.
@@ -529,14 +537,14 @@ def invalidate_group_derived_data(
         return
 
     if cursor is None:
-        GroupDerivedData.objects.filter(group_id=group_id, is_live=True).delete()
+        GroupDerivedData.objects.filter(group_id=group_id).delete()
         rebuild_group_derived_data.delay(group_id)
         return
 
     # Only invalidate if the row has already processed past the affected point.
     cursor_date, cursor_id = cursor
     deleted, _ = GroupDerivedData.objects.filter(
-        Q(group_id=group_id, is_live=True)
+        Q(group_id=group_id)
         & (Q(cursor_date__gt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__gte=cursor_id)),
     ).delete()
     if deleted:

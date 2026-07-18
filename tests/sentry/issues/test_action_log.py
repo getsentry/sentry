@@ -682,7 +682,7 @@ class TestPublishActionWrite(TestCase):
 
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
         # Derived data WAS processed inline
-        derived = GroupDerivedData.objects.get(group_id=self.group.id, is_live=True)
+        derived = GroupDerivedData.objects.get(group_id=self.group.id)
         assert derived.view_count == 1
         # No async task needed (single entry = caught up)
         mock_task.delay.assert_not_called()

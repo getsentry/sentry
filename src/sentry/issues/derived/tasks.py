@@ -45,14 +45,19 @@ def process_group_log_task(group_id: int, **kwargs: object) -> None:
 )
 def rebuild_group_derived_data(
     group_id: int,
-    derived_id: int | None = None,
+    resume_generation_id: int | None = None,
+    resume_pipeline_hash: str | None = None,
     prior_runs: int = 0,
     **kwargs: object,
 ) -> None:
-    """Build a new GroupDerivedData row from scratch and promote it to live."""
+    """Build a new GroupDerivedData row from scratch and promote it."""
     from taskbroker_client.state import current_task
 
-    from sentry.issues.derived.processing import GroupLogTimeout, build_and_promote_derived_data
+    from sentry.issues.derived.processing import (
+        GroupLogTimeout,
+        RebuildId,
+        build_and_promote_derived_data,
+    )
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 
     task_state = current_task()
@@ -68,22 +73,30 @@ def rebuild_group_derived_data(
         )
         return
 
+    rebuild_id: RebuildId | None = None
+    if resume_generation_id is not None and resume_pipeline_hash is not None:
+        rebuild_id = RebuildId(group_id, resume_generation_id, resume_pipeline_hash)
+
     try:
-        build_and_promote_derived_data(group_id, derived_id=derived_id)
+        build_and_promote_derived_data(group_id, rebuild_id=rebuild_id)
     except GroupLogTimeout as e:
         if prior_runs + 1 >= _MAX_REBUILD_RUNS:
             logger.error(
                 "rebuild_group_derived_data.max_runs_exceeded",
                 extra={
                     "group_id": group_id,
-                    "derived_id": e.derived_id,
+                    "rebuild_id": e.rebuild_id,
                     "prior_runs": prior_runs + 1,
                 },
             )
             metrics.incr("issues.derived.rebuild_max_runs_exceeded", sample_rate=1.0)
             return
+        rid = e.rebuild_id
         rebuild_group_derived_data.delay(
-            group_id, derived_id=e.derived_id, prior_runs=prior_runs + 1
+            group_id,
+            resume_generation_id=rid.generation_id if rid else None,
+            resume_pipeline_hash=rid.pipeline_hash if rid else None,
+            prior_runs=prior_runs + 1,
         )
         if activation_id:
             mark_spawned(_REBUILD_GROUP_TASK_KEY, activation_id)
@@ -112,7 +125,7 @@ def process_project_derived_data(project_id: int, **kwargs: object) -> None:
     # TODO: support very large projects via paginated iteration
     group_ids = list(
         Group.objects.filter(project_id=project_id)
-        .exclude(Exists(GroupDerivedData.objects.filter(group_id=OuterRef("id"), is_live=True)))
+        .exclude(Exists(GroupDerivedData.objects.filter(group_id=OuterRef("id"))))
         .order_by("id")
         .values_list("id", flat=True)[:_MAX_PROJECT_GROUPS]
     )
@@ -409,7 +422,12 @@ def rebuild_project_derived_data_batch(
         except GroupLogTimeout as e:
             # Re-enqueue the single group with its id so the
             # partially-drained row is resumed, then continue the batch.
-            rebuild_group_derived_data.delay(group_id, derived_id=e.derived_id)
+            rid = e.rebuild_id
+            rebuild_group_derived_data.delay(
+                group_id,
+                resume_generation_id=rid.generation_id if rid else None,
+                resume_pipeline_hash=rid.pipeline_hash if rid else None,
+            )
         processed += 1
 
         if time.monotonic() - start >= timeout_seconds:

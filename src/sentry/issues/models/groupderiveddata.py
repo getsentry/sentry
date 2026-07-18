@@ -23,28 +23,24 @@ EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 class GroupDerivedData(DefaultFieldsModel):
     """
     Materialized state derived from GroupActionLogEntry entries.
-
-    Multiple rows may exist per group, but at most one may be ``is_live=True``
-    at any time (enforced by a partial unique constraint). Only the live row is
-    considered canonical; non-live rows are transient build artifacts that
-    exist only when a rebuild times out and needs to be resumed.
+    One row per group (enforced by ``unique=True`` on the FK).
 
     Update safety
     ~~~~~~~~~~~~~
     The pipeline is deterministic: replaying the same log produces the same
     state. However, the log is not strictly append-only — historical entries
     may be inserted, which is a primary reason rebuilds are triggered.
-    Three guards on the live row prevent stale writes:
+    Three guards on the row prevent stale writes:
 
     * **generation_id** — set to ``max(GroupActionLogEntry.id)`` when a
       rebuild starts, capturing the log state the rebuild observed. A write
-      only succeeds if its generation_id is >= the live row's, so a slow
+      only succeeds if its generation_id is >= the row's, so a slow
       rebuild that started before a log mutation cannot overwrite results
       from a newer rebuild that observed the corrected log.
 
     * **cursor guard** — within the same generation, a write only succeeds
       if the writer's ``(cursor_date, cursor_id)`` is at or ahead of the
-      live row's, preventing cursor regression.
+      row's, preventing cursor regression.
 
     * **pipeline_hash** — stamped at row creation, incremental writes only
       succeed if the pipeline version hasn't changed since the row was
@@ -60,8 +56,7 @@ class GroupDerivedData(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    group = FlexibleForeignKey("sentry.Group")
-    is_live = models.BooleanField(db_default=False, default=False)
+    group = FlexibleForeignKey("sentry.Group", unique=True)
 
     # Identifies the log state this row was built from.  Set to
     # ``max(GroupActionLogEntry.id)`` at the start of a rebuild so that
@@ -94,31 +89,9 @@ class GroupDerivedData(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupderiveddata"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["group"],
-                condition=models.Q(is_live=True),
-                name="uniq_live_gdd_per_group",
-            ),
-        ]
         indexes = [
-            # Only live rows participate in joins/filters on these columns.
-            models.Index(
-                fields=["progress", "group"],
-                condition=models.Q(is_live=True),
-                name="sentry_gdd_progress_live",
-            ),
-            models.Index(
-                fields=["last_progressed_at", "group"],
-                condition=models.Q(is_live=True),
-                name="sentry_gdd_lastprog_live",
-            ),
-            models.Index(fields=["group", "is_live"]),
-            models.Index(
-                fields=["date_added"],
-                condition=models.Q(is_live=False),
-                name="sentry_gdd_stale_cleanup",
-            ),
+            models.Index(fields=["progress", "group"]),
+            models.Index(fields=["last_progressed_at", "group"]),
         ]
 
-    __repr__ = sane_repr("group_id", "is_live", "generation_id", "cursor_date", "cursor_id")
+    __repr__ = sane_repr("group_id", "generation_id", "cursor_date", "cursor_id")
