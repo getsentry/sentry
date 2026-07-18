@@ -71,6 +71,12 @@ class HTTPOverheadDetector(PerformanceDetector):
         if not url or not span_start or not request_start:
             return
 
+        if isinstance(request_start, str):
+            try:
+                request_start = float(request_start)
+            except (ValueError, OverflowError):
+                return
+
         request_start *= 1000
 
         if url.startswith("/"):
