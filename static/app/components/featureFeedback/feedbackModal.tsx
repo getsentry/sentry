@@ -290,8 +290,10 @@ export function FeedbackModal<T extends Data>({
 
     return (
       <Fragment>
-        <ModalHeader>{t('Submit Feedback')}</ModalHeader>
-        <ModalBody>
+        <Header closeButton>
+          <h3>{t('Submit Feedback')}</h3>
+        </Header>
+        <Body>
           <SelectField
             label={t('Type of feedback')}
             name="subject"
@@ -328,8 +330,41 @@ export function FeedbackModal<T extends Data>({
               }
             />
           </FieldGroup>
-        </ModalBody>
-        <ModalFooter secondaryAction={props?.secondaryAction} />
+          {isSelfHosted && (
+            <Alert.Container>
+              <Alert variant="info" showIcon={false}>
+                {tct(
+                  "You agree that any feedback you submit is subject to Sentry's [privacyPolicy:Privacy Policy] and Sentry may use such feedback without restriction or obligation.",
+                  {
+                    privacyPolicy: <ExternalLink href="https://sentry.io/privacy/" />,
+                  }
+                )}
+              </Alert>
+            </Alert.Container>
+          )}
+        </Body>
+        <Footer>
+          {props.secondaryAction && (
+            <Container flex="1" alignSelf="center">
+              {props.secondaryAction}
+            </Container>
+          )}
+          <Grid flow="column" align="center" gap="md">
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
+            <Button
+              variant="primary"
+              tooltipProps={{
+                title: defined(state.subject)
+                  ? undefined
+                  : t('Required fields must be filled out'),
+              }}
+              onClick={() => handleSubmit()}
+              disabled={!defined(state.subject)}
+            >
+              {isScreenSmall ? t('Submit') : t('Submit Feedback')}
+            </Button>
+          </Grid>
+        </Footer>
       </Fragment>
     );
   }
