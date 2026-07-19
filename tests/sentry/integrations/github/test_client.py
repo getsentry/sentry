@@ -838,6 +838,36 @@ class GithubProxyClientTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
+    def test__refresh_access_token_null_expires_at(self, mock_jwt) -> None:
+        """GitHub can return null for expires_at; verify we fall back to a 1-hour default."""
+        responses.replace(
+            method=responses.POST,
+            url=f"https://api.github.com/app/installations/{self.installation_id}/access_tokens",
+            json={
+                "token": self.access_token,
+                "expires_at": None,
+                "permissions": {
+                    "administration": "read",
+                },
+                "repository_selection": "all",
+            },
+            status=200,
+        )
+
+        # Should not raise a TypeError
+        self.gh_client._refresh_access_token()
+
+        self.integration.refresh_from_db()
+        saved_expires_at = self.integration.metadata.get("expires_at")
+        # expires_at must be a non-empty string (not None) so get_access_token won't loop
+        assert saved_expires_at is not None
+        assert isinstance(saved_expires_at, str)
+        # It should be a parseable ISO-8601 datetime string in the future
+        parsed = datetime.fromisoformat(saved_expires_at)
+        assert parsed > datetime.utcnow()
+
+    @responses.activate
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=jwt)
     def test__get_token(self, mock_jwt) -> None:
         access_token_request = Request(
             url=f"{self.gh_client.base_url}/repos/test-repo/issues"

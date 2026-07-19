@@ -4,7 +4,7 @@ import contextlib
 import logging
 import time
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import StrEnum
 from functools import cached_property
 from typing import Any, TypedDict
@@ -277,7 +277,15 @@ class GithubProxyClient(IntegrationProxyClient):
             api_request_type=GitHubApiRequestType.REFRESH_ACCESS_TOKEN,
         )
         access_token = data["token"]
-        expires_at = datetime.strptime(data["expires_at"], "%Y-%m-%dT%H:%M:%SZ").isoformat()
+        expires_at_raw = data.get("expires_at")
+        if expires_at_raw is not None:
+            expires_at = datetime.strptime(expires_at_raw, "%Y-%m-%dT%H:%M:%SZ").isoformat()
+        else:
+            # GitHub may return null for expires_at in some installation configurations.
+            # Fall back to a 1-hour expiry, consistent with GitHub's documented token lifetime.
+            expires_at = (datetime.now(timezone.utc) + timedelta(hours=1)).strftime(
+                "%Y-%m-%dT%H:%M:%SZ"
+            )
         permissions = data.get("permissions")
         integration.metadata.update(
             {
