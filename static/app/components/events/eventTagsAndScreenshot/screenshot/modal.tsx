@@ -1,5 +1,5 @@
 import type {ComponentProps} from 'react';
-import {Fragment, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -97,8 +97,11 @@ export function ScreenshotModal({
     };
   }
 
-  const AttachmentComponent =
-    getImageAttachmentRenderer(currentEventAttachment) ?? ImageViewer;
+  const AttachmentComponent = useMemo(
+    () => getImageAttachmentRenderer(currentEventAttachment) ?? ImageViewer,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentEventAttachment.mimetype]
+  );
 
   return (
     <Fragment>
