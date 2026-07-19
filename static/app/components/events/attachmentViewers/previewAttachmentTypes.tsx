@@ -2,6 +2,7 @@ import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewe
 import {JsonViewer} from 'sentry/components/events/attachmentViewers/jsonViewer';
 import {LogFileViewer} from 'sentry/components/events/attachmentViewers/logFileViewer';
 import {RRWebJsonViewer} from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
+import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
 import {VideoViewer} from 'sentry/components/events/attachmentViewers/videoViewer';
 import type {IssueAttachment} from 'sentry/types/group';
 
@@ -90,4 +91,45 @@ export const isAttachmentTooLargeForPreview = (attachment: IssueAttachment): boo
     return false;
   }
   return attachment.size > MAX_TEXT_PREVIEW_SIZE;
+};
+
+type ScreenshotAttachmentViewerProps = ViewerProps & {
+  controls?: boolean;
+  onCanPlay?: React.ReactEventHandler<HTMLVideoElement>;
+  onError?: React.ReactEventHandler<HTMLImageElement>;
+  onLoad?: React.ReactEventHandler<HTMLImageElement>;
+};
+
+/**
+ * Renders the appropriate viewer for a screenshot attachment using static JSX
+ * branches. The component type is never derived during render so React Compiler
+ * static-component-definitions rules are satisfied.
+ */
+export function ScreenshotAttachmentViewer({
+  attachment,
+  onLoad,
+  onError,
+  controls,
+  onCanPlay,
+  ...viewerProps
+}: ScreenshotAttachmentViewerProps) {
+  if (webmMimeTypes.includes(attachment.mimetype)) {
+    return (
+      <VideoViewer
+        attachment={attachment}
+        controls={controls}
+        onCanPlay={onCanPlay}
+        {...viewerProps}
+      />
+    );
+  }
+  return (
+    <ImageViewer
+      attachment={attachment}
+      onLoad={onLoad}
+      onError={onError}
+      {...viewerProps}
+    />
+  );
+}
 };
