@@ -45,6 +45,7 @@ const TOOLTIP_PROPS_SUPPORTED_BY_INFO_TEXT = new Set([
 ]);
 const TOOLTIP_PROPS_TO_STRIP = new Set(['showUnderline', 'isHoverable', 'skipWrapper']);
 const TOOLTIP_PROPS_TO_RENAME = new Map([['showOnlyOnOverflow', 'mode="overflowOnly"']]);
+const TEXT_PROPS_TO_STRIP = new Set(['underline']);
 const TEXT_PROPS_TO_STRIP_IN_OVERFLOW_ONLY = new Set(['ellipsis']);
 
 function getElementName(nameNode: TSESTree.JSXTagNameExpression): string {
@@ -301,6 +302,12 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
                             attr.name.type === AST_NODE_TYPES.JSXIdentifier &&
                             attr.name.name === 'showOnlyOnOverflow'
                         );
+                        const textPropsToStrip = isOverflowOnly
+                          ? new Set([
+                              ...TEXT_PROPS_TO_STRIP,
+                              ...TEXT_PROPS_TO_STRIP_IN_OVERFLOW_ONLY,
+                            ])
+                          : TEXT_PROPS_TO_STRIP;
                         const attributes = [
                           getAttributeText(
                             node.openingElement.attributes,
@@ -309,9 +316,7 @@ export const preferInfoText = ESLintUtils.RuleCreator.withoutDocs({
                           ),
                           getAttributeText(
                             textChild.openingElement.attributes,
-                            isOverflowOnly
-                              ? TEXT_PROPS_TO_STRIP_IN_OVERFLOW_ONLY
-                              : undefined
+                            textPropsToStrip
                           ),
                         ];
                         const childrenText = context.sourceCode.text.slice(

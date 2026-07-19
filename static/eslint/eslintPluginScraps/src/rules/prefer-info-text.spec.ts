@@ -388,7 +388,7 @@ import {InfoText} from '@sentry/scraps/info';
 import {InfoText} from '@sentry/scraps/info';
 
         const x = (
-          <InfoText title={meta.volumeTooltip} delay={100} disabled={isDisabled} variant="muted" underline="dotted" size="sm" density="comfortable">
+          <InfoText title={meta.volumeTooltip} delay={100} disabled={isDisabled} variant="muted" size="sm" density="comfortable">
               {meta.volume}
             </InfoText>
         );
