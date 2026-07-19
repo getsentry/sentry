@@ -248,6 +248,7 @@ const BodyCell = memo(function BodyCell({
               }
               as="div"
               variant="inherit"
+              ellipsis
             >
               {dataRow.conversationId}
             </InfoText>

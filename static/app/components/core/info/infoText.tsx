@@ -6,15 +6,16 @@ import {Text, type TextProps} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 type InfoTextBaseProps<T extends 'span' | 'p' | 'label' | 'div' | 'time'> =
-  DistributedOmit<TextProps<T>, 'title' | 'variant' | 'ellipsis' | 'underline'> & {
+  DistributedOmit<TextProps<T>, 'title' | 'variant' | 'underline'> & {
     title: React.ReactNode;
     variant?: TooltipProps['underlineColor'] | 'inherit';
   } & Pick<TooltipProps, 'position' | 'maxWidth' | 'delay'>;
 
 export type InfoTextProps<T extends 'span' | 'p' | 'label' | 'div' | 'time'> =
   | (InfoTextBaseProps<T> & {mode?: undefined})
-  | (DistributedOmit<InfoTextBaseProps<T>, 'display' | 'wrap'> & {
+  | (DistributedOmit<InfoTextBaseProps<T>, 'display' | 'wrap' | 'ellipsis'> & {
       mode: 'overflowOnly';
+      ellipsis?: never;
     });
 
 export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'span'>({
@@ -31,7 +32,7 @@ export function InfoText<T extends 'span' | 'p' | 'label' | 'div' | 'time' = 'sp
   // Text's ellipsis props are mutually exclusive with display and wrap.
   const textPropsWithMode = {
     ...textProps,
-    ...(isOverflowOnly ? {ellipsis: true as const} : {}),
+    ellipsis: isOverflowOnly ? true : textProps.ellipsis,
   } as TextProps<T>;
 
   if (!title) {
