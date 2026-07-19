@@ -134,7 +134,7 @@ type FeedbackModalFooterProps = {
   handleSubmit: (submitEventData?: Event) => void;
   hasCustomChildren: boolean;
   isScreenSmall: boolean;
-  state: {subject?: any; [key: string]: any};
+  state: {[key: string]: any; subject?: any};
   onBack?: () => void;
   onNext?: () => void;
   primaryDisabledReason?: string;
@@ -172,15 +172,15 @@ function FeedbackModalFooter({
         <Button
           variant="primary"
           tooltipProps={{
-            title: !hasCustomChildren
-              ? defined(state.subject)
+            title: hasCustomChildren
+              ? primaryDisabledReason
+              : defined(state.subject)
                 ? undefined
-                : t('Required fields must be filled out')
-              : primaryDisabledReason,
+                : t('Required fields must be filled out'),
           }}
           onClick={onNext ?? (() => handleSubmit(submitEventData))}
           disabled={
-            !hasCustomChildren ? !defined(state.subject) : defined(primaryDisabledReason)
+            hasCustomChildren ? defined(primaryDisabledReason) : !defined(state.subject)
           }
         >
           {onNext ? t('Next') : isScreenSmall ? t('Submit') : t('Submit Feedback')}
