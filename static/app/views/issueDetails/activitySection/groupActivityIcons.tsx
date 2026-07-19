@@ -42,14 +42,34 @@ import type {
 import {GroupActivityType} from 'sentry/types/group';
 
 interface IconWithDefaultProps {
-  Component: React.ComponentType<SVGIconProps> | null;
+  Component: React.ComponentType<any> | null;
   defaultProps: {locked?: boolean; type?: string};
   componentFunction?: (props: {
     data: GroupActivity['data'];
     sentry_app: GroupActivity['sentry_app'];
     user: GroupActivity['user'];
   }) => React.ComponentType<SVGIconProps>;
-  propsFunction?: (data: GroupActivity['data']) => Record<string, unknown>;
+  propsFunction?: (
+    data: GroupActivity['data'],
+    user?: GroupActivity['user'],
+    sentry_app?: GroupActivity['sentry_app']
+  ) => Record<string, unknown>;
+}
+
+function NoteActivityIcon({
+  user,
+  sentry_app,
+}: {
+  sentry_app: GroupActivity['sentry_app'];
+  user: GroupActivity['user'];
+}) {
+  if (sentry_app) {
+    return <SentryAppAvatar sentryApp={sentry_app} />;
+  }
+  if (user) {
+    return <StyledUserAvatar user={user} />;
+  }
+  return <IconChat size="xs" />;
 }
 
 export const groupActivityTypeIconMapping: Record<
@@ -57,16 +77,9 @@ export const groupActivityTypeIconMapping: Record<
   IconWithDefaultProps
 > = {
   [GroupActivityType.NOTE]: {
-    Component: IconChat,
+    Component: NoteActivityIcon,
     defaultProps: {},
-    componentFunction: ({user, sentry_app}) => {
-      if (sentry_app) {
-        return function () {
-          return <SentryAppAvatar sentryApp={sentry_app} />;
-        };
-      }
-      return user ? () => <StyledUserAvatar user={user} /> : IconChat;
-    },
+    propsFunction: (_, user, sentry_app) => ({user, sentry_app}),
   },
   [GroupActivityType.SET_RESOLVED]: {Component: IconCheckmark, defaultProps: {}},
   [GroupActivityType.SET_RESOLVED_BY_AGE]: {Component: IconCheckmark, defaultProps: {}},

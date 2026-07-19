@@ -164,7 +164,7 @@ function LegacyTimelineItem({
         Icon && (
           <Icon
             {...iconMapping.defaultProps}
-            {...iconMapping.propsFunction?.(item.data)}
+            {...iconMapping.propsFunction?.(item.data, item.user, item.sentry_app)}
             size="xs"
           />
         )
