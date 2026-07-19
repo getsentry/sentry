@@ -69,7 +69,6 @@ export function CronsLandingPanel() {
     }
   };
 
-
   useEffect(() => {
     if (!guideVisibile) {
       return;
