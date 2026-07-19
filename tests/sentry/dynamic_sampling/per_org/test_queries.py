@@ -477,6 +477,59 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ),
         ]
 
+    def test_get_eap_transaction_volumes_filters_by_root_projects(self) -> None:
+        organization = self.create_organization()
+        project = self.create_project(organization=organization)
+        other_project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
+
+        self.store_spans(
+            [
+                # Rooted at `project` but owned by `other_project` — must still be counted
+                # even though `other_project` is not in root_projects.
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "checkout",
+                            "dsc.transaction": "checkout",
+                            "dsc.project_id": str(project.id),
+                        },
+                    },
+                    organization=organization,
+                    project=other_project,
+                    start_ts=timestamp,
+                ),
+                # Rooted at `other_project` — excluded by root_projects.
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "transaction": "landing",
+                            "dsc.transaction": "landing",
+                            "dsc.project_id": str(other_project.id),
+                        },
+                    },
+                    organization=organization,
+                    project=other_project,
+                    start_ts=timestamp + timedelta(seconds=1),
+                ),
+            ]
+        )
+
+        volumes = get_eap_transaction_volumes(
+            self.get_config(organization),
+            root_projects=[project],
+        )
+
+        assert volumes == [
+            ProjectTransactionCounts(
+                org_id=organization.id,
+                project_id=project.id,
+                transaction_counts=[("checkout", 1)],
+            )
+        ]
+
     def test_get_eap_transaction_volumes_without_projects(self) -> None:
         organization = self.create_organization()
 
