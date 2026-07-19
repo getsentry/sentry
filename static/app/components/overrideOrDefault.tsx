@@ -62,16 +62,19 @@ export function OverrideOrDefault<H extends OverrideName>({
     return defaultComponent;
   }
 
-  function OverrideOrDefaultComponent(props: Props) {
-    // Defining the props here is unnecessary and slow for typescript
-    const OverrideComponent: React.ComponentType<any> =
-      getOverride(overrideName)?.() ?? getDefaultComponent();
+  // Resolve the component once at factory scope so that the component type
+  // identity is stable across renders. Creating components during render gives
+  // React a new type on every render, causing unnecessary unmount/remount cycles
+  // and breaking React Compiler's StaticComponents optimization.
+  const ResolvedComponent: React.ComponentType<any> | undefined =
+    getOverride(overrideName)?.() ?? getDefaultComponent();
 
-    if (!OverrideComponent) {
+  function OverrideOrDefaultComponent(props: Props) {
+    if (!ResolvedComponent) {
       return null;
     }
 
-    return <OverrideComponent {...props} />;
+    return <ResolvedComponent {...props} />;
   }
 
   OverrideOrDefaultComponent.displayName = `OverrideOrDefaultComponent(${overrideName})`;
