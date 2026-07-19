@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import logging
+import re
 from abc import ABC
 from collections.abc import Mapping
 from datetime import timezone
@@ -52,6 +53,45 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.webhooks")
 
 PROVIDER_NAME = "integrations:gitlab"
+
+# Matches ANSI/VT100 CSI escape sequences such as \x1b[d or \x1b[0m, plus
+# any two-character escape sequence that starts with ESC but is not a CSI
+# introducer.  These sequences arrive in GitLab webhook payloads and consist
+# of a non-printable ESC byte followed by printable ASCII characters — so a
+# single-pass strip of non-printable bytes would leave the printable tail
+# ("[d", "[c", …) behind.
+_ANSI_ESCAPE_RE = re.compile(r"\x1b(?:\[[0-9;]*[A-Za-z]|[^\[])")
+
+# After stripping ANSI sequences, remove any remaining character outside the
+# printable ASCII range (0x20–0x7E), e.g. lone ESC bytes or other control
+# characters.
+_NON_PRINTABLE_ASCII_RE = re.compile(r"[^\x20-\x7E]")
+
+
+def _sanitize_author_field(value: str | None, max_length: int) -> str | None:
+    """Strip non-printable and ANSI escape characters, then truncate to *max_length*.
+
+    GitLab webhook payloads can carry ANSI escape sequences or other control
+    characters inside author email/name fields.  Passing those values straight
+    to ``CommitAuthor.objects.get_or_create`` causes PostgreSQL to raise a
+    ``StringDataRightTruncation`` (Django ``DataError``) when the value
+    exceeds the column's ``varchar(N)`` limit.  Sanitizing at the extraction
+    point — before the value touches any model layer — is the correct fix.
+
+    Two-pass approach:
+    1. Remove full ANSI/VT100 escape sequences (e.g. ``\\x1b[d``, ``\\x1b[0m``).
+       These sequences contain printable ASCII characters (``[``, ``d``, …) that
+       the second pass would not remove on its own.
+    2. Remove any remaining non-printable ASCII characters (control chars, lone
+       ESC bytes, non-ASCII code points).
+    """
+    if value is None:
+        return None
+    value = _ANSI_ESCAPE_RE.sub("", value)
+    value = _NON_PRINTABLE_ASCII_RE.sub("", value)
+    return value[:max_length]
+
+
 GITLAB_WEBHOOK_SECRET_INVALID_ERROR = """Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/organization/integrations/integration-platform/public-integration/#refreshing-tokens."""
 
 
@@ -456,8 +496,12 @@ class MergeEventWebhook(GitlabWebhook):
             author_name = None
             head_commit_sha = None
             if last_commit:
-                author_email = last_commit["author"]["email"]
-                author_name = last_commit["author"]["name"]
+                author_email = _sanitize_author_field(
+                    last_commit["author"]["email"], max_length=200
+                )
+                author_name = _sanitize_author_field(
+                    last_commit["author"]["name"], max_length=128
+                )
                 head_commit_sha = last_commit.get("id")
 
             updated_at = event["object_attributes"].get("updated_at")
@@ -654,7 +698,8 @@ class PushEventWebhook(GitlabWebhook):
             if IntegrationRepositoryProvider.should_ignore_commit(commit["message"]):
                 continue
 
-            author_email = commit["author"]["email"]
+            author_email = _sanitize_author_field(commit["author"]["email"], max_length=200)
+            author_name = _sanitize_author_field(commit["author"]["name"], max_length=128)
 
             # TODO(dcramer): we need to deal with bad values here, but since
             # its optional, lets just throw it out for now
@@ -664,7 +709,7 @@ class PushEventWebhook(GitlabWebhook):
                 authors[author_email] = author = CommitAuthor.objects.get_or_create(
                     organization_id=organization.id,
                     email=author_email,
-                    defaults={"name": commit["author"]["name"]},
+                    defaults={"name": author_name},
                 )[0]
             else:
                 author = authors[author_email]

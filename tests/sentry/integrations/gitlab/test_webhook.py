@@ -431,6 +431,42 @@ class WebhookTest(GitLabTestCase):
         self.assert_pull_request(pull, author)
         self.assert_group_link(group, pull)
 
+    def test_merge_event_author_email_with_ansi_sequences_is_sanitized(self) -> None:
+        # Regression test for SENTRY-5RKP: GitLab MR webhooks can carry ANSI
+        # escape sequences appended to the commit author email.  Passing the
+        # raw value to CommitAuthor.get_or_create caused PostgreSQL to raise a
+        # StringDataRightTruncation (DataError) when the value exceeded the
+        # email column's varchar(200) limit.  The fix strips all non-printable
+        # ASCII characters at the extraction point before any model layer is
+        # touched.
+        self.create_gitlab_repo("getsentry/sentry")
+        payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+
+        # Simulate the malformed email seen in production: a valid address
+        # followed by many ANSI cursor-movement escape sequences.
+        clean_email = "user@example.com"
+        ansi_suffix = "\x1b[d" * 34 + "\x1b[c" * 33  # 34 cursor-left + 33 cursor-right
+        dirty_email = clean_email + ansi_suffix
+        assert len(dirty_email) > 200  # would exceed varchar(200) without the fix
+
+        payload["object_attributes"]["last_commit"]["author"]["email"] = dirty_email
+        payload["object_attributes"]["last_commit"]["author"]["name"] = (
+            "Dev User\x1b[0m"  # also sanitize name
+        )
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+
+        author = CommitAuthor.objects.get()
+        assert author.email == clean_email
+        assert author.name == "Dev User"
+
     def test_merge_event_update_pull_request(self) -> None:
         repo = self.create_gitlab_repo("getsentry/sentry")
         group = self.create_group(project=self.project, short_id=9)
