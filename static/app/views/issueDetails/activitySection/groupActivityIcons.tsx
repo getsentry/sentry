@@ -44,12 +44,12 @@ import {GroupActivityType} from 'sentry/types/group';
 interface IconWithDefaultProps {
   Component: React.ComponentType<SVGIconProps> | null;
   defaultProps: {locked?: boolean; type?: string};
+  propsFunction?: (data: GroupActivity['data']) => Record<string, unknown>;
   renderIcon?: (props: {
     data: GroupActivity['data'];
     sentry_app: GroupActivity['sentry_app'];
     user: GroupActivity['user'];
   }) => React.ReactNode;
-  propsFunction?: (data: GroupActivity['data']) => Record<string, unknown>;
 }
 
 export const groupActivityTypeIconMapping: Record<
