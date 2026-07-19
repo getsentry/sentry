@@ -37,6 +37,21 @@ function getTotalChildrenFromMeta(m: Record<any, any> | undefined): number | und
   return typeof rootMeta?.len === 'number' ? rootMeta.len : undefined;
 }
 
+function Wrapper({
+  formattedObjectKey,
+  children,
+}: {
+  children: React.ReactNode;
+  formattedObjectKey: React.ReactNode;
+}) {
+  return (
+    <Fragment>
+      {formattedObjectKey}
+      {children}
+    </Fragment>
+  );
+}
+
 export function RecursiveStructuredData({
   config,
   meta,
@@ -57,20 +72,11 @@ export function RecursiveStructuredData({
       </Fragment>
     );
 
-  function Wrapper({children}: {children: React.ReactNode}) {
-    return (
-      <Fragment>
-        {formattedObjectKey}
-        {children}
-      </Fragment>
-    );
-  }
-
   if (config?.isNull?.(value) || value === null) {
     const nullValue = config?.renderNull?.(value) ?? String(value);
 
     return (
-      <Wrapper>
+      <Wrapper formattedObjectKey={formattedObjectKey}>
         <ValueNull data-test-id="value-null">
           <AnnotatedValue
             value={nullValue}
@@ -87,7 +93,7 @@ export function RecursiveStructuredData({
     const booleanValue = config?.renderBoolean?.(value) ?? String(value);
 
     return (
-      <Wrapper>
+      <Wrapper formattedObjectKey={formattedObjectKey}>
         <ValueBoolean data-test-id="value-boolean">
           <AnnotatedValue
             value={booleanValue}
@@ -102,7 +108,7 @@ export function RecursiveStructuredData({
 
   if (typeof value === 'number' || config?.isNumber?.(value)) {
     return (
-      <Wrapper>
+      <Wrapper formattedObjectKey={formattedObjectKey}>
         <ValueNumber data-test-id="value-number">
           <AnnotatedValue
             value={value}
@@ -120,7 +126,7 @@ export function RecursiveStructuredData({
       const stringValue = config.renderString?.(value) ?? value;
 
       return (
-        <Wrapper>
+        <Wrapper formattedObjectKey={formattedObjectKey}>
           <ValueString data-test-id="value-string">
             {'"'}
             <AnnotatedValue
@@ -138,7 +144,7 @@ export function RecursiveStructuredData({
 
     if (looksLikeStrippedValue(value)) {
       return (
-        <Wrapper>
+        <Wrapper formattedObjectKey={formattedObjectKey}>
           <ValueStrippedString>
             <AnnotatedValue
               value={value}
@@ -153,7 +159,7 @@ export function RecursiveStructuredData({
 
     if (containsCRLF(value)) {
       return (
-        <Wrapper>
+        <Wrapper formattedObjectKey={formattedObjectKey}>
           <ValueMultiLineString data-test-id="value-multiline-string">
             <AnnotatedValue
               value={value}
@@ -167,7 +173,7 @@ export function RecursiveStructuredData({
     }
 
     return (
-      <Wrapper>
+      <Wrapper formattedObjectKey={formattedObjectKey}>
         <span data-test-id="value-unformatted">
           <AnnotatedValue
             value={value}
