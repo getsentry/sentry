@@ -28,10 +28,26 @@ interface AttachmentViewerProps {
   projectSlug: string;
 }
 
-const logFileMimeTypes = ['text/css', 'text/csv', 'text/html', 'text/javascript', 'text/plain'];
-const jsonMimeTypes = ['application/json', 'application/ld+json', 'text/json', 'text/x-json'];
+const logFileMimeTypes = [
+  'text/css',
+  'text/csv',
+  'text/html',
+  'text/javascript',
+  'text/plain',
+];
+const jsonMimeTypes = [
+  'application/json',
+  'application/ld+json',
+  'text/json',
+  'text/x-json',
+];
 
-function AttachmentViewer({attachment, orgSlug, projectSlug, eventId}: AttachmentViewerProps) {
+function AttachmentViewer({
+  attachment,
+  orgSlug,
+  projectSlug,
+  eventId,
+}: AttachmentViewerProps) {
   const commonProps = {attachment, orgSlug, projectSlug, eventId};
 
   if (imageMimeTypes.includes(attachment.mimetype)) {
