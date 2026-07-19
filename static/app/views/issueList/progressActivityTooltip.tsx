@@ -62,9 +62,16 @@ function getProgressActivities(activities: GroupActivity[]): GroupActivity[] {
   return activities.slice(0, MAX_ITEMS).toReversed();
 }
 
-type IconMapping = (typeof groupActivityTypeIconMapping)[keyof typeof groupActivityTypeIconMapping];
+type IconMapping =
+  (typeof groupActivityTypeIconMapping)[keyof typeof groupActivityTypeIconMapping];
 
-function ActivityIcon({item, iconMapping}: {iconMapping: IconMapping; item: GroupActivity}) {
+function ActivityIcon({
+  item,
+  iconMapping,
+}: {
+  iconMapping: IconMapping;
+  item: GroupActivity;
+}) {
   const componentFunction =
     item.type === GroupActivityType.NOTE ? undefined : iconMapping.componentFunction;
   const IconComponent = componentFunction
@@ -110,11 +117,7 @@ function ProgressActivityItem({group, item}: {group: Group; item: GroupActivity}
       timestamp={<Timestamp date={item.dateCreated} unitStyle="extraShort" />}
       marker={<ActivityMarker item={item} color={colorConfig.icon} />}
       colorConfig={colorConfig}
-      icon={
-        iconMapping && (
-          <ActivityIcon item={item} iconMapping={iconMapping} />
-        )
-      }
+      icon={iconMapping && <ActivityIcon item={item} iconMapping={iconMapping} />}
     >
       {typeof message === 'string' ? (
         <NoteBody text={message} />
