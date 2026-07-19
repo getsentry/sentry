@@ -22,6 +22,11 @@ import {MonitorCreateForm} from 'sentry/views/insights/crons/components/monitorC
 import {PlatformPickerPanel} from './platformPickerPanel';
 import {useCronsUpsertGuideState} from './useCronsUpsertGuideState';
 
+const OnboardingPanelHook = OverrideOrDefault({
+  overrideName: 'component:crons-onboarding-panel',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
+
 /**
  * Wrapper for guide tab content with a ref for innerHTML-based markdown
  * copying. The ref is passed from the parent so the copy button can live
@@ -64,10 +69,6 @@ export function CronsLandingPanel() {
     }
   };
 
-  const OnboardingPanelHook = OverrideOrDefault({
-    overrideName: 'component:crons-onboarding-panel',
-    defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
-  });
 
   useEffect(() => {
     if (!guideVisibile) {
