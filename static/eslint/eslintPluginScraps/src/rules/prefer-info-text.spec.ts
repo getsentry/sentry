@@ -343,21 +343,13 @@ import {InfoText} from '@sentry/scraps/info';
       ],
     },
     {
-      name: 'Tooltip with supported disabled prop',
+      name: 'Tooltip with unsupported disabled prop',
       code: `
         import {Tooltip} from '@sentry/scraps/tooltip';
         import {t} from 'sentry/locale';
         const x = <Tooltip title="x" showUnderline disabled>{t('label')}</Tooltip>;
       `,
-      errors: [
-        errorWithSuggestion(`
-        import {Tooltip} from '@sentry/scraps/tooltip';
-        import {t} from 'sentry/locale';
-import {InfoText} from '@sentry/scraps/info';
-
-        const x = <InfoText variant="inherit" title="x" disabled>{t('label')}</InfoText>;
-      `),
-      ],
+      errors: [{messageId: 'preferInfoText'}],
     },
     {
       name: 'Text component with delay and disabled',
@@ -381,17 +373,20 @@ import {InfoText} from '@sentry/scraps/info';
           </Tooltip>
         );
       `,
+      errors: [{messageId: 'preferInfoText'}],
+    },
+    {
+      name: 'Tooltip with supported delay prop',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip title="x" delay={100}>Some text here</Tooltip>;
+      `,
       errors: [
         errorWithSuggestion(`
         import {Tooltip} from '@sentry/scraps/tooltip';
-        import {Text} from '@sentry/scraps/text';
 import {InfoText} from '@sentry/scraps/info';
 
-        const x = (
-          <InfoText title={meta.volumeTooltip} delay={100} disabled={isDisabled} variant="muted" size="sm" density="comfortable">
-              {meta.volume}
-            </InfoText>
-        );
+        const x = <InfoText variant="inherit" title="x" delay={100}>Some text here</InfoText>;
       `),
       ],
     },

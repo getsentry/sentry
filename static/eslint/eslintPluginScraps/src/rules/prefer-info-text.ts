@@ -38,7 +38,6 @@ const TOOLTIP_PROPS_SUPPORTED_BY_INFO_TEXT = new Set([
   'position',
   'maxWidth',
   'delay',
-  'disabled',
   'showUnderline',
   // InfoText always renders its underlying Tooltip as hoverable.
   'isHoverable',
