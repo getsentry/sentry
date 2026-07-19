@@ -229,20 +229,9 @@ export function FeedbackModal<T extends Data>({
             <Button onClick={closeModal}>{t('Cancel')}</Button>
             <Button
               variant="primary"
-              tooltipProps={{
-                title:
-                  props.children === undefined
-                    ? defined(state.subject)
-                      ? undefined
-                      : t('Required fields must be filled out')
-                    : primaryDisabledReason,
-              }}
+              tooltipProps={{title: primaryDisabledReason}}
               onClick={onNext ?? (() => handleSubmit(submitEventData))}
-              disabled={
-                props.children === undefined
-                  ? !defined(state.subject)
-                  : defined(primaryDisabledReason)
-              }
+              disabled={defined(primaryDisabledReason)}
             >
               {onNext ? t('Next') : isScreenSmall ? t('Submit') : t('Submit Feedback')}
             </Button>
@@ -250,7 +239,7 @@ export function FeedbackModal<T extends Data>({
         </Footer>
       );
     },
-    [Footer, isScreenSmall, closeModal, handleSubmit, state, props.children]
+    [Footer, isScreenSmall, closeModal, handleSubmit]
   );
 
   const ModalBody = useCallback(
