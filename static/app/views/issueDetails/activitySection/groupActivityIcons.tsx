@@ -1,5 +1,4 @@
 import {createElement} from 'react';
-
 import styled from '@emotion/styled';
 
 import {SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
