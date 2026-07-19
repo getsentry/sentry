@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, type ComponentType} from 'react';
+import {useEffect, useRef, type ComponentType} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -21,6 +21,15 @@ import {MonitorCreateForm} from 'sentry/views/insights/crons/components/monitorC
 
 import {PlatformPickerPanel} from './platformPickerPanel';
 import {useCronsUpsertGuideState} from './useCronsUpsertGuideState';
+
+function DefaultOnboardingPanel({children}: {children: React.ReactNode}) {
+  return children;
+}
+
+const OnboardingPanelHook = OverrideOrDefault({
+  overrideName: 'component:crons-onboarding-panel',
+  defaultComponent: DefaultOnboardingPanel,
+});
 
 /**
  * Wrapper for guide tab content with a ref for innerHTML-based markdown
@@ -63,11 +72,6 @@ export function CronsLandingPanel() {
       return '';
     }
   };
-
-  const OnboardingPanelHook = OverrideOrDefault({
-    overrideName: 'component:crons-onboarding-panel',
-    defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
-  });
 
   useEffect(() => {
     if (!guideVisibile) {
