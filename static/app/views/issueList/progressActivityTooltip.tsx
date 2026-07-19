@@ -18,7 +18,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {getActivityColorConfig} from 'sentry/views/issueDetails/activitySection/activityColorConfig';
 import {ActivityMarker} from 'sentry/views/issueDetails/activitySection/activityMarker';
-import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
+import {
+  groupActivityTypeIconMapping,
+  renderActivityIcon,
+} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
 import {getGroupActivityItem} from 'sentry/views/issueDetails/activitySection/groupActivityItem';
 
 // Only include activity items that describe issue progress changes. Other
@@ -77,15 +80,13 @@ function ProgressActivityItem({group, item}: {group: Group; item: GroupActivity}
   );
 
   const iconMapping = groupActivityTypeIconMapping[item.type];
-  const componentFunction =
-    item.type === GroupActivityType.NOTE ? undefined : iconMapping?.componentFunction;
-  const Icon = componentFunction
-    ? componentFunction({
-        data: item.data,
-        user: item.user,
-        sentry_app: item.sentry_app,
-      })
-    : (iconMapping?.Component ?? null);
+  // For NOTE activities this component does not use the componentFunction (which
+  // would create inline avatar components during render). Fall back to the static
+  // Component (IconChat) instead.
+  const effectiveMapping =
+    item.type === GroupActivityType.NOTE && iconMapping
+      ? {...iconMapping, componentFunction: undefined}
+      : iconMapping;
 
   return (
     <Timeline.Item
@@ -93,15 +94,7 @@ function ProgressActivityItem({group, item}: {group: Group; item: GroupActivity}
       timestamp={<Timestamp date={item.dateCreated} unitStyle="extraShort" />}
       marker={<ActivityMarker item={item} color={colorConfig.icon} />}
       colorConfig={colorConfig}
-      icon={
-        Icon && (
-          <Icon
-            {...iconMapping.defaultProps}
-            {...iconMapping.propsFunction?.(item.data)}
-            size="xs"
-          />
-        )
-      }
+      icon={renderActivityIcon(effectiveMapping, item, {size: 'xs'})}
     >
       {typeof message === 'string' ? (
         <NoteBody text={message} />

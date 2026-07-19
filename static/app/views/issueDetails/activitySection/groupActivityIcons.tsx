@@ -1,3 +1,5 @@
+import {createElement} from 'react';
+
 import styled from '@emotion/styled';
 
 import {SentryAppAvatar, UserAvatar} from '@sentry/scraps/avatar';
@@ -211,3 +213,34 @@ const StyledUserAvatar = styled(UserAvatar)`
     margin: ${p => p.theme.space['2xs']};
   }
 `;
+
+/**
+ * Renders the activity icon for a given icon mapping and activity item without
+ * creating a component type during render. This avoids the React
+ * "static-component-definitions" violation that occurs when a variable holding
+ * a dynamically-selected component type is used as a JSX element type.
+ */
+export function renderActivityIcon(
+  iconMapping: IconWithDefaultProps | undefined,
+  item: Pick<GroupActivity, 'data' | 'user' | 'sentry_app'>,
+  iconProps: Record<string, unknown>
+): React.ReactNode {
+  if (!iconMapping) {
+    return null;
+  }
+
+  const {componentFunction, Component, defaultProps, propsFunction} = iconMapping;
+  const resolvedComponent = componentFunction
+    ? componentFunction({data: item.data, user: item.user, sentry_app: item.sentry_app})
+    : Component;
+
+  if (!resolvedComponent) {
+    return null;
+  }
+
+  return createElement(resolvedComponent, {
+    ...defaultProps,
+    ...propsFunction?.(item.data),
+    ...iconProps,
+  });
+}
