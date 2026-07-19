@@ -148,15 +148,15 @@ function FeedbackModalFooter({
         <Button
           variant="primary"
           tooltipProps={{
-            title: !isCustomChildren
-              ? defined(state.subject)
+            title: isCustomChildren
+              ? primaryDisabledReason
+              : defined(state.subject)
                 ? undefined
-                : t('Required fields must be filled out')
-              : primaryDisabledReason,
+                : t('Required fields must be filled out'),
           }}
           onClick={onNext ?? (() => handleSubmit(submitEventData))}
           disabled={
-            !isCustomChildren ? !defined(state.subject) : defined(primaryDisabledReason)
+            isCustomChildren ? defined(primaryDisabledReason) : !defined(state.subject)
           }
         >
           {onNext ? t('Next') : isScreenSmall ? t('Submit') : t('Submit Feedback')}
@@ -171,7 +171,10 @@ type BodyProps = {
   showSelfHostedMessage?: boolean;
 };
 
-function FeedbackModalBody({children: bodyChildren, showSelfHostedMessage = true}: BodyProps) {
+function FeedbackModalBody({
+  children: bodyChildren,
+  showSelfHostedMessage = true,
+}: BodyProps) {
   const {Body, isSelfHosted} = useFeedbackModalContext();
   return (
     <Body>
