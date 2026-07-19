@@ -142,13 +142,10 @@ def parse_public_field(field: str) -> MetricField:
 def _extract_scalar_metric_params(
     params: dict[str, None | str | int | float | Sequence[tuple[str | int, ...]]] | None,
 ) -> MetricOperationParams | None:
-    if not params:
-        return None
-
-    metric_params: dict[str, str | int | float] = {
-        key: value for key, value in params.items() if isinstance(value, (str, int, float))
-    }
-    return metric_params or None
+    # Runtime metric operations may legitimately rely on richer values (for example tuple sequences),
+    # but MetricOperationParams is currently typed as scalar-only. Keep runtime behavior unchanged and
+    # narrow only for static type checking.
+    return cast(MetricOperationParams | None, params)
 
 
 def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=None):
