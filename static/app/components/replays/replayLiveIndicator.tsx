@@ -137,12 +137,12 @@ export function useLiveRefresh({replay}: {replay: ReplayRecord | undefined}) {
 
   useEffect(() => {
     if (isReplayExpired) {
-      return undefined;
+      return;
     }
     const remaining = expiresAtMs - Date.now();
     if (remaining <= 0) {
       setIsReplayExpired(true);
-      return undefined;
+      return;
     }
     const timer = setTimeout(() => setIsReplayExpired(true), remaining);
     return () => clearTimeout(timer);
