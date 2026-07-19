@@ -490,28 +490,25 @@ const PERIOD_TO_DAYS: Record<string, number> = {
   '30d': 30,
 };
 
-const STATUS_VARIANT: Record<
+const STATUS_VARIANT = {
+  succeeded: {Icon: IconCheckmark, label: 'Succeeded', text: 'success'},
+  failed: {Icon: IconClose, label: 'Failed', text: 'danger'},
+  skipped: {Icon: IconWarning, label: 'Skipped', text: 'muted'},
+  running: {Icon: IconRefresh, label: 'Running', text: 'warning'},
+} as const satisfies Record<
   RunStatus,
   {
     Icon: React.ComponentType<{size?: 'xs' | 'sm' | 'md'}>;
     label: string;
     text: 'success' | 'danger' | 'muted' | 'warning';
   }
-> = {
-  succeeded: {Icon: IconCheckmark, label: 'Succeeded', text: 'success'},
-  failed: {Icon: IconClose, label: 'Failed', text: 'danger'},
-  skipped: {Icon: IconWarning, label: 'Skipped', text: 'muted'},
-  running: {Icon: IconRefresh, label: 'Running', text: 'warning'},
-};
+>;
 
 function StatusIcon({status}: {status: RunStatus}) {
   const {Icon, label, text} = STATUS_VARIANT[status];
   return (
-    // eslint-disable-next-line @sentry/scraps/prefer-info-text
     <Tooltip title={label} skipWrapper>
-      <Text variant={text} aria-label={label}>
-        <Icon size="sm" />
-      </Text>
+      <Icon variant={text} size="sm" />
     </Tooltip>
   );
 }
