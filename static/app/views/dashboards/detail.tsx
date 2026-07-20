@@ -1403,9 +1403,6 @@ class DashboardDetail extends Component<Props, State> {
                             {dashboardState === DashboardState.EDIT &&
                               organization.features.includes(
                                 'dashboards-ai-generate-edit'
-                              ) &&
-                              organization.features.includes(
-                                'dashboards-ai-generate'
                               ) && (
                                 <DashboardEditSeerChat
                                   dashboard={modifiedDashboard ?? dashboard}
