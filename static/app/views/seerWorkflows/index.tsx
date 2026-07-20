@@ -508,7 +508,7 @@ function StatusIcon({status}: {status: RunStatus}) {
   const {Icon, label, text} = STATUS_VARIANT[status];
   return (
     <Tooltip title={label} skipWrapper>
-      <Icon variant={text} size="sm" />
+      <Icon aria-label={label} variant={text} size="sm" />
     </Tooltip>
   );
 }
