@@ -129,7 +129,7 @@ def user_project_ownership(ctx: OrganizationReportContext) -> None:
             ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
 
-_KEY_ERROR_ISSUES_CHUNK_SIZE = 100
+_KEY_ERROR_ISSUES_PROJECT_CHUNK_SIZE = 25
 
 
 def _org_key_error_issues_chunk(
@@ -210,8 +210,8 @@ def org_key_error_issues(
             return {}
 
         results: dict[int, list[dict[str, Any]]] = {}
-        for i in range(0, len(project_ids), _KEY_ERROR_ISSUES_CHUNK_SIZE):
-            chunk = project_ids[i : i + _KEY_ERROR_ISSUES_CHUNK_SIZE]
+        for i in range(0, len(project_ids), _KEY_ERROR_ISSUES_PROJECT_CHUNK_SIZE):
+            chunk = project_ids[i : i + _KEY_ERROR_ISSUES_PROJECT_CHUNK_SIZE]
             chunk_results = _org_key_error_issues_chunk(ctx, chunk, referrer, per_project_limit)
             results.update(chunk_results)
 
@@ -438,8 +438,6 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
     query = Query(
         match=Entity("outcomes"),
         select=[
-            Column("outcome"),
-            Column("category"),
             Function("sum", [Column("quantity")], "total"),
         ],
         where=[
@@ -453,7 +451,7 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
                 [*DataCategory.error_categories()],
             ),
         ],
-        groupby=[Column("outcome"), Column("category"), Column("project_id"), Column("time")],
+        groupby=[Column("project_id"), Column("time")],
         granularity=Granularity(ONE_DAY),
         orderby=[OrderBy(Column("time"), Direction.ASC)],
         limit=Limit(10000),
@@ -477,7 +475,7 @@ def organization_project_issue_summaries(
     """
     return list(
         Group.objects.filter(
-            project__organization_id=ctx.organization.id,
+            project_id__in=list(ctx.projects_context_map.keys()),
             last_seen__gte=start,
             last_seen__lt=end,
             status=GroupStatus.UNRESOLVED,

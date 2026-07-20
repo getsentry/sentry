@@ -13,11 +13,12 @@ from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
+    PullRequestActivityLog,
     PullRequestMetrics,
     PullRequestVerdict,
 )
 from sentry.models.repository import Repository
-from sentry.pr_metrics.judge import forward_pr_to_seer_judge
+from sentry.pr_metrics.judge import forward_pr_to_seer_judge, reap_stuck_judge_verdicts
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
@@ -145,14 +146,31 @@ def emit_pr_metrics_cooldown_task(
     silo_mode=SiloMode.CELL,
 )
 def cleanup_pr_activity_task(*, pull_request_id: int) -> None:
-    """Delete PullRequestActivity rows for a PR whose scm.pr.closed event has been emitted.
+    """Delete a PR's activity after its scm.pr.closed event has been emitted.
 
-    Enqueued by ``emit_pr_metrics_row`` once emission succeeds. The rows are no
-    longer needed: the judge path has consumed what it needed, and the activity
-    table is not reread after a terminal event. A failure here is safe to drop —
-    the existing 30-day age-based cleanup in the cleanup command will sweep any
-    rows that survive.
+    Enqueued by ``emit_pr_metrics_row`` once emission succeeds, and sweeps both
+    stores: the legacy ``PullRequestActivity`` rows and the reduced
+    ``PullRequestActivityLog`` document (only one exists for a given PR, per the
+    per-PR routing). The data is no longer needed — the judge path has consumed
+    it and neither store is reread after a terminal event. A failure here is safe
+    to drop: the age-based cleanup command sweeps any survivors (the document
+    keyed on ``date_updated``).
     """
     logger.info("pr_metrics.cleanup_activity", extra={"pull_request_id": pull_request_id})
     deleted, _ = PullRequestActivity.objects.filter(pull_request_id=pull_request_id).delete()
     metrics.incr("pr_metrics.cleanup_activity.deleted", amount=deleted)
+    doc_deleted, _ = PullRequestActivityLog.objects.filter(pull_request_id=pull_request_id).delete()
+    metrics.incr("pr_metrics.cleanup_activity.doc_deleted", amount=doc_deleted)
+
+
+@instrumented_task(
+    name="sentry.pr_metrics.tasks.reap_stuck_judge_verdicts",
+    namespace=seer_code_review_tasks,
+    silo_mode=SiloMode.CELL,
+)
+def reap_stuck_judge_verdicts_task() -> None:
+    """Daily sweep settling ``PullRequestMetrics`` rows stuck at ``JUDGE_IN_PROGRESS``.
+
+    See ``reap_stuck_judge_verdicts`` for the settling logic and its bounds.
+    """
+    reap_stuck_judge_verdicts()

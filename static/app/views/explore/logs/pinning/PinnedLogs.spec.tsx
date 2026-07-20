@@ -21,7 +21,7 @@ import {
 } from 'sentry/views/explore/logs/types';
 
 const organization = OrganizationFixture({
-  features: ['ourlogs-enabled', 'ourlogs-pinning'],
+  features: ['ourlogs-enabled'],
 });
 
 const allRows: OurLogsResponseItem[] = [

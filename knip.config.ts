@@ -46,40 +46,39 @@ const storyBookEntryPoints = [
 ];
 
 const config: KnipConfig = {
-  entry: [
-    ...productionEntryPoints.map(entry => `${entry}!`),
-    ...testingEntryPoints,
-    ...storyBookEntryPoints,
-    'static/eslint/**/index.ts',
-    // figma code connect files - consumed by Figma CLI
-    'static/**/*.figma.{tsx,jsx}',
-  ],
-  project: [
-    'static/**/*.{js,ts,tsx}!',
-    'config/**/*.ts',
-    'tests/js/**/*.{js,ts,tsx}',
-    // fixtures can be ignored in production - it's fine that they are only used in tests
-    '!static/**/{fixtures,__fixtures__}/**!',
-    // helper files for tests - it's fine that they are only used in tests
-    '!static/**/*{t,T}estUtils*.{js,ts,tsx}!',
-    // helper files for stories - it's fine that they are only used in tests
-    '!static/app/**/__stories__/*.{js,ts,tsx}!',
-    '!static/app/stories/**/*.{js,ts,tsx}!',
-    // ignore eslint plugins in production
-    '!static/eslint/**/*.ts!',
-  ],
-  ignore: [
-    // api-docs has its own package.json with its own dependencies
-    'api-docs/**',
-  ],
+  workspaces: {
+    '.': {
+      entry: [
+        ...productionEntryPoints.map(entry => `${entry}!`),
+        ...testingEntryPoints,
+        ...storyBookEntryPoints,
+        // figma code connect files - consumed by Figma CLI
+        'static/**/*.figma.{tsx,jsx}',
+      ],
+      project: [
+        'static/**/*.{js,ts,tsx}!',
+        'config/**/*.ts',
+        'tests/js/**/*.{js,ts,tsx}',
+        // fixtures can be ignored in production - it's fine that they are only used in tests
+        '!static/**/{fixtures,__fixtures__}/**!',
+        // helper files for tests - it's fine that they are only used in tests
+        '!static/**/*{t,T}estUtils*.{js,ts,tsx}!',
+        // helper files for stories - it's fine that they are only used in tests
+        '!static/app/**/__stories__/*.{js,ts,tsx}!',
+        '!static/app/stories/**/*.{js,ts,tsx}!',
+        // eslint plugins are separate workspace packages
+        '!static/eslint/**/*.ts!',
+      ],
+      ignoreDependencies: [
+        'core-js',
+        'tslib', // subdependency of many packages, declare the latest version
+        'odiff-bin', // raw binary consumed by Python backend, not a JS import
+        'run-on-changed', // CLI used by the eslint CI job (.github/workflows/frontend.yml), not a JS import
+        '@swc-contrib/mut-cjs-exports', // used in jest config
+      ],
+    },
+  },
   ignoreExportsUsedInFile: isProductionMode,
-  ignoreDependencies: [
-    'core-js',
-    'tslib', // subdependency of many packages, declare the latest version
-    'odiff-bin', // raw binary consumed by Python backend, not a JS import
-    'run-on-changed', // CLI used by the eslint CI job (.github/workflows/frontend.yml), not a JS import
-    '@swc-contrib/mut-cjs-exports', // used in jest config
-  ],
   rules: {
     binaries: 'off',
     enumMembers: 'off',
