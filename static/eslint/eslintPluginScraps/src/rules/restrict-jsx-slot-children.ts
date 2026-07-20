@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {AST_NODE_TYPES, ESLintUtils, TSESTree} from '@typescript-eslint/utils';
 
 import {createImportTracker} from '../ast/tracker/imports';

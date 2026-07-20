@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {AST_NODE_TYPES, ESLintUtils} from '@typescript-eslint/utils';
 import type {TSESTree} from '@typescript-eslint/utils';
 

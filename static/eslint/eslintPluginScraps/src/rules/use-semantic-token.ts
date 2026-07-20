@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {ESLintUtils} from '@typescript-eslint/utils';
 /**
  * ESLint rule: use-semantic-token

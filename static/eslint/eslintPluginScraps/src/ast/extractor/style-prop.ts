@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 /**
  * @file Extracts style declarations from JSX style prop patterns.
  *

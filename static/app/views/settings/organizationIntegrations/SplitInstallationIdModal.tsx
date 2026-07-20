@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 

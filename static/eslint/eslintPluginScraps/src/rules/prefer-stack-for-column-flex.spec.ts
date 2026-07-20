@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {RuleTester, type InvalidTestCase} from '@typescript-eslint/rule-tester';
 
 import {preferStackForColumnFlex} from './prefer-stack-for-column-flex';

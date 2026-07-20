@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
 import {getParserServices} from '@typescript-eslint/utils/eslint-utils';
 import ts from 'typescript';

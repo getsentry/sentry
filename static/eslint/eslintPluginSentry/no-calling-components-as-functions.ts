@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 /**
  * ESLint rule: no-calling-components-as-functions
  *

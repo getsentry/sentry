@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
 import {noUnnecessaryUseCallback} from './no-unnecessary-use-callback';

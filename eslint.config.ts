@@ -837,7 +837,17 @@ export default typescript.config([
         'error',
         {
           case: 'camelCase',
-          ignore: ['/type-loader\\.', '/__mocks__/', '/ios-device-list\\.tsx$'],
+          ignore: [
+            '/type-loader\\.',
+            '/__mocks__/',
+            '/ios-device-list\\.tsx$',
+            // Shebang scripts can't use an inline disable comment (it must sit
+            // on line 1, where the shebang is) and are invoked by their
+            // kebab-case names from package.json/CI, so ignore them here.
+            'analyze-styled\\.ts$',
+            'type-coverage\\.ts$',
+            'type-coverage-diff\\.ts$',
+          ],
         },
       ],
       'unicorn/no-array-push-push': 'error',

@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 /**
  * @file Value decomposition for style expressions.
  *

@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {ESLintUtils} from '@typescript-eslint/utils';
 
 const DYNAMIC_TRANSLATION_FNS = ['td'];

@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {AST_NODE_TYPES, ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
 import {getStaticValue} from '@typescript-eslint/utils/ast-utils';
 import type {Scope} from '@typescript-eslint/utils/ts-eslint';

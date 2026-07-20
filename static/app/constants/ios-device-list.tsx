@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 // When updating this file, please also update
 // Relay: https://github.com/getsentry/relay/blob/a91f0c92860f88789ad6092ef5b1062aa3e34b80/relay-event-schema/src/protocol/device_class.rs
 // Python: https://github.com/getsentry/sentry/blob/c53745bb716899758d0f1caf5446d830e4ebbdb2/src/sentry/api/helpers/ios_models.py
