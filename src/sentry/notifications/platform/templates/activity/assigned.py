@@ -20,13 +20,26 @@ from sentry.notifications.platform.types import (
 from sentry.types.activity import ActivityType
 
 
+def get_assignee_label(data: AssignedNotificationData) -> str:
+    return (
+        data.activity_user_name or "a user"
+        if data.assignee_label == "themselves"
+        else data.assignee_label
+    )
+
+
 def get_assigned_subject(data: AssignedNotificationData) -> list[NotificationTextBlock]:
-    blocks: list[NotificationTextBlock] = [
-        CodeTextBlock(text=data.issue_short_id if data.issue_short_id else "An Issue"),
-        PlainTextBlock(text=f"was assigned to {data.assignee_label}"),
-    ]
-    if data.activity_user_name:
-        blocks.append(PlainTextBlock(text=f"by {data.activity_user_name}"))
+    blocks: list[NotificationTextBlock] = []
+    if data.issue_short_id:
+        blocks.append(CodeTextBlock(text=data.issue_short_id))
+    else:
+        blocks.append(PlainTextBlock(text="An Issue"))
+    blocks.append(PlainTextBlock(text=f"was assigned to {get_assignee_label(data)}"))
+    by_display = (
+        data.assignee_label if data.assignee_label == "themselves" else data.activity_user_name
+    )
+    if by_display:
+        blocks.append(PlainTextBlock(text=f"by {by_display}"))
     return blocks
 
 
@@ -38,11 +51,11 @@ def get_assigned_body_blocks(data: AssignedNotificationData) -> list[Notificatio
         body_blocks.extend(
             [
                 PlainTextBlock(text="has been assigned to"),
-                LinkTextBlock(text=data.assignee_label, url=data.assignee_url),
+                LinkTextBlock(text=get_assignee_label(data), url=data.assignee_url),
             ]
         )
     else:
-        body_blocks.append(PlainTextBlock(text=f"has been assigned to {data.assignee_label}."))
+        body_blocks.append(PlainTextBlock(text=f"has been assigned to {get_assignee_label(data)}."))
     return body_blocks
 
 
