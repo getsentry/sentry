@@ -263,21 +263,24 @@ def _autofix_run(*, blocks: list[MemoryBlock] | None = None) -> CheckSuiteAutofi
 
 
 def _check_suite_source() -> CheckSuiteFeedbackSource:
-    return CheckSuiteFeedbackSource(
-        event={
-            "check_suite": {
-                "id": 1,
-                "head_sha": "abc",
-                "check_runs_url": "https://github.com/owner/repo/check-runs",
-                "app": {"name": "CI"},
+    with patch(
+        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
+    ):
+        return CheckSuiteFeedbackSource(
+            event={
+                "check_suite": {
+                    "id": 1,
+                    "head_sha": "abc",
+                    "check_runs_url": "https://github.com/owner/repo/check-runs",
+                    "app": {"name": "CI"},
+                },
+                "repository": {
+                    "html_url": "https://github.com/owner/repo",
+                    "full_name": "owner/repo",
+                },
             },
-            "repository": {
-                "html_url": "https://github.com/owner/repo",
-                "full_name": "owner/repo",
-            },
-        },
-        autofix_run=_autofix_run(),
-    )
+            check_run_ids=[101],
+        )
 
 
 def _check_suite_feedback() -> Feedback:

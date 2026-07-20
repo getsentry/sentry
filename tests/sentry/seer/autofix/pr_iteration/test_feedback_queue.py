@@ -76,12 +76,13 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         assert queued[0].feedback.text == "fix it"
 
     def test_skips_stale_feedback(self) -> None:
-        feedback = Feedback(
-            source=CheckSuiteFeedbackSource(
-                event=_check_suite_event(),
-                autofix_run=_autofix_run(),
+        with patch(
+            f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
+            return_value=_autofix_run(),
+        ):
+            feedback = Feedback(
+                source=CheckSuiteFeedbackSource(event=_check_suite_event(), check_run_ids=[101])
             )
-        )
 
         assert self._enqueue(run_id=4343, feedback=feedback) is False
         assert peek_queued_autofix_feedback(4343) == []
@@ -92,22 +93,23 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
         )
         autofix_run = _autofix_run(run_state=run_state)
-        source = CheckSuiteFeedbackSource(event=_check_suite_event(), autofix_run=autofix_run)
-        feedback = Feedback(source=source)
-
-        assert "autofix_run" not in source.dict()
-        source.json()
-        feedback.json()
-
-        assert self._enqueue(run_id=4444, feedback=feedback, run_state=run_state) is True
-
         with patch(
             f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
             return_value=autofix_run,
         ):
+            source = CheckSuiteFeedbackSource(event=_check_suite_event(), check_run_ids=[101])
+            feedback = Feedback(source=source)
+
+            assert "autofix_run" not in source.dict()
+            assert source.dict()["check_run_ids"] == [101]
+            source.json()
+            feedback.json()
+
+            assert self._enqueue(run_id=4444, feedback=feedback, run_state=run_state) is True
             queued = peek_queued_autofix_feedback(4444)
 
         assert len(queued) == 1
         assert isinstance(queued[0].feedback.source, CheckSuiteFeedbackSource)
         assert queued[0].feedback.source.event.check_suite.id == 1
+        assert queued[0].feedback.source.check_run_ids == [101]
         assert queued[0].feedback.source.autofix_run is autofix_run
