@@ -142,6 +142,17 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         assert response.status_code == 200, response.data
         assert response.data == []
 
+    def test_context_only_matches_unicode_name(self) -> None:
+        # A unicode metric name must still match the IN filter (regression: json
+        # escaping would emit \uXXXX, which the search grammar doesn't decode).
+        self.store_metric("café.requests", "counter")
+        self.create_context("café.requests", project=None, brief="Café")
+
+        response = self.do_request(query={"project": self.project.id, "context_only": "1"})
+
+        assert response.status_code == 200, response.data
+        assert [row["name"] for row in response.data] == ["café.requests"]
+
     def test_context_only_drops_type_without_context(self) -> None:
         # Same name exists as counter and gauge, but only the counter has context.
         # The name filter returns both; the gauge (no context) must be dropped.

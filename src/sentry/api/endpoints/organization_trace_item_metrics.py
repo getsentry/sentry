@@ -29,7 +29,6 @@ from sentry.search.eap.constants import (
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.trace_metrics import TraceMetrics
-from sentry.utils import json
 
 _COUNT_ALIAS = f"count({METRIC_NAME_ALIAS})"
 _LAST_SEEN_ALIAS = "max(timestamp_precise)"
@@ -52,10 +51,17 @@ _GROUPING_ORDER = [METRIC_NAME_ALIAS, METRIC_TYPE_ALIAS, METRIC_UNIT_ALIAS]
 MAX_METRICS_PER_PAGE = 1000
 
 
+def _quote_search_value(value: str) -> str:
+    # Wrap in double quotes, escaping backslashes and quotes. Unlike json.dumps,
+    # this leaves non-ASCII characters literal (the search grammar doesn't decode
+    # `\uXXXX`), so unicode metric names still match.
+    escaped = value.replace("\\", "\\\\").replace('"', '\\"')
+    return f'"{escaped}"'
+
+
 def _metric_names_filter(names: list[str]) -> str:
     """An `IN` search clause matching ``metric.name`` against any of the given names."""
-    # json.dumps gives us a correctly quoted + escaped string literal per name.
-    quoted = ", ".join(json.dumps(name) for name in names)
+    quoted = ", ".join(_quote_search_value(name) for name in names)
     return f"metric.name:[{quoted}]"
 
 
