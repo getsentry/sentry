@@ -29,6 +29,7 @@ from sentry.search.eap.constants import (
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.trace_metrics import TraceMetrics
+from sentry.utils import json
 
 _COUNT_ALIAS = f"count({METRIC_NAME_ALIAS})"
 _LAST_SEEN_ALIAS = "max(timestamp_precise)"
@@ -53,7 +54,8 @@ MAX_METRICS_PER_PAGE = 1000
 
 def _metric_names_filter(names: list[str]) -> str:
     """An `IN` search clause matching ``metric.name`` against any of the given names."""
-    quoted = ", ".join('"' + name.replace("\\", "\\\\").replace('"', '\\"') + '"' for name in names)
+    # json.dumps gives us a correctly quoted + escaped string literal per name.
+    quoted = ", ".join(json.dumps(name) for name in names)
     return f"metric.name:[{quoted}]"
 
 
