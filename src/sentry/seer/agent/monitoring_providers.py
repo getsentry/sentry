@@ -132,6 +132,30 @@ def _get_personal_monitoring_connections(
     return connections
 
 
+# TEMPORARY: hardcoded GCP MCP connections for the Sentry org for internal dogfooding.
+# Remove when the full GcpIntegrationProvider + setup UI is built.
+_SENTRY_ORG_GCP_PROJECT_IDS = ["internal-sentry"]
+
+_GCP_MCP_CONNECTIONS = [
+    ("gcp_logging", "https://logging.googleapis.com/mcp"),
+    ("gcp_monitoring", "https://monitoring.googleapis.com/mcp"),
+    ("gcp_trace", "https://cloudtrace.googleapis.com/mcp"),
+]
+
+
+def _get_gcp_connections_for_sentry_org() -> list[MonitoringProviderConnectionData]:
+    return [
+        MonitoringProviderConnectionData(
+            provider_key=provider_key,
+            url=url,
+            auth_method="gcp_adc",
+            refreshable=False,
+            gcp_project_ids=_SENTRY_ORG_GCP_PROJECT_IDS,
+        )
+        for provider_key, url in _GCP_MCP_CONNECTIONS
+    ]
+
+
 def get_monitoring_provider_connections(
     organization: Organization, user_id: int | None
 ) -> list[MonitoringProviderConnectionData]:
@@ -153,4 +177,11 @@ def get_monitoring_provider_connections(
         if provider_family(connection.provider_key) not in connected_families
     ]
 
-    return personal_connections + org_connections
+    all_connections = personal_connections + org_connections
+
+    # TEMPORARY: hardcoded GCP MCP connections for the Sentry org (id=1) for internal dogfooding.
+    # Remove when the full GcpIntegrationProvider + setup UI is built.
+    if organization.id == 1:
+        all_connections.extend(_get_gcp_connections_for_sentry_org())
+
+    return all_connections
