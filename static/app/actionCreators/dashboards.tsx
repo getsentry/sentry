@@ -161,7 +161,7 @@ export async function updateDashboardFavorite(
       {
         method: 'PUT',
         data: {
-          isFavorited,
+          shouldFavorite: isFavorited,
         },
       }
     );

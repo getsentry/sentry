@@ -607,6 +607,13 @@ register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log unfurl payloads for debugging
 register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Frequency of slack nudge blocks on issue alerts (0.0 to 1.0, where 0.3 = 30%)
+register(
+    "slack.nudge-frequency",
+    type=Float,
+    default=0.3,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Slack Staging App
 register("slack-staging.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -640,16 +647,6 @@ register(
     default=3600,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Cutover switch for the reduced per-PR activity document. When on, PR activity is
-# folded into a single PullRequestActivityLog JSON document at webhook time instead
-# of one PullRequestActivity row per event; routing is per-PR (a PR stays on
-# whichever store it started on). Flip this ON only AFTER the code is fully
-# deployed, so a mixed fleet never splits one PR's writes across both stores.
-register(
-    "pr_metrics.activity_document.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -674,11 +671,6 @@ register(
     "github-app.fetch-commits.max-compare-commits",
     type=Int,
     default=500,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "github.webhook.mailbox-bucketing.enabled",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

@@ -1,8 +1,8 @@
-// When adding a new embed, just drop a file in ./components/ and import it here
+import {Docs} from './components/docs';
 import {Timestamp} from './components/timestamp';
 import {SeerEmbedRegistry} from './registry';
 
-const embeds = [Timestamp];
+const embeds = [Docs, Timestamp];
 for (const embed of embeds) {
   SeerEmbedRegistry.register(embed.displayName, embed);
 }

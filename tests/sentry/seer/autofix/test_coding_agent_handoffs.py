@@ -1,15 +1,17 @@
 from datetime import UTC, datetime
 from unittest.mock import Mock, patch
 
+from sentry.models.pullrequest import PullRequest
 from sentry.seer.autofix.coding_agent_handoffs import (
     create_seer_run_coding_agent_handoff,
     sync_coding_agent_status,
 )
 from sentry.seer.autofix.constants import CodingAgentStatus
-from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentState
-from sentry.seer.models.run import SeerRunCodingAgentHandoff, SeerRunType
+from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentResult, CodingAgentState
+from sentry.seer.models.run import SeerRunCodingAgentHandoff, SeerRunPullRequest, SeerRunType
 from sentry.testutils.cases import TestCase
 
+REPO_NAME = "getsentry/sentry"
 RUN_STATE_ID = 123
 MOCK_UPDATE_STATE_PATH = "sentry.seer.autofix.coding_agent_handoffs.update_coding_agent_state"
 
@@ -71,6 +73,7 @@ class CreateSeerRunCodingAgentHandoffTest(TestCase):
 
 class SyncCodingAgentStatusTest(TestCase):
     def setUp(self) -> None:
+        self.repo = self.create_repo(self.project, name=REPO_NAME, provider="integrations:github")
         self.seer_run = self.create_seer_run(
             self.organization, type=SeerRunType.FEATURE_RUN, seer_run_state_id=RUN_STATE_ID
         )
@@ -135,6 +138,96 @@ class SyncCodingAgentStatusTest(TestCase):
         # the two systems are independent, so the return value is informational only.
         self.handoff.refresh_from_db()
         assert self.handoff.status == "completed"
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_links_pull_request_on_completion(self, mock_update_state: Mock) -> None:
+        mock_update_state.return_value = True
+        result = CodingAgentResult(
+            description="Fixed the bug",
+            repo_provider="github",
+            repo_full_name=REPO_NAME,
+            pr_url="https://github.com/getsentry/sentry/pull/42",
+        )
+
+        sync_coding_agent_status(
+            agent_id="agent-1",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+            result=result,
+        )
+
+        pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="42")
+        self.handoff.refresh_from_db()
+        assert list(self.handoff.pull_requests) == [pull_request]
+
+        link = SeerRunPullRequest.objects.get(pull_request=pull_request)
+        assert link.seer_run_id == self.seer_run.id
+        assert link.coding_agent_handoff_id == self.handoff.id
+
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_links_multiple_pull_requests_on_same_handoff(self, mock_update_state: Mock) -> None:
+        """A single handoff isn't constrained to one PR -- e.g. a provider surfacing
+        more than one result for the same agent session must not clobber or drop
+        an earlier link."""
+        mock_update_state.return_value = True
+
+        sync_coding_agent_status(
+            agent_id="agent-1",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+            result=CodingAgentResult(
+                description="Fixed the bug",
+                repo_provider="github",
+                repo_full_name=REPO_NAME,
+                pr_url="https://github.com/getsentry/sentry/pull/42",
+            ),
+        )
+        sync_coding_agent_status(
+            agent_id="agent-1",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+            result=CodingAgentResult(
+                description="Follow-up fix",
+                repo_provider="github",
+                repo_full_name=REPO_NAME,
+                pr_url="https://github.com/getsentry/sentry/pull/43",
+            ),
+        )
+
+        self.handoff.refresh_from_db()
+        assert {pr.key for pr in self.handoff.pull_requests} == {"42", "43"}
+
+    @patch("sentry.seer.pull_requests.options.get", return_value=True)
+    @patch(MOCK_UPDATE_STATE_PATH)
+    def test_killswitch_disables_pull_request_linking(
+        self, mock_update_state: Mock, mock_option: Mock
+    ) -> None:
+        """The seer.pull-request-linking killswitch must also gate the handoff path,
+        not just Seer's own seer.pr_created path -- both write the same SeerRunPullRequest
+        rows, so the switch must not be bypassable from either one."""
+        mock_update_state.return_value = True
+        result = CodingAgentResult(
+            description="Fixed the bug",
+            repo_provider="github",
+            repo_full_name=REPO_NAME,
+            pr_url="https://github.com/getsentry/sentry/pull/42",
+        )
+
+        sync_coding_agent_status(
+            agent_id="agent-1",
+            organization_id=self.organization.id,
+            status=CodingAgentStatus.COMPLETED,
+            result=result,
+        )
+
+        mock_option.assert_called_once_with("seer.pull-request-linking.killswitch.enabled")
+        assert not SeerRunPullRequest.objects.exists()
+        assert not PullRequest.objects.filter(repository_id=self.repo.id, key="42").exists()
+
+        # The handoff's own status must still update -- only PR linking is gated.
+        self.handoff.refresh_from_db()
+        assert self.handoff.status == "completed"
+        assert not self.handoff.pull_requests.exists()
 
     @patch(MOCK_UPDATE_STATE_PATH)
     def test_skips_seer_call_when_local_save_fails(self, mock_update_state: Mock) -> None:

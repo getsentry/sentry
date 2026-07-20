@@ -45,9 +45,9 @@ class BackfillEntry:
 def bulk_insert_action_log_entries(params: list[int | str | datetime], num_rows: int) -> int:
     """Low-level INSERT into GroupActionLogEntry with ON CONFLICT DO NOTHING.
 
-    *params* is a flat list of values for *num_rows* rows, each with 10 columns:
+    *params* is a flat list of values for *num_rows* rows, each with 9 columns:
     (group_id, project_id, type, actor_type, actor_id, source, data,
-     date_added, date_updated, idempotency_key).
+     date_added, idempotency_key).
 
     Returns the number of rows actually inserted (via RETURNING).
     """
@@ -57,14 +57,14 @@ def bulk_insert_action_log_entries(params: list[int | str | datetime], num_rows:
     sql = """
         INSERT INTO sentry_groupactionlogentry
             (group_id, project_id, type, actor_type, actor_id, source, data,
-             date_added, date_updated, idempotency_key)
+             date_added, idempotency_key)
         VALUES %s
         ON CONFLICT (group_id, idempotency_key)
             WHERE idempotency_key IS NOT NULL
         DO NOTHING
         RETURNING id
     """
-    values_template = "(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    values_template = "(%s, %s, %s, %s, %s, %s, %s, %s, %s)"
     values_clause = ", ".join(values_template for _ in range(num_rows))
     using = router.db_for_write(GroupActionLogEntry)
     with connections[using].cursor() as cursor:
@@ -109,7 +109,6 @@ def backfill_actions(
                 entry.source,
                 json.dumps(entry.action.dict()),
                 entry.date_added,
-                entry.date_added,  # date_updated
                 entry.idempotency_key,
             ]
         )
