@@ -120,6 +120,7 @@ class OrganizationReportContextFactory:
                     end=prev_end,
                     ctx=ctx,
                     referrer=Referrer.REPORTS_OUTCOMES.value,
+                    project_ids=list(error_missed_project_ids),
                 )
                 for data in event_counts:
                     project_id = data["project_id"]
