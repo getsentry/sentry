@@ -1,7 +1,7 @@
 """Write-path + routing tests for the reduced activity document (CORE-283 PR 2).
 
-These exercise the ``pr_metrics.activity_document.enabled`` cutover: with the
-option off every webhook keeps writing legacy ``PullRequestActivity`` rows
+These exercise the ``organizations:pr-metrics-activity-document`` cutover: with
+the flag off every webhook keeps writing legacy ``PullRequestActivity`` rows
 (covered by ``test_webhooks.py``); with it on, activity folds into the per-PR
 ``PullRequestActivityLog`` document per the routing rules.
 """
@@ -31,11 +31,11 @@ from sentry.pr_metrics.webhooks import (
     handle_review_thread,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options, with_feature
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import cell_silo_test
 
 ACTIVITY_FLAG = "organizations:pr-metrics-activity"
-DOC_ON = {"pr_metrics.activity_document.enabled": True}
+DOC_FLAG = "organizations:pr-metrics-activity-document"
 
 
 @with_feature(ACTIVITY_FLAG)
@@ -265,20 +265,20 @@ class ActivityDocumentWritePathTest(TestCase):
 
     # --- routing ----------------------------------------------------------
 
-    def test_option_off_writes_legacy_row_only(self) -> None:
+    def test_flag_off_writes_legacy_row_only(self) -> None:
         self._activity(action="opened")
         assert self._doc_or_none() is None
         assert self._rows() == 1
 
-    def test_option_on_fresh_pr_writes_document_only(self) -> None:
-        with override_options(DOC_ON):
+    def test_flag_on_fresh_pr_writes_document_only(self) -> None:
+        with self.feature(DOC_FLAG):
             self._activity(action="opened")
         assert self._rows() == 0
         doc = self._doc()
         assert doc is not None
         assert [e["event_type"] for e in doc["events"]] == [PullRequestActivityType.OPENED]
 
-    def test_option_on_existing_legacy_rows_stay_on_legacy(self) -> None:
+    def test_flag_on_existing_legacy_rows_stay_on_legacy(self) -> None:
         # A PR that already has legacy rows keeps writing them (self-drains later).
         PullRequestActivity.objects.create(
             pull_request=self.pr,
@@ -286,12 +286,12 @@ class ActivityDocumentWritePathTest(TestCase):
             event_type=PullRequestActivityType.OPENED,
             payload={},
         )
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._activity(action="synchronize", webhook_id="d2", before="a", after="b")
         assert self._doc_or_none() is None
         assert self._rows() == 2
 
-    def test_option_on_existing_document_stays_on_document(self) -> None:
+    def test_flag_on_existing_document_stays_on_document(self) -> None:
         PullRequestActivityLog.objects.create(
             pull_request=self.pr,
             data={
@@ -303,7 +303,7 @@ class ActivityDocumentWritePathTest(TestCase):
                 "events_dropped": 0,
             },
         )
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._activity(action="synchronize", webhook_id="d2", before="a", after="b")
         assert self._rows() == 0
         doc = self._doc()
@@ -330,7 +330,7 @@ class ActivityDocumentWritePathTest(TestCase):
                 "events_dropped": 0,
             },
         )
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._activity(action="synchronize", webhook_id="d2", before="a", after="b")
         assert self._rows() == 1  # unchanged legacy row
         doc = self._doc()
@@ -342,7 +342,7 @@ class ActivityDocumentWritePathTest(TestCase):
         # rolls the creation back too — no empty {} row is left behind to route later
         # events onto an all-zeros document. (Matches the legacy row insert, which
         # also leaves nothing on failure.)
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             with patch(
                 "sentry.pr_metrics.webhooks.apply_activity", side_effect=RuntimeError("boom")
             ):
@@ -354,7 +354,7 @@ class ActivityDocumentWritePathTest(TestCase):
     # --- entry writes -----------------------------------------------------
 
     def test_opened_entry_captures_payload_and_event_at(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._activity(action="opened", webhook_id="d1")
         entry = self._doc()["events"][0]
         assert entry["event_type"] == PullRequestActivityType.OPENED
@@ -367,7 +367,7 @@ class ActivityDocumentWritePathTest(TestCase):
         assert "body" not in entry["payload"]
 
     def test_synchronize_entry_has_null_event_at(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._activity(action="synchronize", webhook_id="d1", before="old", after="new")
         entry = self._doc()["events"][0]
         assert entry["event_type"] == PullRequestActivityType.SYNCHRONIZED
@@ -376,7 +376,7 @@ class ActivityDocumentWritePathTest(TestCase):
         assert entry["payload"]["after_sha"] == "new"
 
     def test_closed_and_merged_event_at_from_pr_fields(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._activity(
                 action="closed",
                 webhook_id="close1",
@@ -392,7 +392,7 @@ class ActivityDocumentWritePathTest(TestCase):
         assert entry["event_at"] == "2026-07-10T11:30:00Z"  # merged_at
 
     def test_review_submitted_entry_uses_review_submitted_at(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._review(webhook_id="rv1")
         doc = self._doc()
         entry = doc["events"][0]
@@ -402,13 +402,13 @@ class ActivityDocumentWritePathTest(TestCase):
         assert doc["participants"] == {"reviewer": "User"}
 
     def test_review_thread_entry_recorded(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._review_thread(webhook_id="rt1")
         entry = self._doc()["events"][0]
         assert entry["event_type"] == PullRequestActivityType.REVIEW_THREAD_RESOLVED
 
     def test_entry_redelivery_deduped_in_document(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._activity(action="synchronize", webhook_id="dup", before="a", after="b")
             self._activity(action="synchronize", webhook_id="dup", before="a", after="b")
         doc = self._doc()
@@ -418,7 +418,7 @@ class ActivityDocumentWritePathTest(TestCase):
     # --- comment writes (participants only) -------------------------------
 
     def test_comment_folds_participant_only(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._comment(webhook_id="c1", sender_login="commenter")
         assert self._rows() == 0
         doc = self._doc()
@@ -427,7 +427,7 @@ class ActivityDocumentWritePathTest(TestCase):
         assert doc["counts"] == {}
 
     def test_review_comment_folds_participant_only(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._review_comment(webhook_id="rc1", sender_login="inline-reviewer")
         doc = self._doc()
         assert doc["participants"] == {"inline-reviewer": "User"}
@@ -437,7 +437,7 @@ class ActivityDocumentWritePathTest(TestCase):
     # --- check writes (rollup) --------------------------------------------
 
     def test_check_suite_folds_into_rollup(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._check_suite(conclusion="failure", updated_at="2026-07-10T12:00:00Z")
         assert self._rows() == 0
         doc = self._doc()
@@ -451,7 +451,7 @@ class ActivityDocumentWritePathTest(TestCase):
         assert doc["events"] == []
 
     def test_check_run_failing_tracked_with_provider_completed_at(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._check_run(
                 check_name="unit", conclusion="failure", completed_at="2026-07-10T12:05:00Z"
             )
@@ -464,7 +464,7 @@ class ActivityDocumentWritePathTest(TestCase):
         }
 
     def test_check_run_green_not_retained(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._check_run(
                 check_name="lint", conclusion="success", completed_at="2026-07-10T12:05:00Z"
             )
@@ -474,14 +474,14 @@ class ActivityDocumentWritePathTest(TestCase):
     # --- new-path-only captures -------------------------------------------
 
     def test_reopened_recorded_on_document(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._activity(action="reopened", webhook_id="ro1")
         entry = self._doc()["events"][0]
         assert entry["event_type"] == PullRequestActivityType.REOPENED
         assert entry["event_at"] is None
         assert entry["payload"]["sender_login"] == "author"
 
-    def test_reopened_ignored_when_option_off(self) -> None:
+    def test_reopened_ignored_when_flag_off(self) -> None:
         self._activity(action="reopened")
         assert self._doc_or_none() is None
         assert self._rows() == 0
@@ -495,13 +495,13 @@ class ActivityDocumentWritePathTest(TestCase):
             event_type=PullRequestActivityType.OPENED,
             payload={},
         )
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._activity(action="reopened", webhook_id="ro1")
         assert self._doc_or_none() is None
         assert self._rows() == 1
 
     def test_edited_captures_changed_field_names_only(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._activity(
                 action="edited",
                 webhook_id="ed1",
@@ -521,7 +521,7 @@ class ActivityDocumentWritePathTest(TestCase):
         PullRequestMetrics.objects.create(
             pull_request=self.pr, verdict=PullRequestVerdict.MERGED_UNCHANGED
         )
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._activity(
                 action="closed",
                 webhook_id="close1",
@@ -535,14 +535,14 @@ class ActivityDocumentWritePathTest(TestCase):
         PullRequestMetrics.objects.create(
             pull_request=self.pr, verdict=PullRequestVerdict.MERGED_UNCHANGED
         )
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._activity(action="synchronize", webhook_id="s1", before="a", after="b")
         assert self._doc_or_none() is None
 
     def test_comment_deletions_are_ignored(self) -> None:
         # Deliberately not captured on either store: without the deleted comment's
         # content, a sender+timestamp entry is too little signal to act on.
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._comment_deleted(webhook_id="cd1", sender={"login": "human", "type": "User"})
             self._review_comment_deleted(
                 webhook_id="rcd1", sender={"login": "human", "type": "User"}
@@ -551,12 +551,12 @@ class ActivityDocumentWritePathTest(TestCase):
         assert self._rows() == 0
 
     def test_check_group_keyed_on_head_sha(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._check_run(check_name="t", conclusion="failure", webhook_id="cr1")
         assert "headsha1|github-actions" in self._doc()["checks"]
 
     def test_check_groups_split_by_head_sha(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._check_suite(head_sha="headsha1", webhook_id="cs1")
             self._check_suite(head_sha="headsha2", webhook_id="cs2")
         assert set(self._doc()["checks"].keys()) == {
@@ -565,7 +565,7 @@ class ActivityDocumentWritePathTest(TestCase):
         }
 
     def test_auto_merge_enabled_captures_sender_on_document(self) -> None:
-        with override_options(DOC_ON):
+        with self.feature(DOC_FLAG):
             self._activity(
                 action="auto_merge_enabled",
                 webhook_id="am1",
