@@ -116,7 +116,9 @@ def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
             ]
             if rp["resolved_issue_count"]:
                 release_project_blocks.append(
-                    PlainTextBlock(text=f"resolving {rp['resolved_issue_count']} issues.")
+                    PlainTextBlock(
+                        text=f"resolving {rp['resolved_issue_count']} issue{pluralize(rp['resolved_issue_count'])}."
+                    )
                 )
             project_sections.append(ParagraphSection(blocks=release_project_blocks))
 
