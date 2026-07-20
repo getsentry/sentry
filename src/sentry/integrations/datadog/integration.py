@@ -170,8 +170,6 @@ class DatadogIntegration(IntegrationInstallation):
 
 class DatadogIntegrationProvider(IntegrationProvider):
     key = IntegrationProviderSlug.DATADOG.value
-    # Distinct from the legacy "Datadog" data-forwarding card in the integration directory;
-    # this is the org-level API-key integration that lets Seer pull Datadog telemetry.
     name = "Datadog (Seer)"
     metadata = metadata
     integration_cls = DatadogIntegration
