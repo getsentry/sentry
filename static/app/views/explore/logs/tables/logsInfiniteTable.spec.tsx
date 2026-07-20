@@ -385,6 +385,31 @@ describe('LogsInfiniteTable', () => {
     });
   });
 
+  it('shows a rate limit message and retry button when the query is rate limited', async () => {
+    MockApiClient.clearMockResponses();
+    const mockResponse = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      statusCode: 429,
+    });
+
+    renderWithProviders(
+      <LogsInfiniteTable analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS} />
+    );
+
+    expect(
+      await screen.findByText(
+        'Your organization has had a lot of activity. Wait a few seconds and then try again.'
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+    await waitFor(() => {
+      expect(mockResponse).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('quantizes log timestamps for replay links', async () => {
     const replayId = 'abc123def456';
     const replayId2 = 'abc123eef457';

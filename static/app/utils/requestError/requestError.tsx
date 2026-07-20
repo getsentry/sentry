@@ -96,3 +96,11 @@ export class RequestError extends Error {
     }
   }
 }
+
+export interface RateLimitError extends RequestError {
+  status: 429;
+}
+
+export function isRateLimitError(error: unknown): error is RateLimitError {
+  return error instanceof RequestError && error.status === 429;
+}
