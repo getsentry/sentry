@@ -670,7 +670,10 @@ def fetch_past_resolved_issue_links(ctx: OrganizationReportContext) -> None:
     for gr in GroupResolution.objects.filter(group_id__in=all_group_ids):
         if gr.group_id in resolution_labels:
             continue
-        if gr.type == GroupResolution.Type.in_next_release:
+        if gr.current_release_version or gr.type in (
+            None,
+            GroupResolution.Type.in_next_release,
+        ):
             resolution_labels[gr.group_id] = "Resolved after release"
         else:
             resolution_labels[gr.group_id] = "Resolved in release"
