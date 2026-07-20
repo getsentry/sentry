@@ -28,6 +28,7 @@ jobs:
       testable_rules_changed: ${{ steps.changes.outputs.testable_rules_changed }}
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
       frontend_all_files: ${{ steps.changes.outputs.frontend_all_files }}
+      embed_widget_schema: ${{ steps.changes.outputs.embed_widget_schema }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
@@ -261,6 +262,31 @@ jobs:
             exit 1
           fi
 
+  embed-widgets:
+    if: needs.files-changed.outputs.embed_widget_schema == 'true'
+    needs: files-changed
+    name: embed widgets
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Generate embed widgets
+        run: pnpm run gen:embed-widgets
+
+      - name: Check for changes
+        run: |
+          if ! git diff --exit-code src/sentry/seer/agent/embed_widgets.generated.json; then
+            echo ""
+            echo "❌ Embed widgets JSON schema is out of sync!"
+            echo ""
+            echo "Run the following command and commit the changes:"
+            echo "  pnpm run gen:embed-widgets"
+            echo ""
+            exit 1
+          fi
+
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
   # This check is the only required Github check
@@ -274,6 +300,7 @@ jobs:
         eslint,
         knip,
         form-field-registry,
+        embed-widgets,
       ]
     name: Frontend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped

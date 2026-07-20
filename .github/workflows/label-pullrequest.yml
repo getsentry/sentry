@@ -48,7 +48,8 @@ jobs:
         if: >
           fromJSON(steps.changes.outputs.frontend_all_count) >
           fromJSON(steps.changes.outputs.api_url_codegen_count) &&
-          steps.changes.outputs.backend_src == 'true' &&
+          fromJSON(steps.changes.outputs.backend_src_count) >
+          fromJSON(steps.changes.outputs.embed_widget_codegen_count) &&
           steps.fc.outputs.comment-id == 0
         with:
           issue-number: ${{ github.event.pull_request.number }}
