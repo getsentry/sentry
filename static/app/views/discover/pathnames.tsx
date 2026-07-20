@@ -1,6 +1,6 @@
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {getTransactionsDeprecation} from 'sentry/views/discover/utils';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 const DISCOVER_BASE_PATHNAME = 'explore/discover';
 const ERRORS_BASE_PATHNAME = 'explore/errors';
@@ -13,7 +13,7 @@ export function makeDiscoverPathname({
   path: '/' | `/${string}/`;
 }) {
   return normalizeUrl(
-    getTransactionsDeprecation(organization)
+    getDiscoverDeprecation(organization)
       ? `/organizations/${organization.slug}/${ERRORS_BASE_PATHNAME}${path}`
       : `/organizations/${organization.slug}/${DISCOVER_BASE_PATHNAME}${path}`
   );

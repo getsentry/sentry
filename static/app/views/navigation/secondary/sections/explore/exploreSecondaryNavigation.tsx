@@ -5,7 +5,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getTransactionsDeprecation} from 'sentry/views/discover/utils';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
@@ -24,7 +24,7 @@ export function ExploreSecondaryNavigation() {
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
 
-  const discoverTransactionsDeprecation = getTransactionsDeprecation(organization);
+  const discoverTransactionsDeprecation = getDiscoverDeprecation(organization);
 
   return (
     <Fragment>

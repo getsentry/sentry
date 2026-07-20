@@ -18,7 +18,7 @@ import {DiscoverBreadcrumb} from 'sentry/views/discover/breadcrumb';
 import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import {DatasetSelectorTabs} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
-import {getTransactionsDeprecation} from 'sentry/views/discover/utils';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 type Props = {
@@ -106,7 +106,7 @@ function ResultsHeaderBase({
 
   const title = (
     <Fragment>
-      {getTransactionsDeprecation(organization) ? t('Errors') : t('Discover')}
+      {getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')}
       <PageHeadingQuestionTooltip
         docsUrl="https://docs.sentry.io/product/discover-queries/"
         title={t('Create queries to get insights into the health of your system.')}
@@ -142,7 +142,7 @@ function ResultsHeaderBase({
 
   return (
     <Layout.Header
-      {...(getTransactionsDeprecation(organization) ? deprecationHeaderStyles : {})}
+      {...(getDiscoverDeprecation(organization) ? deprecationHeaderStyles : {})}
     >
       <TopBar.Slot name="title">
         {isHomepage ? (
@@ -154,7 +154,7 @@ function ResultsHeaderBase({
         )}
       </TopBar.Slot>
       <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
-      {!getTransactionsDeprecation(organization) && (
+      {!getDiscoverDeprecation(organization) && (
         <DatasetSelectorTabs
           eventView={eventView}
           isHomepage={isHomepage}

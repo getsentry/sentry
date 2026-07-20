@@ -14,13 +14,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {getTransactionsDeprecation} from 'sentry/views/discover/utils';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
 
 function DiscoverContainer() {
   const organization = useOrganization();
   const location = useLocation();
-  const discoverTransactionsDeprecation = getTransactionsDeprecation(organization);
+  const discoverTransactionsDeprecation = getDiscoverDeprecation(organization);
   const redirectPath = useRedirectNavigationV2Routes({
     oldPathPrefix: '/discover/',
     newPathPrefix: discoverTransactionsDeprecation
