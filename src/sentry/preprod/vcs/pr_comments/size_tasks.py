@@ -82,63 +82,70 @@ def create_preprod_size_pr_comment_task(
 
     api_error: Exception | None = None
 
-    with transaction.atomic(router.db_for_write(CommitComparison)):
-        cc, existing_comment_id = lock_pr_comparisons_for_update(
-            organization_id=commit_comparison.organization_id,
-            head_repo_name=head_repo_name,
-            pr_number=pr_number,
-            target_id=commit_comparison.id,
-            comment_type=COMMENT_TYPE,
-        )
-
-        # The trigger check gates first creation only; once a comment exists it is
-        # always updated to reflect current state. With no rules configured, post a
-        # neutral size summary on every PR (an intentional opt-in, feature is off by
-        # default).
-        if not existing_comment_id and rules and not triggered_rules:
-            logger.info(
-                "preprod.size_pr_comments.create.skipped_no_trigger",
-                extra={"preprod_artifact_id": artifact.id},
+    try:
+        with transaction.atomic(router.db_for_write(CommitComparison)):
+            cc, existing_comment_id = lock_pr_comparisons_for_update(
+                organization_id=commit_comparison.organization_id,
+                head_repo_name=head_repo_name,
+                pr_number=pr_number,
+                target_id=commit_comparison.id,
+                comment_type=COMMENT_TYPE,
             )
-            return
 
-        try:
-            if existing_comment_id:
-                client.update_comment(
-                    repo=cc.head_repo_name,
-                    issue_id=str(cc.pr_number),
-                    comment_id=str(existing_comment_id),
-                    data={"body": comment_body},
-                )
-                comment_id = existing_comment_id
+            # The trigger check gates first creation only; once a comment exists it is
+            # always updated to reflect current state. With no rules configured, post a
+            # neutral size summary on every PR (an intentional opt-in, feature is off by
+            # default).
+            if not existing_comment_id and rules and not triggered_rules:
                 logger.info(
-                    "preprod.size_pr_comments.create.updated",
-                    extra={"preprod_artifact_id": artifact.id, "comment_id": comment_id},
+                    "preprod.size_pr_comments.create.skipped_no_trigger",
+                    extra={"preprod_artifact_id": artifact.id},
                 )
+                return
+
+            try:
+                if existing_comment_id:
+                    client.update_comment(
+                        repo=cc.head_repo_name,
+                        issue_id=str(cc.pr_number),
+                        comment_id=str(existing_comment_id),
+                        data={"body": comment_body},
+                    )
+                    comment_id = existing_comment_id
+                    logger.info(
+                        "preprod.size_pr_comments.create.updated",
+                        extra={"preprod_artifact_id": artifact.id, "comment_id": comment_id},
+                    )
+                else:
+                    resp = client.create_comment(
+                        repo=cc.head_repo_name,
+                        issue_id=str(cc.pr_number),
+                        data={"body": comment_body},
+                    )
+                    comment_id = str(resp["id"])
+                    logger.info(
+                        "preprod.size_pr_comments.create.created",
+                        extra={"preprod_artifact_id": artifact.id, "comment_id": comment_id},
+                    )
+            except Exception as e:
+                extra: dict[str, Any] = {
+                    "preprod_artifact_id": artifact.id,
+                    "organization_id": organization.id,
+                    "error_type": type(e).__name__,
+                }
+                if isinstance(e, ApiError):
+                    extra["status_code"] = e.code
+                logger.exception("preprod.size_pr_comments.create.failed", extra=extra)
+                save_pr_comment_result(cc, COMMENT_TYPE, success=False, error=e)
+                api_error = e
             else:
-                resp = client.create_comment(
-                    repo=cc.head_repo_name,
-                    issue_id=str(cc.pr_number),
-                    data={"body": comment_body},
-                )
-                comment_id = str(resp["id"])
-                logger.info(
-                    "preprod.size_pr_comments.create.created",
-                    extra={"preprod_artifact_id": artifact.id, "comment_id": comment_id},
-                )
-        except Exception as e:
-            extra: dict[str, Any] = {
-                "preprod_artifact_id": artifact.id,
-                "organization_id": organization.id,
-                "error_type": type(e).__name__,
-            }
-            if isinstance(e, ApiError):
-                extra["status_code"] = e.code
-            logger.exception("preprod.size_pr_comments.create.failed", extra=extra)
-            save_pr_comment_result(cc, COMMENT_TYPE, success=False, error=e)
-            api_error = e
-        else:
-            save_pr_comment_result(cc, COMMENT_TYPE, success=True, comment_id=comment_id)
+                save_pr_comment_result(cc, COMMENT_TYPE, success=True, comment_id=comment_id)
+    except CommitComparison.DoesNotExist:
+        logger.info(
+            "preprod.size_pr_comments.create.cc_deleted",
+            extra={"preprod_artifact_id": artifact.id},
+        )
+        return
 
     if api_error is not None:
         raise api_error

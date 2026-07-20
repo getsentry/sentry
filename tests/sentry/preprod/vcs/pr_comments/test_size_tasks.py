@@ -342,6 +342,27 @@ class CreatePreprodSizePrCommentTaskTest(TestCase):
         mock_client.update_comment.assert_called_once()
         mock_client.create_comment.assert_not_called()
 
+    @patch("sentry.preprod.vcs.pr_comments.size_tasks.lock_pr_comparisons_for_update")
+    @patch(_CLIENT_PATH)
+    @patch(_EVAL_PATH)
+    def test_returns_without_retry_when_commit_comparison_deleted(
+        self, mock_eval, mock_get_client, mock_lock
+    ) -> None:
+        mock_client = Mock()
+        mock_get_client.return_value = mock_client
+        mock_eval.return_value = _eval_result(triggered=True)
+        mock_lock.side_effect = CommitComparison.DoesNotExist()
+
+        self._enable()
+        self._set_rules()
+        artifact = self._create_artifact()
+
+        self._import_task()(artifact.id)
+
+        mock_lock.assert_called_once()
+        mock_client.create_comment.assert_not_called()
+        mock_client.update_comment.assert_not_called()
+
     # --- end-to-end (real evaluation, unpatched) ------------------------
 
     @patch(_CLIENT_PATH)
