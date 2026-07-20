@@ -39,11 +39,14 @@ const TitleLink = styled(Link)`
   }
 `;
 
-// The "Full analysis" trigger sheds the Button's horizontal padding so it
-// sits flush with the card's left edge like the rows above it. (Not core
-// Disclosure: the trigger anchors the bottom row while the analysis expands
-// as a separate full-width block below.)
+// The "Full analysis" trigger stretches across its row so the whole tail of
+// the card is a click target (label pinned left), shedding the Button's
+// horizontal padding to sit flush with the rows above. (Not core Disclosure:
+// the trigger anchors the bottom row while the analysis expands as a
+// separate full-width block below.)
 const AnalysisToggle = styled(Button)`
+  width: 100%;
+  justify-content: flex-start;
   padding-left: 0;
   padding-right: 0;
 `;
@@ -322,13 +325,14 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
           </Container>
         )}
 
-        {/* Bottom row: the analysis toggle anchors the card's tail on the
-            left, project provenance sits inline at the right */}
+        {/* Bottom row: the analysis toggle stretches across the card's tail
+            (whole row toggles), project provenance inline at the right,
+            linking to its project page */}
         <Flex justify="between" align="center" gap="md">
-          <Container>
+          <Container flex="1" minWidth="0">
             {detailEntries.length > 0 && (
               <AnalysisToggle
-                size="zero"
+                size="xs"
                 variant="transparent"
                 icon={
                   <IconChevron
@@ -344,8 +348,8 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
               </AnalysisToggle>
             )}
           </Container>
-          <Tooltip title={t('Project')} skipWrapper>
-            <ProjectBadge project={row.project} avatarSize={14} disableLink />
+          <Tooltip title={t('View project')} skipWrapper>
+            <ProjectBadge project={row.project} avatarSize={14} />
           </Tooltip>
         </Flex>
 
