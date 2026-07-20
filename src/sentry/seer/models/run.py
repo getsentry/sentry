@@ -103,6 +103,13 @@ class SeerRunPullRequest(DefaultFieldsModel):
     pull_request = FlexibleForeignKey(
         "sentry.PullRequest", on_delete=models.CASCADE, related_name="seer_run_links"
     )
+    # Null for Seer-native PRs. Not unique -- a handoff can report multiple PRs.
+    coding_agent_handoff = FlexibleForeignKey(
+        "seer.SeerRunCodingAgentHandoff",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="pull_request_links",
+    )
 
     class Meta:
         app_label = "seer"
@@ -146,6 +153,11 @@ class SeerRunCodingAgentHandoff(DefaultFieldsModel):
     )
     # See SeerRunCodingAgentHandoffExtras for the expected shape.
     extras = models.JSONField(db_default={}, default=dict)
+
+    @property
+    def pull_requests(self) -> models.QuerySet[PullRequest]:
+        """The pull requests this handoff produced, via its SeerRunPullRequest links."""
+        return PullRequest.objects.filter(seer_run_links__coding_agent_handoff=self)
 
     class Meta:
         app_label = "seer"

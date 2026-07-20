@@ -50,7 +50,7 @@ import {
   IconTerminal,
   IconUser,
 } from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, toggleLocaleDebug} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -1118,6 +1118,16 @@ export function GlobalCommandPaletteActions() {
               '_blank',
               'noreferrer'
             );
+          }}
+        />
+      )}
+
+      {(NODE_ENV === 'development' || user.isStaff) && (
+        <CMDKAction
+          display={{label: t('Toggle Translation Markers'), icon: <IconFlag />}}
+          keywords={['locale', 'debug', 'i18n', 'translation', 'markers']}
+          onAction={() => {
+            toggleLocaleDebug();
           }}
         />
       )}
