@@ -204,12 +204,39 @@ export function ConversationsTableNew() {
   );
 }
 
+function ConversationLink(props: {
+  children: React.ReactNode;
+  dataRow: Conversation;
+  organization: Organization;
+  projects: number[];
+}) {
+  const location = useLocation();
+  const detailUrl = getConversationDetailUrl(
+    props.organization.slug,
+    props.dataRow,
+    props.projects
+  );
+  return (
+    <Link
+      to={detailUrl}
+      state={getConversationsListLocationState(location.query)}
+      onClick={event => {
+        // Let the link handle navigation; don't also trigger the row click.
+        event.stopPropagation();
+      }}
+    >
+      <Text as="span" ellipsis variant="inherit">
+        {props.children}
+      </Text>
+    </Link>
+  );
+}
+
 const BodyCell = memo(function BodyCell({
   column,
-  dataRow,
-  organization,
-  projects,
   isRowHovered,
+  dataRow,
+  ...props
 }: {
   column: GridColumnOrder<ConversationColumnKey>;
   dataRow: Conversation;
@@ -217,43 +244,32 @@ const BodyCell = memo(function BodyCell({
   organization: Organization;
   projects: number[];
 }) {
-  const location = useLocation();
   switch (column.key) {
     case 'conversationId': {
-      const detailUrl = getConversationDetailUrl(organization.slug, dataRow, projects);
-      return (
-        <Link
-          to={detailUrl}
-          state={getConversationsListLocationState(location.query)}
-          onClick={event => {
-            // Let the link handle navigation; don't also trigger the row click.
-            event.stopPropagation();
-          }}
+      return isUUID(dataRow.conversationId) ? (
+        <ConversationLink dataRow={dataRow} {...props}>
+          {dataRow.conversationId.slice(0, 8)}
+        </ConversationLink>
+      ) : (
+        <Tooltip
+          title={
+            <Flex align="center" gap="xs">
+              <Text wordBreak="break-word">{dataRow.conversationId}</Text>
+              <CopyToClipboardButton
+                aria-label={t('Copy to clipboard')}
+                variant="transparent"
+                size="zero"
+                text={dataRow.conversationId}
+                onClick={event => event.stopPropagation()}
+              />
+            </Flex>
+          }
+          isHoverable
         >
-          {isUUID(dataRow.conversationId) ? (
-            dataRow.conversationId.slice(0, 8)
-          ) : (
-            <InfoText
-              title={
-                <Flex align="center" gap="xs">
-                  <Text wordBreak="break-word">{dataRow.conversationId}</Text>
-                  <CopyToClipboardButton
-                    aria-label={t('Copy to clipboard')}
-                    variant="transparent"
-                    size="zero"
-                    text={dataRow.conversationId}
-                    onClick={event => event.stopPropagation()}
-                  />
-                </Flex>
-              }
-              as="div"
-              variant="inherit"
-              ellipsis
-            >
-              {dataRow.conversationId}
-            </InfoText>
-          )}
-        </Link>
+          <ConversationLink dataRow={dataRow} {...props}>
+            {dataRow.conversationId}
+          </ConversationLink>
+        </Tooltip>
       );
     }
     case 'llmCalls':
