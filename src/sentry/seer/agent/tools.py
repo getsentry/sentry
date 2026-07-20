@@ -11,7 +11,7 @@ from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
-from sentry import eventstore, features, options
+from sentry import eventstore, features
 from sentry.api import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.event_search import parse_search_query
@@ -26,7 +26,7 @@ from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.formatting.formatter import Format
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, LIMITS_LOW
-from sentry.issues.formatting.mixin import FORMATTER_OPTION
+from sentry.issues.formatting.mixin import FORMATTER_FEATURE
 from sentry.issues.formatting.sections import (
     EVENT_SECTIONS,
     breadcrumbs_section,
@@ -2008,7 +2008,7 @@ def get_event_details(
         end: ISO timestamp for the end of the time range to get recommended event for (optional).
         project_slug: The slug of the project (optional).
         format: When set (markdown | xml), also render the event through the shared formatter into
-            the ``formatted`` field. Requires the ``issues.standardized-markdown-for-llm`` option.
+            the ``formatted`` field. Requires the ``organizations:issue-standardized-markdown-for-llm`` feature.
         format_limits: Truncation profile for the rendered output ("default" or "low").
         include_breadcrumbs: Drop the breadcrumbs section from the rendered output when False.
 
@@ -2101,10 +2101,10 @@ def get_event_details(
     serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
     serialized_event.update(_get_event_troubleshooting_context(event))
 
-    # Opt-in shared-formatter output for Seer, gated behind the rollout option so it can be
-    # ramped gradually; when the option is off, callers fall back to their own formatter.
+    # Opt-in shared-formatter output for Seer, gated behind the rollout feature so it can be
+    # ramped gradually; when the feature is off, callers fall back to their own formatter.
     formatted: str | None = None
-    if format is not None and options.get(FORMATTER_OPTION):
+    if format is not None and features.has(FORMATTER_FEATURE, organization):
         limits = LIMITS_LOW if format_limits == "low" else LIMITS_DEFAULT
         sections = (
             EVENT_SECTIONS

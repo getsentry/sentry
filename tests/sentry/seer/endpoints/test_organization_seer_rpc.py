@@ -6,7 +6,6 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -415,7 +414,7 @@ class TestOrganizationSeerRpcGetEventDetailsWire(APITestCase, SnubaTestCase):
         )
 
     @with_feature("organizations:seer-public-rpc")
-    @override_options({"issues.standardized-markdown-for-llm": True})
+    @with_feature("organizations:issue-standardized-markdown-for-llm")
     def test_formatted_survives_the_wire(self) -> None:
         data = load_data("python", timestamp=before_now(minutes=5))
         data["exception"] = {"values": [{"type": "Exception", "value": "boom"}]}
