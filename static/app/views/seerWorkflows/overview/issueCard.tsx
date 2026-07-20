@@ -130,11 +130,8 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
         {/* Header: ring + (title over its metadata subline) on the left,
             change size / action pinned right */}
         <Flex justify="between" align="start" gap="md">
-          <Flex gap="md" align="start" minWidth="0" flex="1">
-            {/* Nudge the ring down to center it on the title's first line */}
-            <Container paddingTop="2xs">
-              <StepIndicator row={row} />
-            </Container>
+          <Flex gap="md" align="center" minWidth="0" flex="1">
+            <StepIndicator row={row} />
             <Stack gap="2xs" minWidth="0" flex="1">
               {/* The ellipsis Text is the shrinking flex item (overflow:hidden
                   resolves its min-width to 0); the Link must nest inside it or

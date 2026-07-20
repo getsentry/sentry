@@ -28,9 +28,9 @@ const STEP_LABELS: Record<AutofixOutcome, string> = {
 // The pipeline is five steps with merge as the finale, so the progress
 // glyph is a ring filled in fifths (the pie icons only come in quarters,
 // which would misread PR-opened as done). The checkmark is reserved for
-// the merged PR. Matches the icons' size="sm".
-const RING_SIZE = 14;
-const RING_BAR_WIDTH = 2;
+// the merged PR and sized to match the ring.
+const RING_SIZE = 18;
+const RING_BAR_WIDTH = 2.5;
 const TOTAL_STEPS = STEP_ORDER.length + 1;
 
 type IndicatorVariant = 'accent' | 'danger' | 'muted' | 'success' | 'warning';
@@ -188,7 +188,7 @@ export function StepIndicator({row}: {row: OverviewRow}) {
     >
       <Flex align="center" flexShrink={0} role="img" aria-label={ariaLabel}>
         {row.prMerged ? (
-          <IconCircleCheckmark size="sm" variant="success" aria-hidden />
+          <IconCircleCheckmark size="md" variant="success" aria-hidden />
         ) : row.isProcessing ? (
           <PulseSpan>{ring}</PulseSpan>
         ) : (
