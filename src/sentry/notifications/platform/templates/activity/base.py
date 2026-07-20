@@ -97,7 +97,7 @@ class SetResolvedInReleaseNotificationData(ActivityNotificationData):
 
 
 class AssignedNotificationData(ActivityNotificationData):
-    assignee_label: str | None = None
+    assignee_label: str
     assignee_url: str | None = None
 
 

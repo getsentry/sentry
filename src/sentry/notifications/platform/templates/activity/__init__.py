@@ -2,6 +2,7 @@ from .assigned import AssignedActivityTemplate
 from .base import (
     ACTIVITY_TYPE_TO_SOURCE,
     ActivityNotificationData,
+    AssignedNotificationData,
     SetResolvedInCommitNotificationData,
     SetResolvedInReleaseNotificationData,
 )
@@ -30,6 +31,7 @@ __all__ = (
     "ActivityNotificationData",
     "SetResolvedInCommitNotificationData",
     "SetResolvedInReleaseNotificationData",
+    "AssignedNotificationData",
     "SeerRcaStartedActivityTemplate",
     "SeerRcaCompletedActivityTemplate",
     "SeerSolutionStartedActivityTemplate",
