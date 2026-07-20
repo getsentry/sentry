@@ -82,18 +82,16 @@ export default function OrganizationJoinRequest() {
   return (
     <NarrowLayout maxWidth="650px">
       <Stack gap="xl">
-        <Stack gap="2xl">
-          <IconMegaphone size="xl" />
-          <Stack gap="md">
-            <Heading as="h3" size="xl" data-test-id="join-request">
-              {t('Request to Join')}
-            </Heading>
-            <Text as="p">
-              {tct('Ask the admins if you can join the [orgId] organization.', {
-                orgId,
-              })}
-            </Text>
-          </Stack>
+        <IconMegaphone size="xl" />
+        <Stack gap="md">
+          <Heading as="h3" size="xl" data-test-id="join-request">
+            {t('Request to Join')}
+          </Heading>
+          <Text as="p">
+            {tct('Ask the admins if you can join the [orgId] organization.', {
+              orgId,
+            })}
+          </Text>
         </Stack>
         <form.AppForm form={form}>
           <Stack gap="xl">
