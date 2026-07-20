@@ -300,6 +300,8 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue.assert_not_called()
         mock_consume.assert_not_called()
 
+    @patch(f"{TASK_PATH}._add_comment_reaction")
+    @patch(f"{TASK_PATH}.make_scm")
     @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access")
     @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
@@ -312,8 +314,12 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_enqueue: MagicMock,
         mock_consume: MagicMock,
         mock_has_access: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_reaction: MagicMock,
     ) -> None:
-        mock_get_integration.return_value = self._mock_integration()
+        # Multi-region fan-out: missing run must no-op without reacting.
+        mock_integration = self._mock_integration()
+        mock_get_integration.return_value = mock_integration
         mock_get_state.return_value = None
 
         self._call()
@@ -321,6 +327,9 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_has_access.assert_not_called()
         mock_enqueue.assert_not_called()
         mock_consume.assert_not_called()
+        mock_reaction.assert_not_called()
+        mock_make_scm.assert_not_called()
+        mock_integration.get_installation.return_value.get_client.return_value.create_comment.assert_not_called()
 
     @patch(f"{TASK_PATH}._add_comment_reaction")
     @patch(f"{TASK_PATH}.make_scm")

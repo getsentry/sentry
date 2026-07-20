@@ -53,9 +53,11 @@ from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
 
-# Posted when someone ``@sentry``-iterates a PR that isn't backed by an Autofix
-# explorer run with ``repo_pr_states`` — including coding-agent-handoff PRs and
-# unrelated human PRs. We can't reliably tell those apart at comment time.
+# Posted when someone ``@sentry``-iterates a PR that Seer associates with a run
+# that has no Autofix-created ``repo_pr_states`` — mainly coding-agent-handoff
+# PRs. We intentionally do *not* post this when Seer returns no run at all:
+# GitHub webhooks fan out to every region, so a missing run often just means
+# this region is not the one that owns the Autofix session.
 INELIGIBLE_PR_ITERATION_COMMENT = (
     "PR iteration only works on pull requests created by Seer's Autofix agent. "
     "PRs that the Autofix Agent didn't create aren't eligible. This includes PRs "
@@ -426,11 +428,29 @@ def trigger_pr_iteration_from_comment(
         return None
 
     agent_state = get_agent_state_from_pr_id(organization_id, repo.provider, pr_id)
-    if agent_state is None or not agent_state.repo_pr_states:
+    if agent_state is None:
+        # No-op: missing runs are expected on regions that don't own the session
+        # when webhooks are fanned out everywhere. Do not react/comment as
+        # ineligible — that would false-positive against the region that does
+        # own the Autofix run and is iterating successfully.
         metrics.incr("autofix.pr_iteration.comment_trigger.no_run")
         logger.info(
             "autofix.pr_iteration.comment_trigger.no_run",
             extra={"organization_id": organization_id, "pr_id": pr_id},
+        )
+        return None
+
+    if not agent_state.repo_pr_states:
+        # Found a Seer run for this PR, but it wasn't created by Autofix
+        # (coding-agent handoff is the main case). Explain ineligibility.
+        metrics.incr("autofix.pr_iteration.comment_trigger.ineligible_run")
+        logger.info(
+            "autofix.pr_iteration.comment_trigger.ineligible_run",
+            extra={
+                "organization_id": organization_id,
+                "pr_id": pr_id,
+                "run_id": agent_state.run_id,
+            },
         )
         _comment_pr_iteration_ineligible(
             client,
