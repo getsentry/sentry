@@ -476,7 +476,7 @@ const appConfig: Configuration = {
     alias: {
       'type-loader': path.resolve(
         import.meta.dirname,
-        'static/app/stories/type-loader.ts'
+        'static/app/stories/typeLoader.ts'
       ),
     },
   },

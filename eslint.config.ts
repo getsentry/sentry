@@ -666,7 +666,7 @@ export default typescript.config([
     files: [
       '*.config.*',
       '**/__mocks__/*',
-      'static/app/stories/*-loader.ts',
+      'static/app/stories/*Loader.ts',
       'static/app/chartcuterie/config.tsx',
       'tests/js/*-transform.*',
       'tests/js/test-*/*',
@@ -838,9 +838,7 @@ export default typescript.config([
         {
           case: 'camelCase',
           ignore: [
-            '/type-loader\\.',
             '/__mocks__/',
-            '/ios-device-list\\.tsx$',
             // Shebang scripts can't use an inline disable comment (it must sit
             // on line 1, where the shebang is) and are invoked by their
             // kebab-case names from package.json/CI, so ignore them here.
