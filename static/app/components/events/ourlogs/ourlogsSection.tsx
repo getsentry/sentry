@@ -146,7 +146,7 @@ function OurlogsSectionContent({
   const {openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const logsUrl = useEventLogsUrl(event, project);
+  const logsUrl = useEventLogsUrl(event);
 
   const onOpenLogsDrawer = useCallback(
     (e: React.MouseEvent, expandedLogId?: string) => {
