@@ -11,7 +11,7 @@ from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
-from sentry import eventstore, features
+from sentry import eventstore, features, options
 from sentry.api import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.event_search import parse_search_query
@@ -26,6 +26,7 @@ from sentry.constants import ALL_ACCESS_PROJECT_ID, ObjectStatus
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.issues.formatting.formatter import Format
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, LIMITS_LOW
+from sentry.issues.formatting.mixin import FORMATTER_OPTION
 from sentry.issues.formatting.sections import (
     EVENT_SECTIONS,
     breadcrumbs_section,
@@ -2086,9 +2087,10 @@ def get_event_details(
     serialized_event = dict(serialize(event, user=None, serializer=EventSerializer()))
     serialized_event.update(_get_event_troubleshooting_context(event))
 
-    # Opt-in shared-formatter output for Seer (so it drops its own EventDetails.format_event).
+    # Opt-in shared-formatter output for Seer, gated behind the rollout option so it can be
+    # ramped gradually; when the option is off, callers fall back to their own formatter.
     formatted: str | None = None
-    if format is not None:
+    if format is not None and options.get(FORMATTER_OPTION):
         limits = LIMITS_LOW if format_limits == "low" else LIMITS_DEFAULT
         sections = (
             EVENT_SECTIONS

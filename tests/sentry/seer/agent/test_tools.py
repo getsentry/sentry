@@ -61,6 +61,7 @@ from sentry.testutils.cases import (
     SpanTestCase,
     TraceMetricsTestCase,
 )
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
 from sentry.utils.dates import parse_stats_period
@@ -2067,6 +2068,23 @@ class TestGetEventDetails(
     def test_format_returns_shared_formatter_output(self) -> None:
         event = self._make_error_event()
 
+        with override_options({"issues.standardized-markdown-for-llm": True}):
+            result = get_event_details(
+                organization_id=self.organization.id,
+                event_id=event.event_id,
+                project_slug=self.project.slug,
+                format="markdown",
+            )
+
+        assert result is not None
+        assert result["formatted"] is not None
+        assert "## Title" in result["formatted"]
+        assert "## Exception" in result["formatted"]
+
+    def test_format_omitted_when_option_disabled(self) -> None:
+        # format requested, but the rollout option is off -> no formatted (caller falls back)
+        event = self._make_error_event()
+
         result = get_event_details(
             organization_id=self.organization.id,
             event_id=event.event_id,
@@ -2075,9 +2093,7 @@ class TestGetEventDetails(
         )
 
         assert result is not None
-        assert result["formatted"] is not None
-        assert "## Title" in result["formatted"]
-        assert "## Exception" in result["formatted"]
+        assert result["formatted"] is None
 
     def test_no_format_omits_formatted(self) -> None:
         event = self._make_error_event()
