@@ -222,7 +222,7 @@
     "ts-checker-rspack-plugin": "1.5.2",
     "tslib": "^2.8.1",
     "type-fest": "^5.2.0",
-    "yaml": "2.8.3",
+    "yaml": "2.9.0",
     "zod": "4.3.5",
     "zrender": "6.1.0",
     "zxcvbn": "^4.4.2"
@@ -318,6 +318,29 @@
       "@isaacs/brace-expansion": "5.0.1",
       "diff@>=4.0.0 <4.0.4": "4.0.4",
       "diff@>=5.0.0 <5.2.2": "5.2.2"
+    },
+    "packageExtensions": {
+      "@sentry/webpack-plugin@5.3.0": {
+        "peerDependenciesMeta": {
+          "webpack": {
+            "optional": true
+          }
+        }
+      },
+      "compression-webpack-plugin@12.0.0": {
+        "peerDependenciesMeta": {
+          "webpack": {
+            "optional": true
+          }
+        }
+      },
+      "style-loader@4.0.0": {
+        "peerDependenciesMeta": {
+          "webpack": {
+            "optional": true
+          }
+        }
+      }
     },
     "onlyBuiltDependencies": [
       "@sentry-internal/node-cpu-profiler",
