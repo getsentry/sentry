@@ -317,7 +317,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         )
 
     def _check_suite_feedback(self, *, updated_at: str | None = "2024-01-01T00:00:00Z") -> Feedback:
-        check_suite: dict = {
+        check_suite: dict[str, Any] = {
             "id": 1,
             "head_sha": "abc",
             "check_runs_url": "https://github.com/owner/repo/check-runs",
