@@ -34,6 +34,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.net.http import connection_from_url
+from sentry.pr_metrics.activity_doc import timeline_events_from_doc
 from sentry.pr_metrics.attribution import record_attribution_signal
 from sentry.pr_metrics.contracts import (
     CloseAction,
@@ -49,7 +50,7 @@ from sentry.pr_metrics.emit import (
     select_fallback_verdict,
     select_verdict,
 )
-from sentry.pr_metrics.utils import iso_or_none, resolved_group_ids
+from sentry.pr_metrics.utils import iso_or_none, load_activity_document, resolved_group_ids
 from sentry.seer.code_review.models import SeerCodeReviewRepoDefinition
 from sentry.seer.code_review.utils import build_repo_definition
 from sentry.seer.sentry_data_models import (
@@ -93,13 +94,34 @@ _CHECK_EVENT_TYPES = frozenset(
 _MAX_FORWARDED_CHECK_ROWS = 100
 
 
-def _pr_activity_timeline(pull_request: PullRequest) -> list[PrActivityEvent]:
+def _pr_activity_timeline(pull_request: PullRequest) -> tuple[list[PrActivityEvent], int]:
     """The PR's captured activity rows, oldest first, projected for the judge.
+
+    Returns the timeline alongside the count of lifecycle events the document path
+    dropped at its entry cap. That count rides to Seer because the drop is
+    tail-biased — capture stops appending once full, so a capped timeline is
+    missing its newest and most decision-relevant events — and a judge shown only
+    the surviving prefix would otherwise read it as the complete history.
 
     All lifecycle rows are forwarded; check rows are capped to the most recent
     ``_MAX_FORWARDED_CHECK_ROWS`` (see comment above) so CI noise on busy PRs
     can't balloon the Seer request.
+
+    Document-path PRs project the same wire shape: lifecycle entries pass through,
+    and each checks group becomes one synthesized ``check_suite_completed`` (the
+    collapse Seer's timeline does anyway), so the Seer contract is unchanged.
     """
+    doc = load_activity_document(pull_request)
+    if doc is not None:
+        return [
+            PrActivityEvent(
+                event_type=event["event_type"],
+                timestamp=event["timestamp"],
+                payload=event["payload"],
+            )
+            for event in timeline_events_from_doc(doc)
+        ], doc.get("events_dropped", 0)
+
     rows = list(
         PullRequestActivity.objects.filter(pull_request=pull_request).order_by("date_added")
     )
@@ -124,12 +146,15 @@ def _pr_activity_timeline(pull_request: PullRequest) -> list[PrActivityEvent]:
             for row in rows
             if row.event_type not in _CHECK_EVENT_TYPES or row.id in kept_check_ids
         ]
+    # Zero rather than a guess: the legacy path forwards every lifecycle row it
+    # has, so its timeline is complete by construction. Only check rows are capped
+    # here, and those collapse in Seer's timeline anyway.
     return [
         PrActivityEvent(
             event_type=row.event_type, timestamp=row.date_added.isoformat(), payload=row.payload
         )
         for row in rows
-    ]
+    ], 0
 
 
 def _build_judge_request(pull_request: PullRequest, repository: Repository) -> PrCloseJudgeRequest:
@@ -153,6 +178,7 @@ def _build_judge_request(pull_request: PullRequest, repository: Repository) -> P
         PullRequestMetrics.objects.filter(pull_request=pull_request).first() or PullRequestMetrics()
     )
     close_action: CloseAction = "merged" if pull_request.merged_at is not None else "closed"
+    activity, activity_events_dropped = _pr_activity_timeline(pull_request)
     return PrCloseJudgeRequest(
         organization_id=pull_request.organization_id,
         repository_id=pull_request.repository_id,
@@ -180,7 +206,8 @@ def _build_judge_request(pull_request: PullRequest, repository: Repository) -> P
         is_assigned=metrics_row.is_assigned,
         attributions=active_attributions(pull_request),
         group_ids=resolved_group_ids(pull_request),
-        activity=_pr_activity_timeline(pull_request),
+        activity=activity,
+        activity_events_dropped=activity_events_dropped,
     )
 
 

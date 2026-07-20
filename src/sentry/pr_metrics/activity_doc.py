@@ -13,6 +13,7 @@ per-``(head_sha, app_slug)`` rollups), and **comments** (folded into
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from collections.abc import Mapping
 from typing import Any, TypedDict
 
@@ -428,3 +429,187 @@ def _min_ts(current: str | None, candidate: str | None) -> str | None:
     if not current:
         return candidate
     return min(current, candidate)
+
+
+# --- readers: pure projections of a stored document -----------------------
+
+# The judge forward collapses each checks group into one synthesized event and
+# caps the number forwarded, mirroring the legacy row cap. The write-time group
+# cap already bounds this; the forward cap is a defensive backstop.
+MAX_FORWARDED_CHECK_GROUPS = 100
+
+
+def has_commits_after_open(doc: ActivityDoc) -> bool:
+    """Whether any push landed after the PR opened — ``select_verdict``'s signal."""
+    return doc.get("counts", {}).get(PullRequestActivityType.SYNCHRONIZED, 0) > 0
+
+
+def human_participant_count(doc: ActivityDoc) -> int:
+    """Distinct non-bot participants (CI apps and automation excluded)."""
+    return sum(1 for sender_type in doc.get("participants", {}).values() if sender_type != "Bot")
+
+
+def _entry_sender(entry: ActivityEntry) -> tuple[str, str | None]:
+    payload = entry.get("payload") or {}
+    return payload.get("sender_login") or "", payload.get("sender_type")
+
+
+def _bot_human_counts(
+    events: list[ActivityEntry], event_types: tuple[PullRequestActivityType, ...]
+) -> Counter[str]:
+    """Senders behind the given entry types, split into ``bot``/``human`` counts."""
+    counts: Counter[str] = Counter()
+    for event in events:
+        if event["event_type"] in event_types:
+            _login, sender_type = _entry_sender(event)
+            counts["bot" if sender_type == "Bot" else "human"] += 1
+    return counts
+
+
+def derived_metrics_from_doc(doc: ActivityDoc) -> dict[str, Any]:
+    """The activity-derived counters, projected from the document.
+
+    Field-for-field the same shape ``emit._activity_derived_metrics`` produces
+    from rows: reviews/participants totals plus the human-involvement splits.
+    Totals that must survive the events cap (``reviews_count``) come from
+    ``counts``; the account-class splits come from the stored entries.
+    """
+    events = doc.get("events", [])
+
+    review_counts = _bot_human_counts(events, (PullRequestActivityType.REVIEW_SUBMITTED,))
+    push_counts = _bot_human_counts(
+        events, (PullRequestActivityType.OPENED, PullRequestActivityType.SYNCHRONIZED)
+    )
+
+    # Earliest opener, latest closer (events are in arrival order).
+    opened = next(
+        (
+            _entry_sender(event)
+            for event in events
+            if event["event_type"] == PullRequestActivityType.OPENED
+        ),
+        None,
+    )
+    closed = None
+    for event in events:
+        if event["event_type"] in (
+            PullRequestActivityType.CLOSED,
+            PullRequestActivityType.MERGED,
+        ):
+            closed = _entry_sender(event)
+    same_actor = (opened[0] == closed[0]) if opened and closed and opened[0] and closed[0] else None
+
+    return {
+        "participants_count": human_participant_count(doc),
+        "reviews_count": doc.get("counts", {}).get(PullRequestActivityType.REVIEW_SUBMITTED, 0),
+        "reviews_bot_count": review_counts["bot"],
+        "reviews_human_count": review_counts["human"],
+        "pushes_bot_count": push_counts["bot"],
+        "pushes_human_count": push_counts["human"],
+        "opened_by_bot": (opened[1] == "Bot") if opened else None,
+        "closed_by_bot": (closed[1] == "Bot") if closed else None,
+        "opened_and_closed_by_same_actor": same_actor,
+    }
+
+
+def commit_shas_from_doc(doc: ActivityDoc, head_sha: str | None) -> set[str]:
+    """Post-open commit SHAs, by chain-following ``sync_chain`` backward from the head.
+
+    Reassembles the ``before_sha`` → ``after_sha`` linked list from the reducer's
+    ``sync_chain`` — not from the ``events`` entries — and walks it backward from the
+    PR's current head. The chain map is fed by the reducer independently of the
+    entries cap, so the walk stays anchored at the head even under cap pressure that
+    drops the newest synchronize entries; scanning ``events`` instead would lose the
+    head the moment the latest synchronize was capped, emptying the result. Being
+    order-independent, out-of-order sync deliveries no longer read as a force push; a
+    genuine force push — a head that doesn't chain back — surfaces as the walk
+    terminating early, dropping the abandoned commits. Eviction of the oldest links
+    once ``sync_chain`` fills degrades identically: the walk stops at the horizon.
+    Returns an empty set when the head isn't reachable from any push (e.g. no pushes
+    after open).
+    """
+    before_by_after: dict[str, str | None] = {}
+    for pair in doc.get("sync_chain") or []:
+        after = pair[0]
+        if not after:
+            continue
+        before_by_after[after] = pair[1]
+
+    shas: set[str] = set()
+    current = head_sha or ""
+    while current and current in before_by_after and current not in shas:
+        shas.add(current)
+        current = before_by_after[current] or ""
+    return shas
+
+
+def _synthesized_suite_conclusion(group: CheckGroup) -> str:
+    """The group's aggregate conclusion: the latest suite conclusion, or one derived
+    from the failing runs when no suite event was ever seen."""
+    conclusion = group.get("suite_conclusion")
+    if conclusion:
+        return conclusion
+    runs = group.get("runs", {})
+    if any(is_failing_conclusion(run.get("conclusion")) for run in runs.values()):
+        return "failure"
+    return "success"
+
+
+def _synthesized_check_suite_payload(group: CheckGroup) -> dict[str, Any]:
+    runs = group.get("runs", {})
+    return {
+        "action": "completed",
+        "conclusion": _synthesized_suite_conclusion(group),
+        "app_slug": group.get("app_slug", ""),
+        "check_runs_count": group.get("check_runs_count", 0),
+        # Additive keys the legacy row forward never carried (Seer ignores unknown
+        # payload keys, so this doesn't change the wire contract).
+        "head_sha": group.get("head_sha", ""),
+        "failing_check_names": sorted(
+            name for name, run in runs.items() if is_failing_conclusion(run.get("conclusion"))
+        ),
+        "first_failure_at": group.get("first_failure_at"),
+    }
+
+
+def timeline_events_from_doc(doc: ActivityDoc) -> list[dict[str, Any]]:
+    """Project the document into the judge's activity timeline, oldest first.
+
+    Lifecycle entries pass through unchanged (``event_type``, ``timestamp`` = the
+    arrival ``ts``, ``payload``); each checks group collapses into one synthesized
+    ``check_suite_completed`` timestamped at its ``last_event_at``. The merged list
+    is sorted by timestamp, matching the legacy forward's shape — only the check
+    events are pre-collapsed (what Seer's timeline does anyway).
+    """
+    events: list[dict[str, Any]] = [
+        {
+            "event_type": entry["event_type"],
+            "timestamp": entry["ts"],
+            "payload": entry.get("payload") or {},
+        }
+        for entry in doc.get("events", [])
+    ]
+
+    groups = list(doc.get("checks", {}).values())
+    if len(groups) > MAX_FORWARDED_CHECK_GROUPS:
+        dropped = len(groups) - MAX_FORWARDED_CHECK_GROUPS
+        logger.warning(
+            "pr_metrics.activity_doc.forward_groups_capped",
+            extra={"check_groups": len(groups), "dropped": dropped},
+        )
+        metrics.incr("pr_metrics.activity_doc.forward_groups_capped")
+        groups = sorted(groups, key=lambda group: group.get("last_event_at") or "")[
+            -MAX_FORWARDED_CHECK_GROUPS:
+        ]
+
+    for group in groups:
+        events.append(
+            {
+                "event_type": PullRequestActivityType.CHECK_SUITE_COMPLETED,
+                "timestamp": group.get("last_event_at") or "",
+                "payload": _synthesized_check_suite_payload(group),
+            }
+        )
+
+    events.sort(key=lambda event: event["timestamp"] or "")
+    return events

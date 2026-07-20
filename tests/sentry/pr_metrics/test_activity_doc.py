@@ -21,9 +21,14 @@ from sentry.pr_metrics.activity_doc import (
     ActivityDoc,
     _fold_sync_chain,
     apply_activity,
+    commit_shas_from_doc,
+    derived_metrics_from_doc,
     extract_event_at,
+    has_commits_after_open,
+    human_participant_count,
     is_failing_conclusion,
     new_document,
+    timeline_events_from_doc,
 )
 
 MODULE = "sentry.pr_metrics.activity_doc"
@@ -774,3 +779,208 @@ def test_full_sequence_reapplication_is_idempotent_except_failed_attempts() -> N
     twice = build(double=True)
     # Entries dedup, comments/participants union, green run is idempotent → equal.
     assert once == twice
+
+
+# --- readers: pure projections --------------------------------------------
+
+
+def _sync(doc: ActivityDoc, *, before: str, after: str, webhook_id: str) -> None:
+    apply_activity(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        payload={
+            "before_sha": before,
+            "after_sha": after,
+            "sender_login": "dev",
+            "sender_type": "User",
+        },
+        ts="2026-07-10T12:00:00Z",
+        webhook_id=webhook_id,
+    )
+
+
+def test_has_commits_after_open() -> None:
+    doc = new_document()
+    assert has_commits_after_open(doc) is False
+    _entry(doc, event_type=PullRequestActivityType.SYNCHRONIZED, webhook_id="s1")
+    assert has_commits_after_open(doc) is True
+
+
+def test_human_participant_count_excludes_bots() -> None:
+    doc = new_document()
+    _comment(doc, sender_login="human", sender_type="User", webhook_id="c1")
+    _comment(doc, sender_login="bot[bot]", sender_type="Bot", webhook_id="c2")
+    assert human_participant_count(doc) == 1
+
+
+def test_derived_metrics_from_doc_mirrors_legacy_shape() -> None:
+    doc = new_document()
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.OPENED,
+        webhook_id="o1",
+        sender_login="octocat",
+        sender_type="User",
+    )
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="s1",
+        sender_login="seer",
+        sender_type="Bot",
+    )
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+        webhook_id="r1",
+        sender_login="rev",
+        sender_type="User",
+    )
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.REVIEW_SUBMITTED,
+        webhook_id="r2",
+        sender_login="botrev",
+        sender_type="Bot",
+    )
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.MERGED,
+        webhook_id="m1",
+        sender_login="octocat",
+        sender_type="User",
+    )
+    _comment(doc, sender_login="commenter", sender_type="User", webhook_id="c1")
+
+    metrics = derived_metrics_from_doc(doc)
+    assert metrics == {
+        "participants_count": 3,  # octocat, rev, commenter (seer + botrev are bots)
+        "reviews_count": 2,
+        "reviews_bot_count": 1,
+        "reviews_human_count": 1,
+        "pushes_bot_count": 1,  # the seer synchronize
+        "pushes_human_count": 1,  # the octocat open
+        "opened_by_bot": False,
+        "closed_by_bot": False,
+        "opened_and_closed_by_same_actor": True,  # octocat opened and merged
+    }
+
+
+def test_derived_metrics_empty_doc() -> None:
+    assert derived_metrics_from_doc(new_document()) == {
+        "participants_count": 0,
+        "reviews_count": 0,
+        "reviews_bot_count": 0,
+        "reviews_human_count": 0,
+        "pushes_bot_count": 0,
+        "pushes_human_count": 0,
+        "opened_by_bot": None,
+        "closed_by_bot": None,
+        "opened_and_closed_by_same_actor": None,
+    }
+
+
+def test_commit_shas_from_doc_normal_chain() -> None:
+    doc = new_document()
+    _sync(doc, before="B0", after="A1", webhook_id="s1")
+    _sync(doc, before="A1", after="A2", webhook_id="s2")
+    assert commit_shas_from_doc(doc, "A2") == {"A1", "A2"}
+
+
+def test_commit_shas_from_doc_single_push() -> None:
+    doc = new_document()
+    _sync(doc, before="B0", after="A1", webhook_id="s1")
+    assert commit_shas_from_doc(doc, "A1") == {"A1"}
+
+
+def test_commit_shas_from_doc_force_push_excludes_abandoned() -> None:
+    doc = new_document()
+    _sync(doc, before="B0", after="A1", webhook_id="s1")
+    _sync(doc, before="A1", after="A2", webhook_id="s2")
+    _sync(doc, before="A2", after="A3", webhook_id="s3")
+    _sync(doc, before="A1", after="F", webhook_id="s4")  # force-push back onto A1
+    # Head is F; the chain follows F -> A1 -> B0, so A2/A3 are abandoned.
+    assert commit_shas_from_doc(doc, "F") == {"F", "A1"}
+
+
+def test_commit_shas_from_doc_order_independent_no_false_force_push() -> None:
+    # The bug fix: two synchronize deliveries stored out of order must NOT read as a
+    # force push. The legacy reverse-arrival walker would drop A2 here; the
+    # chain-follow reassembles the linked list correctly.
+    doc = new_document()
+    _sync(doc, before="A1", after="A2", webhook_id="s2")  # later push stored first
+    _sync(doc, before="B0", after="A1", webhook_id="s1")
+    assert commit_shas_from_doc(doc, "A2") == {"A1", "A2"}
+
+
+def test_commit_shas_from_doc_no_syncs_or_unreachable_head() -> None:
+    doc = new_document()
+    assert commit_shas_from_doc(doc, "A1") == set()
+    _sync(doc, before="B0", after="A1", webhook_id="s1")
+    assert commit_shas_from_doc(doc, "unrelated") == set()
+
+
+def test_commit_shas_from_doc_survives_events_cap() -> None:
+    # The events cap drops the NEWEST entries, so a walker scanning ``events`` for
+    # synchronizes loses the head once the latest sync is capped and returns nothing.
+    # The walk follows ``sync_chain`` instead — fed by the reducer independently of the
+    # entries cap — so the head stays reachable even when its synchronize entry was
+    # dropped, and every commit-linked issue resolution on a cap-pressured PR survives.
+    doc = new_document()
+    with patch(f"{MODULE}.metrics"), patch(f"{MODULE}.logger"):
+        for i in range(MAX_EVENTS):
+            _entry(doc, event_type=PullRequestActivityType.LABELED, webhook_id=f"d{i}")
+        _sync(doc, before="A0", after="A1", webhook_id="s1")
+        _sync(doc, before="A1", after="A2", webhook_id="s2")
+    # Both synchronize entries were dropped by the events cap...
+    assert all(e["event_type"] != PullRequestActivityType.SYNCHRONIZED for e in doc["events"])
+    assert doc["events_dropped"] == 2
+    # ...but their before/after links survived in sync_chain, so the head chain-walks.
+    assert commit_shas_from_doc(doc, "A2") == {"A1", "A2"}
+
+
+def test_timeline_projects_entries_and_synthesized_suite() -> None:
+    doc = new_document()
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.OPENED,
+        webhook_id="o1",
+        ts="2026-07-10T12:00:00Z",
+        sender_login="a",
+        sender_type="User",
+    )
+    _entry(
+        doc,
+        event_type=PullRequestActivityType.SYNCHRONIZED,
+        webhook_id="s1",
+        ts="2026-07-10T12:10:00Z",
+    )
+    _run(doc, check_name="test", conclusion="failure", completed_at="2026-07-10T12:05:00Z")
+    _suite(doc, conclusion="failure", updated_at="2026-07-10T12:06:00Z")
+
+    events = timeline_events_from_doc(doc)
+    # Lifecycle entries + one synthesized check_suite, merged in timestamp order.
+    assert [e["event_type"] for e in events] == ["opened", "check_suite_completed", "synchronized"]
+    suite = events[1]
+    assert suite["timestamp"] == "2026-07-10T12:06:00Z"  # group last_event_at
+    assert suite["payload"]["conclusion"] == "failure"
+    assert suite["payload"]["failing_check_names"] == ["test"]
+    assert suite["payload"]["head_sha"] == "sha1"
+    assert suite["payload"]["first_failure_at"] == "2026-07-10T12:05:00Z"
+
+
+def test_timeline_suite_conclusion_derived_from_runs_when_absent() -> None:
+    doc = new_document()
+    _run(doc, check_name="test", conclusion="failure", completed_at="2026-07-10T12:05:00Z")
+    events = timeline_events_from_doc(doc)
+    assert events[0]["event_type"] == "check_suite_completed"
+    assert events[0]["payload"]["conclusion"] == "failure"  # derived from the failing run
+
+
+def test_timeline_recovered_run_excluded_from_failing_names() -> None:
+    doc = new_document()
+    _run(doc, check_name="flaky", conclusion="failure", completed_at="2026-07-10T12:00:00Z")
+    _run(doc, check_name="flaky", conclusion="success", completed_at="2026-07-10T12:05:00Z")
+    suite = timeline_events_from_doc(doc)[0]
+    # The run recovered (latest conclusion success), so it isn't a failing name.
+    assert suite["payload"]["failing_check_names"] == []
