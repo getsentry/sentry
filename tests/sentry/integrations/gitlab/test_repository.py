@@ -1,11 +1,15 @@
 from functools import cached_property
+from unittest.mock import MagicMock
 
 import orjson
 import pytest
 import responses
 
 from fixtures.gitlab import COMMIT_DIFF_RESPONSE, COMMIT_LIST_RESPONSE, COMPARE_RESPONSE
-from sentry.integrations.gitlab.repository import GitlabRepositoryProvider
+from sentry.integrations.gitlab.repository import (
+    GITLAB_MAX_COMMITS_FOR_PATCHSET,
+    GitlabRepositoryProvider,
+)
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -328,3 +332,50 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         repo = self.get_repository(pk=response.data["id"])
         result = self.provider.repository_external_slug(repo)
         assert result == repo.config["project_id"]
+
+    def _make_fake_commits(self, count: int) -> list[dict[str, str]]:
+        return [
+            {
+                "id": f"a{i:039x}",
+                "author_name": "Author",
+                "author_email": "author@example.com",
+                "title": f"Commit {i}",
+                "created_at": "2014-02-27T10:27:00+02:00",
+            }
+            for i in range(count)
+        ]
+
+    @responses.activate
+    def test_format_commits_skips_patchset_when_commit_count_exceeds_limit(self) -> None:
+        """When the commit count exceeds GITLAB_MAX_COMMITS_FOR_PATCHSET, patchsets are
+        skipped to prevent O(N) sequential HTTP requests from timing out the task."""
+        commit_count = GITLAB_MAX_COMMITS_FOR_PATCHSET + 1
+        commits = self._make_fake_commits(commit_count)
+
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        repo = self.get_repository(pk=response.data["id"])
+
+        # client=None is intentional: if _get_patchset were called it would
+        # raise AttributeError, which would make the test fail.
+        result = self.provider._format_commits(None, repo, commits)
+
+        assert len(result) == commit_count
+        assert all(c["patch_set"] == [] for c in result)
+
+    @responses.activate
+    def test_format_commits_fetches_patchset_when_within_limit(self) -> None:
+        """When the commit count is at or below the limit, patchsets are fetched normally."""
+        commit_count = GITLAB_MAX_COMMITS_FOR_PATCHSET
+        commits = self._make_fake_commits(commit_count)
+
+        response = self.create_repository(self.default_repository_config, self.integration.id)
+        repo = self.get_repository(pk=response.data["id"])
+
+        mock_client = MagicMock()
+        mock_client.get_diff.return_value = []
+
+        result = self.provider._format_commits(mock_client, repo, commits)
+
+        assert len(result) == commit_count
+        assert mock_client.get_diff.call_count == commit_count
+        assert all(c["patch_set"] == [] for c in result)

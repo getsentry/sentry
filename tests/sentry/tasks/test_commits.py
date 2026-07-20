@@ -18,6 +18,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.commits import (
     GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS,
     fetch_commits,
+    fetch_commits_for_compare_range,
     get_github_compare_commits_cache_key,
     handle_invalid_identity,
 )
@@ -278,6 +279,41 @@ class FetchCommitsTest(TestCase):
             and call.args[2] == GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS
             for call in mock_cache_set.call_args_list
         )
+
+    def test_gitlab_compare_commits_cache_enabled(self, mock_record: MagicMock) -> None:
+        """GitLab repositories use the task-level result cache, so a second call
+        for the same SHA range uses the cached result rather than re-fetching."""
+        org = self.create_organization(owner=self.user, name="gitlab-org")
+        repo = Repository.objects.create(
+            name="example",
+            provider="integrations:gitlab",
+            organization_id=org.id,
+        )
+        cache.clear()
+
+        mock_provider = MagicMock()
+        mock_provider.fetch_commits_for_compare_range.return_value = [
+            {"id": "abc123", "repository": repo.name}
+        ]
+
+        result1 = fetch_commits_for_compare_range(
+            repo=repo,
+            provider=mock_provider,
+            start_sha="a" * 40,
+            end_sha="b" * 40,
+            user=None,
+        )
+        result2 = fetch_commits_for_compare_range(
+            repo=repo,
+            provider=mock_provider,
+            start_sha="a" * 40,
+            end_sha="b" * 40,
+            user=None,
+        )
+
+        # The provider should only be called once; the second call hits the cache.
+        assert mock_provider.fetch_commits_for_compare_range.call_count == 1
+        assert result1 == result2
 
     def test_release_locked(self, mock_record_event: MagicMock) -> None:
         self.login_as(user=self.user)

@@ -17,6 +17,14 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("sentry.integrations.gitlab")
 
+# GitLab does not include diffs in the compare/commit-list response, so
+# _format_commits must make one additional API call per commit to build the
+# patch set (see _get_patchset).  With many commits this becomes O(N)
+# sequential HTTP requests and can push the fetch_commits task past its
+# processing deadline.  When the commit count exceeds this threshold we skip
+# patchset fetching entirely and return an empty list for every commit instead.
+GITLAB_MAX_COMMITS_FOR_PATCHSET = 100
+
 
 class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"]):
     name = "Gitlab"
@@ -124,6 +132,31 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
 
     def _format_commits(self, client, repo, commit_list):
         """Convert GitLab commits into our internal format"""
+        if len(commit_list) > GITLAB_MAX_COMMITS_FOR_PATCHSET:
+            # Fetching one diff per commit would generate too many sequential
+            # HTTP requests for large release ranges and push the task past its
+            # processing deadline.  Skip patchset fetching for all commits so
+            # the task completes in time; commit metadata is still recorded.
+            logger.warning(
+                "gitlab.repository.patchset_fetch_skipped",
+                extra={
+                    "repository": repo.name,
+                    "num_commits": len(commit_list),
+                    "max_commits": GITLAB_MAX_COMMITS_FOR_PATCHSET,
+                },
+            )
+            return [
+                {
+                    "id": c["id"],
+                    "repository": repo.name,
+                    "author_email": c["author_email"],
+                    "author_name": c["author_name"],
+                    "message": c["title"],
+                    "timestamp": self.format_date(c["created_at"]),
+                    "patch_set": [],
+                }
+                for c in commit_list
+            ]
         return [
             {
                 "id": c["id"],

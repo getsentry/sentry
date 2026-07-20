@@ -39,8 +39,15 @@ from sentry.utils.tracing import get_current_span
 logger = logging.getLogger(__name__)
 
 GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS = 3600
-GITHUB_CACHEABLE_REPOSITORY_PROVIDERS = frozenset(
-    ("integrations:github", "integrations:github_enterprise")
+# Providers whose compare-commits results are safe to cache.  Caching avoids
+# re-fetching the full commit list (including per-commit diffs for GitLab) on
+# every task retry for the same SHA range.
+CACHEABLE_REPOSITORY_PROVIDERS = frozenset(
+    (
+        "integrations:github",
+        "integrations:github_enterprise",
+        "integrations:gitlab",
+    )
 )
 
 
@@ -90,7 +97,7 @@ def fetch_commits_for_compare_range(
     user: RpcUser | None,
 ) -> list[dict[str, Any]]:
     cache_enabled = (
-        isinstance(repo.provider, str) and repo.provider in GITHUB_CACHEABLE_REPOSITORY_PROVIDERS
+        isinstance(repo.provider, str) and repo.provider in CACHEABLE_REPOSITORY_PROVIDERS
     )
     set_tag("compare_commits_cache_enabled", cache_enabled)
     sentry_sdk.set_attribute("compare_commits_cache_enabled", cache_enabled)
