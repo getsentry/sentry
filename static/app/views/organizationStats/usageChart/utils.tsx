@@ -2,7 +2,7 @@ import moment from 'moment-timezone';
 
 import {parseStatsPeriod} from 'sentry/components/pageFilters/parse';
 import type {DataCategory, IntervalPeriod} from 'sentry/types/core';
-import {shouldUse24Hours} from 'sentry/utils/dates';
+import {getUserTimezone, shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
@@ -39,7 +39,9 @@ export function getDateFromMoment(
 
   // For sub-daily intervals, use hourly format
   const parsedInterval = parseStatsPeriod(interval);
-  const datetime = useUtc ? moment(m).utc() : moment(m).local();
+  const datetime = useUtc
+    ? moment(m).utc()
+    : moment(m).tz(getUserTimezone() ?? moment.tz.guess());
 
   const intervalFormat = use24Hours ? FORMAT_DATETIME_HOURLY_24H : FORMAT_DATETIME_HOURLY;
 

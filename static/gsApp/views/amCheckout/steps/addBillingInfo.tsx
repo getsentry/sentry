@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -30,7 +30,7 @@ export function AddBillingInformation({
   const showEditBillingInfo = hasBillingInfo(billingDetails, subscription, false);
 
   return (
-    <Flex direction="column" gap="xl" id={`step${stepNumber}`}>
+    <Stack gap="xl" id={`step${stepNumber}`}>
       {billingDetailsError && (
         <Alert variant="danger">{billingDetailsError.message}</Alert>
       )}
@@ -62,6 +62,6 @@ export function AddBillingInformation({
           />
         </Fragment>
       )}
-    </Flex>
+    </Stack>
   );
 }

@@ -3,7 +3,7 @@ import type React from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -176,8 +176,8 @@ export function usePRWidgetData({
         key: repoName,
         title: repoName,
         description: (
-          <Flex direction="column" gap="lg">
-            <Flex direction="column">
+          <Stack gap="lg">
+            <Stack>
               {files.map((file, idx) => (
                 <Flex
                   key={`${file.path}-${idx}`}
@@ -199,7 +199,7 @@ export function usePRWidgetData({
                   </Text>
                 </Flex>
               ))}
-            </Flex>
+            </Stack>
             <Flex align="center" gap="md">
               {isCreating ? (
                 <Text size="xs" variant="muted">
@@ -231,7 +231,7 @@ export function usePRWidgetData({
                 </Text>
               )}
             </Flex>
-          </Flex>
+          </Stack>
         ),
         handler: () => {
           // If repo has a PR, open it

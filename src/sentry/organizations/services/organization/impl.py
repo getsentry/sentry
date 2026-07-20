@@ -40,7 +40,6 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.recentsearch import RecentSearch
 from sentry.models.rule import Rule, RuleActivity
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.models.savedsearch import SavedSearch
 from sentry.models.team import Team, TeamStatus
 from sentry.monitors.models import Monitor
 from sentry.organizations.services.organization import (
@@ -602,7 +601,6 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 Rule,
                 RuleActivity,
                 RuleSnooze,
-                SavedSearch,
             ]
             for model in model_list:
                 merge_users_for_model_in_org(

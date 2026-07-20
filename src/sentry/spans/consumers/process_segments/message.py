@@ -80,6 +80,9 @@ def _process_segment(
 ) -> list[CompatibleSpan]:
     _verify_compatibility(unprocessed_spans)
 
+    if any(attribute_value(s, ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID) for s in unprocessed_spans):
+        metrics.incr("spans.consumers.process_segments.gen_ai_conversation")
+
     if skip_enrichment:
         return [make_compatible(span) for span in unprocessed_spans]
 
@@ -392,6 +395,7 @@ def _maybe_run_span_first_detector_parity_check(
         )
 
         compare_span_first_problems_to_control_data(
+            project,
             span_first_problems_by_grouptype,
             all_control_problems,
             get_source_of_truth=lambda _: (

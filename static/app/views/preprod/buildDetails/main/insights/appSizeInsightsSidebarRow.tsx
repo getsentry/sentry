@@ -131,7 +131,7 @@ export function AppSizeInsightsSidebarRow({
   };
 
   return (
-    <Flex border="muted" radius="md" padding="xl" direction="column" gap="md">
+    <Stack border="muted" radius="md" padding="xl" gap="md">
       <Flex align="start" justify="between">
         <Flex align="center" gap="xs">
           <Text variant="primary" size="md" bold>
@@ -228,7 +228,7 @@ export function AppSizeInsightsSidebarRow({
           )}
         </Container>
       )}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -286,7 +286,7 @@ function DuplicateGroupFileRow({
           -{formatBytesBase10(file.savings)}
         </Text>
       </Flex>
-      <Flex direction="column" gap="xs" padding="xs sm">
+      <Stack gap="xs" padding="xs sm">
         <Collapsible
           maxVisibleItems={DUPLICATE_GROUP_VISIBLE_FILE_COUNT}
           expandButton={({onExpand, numberOfHiddenItems}) => (
@@ -317,7 +317,7 @@ function DuplicateGroupFileRow({
             </Flex>
           ))}
         </Collapsible>
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }
@@ -347,13 +347,13 @@ function OptimizableImageFileRow({
     (originalFile.idiom || originalFile.colorspace) && file.data.isDuplicateVariant;
   // TODO (EME-460): Add link to formal documentation about idiom/colorspaces in apple binaries as well as more info about app thinning
   const tooltipContent = hasMetadata && (
-    <Flex direction="column" gap="lg" align="start">
+    <Stack gap="lg" align="start">
       <Text size="xs" align="left">
         {t(
           'This image shows up multiple times because this build likely did not have app thinning applied. That means your asset catalog can include different copies of the same image meant for different device types.'
         )}
       </Text>
-      <Flex direction="column" gap="xs" align="start">
+      <Stack gap="xs" align="start">
         {originalFile.idiom && (
           <Flex align="center" gap="xs">
             <Text size="xs">{t('Idiom:')}</Text>
@@ -366,8 +366,8 @@ function OptimizableImageFileRow({
             <Text size="xs">{originalFile.colorspace}</Text>
           </Flex>
         )}
-      </Flex>
-    </Flex>
+      </Stack>
+    </Stack>
   );
 
   return (
@@ -399,7 +399,7 @@ function OptimizableImageFileRow({
           </Text>
         </Flex>
       </Flex>
-      <Flex direction="column" gap="xs" padding="xs sm">
+      <Stack gap="xs" padding="xs sm">
         {hasMinifySavings && (
           <Flex align="center" gap="sm">
             <Text size="xs" variant="muted" style={{minWidth: '100px'}}>
@@ -432,7 +432,7 @@ function OptimizableImageFileRow({
             </Text>
           </Flex>
         )}
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }

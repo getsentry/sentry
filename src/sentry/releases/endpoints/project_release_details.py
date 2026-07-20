@@ -131,12 +131,14 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
             )
         except Release.DoesNotExist:
             scope.set_tag("failure_reason", "Release.DoesNotExist")
+            scope.set_attribute("failure_reason", "Release.DoesNotExist")
             raise ResourceDoesNotExist
 
         serializer = ReleaseSerializer(data=request.data, partial=True)
 
         if not serializer.is_valid():
             scope.set_tag("failure_reason", "serializer_error")
+            scope.set_attribute("failure_reason", "serializer_error")
             return Response(as_validation_errors(serializer), status=400)
 
         result = serializer.validated_data

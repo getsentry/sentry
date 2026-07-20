@@ -1,11 +1,4 @@
-import React, {
-  Fragment,
-  useCallback,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-} from 'react';
+import React, {Fragment, useCallback, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
@@ -60,7 +53,6 @@ interface FoldSectionProps {
    */
   preventCollapse?: boolean;
   ref?: React.Ref<HTMLDivElement>;
-  style?: CSSProperties;
 }
 
 function useOptionalLocalStorageState(

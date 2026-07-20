@@ -227,7 +227,6 @@ export default function Create() {
                   eventView={eventView}
                   wizardTemplate={wizardTemplate}
                   sessionId={sessionId.current}
-                  userTeamIds={teams.map(({id}) => id)}
                 />
               ) : (
                 <MetricRulesCreate

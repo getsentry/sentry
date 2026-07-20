@@ -308,6 +308,7 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
         _check_sentry_app_disabled(self, request, sentry_app)
 
         sentry_sdk.get_isolation_scope().set_tag("sentry_app", sentry_app.slug)
+        sentry_sdk.get_isolation_scope().set_attribute("sentry_app", sentry_app.slug)
 
         kwargs["sentry_app"] = sentry_app
         return (args, kwargs)
@@ -328,6 +329,7 @@ class CellSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
         _check_sentry_app_disabled(self, request, sentry_app)
 
         sentry_sdk.get_isolation_scope().set_tag("sentry_app", sentry_app.slug)
+        sentry_sdk.get_isolation_scope().set_attribute("sentry_app", sentry_app.slug)
 
         kwargs["sentry_app"] = sentry_app
         return (args, kwargs)
@@ -455,6 +457,7 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
         _check_sentry_app_disabled(self, request, installation.sentry_app)
 
         sentry_sdk.get_isolation_scope().set_tag("sentry_app_installation", installation.uuid)
+        sentry_sdk.get_isolation_scope().set_attribute("sentry_app_installation", installation.uuid)
 
         kwargs["installation"] = installation
         return (args, kwargs)

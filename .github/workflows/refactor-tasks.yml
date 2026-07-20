@@ -1,0 +1,51 @@
+name: refactor tasks
+# Runs the @sentry/refactor-tasks convention scanner and reports findings to
+# Sentry, where Seer can open fix PRs. See .sentry-refactor-tasks/README.md.
+# All triggers are employee-only: dispatch and push:master both require repo
+# write access, and schedule has no external actor.
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 08:13 UTC (~1am SF). Off the hour to avoid the top-of-hour rush.
+    - cron: '13 8 * * *'
+  push:
+    branches:
+      - master
+    paths:
+      - '.sentry-refactor-tasks/conventions/**'
+      - '.github/workflows/refactor-tasks.yml'
+
+concurrency:
+  group: refactor-tasks
+  cancel-in-progress: false
+
+jobs:
+  scan-and-report:
+    name: Scan conventions and report to Sentry
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        name: Checkout sentry
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      # GitHub cache entries are immutable, so the sha in the key forces a fresh
+      # save per commit; the master fallback lets new branches start warm.
+      - name: Restore and save scan cache
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: .refactor-tasks-cache
+          key: refactor-tasks-cache-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            refactor-tasks-cache-${{ github.ref_name }}-
+            refactor-tasks-cache-master-
+
+      - name: Scan and report
+        env:
+          XDG_CACHE_HOME: ${{ github.workspace }}/.refactor-tasks-cache
+          SENTRY_DSN: ${{ secrets.SENTRY_REFACTOR_TASKS_DSN }}
+          OPENROUTER_API_KEY: ${{ secrets.REFACTOR_TASKS_OPENROUTER_API_KEY }}
+          INFERENCE_MODEL: haiku
+          SCAN_CONCURRENCY: '4'
+        run: pnpm dlx @sentry/refactor-tasks scan-and-report

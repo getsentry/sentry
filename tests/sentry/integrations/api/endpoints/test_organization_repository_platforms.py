@@ -335,3 +335,106 @@ class OrganizationRepositoryPlatformsMultiGetTest(APITestCase):
         scope.set_tag.assert_any_call("is_multi", True)
         scope.set_tag.assert_any_call("repo_id", self.repo.id)
         scope.set_tag.assert_any_call("repo_name", self.repo.name)
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_detects_multi_platforms(self, get_jwt: mock.MagicMock) -> None:
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/repos/Test-Organization/foo/languages",
+            json={"Python": 50000},
+            status=200,
+        )
+        # Recursive git tree with no manifest files -> language only, no framework detection
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/repos/Test-Organization/foo/git/trees/HEAD",
+            json={
+                "sha": "abc",
+                "truncated": False,
+                "tree": [
+                    {"path": "src/app.py", "type": "blob", "size": 1234},
+                    {"path": "src", "type": "tree"},
+                ],
+            },
+            status=200,
+        )
+
+        with self.feature({FEATURE_FLAG: True, MULTI_FLAG: True}):
+            response = self.get_success_response(
+                self.organization.slug, self.repo.id, status_code=200
+            )
+
+        assert response.data == {
+            "platforms": [
+                {
+                    "platform": "python",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "medium",
+                    "priority": 1,
+                },
+            ]
+        }
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_detects_multi_framework(self, get_jwt: mock.MagicMock) -> None:
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/repos/Test-Organization/foo/languages",
+            json={"Python": 50000},
+            status=200,
+        )
+        # Recursive git tree containing requirements.txt so a content read fires
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/repos/Test-Organization/foo/git/trees/HEAD",
+            json={
+                "sha": "abc",
+                "truncated": False,
+                "tree": [
+                    {"path": "requirements.txt", "type": "blob", "size": 42},
+                ],
+            },
+            status=200,
+        )
+
+        requirements_content = b64encode(b"Django==4.2\ncelery>=5.0\n").decode()
+        responses.add(
+            method=responses.GET,
+            url="https://api.github.com/repos/Test-Organization/foo/contents/requirements.txt",
+            json={"content": requirements_content},
+            status=200,
+        )
+
+        with self.feature({FEATURE_FLAG: True, MULTI_FLAG: True}):
+            response = self.get_success_response(
+                self.organization.slug, self.repo.id, status_code=200
+            )
+
+        assert response.data == {
+            "platforms": [
+                {
+                    "platform": "python-django",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "high",
+                    "priority": 90,
+                },
+                {
+                    "platform": "python-celery",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "high",
+                    "priority": 40,
+                },
+                {
+                    "platform": "python",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "medium",
+                    "priority": 1,
+                },
+            ]
+        }

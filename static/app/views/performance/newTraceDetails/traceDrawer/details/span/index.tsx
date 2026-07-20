@@ -82,7 +82,6 @@ function SpanSections({
   node: SpanNode;
   onParentClick: (node: BaseNode) => void;
   organization: Organization;
-  project: Project | undefined;
 }) {
   const theme = useTheme();
 
@@ -123,7 +122,6 @@ function SpanSections({
 export function SpanNodeDetails(props: TraceTreeNodeDetailsProps<SpanNode>) {
   const {node, organization} = props;
   const location = useLocation();
-  const theme = useTheme();
   const {projects} = useProjects();
   const issues = node.uniqueIssues;
 
@@ -185,7 +183,6 @@ export function SpanNodeDetails(props: TraceTreeNodeDetailsProps<SpanNode>) {
                   project={project}
                   issues={issues}
                   location={location}
-                  theme={theme}
                 />
               </LogsPageDataProvider>
             </LogsQueryParamsProvider>
@@ -210,7 +207,6 @@ function SpanNodeDetailsContent({
   issues: TraceTree.TraceIssue[];
   location: Location;
   project: Project | undefined;
-  theme: Theme;
 }) {
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -261,7 +257,6 @@ function SpanNodeDetailsContent({
         <MCPOutputSection node={node} />
         <SpanSections
           node={node}
-          project={project}
           organization={organization}
           location={location}
           onParentClick={onParentClick}
