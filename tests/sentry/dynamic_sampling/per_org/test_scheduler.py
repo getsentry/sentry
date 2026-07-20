@@ -12,10 +12,7 @@ from sentry.dynamic_sampling.per_org.scheduler import (
     run_calculations_per_org_task,
     schedule_per_org_calculations,
 )
-from sentry.dynamic_sampling.per_org.telemetry import (
-    PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC,
-    DynamicSamplingStatus,
-)
+from sentry.dynamic_sampling.per_org.telemetry import DynamicSamplingStatus
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.testutils.cases import TestCase
@@ -134,12 +131,10 @@ class RunCalculationsPerOrgTest(TestCase):
             patch(
                 "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing"
             ) as transaction_balancing,
-            patch("sentry.dynamic_sampling.per_org.scheduler.emit_count") as emit_count,
         ):
             result = run_calculations_per_org_task(org.id)
 
         assert result == DynamicSamplingStatus.ALL_PROJECTS_AT_FULL_SAMPLE_RATE
-        emit_count.assert_not_called()
         _assert_called_once_with_config(get_volume, org.id)
         get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
         project_config = _assert_called_once_with_config(get_project_volumes, org.id)
@@ -150,92 +145,6 @@ class RunCalculationsPerOrgTest(TestCase):
         )
         get_transaction_volumes.assert_not_called()
         transaction_balancing.assert_not_called()
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_emits_count_of_projects_below_full_sample_rate(self) -> None:
-        org = self.create_organization()
-        downsampled_project = self.create_project(organization=org)
-        full_rate_project = self.create_project(organization=org)
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
-        project_volumes = [
-            _project_volume(downsampled_project.id),
-            _project_volume(full_rate_project.id),
-        ]
-        rebalanced_projects = [
-            RebalancedItem(id=downsampled_project.id, count=100, new_sample_rate=0.5),
-            RebalancedItem(id=full_rate_project.id, count=100, new_sample_rate=1.0),
-        ]
-
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                return_value=1.0,
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
-                return_value=org_volume,
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
-                return_value=project_volumes,
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.run_project_balancing",
-                return_value=rebalanced_projects,
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_cached_rebalanced_project_sample_rates",
-                return_value={},
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.compare_rebalanced_projects_with_cache"
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
-                return_value=[],
-            ),
-            patch("sentry.dynamic_sampling.per_org.scheduler.emit_count") as emit_count,
-        ):
-            result = run_calculations_per_org_task(org.id)
-
-        assert result == DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
-        emit_count.assert_called_once_with(PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC, 1)
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_ignores_projects_without_rate_in_below_full_count(
-        self,
-    ) -> None:
-        org = self.create_organization()
-        configured_project = self.create_project(organization=org)
-        unconfigured_project = self.create_project(organization=org)
-        org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
-        configured_project.update_option("sentry:target_sample_rate", 0.2)
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
-        project_volumes = [
-            _project_volume(configured_project.id),
-            _project_volume(unconfigured_project.id),
-        ]
-
-        with (
-            self.feature("organizations:dynamic-sampling-custom"),
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
-                return_value=org_volume,
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
-                return_value=project_volumes,
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
-                return_value=[],
-            ),
-            patch("sentry.dynamic_sampling.per_org.scheduler.emit_count") as emit_count,
-        ):
-            result = run_calculations_per_org_task(org.id)
-
-        assert result == DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
-        emit_count.assert_called_once_with(PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC, 1)
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_returns_no_volume_without_project_volumes(self) -> None:
