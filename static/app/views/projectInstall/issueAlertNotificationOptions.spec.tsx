@@ -5,6 +5,7 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 
 import {
   act,
+  cleanup,
   render,
   renderHookWithProviders,
   screen,
@@ -134,6 +135,9 @@ describe('useCreateNotificationAction', () => {
   }
 
   afterEach(() => {
+    // Unmount active queries before restoring focus to avoid triggering another refetch.
+    cleanup();
+    focusManager.setFocused(undefined);
     MockApiClient.clearMockResponses();
   });
 
