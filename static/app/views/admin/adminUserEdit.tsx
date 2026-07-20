@@ -107,13 +107,11 @@ function AdminUserEditForm({
     mutationFn: (data: UserUpdatePayload) =>
       fetchMutation<User>({url: userEndpoint, method: 'PUT', data}),
     onSuccess: response => {
-      // Update the detail cache so the breadcrumb reflects the new name without
-      // waiting for a refetch. The users list uses staleTime: 0, so it refreshes
-      // on its own when navigated back to.
       queryClient.setQueryData(userDetailsQueryOptions(user.id).queryKey, prev => ({
         json: response,
         headers: prev?.headers ?? {},
       }));
+      form.reset(toFormValues(response));
       addSuccessMessage(t('User account updated.'));
     },
     onError: error => {
@@ -165,11 +163,7 @@ function AdminUserEditForm({
     ...defaultFormOptions,
     defaultValues: toFormValues(user),
     validators: {onDynamic: schema},
-    onSubmit: ({value}) =>
-      updateMutation
-        .mutateAsync(value)
-        .then(() => form.reset(value))
-        .catch(() => {}),
+    onSubmit: ({value}) => updateMutation.mutateAsync(value).catch(() => {}),
   });
 
   return (
@@ -288,21 +282,12 @@ function AdminUserEdit() {
     refetch,
   } = useQuery({
     ...userDetailsQueryOptions(id),
-    // Seed from the users list cache as a temporary fallback so the breadcrumb
-    // has a name while the detail request loads. Unlike initialData, this isn't
-    // written to the cache, so the detail fetch always runs and the form only
-    // renders once authoritative data has loaded.
     placeholderData: () => {
-      const listQueries = queryClient.getQueriesData<ApiResponse<User[]>>({
-        queryKey: [getApiUrl('/users/')],
-      });
-      for (const [, data] of listQueries) {
-        const found = data?.json.find(candidate => candidate.id === id);
-        if (found) {
-          return {json: found, headers: {}};
-        }
-      }
-      return;
+      const found = queryClient
+        .getQueriesData<ApiResponse<User[]>>({queryKey: [getApiUrl('/users/')]})
+        .flatMap(([, data]) => data?.json ?? [])
+        .find(candidate => candidate.id === id);
+      return found ? {json: found, headers: {}} : undefined;
     },
   });
 
@@ -310,8 +295,7 @@ function AdminUserEdit() {
 
   return (
     <Fragment>
-      {/* Fall back to the placeholder user's name until the detail loads. */}
-      {user && <BreadcrumbTitle title={user.name || user.email} />}
+      <BreadcrumbTitle title={user ? user.name || user.email : t('Details')} />
       {isLoading || isPlaceholderData ? (
         <LoadingIndicator />
       ) : isError && !notFound ? (
