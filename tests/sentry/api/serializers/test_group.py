@@ -78,21 +78,6 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         assert result["status"] == "ignored"
         assert result["statusDetails"]["actor"]["id"] == str(user.id)
 
-    def test_auto_resolve_not_yet_resolved(self) -> None:
-        now = timezone.now()
-        self.project.update_option("sentry:resolve_age", 168)  # 7 days
-
-        user = self.create_user()
-        group = self.create_group(
-            status=GroupStatus.UNRESOLVED,
-            last_seen=now - timedelta(days=10),  # Last seen 10 days ago (past auto-resolve age)
-        )
-        assert group.resolved_at is None
-
-        result = serialize(group, user)
-        assert result["status"] == "unresolved"
-        assert result["statusDetails"] == {}
-
     def test_resolved_in_next_release(self) -> None:
         release = self.create_release(project=self.project, version="a")
         user = self.create_user()

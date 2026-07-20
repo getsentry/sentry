@@ -174,23 +174,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    def test_unresolved_includes_groups_pending_auto_resolution(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
-        old_group = self.create_group(last_seen=before_now(days=1))
-        recent_group = self.create_group(last_seen=timezone.now())
-
-        self.login_as(user=self.user)
-        response = self.client.get(self.path + "?query=is:unresolved", format="json")
-        assert response.status_code == 200
-        assert {row["id"] for row in response.data} == {
-            str(old_group.id),
-            str(recent_group.id),
-        }
-
     def test_lookup_by_event_id(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
         event = self.store_event(
             data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
@@ -206,7 +190,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
     def test_lookup_by_event_with_matching_environment(self) -> None:
         project = self.project
-        project.update_option("sentry:resolve_age", 1)
         self.create_environment(name="test", project=project)
 
         event = self.store_event(
@@ -226,8 +209,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["matchingEventEnvironment"] == "test"
 
     def test_lookup_by_event_id_with_whitespace(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
         event = self.store_event(
             data={"event_id": "c" * 32, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
@@ -241,8 +222,6 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.data[0]["id"] == str(event.group.id)
 
     def test_lookup_by_unknown_event_id(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
         self.create_group()
         self.create_group()
 

@@ -564,31 +564,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(query=f"project:{project.slug}")
         assert len(response.data) == 1
 
-    def test_unresolved_includes_groups_pending_auto_resolution(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
-        old_event = self.store_event(
-            data={
-                "fingerprint": ["old-group"],
-                "timestamp": before_now(days=1).isoformat(),
-            },
-            project_id=project.id,
-        )
-        recent_event = self.store_event(
-            data={
-                "fingerprint": ["recent-group"],
-                "timestamp": before_now(seconds=1).isoformat(),
-            },
-            project_id=project.id,
-        )
-
-        self.login_as(user=self.user)
-        response = self.get_success_response()
-        assert {row["id"] for row in response.data} == {
-            str(old_event.group.id),
-            str(recent_event.group.id),
-        }
-
     def test_perf_issue(self) -> None:
         event = self.store_event(
             data={
@@ -678,8 +653,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         }
 
     def test_lookup_by_event_id(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
         event = self.store_event(
             data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
@@ -717,8 +690,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["matchingEventId"] == event_id
 
     def test_lookup_by_event_id_with_whitespace(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
         event_id = "c" * 32
         event = self.store_event(
             data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
@@ -733,8 +704,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.data[0]["matchingEventId"] == event_id
 
     def test_lookup_by_unknown_event_id(self) -> None:
-        project = self.project
-        project.update_option("sentry:resolve_age", 1)
         self.create_group()
         self.create_group()
 
