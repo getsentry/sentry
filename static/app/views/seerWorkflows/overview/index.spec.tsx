@@ -181,8 +181,12 @@ describe('AutofixOverview', () => {
     const indicator = screen.getByRole('img', {
       name: 'Autofix progress: 4 of 5 steps — PR opened',
     });
+    // The ring carries the steps-remaining count…
+    expect(indicator).toHaveTextContent('1');
+    // …and its tooltip spells the count out above the checklist.
     await userEvent.hover(indicator);
-    expect(await screen.findByText('✓ Root cause')).toBeInTheDocument();
+    expect(await screen.findByText('1 step until issue fix')).toBeInTheDocument();
+    expect(screen.getByText('✓ Root cause')).toBeInTheDocument();
     expect(screen.getByText('✓ PR opened')).toBeInTheDocument();
     expect(screen.getByText('○ Merged')).toBeInTheDocument();
 
@@ -415,10 +419,14 @@ describe('AutofixOverview', () => {
     expect(await screen.findByText('Merged')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Review PR'})).not.toBeInTheDocument();
 
-    // The step indicator renders its terminal all-success state.
-    expect(
-      screen.getByRole('img', {name: 'Autofix progress: 5 of 5 steps — PR merged'})
-    ).toBeInTheDocument();
+    // The step indicator renders its terminal all-success state: checkmark
+    // only, no steps-remaining digit, and the tooltip leads with the verdict.
+    const indicator = screen.getByRole('img', {
+      name: 'Autofix progress: 5 of 5 steps — PR merged',
+    });
+    expect(indicator).not.toHaveTextContent(/\d/);
+    await userEvent.hover(indicator);
+    expect(await screen.findByText('Issue fixed')).toBeInTheDocument();
 
     // The Merged PRs stat card is live and counts the row.
     const mergedCard = screen.getByRole('button', {name: /Merged PRs/});
@@ -600,11 +608,10 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    expect(
-      await screen.findByRole('img', {
-        name: 'Autofix progress: 2 of 5 steps — Plan (Errored)',
-      })
-    ).toBeInTheDocument();
+    const indicator = await screen.findByRole('img', {
+      name: 'Autofix progress: 2 of 5 steps — Plan (Errored)',
+    });
+    expect(indicator).toHaveTextContent('3');
   });
 
   it('normalizes space-less • bullets into a markdown list', async () => {

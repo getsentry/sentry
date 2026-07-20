@@ -1,4 +1,4 @@
-import {keyframes, useTheme} from '@emotion/react';
+import {css, keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -7,7 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ProgressRing} from 'sentry/components/progressRing';
 import {IconCircleCheckmark} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 
 import type {AutofixOutcome, OverviewRow} from './types';
 
@@ -29,7 +29,7 @@ const STEP_LABELS: Record<AutofixOutcome, string> = {
 // glyph is a ring filled in fifths (the pie icons only come in quarters,
 // which would misread PR-opened as done). The checkmark is reserved for
 // the merged PR and sized to match the ring.
-const RING_SIZE = 18;
+const RING_SIZE = 20;
 const RING_BAR_WIDTH = 2.5;
 const TOTAL_STEPS = STEP_ORDER.length + 1;
 
@@ -57,16 +57,25 @@ function deriveStatus(row: OverviewRow): {
 function StepChecklist({
   fill,
   merged,
+  remaining,
   statusWord,
   variant,
 }: {
   fill: number;
   merged: boolean;
+  remaining: number;
   statusWord: string | undefined;
   variant: IndicatorVariant;
 }) {
   return (
     <Stack gap="2xs" align="stretch">
+      {/* Headline: how close this issue is to fixed, matching the count
+          shown inside the ring */}
+      <Text size="xs" bold variant={merged ? 'success' : variant} align="left">
+        {merged
+          ? t('Issue fixed')
+          : tn('%s step until issue fix', '%s steps until issue fix', remaining)}
+      </Text>
       {STEP_ORDER.map((step, index) => {
         const label = STEP_LABELS[step];
         if (index === fill - 1 && statusWord && !merged) {
@@ -162,6 +171,7 @@ export function StepIndicator({row}: {row: OverviewRow}) {
         : t('Autofix progress: %s of 5 steps — %s', fill, stepLabel)
       : t('Autofix progress: no steps completed');
 
+  const remaining = TOTAL_STEPS - fill;
   const ring = (
     <ProgressRing
       value={fill}
@@ -170,6 +180,14 @@ export function StepIndicator({row}: {row: OverviewRow}) {
       barWidth={RING_BAR_WIDTH}
       progressColor={ringColor}
       progressEndcaps="round"
+      // Steps left until the fix is merged — the tooltip headline spells it
+      // out. An untouched ring stays empty rather than shouting "5".
+      text={fill > 0 ? remaining : undefined}
+      textCss={() => css`
+        font-size: 9px;
+        font-weight: bold;
+        color: ${ringColor};
+      `}
       aria-hidden
     />
   );
@@ -180,6 +198,7 @@ export function StepIndicator({row}: {row: OverviewRow}) {
         <StepChecklist
           fill={fill}
           merged={row.prMerged}
+          remaining={remaining}
           statusWord={statusWord}
           variant={variant}
         />
