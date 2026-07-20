@@ -203,5 +203,6 @@ class DatadogIntegrationProviderTest(IntegrationTestCase):
     def test_provider_is_single_install_and_flagged(self) -> None:
         provider = self.provider()
         assert provider.key == "datadog"
+        assert provider.name == "Datadog (Seer)"
         assert provider.allow_multiple is False
         assert provider.requires_feature_flag is True
