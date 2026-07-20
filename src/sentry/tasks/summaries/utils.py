@@ -430,10 +430,26 @@ def fetch_key_performance_issues(ctx: OrganizationReportContext):
         ]
 
 
-def project_event_counts_for_organization(start, end, ctx, referrer: str) -> list[dict[str, Any]]:
+def project_event_counts_for_organization(
+    start, end, ctx, referrer: str, project_ids: Sequence[int] | None = None
+) -> list[dict[str, Any]]:
     """
     Populates context.projects which is { project_id: ProjectContext }
     """
+
+    where = [
+        Condition(Column("timestamp"), Op.GTE, start),
+        Condition(Column("timestamp"), Op.LT, end),
+        Condition(Column("org_id"), Op.EQ, ctx.organization.id),
+        Condition(Column("outcome"), Op.EQ, Outcome.ACCEPTED),
+        Condition(
+            Column("category"),
+            Op.IN,
+            [*DataCategory.error_categories()],
+        ),
+    ]
+    if project_ids:
+        where.append(Condition(Column("project_id"), Op.IN, project_ids))
 
     query = Query(
         match=Entity("outcomes"),
@@ -442,17 +458,7 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
             Column("category"),
             Function("sum", [Column("quantity")], "total"),
         ],
-        where=[
-            Condition(Column("timestamp"), Op.GTE, start),
-            Condition(Column("timestamp"), Op.LT, end),
-            Condition(Column("org_id"), Op.EQ, ctx.organization.id),
-            Condition(Column("outcome"), Op.EQ, Outcome.ACCEPTED),
-            Condition(
-                Column("category"),
-                Op.IN,
-                [*DataCategory.error_categories()],
-            ),
-        ],
+        where=where,
         groupby=[Column("outcome"), Column("category"), Column("project_id"), Column("time")],
         granularity=Granularity(ONE_DAY),
         orderby=[OrderBy(Column("time"), Direction.ASC)],
