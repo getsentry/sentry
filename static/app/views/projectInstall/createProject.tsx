@@ -530,7 +530,10 @@ export function CreateProject() {
                   option: optionMap[value as number] ?? String(value),
                   variant: 'legacy',
                 });
-              } else {
+              } else if (
+                (field === 'threshold' || field === 'metric' || field === 'interval') &&
+                formData.alertRule?.alertSetting === RuleAction.CUSTOMIZED_ALERTS
+              ) {
                 trackAnalytics('project_creation.alert_threshold_edited', {
                   organization,
                   field,

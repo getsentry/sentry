@@ -783,6 +783,30 @@ describe('CreateProject', () => {
       );
     });
 
+    it('does not fire alert_threshold_edited unless custom alerts are selected', async () => {
+      renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+      const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+
+      render(<CreateProject />, {organization});
+
+      // Default is high-priority. Metric/interval Selects stay interactive while
+      // the custom radio is unselected (their wrappers call preventDefault), so
+      // an edit must not count as a custom-threshold change.
+      await selectEvent.select(screen.getByText('occurrences of'), /users affected/);
+
+      expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+        'project_creation.alert_threshold_edited',
+        expect.anything()
+      );
+      expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+        'project_creation.project_details_alert_selected',
+        expect.objectContaining({option: 'custom'})
+      );
+    });
+
     it('should disable submit button when channel validation fails and integration is selected', async () => {
       renderFrameworkModalMockRequests({
         organization,

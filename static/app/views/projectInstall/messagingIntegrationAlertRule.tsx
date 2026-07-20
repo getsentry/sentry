@@ -47,8 +47,8 @@ export function useMessagingIntegrationAlertRule(
     setProvider,
     providersToIntegrations,
   }: IssueAlertNotificationProps,
-  // Project-creation SCM/legacy split for the change events (VDY-133 §7.5).
-  // When undefined (e.g. the alerts rule-creation flow), no analytics fire.
+  // For project creation, `variant` identifies the SCM or legacy experience.
+  // Other flows leave it undefined and do not emit these change events.
   variant?: 'scm' | 'legacy'
 ) {
   const organization = useOrganization();
@@ -169,6 +169,12 @@ export function useMessagingIntegrationAlertRule(
     },
     onCreateChannel: (newOption: string) => {
       setChannel({value: newOption, label: newOption, new: true});
+      if (variant) {
+        trackAnalytics('project_creation.notify_channel_changed', {
+          organization,
+          variant,
+        });
+      }
     },
   };
 }
