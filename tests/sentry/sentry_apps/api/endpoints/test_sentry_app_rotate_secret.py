@@ -90,6 +90,21 @@ class SentryAppRotateSecretTest(APITestCase):
         assert len(new_secret) == len(old_secret)
         assert new_secret != old_secret
 
+    def test_owner_can_rotate_secret_with_token_only_scopes(self) -> None:
+        # Regression test for #92019's scope check after #113394 made org:ci token-only.
+        self.sentry_app.update(scope_list=("org:ci", "project:distribution"))
+        self.login_as(self.user)
+        assert self.sentry_app.application is not None
+        old_secret = self.sentry_app.application.client_secret
+        assert old_secret is not None
+
+        response = self.client.post(self.url)
+
+        assert response.status_code == 200
+        new_secret = response.data["clientSecret"]
+        assert len(new_secret) == len(old_secret)
+        assert new_secret != old_secret
+
     def test_superuser_has_access(self) -> None:
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
