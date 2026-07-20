@@ -6,31 +6,45 @@ import {
   formatQueryToNaturalLanguage,
   generateQueryTokensString,
   getExpandedProjectIds,
+  parseNaturalLanguageToQuery,
   resolveSeerProjectSelection,
 } from './utils';
 
-describe('getExpandedProjectIds', () => {
-  it.each([null, undefined, []])('returns undefined when projects is %s', input => {
-    expect(getExpandedProjectIds(input, [1, 2])).toBeUndefined();
-  });
+// A realistic key predicate for the parse tests.
+const KNOWN_KEYS = new Set([
+  'is',
+  'assigned',
+  'browser',
+  'browser.name',
+  'event.type',
+  'error.type',
+  'count()',
+  'transaction.duration',
+  'release',
+]);
+const isKey = (key: string) => KNOWN_KEYS.has(key);
 
+describe('getExpandedProjectIds', () => {
   it.each([
+    {returned: null, selected: [1, 2]},
+    {returned: undefined, selected: [1, 2]},
+    {returned: [], selected: [1, 2]},
     {returned: [1, 2], selected: [1, 2]},
     {returned: [1], selected: [1, 2]},
   ])(
-    'returns undefined when returned $returned does not exceed selection $selected',
+    'returns undefined when $returned does not expand beyond $selected',
     ({returned, selected}) => {
       expect(getExpandedProjectIds(returned, selected)).toBeUndefined();
     }
   );
 
   it.each([
-    {returned: [1, 2, 3], selected: [1, 2], expected: [1, 2, 3]},
-    {returned: [5], selected: [], expected: [5]},
+    {returned: [1, 2, 3], selected: [1, 2]},
+    {returned: [5], selected: []},
   ])(
-    'returns $returned when it includes projects beyond the selection',
-    ({returned, selected, expected}) => {
-      expect(getExpandedProjectIds(returned, selected)).toEqual(expected);
+    'returns $returned when it includes projects beyond $selected',
+    ({returned, selected}) => {
+      expect(getExpandedProjectIds(returned, selected)).toEqual(returned);
     }
   );
 });
@@ -198,5 +212,83 @@ describe('formatQueryToNaturalLanguage', () => {
     },
   ])('formats $query as $expected', ({query, expected}) => {
     expect(formatQueryToNaturalLanguage(query)).toBe(expected);
+  });
+});
+
+// parseNaturalLanguageToQuery is the inverse of formatQueryToNaturalLanguage.
+describe('parseNaturalLanguageToQuery', () => {
+  it.each([
+    ['is broken', 'is:broken'],
+    ['count() > 100', 'count():>100'],
+    ['count() < 100', 'count():<100'],
+    ['count() >= 100', 'count():>=100'],
+    ['count() <= 100', 'count():<=100'],
+    ['count() is greater than or equal to 100', 'count():>=100'],
+    ['count() is less than or equal to 5', 'count():<=5'],
+    ['browser.name contains chrome', `browser.name:${WildcardOperators.CONTAINS}chrome`],
+    ['browser.name starts with Chr', `browser.name:${WildcardOperators.STARTS_WITH}Chr`],
+    ['browser.name ends with ome', `browser.name:${WildcardOperators.ENDS_WITH}ome`],
+    [
+      'browser.name does not contain chrome',
+      `!browser.name:${WildcardOperators.CONTAINS}chrome`,
+    ],
+    [
+      'browser.name does not start with Chr',
+      `!browser.name:${WildcardOperators.STARTS_WITH}Chr`,
+    ],
+    [
+      'browser.name does not end with ome',
+      `!browser.name:${WildcardOperators.ENDS_WITH}ome`,
+    ],
+    [
+      'event.type is error, browser.name contains chrome',
+      `event.type:error browser.name:${WildcardOperators.CONTAINS}chrome`,
+    ],
+  ])('parses "%s" -> "%s"', (input, expected) => {
+    expect(parseNaturalLanguageToQuery(input, isKey)).toBe(expected);
+  });
+
+  it.each([
+    // no filter shape anywhere; prose `is` is not the status key
+    'database connection timeout',
+    'the build is broken',
+    // free text before the first filter -> the whole input is prose
+    'hello event.type is error',
+    // a known key not followed by an operator phrase
+    'browser.name chrome',
+    // mid-typing a longer comparator phrase: must not fire the shorter prefix
+    // ("is greater than") and consume "or" as the value -> count():>or
+    'count() is greater than or equal',
+  ])('returns null for "%s"', input => {
+    expect(parseNaturalLanguageToQuery(input, isKey)).toBeNull();
+  });
+
+  it.each([
+    'is:unresolved',
+    '!is:resolved',
+    'is:unresolved assigned:me',
+    'is:unresolved something',
+    'browser:chrome',
+    '!browser:chrome',
+    'count():>100',
+    'count():>=100',
+    'count():<100',
+    'count():<=100',
+    '!count():>2',
+    'transaction.duration:>500',
+    'release:"a big release"',
+    'browser:[chrome, firefox]',
+    'browser:[chrome,firefox]',
+    // Wildcards now round-trip: parse emits the same TermOperator markers that
+    // formatWildcardToken reads back.
+    `browser.name:${WildcardOperators.CONTAINS}chrome`,
+    `browser.name:${WildcardOperators.STARTS_WITH}Chr`,
+    `browser.name:${WildcardOperators.ENDS_WITH}ome`,
+    `!browser.name:${WildcardOperators.CONTAINS}chrome`,
+    'event.type:error error.type:ApiError',
+    'event.type:error error.type:ApiError OR browser:chrome AND code',
+  ])('"%s" survives format -> parse', esq => {
+    const humanized = formatQueryToNaturalLanguage(esq);
+    expect(parseNaturalLanguageToQuery(humanized, isKey)).toBe(esq);
   });
 });
