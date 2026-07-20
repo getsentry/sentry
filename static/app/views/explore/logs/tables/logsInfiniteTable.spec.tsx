@@ -399,7 +399,7 @@ describe('LogsInfiniteTable', () => {
 
     expect(
       await screen.findByText(
-        'Your organization has had a lot of activity. Please wait a moment and then try again.'
+        'Your organization has had a lot of activity. Wait a few seconds and then try again.'
       )
     ).toBeInTheDocument();
 
