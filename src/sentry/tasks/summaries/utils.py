@@ -747,14 +747,13 @@ def organization_top_spans(
 
     for row in result.get("data", []):
         span_name = row.get("span.name", "")
-        if not span_name:
+        project_id = row.get("project.id")
+        if not span_name or not project_id:
             continue
         if span_name not in ctx.top_spans_projects:
             if len(ctx.top_spans) >= TOP_SPANS_LIMIT:
                 break
-            project_id = row.get("project.id")
-            if project_id:
-                ctx.top_spans_projects[span_name] = int(project_id)
+            ctx.top_spans_projects[span_name] = int(project_id)
             ctx.top_spans.append(
                 {
                     "name": span_name,
