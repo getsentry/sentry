@@ -23,6 +23,7 @@ import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 export const LOGS_GRID_BODY_ROW_HEIGHT = GRID_BODY_ROW_HEIGHT - 16;
 
 interface LogTableRowProps {
+  error?: boolean;
   highlighted?: boolean;
   isClickable?: boolean;
   pinned?: boolean;
@@ -72,6 +73,19 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
 
         &:hover {
           background-color: ${p.theme.tokens.background.transparent.warning.muted};
+        }
+      }
+    `}
+
+  ${p =>
+    p.error &&
+    css`
+      &:not(thead > &) {
+        background-color: ${p.theme.tokens.background.transparent.danger.muted};
+        color: ${p.theme.tokens.content.danger};
+
+        &:hover {
+          background-color: ${p.theme.tokens.background.transparent.danger.muted};
         }
       }
     `}
@@ -164,10 +178,14 @@ export const LogTableBodyCell = styled(TableBodyCell)<{reservePinGutter?: boolea
 
 export const LogErrorLabelCell = styled(LogTableBodyCell)`
   grid-column: 2 / -1;
-  align-items: center;
+  align-items: flex-start;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  &:last-child {
+    padding: 2px 0 2px ${p => p.theme.space['2xl']};
+  }
 `;
 
 function ContentsTable(props: React.ComponentProps<typeof Table>) {
@@ -603,4 +621,10 @@ export const TraceIconStyleWrapper = styled(Flex)`
     height: 12px;
     fill: #ffffff;
   }
+`;
+
+// The flame indicator is wider than the severity dot it replaces on log rows,
+// so pull the group left to line up the error row's project badge with them.
+export const ErrorRowIconGroup = styled(Flex)`
+  margin-left: -7px;
 `;

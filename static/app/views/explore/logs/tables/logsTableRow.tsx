@@ -87,6 +87,7 @@ import {
   DetailsWrapper,
   getLogColors,
   LogAttributeTreeWrapper,
+  ErrorRowIconGroup,
   LogDetailTableActionsButtonBar,
   LogDetailTableActionsCell,
   LogDetailTableBodyCell,
@@ -460,7 +461,8 @@ export const LogRowContent = memo(function LogRowContent({
         data-test-id="log-table-row"
         data-row-hover-linked={isHoverLinked}
         data-row-linked={isHighlighted}
-        highlighted={isPseudoRow || isErrorRow}
+        highlighted={isPseudoRow}
+        error={isErrorRow}
         pinned={isPinned}
         {...omit(rowInteractProps, 'className')}
         className={classNames(rowInteractProps.className, replayTimeClasses)}
@@ -495,7 +497,7 @@ export const LogRowContent = memo(function LogRowContent({
               <span className="log-table-row-chevron-button">{chevronIcon}</span>
             )}
             {isErrorRow ? (
-              <Flex align="center" justify="center" gap="sm">
+              <ErrorRowIconGroup align="center" gap="sm">
                 <TraceIconStyleWrapper>
                   <div className={`TraceIcon ${errorRow.level ?? 'error'}`}>
                     <TraceIcons.Icon event={errorRow} />
@@ -504,7 +506,7 @@ export const LogRowContent = memo(function LogRowContent({
                 {project ? (
                   <ProjectBadge project={project} avatarSize={12} hideName />
                 ) : null}
-              </Flex>
+              </ErrorRowIconGroup>
             ) : isPseudoRow ? (
               <Flex align="center" justify="center" gap="sm">
                 <TraceIconStyleWrapper>

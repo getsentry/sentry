@@ -113,7 +113,7 @@ describe('useTraceContextSections', () => {
     expect(result.current.hasMetrics).toBe(false);
   });
 
-  it('combines logs and errors and hides the waterfall when a trace has no spans', () => {
+  it('shows the waterfall for a trace with errors and logs but no spans', () => {
     const {result} = renderHook(() =>
       useTraceContextSections({
         tree: makeTree(),
@@ -124,21 +124,6 @@ describe('useTraceContextSections', () => {
     );
 
     expect(result.current.hasLogs).toBe(true);
-    expect(result.current.combineLogsAndErrors).toBe(true);
-    expect(result.current.hasTraceEvents).toBe(false);
-  });
-
-  it('does not combine logs and errors when a trace has spans', () => {
-    const {result} = renderHook(() =>
-      useTraceContextSections({
-        tree: makeTree(),
-        logs: undefined,
-        metrics: undefined,
-        meta: makeEapMeta({logsCount: 2, errorsCount: 3, spansCount: 4}),
-      })
-    );
-
-    expect(result.current.combineLogsAndErrors).toBe(false);
     expect(result.current.hasTraceEvents).toBe(true);
   });
 

@@ -52,26 +52,15 @@ export function useTraceContextSections({
   const hasAiSpans =
     (getTraceMetaAiSpanCount(meta) ?? 0) > 0 || !!tree.root.findChild(getIsAiNode);
 
-  const spanCount = getTraceMetaSpanCount(meta) ?? 0;
-  const transactionCount = getTraceMetaTransactionCount(meta) ?? 0;
-
   const traceEventCount =
-    spanCount +
+    (getTraceMetaSpanCount(meta) ?? 0) +
     (getTraceMetaErrorCount(meta) ?? 0) +
     (getTraceMetaPerformanceIssueCount(meta) ?? 0) +
-    transactionCount +
+    (getTraceMetaTransactionCount(meta) ?? 0) +
     (getTraceMetaUptimeCount(meta) ?? 0);
 
-  // When a trace has no spans/transactions, errors and logs render together in a
-  // single logs table instead of splitting across the Waterfall and Logs tabs.
-  const combineLogsAndErrors =
-    hasLogs && meta !== undefined && spanCount === 0 && transactionCount === 0;
-
-  const hasTraceEvents = combineLogsAndErrors
-    ? false
-    : meta === undefined
-      ? !hasOnlyLogs
-      : traceEventCount > 0 || !hasOnlyLogs;
+  const hasTraceEvents =
+    meta === undefined ? !hasOnlyLogs : traceEventCount > 0 || !hasOnlyLogs;
 
   return useMemo(
     () => ({
@@ -81,16 +70,7 @@ export function useTraceContextSections({
       hasVitals,
       hasAiSpans,
       hasMetrics,
-      combineLogsAndErrors,
     }),
-    [
-      hasProfiles,
-      hasTraceEvents,
-      hasLogs,
-      hasVitals,
-      hasAiSpans,
-      hasMetrics,
-      combineLogsAndErrors,
-    ]
+    [hasProfiles, hasTraceEvents, hasLogs, hasVitals, hasAiSpans, hasMetrics]
   );
 }

@@ -167,7 +167,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     traceId: traceSlug,
   });
 
-  const {tabOptions, currentTab, onTabChange, combineLogsAndErrors} = useTraceLayoutTabs({
+  const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
     isLoading: meta.status === 'pending' || tree.type === 'loading',
     tree,
     logs: logsData,
@@ -179,15 +179,13 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
 
   const traceErrors = useMemo(
     () =>
-      combineLogsAndErrors
-        ? tree.list.reduce<TraceTree.TraceErrorIssue[]>((acc, node) => {
-            if (node instanceof ErrorNode) {
-              acc.push(node.value);
-            }
-            return acc;
-          }, [])
-        : [],
-    [combineLogsAndErrors, tree.list]
+      tree.list.reduce<TraceTree.TraceErrorIssue[]>((acc, node) => {
+        if (node instanceof ErrorNode) {
+          acc.push(node.value);
+        }
+        return acc;
+      }, []),
+    [tree.list]
   );
 
   // Push trace metadata into the LLM context tree for Seer Explorer.
@@ -246,7 +244,6 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
                 tabOptions,
                 currentTab,
                 onTabChange,
-                combineLogsAndErrors,
               }}
               rootEventResults={rootEventResults}
               tree={tree}
