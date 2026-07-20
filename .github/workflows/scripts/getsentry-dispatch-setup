@@ -6,6 +6,11 @@ import urllib.parse
 import urllib.request
 
 LABEL = "Trigger: getsentry tests"
+SENTRY_BOT = "sentry[bot]"
+
+
+def _is_authorized(username: str, *, has_write: bool) -> bool:
+    return has_write or username == SENTRY_BOT
 
 
 def _has_write(repo_id: int, username: str, *, token: str) -> bool:
@@ -40,9 +45,11 @@ def main() -> int:
     token = os.environ["GITHUB_TOKEN"]
 
     write_permission = _has_write(args.repo_id, args.username, token=token)
+    trusted_automation = args.username == SENTRY_BOT
+    authorized = _is_authorized(args.username, has_write=write_permission)
 
     if (
-        not write_permission
+        not authorized
         # `reopened` is included here due to close => push => reopen
         and args.event in {"synchronize", "reopened"}
         and LABEL in args.label_names
@@ -51,14 +58,16 @@ def main() -> int:
         _remove_label(args.repo_id, args.pr, LABEL, token=token)
         args.label_names.remove(LABEL)
 
-    if write_permission or LABEL in args.label_names:
+    if authorized or LABEL in args.label_names:
         print("permissions passed!")
         print(f"- has write permission: {write_permission}")
+        print(f"- is trusted automation: {trusted_automation}")
         print(f"- has [{LABEL}] label: {LABEL in args.label_names}")
         return 0
     else:
         print("permissions failed!")
         print(f"- has write permission: {write_permission}")
+        print(f"- is trusted automation: {trusted_automation}")
         print(f"- has [{LABEL}] label: {LABEL in args.label_names}")
         print(f"- args.label_names: {args.label_names}")
         print(
