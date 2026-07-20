@@ -19,10 +19,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
-import {
-  modifyFilterOperatorQuery,
-  modifyFilterValue,
-} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
+import {modifyFilterValue} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
 import {
   escapeTagValueForSearch,
@@ -39,6 +36,7 @@ import {
 import {TermOperator} from 'sentry/components/searchSyntax/parser';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {emptyValue, EMPTY_VALUE_LABEL} from 'sentry/utils/discover/emptyFieldValues';
 import {prettifyTagKey} from 'sentry/utils/fields';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -46,9 +44,14 @@ import {type SearchBarData} from 'sentry/views/dashboards/datasetConfig/base';
 import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {FilterSelectorTrigger} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
 import {
-  getFieldDefinitionForDataset,
+  buildNoValueFilterQuery,
+  deriveFilterState,
   getFilterToken,
+  NO_VALUE_SENTINEL,
+  NO_VALUE_SUPPORTED_OPERATORS,
+  operatorFromNoValueToken,
   parseFilterValue,
+  stripUnsupportedNoValue,
 } from 'sentry/views/dashboards/globalFilter/utils';
 import {WidgetType, type GlobalFilter} from 'sentry/views/dashboards/types';
 import {
@@ -77,40 +80,50 @@ export function FilterSelector({
   // Ref to break the circular dependency: options need toggleOption, but toggleOption
   // comes from useStagedCompactSelect which depends on options.
   const toggleOptionRef = useRef<((val: string) => void) | undefined>(undefined);
+  const stagedValueRef = useRef<string[]>([]);
 
-  const {fieldDefinition, filterToken} = useMemo(() => {
-    const fieldDef = getFieldDefinitionForDataset(globalFilter.tag, globalFilter.dataset);
-    return {
-      fieldDefinition: fieldDef,
-      filterToken: getFilterToken(globalFilter, fieldDef),
-    };
-  }, [globalFilter]);
+  const {fieldDefinition, filterToken, noValueToken} = useMemo(
+    () => deriveFilterState(globalFilter),
+    [globalFilter]
+  );
 
-  // Get initial selected values from the filter token
+  // Effectively a filter token with a fallback to an empty placeholder when the filterToken is empty/has 'no value'.
+  const pickerToken = useMemo(
+    () => filterToken ?? getFilterToken({...globalFilter, value: ''}, fieldDefinition),
+    [filterToken, globalFilter, fieldDefinition]
+  );
+
+  // Get initial selected values from the tokens
   const initialValues = useMemo(() => {
-    if (!filterToken) {
-      return [];
-    }
-    const initialValue = globalFilter.value
-      ? getInitialInputValue(filterToken, true)
-      : '';
-    const selectedValues = getSelectedValuesFromText(initialValue);
-    return selectedValues.map(item => item.value);
-  }, [filterToken, globalFilter.value]);
+    const initialValue = filterToken ? getInitialInputValue(filterToken, true) : '';
 
-  // Get operator info from the filter token
+    const selectedValues = getSelectedValuesFromText(initialValue);
+    const values = selectedValues.map(item => item.value);
+
+    if (noValueToken) {
+      values.push(NO_VALUE_SENTINEL);
+    }
+
+    return values;
+  }, [filterToken, noValueToken]);
+
+  // Get operator info from the picker or no value token
   const {initialOperator, operatorDropdownItems} = useMemo(() => {
-    if (!filterToken) {
+    if (!pickerToken) {
       return {
         initialOperator: TermOperator.DEFAULT,
         operatorDropdownItems: [],
       };
     }
 
-    const operatorInfo = getOperatorInfo({filterToken, fieldDefinition});
+    const operatorInfo = getOperatorInfo({filterToken: pickerToken, fieldDefinition});
+
+    // The "(no value)" token has no value, so you can't derive an operator from getOperatorInfo.
+    const noValueOperator =
+      !filterToken && noValueToken ? operatorFromNoValueToken(noValueToken) : undefined;
 
     return {
-      initialOperator: operatorInfo?.operator ?? TermOperator.DEFAULT,
+      initialOperator: noValueOperator ?? operatorInfo?.operator ?? TermOperator.DEFAULT,
       operatorDropdownItems: (operatorInfo?.options ?? []).map(option => ({
         ...option,
         key: option.value,
@@ -118,10 +131,17 @@ export function FilterSelector({
         textValue: option.textValue,
         onClick: () => {
           setStagedOperator(option.value);
+          // Deselect "(no value)" when switching to an unsupported operator.
+          if (
+            !NO_VALUE_SUPPORTED_OPERATORS.has(option.value) &&
+            stagedValueRef.current.includes(NO_VALUE_SENTINEL)
+          ) {
+            toggleOptionRef.current?.(NO_VALUE_SENTINEL);
+          }
         },
       })),
     };
-  }, [filterToken, fieldDefinition]);
+  }, [pickerToken, filterToken, noValueToken, fieldDefinition]);
 
   const [stagedOperator, setStagedOperator] = useState(initialOperator);
   const [activeFilterValues, setActiveFilterValues] = useState(initialValues);
@@ -133,27 +153,36 @@ export function FilterSelector({
     setStagedFilterValues([]);
   }, [initialValues]);
 
+  /**
+   * Resync stagedOperator to the derived operator whenever the persisted
+   * filter changes, because a stored has:/!has: clause only reconstructs
+   * as is/is not — so the trigger must drop any stale contains/does not
+   * contain it can't actually persist.
+   */
+  useEffect(() => {
+    setStagedOperator(initialOperator);
+  }, [initialOperator]);
+
   // Retrieve full tag definition to check if it has predefined values
   const datasetFilterKeys = searchBarData.getFilterKeys();
   const fullTag = datasetFilterKeys[globalFilter.tag.key];
 
-  const canSelectMultipleValues = filterToken
-    ? tokenSupportsMultipleValues(filterToken, datasetFilterKeys, fieldDefinition)
+  const canSelectMultipleValues = pickerToken
+    ? tokenSupportsMultipleValues(pickerToken, datasetFilterKeys, fieldDefinition)
     : true;
 
   // Retrieve predefined values if the tag has any
   const predefinedValues = useMemo(() => {
-    if (!filterToken) {
+    if (!pickerToken) {
       return null;
     }
-    const filterValue = filterToken.value.text;
     return getPredefinedValues({
       key: fullTag,
-      filterValue,
-      token: filterToken,
+      filterValue: pickerToken.value.text,
+      token: pickerToken,
       fieldDefinition,
     });
-  }, [fullTag, filterToken, fieldDefinition]);
+  }, [fullTag, pickerToken, fieldDefinition]);
 
   // Only fetch values if the tag has no predefined values
   const shouldFetchValues = fullTag
@@ -200,13 +229,41 @@ export function FilterSelector({
   const {data: fetchedFilterValues, isFetching} = queryResult;
 
   const options = useMemo((): Array<SelectOption<string>> => {
+    const noValueOption: SelectOption<string> | null = NO_VALUE_SUPPORTED_OPERATORS.has(
+      stagedOperator
+    )
+      ? {
+          label: emptyValue,
+          textValue: EMPTY_VALUE_LABEL,
+          value: NO_VALUE_SENTINEL,
+          ...(canSelectMultipleValues
+            ? {
+                leadingItems: ({isSelected}: {isSelected: boolean}) => (
+                  <Checkbox
+                    checked={isSelected}
+                    onChange={() => toggleOptionRef.current?.(NO_VALUE_SENTINEL)}
+                    aria-label={t('Select %s', EMPTY_VALUE_LABEL)}
+                    tabIndex={-1}
+                  />
+                ),
+              }
+            : {}),
+        }
+      : null;
+
+    const prependNoValueOption = (
+      opts: Array<SelectOption<string>>
+    ): Array<SelectOption<string>> => (noValueOption ? [noValueOption, ...opts] : opts);
+
     if (predefinedValues && !canSelectMultipleValues) {
-      return predefinedValues.flatMap(section =>
-        section.suggestions.map(suggestion => ({
-          label: suggestion.value,
-          value: suggestion.value,
-        }))
+      const predefinedOptions: Array<SelectOption<string>> = predefinedValues.flatMap(
+        section =>
+          section.suggestions.map(suggestion => ({
+            label: suggestion.value,
+            value: suggestion.value,
+          }))
       );
+      return prependNoValueOption(predefinedOptions);
     }
 
     const optionMap = new Map<string, SelectOption<string>>();
@@ -243,8 +300,9 @@ export function FilterSelector({
       return map.set(value, option);
     };
 
-    // Filter values in the global filter
-    activeFilterValues.forEach(value => addOption(value, optionMap));
+    activeFilterValues
+      .filter(value => value !== NO_VALUE_SENTINEL)
+      .forEach(value => addOption(value, optionMap));
 
     // Predefined values
     predefinedValues?.forEach(suggestionSection => {
@@ -263,11 +321,11 @@ export function FilterSelector({
     }
     // Staged filter values inside the filter selector
     stagedFilterValues.forEach(value => {
-      if (!optionMap.has(value)) {
+      if (value !== NO_VALUE_SENTINEL && !optionMap.has(value)) {
         addOption(value, fixedOptionMap);
       }
     });
-    return [...Array.from(fixedOptionMap.values()), ...Array.from(optionMap.values())];
+    return prependNoValueOption([...fixedOptionMap.values(), ...optionMap.values()]);
   }, [
     fetchedFilterValues,
     predefinedValues,
@@ -276,15 +334,18 @@ export function FilterSelector({
     searchQuery,
     canSelectMultipleValues,
     globalFilter.tag.key,
+    stagedOperator,
   ]);
 
   const translatedOptions = translateKnownFilterOptions(options, globalFilter);
 
-  const handleChange = (opts: string[]) => {
+  const handleChange = (rawOpts: string[]) => {
+    const opts = stripUnsupportedNoValue(rawOpts, stagedOperator);
+
     if (isEqual(opts, activeFilterValues) && stagedOperator === initialOperator) {
       return;
     }
-    if (!filterToken) {
+    if (!pickerToken) {
       return;
     }
 
@@ -298,19 +359,33 @@ export function FilterSelector({
       return;
     }
 
-    let newValue = '';
-    if (opts.length !== 0) {
+    const includeNoValue = opts.includes(NO_VALUE_SENTINEL);
+    const valueOpts = opts.filter(opt => opt !== NO_VALUE_SENTINEL);
+
+    let valueQuery = '';
+    if (valueOpts.length > 0) {
       const cleanedValue = prepareInputValueForSaving(
-        getFilterValueType(filterToken, fieldDefinition),
-        opts.map(opt => escapeTagValueForSearch(opt, {allowArrayValue: false})).join(',')
+        getFilterValueType(pickerToken, fieldDefinition),
+        valueOpts
+          .map(opt => escapeTagValueForSearch(opt, {allowArrayValue: false}))
+          .join(',')
       );
-      newValue = modifyFilterValue(filterToken.text, filterToken, cleanedValue);
+      const isolatedToken = parseFilterValue(pickerToken.text, globalFilter)[0];
+      const valueToRewrite = isolatedToken ?? pickerToken;
+      // Always rebuild the token with the operator the UI is showing.
+      // The synthetic placeholder token used for "(no value)" defaults to the string
+      // CONTAINS wildcard, so patching only the value would leak that operator.
+      valueQuery = modifyFilterValue(
+        valueToRewrite.text,
+        valueToRewrite,
+        cleanedValue,
+        stagedOperator
+      );
     }
 
-    if (stagedOperator !== initialOperator) {
-      const newToken = parseFilterValue(newValue, globalFilter)[0] ?? filterToken;
-      newValue = modifyFilterOperatorQuery(newToken.text, newToken, stagedOperator);
-    }
+    const newValue = includeNoValue
+      ? buildNoValueFilterQuery(globalFilter.tag.key, stagedOperator, valueQuery)
+      : valueQuery;
 
     onUpdateFilter({
       ...globalFilter,
@@ -330,23 +405,28 @@ export function FilterSelector({
     hasExternalChanges: hasOperatorChanges,
   });
 
-  // Wire up toggleOptionRef after stagedSelect is created to break the circular
+  // Wire up refs after stagedSelect is created to break the circular
   // dependency between options (which need toggleOption) and useStagedCompactSelect
   // (which needs options).
   toggleOptionRef.current = stagedSelect.toggleOption;
+  stagedValueRef.current = stagedSelect.value;
 
   const {dispatch} = stagedSelect;
   const hasStagedChanges =
     xor(stagedSelect.value, activeFilterValues).length > 0 || hasOperatorChanges;
 
-  const renderFilterSelectorTrigger = (filterValues: string[]) => (
-    <FilterSelectorTrigger
-      globalFilter={globalFilter}
-      activeFilterValues={filterValues}
-      operator={stagedOperator}
-      options={translatedOptions}
-    />
-  );
+  const renderFilterSelectorTrigger = (filterValues: string[]) => {
+    const displayValues = stripUnsupportedNoValue(filterValues, stagedOperator);
+
+    return (
+      <FilterSelectorTrigger
+        globalFilter={globalFilter}
+        activeFilterValues={displayValues}
+        operator={stagedOperator}
+        options={translatedOptions}
+      />
+    );
+  };
 
   const loadingFooter = isFetching ? (
     <Flex justify="center" padding="xs">
