@@ -6,15 +6,19 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteAutofixRun,
     CheckSuiteFeedbackSource,
+    MissingCheckSuiteAutofixRun,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.queue import (
+    _parse_queued_item,
     peek_queued_autofix_feedback,
     try_enqueue_autofix_feedback,
 )
 from sentry.testutils.cases import TestCase
+from sentry.utils import json
 
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
+QUEUE_PATH = "sentry.seer.autofix.pr_iteration.queue"
 
 
 def _run_state(*, repo_pr_states=None) -> SeerRunState:
@@ -34,6 +38,7 @@ def _check_suite_event() -> dict:
             "head_sha": "abc",
             "check_runs_url": "https://github.com/owner/repo/check-runs",
             "app": {"name": "CI"},
+            "updated_at": "2024-01-01T00:00:00Z",
             "pull_requests": [{"id": 99}],
         },
         "repository": {
@@ -80,9 +85,7 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
             f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
             return_value=_autofix_run(),
         ):
-            feedback = Feedback(
-                source=CheckSuiteFeedbackSource(event=_check_suite_event(), check_run_ids=[101])
-            )
+            feedback = Feedback(source=CheckSuiteFeedbackSource(event=_check_suite_event()))
 
         assert self._enqueue(run_id=4343, feedback=feedback) is False
         assert peek_queued_autofix_feedback(4343) == []
@@ -97,11 +100,11 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
             f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
             return_value=autofix_run,
         ):
-            source = CheckSuiteFeedbackSource(event=_check_suite_event(), check_run_ids=[101])
+            source = CheckSuiteFeedbackSource(event=_check_suite_event())
             feedback = Feedback(source=source)
 
             assert "autofix_run" not in source.dict()
-            assert source.dict()["check_run_ids"] == [101]
+            assert source.event.check_suite.updated_at == "2024-01-01T00:00:00Z"
             source.json()
             feedback.json()
 
@@ -111,5 +114,34 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         assert len(queued) == 1
         assert isinstance(queued[0].feedback.source, CheckSuiteFeedbackSource)
         assert queued[0].feedback.source.event.check_suite.id == 1
-        assert queued[0].feedback.source.check_run_ids == [101]
+        assert queued[0].feedback.source.event.check_suite.updated_at == "2024-01-01T00:00:00Z"
         assert queued[0].feedback.source.autofix_run is autofix_run
+
+
+class ParseQueuedItemTest(TestCase):
+    @patch(f"{QUEUE_PATH}.sentry_sdk.capture_exception")
+    @patch(
+        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
+        return_value=None,
+    )
+    def test_missing_autofix_run_on_deserialize_is_loud(
+        self, _mock_resolve: MagicMock, mock_capture: MagicMock
+    ) -> None:
+        # Legacy Redis payload omitted autofix_run; resolve failure drops loudly.
+        raw = json.dumps(
+            {
+                "organization_id": self.organization.id,
+                "group_id": 1,
+                "feedback": {
+                    "source": {
+                        "type": "check-suite",
+                        "event": _check_suite_event(),
+                    }
+                },
+                "referrer": AutofixReferrer.GITHUB_CHECK_SUITE.value,
+            }
+        )
+
+        assert _parse_queued_item(raw) is None
+        mock_capture.assert_called_once()
+        assert isinstance(mock_capture.call_args.args[0], MissingCheckSuiteAutofixRun)

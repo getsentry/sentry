@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import sentry_sdk
 from pydantic import BaseModel, ValidationError
 
 from sentry.seer.agent.client_models import SeerRunState
@@ -67,8 +68,15 @@ def try_enqueue_autofix_feedback(
 def _parse_queued_item(raw_item: str) -> QueuedAutofixFeedback | None:
     try:
         return QueuedAutofixFeedback.parse_raw(raw_item)
-    except (ValidationError, ValueError, MissingCheckSuiteAutofixRun):
-        logger.warning("autofix.feedback_queue.skipped_unparseable_item")
+    except MissingCheckSuiteAutofixRun as e:
+        # Previously enqueued; resolve failure on deserialize is unexpected — drop loudly.
+        logger.exception("autofix.feedback_queue.skipped_unresolvable_item")
+        sentry_sdk.capture_exception(e)
+        return None
+    except (ValidationError, ValueError) as e:
+        # Previously enqueued; corrupt/unparseable payload is unexpected — drop loudly.
+        logger.exception("autofix.feedback_queue.skipped_unparseable_item")
+        sentry_sdk.capture_exception(e)
         return None
 
 

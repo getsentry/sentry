@@ -9,7 +9,7 @@ import sentry_sdk
 from pydantic import BaseModel, Field, root_validator
 from scm import actions as scm_actions
 from scm.helpers import iter_all_pages
-from scm.types import ListCheckRunsForRefProtocol, ListCheckRunsInCheckSuiteProtocol
+from scm.types import ListCheckRunsForRefProtocol
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
@@ -57,6 +57,9 @@ class GithubCheckSuite(BaseModel):
     check_runs_url: str
     app: GithubCheckSuiteApp
     conclusion: str | None = None
+    # GitHub bumps this on Actions re-runs while keeping the same suite id.
+    # Optional so legacy serialized feedback (pre-updated_at) still parses.
+    updated_at: str | None = None
     pull_requests: list[GithubCheckSuitePullRequest] = Field(default_factory=list)
 
     class Config:
@@ -234,83 +237,31 @@ def _check_suite_iteration_cap_reached(run_state: SeerRunState) -> bool:
     return True
 
 
-def resolve_check_suite_check_run_ids(
-    *, organization_id: int, repo_id: int, check_suite_id: int
-) -> list[int]:
-    """Latest check-run ids for this suite (new ids on GitHub Actions re-runs)."""
-    # Importing the SCM factory while feedback models are initialized pulls
-    # in integration handlers before Django finishes registering apps.
-    from sentry.scm.factory import new as make_scm
+def check_suite_attempt_key(source: CheckSuiteFeedbackSource) -> tuple[int, str] | int:
+    """Stable attempt key for check-suite consume / batch dedupe.
 
-    try:
-        scm = make_scm(organization_id, repo_id, referrer="seer")
-    except Exception:
-        logger.warning(
-            "autofix.pr_iteration.check_suite.check_run_ids.scm_init_failed",
-            extra={"organization_id": organization_id, "repo_id": repo_id},
-            exc_info=True,
-        )
-        return []
-
-    if not isinstance(scm, ListCheckRunsInCheckSuiteProtocol):
-        logger.warning(
-            "autofix.pr_iteration.check_suite.check_run_ids.unsupported_provider",
-            extra={"organization_id": organization_id, "repo_id": repo_id},
-        )
-        return []
-
-    ids: list[int] = []
-    try:
-        for page in iter_all_pages(
-            lambda pagination: scm_actions.list_check_runs_in_check_suite(
-                scm,
-                str(check_suite_id),
-                timestamp_filter="latest",
-                pagination=pagination,
-            )
-        ):
-            for run in page["data"]:
-                ids.append(int(run["id"]))
-    except Exception:
-        logger.warning(
-            "autofix.pr_iteration.check_suite.check_run_ids.fetch_failed",
-            extra={
-                "organization_id": organization_id,
-                "repo_id": repo_id,
-                "check_suite_id": check_suite_id,
-            },
-            exc_info=True,
-        )
-        return []
-
-    ids.sort()
-    return ids
+    Prefer ``(suite_id, updated_at)``: webhook retries share both; Actions
+    re-runs keep the suite id but bump ``updated_at``. Legacy feedback without
+    ``updated_at`` (and any leftover ``check_run_ids``, which we ignore) falls
+    back to suite-id-only.
+    """
+    suite = source.event.check_suite
+    if suite.updated_at:
+        return (suite.id, suite.updated_at)
+    return suite.id
 
 
-def _processed_check_run_ids(run_state: SeerRunState) -> set[int]:
-    """Check-run ids already turned into feedback on this run (for consume dedupe)."""
+def _processed_check_suite_attempts(run_state: SeerRunState) -> set[tuple[int, str] | int]:
+    """Attempt keys already turned into feedback on this run (for consume dedupe)."""
     from sentry.seer.autofix.autofix_agent import get_iterations
     from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import _blocks_feedback
 
-    ids: set[int] = set()
+    keys: set[tuple[int, str] | int] = set()
     for iteration in get_iterations(run_state):
         for item in _blocks_feedback(iteration.blocks):
-            if isinstance(item.source, CheckSuiteFeedbackSource) and item.source.check_run_ids:
-                ids.update(item.source.check_run_ids)
-    return ids
-
-
-def _processed_check_suite_ids(run_state: SeerRunState) -> set[int]:
-    """Legacy suite-id dedupe for feedback serialized before check_run_ids existed."""
-    from sentry.seer.autofix.autofix_agent import get_iterations
-    from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import _blocks_feedback
-
-    ids: set[int] = set()
-    for iteration in get_iterations(run_state):
-        for item in _blocks_feedback(iteration.blocks):
-            if isinstance(item.source, CheckSuiteFeedbackSource) and not item.source.check_run_ids:
-                ids.add(item.source.event.check_suite.id)
-    return ids
+            if isinstance(item.source, CheckSuiteFeedbackSource):
+                keys.add(check_suite_attempt_key(item.source))
+    return keys
 
 
 class CheckSuiteFeedbackSource(FeedbackSourceBase):
@@ -320,10 +271,6 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     # ``GithubPrCommentFeedbackSource.comment_feedback``).
     app_name: str = ""
     check_suite_url: str = ""
-    # Latest check-run ids for this suite attempt. Serialized (unlike autofix_run)
-    # so Redis / feedback metadata round-trips can dedupe re-runs without re-fetching.
-    # ``None`` means unset (fetch on validate); a list (including empty) is kept as-is.
-    check_run_ids: list[int] | None = None
     # Computed once at construct/parse (like app_name / check_suite_url).
     # Excluded so Redis / feedback metadata never JSON-encode Django/Seer objects.
     # Typed as Any so pydantic does not deep-validate the dataclass.
@@ -342,13 +289,6 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         if autofix_run is None:
             raise MissingCheckSuiteAutofixRun
         values["autofix_run"] = autofix_run
-        # Keep serialized ids on parse; fetch only when unset (fresh webhook construct).
-        if values.get("check_run_ids") is None:
-            values["check_run_ids"] = resolve_check_suite_check_run_ids(
-                organization_id=autofix_run.repository.organization_id,
-                repo_id=autofix_run.repository.id,
-                check_suite_id=event.check_suite.id,
-            )
         return values
 
     @property
@@ -413,14 +353,9 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
 
     def should_consume(self, run_state: SeerRunState) -> bool:
         head_sha, repo_name, matched = self._matches_current_head(run_state)
-        suite_id = self.event.check_suite.id
-        # Prefer check-run ids: GitHub Actions re-runs keep the suite id but mint
-        # new check-run ids. Fall back to suite id for legacy feedback without ids.
-        check_run_ids = self.check_run_ids or []
-        if check_run_ids:
-            already_processed = set(check_run_ids) <= _processed_check_run_ids(run_state)
-        else:
-            already_processed = suite_id in _processed_check_suite_ids(run_state)
+        suite = self.event.check_suite
+        attempt_key = check_suite_attempt_key(self)
+        already_processed = attempt_key in _processed_check_suite_attempts(run_state)
         logger.info(
             "autofix.pr_iteration.check_suite.should_consume.evaluated",
             extra={
@@ -428,8 +363,8 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
                 "head_sha": head_sha,
                 "repo_name": repo_name,
                 "matched": matched,
-                "check_suite_id": suite_id,
-                "check_run_ids": check_run_ids,
+                "check_suite_id": suite.id,
+                "updated_at": suite.updated_at,
                 "already_processed": already_processed,
                 "repo_pr_state_count": len(run_state.repo_pr_states),
             },
@@ -526,8 +461,8 @@ __all__ = (
     "GithubCheckSuitePullRequest",
     "GithubCheckSuiteRepository",
     "MissingCheckSuiteAutofixRun",
+    "check_suite_attempt_key",
     "get_check_suite_url",
     "resolve_check_suite_autofix_run",
-    "resolve_check_suite_check_run_ids",
     "resolve_check_suite_repositories",
 )

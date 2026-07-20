@@ -58,6 +58,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
                 "head_sha": "abc",
                 "check_runs_url": "https://github.com/owner/repo/check-runs",
                 "app": {"name": "CI"},
+                "updated_at": "2024-01-01T00:00:00Z",
                 "pull_requests": pull_requests or [],
             },
             "repository": {"html_url": "https://github.com/owner/repo"},
@@ -157,7 +158,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
     ) -> None:
-        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         mock_get_state.return_value = self._agent_state()
         raw = self._raw(pull_requests=[{"id": 555}])
 
@@ -176,7 +177,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
     ) -> None:
-        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         mock_get_state.return_value = self._agent_state()
         raw = self._raw(pull_requests=[{"id": 555}])
 
@@ -188,6 +189,12 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert kwargs["referrer"] == AutofixReferrer.GITHUB_CHECK_SUITE
         assert isinstance(kwargs["feedback"], Feedback)
         assert isinstance(kwargs["feedback"].source, CheckSuiteFeedbackSource)
+        assert kwargs["feedback"].source.event.check_suite.updated_at == "2024-01-01T00:00:00Z"
+        autofix = kwargs["feedback"].source.autofix_run
+        assert autofix is not None
+        assert autofix.repository.organization_id == self.organization.id
+        assert autofix.repository.id == 2
+        assert autofix.run_state is not None
         mock_trigger_consume.assert_called_once()
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.sentry_sdk.capture_exception")
@@ -205,7 +212,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     ) -> None:
         from sentry.seer.models import SeerApiError
 
-        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         error = SeerApiError("transient", 500)
         mock_get_state.side_effect = [error, self._agent_state()]
         raw = self._raw(pull_requests=[{"id": 111}, {"id": 222}])
@@ -273,13 +280,13 @@ def _check_suite_source() -> CheckSuiteFeedbackSource:
                     "head_sha": "abc",
                     "check_runs_url": "https://github.com/owner/repo/check-runs",
                     "app": {"name": "CI"},
+                    "updated_at": "2024-01-01T00:00:00Z",
                 },
                 "repository": {
                     "html_url": "https://github.com/owner/repo",
                     "full_name": "owner/repo",
                 },
             },
-            check_run_ids=[101],
         )
 
 
