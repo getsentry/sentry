@@ -47,7 +47,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEllipsis} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct, tctCode} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
+import {DataCategory, type PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -75,6 +75,7 @@ import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -1396,6 +1397,10 @@ function DiscoverPageFilters({
   isHomepage?: boolean;
 }) {
   const {projects} = useProjects();
+  // use the same data category as spans so the time period options across discover and traces are the same
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.ERRORS],
+  });
 
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
     location,
@@ -1431,7 +1436,7 @@ function DiscoverPageFilters({
       <PageFilterBar condensed>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
-        <DatePageFilter />
+        <DatePageFilter maxPickableDays={maxPickableDays.maxPickableDays} />
       </PageFilterBar>
       <Flex gap="md" align="center">
         {!shouldHideCreateAlert && (

@@ -14,6 +14,7 @@ import {
   AiQueryProvider,
   useAiQueryContext,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
+import {DataCategory} from 'sentry/types/dataCategory';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -21,6 +22,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -140,8 +142,14 @@ function Homepage() {
 }
 
 export default function HomepageContainer() {
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.ERRORS],
+  });
   return (
-    <PageFiltersContainer skipInitializeUrlParams>
+    <PageFiltersContainer
+      skipInitializeUrlParams
+      maxPickableDays={maxPickableDays.maxPickableDays}
+    >
       <AiQueryProvider>
         <Homepage />
       </AiQueryProvider>
