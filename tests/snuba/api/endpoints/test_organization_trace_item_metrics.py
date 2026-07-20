@@ -142,6 +142,20 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         assert response.status_code == 200, response.data
         assert response.data == []
 
+    def test_context_only_drops_type_without_context(self) -> None:
+        # Same name exists as counter and gauge, but only the counter has context.
+        # The name filter returns both; the gauge (no context) must be dropped.
+        self.store_metric("checkout.requests", "counter")
+        self.store_metric("checkout.requests", "gauge")
+        self.create_context(
+            "checkout.requests", metric_type=TraceMetricTypes.COUNTER, project=None, brief="Counter"
+        )
+
+        response = self.do_request(query={"project": self.project.id, "context_only": "1"})
+
+        assert response.status_code == 200, response.data
+        assert [(row["type"], "context" in row) for row in response.data] == [("counter", True)]
+
     def test_context_only_ignored_without_feature(self) -> None:
         self.store_metric("has.context", "counter")
         self.store_metric("no.context", "counter")

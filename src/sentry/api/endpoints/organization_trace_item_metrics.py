@@ -190,6 +190,10 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
             ]
             if include_context:
                 self._attach_context(metrics, organization)
+            if context_only:
+                # The query filters by name only, but context is keyed by
+                # (name, type) — drop rows whose specific type has no context.
+                metrics = [metric for metric in metrics if "context" in metric]
             return metrics
 
         return self.paginate(
