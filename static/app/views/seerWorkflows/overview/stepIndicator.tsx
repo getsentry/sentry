@@ -157,16 +157,17 @@ export function StepIndicator({row}: {row: OverviewRow}) {
 
   const stepLabel = currentStep ? STEP_LABELS[currentStep] : undefined;
 
-  // Stage hue: one accent-scale ramp that deepens as the run advances, so
-  // arc length and color intensity say "how far" twice — no legend needed.
-  // Urgency deliberately stays off the ring (the action button and the
-  // tooltip's status word carry it); success green is reserved for merged.
+  // Stage hue: a traffic-light countdown toward the fix — red when the run
+  // has only diagnosed the issue, amber once a plan exists, greening as the
+  // code and PR land. Matches the "N steps until issue fix" framing (red =
+  // far, green = imminent) so the ramp reads instantly without a legend.
+  // Run urgency stays on the action button and the tooltip's status word.
   const stageRingColors = [
     undefined,
-    theme.colors.gray400,
-    theme.colors.blue300,
-    theme.colors.blue400,
-    theme.colors.blue500,
+    theme.colors.red400, // root cause — fix still far off
+    theme.colors.yellow400, // plan in hand
+    theme.colors.green300, // code drafted — nearly there
+    theme.colors.green500, // PR opened — one step out
   ];
   const ringColor = stageRingColors[fill] ?? theme.tokens.content.secondary;
 
