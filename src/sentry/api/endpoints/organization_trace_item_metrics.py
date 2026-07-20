@@ -52,11 +52,9 @@ MAX_METRICS_PER_PAGE = 1000
 
 
 def _metric_names_filter(names: list[str]) -> str:
-    """A search clause matching ``metric.name`` against any of the given names."""
-    clauses = [
-        'metric.name:"' + name.replace("\\", "\\\\").replace('"', '\\"') + '"' for name in names
-    ]
-    return "(" + " OR ".join(clauses) + ")"
+    """An `IN` search clause matching ``metric.name`` against any of the given names."""
+    quoted = ", ".join('"' + name.replace("\\", "\\\\").replace('"', '\\"') + '"' for name in names)
+    return f"metric.name:[{quoted}]"
 
 
 class TraceMetricContext(TypedDict):
