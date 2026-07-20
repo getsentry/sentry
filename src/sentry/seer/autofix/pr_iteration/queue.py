@@ -7,6 +7,9 @@ from pydantic import BaseModel, ValidationError
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
+    MissingCheckSuiteAutofixRun,
+)
 from sentry.utils.redis import redis_clusters
 
 logger = logging.getLogger(__name__)
@@ -64,7 +67,7 @@ def try_enqueue_autofix_feedback(
 def _parse_queued_item(raw_item: str) -> QueuedAutofixFeedback | None:
     try:
         return QueuedAutofixFeedback.parse_raw(raw_item)
-    except (ValidationError, ValueError):
+    except (ValidationError, ValueError, MissingCheckSuiteAutofixRun):
         logger.warning("autofix.feedback_queue.skipped_unparseable_item")
         return None
 

@@ -7,7 +7,10 @@ from typing import Annotated, Any
 from django.utils import timezone
 from pydantic import BaseModel, Field, ValidationError, parse_raw_as, root_validator
 
-from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
+from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
+    CheckSuiteFeedbackSource,
+    MissingCheckSuiteAutofixRun,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
@@ -22,6 +25,8 @@ FeedbackSource = Annotated[
     | CheckSuiteFeedbackSource,
     Field(discriminator="type"),
 ]
+
+_PARSE_FEEDBACK_ERRORS = (ValidationError, ValueError, MissingCheckSuiteAutofixRun)
 
 
 class Feedback(BaseModel):
@@ -45,11 +50,11 @@ class Feedback(BaseModel):
 def parse_feedback(raw: str) -> list[Feedback]:
     try:
         return parse_raw_as(list[Feedback], raw)
-    except (ValidationError, ValueError):
+    except _PARSE_FEEDBACK_ERRORS:
         pass
     try:
         return [parse_raw_as(Feedback, raw)]
-    except (ValidationError, ValueError):
+    except _PARSE_FEEDBACK_ERRORS:
         return []
 
 

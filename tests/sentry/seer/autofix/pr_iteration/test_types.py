@@ -12,10 +12,10 @@ from sentry.seer.autofix.pr_iteration.feedback import (
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
-    MISSING_AUTOFIX_RUN_MESSAGE,
     CheckSuiteAutofixRun,
     CheckSuiteFeedbackSource,
     GithubCheckSuiteEvent,
+    MissingCheckSuiteAutofixRun,
     get_check_suite_url,
     resolve_check_suite_repositories,
 )
@@ -115,7 +115,7 @@ class ParseSerializeFeedbackTest(TestCase):
             _check_suite_source(event)
 
     def test_check_suite_requires_autofix_run(self) -> None:
-        with pytest.raises(ValidationError, match=MISSING_AUTOFIX_RUN_MESSAGE):
+        with pytest.raises(MissingCheckSuiteAutofixRun):
             CheckSuiteFeedbackSource(event=_check_suite_event())
 
     @patch(

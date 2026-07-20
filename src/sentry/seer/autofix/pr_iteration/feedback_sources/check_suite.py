@@ -27,7 +27,14 @@ _SEER_GITHUB_PROVIDER = "integrations:github"
 # feedback. Once the last N iterations were all check-suite-only, stop triggering
 # further check-suite iterations (they'd loop forever without human input).
 CHECK_SUITE_ITERATION_HARD_CAP = 3
-MISSING_AUTOFIX_RUN_MESSAGE = "check-suite feedback source has no Autofix run"
+
+
+class MissingCheckSuiteAutofixRun(Exception):
+    """No Autofix run for this check suite's PR(s).
+
+    Raised from the feedback-source root validator (not a ``ValueError``) so
+    pydantic does not wrap it into ``ValidationError``.
+    """
 
 
 class GithubCheckSuiteApp(BaseModel):
@@ -266,7 +273,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         if autofix_run is None:
             autofix_run = resolve_check_suite_autofix_run(event)
             if autofix_run is None:
-                raise ValueError(MISSING_AUTOFIX_RUN_MESSAGE)
+                raise MissingCheckSuiteAutofixRun
         elif not isinstance(autofix_run, CheckSuiteAutofixRun):
             raise ValueError("check-suite feedback source autofix_run is invalid")
         values["autofix_run"] = autofix_run
@@ -439,7 +446,7 @@ __all__ = (
     "GithubCheckSuiteInstallation",
     "GithubCheckSuitePullRequest",
     "GithubCheckSuiteRepository",
-    "MISSING_AUTOFIX_RUN_MESSAGE",
+    "MissingCheckSuiteAutofixRun",
     "get_check_suite_url",
     "resolve_check_suite_autofix_run",
     "resolve_check_suite_repositories",
