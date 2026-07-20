@@ -2,12 +2,15 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
+import * as analytics from 'sentry/utils/analytics';
 import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
+import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
 type ProjectWithBadPlatform = Omit<Project, 'platform'> & {
   platform: string;
@@ -62,10 +65,58 @@ function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatfor
   });
 }
 
+function renderAnalyticsScenario(projectCreationVariant?: string) {
+  const {organization, project} = initializeOrg({
+    router: {params: {projectId: ProjectFixture().slug}},
+  });
+  const platform: PlatformIntegration = {
+    id: 'other',
+    name: 'Other',
+    link: 'https://docs.sentry.io/platforms/',
+    type: 'language',
+    language: 'other',
+  };
+  const projectWithPlatform = {...project, platform: platform.id};
+  const routeAnalytics = {
+    previousUrl: '',
+    setDisableRouteAnalytics: jest.fn(),
+    setEventNames: jest.fn(),
+    setOrganization: jest.fn(),
+    setRouteAnalyticsParams: jest.fn(),
+  };
+
+  ProjectsStore.loadInitialData([projectWithPlatform]);
+  mockProjectApiResponses([projectWithPlatform]);
+  const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+  render(
+    <RouteAnalyticsContext value={routeAnalytics}>
+      <ProjectInstallPlatform project={projectWithPlatform} platform={platform} />
+    </RouteAnalyticsContext>,
+    {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/projects/${project.slug}/getting-started/`,
+          query: {
+            product: [ProductSolution.PERFORMANCE_MONITORING],
+            ...(projectCreationVariant ? {projectCreationVariant} : {}),
+          },
+        },
+      },
+    }
+  );
+
+  return {organization, project: projectWithPlatform, routeAnalytics, trackAnalyticsSpy};
+}
+
 describe('ProjectInstallPlatform', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     ConfigStore.init();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('should render NotFound if no matching integration/platform', async () => {
@@ -158,5 +209,65 @@ describe('ProjectInstallPlatform', () => {
     ).toBeInTheDocument();
 
     expect(screen.getByText('Take me to Issues')).toBeInTheDocument();
+  });
+
+  it.each(['scm', 'legacy'] as const)(
+    'attributes getting-started analytics to the %s project-creation variant',
+    async variant => {
+      const {organization, project, routeAnalytics, trackAnalyticsSpy} =
+        renderAnalyticsScenario(variant);
+
+      expect(routeAnalytics.setEventNames).toHaveBeenCalledWith(
+        'project_creation.getting_started_viewed',
+        'Project Creation: Getting Started Viewed'
+      );
+      expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+        platform: 'Other',
+        products: [ProductSolution.PERFORMANCE_MONITORING],
+        project_id: project.id,
+        variant,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Take me to Issues'}));
+
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'project_creation.take_me_to_issues_clicked',
+        {
+          organization,
+          platform: 'Other',
+          products: [ProductSolution.PERFORMANCE_MONITORING],
+          project_id: project.id,
+          variant,
+        }
+      );
+      expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+        'onboarding.take_me_to_issues_clicked',
+        expect.anything()
+      );
+    }
+  );
+
+  it('keeps unmarked getting-started clicks in the onboarding counter', async () => {
+    const {organization, project, routeAnalytics, trackAnalyticsSpy} =
+      renderAnalyticsScenario();
+
+    expect(routeAnalytics.setEventNames).not.toHaveBeenCalled();
+    expect(routeAnalytics.setRouteAnalyticsParams).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Take me to Issues'}));
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'onboarding.take_me_to_issues_clicked',
+      {
+        organization,
+        platform: 'Other',
+        products: [ProductSolution.PERFORMANCE_MONITORING],
+        project_id: project.id,
+      }
+    );
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'project_creation.take_me_to_issues_clicked',
+      expect.anything()
+    );
   });
 });
