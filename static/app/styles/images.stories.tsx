@@ -1,9 +1,10 @@
 import styled from '@emotion/styled';
 
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import * as Storybook from 'sentry/stories';
 
 const images = Object.entries(
@@ -58,15 +59,9 @@ export default Storybook.story('sentry-image/*', story => {
               overflow="hidden"
               minWidth="0"
             >
-              <Flex
-                align="center"
-                justify="center"
-                background="secondary"
-                height="180px"
-                padding="xl"
-              >
+              <ImagePreview>
                 <PreviewImage loading="lazy" alt={image.file} src={image.src} />
-              </Flex>
+              </ImagePreview>
               <Stack gap="xs" minWidth="0" padding="md">
                 <Text bold ellipsis size="sm">
                   {nameOfFile(image.file)}
@@ -86,6 +81,11 @@ export default Storybook.story('sentry-image/*', story => {
   section('sentry-images/pattern/*', patternImages);
   section('Other', otherImages);
 });
+
+const ImagePreview = styled(NegativeSpaceContainer)`
+  height: 180px;
+  padding: ${p => p.theme.space.xl};
+`;
 
 const PreviewImage = styled('img')`
   max-width: 100%;

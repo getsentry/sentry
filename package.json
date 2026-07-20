@@ -150,7 +150,6 @@
     "@types/react-select": "4.0.18",
     "@types/reflux": "0.4.1",
     "@types/scroll-to-element": "^2.0.2",
-    "@types/webpack-env": "1.18.8",
     "ansi-to-react": "^6.1.6",
     "base64-arraybuffer": "^1.0.1",
     "cbor2": "^1.12.0",
