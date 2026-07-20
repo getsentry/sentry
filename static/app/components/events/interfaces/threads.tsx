@@ -2,7 +2,7 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
@@ -408,9 +408,7 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
       title={tn('Stack Trace', 'Stack Traces', threads.length)}
       disableCollapsePersistence
     >
-      <Flex direction="column" gap="xl">
-        {threadComponent}
-      </Flex>
+      <Stack gap="xl">{threadComponent}</Stack>
     </FoldSection>
   ) : (
     threadComponent

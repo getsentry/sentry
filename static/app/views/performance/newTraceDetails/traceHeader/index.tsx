@@ -4,8 +4,6 @@ import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import type {EventView} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useProjects} from 'sentry/utils/useProjects';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
@@ -36,10 +34,8 @@ export interface TraceMetadataHeaderProps {
   metrics: {count: number} | undefined;
   organization: Organization;
   rootEventResults: TraceRootEventQueryResults;
-  traceEventView: EventView;
   traceSlug: string;
   tree: TraceTree;
-  project?: Project;
 }
 
 const traceViewFeedbackOptions = {
@@ -118,7 +114,6 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
         <TraceHeaderComponents.HeaderRow>
           <Title representativeEvent={rep} rootEventResults={props.rootEventResults} />
           <Meta
-            organization={props.organization}
             tree={props.tree}
             meta={props.metaResults.data}
             representativeEvent={rep}

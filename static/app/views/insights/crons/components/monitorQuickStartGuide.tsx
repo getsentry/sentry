@@ -4,7 +4,7 @@ import partition from 'lodash/partition';
 import {PlatformIcon} from 'platformicons';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -263,7 +263,7 @@ export function MonitorQuickStartGuide({monitorSlug, project}: Props) {
   };
 
   return (
-    <Flex gap="xl" direction="column">
+    <Stack gap="xl">
       <Text>
         {tct(
           'Select an integration method for your monitor. For in-depth instructions on integrating Crons, view [docsLink:our complete documentation].',
@@ -296,6 +296,6 @@ export function MonitorQuickStartGuide({monitorSlug, project}: Props) {
       <div ref={guideContainerRef}>
         <Guide {...guideProps} />
       </div>
-    </Flex>
+    </Stack>
   );
 }

@@ -219,7 +219,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
 
         return self.get_interface("user")
 
-    def get_event_type(self) -> str:
+    def get_event_type(self) -> eventtypes.EventTypeStr:
         """
         Return the type of this event.
 
@@ -227,8 +227,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
         """
         column = self._get_column_name(Columns.TYPE)
         if column in self._snuba_data:
-            return cast(str, self._snuba_data[column])
-        return cast(str, self.data.get("type", "default"))
+            return cast(eventtypes.EventTypeStr, self._snuba_data[column])
+        return cast(eventtypes.EventTypeStr, self.data.get("type", "default"))
 
     @property
     def ip_address(self) -> str | None:

@@ -1,30 +1,37 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, memo, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {
-  AI_MESSAGE_MAX_WIDTH,
   AssistantMessageBlock,
   MessageBlock,
   UserMessageBlock,
 } from 'sentry/components/ai/chat/messageBlock';
-import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Placeholder} from 'sentry/components/placeholder';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {MessageToolCallsNew} from 'sentry/views/explore/conversations/components/messageToolCallsNew';
-import {TurnMeta} from 'sentry/views/explore/conversations/components/turnMeta';
+import {
+  TURN_META_WIDTH,
+  TurnMeta,
+} from 'sentry/views/explore/conversations/components/turnMeta';
 import {
   type ConversationMessage,
   extractMessagesFromNodes,
+  partitionSpansByType,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {getNumberAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -32,10 +39,15 @@ import {detectAIContentType} from 'sentry/views/performance/newTraceDetails/trac
 import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 interface MessagesPanelNewProps {
-  nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
+  isLoading?: boolean;
+  /**
+   * Switches the conversation view to the Timeline tab. Surfaced from the
+   * empty transcript state when a conversation has no inference spans.
+   */
+  onViewTimeline?: () => void;
 }
 
 /**
@@ -47,9 +59,9 @@ export function MessagesPanelNew({
   nodes,
   selectedNodeId,
   onSelectNode,
-  nodeTraceMap,
+  onViewTimeline,
+  isLoading,
 }: MessagesPanelNewProps) {
-  const organization = useOrganization();
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
 
   // Detect XML once per list so selection re-renders don't re-parse every message.
@@ -72,18 +84,23 @@ export function MessagesPanelNew({
     return map;
   }, [nodes]);
 
-  const handleMessageClick = (message: ConversationMessage) => {
-    trackAnalytics('conversations.message.click', {organization});
-    const node = nodeMap.get(message.nodeId);
-    if (node) {
-      onSelectNode(node);
-    }
-  };
+  if (isLoading) {
+    return <MessagesPanelSkeleton />;
+  }
 
   if (messages.length === 0) {
+    // A conversation with no renderable transcript falls into two buckets we can
+    // tell apart from the spans: inference (generation) spans that ran but never
+    // captured their inputs/outputs, versus a conversation that has no inference
+    // spans at all. Each gets its own explanation.
+    const {generationSpans} = partitionSpansByType(nodes);
     return (
       <PanelContainer>
-        <EmptyMessage>{t('No messages found')}</EmptyMessage>
+        {generationSpans.length > 0 ? (
+          <MissingContentNotice nodes={nodes} />
+        ) : (
+          <NoInferenceSpansNotice onViewTimeline={onViewTimeline} />
+        )}
       </PanelContainer>
     );
   }
@@ -93,34 +110,37 @@ export function MessagesPanelNew({
       <Stack gap="0" width="100%">
         {messages.map(message => {
           const hasXmlTags = hasXmlByMessageId.get(message.id) ?? false;
-          const isSelected = message.nodeId === selectedNodeId;
 
           if (message.role === 'user') {
             return (
-              <UserMessageBlock key={message.id} expand={hasXmlTags}>
-                <MessageText align="left">
-                  <AIContentRenderer
-                    text={message.content}
-                    inline
-                    autoCollapseLimit={10}
-                    collapsibleXmlTags
-                  />
-                </MessageText>
-              </UserMessageBlock>
+              <UserTurn
+                key={message.id}
+                content={message.content}
+                hasXmlTags={hasXmlTags}
+              />
             );
           }
+
+          // Pass each turn only the selection state that concerns it, rather
+          // than the shared `selectedNodeId`. A turn's props stay referentially
+          // stable when the selection moves to an unrelated turn, so once these
+          // rows are memoized only the turns that gain/lose selection re-render.
+          const isSelected = message.nodeId === selectedNodeId;
+          const selectedToolCallId = message.toolCalls?.some(
+            tool => tool.nodeId === selectedNodeId
+          )
+            ? selectedNodeId
+            : null;
 
           return (
             <AssistantTurn
               key={message.id}
               message={message}
               hasXmlTags={hasXmlTags}
-              isSelected={message.role === 'assistant' && isSelected}
-              selectedNodeId={selectedNodeId}
+              isSelected={isSelected}
+              selectedToolCallId={selectedToolCallId}
               nodeMap={nodeMap}
-              nodeTraceMap={nodeTraceMap}
               onSelectNode={onSelectNode}
-              onClick={() => handleMessageClick(message)}
             />
           );
         })}
@@ -129,27 +149,50 @@ export function MessagesPanelNew({
   );
 }
 
+// User turns carry no selection state, so their props never change on a
+// selection change — memoized, they render once and always bail out after.
+const UserTurn = memo(function UserTurn({
+  content,
+  hasXmlTags,
+}: {
+  content: string;
+  hasXmlTags: boolean;
+}) {
+  return (
+    <UserMessageBlock expand={hasXmlTags}>
+      <MessageText align="left">
+        <AIContentRenderer text={content} inline autoCollapseLimit={10} />
+      </MessageText>
+    </UserMessageBlock>
+  );
+});
+
 interface AssistantTurnProps {
   hasXmlTags: boolean;
   isSelected: boolean;
   message: ConversationMessage;
   nodeMap: Map<string, AITraceSpanNode>;
-  nodeTraceMap: Map<string, string>;
-  onClick: () => void;
   onSelectNode: (node: AITraceSpanNode) => void;
-  selectedNodeId: string | null;
+  /**
+   * The selected node id when it belongs to one of this turn's tool calls,
+   * otherwise null. Scoping it to the turn keeps the prop stable for turns
+   * unaffected by a selection change.
+   */
+  selectedToolCallId: string | null;
 }
 
-function AssistantTurn({
+// Memoized so a selection change only re-renders the turns that gain or lose
+// selection. This relies on every prop being referentially stable per turn,
+// which is why the click handler is built here rather than passed in.
+const AssistantTurn = memo(function AssistantTurn({
   message,
   hasXmlTags,
   isSelected,
-  selectedNodeId,
+  selectedToolCallId,
   nodeMap,
-  nodeTraceMap,
   onSelectNode,
-  onClick,
 }: AssistantTurnProps) {
+  const organization = useOrganization();
   const generationNode = nodeMap.get(message.nodeId);
   // Spans often report `gen_ai.cost.total_tokens` as 0 when the API omits cost;
   // treat that as absent so we don't show `<$0.01`, matching the timeline.
@@ -160,15 +203,21 @@ function AssistantTurn({
     cost !== undefined || (message.duration !== undefined && message.duration > 0);
   const meta = <AssistantMeta cost={cost} duration={message.duration} />;
 
+  const handleClick = () => {
+    trackAnalytics('conversations.message.click', {organization});
+    if (generationNode) {
+      onSelectNode(generationNode);
+    }
+  };
+
   return (
     <Fragment>
       {message.toolCalls && message.toolCalls.length > 0 && (
         <MessageBlock>
           <MessageToolCallsNew
             toolCalls={message.toolCalls}
-            selectedNodeId={selectedNodeId}
+            selectedToolCallId={selectedToolCallId}
             nodeMap={nodeMap}
-            nodeTraceMap={nodeTraceMap}
             onSelectNode={onSelectNode}
           />
         </MessageBlock>
@@ -176,13 +225,14 @@ function AssistantTurn({
       {message.reasoning && (
         <MessageBlock>
           <ReasoningSection reasoning={message.reasoning} />
+          <Container width={TURN_META_WIDTH} flexShrink={0} />
         </MessageBlock>
       )}
       {message.content === '' ? (
         // Tool/reasoning-only turn: still surface the turn's cost and duration.
         hasMeta && <MessageBlock justify="end">{meta}</MessageBlock>
       ) : message.content === EMPTY_TEXT_CONTENT ? (
-        <AssistantMessageBlock meta={meta} isSelected={isSelected} onClick={onClick}>
+        <AssistantMessageBlock meta={meta} isSelected={isSelected} onClick={handleClick}>
           <MessageText align="left" variant="muted">
             {message.content}
           </MessageText>
@@ -192,21 +242,16 @@ function AssistantTurn({
           expand={hasXmlTags}
           meta={meta}
           isSelected={isSelected}
-          onClick={onClick}
+          onClick={handleClick}
         >
           <MessageText align="left">
-            <AIContentRenderer
-              text={message.content}
-              inline
-              autoCollapseLimit={10}
-              collapsibleXmlTags
-            />
+            <AIContentRenderer text={message.content} inline autoCollapseLimit={10} />
           </MessageText>
         </AssistantMessageBlock>
       )}
     </Fragment>
   );
-}
+});
 
 function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
   return (
@@ -234,7 +279,6 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
 
   return (
     <CollapsibleContent
-      maxWidth={AI_MESSAGE_MAX_WIDTH}
       title={
         <Text size="sm" variant="muted" monospace>
           {t('Thinking...')}
@@ -254,15 +298,70 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
     >
       <Container padding="xs md">
         <MessageText size="sm" align="left" variant="muted" monospace>
-          <AIContentRenderer
-            text={reasoning}
-            inline
-            autoCollapseLimit={10}
-            collapsibleXmlTags
-          />
+          <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
         </MessageText>
       </Container>
     </CollapsibleContent>
+  );
+}
+
+/**
+ * Shown when inference spans ran but captured no input or output data, so
+ * there is nothing to render as a transcript. Points to the docs for enabling
+ * input/output capture, tailored to the project's platform.
+ */
+function MissingContentNotice({nodes}: {nodes: AITraceSpanNode[]}) {
+  const projectSlug = useMemo(
+    () => nodes.find(node => node.projectSlug)?.projectSlug,
+    [nodes]
+  );
+  const {projects} = useProjects({slugs: projectSlug ? [projectSlug] : []});
+  const platform = projectSlug
+    ? projects.find(project => project.slug === projectSlug)?.platform
+    : undefined;
+  const docsLink = getAiInstrumentationDocsLink(platform);
+
+  return (
+    <EmptyNotice>
+      <Text bold>{t("This conversation's messages weren't captured")}</Text>
+      <Text variant="muted" align="center">
+        {tct(
+          "Its inference spans don't include any input or output data. [link:Enable capturing inputs and outputs] in your SDK to see the transcript here.",
+          {link: <ExternalLink href={docsLink} />}
+        )}
+      </Text>
+    </EmptyNotice>
+  );
+}
+
+/**
+ * Shown when a conversation has spans but none of them are inference spans, so
+ * there is no transcript to build. Directs the user to the Timeline, where the
+ * conversation's other spans are shown.
+ */
+function NoInferenceSpansNotice({onViewTimeline}: {onViewTimeline?: () => void}) {
+  return (
+    <EmptyNotice>
+      <Text bold>{t("This conversation doesn't include any inference spans")}</Text>
+      <Text variant="muted" align="center">
+        {t('The other spans in this conversation are shown in the Timeline.')}
+      </Text>
+      {onViewTimeline && (
+        <Button size="sm" onClick={onViewTimeline}>
+          {t('View Timeline')}
+        </Button>
+      )}
+    </EmptyNotice>
+  );
+}
+
+function EmptyNotice({children}: {children: React.ReactNode}) {
+  return (
+    <Stack flex={1} align="center" justify="center" padding="xl" width="100%">
+      <Stack align="center" gap="md" maxWidth="32rem">
+        {children}
+      </Stack>
+    </Stack>
   );
 }
 
@@ -272,6 +371,11 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
  * the skeleton reads as a conversation rather than a generic list.
  */
 export function MessagesPanelSkeleton() {
+  const theme = useTheme();
+  const invertedPlaceholderStyle = {
+    backgroundColor: theme.tokens.background.primary,
+  };
+
   return (
     <PanelContainer>
       <Stack gap="0" width="100%">
@@ -279,20 +383,20 @@ export function MessagesPanelSkeleton() {
           <Placeholder height="14px" width="180px" />
         </UserMessageBlock>
         <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
-          <Flex direction="column" gap="sm">
-            <Placeholder height="12px" width="320px" />
-            <Placeholder height="12px" width="260px" />
-            <Placeholder height="12px" width="180px" />
-          </Flex>
+          <Stack gap="md">
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="320px" />
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="260px" />
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="180px" />
+          </Stack>
         </AssistantMessageBlock>
         <UserMessageBlock>
           <Placeholder height="14px" width="120px" />
         </UserMessageBlock>
         <AssistantMessageBlock meta={<Placeholder height="12px" width="48px" />}>
-          <Flex direction="column" gap="sm">
-            <Placeholder height="12px" width="280px" />
-            <Placeholder height="12px" width="200px" />
-          </Flex>
+          <Stack gap="md">
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="280px" />
+            <Placeholder style={invertedPlaceholderStyle} height="12px" width="200px" />
+          </Stack>
         </AssistantMessageBlock>
       </Stack>
     </PanelContainer>
@@ -301,15 +405,9 @@ export function MessagesPanelSkeleton() {
 
 function PanelContainer({children}: {children: React.ReactNode}) {
   return (
-    <Flex
-      direction="column"
-      padding="xl 0"
-      background="primary"
-      minHeight="100%"
-      width="100%"
-    >
+    <Stack padding="xl 0" background="primary" minHeight="100%" width="100%">
       {children}
-    </Flex>
+    </Stack>
   );
 }
 

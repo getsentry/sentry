@@ -7,13 +7,8 @@ import releasesImg from 'sentry-images/spot/releases.svg';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {ResourceCard} from 'sentry/components/resourceCard';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
 
-type Props = {
-  organization: Organization;
-};
-
-export function Resources(_props: Props) {
+export function Resources() {
   return (
     <ResourcesWrapper data-test-id="resources">
       <Layout.Title>{t('Resources')}</Layout.Title>

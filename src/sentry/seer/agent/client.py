@@ -17,11 +17,9 @@ from urllib3 import BaseHTTPResponse
 
 from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
-from sentry.hybridcloud.rpc.service import RpcException
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import OAuth2Provider
-from sentry.identity.services.identity import identity_service
 from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -46,6 +44,7 @@ from sentry.seer.agent.client_utils import (
 from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
 from sentry.seer.agent.custom_tool_utils import AgentTool, extract_tool_schema
 from sentry.seer.agent.embed_widgets import get_embed_widgets
+from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
@@ -54,11 +53,14 @@ from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefini
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
-from sentry.seer.utils import encrypt_access_token_for_seer
 from sentry.tasks.seer.context_engine_index import build_service_map, index_org_project_knowledge
 from sentry.tasks.seer.explorer_index import dispatch_explorer_index_projects
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.utils.prompts import (
+    get_prompt_activities_for_user,
+    seer_monitoring_provider_dont_ask_feature,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -110,61 +112,49 @@ def _has_context_engine(
     return True
 
 
-def get_monitoring_provider_connections(
-    organization: Organization, user_id: int
+def get_available_monitoring_providers(
+    organization: Organization,
+    user_id: int,
 ) -> list[dict[str, Any]]:
-    """Fetch the user's monitoring provider identities and build connection dicts for Seer."""
+    """
+    Catalog of available monitoring providers that may or may not be connected to Seer.
+
+    Omits any provider that the user has permanently dismissed ("don't ask again").
+    Does not mark which providers are already connected.
+    """
     if not features.has("organizations:seer-infra-telemetry", organization):
         return []
 
-    connections: list[dict[str, Any]] = []
+    feature_to_provider_map = {
+        seer_monitoring_provider_dont_ask_feature(provider_type): provider_type
+        for provider_type in MONITORING_PROVIDERS
+    }
+    dismissed_providers = {
+        feature_to_provider_map[activity.feature]
+        for activity in get_prompt_activities_for_user(
+            [organization.id], user_id, list(feature_to_provider_map)
+        )
+        if activity.data.get("dismissed_ts")
+    }
+
+    available_providers: list[dict[str, Any]] = []
     for provider_type in MONITORING_PROVIDERS:
+        if provider_type in dismissed_providers:
+            continue
+
         provider = identity_manager.get(provider_type)
         is_oauth_provider = isinstance(provider, OAuth2Provider)
         if not isinstance(provider, McpIdentityProvider):
             continue
 
-        try:
-            identities = identity_service.get_org_user_identities_by_provider_type(
-                organization_id=organization.id, user_id=user_id, provider_type=provider_type
-            )
-        except RpcException:
-            # Monitoring providers are optional enrichment. A control-silo RPC failure
-            # shouldn't fail a run--just move on to the next provider.
-            logger.warning(
-                "seer.monitoring_providers.fetch_failed",
-                extra={
-                    "organization_id": organization.id,
-                    "user_id": user_id,
-                    "provider": provider_type,
-                },
-                exc_info=True,
-            )
-            continue
+        available_providers.append(
+            {
+                "provider_key": provider_type,
+                "auth_method": "oauth" if is_oauth_provider else "pat",
+            }
+        )
 
-        for identity in identities:
-            access_token = identity.data.get("access_token")
-            if not access_token:
-                continue
-            urls = provider.build_mcp_urls(identity.data)
-            if not urls:
-                continue
-            encrypted_access_token = encrypt_access_token_for_seer(access_token)
-            if not encrypted_access_token:
-                continue
-            auth_method = "oauth" if is_oauth_provider else "pat"
-            for url in urls:
-                connections.append(
-                    {
-                        "provider_key": provider_type,
-                        "url": url,
-                        "encrypted_access_token": encrypted_access_token,
-                        "identity_id": identity.id,
-                        "auth_method": auth_method,
-                    }
-                )
-
-    return connections
+    return available_providers
 
 
 class SeerAgentClient:
@@ -310,6 +300,7 @@ class SeerAgentClient:
             enable_coding: Include code editing tools. When False, the agent cannot make code changes. Default is False. If enable_coding is True and the organization does not have the enable_seer_coding option, a SeerPermissionError will be raised.
             code_review_enabled: Expose the review_code_changes tool, which spawns a reviewer agent to check accumulated code edits before finalizing. Only useful alongside enable_coding. Default is False.
             max_iterations: Optional maximum number of agent iterations. Useful for lightweight/fast runs that don't need full exploration depth.
+            enable_embeds: Allow the agent to emit rich inline embed widgets (e.g. formatted timestamps) as Markdoc tags. Only enable for surfaces that render these embeds (the Explorer chat in the Sentry UI). Disable for plaintext/markdown surfaces like Slack, where the tags would leak as raw text. Default is True.
     """
 
     def __init__(
@@ -330,6 +321,7 @@ class SeerAgentClient:
         enable_code_mode_tools: str = "off",
         code_review_enabled: bool = False,
         max_iterations: int | None = None,
+        enable_embeds: bool = True,
     ):
         self.organization = organization
         self.user = user
@@ -345,6 +337,7 @@ class SeerAgentClient:
         self.enable_code_mode_tools = enable_code_mode_tools
         self.code_review_enabled = code_review_enabled
         self.max_iterations = max_iterations
+        self.enable_embeds = enable_embeds
 
         if enable_coding and not organization.get_option("sentry:enable_seer_coding", True):
             raise SeerPermissionError("Seer coding is not enabled for this organization")
@@ -613,12 +606,12 @@ class SeerAgentClient:
         ):
             opts["enable_tool_summary"] = True
 
-        if features.has(
+        if self.enable_embeds and features.has(
             "organizations:seer-explorer-embeds",
             self.organization,
             actor=self.user,
         ):
-            opts["embed_widgets"] = get_embed_widgets()
+            opts["embed_widgets"] = get_embed_widgets(self.organization, self.user)
 
         if features.has(
             "organizations:seer-explorer-stream",
@@ -693,12 +686,26 @@ class SeerAgentClient:
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
 
-        if self.user and not isinstance(self.user, AnonymousUser):
-            monitoring_provider_connections = get_monitoring_provider_connections(
-                self.organization, self.user.id
+        monitoring_user_id = (
+            self.user.id
+            if self.user and not isinstance(self.user, AnonymousUser) and self.user.id is not None
+            else None
+        )
+        monitoring_provider_connections = get_monitoring_provider_connections(
+            self.organization, monitoring_user_id
+        )
+        if monitoring_provider_connections:
+            chat_body["monitoring_providers"] = [
+                connection.dict() for connection in monitoring_provider_connections
+            ]
+
+        if monitoring_user_id is not None:
+            available_monitoring_providers = get_available_monitoring_providers(
+                self.organization,
+                monitoring_user_id,
             )
-            if monitoring_provider_connections:
-                chat_body["monitoring_providers"] = monitoring_provider_connections
+            if available_monitoring_providers:
+                chat_body["available_monitoring_providers"] = available_monitoring_providers
 
         # No random rollout here — Seer ANDs this with the persisted value from start_run,
         # so the start_run coin flip is the single source of truth.
@@ -726,12 +733,12 @@ class SeerAgentClient:
         ):
             agent_run_options["enable_tool_summary"] = True
 
-        if features.has(
+        if self.enable_embeds and features.has(
             "organizations:seer-explorer-embeds",
             self.organization,
             actor=self.user,
         ):
-            agent_run_options["embed_widgets"] = get_embed_widgets()
+            agent_run_options["embed_widgets"] = get_embed_widgets(self.organization, self.user)
 
         if features.has(
             "organizations:seer-explorer-stream",

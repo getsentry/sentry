@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
@@ -49,6 +49,7 @@ import {
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
+  useQueryParamsAggregateSortBys,
   useQueryParamsExtrapolate,
   useQueryParamsGroupBys,
   useQueryParamsId,
@@ -69,7 +70,6 @@ import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/sp
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
-import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
 import {Onboarding} from 'sentry/views/performance/onboarding';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -196,7 +196,12 @@ function SpanTabContentSectionInner({
   const crossEventDatasetAvailability = useCrossEventDatasetAvailability(organization);
   const crossEventQueries = useCrossEventQueries(crossEventDatasetAvailability);
   const sortBys = useQueryParamsSortBys();
+  const aggregateSortBys = useQueryParamsAggregateSortBys();
   const groupBys = useQueryParamsGroupBys();
+
+  // In aggregate mode the table is driven by aggregateSortBys, not the
+  // samples sort (which falls back to `-timestamp`), so pick accordingly.
+  const activeSortBys = tab === Mode.AGGREGATE ? aggregateSortBys : sortBys;
 
   // Push page state into the LLM context tree for Seer Explorer.
   useLLMContext({
@@ -208,7 +213,7 @@ function SpanTabContentSectionInner({
     activeTab: tab,
     visualizes: visualizes.map(v => v.yAxis),
     groupBys: groupBys.filter(g => g !== ''),
-    sortBys: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
+    sortBys: activeSortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
     currentSelectedDateRange: selection.datetime,
   });
 
@@ -267,18 +272,6 @@ function SpanTabContentSectionInner({
         ...crossEventQueries,
       },
     });
-
-  const confidences = useMemo(
-    () =>
-      visualizes.map(visualize => {
-        const dedupedYAxes = [visualize.yAxis];
-        const series = dedupedYAxes
-          .flatMap(yAxis => timeseriesResult.data[yAxis])
-          .filter(defined);
-        return combineConfidenceForSeries(series);
-      }),
-    [timeseriesResult.data, visualizes]
-  );
 
   const [interval] = useChartInterval();
 
@@ -352,7 +345,6 @@ function SpanTabContentSectionInner({
         {props => (
           <div {...props}>
             <ExploreCharts
-              confidences={confidences}
               query={query}
               extrapolate={extrapolate}
               timeseriesResult={timeseriesResult}
@@ -365,7 +357,6 @@ function SpanTabContentSectionInner({
               aggregatesTableResult={aggregatesTableResult}
               spansTableResult={spansTableResult}
               tracesTableResult={tracesTableResult}
-              confidences={confidences}
               tab={tab}
               setTab={(newTab, reason) => {
                 if (newTab === Mode.AGGREGATE) {

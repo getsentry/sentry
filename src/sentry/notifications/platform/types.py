@@ -26,7 +26,7 @@ class NotificationCategory(StrEnum):
     ISSUE = "issue"
     METRIC_ALERT = "metric-alert"
     SENTRY_APP = "sentry-app"
-    WORKFLOW_ENGINE = "workflow-engine"
+    ACTIVITY = "activity"
 
     def get_sources(self) -> list[NotificationSource]:
         return NOTIFICATION_SOURCE_MAP[self]
@@ -73,7 +73,7 @@ class NotificationSource(StrEnum):
     # SENTRY_APP
     SENTRY_APP_WEBHOOK_DISABLED = "sentry-app-webhook-disabled"
 
-    # WORKFLOW_ENGINE
+    # ACTIVITY
     ACTIVITY_SEER_RCA_STARTED = "activity-seer-rca-started"
     ACTIVITY_SEER_RCA_COMPLETED = "activity-seer-rca-completed"
     ACTIVITY_SEER_SOLUTION_STARTED = "activity-seer-solution-started"
@@ -83,6 +83,10 @@ class NotificationSource(StrEnum):
     ACTIVITY_SEER_PR_CREATED = "activity-seer-pr-created"
     ACTIVITY_SEER_ITERATION_STARTED = "activity-seer-iteration-started"
     ACTIVITY_SEER_ITERATION_COMPLETED = "activity-seer-iteration-completed"
+    ACTIVITY_SET_RESOLVED = "activity-set-resolved"
+    ACTIVITY_SET_RESOLVED_IN_RELEASE = "activity-set-resolved-in-release"
+    ACTIVITY_SET_RESOLVED_BY_AGE = "activity-set-resolved-by-age"
+    ACTIVITY_SET_RESOLVED_IN_COMMIT = "activity-set-resolved-in-commit"
 
 
 NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = {
@@ -121,7 +125,7 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
     NotificationCategory.SENTRY_APP: [
         NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,
     ],
-    NotificationCategory.WORKFLOW_ENGINE: [
+    NotificationCategory.ACTIVITY: [
         NotificationSource.ACTIVITY_SEER_RCA_STARTED,
         NotificationSource.ACTIVITY_SEER_RCA_COMPLETED,
         NotificationSource.ACTIVITY_SEER_SOLUTION_STARTED,
@@ -131,6 +135,10 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.ACTIVITY_SEER_PR_CREATED,
         NotificationSource.ACTIVITY_SEER_ITERATION_STARTED,
         NotificationSource.ACTIVITY_SEER_ITERATION_COMPLETED,
+        NotificationSource.ACTIVITY_SET_RESOLVED,
+        NotificationSource.ACTIVITY_SET_RESOLVED_IN_RELEASE,
+        NotificationSource.ACTIVITY_SET_RESOLVED_BY_AGE,
+        NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT,
     ],
 }
 

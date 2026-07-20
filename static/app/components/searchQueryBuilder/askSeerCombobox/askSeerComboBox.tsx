@@ -9,7 +9,7 @@ import type {MutationOptions} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -30,13 +30,14 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {IconClose, IconMegaphone, IconSearch} from 'sentry/icons';
+import {IconClose, IconMegaphone, IconSearch, IconSync} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
+import {useProjects} from 'sentry/utils/useProjects';
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
 // is updated in response to these changes.
@@ -113,6 +114,8 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
+  const hasAskSeerUxRework = organization.features.includes('gen-ai-ask-seer-ux-rework');
+  const {projects} = useProjects();
 
   const [searchQuery, setSearchQuery] = useState(() =>
     formatQueryToNaturalLanguage(initialQuery)
@@ -125,6 +128,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     setDisplayAskSeerFeedback,
     askSeerNLQueryRef,
     autoSubmitSeer,
+    setAutoSubmitFromCurrentQuery,
     setAutoSubmitSeer,
     enableAISearch,
   } = useSearchQueryBuilderAI();
@@ -233,7 +237,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
         );
       }
 
-      const readableQuery = generateQueryTokensString(item);
+      const readableQuery = generateQueryTokensString(item, projects);
 
       return (
         <Item
@@ -384,20 +388,30 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   }, [state]);
 
   useLayoutEffect(() => {
-    if (autoSubmitSeer && searchQuery.trim()) {
-      trackAnalytics('ai_query.submitted', {
-        organization,
-        area: analyticsArea,
-        natural_language_query: searchQuery.trim(),
-      });
-      submitQuery(searchQuery.trim());
-      setAutoSubmitSeer(false);
+    if (!autoSubmitSeer) {
+      return;
     }
+
+    if (!searchQuery.trim()) {
+      setAutoSubmitFromCurrentQuery(false);
+      setAutoSubmitSeer(false);
+      return;
+    }
+
+    trackAnalytics('ai_query.submitted', {
+      organization,
+      area: analyticsArea,
+      natural_language_query: searchQuery.trim(),
+    });
+    submitQuery(searchQuery.trim());
+    setAutoSubmitFromCurrentQuery(false);
+    setAutoSubmitSeer(false);
   }, [
     analyticsArea,
     autoSubmitSeer,
     organization,
     searchQuery,
+    setAutoSubmitFromCurrentQuery,
     setAutoSubmitSeer,
     submitQuery,
   ]);
@@ -409,6 +423,9 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
   if (!enableAISearch) {
     return null;
   }
+
+  const hasResults = (data?.queries?.length ?? 0) > 0;
+  const isDisplayingResults = !isPending && !isError && hasResults;
 
   return (
     <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
@@ -482,25 +499,59 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
               <AskSeerSearchHeader title={t("Describe what you're looking for.")} />
             </Stack>
           )}
-          {openForm && (
-            <SeerFooter onMouseDown={e => e.preventDefault()}>
-              <Button
-                size="xs"
-                icon={<IconMegaphone />}
-                onClick={() =>
-                  openForm({
-                    messagePlaceholder: t('How can we make Seer search better for you?'),
-                    tags: {
-                      ['feedback.source']: `ai_query.${analyticsArea}`,
-                      ['feedback.owner']: 'ml-ai',
-                    },
-                  })
-                }
-              >
-                {t('Give Feedback')}
-              </Button>
-            </SeerFooter>
-          )}
+          {(hasAskSeerUxRework ? isDisplayingResults : openForm) ? (
+            <Flex
+              justify={hasAskSeerUxRework ? 'between' : 'end'}
+              borderTop="primary"
+              paddingTop="sm"
+              paddingBottom="sm"
+              paddingLeft="md"
+              paddingRight="md"
+              background={hasAskSeerUxRework ? 'secondary' : 'primary'}
+              onMouseDown={e => e.preventDefault()}
+            >
+              {hasAskSeerUxRework ? (
+                <Button
+                  icon={<IconSync />}
+                  size="zero"
+                  onClick={() => {
+                    const query = searchQuery.trim() || askSeerNLQueryRef.current?.trim();
+                    if (!query) {
+                      return;
+                    }
+
+                    trackAnalytics('ai_query.regenerated', {
+                      organization,
+                      area: analyticsArea,
+                      natural_language_query: query,
+                    });
+                    submitQuery(query);
+                  }}
+                >
+                  {t('Generate again')}
+                </Button>
+              ) : null}
+              {openForm ? (
+                <Button
+                  size={hasAskSeerUxRework ? 'zero' : 'xs'}
+                  icon={<IconMegaphone />}
+                  onClick={() =>
+                    openForm({
+                      messagePlaceholder: t(
+                        'How can we make Seer search better for you?'
+                      ),
+                      tags: {
+                        ['feedback.source']: `ai_query.${analyticsArea}`,
+                        ['feedback.owner']: 'ml-ai',
+                      },
+                    })
+                  }
+                >
+                  {t('Give Feedback')}
+                </Button>
+              ) : null}
+            </Flex>
+          ) : null}
         </AskSeerSearchPopover>
       ) : null}
     </Wrapper>
@@ -549,19 +600,18 @@ const InvisibleInput = styled('input')`
   margin-bottom: -1px;
   background: transparent;
 
-  padding-top: ${p => p.theme.space.sm};
-  padding-bottom: ${p => p.theme.space.sm};
-  padding-left: ${p => p.theme.space['3xl']};
-  padding-right: ${p => p.theme.space.sm};
+  padding-top: calc(${p => p.theme.space.xs} + 1px);
+  padding-bottom: calc(${p => p.theme.space.xs} + 1px);
+  padding-left: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.xs});
+  padding-right: calc(${p => p.theme.space['3xl']} + ${p => p.theme.space.xs});
 
   &::selection {
     background: rgba(0, 0, 0, 0.2);
   }
 
-  :placeholder-shown {
+  &:not(:focus) {
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   [disabled] {
@@ -577,12 +627,4 @@ const ButtonsWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-`;
-
-const SeerFooter = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  padding: ${p => p.theme.space.md};
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  background-color: ${p => p.theme.tokens.background.primary};
 `;
