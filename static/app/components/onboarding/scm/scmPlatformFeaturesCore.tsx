@@ -20,7 +20,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
+import {type ScmAnalyticsFlow, scmFlowVariantParams} from './scmAnalyticsFlow';
 import {ScmPlatformCard} from './scmPlatformCard';
 import {
   DEFAULT_SCM_FEATURES,
@@ -35,15 +35,15 @@ import {useScmResolvedPlatform} from './useScmResolvedPlatform';
 
 const PLATFORM_SELECTED_EVENT = {
   onboarding: 'onboarding.scm_platform_selected',
-  'project-creation': 'project_creation.scm_platform_selected',
+  'project-creation': 'project_creation.platform_selected',
 } as const;
 const CHANGE_PLATFORM_CLICKED_EVENT = {
   onboarding: 'onboarding.scm_platform_change_platform_clicked',
-  'project-creation': 'project_creation.scm_platform_change_platform_clicked',
+  'project-creation': 'project_creation.platform_change_platform_clicked',
 } as const;
 const SKIP_DETECTION_CLICKED_EVENT = {
   onboarding: 'onboarding.scm_skip_detection_clicked',
-  'project-creation': 'project_creation.scm_skip_detection_clicked',
+  'project-creation': 'project_creation.skip_detection_clicked',
 } as const;
 
 interface ScmPlatformFeaturesCoreProps {
@@ -151,6 +151,7 @@ export function ScmPlatformFeaturesCore({
       organization,
       platform: detectedPlatformKey,
       source: 'detected',
+      ...scmFlowVariantParams(analyticsFlow),
     });
   }, [
     detectedPlatformKey,
@@ -248,6 +249,7 @@ export function ScmPlatformFeaturesCore({
       organization,
       platform: platformKey,
       source: 'manual',
+      ...scmFlowVariantParams(analyticsFlow),
     });
   };
 
@@ -263,6 +265,7 @@ export function ScmPlatformFeaturesCore({
       organization,
       platform: platformKey,
       source: 'detected',
+      ...scmFlowVariantParams(analyticsFlow),
     });
   };
 
@@ -273,10 +276,12 @@ export function ScmPlatformFeaturesCore({
     if (isDetecting) {
       trackAnalytics(SKIP_DETECTION_CLICKED_EVENT[analyticsFlow], {
         organization,
+        ...scmFlowVariantParams(analyticsFlow),
       });
     } else {
       trackAnalytics(CHANGE_PLATFORM_CLICKED_EVENT[analyticsFlow], {
         organization,
+        ...scmFlowVariantParams(analyticsFlow),
       });
     }
   }
@@ -308,6 +313,7 @@ export function ScmPlatformFeaturesCore({
       organization,
       platform: detectedPlatformKey,
       source: 'detected',
+      ...scmFlowVariantParams(analyticsFlow),
     });
   }
 

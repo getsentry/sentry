@@ -8,6 +8,22 @@ export type ProjectCreationVariant = 'scm' | 'legacy';
 
 export type ProjectCreationEventParameters = {
   'project_creation.back_button_clicked': Record<string, unknown>;
+  // SCM-first project creation wizard steps. SCM vs legacy rides in `variant`
+  // (see scmFlowVariantParams); these events are only emitted by the SCM cores
+  // today, so `variant` is `scm` in practice, but stays optional so a future
+  // legacy sibling can share the name.
+  'project_creation.connect_integration_selected': {
+    provider: string;
+    // 'default' when the integration was auto-selected on entry, 'manual' when
+    // the user explicitly switched via the selector.
+    source: 'default' | 'manual';
+    variant?: ProjectCreationVariant;
+  };
+  'project_creation.connect_repo_selected': {
+    provider: string;
+    repo: string;
+    variant?: ProjectCreationVariant;
+  };
   'project_creation.data_removal_modal_confirm_button_clicked': {
     platform: string;
     project_id: string;
@@ -41,45 +57,38 @@ export type ProjectCreationEventParameters = {
     step: string;
     variant?: ProjectCreationVariant;
   };
-  // SCM-first project creation flow (mirrors onboarding.scm_*)
-  'project_creation.scm_connect_integration_selected': {
-    provider: string;
-    // 'default' when the integration was auto-selected on entry, 'manual' when
-    // the user explicitly switched via the selector.
-    source: 'default' | 'manual';
+  'project_creation.platform_change_platform_clicked': {
+    variant?: ProjectCreationVariant;
   };
-  'project_creation.scm_connect_repo_selected': {
-    provider: string;
-    repo: string;
-  };
-  'project_creation.scm_platform_change_platform_clicked': Record<string, unknown>;
-  'project_creation.scm_platform_feature_toggled': {
+  'project_creation.platform_feature_toggled': {
     enabled: boolean;
     feature: string;
     platform: string;
+    variant?: ProjectCreationVariant;
   };
-  'project_creation.scm_platform_selected': {
+  'project_creation.platform_selected': {
     platform: string;
     source: 'detected' | 'manual';
+    variant?: ProjectCreationVariant;
   };
-  'project_creation.scm_project_details_alert_selected': {
+  'project_creation.project_details_alert_selected': {
     option: string;
+    variant?: ProjectCreationVariant;
   };
-  'project_creation.scm_project_details_create_clicked': Record<string, unknown>;
-  'project_creation.scm_project_details_create_failed': Record<string, unknown>;
-  'project_creation.scm_project_details_create_succeeded': {
-    project_slug: string;
+  'project_creation.project_details_create_clicked': {
+    variant?: ProjectCreationVariant;
   };
-  'project_creation.scm_project_details_name_edited': {
+  'project_creation.project_details_create_failed': {
+    variant?: ProjectCreationVariant;
+  };
+  'project_creation.project_details_name_edited': {
     custom: boolean;
+    variant?: ProjectCreationVariant;
   };
-  'project_creation.scm_project_details_team_selected': {
+  'project_creation.project_details_team_selected': {
     team: string;
+    variant?: ProjectCreationVariant;
   };
-  'project_creation.scm_select_framework_modal_rendered': {
-    platform: string;
-  };
-  'project_creation.scm_skip_detection_clicked': Record<string, unknown>;
   'project_creation.select_framework_modal_close_button_clicked': {
     platform: string;
   };
@@ -89,6 +98,7 @@ export type ProjectCreationEventParameters = {
   };
   'project_creation.select_framework_modal_rendered': {
     platform: string;
+    variant?: ProjectCreationVariant;
   };
   'project_creation.select_framework_modal_skip_button_clicked': {
     platform: string;
@@ -96,6 +106,9 @@ export type ProjectCreationEventParameters = {
   'project_creation.setup_loader_docs_rendered': {
     platform: string;
     project_id: string;
+    variant?: ProjectCreationVariant;
+  };
+  'project_creation.skip_detection_clicked': {
     variant?: ProjectCreationVariant;
   };
   'project_creation.source_maps_wizard_button_copy_clicked': {
@@ -130,31 +143,25 @@ export const projectCreationEventMap: Record<
     'Project Creation: Data Removal Modal Rendered',
   'project_creation.data_removed': 'Project Creation: Data Removed',
   'project_creation.back_button_clicked': 'Project Creation: Back Button Clicked',
-  'project_creation.scm_connect_integration_selected':
-    'Project Creation: SCM Connect Integration Selected',
-  'project_creation.scm_connect_repo_selected':
-    'Project Creation: SCM Connect Repo Selected',
-  'project_creation.scm_platform_change_platform_clicked':
-    'Project Creation: SCM Platform Change Platform Clicked',
-  'project_creation.scm_platform_feature_toggled':
-    'Project Creation: SCM Platform Feature Toggled',
-  'project_creation.scm_platform_selected': 'Project Creation: SCM Platform Selected',
-  'project_creation.scm_project_details_alert_selected':
-    'Project Creation: SCM Project Details Alert Selected',
-  'project_creation.scm_project_details_create_clicked':
-    'Project Creation: SCM Project Details Create Clicked',
-  'project_creation.scm_project_details_create_failed':
-    'Project Creation: SCM Project Details Create Failed',
-  'project_creation.scm_project_details_create_succeeded':
-    'Project Creation: SCM Project Details Create Succeeded',
-  'project_creation.scm_project_details_name_edited':
-    'Project Creation: SCM Project Details Name Edited',
-  'project_creation.scm_project_details_team_selected':
-    'Project Creation: SCM Project Details Team Selected',
-  'project_creation.scm_select_framework_modal_rendered':
-    'Project Creation: SCM Framework Modal Rendered',
-  'project_creation.scm_skip_detection_clicked':
-    'Project Creation: SCM Skip Detection Clicked',
+  'project_creation.connect_integration_selected':
+    'Project Creation: Connect Integration Selected',
+  'project_creation.connect_repo_selected': 'Project Creation: Connect Repo Selected',
+  'project_creation.platform_change_platform_clicked':
+    'Project Creation: Platform Change Platform Clicked',
+  'project_creation.platform_feature_toggled':
+    'Project Creation: Platform Feature Toggled',
+  'project_creation.platform_selected': 'Project Creation: Platform Selected',
+  'project_creation.project_details_alert_selected':
+    'Project Creation: Project Details Alert Selected',
+  'project_creation.project_details_create_clicked':
+    'Project Creation: Project Details Create Clicked',
+  'project_creation.project_details_create_failed':
+    'Project Creation: Project Details Create Failed',
+  'project_creation.project_details_name_edited':
+    'Project Creation: Project Details Name Edited',
+  'project_creation.project_details_team_selected':
+    'Project Creation: Project Details Team Selected',
+  'project_creation.skip_detection_clicked': 'Project Creation: Skip Detection Clicked',
   'project_creation.source_maps_wizard_button_copy_clicked':
     'Project Creation: Source Maps Wizard Button Copy Clicked',
   'project_creation.source_maps_wizard_selected_and_copied':
