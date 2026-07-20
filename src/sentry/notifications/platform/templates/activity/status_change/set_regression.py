@@ -1,3 +1,6 @@
+import orjson
+from sentry_relay.processing import parse_release
+
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.templates.activity.base import (
     ActivityNotificationData,
@@ -14,16 +17,30 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
     NotificationTemplate,
+    NotificationTextBlock,
     ParagraphSection,
     PlainTextBlock,
 )
 from sentry.types.activity import ActivityType
 
 
-@template_registry.register(NotificationSource.ACTIVITY_SET_RESOLVED)
-class SetResolvedActivityTemplate(NotificationTemplate[ActivityNotificationData]):
+def get_regression_blocks(data: ActivityNotificationData) -> list[NotificationTextBlock]:
+    if data.activity_data and data.activity_data.get("version"):
+        raw_version = data.activity_data["version"]
+        readable_version = parse_release(raw_version, json_loads=orjson.loads)["description"]
+        return [
+            PlainTextBlock(text=f"has regressed in release {readable_version}."),
+        ]
+    return [PlainTextBlock(text="has regressed.")]
+
+
+@template_registry.register(NotificationSource.ACTIVITY_SET_REGRESSION)
+class SetRegressionActivityTemplate(NotificationTemplate[ActivityNotificationData]):
     category = NotificationCategory.ACTIVITY
-    example_data = create_activity_notification_example(ActivityType.SET_RESOLVED)
+    example_data = create_activity_notification_example(
+        ActivityType.SET_REGRESSION,
+        activity_data={"version": "example-project@1.0.0"},
+    )
 
     def render(self, data: ActivityNotificationData) -> NotificationRenderedTemplate:
         return NotificationRenderedTemplate(
@@ -32,7 +49,7 @@ class SetResolvedActivityTemplate(NotificationTemplate[ActivityNotificationData]
                 ParagraphSection(
                     blocks=[
                         build_issue_link(data.issue_short_id, data.issue_url),
-                        PlainTextBlock(text="had its status changed to resolved."),
+                        *get_regression_blocks(data),
                     ]
                 ),
                 *get_issue_description(data=data),

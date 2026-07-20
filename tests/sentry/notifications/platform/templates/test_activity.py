@@ -15,7 +15,7 @@ from sentry.notifications.platform.templates.activity.seer.base import (
     get_subject,
 )
 from sentry.notifications.platform.templates.activity.status_change.base import (
-    get_resolution_subject,
+    get_status_change_subject,
 )
 from sentry.notifications.platform.types import (
     LinkTextBlock,
@@ -125,24 +125,24 @@ class ActivitySeerAlertBaseTest(TestCase):
 
 
 class ActivitySetResolvedAlertBaseTest(TestCase):
-    def test_get_resolution_subject_with_short_id(self) -> None:
+    def test_get_status_change_subject_with_short_id(self) -> None:
         data = create_activity_notification_example(ActivityType.SET_RESOLVED)
-        subject = get_resolution_subject(data)
+        subject = get_status_change_subject(data)
         assert subject[0].type == NotificationTextBlockType.CODE
         assert subject[0].text == "JAVASCRIPT-1"
         assert "was resolved" in subject[1].text
 
-    def test_get_resolution_subject_without_short_id(self) -> None:
+    def test_get_status_change_subject_without_short_id(self) -> None:
         data = create_activity_notification_example(ActivityType.SET_RESOLVED).copy(
             update={"issue_short_id": None, "activity_user_name": None}
         )
-        subject = get_resolution_subject(data)
+        subject = get_status_change_subject(data)
         assert len(subject) == 1
         assert "A Sentry Issue was resolved" in subject[0].text
 
-    def test_get_resolution_subject_with_user(self) -> None:
+    def test_get_status_change_subject_with_user(self) -> None:
         data = create_activity_notification_example(ActivityType.SET_RESOLVED)
-        subject = get_resolution_subject(data)
+        subject = get_status_change_subject(data)
         assert any(
             "by Jane Doe" in b.text
             for b in subject

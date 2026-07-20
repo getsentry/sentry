@@ -13,10 +13,14 @@ from .seer.rca_completed import SeerRcaCompletedActivityTemplate
 from .seer.rca_started import SeerRcaStartedActivityTemplate
 from .seer.solution_completed import SeerSolutionCompletedActivityTemplate
 from .seer.solution_started import SeerSolutionStartedActivityTemplate
+from .status_change.set_escalating import SetEscalatingActivityTemplate
+from .status_change.set_ignored import SetIgnoredActivityTemplate
+from .status_change.set_regression import SetRegressionActivityTemplate
 from .status_change.set_resolved import SetResolvedActivityTemplate
 from .status_change.set_resolved_by_age import SetResolvedByAgeActivityTemplate
 from .status_change.set_resolved_in_commit import SetResolvedInCommitActivityTemplate
 from .status_change.set_resolved_in_release import SetResolvedInReleaseActivityTemplate
+from .status_change.set_unresolved import SetUnresolvedActivityTemplate
 
 __all__ = (
     "ACTIVITY_TYPE_TO_SOURCE",
@@ -36,4 +40,8 @@ __all__ = (
     "SetResolvedInReleaseActivityTemplate",
     "SetResolvedByAgeActivityTemplate",
     "SetResolvedInCommitActivityTemplate",
+    "SetEscalatingActivityTemplate",
+    "SetIgnoredActivityTemplate",
+    "SetRegressionActivityTemplate",
+    "SetUnresolvedActivityTemplate",
 )
