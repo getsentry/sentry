@@ -37,6 +37,7 @@ from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
+    PullRequestActivityLog,
     PullRequestActivityType,
     PullRequestAttribution,
     PullRequestAttributionSignalType,
@@ -45,6 +46,7 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.models.repository import Repository
+from sentry.pr_metrics.activity_doc import apply_activity, extract_event_at, new_document
 from sentry.pr_metrics.activity_types import (
     AssignedPayload,
     AutoMergeDisabledPayload,
@@ -55,11 +57,13 @@ from sentry.pr_metrics.activity_types import (
     CommentCreatedPayload,
     ConvertedToDraftPayload,
     DequeuedPayload,
+    EditedPayload,
     EnqueuedPayload,
     LabeledPayload,
     MergedPayload,
     OpenedPayload,
     ReadyForReviewPayload,
+    ReopenedPayload,
     ReviewDismissedPayload,
     ReviewRequestedPayload,
     ReviewRequestRemovedPayload,
@@ -76,9 +80,8 @@ from sentry.pr_metrics.attribution import (
     record_attribution_signal,
 )
 from sentry.pr_metrics.emit import (
-    CI_FAILING_AT_CLOSE,
     VerdictDeferral,
-    ci_failing_at_close,
+    calculate_deterministic_diagnosis_labels,
     emit_pr_metrics_row,
     is_pr_tracked,
     select_fallback_verdict,
@@ -91,6 +94,7 @@ from sentry.pr_metrics.utils import (
     is_activity_tracking_enabled,
     org_has_coding_agent_for_provider,
     resolved_group_ids,
+    seer_run_link_for_pull_request,
 )
 from sentry.seer.autofix.utils import (
     DelegatedAgentMatch,
@@ -128,6 +132,8 @@ _ACTIVITY_ACTIONS = frozenset(
 # resolved in _write_activity.
 _ACTION_TO_ACTIVITY_TYPE: dict[str, PullRequestActivityType] = {
     "opened": PullRequestActivityType.OPENED,
+    "reopened": PullRequestActivityType.REOPENED,
+    "edited": PullRequestActivityType.EDITED,
     "synchronize": PullRequestActivityType.SYNCHRONIZED,
     "labeled": PullRequestActivityType.LABELED,
     "unlabeled": PullRequestActivityType.UNLABELED,
@@ -142,6 +148,16 @@ _ACTION_TO_ACTIVITY_TYPE: dict[str, PullRequestActivityType] = {
     "enqueued": PullRequestActivityType.ENQUEUED,
     "dequeued": PullRequestActivityType.DEQUEUED,
 }
+
+# Actions captured only on the reduced-document path; the legacy row store never
+# recorded them (reopened/edited were removed as unused, and re-adding them to the
+# legacy path would change its frozen behavior). Gated on the document store.
+_DOC_ONLY_ACTIONS = frozenset({"reopened", "edited"})
+
+# Terminal actions whose event must be recorded even when the PR row already reads
+# terminal / its verdict is claimed (see ``is_activity_tracking_enabled``'s
+# ``for_terminal_event``). "closed" forks into CLOSED/MERGED; both are terminal.
+_TERMINAL_ACTIONS = frozenset({"closed", "reopened"})
 
 
 def handle_attribution(
@@ -178,7 +194,11 @@ def handle_attribution(
     # where the PR open and closes super fast and the webhooks might be out of order
     if action in ("opened", "closed"):
         pr_url = (pull_request or {}).get("html_url") or None
-        _write_author_attribution(pr, github_user, pr_url=pr_url, group_ids=resolved_group_ids(pr))
+        seer_group_ids, seer_run_id = seer_run_link_for_pull_request(pr)
+        group_ids = sorted(set(resolved_group_ids(pr)) | set(seer_group_ids))
+        _write_author_attribution(
+            pr, github_user, pr_url=pr_url, group_ids=group_ids, run_id=seer_run_id
+        )
     if features.has("organizations:mcp-issue-view-attribution", organization):
         _write_mcp_attribution(pr)
     # Checked on open and re-checked on close, mirroring the SENTRY_APP author
@@ -493,15 +513,7 @@ def _claim_and_emit(
         metrics.incr("pr_metrics.emit.skipped", tags={"reason": "redelivery"})
         return
 
-    # Sentry can derive this one diagnosis label itself, without a judge: a plain
-    # close (no merge, no engagement) whose check suites were red at close. Scoped
-    # to CLOSED_UNMERGED specifically — the judge-needed and merged paths don't
-    # carry this deterministic signal.
-    diagnosis_labels = (
-        [CI_FAILING_AT_CLOSE]
-        if verdict == PullRequestVerdict.CLOSED_UNMERGED and ci_failing_at_close(pull_request)
-        else None
-    )
+    diagnosis_labels = calculate_deterministic_diagnosis_labels(pull_request, verdict)
 
     # Claim before emit so build_pr_metrics_row reads the verdict back onto the row.
     # analytics.record is best-effort, async-batched telemetry; if it raises the
@@ -561,10 +573,16 @@ def handle_activity(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Record PR lifecycle activity rows from pull_request webhook events."""
+    """Record PR lifecycle activity from pull_request webhook events."""
     pull_request_data = event.get("pull_request")
     action = event.get("action")
-    if not action or action not in _ACTIVITY_ACTIONS:
+    if not action or (action not in _ACTIVITY_ACTIONS and action not in _DOC_ONLY_ACTIONS):
+        return
+
+    # reopened/edited exist only on the document path; skip the whole path —
+    # including PR resolution — when the cutover option is off, so the legacy path
+    # is untouched.
+    if action in _DOC_ONLY_ACTIONS and not options.get("pr_metrics.activity_document.enabled"):
         return
 
     pr = _get_pull_request(
@@ -577,11 +595,19 @@ def handle_activity(
     if pr is None:
         return
 
-    if not is_activity_tracking_enabled(organization, pr):
+    use_doc = _use_activity_document(pr)
+    if action in _DOC_ONLY_ACTIONS and not use_doc:
+        # Option is on globally, but this PR is still on the legacy store.
+        return
+
+    # Terminal events (close/merge/reopen) on the document path must be recorded
+    # even if the PR row already reads terminal; other events stop once settled.
+    for_terminal_event = use_doc and action in _TERMINAL_ACTIONS
+    if not is_activity_tracking_enabled(organization, pr, for_terminal_event=for_terminal_event):
         return
 
     webhook_id: str | None = kwargs.get("github_delivery_id")
-    _write_activity(pr, action, pull_request_data or {}, event, webhook_id)
+    _write_activity(pr, action, pull_request_data or {}, event, webhook_id, use_doc)
 
 
 def handle_comment(
@@ -593,9 +619,12 @@ def handle_comment(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Record PR comment activity from issue_comment webhook events."""
-    action = event.get("action")
-    if action != "created":
+    """Record PR comment activity from issue_comment webhook events.
+
+    ``created`` folds the commenter into the document's participants (or writes a
+    legacy COMMENT_CREATED row). Other actions are ignored.
+    """
+    if event.get("action") != "created":
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -626,6 +655,9 @@ def handle_comment(
     if not is_activity_tracking_enabled(organization, pr):
         return
 
+    if not webhook_id:
+        return
+
     sender = event.get("sender") or {}
     comment = event.get("comment") or {}
 
@@ -634,11 +666,7 @@ def handle_comment(
         sender_type=sender.get("type", ""),
         author_association=comment.get("author_association", "NONE"),
     )
-
-    if not webhook_id:
-        return
-
-    _write_activity_row(
+    _record_activity_event(
         pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
     )
 
@@ -704,7 +732,9 @@ def handle_review(
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(pr, webhook_id, event_type, payload)
+    _record_activity_event(
+        pr, webhook_id, event_type, payload, event_at=extract_event_at(event_type, event)
+    )
 
 
 def handle_review_comment(
@@ -716,9 +746,12 @@ def handle_review_comment(
     integration: RpcIntegration | None = None,
     **kwargs: Any,
 ) -> None:
-    """Record inline PR review comments (pull_request_review_comment events)."""
-    action = event.get("action")
-    if action != "created":
+    """Record inline PR review comments (pull_request_review_comment events).
+
+    ``created`` folds the commenter into participants (or writes a legacy
+    COMMENT_CREATED row). Other actions are ignored.
+    """
+    if event.get("action") != "created":
         return
 
     if not is_activity_tracking_enabled(organization):
@@ -737,6 +770,10 @@ def handle_review_comment(
     if not is_activity_tracking_enabled(organization, pr):
         return
 
+    webhook_id: str | None = kwargs.get("github_delivery_id")
+    if not webhook_id:
+        return
+
     comment = event.get("comment") or {}
     sender = event.get("sender") or {}
 
@@ -747,11 +784,7 @@ def handle_review_comment(
         is_review=True,
         review_id=comment.get("pull_request_review_id"),
     )
-
-    webhook_id: str | None = kwargs.get("github_delivery_id")
-    if not webhook_id:
-        return
-    _write_activity_row(
+    _record_activity_event(
         pr, webhook_id, PullRequestActivityType.COMMENT_CREATED, asdict(payload_obj)
     )
 
@@ -807,7 +840,9 @@ def handle_review_thread(
     webhook_id: str | None = kwargs.get("github_delivery_id")
     if not webhook_id:
         return
-    _write_activity_row(pr, webhook_id, event_type, payload)
+    _record_activity_event(
+        pr, webhook_id, event_type, payload, event_at=extract_event_at(event_type, event)
+    )
 
 
 def handle_check_suite(
@@ -848,8 +883,13 @@ def handle_check_suite(
 
     for pr in _prs_from_check_payload(organization, repo, check_suite, webhook_id, github_event):
         if is_activity_tracking_enabled(organization, pr):
-            _write_activity_row(
-                pr, webhook_id, PullRequestActivityType.CHECK_SUITE_COMPLETED, payload
+            _record_activity_event(
+                pr,
+                webhook_id,
+                PullRequestActivityType.CHECK_SUITE_COMPLETED,
+                payload,
+                provider_ts=check_suite.get("updated_at"),
+                head_sha=check_suite.get("head_sha"),
             )
 
 
@@ -890,8 +930,13 @@ def handle_check_run(
 
     for pr in _prs_from_check_payload(organization, repo, check_run, webhook_id, github_event):
         if is_activity_tracking_enabled(organization, pr):
-            _write_activity_row(
-                pr, webhook_id, PullRequestActivityType.CHECK_RUN_COMPLETED, payload
+            _record_activity_event(
+                pr,
+                webhook_id,
+                PullRequestActivityType.CHECK_RUN_COMPLETED,
+                payload,
+                provider_ts=check_run.get("completed_at"),
+                head_sha=check_run.get("head_sha"),
             )
 
 
@@ -1113,6 +1158,7 @@ def _write_author_attribution(
     github_user: dict[str, Any],
     pr_url: str | None = None,
     group_ids: list[int] | None = None,
+    run_id: int | None = None,
 ) -> None:
     user_id = github_user.get("id")
     if user_id is None:
@@ -1125,6 +1171,7 @@ def _write_author_attribution(
         signal_details = SentryAppSignalDetails(
             pr_url=pr_url,
             group_ids=group_ids or [],
+            run_id=run_id,
         )
     record_attribution_signal(
         pull_request=pr,
@@ -1321,6 +1368,100 @@ def _write_mcp_attribution(pr: PullRequest) -> None:
     )
 
 
+def _use_activity_document(pr: PullRequest) -> bool:
+    """Whether this PR's activity writes go to the reduced JSON document.
+
+    Per-PR routing, consulted only when the cutover option is on: a PR stays on
+    whichever store it started on — an existing document wins, else pre-existing
+    legacy rows keep it on the old path, else (a new PR) it starts on the
+    document. The indexed 1:1 document lookup runs first; the legacy-rows EXISTS
+    only when there's no document.
+    """
+    if not options.get("pr_metrics.activity_document.enabled"):
+        return False
+    if PullRequestActivityLog.objects.filter(pull_request=pr).exists():
+        return True
+    if PullRequestActivity.objects.filter(pull_request=pr).exists():
+        return False
+    return True
+
+
+def _apply_activity_into_doc(
+    pr: PullRequest,
+    *,
+    event_type: PullRequestActivityType,
+    payload: dict[str, Any],
+    webhook_id: str,
+    event_at: str | None = None,
+    provider_ts: str | None = None,
+) -> None:
+    """Apply one processed event to the PR's activity document, under a row lock.
+
+    ``get_or_create`` the 1:1 row (race-safe on its unique constraint), then lock
+    it and run the pure reducer, so concurrent webhook processors for one PR
+    serialize on the document. The reducer can't be expressed as an atomic JSONB
+    update, so the lock is required. ``date_updated`` is bumped on every fold so
+    retention keys off last-write, not creation.
+
+    Creation and fold share one transaction. The webhook processor loop swallows a
+    failed fold (logs it, no GitHub retry), so a ``get_or_create`` committed outside
+    the atomic would strand the row at its empty ``{}`` default — and routing then
+    sends every later event for that PR down the document path onto a doc that reads
+    as all-zeros. Rolling the creation back with the fold keeps a failed fold a true
+    no-op, exactly like the legacy row insert it replaces.
+    """
+    with transaction.atomic(using=router.db_for_write(PullRequestActivityLog)):
+        PullRequestActivityLog.objects.get_or_create(pull_request=pr)
+        log = PullRequestActivityLog.objects.select_for_update().get(pull_request=pr)
+        doc = log.data if log.data.get("version") else new_document()
+        apply_activity(
+            doc,
+            event_type=event_type,
+            payload=payload,
+            ts=timezone.now().isoformat(),
+            event_at=event_at,
+            webhook_id=webhook_id,
+            provider_ts=provider_ts,
+        )
+        log.data = doc
+        log.save(update_fields=["data", "date_updated"])
+
+
+def _record_activity_event(
+    pr: PullRequest,
+    webhook_id: str,
+    event_type: PullRequestActivityType,
+    payload: dict[str, Any],
+    *,
+    event_at: str | None = None,
+    provider_ts: str | None = None,
+    head_sha: str | None = None,
+    use_doc: bool | None = None,
+) -> None:
+    """Route one processed event to the document or a legacy row per this PR's store.
+
+    ``event_at``, ``provider_ts`` and ``head_sha`` only feed the document path; see
+    ``apply_activity`` for their per-family semantics (``head_sha`` keys the check
+    rollup's per-push groups, so the legacy row's payload is left exactly as
+    before). Callers that already resolved the routing decision — because the
+    payload's shape depends on it — pass it as ``use_doc``; otherwise it is
+    computed here.
+    """
+    if use_doc is None:
+        use_doc = _use_activity_document(pr)
+    if use_doc:
+        _apply_activity_into_doc(
+            pr,
+            event_type=event_type,
+            payload=payload if head_sha is None else {**payload, "head_sha": head_sha},
+            webhook_id=webhook_id,
+            event_at=event_at,
+            provider_ts=provider_ts,
+        )
+    else:
+        _write_activity_row(pr, webhook_id, event_type, payload)
+
+
 def _write_activity_row(
     pr: PullRequest,
     webhook_id: str,
@@ -1345,6 +1486,7 @@ def _write_activity(
     pull_request: Mapping[str, Any],
     event: Mapping[str, Any],
     webhook_id: str | None,
+    use_doc: bool,
 ) -> None:
     if not webhook_id:
         # Without a delivery ID idempotency cannot be guaranteed — skip.
@@ -1364,14 +1506,22 @@ def _write_activity(
             return
         event_type = mapped
 
-    payload = _build_activity_payload(action, pull_request, event)
-    _write_activity_row(pr, webhook_id, event_type, payload)
+    payload = _build_activity_payload(action, pull_request, event, use_doc)
+    _record_activity_event(
+        pr,
+        webhook_id,
+        event_type,
+        payload,
+        event_at=extract_event_at(event_type, event),
+        use_doc=use_doc,
+    )
 
 
 def _build_activity_payload(
     action: str,
     pull_request: Mapping[str, Any],
     event: Mapping[str, Any],
+    use_doc: bool,
 ) -> dict[str, Any]:
     head = pull_request.get("head") or {}
     base = pull_request.get("base") or {}
@@ -1381,6 +1531,11 @@ def _build_activity_payload(
         sender_login=sender.get("login", ""),
         sender_type=sender.get("type", ""),
     )
+    # The auto-merge / merge-queue payloads only carry a sender on the document
+    # path: adding it to the legacy row would fold these actors into that path's
+    # participants_count, changing its frozen behavior. On the legacy path the
+    # fields stay at their empty defaults (excluded from participants).
+    queue_sender_kw = sender_kw if use_doc else {}
 
     match action:
         case "opened":
@@ -1407,6 +1562,11 @@ def _build_activity_payload(
             if pull_request.get("merged"):
                 return asdict(MergedPayload(**sender_kw))
             return asdict(ClosedPayload(**sender_kw))
+        case "reopened":
+            return asdict(ReopenedPayload(**sender_kw))
+        case "edited":
+            changed_fields = sorted((event.get("changes") or {}).keys())
+            return asdict(EditedPayload(**sender_kw, changed_fields=changed_fields))
         case "labeled":
             label = event.get("label") or {}
             return asdict(LabeledPayload(**sender_kw, label_name=(label.get("name") or "")))
@@ -1438,13 +1598,15 @@ def _build_activity_payload(
         case "auto_merge_enabled":
             auto_merge = pull_request.get("auto_merge") or {}
             return asdict(
-                AutoMergeEnabledPayload(merge_method=auto_merge.get("merge_method") or "")
+                AutoMergeEnabledPayload(
+                    **queue_sender_kw, merge_method=auto_merge.get("merge_method") or ""
+                )
             )
         case "auto_merge_disabled":
-            return asdict(AutoMergeDisabledPayload())
+            return asdict(AutoMergeDisabledPayload(**queue_sender_kw))
         case "enqueued":
-            return asdict(EnqueuedPayload())
+            return asdict(EnqueuedPayload(**queue_sender_kw))
         case "dequeued":
-            return asdict(DequeuedPayload(reason=event.get("reason") or ""))
+            return asdict(DequeuedPayload(**queue_sender_kw, reason=event.get("reason") or ""))
         case _:
             raise ValueError(f"No payload builder for action {action!r}")

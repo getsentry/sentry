@@ -20,7 +20,7 @@ from sentry.workflow_engine.handlers.detector import (
 )
 from sentry.workflow_engine.handlers.detector.base import EventData
 from sentry.workflow_engine.models import DataPacket
-from sentry.workflow_engine.processors.data_condition_group import ProcessedDataConditionGroup
+from sentry.workflow_engine.processors import DataConditionGroupEvaluation
 from sentry.workflow_engine.types import (
     DetectorEvaluationResult,
     DetectorPriorityLevel,
@@ -59,7 +59,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
             def create_occurrence(
                 self,
-                evaluation_result: ProcessedDataConditionGroup,
+                evaluation_result: DataConditionGroupEvaluation,
                 data_packet: DataPacket[dict[Never, Never]],
                 priority: DetectorPriorityLevel,
             ) -> tuple[DetectorOccurrence, EventData]:

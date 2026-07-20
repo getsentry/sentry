@@ -295,6 +295,35 @@ class SyncArtifactBundlesTest(TestCase):
         with pytest.raises(ProjectDebugFile.DoesNotExist):
             target_project_debug_file.refresh_from_db()
 
+    @requires_objectstore
+    def test_sync_dual_written_project_debug_files(self) -> None:
+        source_project_debug_file = self.create_dif_file(self.source_proj_foo)
+        source_storage_path = get_debug_files_session(
+            self.source_org.id, self.source_proj_foo.id
+        ).put(b"objectstore-backed-debug-file", compression="none")
+        source_project_debug_file.update(
+            storage_path=source_storage_path,
+            content_type=source_project_debug_file.file.headers["Content-Type"],
+            file_size=source_project_debug_file.file.size,
+            date_created=source_project_debug_file.file.timestamp,
+        )
+        source_project_debug_file.refresh_from_db()
+
+        _sync_project_debug_files(
+            source_org=self.source_org,
+            target_org=self.target_org,
+            cutoff_date=self.last_three_days(),
+        )
+
+        target_project_debug_file = ProjectDebugFile.objects.get(
+            project_id=self.target_proj_foo.id,
+            debug_id=source_project_debug_file.debug_id,
+        )
+
+        assert target_project_debug_file.file_id == source_project_debug_file.file_id
+        assert target_project_debug_file.storage_path is not None
+        assert target_project_debug_file.storage_path != source_storage_path
+
     def test_sync_project_debug_files_with_old_uploads(self) -> None:
         source_project_debug_file = self.create_dif_file(
             self.source_proj_foo,

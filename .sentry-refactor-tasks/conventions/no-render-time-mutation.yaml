@@ -1,0 +1,46 @@
+name: no-render-time-mutation
+severity: error
+tags: [react, react-compiler, immutability, correctness]
+
+why: |
+  Props, hook arguments, captured values, and values retained across renders are
+  snapshots. Mutating them while rendering changes data React does not own and
+  can make repeated or abandoned renders observable. The compiler can only
+  safely optimize components whose inputs remain immutable.
+
+  This convention corresponds to the React Compiler `Immutability` diagnostic,
+  including "value cannot be modified", "`props` cannot be modified", and
+  "Cannot reassign ... after render completes" variants.
+
+  See: https://react.dev/reference/eslint-plugin-react-hooks/lints/immutability
+
+detect: |
+  During component or hook execution, flag:
+    - Assignment to a prop, hook argument, captured object, or its nested fields.
+    - Mutating array/object methods on those values (`push`, `splice`, `sort`,
+      `reverse`, `Object.assign`, and similar).
+    - Reassignment of a value captured by a callback that may run after render.
+    - Calling a helper that may indirectly mutate one of these values.
+    - Using a function before its declaration when doing so creates a mutable
+      render-time dependency the compiler cannot safely order.
+
+  Do NOT flag mutation of a fresh local object or array that was allocated in
+  the same calculation and has not escaped. Do not confuse a state setter with
+  direct mutation of the state value.
+
+fix: |
+  Create a new value instead of modifying the input: use object/array spreads,
+  non-mutating methods such as `map`/`filter`/`toSorted`, or clone a class value
+  before changing it. Move callback declarations before their first use when
+  the compiler reports an accessed-before-declared variant. Use a state setter
+  with an immutable update for state owned by the component.
+
+examples:
+  bad:
+    - 'props.widget.displayType = DisplayType.AREA;'
+    - 'items.sort(compareItems);'
+  good:
+    - 'const widget = {...props.widget, displayType: DisplayType.AREA};'
+    - 'const sortedItems = items.toSorted(compareItems);'
+
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} Immutability'

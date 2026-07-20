@@ -895,6 +895,7 @@ class TestGetMonitoringProviderConnections(APITestCase):
         assert connection.url == "https://mcp.datadoghq.com/api/unstable/mcp-server/mcp"
         assert connection.identity_id == identity.id
         assert connection.auth_method == "oauth"
+        assert connection.encrypted_access_token is not None
         decrypted = Fernet(TEST_FERNET_KEY.encode("utf-8")).decrypt(
             connection.encrypted_access_token.encode("utf-8")
         )
@@ -1111,6 +1112,7 @@ class TestRecordPrAttribution(APITestCase):
             "agent_id": "agent-abc-123",
             "pr_url": self._DEFAULT_PR_URL,
             "run_id": 42,
+            "group_ids": [],
         }
 
     def test_delegated_signal_details_defaults_nullable_fields(self) -> None:
@@ -1121,6 +1123,7 @@ class TestRecordPrAttribution(APITestCase):
             "agent_id": None,
             "pr_url": self._DEFAULT_PR_URL,
             "run_id": None,
+            "group_ids": [],
         }
 
     def test_invalid_delegated_signal_details_raises(self) -> None:

@@ -748,20 +748,22 @@ function IssueRow({
   return (
     <Container background="primary" border="muted" radius="md" padding="sm md">
       <Stack gap="xs">
-        <Flex justify="between" align="center" gap="md" wrap="wrap">
-          <Link to={`/organizations/${organizationSlug}/issues/${issue.groupId}/`}>
-            <Text size="sm" ellipsis>
-              {issue.groupShortId ? (
-                <Text bold as="span">
-                  {issue.groupShortId}{' '}
-                </Text>
-              ) : null}
-              {title}
-            </Text>
-          </Link>
-          <Stack gap="xs" align="end">
-            {issue.pullRequests.length > 0 ? (
-              issue.pullRequests.map(pullRequest => (
+        <Flex justify="between" align="center" gap="md">
+          <Container flex="1" minWidth="0">
+            <Link to={`/organizations/${organizationSlug}/issues/${issue.groupId}/`}>
+              <Text size="sm" ellipsis>
+                {issue.groupShortId ? (
+                  <Text bold as="span">
+                    {issue.groupShortId}{' '}
+                  </Text>
+                ) : null}
+                {title}
+              </Text>
+            </Link>
+          </Container>
+          <Stack gap="xs" align="end" flexShrink={0}>
+            {(issue.pullRequests ?? []).length > 0 ? (
+              (issue.pullRequests ?? []).map(pullRequest => (
                 <IssuePullRequestChip
                   key={`${pullRequest.repository.id}:${pullRequest.id}`}
                   pullRequest={pullRequest}
@@ -820,23 +822,28 @@ function IssuePullRequestChip({
 }: {
   pullRequest: SeerNightShiftRunPullRequest;
 }) {
-  const title = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
   const status = pullRequest.status ?? 'unknown';
   const Icon = PR_STATUS_ICON[status] ?? IconPullRequest;
+  // The chip stays compact -- just the PR number (and its status when notable);
+  // the full title would blow out the row, so it lives on hover instead.
+  const number = `#${pullRequest.id}`;
   const label = PR_STATUS_PREFIXED.has(status)
-    ? `${getPullRequestStatusLabel(status)}: ${title}`
-    : title;
-  if (!pullRequest.externalUrl) {
-    return (
-      <Tag variant="muted" icon={<Icon />}>
-        {label}
-      </Tag>
-    );
-  }
-  return (
+    ? `${getPullRequestStatusLabel(status)} ${number}`
+    : number;
+  const tooltipTitle = pullRequest.title ?? t('Pull request #%s', pullRequest.id);
+  const chip = pullRequest.externalUrl ? (
     <LinkButton size="xs" icon={<Icon />} href={pullRequest.externalUrl} external>
-      <Text ellipsis>{label}</Text>
+      {label}
     </LinkButton>
+  ) : (
+    <Tag variant="muted" icon={<Icon />}>
+      {label}
+    </Tag>
+  );
+  return (
+    <Tooltip title={tooltipTitle} skipWrapper>
+      {chip}
+    </Tooltip>
   );
 }
 
@@ -857,7 +864,7 @@ function TriageIssuesDebugAddendum({
         {t('Per-issue internals')}
       </Text>
       <Grid
-        columns="max-content max-content max-content max-content"
+        columns="max-content max-content max-content max-content max-content"
         gap="sm xl"
         align="center"
       >
@@ -866,6 +873,9 @@ function TriageIssuesDebugAddendum({
         </Text>
         <Text bold size="xs" variant="muted">
           {t('Raw action')}
+        </Text>
+        <Text bold size="xs" variant="muted">
+          {t('Skip reason')}
         </Text>
         <Text bold size="xs" variant="muted">
           {t('Seer Run ID')}
@@ -877,6 +887,9 @@ function TriageIssuesDebugAddendum({
           </Text>,
           <Text key={`${issue.id}-action`} size="sm" monospace>
             {issue.action}
+          </Text>,
+          <Text key={`${issue.id}-skip-reason`} size="sm" variant="muted" monospace>
+            {issue.skipReason ?? '-'}
           </Text>,
           <Text key={`${issue.id}-seer`} size="sm" variant="muted" monospace>
             {issue.seerRunId ?? '-'}

@@ -85,7 +85,7 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
             desc=desc,
             type=PerformanceLargeHTTPPayloadGroupType,
             cause_span_ids=[],
-            parent_span_ids=None,
+            parent_span_ids=[],
             offender_span_ids=[offender_span_id],
             evidence_display=[
                 IssueEvidence(

@@ -50,7 +50,7 @@ import {
   IconTerminal,
   IconUser,
 } from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, toggleLocaleDebug} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -112,6 +112,7 @@ import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotifica
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
 import {useCommandPaletteState} from './commandPaletteStateContext';
+import {FeatureFlagCommandPaletteActions} from './featureFlagCommandPaletteActions';
 
 const DSN_ICONS: React.ReactElement[] = [
   <IconIssues key="issues" />,
@@ -756,6 +757,7 @@ export function GlobalCommandPaletteActions() {
 
       {user.isStaff && (
         <CMDKAction display={{label: t('Admin')}}>
+          <FeatureFlagCommandPaletteActions />
           <CMDKAction
             display={{label: t('Open _admin'), icon: <IconOpen />}}
             keywords={[t('superuser')]}
@@ -1116,6 +1118,16 @@ export function GlobalCommandPaletteActions() {
               '_blank',
               'noreferrer'
             );
+          }}
+        />
+      )}
+
+      {(NODE_ENV === 'development' || user.isStaff) && (
+        <CMDKAction
+          display={{label: t('Toggle Translation Markers'), icon: <IconFlag />}}
+          keywords={['locale', 'debug', 'i18n', 'translation', 'markers']}
+          onAction={() => {
+            toggleLocaleDebug();
           }}
         />
       )}

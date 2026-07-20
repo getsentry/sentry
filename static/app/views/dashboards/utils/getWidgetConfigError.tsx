@@ -31,7 +31,7 @@ export function getWidgetConfigError(widget: Widget): string | undefined {
       return t('This widget is missing a metric to visualize.');
     }
     if (!doesMetricSupportHeatMapVisualization(traceMetric)) {
-      return t('Heat maps can only visualize distribution metrics.');
+      return t('Heatmaps can only visualize distribution metrics.');
     }
   }
 

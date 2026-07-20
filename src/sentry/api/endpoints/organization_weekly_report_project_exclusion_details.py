@@ -2,7 +2,6 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -30,11 +29,6 @@ class OrganizationWeeklyReportProjectExclusionDetailsEndpoint(OrganizationEndpoi
         self, request: Request, organization: Organization, project_id_or_slug: str
     ) -> Response:
         assert request.user and request.user.id
-
-        if not features.has(
-            "organizations:weekly-report-project-exclusions", organization, actor=request.user
-        ):
-            return Response(status=status.HTTP_404_NOT_FOUND)
 
         parsed = parse_id_or_slug_params([project_id_or_slug])
         if any(pid <= 0 for pid in parsed.ids):

@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core.cache import cache
 
 from sentry.analytics.events.pr_metrics_events import PrCloseMetricsEvent
+from sentry.integrations.github.webhook import PullRequestEventWebhook
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.issues.constants import ISSUE_VIEW_CACHE_KEY_TTL, cache_key_for_issue_view
 from sentry.models.grouplink import GroupLink
@@ -68,9 +69,12 @@ class HandleWebhookForPrMetricsTest(TestCase):
         action: str = "opened",
         user_id: int = 999,
         changes: dict[str, Any] | None = None,
+        html_url: str | None = None,
     ) -> None:
         payload = dict(self.base_pr_payload)
         payload["user"] = {"id": user_id, "login": "testbot"}
+        if html_url is not None:
+            payload["html_url"] = html_url
         event: dict[str, Any] = {"action": action, "pull_request": payload}
         if changes is not None:
             event["changes"] = changes
@@ -166,6 +170,84 @@ class HandleWebhookForPrMetricsTest(TestCase):
 
         attr = PullRequestAttribution.objects.get(pull_request=self.pr)
         assert attr.is_valid is True
+
+    # --- Local Seer run lookup (supplements the regex-based GroupLink match) ---
+
+    def test_app_attribution_includes_seer_run_group_id(self) -> None:
+        group = self.create_group(project=self.project)
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=555)
+        self.create_seer_agent_run(run=run, group=group)
+        self.create_seer_run_pull_request(run=run, pull_request=self.pr)
+
+        self._call(
+            user_id=settings.SEER_AUTOFIX_GITHUB_APP_USER_ID,
+            html_url="https://github.com/org/repo/pull/42",
+        )
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details == {
+            "pr_url": "https://github.com/org/repo/pull/42",
+            "group_ids": [group.id],
+            "run_id": 555,
+        }
+
+    def test_app_attribution_unions_regex_and_seer_run_group_ids(self) -> None:
+        regex_group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=regex_group.id,
+            project_id=regex_group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+        seer_group = self.create_group(project=self.project)
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=777)
+        self.create_seer_agent_run(run=run, group=seer_group)
+        self.create_seer_run_pull_request(run=run, pull_request=self.pr)
+
+        self._call(
+            user_id=settings.SENTRY_GITHUB_APP_USER_ID,
+            html_url="https://github.com/org/repo/pull/42",
+        )
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details is not None
+        assert attr.signal_details["group_ids"] == sorted([regex_group.id, seer_group.id])
+        assert attr.signal_details["run_id"] == 777
+
+    def test_app_attribution_without_seer_run_link_falls_back_to_regex(self) -> None:
+        regex_group = self.create_group(project=self.project)
+        GroupLink.objects.create(
+            group_id=regex_group.id,
+            project_id=regex_group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=self.pr.id,
+        )
+
+        self._call(
+            user_id=settings.SENTRY_GITHUB_APP_USER_ID,
+            html_url="https://github.com/org/repo/pull/42",
+        )
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details is not None
+        assert attr.signal_details["group_ids"] == [regex_group.id]
+        assert attr.signal_details["run_id"] is None
+
+    def test_app_attribution_seer_run_without_agent_row_yields_no_group_id(self) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=888)
+        self.create_seer_run_pull_request(run=run, pull_request=self.pr)
+
+        self._call(
+            user_id=settings.SENTRY_GITHUB_APP_USER_ID,
+            html_url="https://github.com/org/repo/pull/42",
+        )
+
+        attr = PullRequestAttribution.objects.get(pull_request=self.pr)
+        assert attr.signal_details is not None
+        assert attr.signal_details["group_ids"] == []
+        assert attr.signal_details["run_id"] == 888
 
     # --- MCP attribution ---
 
@@ -2330,6 +2412,7 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             "agent_id": "agent-1",
             "pr_url": "https://github.com/org/repo/pull/42",
             "run_id": 123,
+            "group_ids": [],
         }
         assert self._candidate_outcome(mock_incr) == {
             "provider": "claude_code",
@@ -2576,3 +2659,21 @@ class HandleDelegatedAgentDetectionTest(TestCase):
             "provider": "claude_code",
             "outcome": "bad_repo",
         }
+
+
+def test_pull_request_processor_order_contract() -> None:
+    """Pin the pr_metrics ordering in ``PullRequestEventWebhook.WEBHOOK_EVENT_PROCESSORS``.
+
+    Single-delivery close handling is only correct because of this order:
+    activity runs before emission (the verdict check in ``handle_activity`` must
+    see no claimed verdict on open/sync events, and the SYNCHRONIZED rows must
+    already exist when ``select_verdict`` runs on the close event), and metrics
+    runs before emission (emission reads counters off the ``PullRequestMetrics``
+    row that ``handle_metrics`` persists). Reordering the tuple breaks the close
+    flow silently — no error, just wrong verdicts. The cross-delivery cases this
+    ordering can't cover are handled by ``is_activity_tracking_enabled``'s
+    ``for_terminal_event`` bypass instead.
+    """
+    processors = PullRequestEventWebhook.WEBHOOK_EVENT_PROCESSORS
+    assert processors.index(handle_activity) < processors.index(handle_emission)
+    assert processors.index(handle_metrics) < processors.index(handle_emission)
