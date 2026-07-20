@@ -139,4 +139,19 @@ describe('buildRoutes()', () => {
       expect(matchedPaths).toContain(':catchAll/*');
     });
   });
+
+  it('matches legacy project event redirects under the organization layout', () => {
+    const matchedPaths = getMatchedPaths(
+      buildRoutes(),
+      '/test-org/test-project/events/test-event/'
+    );
+
+    expect(matchedPaths).toEqual([
+      '(layout)',
+      '/',
+      '(layout)',
+      '/:orgId/:projectId/',
+      'events/:eventId/',
+    ]);
+  });
 });

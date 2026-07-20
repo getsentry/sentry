@@ -2754,6 +2754,10 @@ function buildRoutes(): RouteObject[] {
         )
       ),
     },
+    {
+      path: 'events/:eventId/',
+      component: errorHandler(ProjectEventRedirect),
+    },
   ];
   const legacyOrgRedirects: SentryRouteObject = {
     path: '/:orgId/:projectId/',
@@ -2913,10 +2917,6 @@ function buildRoutes(): RouteObject[] {
       {
         path: ':projectId/issues/:groupId/merged/',
         redirectTo: '/organizations/:orgId/issues/:groupId/merged/',
-      },
-      {
-        path: ':projectId/events/:eventId/',
-        component: errorHandler(ProjectEventRedirect),
       },
     ],
   };
