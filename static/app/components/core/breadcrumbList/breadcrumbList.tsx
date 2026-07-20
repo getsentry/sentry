@@ -1,9 +1,4 @@
-import {
-  Container,
-  Flex,
-  type Responsive,
-  useHasContainerQuery,
-} from '@sentry/scraps/layout';
+import {Container, Flex, useHasContainerQuery} from '@sentry/scraps/layout';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -106,8 +101,8 @@ export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
   // Responsive display values using container queries (bare breakpoint keys):
   //   '2xs' is the smallest breakpoint → applies as the base
   //   'xs'  = 500px → overrides at container width ≥ 500px
-  const visibleWhenWide: Responsive<'flex' | 'none'> = {xs: 'flex', '2xs': 'none'};
-  const visibleWhenNarrow: Responsive<'flex' | 'none'> = {xs: 'none', '2xs': 'flex'};
+  const visibleWhenWide = {xs: 'flex', '2xs': 'none'} as const;
+  const visibleWhenNarrow = {xs: 'none', '2xs': 'flex'} as const;
 
   return (
     // Renders parent links as inline content (no <nav> landmark). The TopBar
