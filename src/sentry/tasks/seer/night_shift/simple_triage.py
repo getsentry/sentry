@@ -336,11 +336,10 @@ def _fetch_and_score_agentic(
     scores = _agentic_triage_score([g.id for g in with_data], factors)
     with_data.sort(key=lambda g: scores.get(g.id, 0.0), reverse=True)
 
-    # Step 4: Filter by fixability threshold BEFORE truncating, so below-threshold
-    # issues don't consume slots. Then re-rank by fixability and take top N.
+    # Step 4: Take the top 10 issues each from the scored and unscored groups and re-rank by fixability.
     eligible = [
         g
-        for g in with_data + without_data
+        for g in with_data[:10] + without_data[:10]
         if g.seer_fixability_score is None or g.seer_fixability_score >= FIXABILITY_SCORE_THRESHOLD
     ]
     eligible.sort(
