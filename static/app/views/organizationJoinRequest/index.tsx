@@ -1,12 +1,12 @@
 import {useState} from 'react';
 import type {MouseEvent} from 'react';
-import styled from '@emotion/styled';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
@@ -65,29 +65,43 @@ export default function OrganizationJoinRequest() {
   if (submitSuccess) {
     return (
       <NarrowLayout maxWidth="550px">
-        <SuccessModal>
-          <StyledIconMegaphone size="2xl" />
-          <StyledHeader>{t('Request Sent')}</StyledHeader>
-          <StyledText>{t('Your request to join has been sent.')}</StyledText>
-          <ReceiveEmailMessage>
-            {t('You will receive an email when your request is approved.')}
-          </ReceiveEmailMessage>
-        </SuccessModal>
+        <Stack align="center" paddingTop="lg" paddingBottom="3xl">
+          <Container paddingBottom="2xl">
+            <IconMegaphone size="2xl" />
+          </Container>
+          <Container paddingBottom="md">
+            <Heading as="h3">{t('Request Sent')}</Heading>
+          </Container>
+          <Text as="p" align="center">
+            {t('Your request to join has been sent.')}
+          </Text>
+          <Container maxWidth="250px">
+            <Text as="p" align="center">
+              {t('You will receive an email when your request is approved.')}
+            </Text>
+          </Container>
+        </Stack>
       </NarrowLayout>
     );
   }
 
   return (
     <NarrowLayout maxWidth="650px">
-      <StyledIconMegaphone size="2xl" />
-      <StyledHeader data-test-id="join-request">{t('Request to Join')}</StyledHeader>
-      <StyledText>
+      <Container paddingBottom="2xl">
+        <IconMegaphone size="2xl" />
+      </Container>
+      <Container paddingBottom="md">
+        <Heading as="h3" data-test-id="join-request">
+          {t('Request to Join')}
+        </Heading>
+      </Container>
+      <Text as="p">
         {tct('Ask the admins if you can join the [orgId] organization.', {
           orgId,
         })}
-      </StyledText>
+      </Text>
       <form.AppForm form={form}>
-        <FieldWrapper>
+        <Container paddingTop="xl" paddingBottom="xl">
           <form.AppField name="email">
             {field => (
               <field.Layout.Stack label={t('Email Address')}>
@@ -100,7 +114,7 @@ export default function OrganizationJoinRequest() {
               </field.Layout.Stack>
             )}
           </form.AppField>
-        </FieldWrapper>
+        </Container>
         <form.Subscribe selector={state => state.isDirty}>
           {isDirty => (
             <Flex gap="md" justify="end">
@@ -115,32 +129,3 @@ export default function OrganizationJoinRequest() {
     </NarrowLayout>
   );
 }
-
-const SuccessModal = styled('div')`
-  display: grid;
-  justify-items: center;
-  text-align: center;
-  padding-top: 10px;
-  padding-bottom: ${p => p.theme.space['3xl']};
-`;
-
-const StyledIconMegaphone = styled(IconMegaphone)`
-  padding-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const StyledHeader = styled('h3')`
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const StyledText = styled('p')`
-  margin-bottom: 0;
-`;
-
-const ReceiveEmailMessage = styled(StyledText)`
-  max-width: 250px;
-`;
-
-const FieldWrapper = styled('div')`
-  padding-top: ${p => p.theme.space.xl};
-  padding-bottom: ${p => p.theme.space.xl};
-`;
