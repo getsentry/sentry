@@ -781,15 +781,22 @@ def trigger_pr_iteration_from_review(
         run_state=agent_state,
     )
 
-    # Ack each inline comment we acted on with :eyes:, mirroring the single-comment
-    # path. A review's summary body has no reaction target on GitHub, so only the
-    # inline comments are reacted to.
-    for comment in inline_comments:
+    # Ack each inline comment with :eyes:, mirroring the single-comment path (the
+    # review body has no reaction target). Gate on should_consume so we don't ack a
+    # comment consume will drop as stale.
+    # TODO: doesn't cover consume's other drop paths (group missing, processing,
+    # cap hit mid-drain) — reconcile with consume's outcome later.
+    for feedback_obj in feedback_items:
+        source = feedback_obj.source
+        if not isinstance(source, GithubPrReviewCommentFeedbackSource):
+            continue
+        if source.comment.id is None or not source.should_consume(agent_state):
+            continue
         _add_comment_reaction(
             scm,
             source_type="github-pr-review-comment",
             pr_number=pr_number,
-            comment_id=int(comment["id"]),
+            comment_id=int(source.comment.id),
             reaction="eyes",
         )
 
