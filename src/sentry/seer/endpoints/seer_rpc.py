@@ -73,9 +73,6 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
-from sentry.seer.agent.client import (
-    get_monitoring_provider_connections as fetch_monitoring_provider_connections,
-)
 from sentry.seer.agent.context_engine_utils import get_instrumentation_types
 from sentry.seer.agent.custom_tool_utils import call_custom_tool
 from sentry.seer.agent.feature_delivery import DELIVERY_HANDLERS, FeatureRunStatus
@@ -84,6 +81,9 @@ from sentry.seer.agent.index_data import (
     rpc_get_profiles_for_trace,
     rpc_get_trace_for_transaction,
     rpc_get_transactions_for_project,
+)
+from sentry.seer.agent.monitoring_providers import (
+    get_monitoring_provider_connections as fetch_monitoring_provider_connections,
 )
 from sentry.seer.agent.on_completion_hook import call_on_completion_hook
 from sentry.seer.agent.tools import (
@@ -928,8 +928,8 @@ def refresh_monitoring_provider_token(
         )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
 
-    encrypted_access_token = encrypt_access_token_for_seer(access_token)
-    if not encrypted_access_token:
+    encrypted_auth_header = encrypt_access_token_for_seer(f"Bearer {access_token}")
+    if not encrypted_auth_header:
         logger.error(
             "monitoring_provider.refresh.access_token_encryption_failed",
             extra={"identity_id": identity.id},
@@ -937,7 +937,7 @@ def refresh_monitoring_provider_token(
         return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
 
     return RefreshMonitoringProviderTokenSuccessResponse(
-        encrypted_access_token=encrypted_access_token,
+        encrypted_auth_headers={"Authorization": encrypted_auth_header},
         expires=identity.data.get("expires"),
     )
 

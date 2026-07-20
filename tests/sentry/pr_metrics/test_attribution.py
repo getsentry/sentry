@@ -272,6 +272,21 @@ class AttributeDelegatedAgentPullRequestTest(TestCase):
             "group_ids": [self.group.id],
         }
 
+    def test_includes_multiple_group_ids_in_signal_details(self) -> None:
+        self._attribute(
+            pr_url="https://github.com/getsentry/sentry/pull/88",
+            group_ids=[555],
+        )
+
+        pull_request = PullRequest.objects.get(repository_id=self.repo.id, key="88")
+        attribution = PullRequestAttribution.objects.get(pull_request=pull_request)
+        assert attribution.signal_details == {
+            "agent_id": "agent-1",
+            "pr_url": "https://github.com/getsentry/sentry/pull/88",
+            "run_id": None,
+            "group_ids": [555],
+        }
+
     def test_noop_when_feature_disabled(self) -> None:
         self._attribute(has_feature=False)
 

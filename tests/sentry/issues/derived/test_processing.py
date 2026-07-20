@@ -394,6 +394,50 @@ class ProcessGroupLogTest(TestCase):
         assert second.last_progressed_at == first_last_progressed_at
         assert second.progress == IssueProgressState.DIAGNOSED.value
 
+    def test_pipeline_hash_set_on_create(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+        assert derived.pipeline_hash == PIPELINE.pipeline_hash
+
+    def test_pipeline_hash_concurrent_change_skips_cursor_update(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        derived = process_group_log(group.id)
+        first_cursor = derived.cursor_id
+
+        # Insert a log entry directly to avoid inline processing from _publish
+        GroupActionLogEntry.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.SYSTEM,
+            actor_id=0,
+            source=SOURCE,
+            data={},
+        )
+
+        # Simulate a concurrent pipeline_hash change (e.g. migration reset)
+        # between our load and the UPDATE in _process_batch.
+        GroupDerivedData.objects.filter(group_id=group.id).update(pipeline_hash="reset")
+
+        processing._process_batch(processing.PIPELINE, derived, group.id, 1)
+
+        # The UPDATE should not have matched because the DB hash changed
+        derived.refresh_from_db()
+        assert derived.cursor_id == first_cursor
+        assert derived.pipeline_hash == "reset"
+
+    def test_invalidate_and_reprocess_restores_pipeline_hash(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+
+        invalidate_group_derived_data(group.id)
+        derived = process_group_log(group.id)
+        assert derived.pipeline_hash == PIPELINE.pipeline_hash
+
 
 # --- Pure Python tests (no DB) ---
 
