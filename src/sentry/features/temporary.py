@@ -44,6 +44,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Organization scoped features that are in development or in customer trials. #
     ###############################################################################
 
+    # Enable agentic triage sort for night shift candidate selection
+    manager.add("organizations:agentic-triage-sort", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI-based issue detection for an organization
@@ -206,6 +208,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:pr-lifecycle-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Write PullRequestActivity rows from GitHub PR lifecycle webhooks
     manager.add("organizations:pr-metrics-activity", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Fold PR activity into a single PullRequestActivityLog document instead of one row per event
+    manager.add("organizations:pr-metrics-activity-document", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Record PullRequestAttribution from webhook and seer.pr_created events
     manager.add("organizations:pr-metrics-attribution", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Emit the BigQuery row on a tracked PR's close/merge (PR Merge Live Metrics rollout)
@@ -423,8 +427,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:ourlogs-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable our logs product to be ingested via Relay.
     manager.add("organizations:ourlogs-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable pinning logs to the top of the table in the logs UI and query parameters
-    manager.add("organizations:ourlogs-pinning", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable alerting on trace metrics
     # Enable trace metrics product (known internally as tracemetrics) in UI and backend
     manager.add("organizations:tracemetrics-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -508,5 +510,11 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     manager.add("organizations:claude-code-vault-reuse", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
+    # seer feature flags for assisted query agent org scoped
+    manager.add("organizations:assisted-query-cross-event-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:assisted-query-project-expansion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+
+    # Enable humanized string to ESQ conversion
+    manager.add("organizations:search-query-builder-humanized-esq", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     # fmt: on

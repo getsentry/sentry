@@ -8,7 +8,6 @@ import orjson
 from django.http import HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 
-import sentry.options as options
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.github.webhook import (
     GitHubIntegrationsWebhookEndpoint,
@@ -58,19 +57,11 @@ class GithubRequestParser(BaseRequestParser):
     def get_mailbox_identifier(
         self, integration: RpcIntegration | Integration, data: dict[str, Any]
     ) -> str:
-        """Override to gate bucketing on an options flag for safe rollout and revert.
+        """Distribute webhooks across sub-mailboxes by repository ID and event type.
 
-        When disabled (default), all webhooks route to a single mailbox per integration.
-        When enabled, webhooks are distributed across sub-mailboxes by repository ID and
-        event type, bypassing the rate-limit auto-switch used by the base class.
+        Bypasses the rate-limit auto-switch used by the base class so GitHub webhooks
+        are always bucketed.
         """
-        if not options.get("github.webhook.mailbox-bucketing.enabled"):
-            metrics.incr(
-                "hybridcloud.webhookpayload.mailbox_routing",
-                tags={"provider": self.provider, "bucketed": "false"},
-            )
-            return str(integration.id)
-
         base = self._build_bucketed_identifier(integration, data)
         event_type = self.request.META.get(GITHUB_WEBHOOK_TYPE_HEADER)
         if event_type:

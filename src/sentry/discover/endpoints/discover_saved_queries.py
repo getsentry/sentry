@@ -89,6 +89,14 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         # enforces this via `check_object_permissions`; without this filter the list endpoint
         # would leak the body of queries belonging to projects the caller has no access to.
         queryset = filter_to_accessible_discover_queries(request, queryset)
+
+        # Hide transactions saved queries if organizations has the discover transactions
+        # deprecation flag enabled
+        if features.has(
+            "organizations:discover-saved-queries-deprecation", organization, actor=request.user
+        ):
+            queryset = queryset.exclude(dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE)
+
         query = request.query_params.get("query")
         if query:
             tokens = tokenize_query(query)
