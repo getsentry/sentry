@@ -29,6 +29,7 @@ import {
   encodeMetricQueryParams,
   type BaseMetricQuery,
 } from 'sentry/views/explore/metrics/metricQuery';
+import {MAX_METRICS_ALLOWED} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {normalizeFunctionToken} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
 import {
@@ -38,7 +39,7 @@ import {
 } from 'sentry/views/explore/metrics/types';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {Visualize} from 'sentry/views/explore/queryParams/visualize';
+import {isVisualizeEquation, Visualize} from 'sentry/views/explore/queryParams/visualize';
 
 export function makeMetricsPathname({
   organizationSlug,
@@ -377,4 +378,83 @@ export function getEquationMetricsTotalFilter(equation: string) {
   });
 
   return createTraceMetricEventsFilter(traceMetricsUsed);
+}
+
+function _isEquationQuery(mq: BaseMetricQuery): boolean {
+  if (mq.queryParams.visualizes.length > 1) {
+    // Only a single equation can be plotted in a metric query.
+    return false;
+  }
+  return Boolean(
+    mq.queryParams.visualizes[0] && isVisualizeEquation(mq.queryParams.visualizes[0])
+  );
+}
+
+type SpliceResult = 'applied' | 'requires_clear' | 'noop';
+
+/**
+ * Splices equation sub-components into the encoded metrics array while
+ * respecting the 8-slot budget on the explore page and the
+ * aggregates-before-equations ordering.
+ *
+ * Returns a status so the caller can decide what to do when there isn't
+ * enough room (e.g. show a confirmation modal).
+ *
+ * Mutates `encodedMetrics` in place when applied.
+ */
+export function spliceEquationQueries(
+  encodedMetrics: string[],
+  equationMetricQueries: BaseMetricQuery[],
+  existingMetricQueries: BaseMetricQuery[]
+): SpliceResult {
+  if (equationMetricQueries.length === 0) {
+    return 'noop';
+  }
+
+  // -1 because the interacted row will update in-place
+  const slotsAvailable = MAX_METRICS_ALLOWED - encodedMetrics.length - 1;
+
+  if (equationMetricQueries.length > slotsAvailable) {
+    return 'requires_clear';
+  }
+
+  const equationStartIndex = encodedMetrics.findIndex((encoded: string) => {
+    const decoded = existingMetricQueries.find(
+      mq => encodeMetricQueryParams(mq) === encoded
+    );
+    return decoded && _isEquationQuery(decoded);
+  });
+
+  const aggregateRows = equationMetricQueries.filter(mq => !_isEquationQuery(mq));
+  const equationRows = equationMetricQueries.filter(_isEquationQuery);
+
+  const encodedAggregates = aggregateRows
+    .map(mq => encodeMetricQueryParams(mq))
+    .filter(Boolean);
+  const encodedEquations = equationRows
+    .map(mq => encodeMetricQueryParams(mq))
+    .filter(Boolean);
+
+  const insertAt = equationStartIndex === -1 ? encodedMetrics.length : equationStartIndex;
+  encodedMetrics.splice(insertAt, 0, ...encodedAggregates);
+  encodedMetrics.push(...encodedEquations);
+
+  return 'applied';
+}
+
+/**
+ * Builds an encoded metrics array containing only the equation's
+ * sub-components and equation row. Used when the user confirms clearing
+ * all existing queries to make room for an equation.
+ */
+export function encodeEquationMetricQueries(
+  equationMetricQueries: BaseMetricQuery[]
+): string[] {
+  const aggregateRows = equationMetricQueries.filter(mq => !_isEquationQuery(mq));
+  const equationRows = equationMetricQueries.filter(_isEquationQuery);
+
+  return [
+    ...aggregateRows.map(mq => encodeMetricQueryParams(mq)).filter(Boolean),
+    ...equationRows.map(mq => encodeMetricQueryParams(mq)).filter(Boolean),
+  ];
 }

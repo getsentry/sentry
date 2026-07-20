@@ -66,6 +66,7 @@ export function EquationBuilder({
 
   return (
     <ArithmeticBuilder
+      key={expression}
       aggregations={[]}
       expression={internalExpression}
       functionArguments={[]}
