@@ -181,6 +181,9 @@ class TestScheduleNightShift(TestCase):
             mock_worker.apply_async.assert_called_once()
             assert mock_worker.apply_async.call_args.kwargs["args"] == [org.id]
             assert mock_worker.apply_async.call_args.kwargs["kwargs"] == {}
+            assert mock_worker.apply_async.call_args.kwargs["headers"] == {
+                "sentry-propagate-traces": False
+            }
 
     def test_dispatches_with_run_options(self) -> None:
         org = self.create_org_with_seer()
