@@ -196,10 +196,13 @@ describe('useCreateNotificationAction', () => {
     addIntegrationsResponse([]);
 
     let queryClient!: ReturnType<typeof useQueryClient>;
-    const {result} = renderHookWithProviders(() => {
-      queryClient = useQueryClient();
-      return useCreateNotificationAction();
-    }, {organization});
+    const {result} = renderHookWithProviders(
+      () => {
+        queryClient = useQueryClient();
+        return useCreateNotificationAction();
+      },
+      {organization}
+    );
 
     // Query resolves but no integrations: setup button should show, guard not latched.
     await waitFor(() => expect(result.current.notificationProps.querySuccess).toBe(true));
@@ -232,10 +235,13 @@ describe('useCreateNotificationAction', () => {
     ];
 
     let queryClient!: ReturnType<typeof useQueryClient>;
-    const {result} = renderHookWithProviders(() => {
-      queryClient = useQueryClient();
-      return useCreateNotificationAction({actions: defaultActions});
-    }, {organization});
+    const {result} = renderHookWithProviders(
+      () => {
+        queryClient = useQueryClient();
+        return useCreateNotificationAction({actions: defaultActions});
+      },
+      {organization}
+    );
 
     // Query resolved but integration list empty: setup CTA shown, guard not latched,
     // INTEGRATION must NOT be in actions (picker not half-applied).
