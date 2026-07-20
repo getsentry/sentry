@@ -18,7 +18,7 @@ from sentry.notifications.platform.types import (
     PlainTextBlock,
 )
 from sentry.types.activity import ActivityType
-from sentry.utils.dates import format_duration
+from sentry.utils.dates import format_duration, parse_timestamp
 
 
 def get_archive_explanation(data: ActivityNotificationData) -> str:
@@ -55,7 +55,11 @@ def get_archive_explanation(data: ActivityNotificationData) -> str:
 
     ignore_until = data.activity_data.get("ignoreUntil")
     if ignore_until:
-        return f"has been archived until {ignore_until}."
+        # TODO(Leander): This should probably be derived from the recipient's user preferences
+        # but we'd have to extend the NotificationData type, so we can do that later.
+        dt = parse_timestamp(ignore_until)
+        formatted = dt.strftime("%b %-d, %Y, %-I:%M %p UTC") if dt else ignore_until
+        return f"has been archived until {formatted}."
 
     ignore_until_escalating = data.activity_data.get("ignoreUntilEscalating")
     if ignore_until_escalating:
