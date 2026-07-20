@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noStyledShortcut} from './no-styled-shortcut';
+import {noStyledShortcut} from './noStyledShortcut';
 
 const ruleTester = new RuleTester();
 

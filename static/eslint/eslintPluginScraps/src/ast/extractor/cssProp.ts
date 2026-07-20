@@ -13,7 +13,7 @@ import type {TSESTree} from '@typescript-eslint/utils';
 import {normalizePropertyName} from '../utils/normalizePropertyName';
 
 import type {ExtractorContext, StyleDeclaration} from './types';
-import {decomposeValue} from './value-decomposer';
+import {decomposeValue} from './valueDecomposer';
 
 /**
  * Creates the css prop extractor with ESLint visitors.

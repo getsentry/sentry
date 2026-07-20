@@ -2,9 +2,9 @@ import {TSESLint, TSESTree} from '@typescript-eslint/utils';
 
 import {createThemeTracker} from '../tracker/theme';
 
-import {createCssPropExtractor} from './css-prop';
-import {createStylePropExtractor} from './style-prop';
+import {createCssPropExtractor} from './cssProp';
 import {createStyledExtractor} from './styled';
+import {createStylePropExtractor} from './styleProp';
 import type {ExtractorContext, StyleCollector, StyleDeclaration} from './types';
 
 /**

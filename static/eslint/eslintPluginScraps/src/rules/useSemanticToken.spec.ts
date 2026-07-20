@@ -1,6 +1,6 @@
 import {RuleTester, type InvalidTestCase} from '@typescript-eslint/rule-tester';
 
-import {useSemanticToken, type Options} from './use-semantic-token';
+import {useSemanticToken, type Options} from './useSemanticToken';
 
 const ruleTester = new RuleTester();
 

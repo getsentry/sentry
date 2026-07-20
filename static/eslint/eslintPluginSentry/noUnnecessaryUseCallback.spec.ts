@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noUnnecessaryUseCallback} from './no-unnecessary-use-callback';
+import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback';
 
 const ruleTester = new RuleTester({
   languageOptions: {

@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noDefaultExports} from './no-default-exports';
+import {noDefaultExports} from './noDefaultExports';
 
 const ruleTester = new RuleTester({
   languageOptions: {

@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noUnnecessaryTypeNarrowing} from './no-unnecessary-type-narrowing';
+import {noUnnecessaryTypeNarrowing} from './noUnnecessaryTypeNarrowing';
 
 const ruleTester = new RuleTester({
   languageOptions: {

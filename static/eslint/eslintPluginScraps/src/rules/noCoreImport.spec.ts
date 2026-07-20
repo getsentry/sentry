@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noCoreImport} from './no-core-import';
+import {noCoreImport} from './noCoreImport';
 
 const ruleTester = new RuleTester();
 

@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noUnnecessaryTypeAnnotation} from './no-unnecessary-type-annotation';
+import {noUnnecessaryTypeAnnotation} from './noUnnecessaryTypeAnnotation';
 
 const ruleTester = new RuleTester({
   languageOptions: {

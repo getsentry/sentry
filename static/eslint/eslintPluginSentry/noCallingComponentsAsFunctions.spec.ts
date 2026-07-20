@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noCallingComponentsAsFunctions} from './no-calling-components-as-functions';
+import {noCallingComponentsAsFunctions} from './noCallingComponentsAsFunctions';
 
 const ruleTester = new RuleTester({
   languageOptions: {

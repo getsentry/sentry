@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noQueryDataTypeParameters} from './no-query-data-type-parameters';
+import {noQueryDataTypeParameters} from './noQueryDataTypeParameters';
 
 const ruleTester = new RuleTester();
 

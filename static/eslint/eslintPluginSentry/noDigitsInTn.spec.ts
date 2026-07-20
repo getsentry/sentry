@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noDigitsInTn} from './no-digits-in-tn';
+import {noDigitsInTn} from './noDigitsInTn';
 
 const ruleTester = new RuleTester();
 

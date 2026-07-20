@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 

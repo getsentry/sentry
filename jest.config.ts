@@ -290,7 +290,7 @@ const config: Config.InitialOptions = {
   },
   passWithNoTests: JEST_TESTS !== undefined,
   setupFiles: [
-    '<rootDir>/static/app/utils/silence-react-unsafe-warnings.ts',
+    '<rootDir>/static/app/utils/silenceReactUnsafeWarnings.ts',
     'jest-canvas-mock',
   ],
   setupFilesAfterEnv: [
