@@ -928,8 +928,8 @@ def refresh_monitoring_provider_token(
         )
         return RefreshMonitoringProviderTokenErrorResponse(error="identity_not_valid")
 
-    encrypted_access_token = encrypt_access_token_for_seer(access_token)
-    if not encrypted_access_token:
+    encrypted_auth_header = encrypt_access_token_for_seer(f"Bearer {access_token}")
+    if not encrypted_auth_header:
         logger.error(
             "monitoring_provider.refresh.access_token_encryption_failed",
             extra={"identity_id": identity.id},
@@ -937,7 +937,7 @@ def refresh_monitoring_provider_token(
         return RefreshMonitoringProviderTokenErrorResponse(error="encryption_failed")
 
     return RefreshMonitoringProviderTokenSuccessResponse(
-        encrypted_access_token=encrypted_access_token,
+        encrypted_auth_headers={"Authorization": encrypted_auth_header},
         expires=identity.data.get("expires"),
     )
 
