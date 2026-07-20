@@ -5,6 +5,7 @@ from django.template.defaultfilters import pluralize
 from sentry_relay.processing import parse_release
 
 from sentry.notifications.platform.registry import template_registry
+from sentry.notifications.platform.templates.utils import format_datetime
 from sentry.notifications.platform.types import (
     BoldTextBlock,
     CodeTextBlock,
@@ -57,11 +58,6 @@ class DeployReleaseData(NotificationData):
     environment_name: str = "Default Environment"
 
 
-def _format_date(iso_date_str: str) -> str:
-    # TODO(Leander): Implement this
-    return "July 16, 2026 - 8:49 p.m."
-
-
 def build_deploy_subject(data: DeployReleaseData) -> list[NotificationTextBlock]:
     readable_version = parse_release(data.version, json_loads=orjson.loads)["description"]
     project_slugs = [rp["project_slug"] for rp in data.release_projects]
@@ -91,7 +87,7 @@ def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
         ),
         ParagraphSection(
             blocks=[
-                PlainTextBlock(text=_format_date(data.date)),
+                PlainTextBlock(text=format_datetime(data.date)),
                 PlainTextBlock(text=TEXT_DELIMITER),
                 PlainTextBlock(text=f"{data.commit_count} commit{pluralize(data.commit_count)},"),
                 PlainTextBlock(
@@ -133,7 +129,7 @@ def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
                     PlainTextBlock(text=TEXT_DELIMITER),
                     ItalicTextBlock(text=commit["author_name"]),
                     PlainTextBlock(text=TEXT_DELIMITER),
-                    ItalicTextBlock(text=_format_date(commit["date"])),
+                    ItalicTextBlock(text=format_datetime(commit["date"])),
                     PlainTextBlock(text=TEXT_DELIMITER),
                     CodeTextBlock(text=commit["sha"]),
                 ]
