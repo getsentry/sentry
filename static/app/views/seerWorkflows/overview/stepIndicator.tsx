@@ -146,12 +146,6 @@ export function StepIndicator({row}: {row: OverviewRow}) {
   }
 
   const {variant, statusWord} = deriveStatus(row);
-  // Same variant → color resolution the icons use (svgIcon.tsx), so the
-  // ring and the step icon beside it always agree.
-  const ringColor =
-    variant === 'warning'
-      ? theme.tokens.graphics.warning.vibrant
-      : theme.tokens.content[variant === 'muted' ? 'secondary' : variant];
   const furthest = row.outcomes.at(-1);
   // Index against the canonical order rather than counting outcomes: a
   // coding-agent run can skip the solution stage, so the array's length can
@@ -162,6 +156,19 @@ export function StepIndicator({row}: {row: OverviewRow}) {
   const currentStep = furthest ?? (row.isProcessing ? 'root_cause' : undefined);
 
   const stepLabel = currentStep ? STEP_LABELS[currentStep] : undefined;
+
+  // Stage hue: one accent-scale ramp that deepens as the run advances, so
+  // arc length and color intensity say "how far" twice — no legend needed.
+  // Urgency deliberately stays off the ring (the action button and the
+  // tooltip's status word carry it); success green is reserved for merged.
+  const stageRingColors = [
+    undefined,
+    theme.colors.gray400,
+    theme.colors.blue300,
+    theme.colors.blue400,
+    theme.colors.blue500,
+  ];
+  const ringColor = stageRingColors[fill] ?? theme.tokens.content.secondary;
 
   const ariaLabel = row.prMerged
     ? t('Autofix progress: 5 of 5 steps — PR merged')
