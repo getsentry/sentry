@@ -25,7 +25,8 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.types.activity import ActivityType
 
-ONE_HOUR = 3600
+AUTO_RESOLVE_FREQUENCY = 10 * 60
+AUTO_RESOLVE_TASK_EXPIRY = 60 * 60
 
 
 @instrumented_task(
@@ -42,7 +43,7 @@ def schedule_auto_resolution():
     for opt in options_qs:
         opts_by_project[opt.project_id][opt.key] = opt.value
 
-    cutoff = time() - ONE_HOUR
+    cutoff = time() - AUTO_RESOLVE_FREQUENCY
     for project_id, options in opts_by_project.items():
         if not options.get("sentry:resolve_age"):
             # kill the option to avoid it coming up in the future
@@ -56,7 +57,7 @@ def schedule_auto_resolution():
 
         auto_resolve_project_issues.apply_async(
             args=[project_id],
-            expires=ONE_HOUR,
+            expires=AUTO_RESOLVE_TASK_EXPIRY,
             headers={"sentry-propagate-traces": False},
         )
 
@@ -163,6 +164,6 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
         auto_resolve_project_issues.apply_async(
             args=[project_id],
             kwargs={"cutoff": int(cutoff.strftime("%s")), "chunk_size": chunk_size},
-            expires=ONE_HOUR,
+            expires=AUTO_RESOLVE_TASK_EXPIRY,
             headers={"sentry-propagate-traces": False},
         )

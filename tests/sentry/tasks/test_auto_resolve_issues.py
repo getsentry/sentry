@@ -11,7 +11,7 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.models.group import Group, GroupStatus
-from sentry.tasks.auto_resolve_issues import schedule_auto_resolution
+from sentry.tasks.auto_resolve_issues import AUTO_RESOLVE_FREQUENCY, schedule_auto_resolution
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 
@@ -19,6 +19,32 @@ from sentry.testutils.helpers.analytics import assert_any_analytics_event
 class ScheduleAutoResolutionTest(TestCase):
     def test_task_persistent_name(self) -> None:
         assert schedule_auto_resolution.name == "sentry.tasks.schedule_auto_resolution"
+
+    def test_schedules_projects_every_ten_minutes(self) -> None:
+        current_ts = 1_000_000
+        due_project = self.create_project()
+        recent_project = self.create_project()
+
+        due_project.update_option("sentry:resolve_age", 1)
+        due_project.update_option("sentry:_last_auto_resolve", current_ts - AUTO_RESOLVE_FREQUENCY)
+        recent_project.update_option("sentry:resolve_age", 1)
+        recent_project.update_option(
+            "sentry:_last_auto_resolve", current_ts - AUTO_RESOLVE_FREQUENCY + 1
+        )
+
+        with (
+            patch("sentry.tasks.auto_resolve_issues.time", return_value=current_ts),
+            patch(
+                "sentry.tasks.auto_resolve_issues.auto_resolve_project_issues.apply_async"
+            ) as mock_apply_async,
+        ):
+            schedule_auto_resolution()
+
+        mock_apply_async.assert_called_once_with(
+            args=[due_project.id],
+            expires=60 * 60,
+            headers={"sentry-propagate-traces": False},
+        )
 
     @patch("sentry.analytics.record")
     @patch("sentry.tasks.auto_resolve_issues.kick_off_status_syncs")
