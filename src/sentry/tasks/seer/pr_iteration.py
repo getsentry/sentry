@@ -617,6 +617,7 @@ def _build_review_feedback(
             path=comment.get("file_path"),
             line=_diff_line_number(comment.get("line")),
             start_line=_diff_line_number(comment.get("start_line")),
+            diff_hunk=comment.get("diff_hunk"),
             user=GithubPrCommentUser(login=author["username"] if author else None),
         )
         source = GithubPrReviewCommentFeedbackSource(comment=review_comment, require_command=False)

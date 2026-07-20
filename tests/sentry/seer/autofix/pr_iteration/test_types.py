@@ -64,6 +64,7 @@ def _review_feedback(
     file_path: str | None = "src/sentry/foo.py",
     line: int | None = 42,
     start_line: int | None = None,
+    diff_hunk: str | None = None,
 ) -> Feedback:
     return Feedback(
         source=GithubPrReviewCommentFeedbackSource(
@@ -73,6 +74,7 @@ def _review_feedback(
                 "path": file_path,
                 "line": line,
                 "start_line": start_line,
+                "diff_hunk": diff_hunk,
             },
         ),
     )
@@ -289,6 +291,19 @@ class GithubPrReviewCommentTextTest(TestCase):
     def test_text_file_only_anchor(self) -> None:
         feedback = _review_feedback(line=None, start_line=None)
         assert feedback.text == "Inline comment on src/sentry/foo.py:\nfix it"
+        assert feedback.ui_text == "fix it"
+
+    def test_text_falls_back_to_diff_hunk_when_no_line(self) -> None:
+        # GitHub's legacy review-comment listing returns position/diff_hunk but no
+        # resolved line; use the hunk so the agent still sees the exact code.
+        hunk = "@@ -19,5 +19,5 @@\n-    old line\n+    new line"
+        feedback = _review_feedback(line=None, start_line=None, diff_hunk=hunk)
+        assert feedback.text == f"Inline comment on src/sentry/foo.py at diff hunk:\n{hunk}\nfix it"
+        assert feedback.ui_text == "fix it"
+
+    def test_text_prefers_line_anchor_over_diff_hunk(self) -> None:
+        feedback = _review_feedback(line=42, diff_hunk="@@ -1 +1 @@")
+        assert feedback.text == "Inline comment on src/sentry/foo.py:42:\nfix it"
         assert feedback.ui_text == "fix it"
 
     def test_text_no_file_path_passes_through(self) -> None:

@@ -33,6 +33,7 @@ class GithubPullRequestReviewComment(GithubIssueComment):
     path: str | None = None
     line: int | None = None
     start_line: int | None = None
+    diff_hunk: str | None = None
 
 
 def _blocks_feedback(blocks: Sequence[Any]) -> list[Any]:
@@ -126,6 +127,7 @@ class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
     file_path: str | None = None
     line: int | None = None
     start_line: int | None = None
+    diff_hunk: str | None = None
 
     @root_validator
     def _populate_location(cls, values: dict[str, Any]) -> dict[str, Any]:
@@ -135,6 +137,7 @@ class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
         values["file_path"] = comment.path
         values["line"] = comment.line
         values["start_line"] = comment.start_line
+        values["diff_hunk"] = comment.diff_hunk
         return values
 
     def anchor(self) -> str | None:
@@ -150,8 +153,24 @@ class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
 
     @property
     def text(self) -> str:
-        """Prompt text: prefixes the comment with its diff anchor when present."""
+        """Prompt text: prefixes the comment with its diff anchor when present.
+
+        GitHub's review-comment listing endpoint returns legacy comment objects
+        anchored by ``position``/``diff_hunk`` rather than a resolved ``line``, so
+        ``line`` is often ``None`` and ``anchor()`` degrades to just the file. When
+        we have no line, fall back to the diff hunk so the agent still sees the
+        exact code the comment is on.
+        # TODO: resolve ``position`` + ``diff_hunk`` -> line number in the scm
+        # library so ``line`` is populated and this fallback can be dropped.
+        """
         anchor = self.anchor()
+        if self.line:
+            return f"Inline comment on {anchor}:\n{self.comment_feedback}"
+        if self.diff_hunk:
+            return (
+                f"Inline comment on {self.file_path} at diff hunk:\n"
+                f"{self.diff_hunk}\n{self.comment_feedback}"
+            )
         if anchor:
             return f"Inline comment on {anchor}:\n{self.comment_feedback}"
         return self.comment_feedback
