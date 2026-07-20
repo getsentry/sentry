@@ -67,6 +67,32 @@ describe('OrganizationJoinRequest', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows validation error for invalid email', async () => {
+    const postMock = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'POST',
+    });
+
+    render(<OrganizationJoinRequest />, {
+      initialRouterConfig: {
+        location: {
+          pathname: `/join-request/${org.slug}/`,
+        },
+        route: '/join-request/:orgId/',
+      },
+    });
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Email Address'}),
+      'not-an-email{enter}'
+    );
+
+    expect(
+      await screen.findByText('Please enter a valid email address')
+    ).toBeInTheDocument();
+    expect(postMock).not.toHaveBeenCalled();
+  });
+
   it('errors', async () => {
     const postMock = MockApiClient.addMockResponse({
       url: endpoint,
