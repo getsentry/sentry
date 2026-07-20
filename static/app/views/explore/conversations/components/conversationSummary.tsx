@@ -27,13 +27,13 @@ import {normalizeUserField} from 'sentry/views/explore/conversations/components/
 import type {ConversationUser} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {
   getNumberAttr,
   getStringAttr,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
@@ -189,7 +189,7 @@ export function ConversationAggregatesBar({
           aggregates.totalCost < 0 ? (
             <NegativeCostInfo cost={aggregates.totalCost} />
           ) : (
-            formatLLMCosts(aggregates.totalCost)
+            <LLMCosts cost={aggregates.totalCost} />
           )
         }
         isLoading={isLoading}

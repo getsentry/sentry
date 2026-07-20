@@ -356,6 +356,7 @@ class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
         accessible_only: bool = False,
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
+        parallel: bool = False,
     ) -> list[RepositoryInfo]:
         try:
             repos = self.get_client().get_repos()

@@ -200,6 +200,15 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Subject Prefix'),
     hintText: t('Choose a custom prefix for emails from this project'),
   },
+  'project-general-settings.enableAutoReleaseCreation': {
+    name: 'enableAutoReleaseCreation',
+    formId: 'project-general-settings',
+    route: '/settings/:orgId/projects/:projectId/',
+    label: t('Enable release auto-creation from telemetry'),
+    hintText: t(
+      'Automatically create releases when Sentry sees a new release in ingested events. When disabled, releases must be created manually (e.g. with the Sentry CLI).'
+    ),
+  },
   'project-general-settings.debugFilesRole': {
     name: 'debugFilesRole',
     formId: 'project-general-settings',

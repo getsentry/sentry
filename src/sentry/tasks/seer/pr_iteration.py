@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from typing import Any
 
 import sentry_sdk
@@ -10,9 +11,11 @@ from scm.types import (
     CreatePullRequestCommentReactionProtocol,
     CreateReviewCommentReactionProtocol,
     GetRepositoryUserPermissionProtocol,
+    Reaction,
 )
 from taskbroker_client.retry import Retry
 
+from sentry.cache import default_cache
 from sentry.integrations.services.integration import integration_service
 from sentry.locks import locks
 from sentry.models.group import Group
@@ -30,6 +33,7 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
+from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
@@ -48,6 +52,26 @@ from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 
 logger = logging.getLogger(__name__)
+
+# Posted when someone ``@sentry``-iterates a PR that isn't backed by an Autofix
+# explorer run with ``repo_pr_states`` — including coding-agent-handoff PRs and
+# unrelated human PRs. We can't reliably tell those apart at comment time.
+INELIGIBLE_PR_ITERATION_COMMENT = (
+    "PR iteration only works on pull requests created by Seer's Autofix agent. "
+    "PRs that the Autofix Agent didn't create aren't eligible. This includes PRs "
+    "created by the Coding Agent handoff and unrelated human PRs."
+)
+
+# One explanatory comment per PR; further pings still get a :confused: reaction.
+_INELIGIBLE_COMMENT_CACHE_TTL = int(timedelta(days=7).total_seconds())
+
+
+def _ineligible_comment_cache_key(*, organization_id: int, repo_id: int, pr_number: int) -> str:
+    return f"autofix:pr_iteration:ineligible_comment:{organization_id}:{repo_id}:{pr_number}"
+
+
+def _ineligible_pr_iteration_comment_body(github_username: str) -> str:
+    return f"@{github_username}\n\n{INELIGIBLE_PR_ITERATION_COMMENT}"
 
 
 def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferrer:
@@ -144,6 +168,7 @@ def consume_queued_autofix_feedback(
         # Keyed by (source class, comment id): issue-comment and review-comment
         # ids come from separate GitHub namespaces, so dedupe within each type.
         seen_comment_keys: set[tuple[type, int]] = set()
+        seen_check_suite_ids: set[int] = set()
         for item in queued_items:
             if not item.feedback.source.should_consume(state):
                 logger.info(
@@ -167,6 +192,11 @@ def consume_queued_autofix_feedback(
                     if key in seen_comment_keys:
                         continue
                     seen_comment_keys.add(key)
+            elif isinstance(source, CheckSuiteFeedbackSource):
+                suite_id = source.event.check_suite.id
+                if suite_id in seen_check_suite_ids:
+                    continue
+                seen_check_suite_ids.add(suite_id)
 
             feedback_items.append(item.feedback)
 
@@ -218,29 +248,101 @@ def _github_commenter_has_repo_write_access(
     return result["data"]["perms"] in ("write", "admin")
 
 
-def _add_comment_eyes_reaction(
+def _add_comment_reaction(
     scm: SourceCodeManager,
     *,
     source_type: GithubPrCommentFeedbackType,
     pr_number: int,
     comment_id: int,
+    reaction: Reaction,
 ) -> None:
-    """Acknowledge a PR comment with an :eyes: reaction via the SCM platform."""
+    """React to a PR comment via the SCM platform."""
     try:
         if source_type == "github-pr-review-comment":
             if not isinstance(scm, CreateReviewCommentReactionProtocol):
                 logger.warning("autofix.pr_iteration.comment_trigger.unsupported_provider")
                 return
-            scm_actions.create_review_comment_reaction(scm, str(pr_number), str(comment_id), "eyes")
+            scm_actions.create_review_comment_reaction(
+                scm, str(pr_number), str(comment_id), reaction
+            )
         else:
             if not isinstance(scm, CreatePullRequestCommentReactionProtocol):
                 logger.warning("autofix.pr_iteration.comment_trigger.unsupported_provider")
                 return
             scm_actions.create_pull_request_comment_reaction(
-                scm, str(pr_number), str(comment_id), "eyes"
+                scm, str(pr_number), str(comment_id), reaction
             )
     except Exception as e:
         sentry_sdk.capture_exception(e)
+
+
+def _comment_pr_iteration_ineligible(
+    client: Any,
+    *,
+    organization_id: int,
+    repo_id: int,
+    repo_name: str,
+    pr_number: int,
+    github_username: str,
+    source_type: GithubPrCommentFeedbackType,
+    comment_id: int | None,
+) -> None:
+    """React :confused: and, at most once per PR, explain why iteration didn't run."""
+    log_extra = {
+        "organization_id": organization_id,
+        "repo_id": repo_id,
+        "pr_number": pr_number,
+    }
+
+    try:
+        scm = make_scm(organization_id, repo_id, referrer="seer")
+    except Exception:
+        logger.warning(
+            "autofix.pr_iteration.comment_trigger.ineligible_scm_init_failed",
+            extra=log_extra,
+            exc_info=True,
+        )
+        scm = None
+
+    if scm is not None and comment_id is not None:
+        _add_comment_reaction(
+            scm,
+            source_type=source_type,
+            pr_number=pr_number,
+            comment_id=comment_id,
+            reaction="confused",
+        )
+
+    cache_key = _ineligible_comment_cache_key(
+        organization_id=organization_id, repo_id=repo_id, pr_number=pr_number
+    )
+    lock = locks.get(
+        f"autofix:pr_iteration:ineligible_comment:lock:{organization_id}:{repo_id}:{pr_number}",
+        duration=30,
+        name="autofix_pr_iteration_ineligible_comment",
+    )
+    try:
+        with lock.acquire():
+            if default_cache.get(cache_key) is not None:
+                return
+
+            try:
+                client.create_comment(
+                    repo_name,
+                    str(pr_number),
+                    {"body": _ineligible_pr_iteration_comment_body(github_username)},
+                )
+            except Exception:
+                logger.warning(
+                    "autofix.pr_iteration.comment_trigger.ineligible_comment_failed",
+                    extra=log_extra,
+                    exc_info=True,
+                )
+                return
+
+            default_cache.set(cache_key, True, timeout=_INELIGIBLE_COMMENT_CACHE_TTL)
+    except UnableToAcquireLock:
+        pass
 
 
 @instrumented_task(
@@ -330,6 +432,16 @@ def trigger_pr_iteration_from_comment(
             "autofix.pr_iteration.comment_trigger.no_run",
             extra={"organization_id": organization_id, "pr_id": pr_id},
         )
+        _comment_pr_iteration_ineligible(
+            client,
+            organization_id=organization_id,
+            repo_id=repo.id,
+            repo_name=repo.name,
+            pr_number=pr_number,
+            github_username=github_username,
+            source_type=source.type,
+            comment_id=comment.id,
+        )
         return None
 
     try:
@@ -378,8 +490,12 @@ def trigger_pr_iteration_from_comment(
     if comment_id is None:
         return None
 
-    _add_comment_eyes_reaction(
-        scm, source_type=source.type, pr_number=pr_number, comment_id=comment_id
+    _add_comment_reaction(
+        scm,
+        source_type=source.type,
+        pr_number=pr_number,
+        comment_id=comment_id,
+        reaction="eyes",
     )
 
     logger.info(

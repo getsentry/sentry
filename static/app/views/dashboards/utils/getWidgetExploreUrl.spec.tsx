@@ -70,9 +70,9 @@ describe('getWidgetExploreUrl', () => {
     expectUrl(url).toMatch({
       path: '/organizations/org-slug/explore/logs/',
       params: [
+        ['aggregateField', '{"groupBy":""}'],
         ['aggregateField', '{"chartType":1,"yAxes":["count(message)"]}'],
         ['interval', '3h'],
-        ['logsGroupBy', ''],
         ['mode', 'aggregate'],
         ['project', '17762'],
         ['statsPeriod', '14d'],
@@ -100,11 +100,11 @@ describe('getWidgetExploreUrl', () => {
     expectUrl(url).toMatch({
       path: '/organizations/org-slug/explore/logs/',
       params: [
+        ['aggregateField', '{"groupBy":"message"}'],
         ['aggregateField', '{"chartType":1,"yAxes":["count(message)"]}'],
         ['interval', '3h'],
         ['logsFields', 'timestamp'],
         ['logsFields', 'message'],
-        ['logsGroupBy', 'message'],
         ['mode', 'aggregate'],
         ['project', ''],
         ['statsPeriod', '14d'],

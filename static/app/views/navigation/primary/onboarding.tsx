@@ -3,6 +3,7 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
+import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
 import {OnboardingSidebarContent} from 'sentry/components/onboardingWizard/content';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {ProgressRing} from 'sentry/components/progressRing';
@@ -23,7 +24,6 @@ import {
   usePrimaryNavigationButtonOverlay,
 } from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
-import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 function OnboardingItem({
   allTasks,

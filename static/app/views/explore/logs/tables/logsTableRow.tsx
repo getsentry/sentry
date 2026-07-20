@@ -29,6 +29,7 @@ import type {Organization} from 'sentry/types/organization';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {toSplicedSorted} from 'sentry/utils/array/toSplicedSorted';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -397,8 +398,8 @@ export const LogRowContent = memo(function LogRowContent({
     ? {isClickable: false}
     : blockRowExpanding
       ? onEmbeddedRowClick
-        ? {onClick, isClickable: true}
-        : {}
+        ? {...hoverProps, onClick, isClickable: true}
+        : {...hoverProps}
       : {
           ...hoverProps,
           onPointerUp,
@@ -557,7 +558,7 @@ export const LogRowContent = memo(function LogRowContent({
             name: field,
             key: field,
             isSortable: true,
-            type: FieldValueType.STRING,
+            type: meta?.fields?.[field] ?? FieldValueType.STRING,
           };
 
           return (
@@ -762,8 +763,16 @@ function LogRowDetails({
               </DetailsBody>
               <LogAttributeTreeWrapper>
                 <AttributesTree<RendererExtra>
-                  attributes={data.attributes.filter(
-                    attribute => !HiddenLogDetailFields.includes(attribute.name)
+                  attributes={toSplicedSorted(
+                    data.attributes.filter(
+                      attribute => !HiddenLogDetailFields.includes(attribute.name)
+                    ),
+                    {
+                      name: OurLogKnownFieldKey.TIMESTAMP,
+                      type: 'str',
+                      value: dataRow[OurLogKnownFieldKey.TIMESTAMP],
+                    },
+                    (a, b) => a.name.localeCompare(b.name)
                   )}
                   getCustomActions={getActions}
                   getAdjustedAttributeKey={adjustAliases}

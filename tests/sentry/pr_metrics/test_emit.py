@@ -17,6 +17,7 @@ from sentry.models.pullrequest import (
 )
 from sentry.pr_metrics.contracts import PrConversationAnalysis
 from sentry.pr_metrics.emit import (
+    VerdictDeferral,
     _activity_derived_metrics,
     active_attributions,
     build_pr_metrics_row,
@@ -24,6 +25,7 @@ from sentry.pr_metrics.emit import (
     emit_pr_metrics_row,
     is_pr_tracked,
     resolve_autofix_referrers,
+    select_fallback_verdict,
     select_verdict,
 )
 from sentry.pr_metrics.utils import _commit_shas_from_activity, resolved_group_ids
@@ -159,7 +161,7 @@ class PrMetricsEmissionTest(TestCase):
 
     def test_select_verdict_merged_with_later_commits_needs_judge(self) -> None:
         self._add_synchronize()
-        assert select_verdict(self.pull_request, self.organization) is None
+        assert select_verdict(self.pull_request, self.organization) == VerdictDeferral.NEEDS_JUDGE
 
     def test_select_verdict_closed_without_engagement_is_unmerged(self) -> None:
         self.pull_request.merged_at = None
@@ -174,14 +176,18 @@ class PrMetricsEmissionTest(TestCase):
     def test_select_verdict_closed_with_comments_needs_judge(self) -> None:
         # setUp's metrics row carries comments_count=5, i.e. engagement to analyze.
         self.pull_request.merged_at = None
-        assert select_verdict(self.pull_request, self.organization) is None
+        assert select_verdict(self.pull_request, self.organization) == VerdictDeferral.NEEDS_JUDGE
 
-    def test_select_verdict_merged_without_metrics_row_needs_judge(self) -> None:
-        # A missing row is an error state for a merge too: defer rather than emit a
-        # row with zeroed counters.
+    def test_select_verdict_merged_without_metrics_row_is_indeterminate(self) -> None:
+        # A missing row is an error state for a merge too: there's no reliable
+        # activity/engagement data to decide from, so it's indeterminate rather
+        # than a genuine needs-judge ambiguity — and never emit zeroed counters.
         PullRequestMetrics.objects.filter(pull_request=self.pull_request).delete()
         with patch("sentry.pr_metrics.emit.logger") as mock_logger:
-            assert select_verdict(self.pull_request, self.organization) is None
+            assert (
+                select_verdict(self.pull_request, self.organization)
+                == VerdictDeferral.INDETERMINATE
+            )
         mock_logger.warning.assert_called_once_with(
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
@@ -191,13 +197,16 @@ class PrMetricsEmissionTest(TestCase):
             },
         )
 
-    def test_select_verdict_closed_without_metrics_row_needs_judge(self) -> None:
+    def test_select_verdict_closed_without_metrics_row_is_indeterminate(self) -> None:
         # A missing row is an error state (handle_metrics failed): warn, and defer
-        # to a judge rather than guess "abandoned".
+        # as indeterminate rather than guess "abandoned".
         self.pull_request.merged_at = None
         PullRequestMetrics.objects.filter(pull_request=self.pull_request).delete()
         with patch("sentry.pr_metrics.emit.logger") as mock_logger:
-            assert select_verdict(self.pull_request, self.organization) is None
+            assert (
+                select_verdict(self.pull_request, self.organization)
+                == VerdictDeferral.INDETERMINATE
+            )
         mock_logger.warning.assert_called_once_with(
             "pr_metrics.select_verdict.metrics_row_missing",
             extra={
@@ -213,14 +222,19 @@ class PrMetricsEmissionTest(TestCase):
             comments_count=0, review_comments_count=0
         )
         self._add_synchronize()
-        assert select_verdict(self.pull_request, self.organization) is None
+        assert select_verdict(self.pull_request, self.organization) == VerdictDeferral.NEEDS_JUDGE
 
-    def test_select_verdict_needs_judge_when_activity_tracking_disabled(self) -> None:
+    def test_select_verdict_indeterminate_when_activity_tracking_disabled(self) -> None:
         # The commits-after-open signal comes from activity rows the org isn't
-        # recording, so an otherwise-clean merge can't be settled deterministically.
+        # recording, so an otherwise-clean merge can't be settled deterministically
+        # — and isn't a genuine needs-judge ambiguity either, since there's no
+        # activity data at all to have found ambiguous.
         with self.feature({"organizations:pr-metrics-activity": False}):
             with patch("sentry.pr_metrics.emit.metrics") as mock_metrics:
-                assert select_verdict(self.pull_request, self.organization) is None
+                assert (
+                    select_verdict(self.pull_request, self.organization)
+                    == VerdictDeferral.INDETERMINATE
+                )
         mock_metrics.incr.assert_called_once_with("pr_metrics.select_verdict.activity_disabled")
 
     def test_ci_failing_at_close_no_check_activity_is_false(self) -> None:
@@ -266,6 +280,22 @@ class PrMetricsEmissionTest(TestCase):
         self._add_check_suite(app_slug="github-actions", conclusion="success", webhook_id="check-1")
         self._add_check_suite(app_slug="github-actions", conclusion="failure", webhook_id="check-2")
         assert ci_failing_at_close(self.pull_request) is True
+
+    def test_select_fallback_verdict_merged_without_later_commits_is_unchanged(self) -> None:
+        assert select_fallback_verdict(self.pull_request) == PullRequestVerdict.MERGED_UNCHANGED
+
+    def test_select_fallback_verdict_merged_with_later_commits_is_iteration(self) -> None:
+        self._add_synchronize()
+        assert (
+            select_fallback_verdict(self.pull_request) == PullRequestVerdict.MERGED_WITH_ITERATION
+        )
+
+    def test_select_fallback_verdict_closed_is_unmerged(self) -> None:
+        # setUp's metrics row carries engagement (comments_count=5), which would
+        # need a judge under select_verdict — the fallback has no judge to defer
+        # to, so it settles CLOSED_UNMERGED unconditionally.
+        self.pull_request.merged_at = None
+        assert select_fallback_verdict(self.pull_request) == PullRequestVerdict.CLOSED_UNMERGED
 
     def test_build_row_for_merge(self) -> None:
         row = build_pr_metrics_row(
