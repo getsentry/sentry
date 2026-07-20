@@ -98,7 +98,27 @@ def _agentic_triage_snuba_factors(
     select: list[Column | Function] = [
         Column("group_id"),
         Function("max", [Column("timestamp")], alias="max_timestamp"),
-        Function("max", [Column("level")], alias="max_level"),
+        # level is a string in Snuba — map to integer so max() is numeric.
+        Function(
+            "max",
+            [
+                Function(
+                    "multiIf",
+                    [
+                        Function("equals", [Column("level"), "fatal"]),
+                        4,
+                        Function("equals", [Column("level"), "error"]),
+                        3,
+                        Function("equals", [Column("level"), "warning"]),
+                        2,
+                        Function("equals", [Column("level"), "info"]),
+                        1,
+                        0,
+                    ],
+                )
+            ],
+            alias="max_level",
+        ),
         Function("count", [], alias="event_count"),
     ]
     # uniq(user) is expensive — only include if weight is non-zero.
@@ -265,12 +285,18 @@ def _fetch_and_score_agentic(
     # Step 1: Get eligible group IDs from Postgres with pagination.
     # Mirrors the search.backend.query filters: unresolved, un-triaged, eligible types.
     type_ids = sorted(group_types_from([]) | {LowValueSpanConfigurationType.type_id})
-    base_qs = Group.objects.filter(
-        project__in=projects,
-        status=GroupStatus.UNRESOLVED,
-        seer_explorer_autofix_last_triggered__isnull=True,
-        type__in=type_ids,
-    ).order_by("-last_seen")
+    # Exclude groups Seer ran on within the last 30 days (matching the
+    # RecentDateCondition used by the recommended path's search filter).
+    seer_recency_cutoff = timezone.now() - timedelta(days=30)
+    base_qs = (
+        Group.objects.filter(
+            project__in=projects,
+            status=GroupStatus.UNRESOLVED,
+            type__in=type_ids,
+        )
+        .exclude(seer_explorer_autofix_last_triggered__gte=seer_recency_cutoff)
+        .order_by("-last_seen")
+    )
 
     # Page through to collect enough non-skipped candidates, same pattern as the
     # recommended path. Skip filtering happens in Python so one page may not yield
@@ -302,12 +328,17 @@ def _fetch_and_score_agentic(
     project_ids = [p.id for p in projects]
     factors = _agentic_triage_snuba_factors(group_ids, project_ids, projects[0].organization_id)
 
-    # Step 3: Min-max normalize and compute weighted scores, take top N.
-    scores = _agentic_triage_score(group_ids, factors)
-    candidates.sort(key=lambda g: scores.get(g.id, 0.0), reverse=True)
-    top = candidates[:max_candidates]
+    # Step 3: Only score groups that got Snuba results. Non-error types
+    # (issue-platform) won't have rows in the events entity — append them
+    # after scored groups so they don't distort min-max normalization.
+    with_data = [g for g in candidates if g.id in factors]
+    without_data = [g for g in candidates if g.id not in factors]
+    scores = _agentic_triage_score([g.id for g in with_data], factors)
+    with_data.sort(key=lambda g: scores.get(g.id, 0.0), reverse=True)
+    top = (with_data + without_data)[:max_candidates]
 
-    # Step 4: Re-rank top candidates by fixability (descending, nulls last).
+    # Step 4: Re-rank by fixability (descending, nulls last). Drop issues
+    # with fixability below the threshold — same filter as the recommended path.
     top.sort(
         key=lambda g: (g.seer_fixability_score is not None, g.seer_fixability_score or 0.0),
         reverse=True,
@@ -316,6 +347,7 @@ def _fetch_and_score_agentic(
     return [
         ScoredCandidate(group=g, fixability=g.seer_fixability_score, times_seen=g.times_seen)
         for g in top
+        if g.seer_fixability_score is None or g.seer_fixability_score >= FIXABILITY_SCORE_THRESHOLD
     ]
 
 
