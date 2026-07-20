@@ -75,7 +75,13 @@ def rebuild_group_derived_data(
 
     rebuild_id: RebuildId | None = None
     if resume_invalidated_at is not None and resume_pipeline_hash is not None:
-        rebuild_id = RebuildId(group_id, resume_invalidated_at, resume_pipeline_hash)
+        from datetime import datetime, timezone
+
+        rebuild_id = RebuildId(
+            group_id,
+            datetime.fromisoformat(resume_invalidated_at).replace(tzinfo=timezone.utc),
+            resume_pipeline_hash,
+        )
 
     try:
         build_and_promote_derived_data(group_id, rebuild_id=rebuild_id)
@@ -94,7 +100,9 @@ def rebuild_group_derived_data(
         rid = e.rebuild_id
         rebuild_group_derived_data.delay(
             group_id,
-            resume_invalidated_at=rid.invalidated_at if rid else None,
+            resume_invalidated_at=rid.invalidated_at.isoformat()
+            if rid and rid.invalidated_at
+            else None,
             resume_pipeline_hash=rid.pipeline_hash if rid else None,
             prior_runs=prior_runs + 1,
         )
@@ -298,12 +306,11 @@ def process_project_derived_data_batch(
     silo_mode=SiloMode.CELL,
 )
 def rebuild_project_derived_data(project_id: int, **kwargs: object) -> None:
-    """Rebuild derived data for all groups in a project via build-and-promote.
+    """Rebuild derived data for every group in a project.
 
-    Unlike process_project_derived_data (which only targets groups missing a
-    GDD row), this task covers every group in the project — creating derived
-    data where missing and replacing existing live rows with freshly built ones.
-    Existing live rows continue serving reads until each replacement is promoted.
+    Partitions groups into ID ranges and fans out a batch task for each
+    range. Each batch calls ``build_and_promote_derived_data`` per group,
+    which replaces existing rows via CAS while they continue serving reads.
     """
     from sentry import options
     from sentry.models.group import Group
@@ -431,7 +438,9 @@ def rebuild_project_derived_data_batch(
             rid = e.rebuild_id
             rebuild_group_derived_data.delay(
                 group_id,
-                resume_invalidated_at=rid.invalidated_at if rid else None,
+                resume_invalidated_at=rid.invalidated_at.isoformat()
+                if rid and rid.invalidated_at
+                else None,
                 resume_pipeline_hash=rid.pipeline_hash if rid else None,
             )
 

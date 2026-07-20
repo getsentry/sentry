@@ -700,7 +700,7 @@ class PromoteToLiveTest(TestCase):
         assert promoted.invalidated_at is None
 
     def test_resumed_rebuild_advances_cursor_on_repeat_timeout(self) -> None:
-        from sentry.issues.derived.processing import _load_rebuild_state
+        from sentry.issues.derived.processing import _rebuild_cache
 
         group = self.create_group()
         for _ in range(5):
@@ -713,7 +713,7 @@ class PromoteToLiveTest(TestCase):
 
         rid = exc_info.value.rebuild_id
         assert rid is not None
-        state = _load_rebuild_state(rid)
+        state = _rebuild_cache.get(rid)
         assert state is not None
         first_cursor = state.cursor_id
         assert first_cursor > 0
@@ -725,7 +725,7 @@ class PromoteToLiveTest(TestCase):
 
         rid2 = exc_info.value.rebuild_id
         assert rid2 is not None
-        state = _load_rebuild_state(rid2)
+        state = _rebuild_cache.get(rid2)
         assert state is not None
         assert state.cursor_id > first_cursor
 

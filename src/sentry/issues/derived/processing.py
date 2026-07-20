@@ -40,13 +40,13 @@ class RebuildId(NamedTuple):
     """Uniquely identifies a rebuild attempt for a group."""
 
     group_id: int
-    invalidated_at: str  # ISO timestamp or "deleted" for hard-delete rebuilds
+    invalidated_at: datetime | None  # None for hard-delete rebuilds
     pipeline_hash: str
 
 
 # Cache for in-progress rebuild state.
 _rebuild_cache = CacheMapping[RebuildId, GroupDerivedData](
-    lambda k: f"{k.group_id}:{k.invalidated_at}:{k.pipeline_hash}",
+    lambda k: f"{k.group_id}:{k.invalidated_at.isoformat() if k.invalidated_at else 'deleted'}:{k.pipeline_hash}",
     namespace="gdd-rebuild",
     ttl_seconds=86400,
 )
@@ -303,16 +303,6 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
 # ---------------------------------------------------------------------------
 
 
-def _save_rebuild_state(rebuild_id: RebuildId, derived: GroupDerivedData) -> None:
-    """Persist in-progress rebuild state to cache for later resumption."""
-    _rebuild_cache.set(rebuild_id, derived)
-
-
-def _load_rebuild_state(rebuild_id: RebuildId) -> GroupDerivedData | None:
-    """Load in-progress rebuild state from cache into an unsaved instance."""
-    return _rebuild_cache.get(rebuild_id)
-
-
 class PromotionResult(enum.Enum):
     PROMOTED = "promoted"
     SUPERSEDED = "superseded"  # a newer invalidation arrived; our work is stale
@@ -388,11 +378,11 @@ def _build_and_insert(
     fails harmlessly.
     """
     pipeline_hash = PIPELINE.pipeline_hash
-    current_rebuild_id = RebuildId(group_id, "deleted", pipeline_hash)
+    current_rebuild_id = RebuildId(group_id, None, pipeline_hash)
 
     derived: GroupDerivedData | None = None
     if rebuild_id is not None and rebuild_id == current_rebuild_id:
-        derived = _load_rebuild_state(rebuild_id)
+        derived = _rebuild_cache.get(rebuild_id)
 
     if derived is None:
         derived = GroupDerivedData(
@@ -405,7 +395,7 @@ def _build_and_insert(
 
     drained = _drain_log(derived, batch_size, time_limit=time_limit, persist=False)
     if not drained:
-        _save_rebuild_state(current_rebuild_id, derived)
+        _rebuild_cache.set(current_rebuild_id, derived)
         raise GroupLogTimeout(group_id, rebuild_id=current_rebuild_id)
 
     values = {f: getattr(derived, f) for f in _STATE_FIELDS}
@@ -458,13 +448,13 @@ def build_and_promote_derived_data(
         return _build_and_insert(group_id, batch_size, rebuild_id, time_limit)
 
     pipeline_hash = PIPELINE.pipeline_hash
-    current_rebuild_id = RebuildId(group_id, invalidated_at.isoformat(), pipeline_hash)
+    current_rebuild_id = RebuildId(group_id, invalidated_at, pipeline_hash)
 
     # Try to resume from cache.
     derived: GroupDerivedData | None = None
     if rebuild_id is not None:
         if rebuild_id == current_rebuild_id:
-            derived = _load_rebuild_state(rebuild_id)
+            derived = _rebuild_cache.get(rebuild_id)
         if derived is None:
             logger.info(
                 "issues.derived.build_and_promote.cache_miss",
@@ -485,7 +475,7 @@ def build_and_promote_derived_data(
     for attempt in range(MAX_PROMOTION_ATTEMPTS):
         drained = _drain_log(derived, batch_size, time_limit=time_limit, persist=False)
         if not drained:
-            _save_rebuild_state(current_rebuild_id, derived)
+            _rebuild_cache.set(current_rebuild_id, derived)
             raise GroupLogTimeout(group_id, rebuild_id=current_rebuild_id)
 
         result = promote_to_live(derived, invalidated_at)
