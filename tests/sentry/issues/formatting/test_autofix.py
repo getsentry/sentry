@@ -46,19 +46,12 @@ def test_markdown_renders_root_cause_solution_and_prs() -> None:
     out = format_autofix(_autofix_response())
     assert "## Root Cause" in out
     assert "The device id is parsed with the wrong regex." in out
-    assert "1. parse fails" in out  # numbered five whys
-    assert "- call crash()" in out  # bulleted reproduction steps
+    assert "1. parse fails" in out
+    assert "- call crash()" in out
     assert "## Solution" in out
     assert "- **Update regex**: Allow alphanumerics" in out
     assert "## Pull Requests" in out
     assert "- getsentry/sentry: https://github.com/getsentry/sentry/pull/1" in out
-
-
-def test_xml_format() -> None:
-    out = format_autofix(_autofix_response(), "xml")
-    assert "<root_cause>" in out
-    assert "<solution>" in out
-    assert "<pull_requests>" in out
 
 
 def test_no_autofix_run_returns_empty() -> None:

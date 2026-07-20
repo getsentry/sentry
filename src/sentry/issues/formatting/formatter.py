@@ -9,7 +9,7 @@ import logging
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Sequence
-from typing import Literal
+from typing import Literal, TypedDict
 
 from sentry.issues.formatting.limits import Limits
 from sentry.issues.formatting.models import EventObject
@@ -87,6 +87,14 @@ class XmlFormatter(Formatter):
 
 
 Format = Literal["markdown", "xml"]
+
+
+class FormattedResponse(TypedDict):
+    """The ``formatted`` field the mixin adds to a response when ``?llmFormat`` is requested."""
+
+    format: Format
+    content: str
+
 
 _FORMATTERS: dict[Format, type[Formatter]] = {
     "markdown": MarkdownFormatter,
