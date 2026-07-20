@@ -45,6 +45,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckS
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
+    GithubPrCommentUser,
     GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
     GithubPullRequestReviewComment,
@@ -610,17 +611,18 @@ def _build_review_feedback(
     for comment in inline_comments:
         author = comment.get("author")
         # The SCM-normalized ``ReviewComment`` carries ``file_path`` / ``author``
-        # while the reusable source reads the webhook-shaped ``path`` / ``user``,
-        # so map the fields explicitly before constructing it. ``line`` /
-        # ``start_line`` are ``DiffLine`` dicts now, so flatten to a line number.
+        # / ``url`` while the reusable source reads the webhook-shaped ``path`` /
+        # ``user`` / ``html_url``, so map the fields explicitly before constructing
+        # it. ``line`` / ``start_line`` are ``DiffLine`` dicts now, so flatten to a
+        # line number.
         review_comment = GithubPullRequestReviewComment(
-            id=comment["id"],
+            id=int(comment["id"]),
             body=comment.get("body"),
-            url=comment.get("url"),
+            html_url=comment.get("url"),
             path=comment.get("file_path"),
             line=_diff_line_number(comment.get("line")),
             start_line=_diff_line_number(comment.get("start_line")),
-            user={"login": author["username"] if author else None},
+            user=GithubPrCommentUser(login=author["username"] if author else None),
         )
         source = GithubPrReviewCommentFeedbackSource(comment=review_comment, require_command=False)
         feedback.append(Feedback(source=source))

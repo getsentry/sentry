@@ -260,6 +260,12 @@ class TriggerPrIterationFromReviewTest(TestCase):
         assert len(comment_sources) == 2
         assert len(body_sources) == 1
         assert body_sources[0].body == "overall summary"
+        # The SCM ``url`` maps onto the source's ``html_url``; the UI drops
+        # comments without it, so this is what surfaces the feedback.
+        assert {s.comment.html_url for s in comment_sources} == {
+            "https://github.com/owner/repo/pull/7#discussion_r1",
+            "https://github.com/owner/repo/pull/7#discussion_r2",
+        }
         assert all(
             c.kwargs["referrer"] == AutofixReferrer.GITHUB_PR_REVIEW
             for c in mock_enqueue.call_args_list
