@@ -1,13 +1,15 @@
-import {Fragment, useRef, useState} from 'react';
+import {useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {SeerEmbedRegistry} from 'sentry/components/seer/markdown/embeds';
-import {SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
+import {
+  SEER_EMBED_SCHEMAS,
+  type SeerEmbedExample,
+} from 'sentry/components/seer/markdown/embeds/schemas';
 import {Demo} from 'sentry/stories';
 
 const BASIC_MD = `## Root Cause
@@ -101,40 +103,59 @@ export function StreamingEmbedDemo() {
   );
 }
 
-function formatTagSyntax(name: string, data: unknown): string {
-  const json = JSON.stringify(data, null, 2);
-  return `{% ${name} %}${json}{% /${name} %}`;
+function formatTag(name: string, data: unknown): string {
+  return `{% ${name} %}${JSON.stringify(data)}{% /${name} %}`;
+}
+
+function buildEmbedMarkdown(
+  name: string,
+  levels: readonly string[],
+  examples: SeerEmbedExample[]
+): string {
+  const lines: string[] = [];
+  const defaultLevel = levels[0] ?? 'inline';
+
+  for (const ex of examples) {
+    const level = ex.level ?? defaultLevel;
+    const tag = formatTag(name, ex.data);
+    if (level === 'inline') {
+      lines.push(`${ex.label}: Lorem ipsum ${tag} dolor sit amet.\n`);
+    } else {
+      lines.push(`${ex.label}:\n\n${tag}\n`);
+    }
+  }
+
+  return lines.join('\n');
 }
 
 export function EmbedRegistry() {
-  const embeds = SeerEmbedRegistry.list();
+  const entries = Object.entries(SEER_EMBED_SCHEMAS);
   return (
     <Stack gap="xl">
-      {embeds.map(embed => {
-        const schema = SEER_EMBED_SCHEMAS[embed.name as keyof typeof SEER_EMBED_SCHEMAS];
+      {entries.map(([name, schema]) => {
+        const examples = schema.examples as SeerEmbedExample[] | undefined;
+        const md = examples ? buildEmbedMarkdown(name, schema.level, examples) : null;
         return (
-          <Stack key={embed.name} gap="md" flexGrow={1}>
-            <Heading as="h4" size="md">
-              {embed.name}
-            </Heading>
-            {schema && (
-              <Fragment>
-                <Text>{schema.description}</Text>
-                <Text size="sm" variant="muted">
-                  Level: {schema.level.join(', ')}
-                  {'featureFlag' in schema ? ` · Flag: ${schema.featureFlag}` : null}
-                </Text>
-              </Fragment>
-            )}
-            {embed.example && (
-              <Fragment>
+          <Stack key={name} gap="md">
+            <Text bold size="md">
+              {name}
+            </Text>
+            <Text size="sm" variant="muted">
+              Level: {schema.level.join(', ')}
+              {'featureFlag' in schema ? ` · Flag: ${schema.featureFlag}` : null}
+            </Text>
+            <Text size="sm" variant="muted">
+              Prompt: {schema.description}
+            </Text>
+            {md && (
+              <Stack gap="sm">
                 <Demo>
-                  <embed.component {...embed.example} />
+                  <SeerMarkdown raw={md} />
                 </Demo>
                 <CodeBlock language="markdown" dark>
-                  {formatTagSyntax(embed.name, embed.example.data)}
+                  {md}
                 </CodeBlock>
-              </Fragment>
+              </Stack>
             )}
           </Stack>
         );

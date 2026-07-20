@@ -87,6 +87,7 @@ export const SEER_EMBED_SCHEMAS = {
       title: z.string(),
       value: z.number(),
     }),
+    examples: [{label: 'Basic', data: {title: 'Errors', value: 42}}],
   },
 } as const satisfies Record<string, SeerEmbedSchema>;
 ```

@@ -30,6 +30,7 @@ export const SEER_EMBED_SCHEMAS = {
       someField: z.string(),
       optionalField: z.number().optional(),
     }),
+    examples: [{label: 'Basic', data: {someField: 'hello'}}],
     // featureFlag: 'organizations:seer-explorer-my-embed',  // optional
   },
 } as const satisfies Record<string, SeerEmbedSchema>;
@@ -40,6 +41,7 @@ export const SEER_EMBED_SCHEMAS = {
 - **`description`**: Write for the LLM — it uses this to decide when to emit the embed. Be specific about the use case.
 - **`level`**: Use `['inline']` for widgets that flow within text (timestamps, badges). Use `['block']` for widgets that need their own line (cards, charts). Use both if the embed adapts.
 - **`schema`**: Use Zod. Keep it flat and simple — the LLM has to produce valid JSON. Use `.default()` for optional fields with sensible defaults. Use `.enum()` to constrain string values.
+- **`examples`**: An array of `{label, data, level?}` objects. Each `data` must be valid against the schema. These are included in the generated JSON sent to the LLM as few-shot examples. In the stories page, all examples for an embed are composed into a single markdown block and rendered through one `<SeerMarkdown>` — inline examples are wrapped in prose text, block examples are appended at the end. Use multiple examples to show different prop combinations or block vs inline rendering. Set `level` on an example only when it differs from the schema's default (first entry in `level`).
 - **`featureFlag`**: Set this to gate the embed behind a feature flag. The backend filters it out of the schema sent to the LLM when the flag is off.
 
 ## Step 2: Create the Component
