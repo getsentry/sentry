@@ -10,6 +10,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
+import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
 import {ScmCreateProject} from './scmCreateProject';
 
@@ -99,6 +100,47 @@ describe('ScmCreateProject', () => {
     jest.clearAllMocks();
   });
 
+  it.each([
+    {referrer: undefined, origin: 'existing_org'},
+    {referrer: 'org-creation', origin: 'org_creation'},
+    // Autofill return path — orthogonal marker; still counts as existing-org.
+    {referrer: 'getting-started', origin: 'existing_org'},
+  ] as const)(
+    'sets project-creation page-view origin to $origin when referrer is $referrer',
+    ({referrer, origin}) => {
+      const routeAnalytics = {
+        previousUrl: '',
+        setDisableRouteAnalytics: jest.fn(),
+        setEventNames: jest.fn(),
+        setOrganization: jest.fn(),
+        setRouteAnalyticsParams: jest.fn(),
+      };
+
+      render(
+        <RouteAnalyticsContext value={routeAnalytics}>
+          <ScmCreateProject />
+        </RouteAnalyticsContext>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/projects/new/',
+              query: referrer ? {referrer, project: CREATED_PROJECT_ID} : {},
+            },
+          },
+        }
+      );
+
+      expect(routeAnalytics.setEventNames).toHaveBeenCalledWith(
+        'project_creation_page.viewed',
+        'Project Create: Creation page viewed'
+      );
+      expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+        variant: 'scm',
+        origin,
+      });
+    }
+  );
   it('shows all steps with the Create CTA disabled on a fresh visit', async () => {
     render(<ScmCreateProject />, {organization});
 

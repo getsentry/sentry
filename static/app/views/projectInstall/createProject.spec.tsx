@@ -20,6 +20,7 @@ import type {Organization} from 'sentry/types/organization';
 import * as analytics from 'sentry/utils/analytics';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 import * as useValidateChannelModule from 'sentry/views/projectInstall/useValidateChannel';
+import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -107,6 +108,57 @@ describe('CreateProject', () => {
   afterEach(() => {
     MockApiClient.clearMockResponses();
   });
+
+  it.each([
+    {referrer: undefined, origin: 'existing_org'},
+    {referrer: 'org-creation', origin: 'org_creation'},
+    // Autofill return path — orthogonal marker; still counts as existing-org.
+    {referrer: 'getting-started', origin: 'existing_org'},
+  ] as const)(
+    'sets project-creation page-view origin to $origin when referrer is $referrer',
+    ({referrer, origin}) => {
+      const organization = OrganizationFixture({
+        access: ['project:read', 'project:write', 'project:admin'],
+      });
+      TeamStore.loadUserTeams([teamWithAccess]);
+      renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+
+      const routeAnalytics = {
+        previousUrl: '',
+        setDisableRouteAnalytics: jest.fn(),
+        setEventNames: jest.fn(),
+        setOrganization: jest.fn(),
+        setRouteAnalyticsParams: jest.fn(),
+      };
+
+      render(
+        <RouteAnalyticsContext value={routeAnalytics}>
+          <CreateProject />
+        </RouteAnalyticsContext>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/projects/new/',
+              query: referrer ? {referrer} : {},
+            },
+          },
+        }
+      );
+
+      expect(routeAnalytics.setEventNames).toHaveBeenCalledWith(
+        'project_creation_page.viewed',
+        'Project Create: Creation page viewed'
+      );
+      expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+        variant: 'legacy',
+        origin,
+      });
+    }
+  );
 
   it('should block if you have access to no teams without team-roles', () => {
     const organization = OrganizationFixture({

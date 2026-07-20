@@ -71,7 +71,14 @@ export function ScmCreateProject() {
     'project_creation_page.viewed',
     'Project Create: Creation page viewed'
   );
-  useRouteAnalyticsParams({variant: 'scm'});
+  // `origin` is orthogonal to `variant`: org-create success redirects here with
+  // `?referrer=org-creation` (full-page reload), everything else is existing-org.
+  // `referrer=getting-started` is the autofill path and never coexists with
+  // org-creation, so it correctly lands as existing_org.
+  useRouteAnalyticsParams({
+    variant: 'scm',
+    origin: referrer === 'org-creation' ? 'org_creation' : 'existing_org',
+  });
 
   // Snapshot of the last completed wizard session, written when a project is
   // created (see handleComplete in the wizard). Restored when this mount is a

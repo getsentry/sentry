@@ -83,8 +83,13 @@ function OrganizationCreate() {
           onSubmitSuccess={(createdOrg: OrganizationSummary) => {
             const hasCustomerDomain =
               ConfigStore.get('features').has('system:multi-region');
+            // Marker for project-creation page-view analytics: distinguishes
+            // brand-new org activation from adding a project to an existing
+            // org. Must ride on the URL — this redirect is a full page reload
+            // (testableWindowLocation.assign), so location.state does not
+            // survive. Orthogonal to `?referrer=getting-started` (autofill).
             let nextUrl = normalizeUrl(
-              `/organizations/${createdOrg.slug}/projects/new/`,
+              `/organizations/${createdOrg.slug}/projects/new/?referrer=org-creation`,
               {forceCustomerDomain: hasCustomerDomain}
             );
             if (hasCustomerDomain) {

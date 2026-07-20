@@ -276,7 +276,14 @@ export function CreateProject() {
     'project_creation_page.viewed',
     'Project Create: Creation page viewed'
   );
-  useRouteAnalyticsParams({variant: 'legacy'});
+  // `origin` is orthogonal to `variant`: org-create success redirects here with
+  // `?referrer=org-creation` (full-page reload), everything else is existing-org.
+  // `referrer=getting-started` is the autofill path and never coexists with
+  // org-creation, so it correctly lands as existing_org.
+  useRouteAnalyticsParams({
+    variant: 'legacy',
+    origin: referrer === 'org-creation' ? 'org_creation' : 'existing_org',
+  });
 
   const configurePlatform = useCallback(
     async ({
