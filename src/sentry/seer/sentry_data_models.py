@@ -866,6 +866,7 @@ class MonitoringProviderConnectionData(BaseModel):
     identity_id: int | None = None
     auth_method: str
     refreshable: bool = True
+    gcp_project_ids: list[str] | None = None
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]
