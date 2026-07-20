@@ -3,6 +3,8 @@ import {mutationOptions} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerPollingComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerPollingComboBox';
 import type {
@@ -10,6 +12,7 @@ import type {
   SeerRawResponse,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
+  buildSeerDateTimeSelection,
   buildSeerMutationResult,
   mapSeerResponseItem,
   transformSeerResponse,
@@ -19,7 +22,6 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getUtcDateString} from 'sentry/utils/dates';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -29,6 +31,7 @@ export function IssueListSeerComboBox() {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
+  const pageFilters = usePageFilters();
   const {setRunId} = useAiQueryContext();
   const analyticsArea = useAnalyticsArea();
   const {enableAISearch, askSeerSuggestedQueryRef} = useSearchQueryBuilderAI();
@@ -80,12 +83,18 @@ export function IssueListSeerComboBox() {
         expandedProjectIds,
       } = result;
 
+      const dt = buildSeerDateTimeSelection(
+        resultStart,
+        resultEnd,
+        statsPeriod,
+        pageFilters.selection.datetime
+      );
+      const timeParams = normalizeDateTimeParams(dt, {allowEmptyPeriod: true});
+
       askSeerSuggestedQueryRef.current = JSON.stringify({
         query: queryToUse,
         sort,
-        statsPeriod,
-        start: resultStart,
-        end: resultEnd,
+        ...timeParams,
       });
 
       trackAnalytics('ai_query.applied', {
@@ -94,30 +103,8 @@ export function IssueListSeerComboBox() {
         query: queryToUse,
       });
 
-      let timeParams: Record<string, string | undefined> = {};
-
-      if (resultStart && resultEnd) {
-        timeParams = {
-          start: getUtcDateString(resultStart),
-          end: getUtcDateString(resultEnd),
-          statsPeriod: undefined,
-          // Seer returns absolute ranges as UTC, so display them in UTC to match
-          // the suggestion preview the user accepted.
-          utc: 'true',
-        };
-      } else if (statsPeriod) {
-        timeParams = {
-          statsPeriod,
-          start: undefined,
-          end: undefined,
-          // Clear any utc flag left over from a prior absolute range; a relative
-          // window has no UTC display semantics to preserve.
-          utc: undefined,
-        };
-      }
-
       const queryParams = {
-        ...omit(location.query, ['page', 'cursor']),
+        ...omit(location.query, ['page', 'cursor', 'start', 'end', 'statsPeriod', 'utc']),
         ...(expandedProjectIds ? {project: expandedProjectIds.map(String)} : {}),
         referrer: 'issue-list',
         query: queryToUse,
@@ -144,6 +131,7 @@ export function IssueListSeerComboBox() {
       location.query,
       navigate,
       organization,
+      pageFilters.selection.datetime,
       setRunId,
     ]
   );

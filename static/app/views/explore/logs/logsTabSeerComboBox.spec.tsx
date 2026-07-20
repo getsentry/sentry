@@ -300,6 +300,33 @@ describe('getLogsSeerLocationQuery', () => {
     expect(absoluteQuery.statsPeriod).toBeUndefined();
   });
 
+  it('clears absolute datetime params when Seer returns a stats period', () => {
+    const {query} = getLogsSeerLocationQuery({
+      currentLocation: locationWithQuery({
+        end: '2024-01-02T00:00:00',
+        start: '2024-01-01T00:00:00',
+        utc: 'false',
+      }),
+      currentAggregateFields: [new VisualizeFunction('count(message)')],
+      pageDatetime: {
+        start: '2024-01-01T00:00:00',
+        end: '2024-01-02T00:00:00',
+        period: null,
+        utc: false,
+      },
+      result: seerResult({
+        end: '2024-06-02T00:00:00Z',
+        start: '2024-06-01T00:00:00Z',
+        statsPeriod: '24h',
+      }),
+    });
+
+    expect(query.statsPeriod).toBe('24h');
+    expect(query.start).toBeUndefined();
+    expect(query.end).toBeUndefined();
+    expect(query.utc).toBeUndefined();
+  });
+
   it('preserves the current aggregate visualization when Seer omits one', () => {
     const {query} = getLogsSeerLocationQuery({
       currentLocation: locationWithQuery({}),

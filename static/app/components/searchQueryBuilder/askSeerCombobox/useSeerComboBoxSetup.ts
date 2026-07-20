@@ -242,26 +242,26 @@ export function buildSeerDateTimeSelection(
     end: resultEnd,
     statsPeriod,
   });
-  const hasAbsoluteDateTime = Boolean(normalized.start && normalized.end);
-  let start: DateString = null;
-  let end: DateString = null;
 
-  if (normalized.start && normalized.end) {
-    start = getUtcDateString(normalized.start);
-    end = getUtcDateString(normalized.end);
-  } else {
-    start = pageFiltersDatetime.start;
-    end = pageFiltersDatetime.end;
+  if (normalized.statsPeriod) {
+    return {
+      start: null,
+      end: null,
+      period: normalized.statsPeriod,
+      utc: null,
+    };
   }
 
-  return {
-    start,
-    end,
-    // Seer returns absolute ranges as UTC, so display them in UTC to match the
-    // suggestion preview the user accepted.
-    utc: hasAbsoluteDateTime ? true : pageFiltersDatetime.utc,
-    period: hasAbsoluteDateTime
-      ? null
-      : normalized.statsPeriod || pageFiltersDatetime.period,
-  };
+  if (normalized.start && normalized.end) {
+    return {
+      start: getUtcDateString(normalized.start),
+      end: getUtcDateString(normalized.end),
+      period: null,
+      // Seer returns absolute ranges as UTC, so display them in UTC to match
+      // the suggestion preview the user accepted.
+      utc: true,
+    };
+  }
+
+  return {...pageFiltersDatetime};
 }
