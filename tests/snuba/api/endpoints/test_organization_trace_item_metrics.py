@@ -123,15 +123,40 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         assert response.status_code == 400, response.data
         assert "sort" in response.data
 
-    def test_accepts_context_only(self) -> None:
-        # context_only is accepted (behavior wired up separately) and doesn't
-        # change the result yet.
-        self.store_metric("checkout.requests", "counter")
+    def test_context_only_filters_to_metrics_with_context(self) -> None:
+        self.store_metric("has.context", "counter")
+        self.store_metric("no.context", "counter")
+        self.create_context("has.context", project=None, brief="Described")
 
         response = self.do_request(query={"project": self.project.id, "context_only": "1"})
 
         assert response.status_code == 200, response.data
-        assert [row["name"] for row in response.data] == ["checkout.requests"]
+        assert [row["name"] for row in response.data] == ["has.context"]
+        assert response.data[0]["context"] == {"brief": "Described"}
+
+    def test_context_only_empty_when_no_context(self) -> None:
+        self.store_metric("no.context", "counter")
+
+        response = self.do_request(query={"project": self.project.id, "context_only": "1"})
+
+        assert response.status_code == 200, response.data
+        assert response.data == []
+
+    def test_context_only_ignored_without_feature(self) -> None:
+        self.store_metric("has.context", "counter")
+        self.store_metric("no.context", "counter")
+        self.create_context("has.context", project=None, brief="Described")
+
+        response = self.do_request(
+            query={"project": self.project.id, "context_only": "1"},
+            features={
+                "organizations:visibility-explore-view": True,
+                "organizations:tracemetrics-enabled": True,
+            },
+        )
+
+        assert response.status_code == 200, response.data
+        assert {row["name"] for row in response.data} == {"has.context", "no.context"}
 
     def test_expand_context(self) -> None:
         self.store_metric("checkout.requests", "counter")

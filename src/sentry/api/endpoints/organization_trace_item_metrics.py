@@ -51,6 +51,14 @@ _GROUPING_ORDER = [METRIC_NAME_ALIAS, METRIC_TYPE_ALIAS, METRIC_UNIT_ALIAS]
 MAX_METRICS_PER_PAGE = 1000
 
 
+def _metric_names_filter(names: list[str]) -> str:
+    """A search clause matching ``metric.name`` against any of the given names."""
+    clauses = [
+        'metric.name:"' + name.replace("\\", "\\\\").replace('"', '\\"') + '"' for name in names
+    ]
+    return "(" + " OR ".join(clauses) + ")"
+
+
 class TraceMetricContext(TypedDict):
     brief: NotRequired[str]
     additionalContext: NotRequired[str]
@@ -114,11 +122,33 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
         snuba_params.end = adjusted_end
 
         query_string = serialized.get("query", "")
-        # Authored context is joined from TraceItemAttributeValueContext, gated
+        # Authored context lives in TraceItemAttributeValueContext and is gated
         # behind the feature; conventions don't apply to custom metrics.
-        include_context = "context" in serialized.get("expand", set()) and features.has(
+        has_context_feature = features.has(
             "organizations:data-browsing-attribute-context", organization, actor=request.user
         )
+        # context_only restricts results to metrics that have authored context.
+        context_only = serialized.get("context_only", False) and has_context_feature
+        include_context = has_context_feature and (
+            "context" in serialized.get("expand", set()) or context_only
+        )
+
+        if context_only:
+            context_names = list(
+                TraceItemAttributeValueContext.objects.filter(
+                    organization=organization,
+                    item_type=TraceItemTypes.TRACEMETRICS,
+                    attribute_name=METRIC_NAME_ALIAS,
+                )
+                .values_list("attribute_value", flat=True)
+                .distinct()
+            )
+            if not context_names:
+                return self.paginate(request=request, paginator=ChainPaginator([]))
+            # Restrict the metrics query to names that have context, so count,
+            # sort, and pagination all operate on the filtered set.
+            name_filter = _metric_names_filter(context_names)
+            query_string = f"{query_string} {name_filter}".strip()
 
         # Resolve the requested sort to a query orderby, always appending the
         # grouping key so pagination has a stable total order.
