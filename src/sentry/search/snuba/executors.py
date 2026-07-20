@@ -1279,7 +1279,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         actor: Any | None,
         start: datetime,
         end: datetime,
-        allow_postgres_only_search: bool,
+        native_upper_bound_ok: bool,
         aggregate_kwargs: TrendsSortWeights | None = None,
         *,
         referrer: str,
@@ -1311,19 +1311,13 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # memory. Lifts the max-candidates cap for the common issue-stream case, past which the
         # in-memory path degrades to a plain last_seen sort.
         #
-        # Gated to queries Snuba isn't needed to answer correctly:
-        # - no environment scoping: env filtering and env-scoped values live in Snuba; the
-        #   Postgres queryset only has lifetime GroupEnvironment membership, not window scoping.
-        # - no explicit upper time bound (allow_postgres_only_search): Group.last_seen is the
-        #   issue's global max event time, not its max within [start, end], so a Postgres-only
-        #   window bound would wrongly drop issues with events both inside and after `end`.
-        # These gate on query filters (constant across a search's pages), so every page of a
-        # given search consistently uses one path — cursors stay comparable.
+        # Skip when Snuba is needed for correctness: an environment scope (env-scoped values
+        # live in Snuba) or a past upper bound (see native_upper_bound_ok).
         if (
             strategy.native_order_by is not None
             and not has_snuba_filters
             and not environments
-            and allow_postgres_only_search
+            and native_upper_bound_ok
             and _has_derived_progress(actor, projects)
         ):
             with start_span(
@@ -1497,6 +1491,13 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         if end_params:
             end = min(end_params)
 
+        # The native path bounds only by Group.last_seen (a global max, never in the future),
+        # so it's correct for any upper bound at/after now. The endpoint always sends
+        # date_to=now, so gate on "not in the past" (within clock fuzz), not "no bound at all".
+        # (A caller pinning an absolute end near now could flip this across pages as now
+        # advances; the default stream recomputes end=now each request, so it stays stable.)
+        native_upper_bound_ok = end is None or end >= now - ALLOWED_FUTURE_DELTA
+
         allow_postgres_only_search = False
         if not end:
             end = now + ALLOWED_FUTURE_DELTA
@@ -1547,7 +1548,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 actor=actor,
                 start=start,
                 end=end,
-                allow_postgres_only_search=allow_postgres_only_search,
+                native_upper_bound_ok=native_upper_bound_ok,
                 aggregate_kwargs=aggregate_kwargs,
                 referrer=referrer,
             )

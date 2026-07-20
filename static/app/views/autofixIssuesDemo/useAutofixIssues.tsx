@@ -1,10 +1,12 @@
 import {useMemo} from 'react';
-import {skipToken, useQueries, useQuery} from '@tanstack/react-query';
+import {useQueries, useQuery} from '@tanstack/react-query';
 
 import {
   type ExplorerAutofixState,
   getOrderedAutofixSections,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import type {Level} from 'sentry/types/event';
+import type {PlatformKey} from 'sentry/types/platform';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -37,19 +39,11 @@ const DEMO_QUESTIONS = [
   'What is the complexity of the fix? Count or estimate number of lines and files touched.',
 ];
 
-// Keep the issue page size at/under the runs endpoint's outputs page cap (10)
-// so a single runs request covers every group on the page.
+// Issues per page; also bounds the per-group runs/state request fan-out.
 const PER_PAGE = 10;
 
-// The furthest phase an autofix run has reached, derived from its state.
-// NOTE: 'pr_merged' is intentionally never produced here — the autofix state
-// endpoint only reports up to "PR opened" (repo_pr_states.pr_creation_status
-// tops out at 'completed'). GitHub merge status lives on sentry.PullRequest and
-// would need a separate backend join to surface. Kept in the union so the UI
-// can label it once that data is available.
 export type AutofixPhase = 'rca' | 'planning' | 'coding' | 'pr_open' | 'pr_merged';
 
-// Human labels for each phase.
 export const AUTOFIX_PHASE_LABELS: Record<AutofixPhase, string> = {
   rca: 'Root cause',
   planning: 'Planning',
@@ -88,47 +82,67 @@ function deriveAutofixPhase(runState: ExplorerAutofixState | null): AutofixPhase
 }
 
 // One answered question, mirrors the run output in
-// src/sentry/api/serializers/models/seer_run.py.
-interface RunQuestion {
+// src/sentry/api/serializers/models/seer_run.py
+export interface RunQuestion {
   answer: string;
   key: string;
   // The question text, echoed back only for user-supplied questions.
   question?: string;
 }
 
+// A pull request linked to a run, serialized by PullRequestSerializer
+// src/sentry/api/serializers/models/pullrequest.py
+// `status` is 'open' | 'merged' | 'closed' | 'draft' | 'unknown'.
+interface RunPullRequest {
+  status: string | null;
+  mergedAt?: string | null;
+}
+
 // Subset of the runs list response we consume
-// (src/sentry/api/serializers/models/seer_run.py).
+// src/sentry/api/serializers/models/seer_run.py
 interface SeerRun {
   groupId: string | null;
   id: string;
   lastTriggeredAt: string;
-  // Present only when ?outputs is requested (and the feature is on).
+  source: string | null;
+  // Present only when ?outputs is requested.
   outputs?: RunQuestion[];
+  // Linked PRs with merge status.
+  pullRequests?: RunPullRequest[];
 }
 
 // Subset of the issue-stream group we render.
 interface Issue {
+  // Event count over the stats period. Endpoint sadly returns a string.
+  count: string;
   culprit: string;
   id: string;
+  lastSeen: string;
+  level: Level;
+  project: {slug: string; platform?: PlatformKey};
   seerAutofixLastTriggered: string | null;
   seerFixabilityScore: number | null;
   shortId: string;
   title: string;
+  userCount: number;
 }
 
 export interface AutofixIssue extends Issue {
-  // The furthest autofix phase this issue's run has reached, or null when the
-  // per-group autofix state hasn't loaded yet / has no run.
   autofixPhase: AutofixPhase | null;
-  // Whether the per-group autofix state is still loading.
   autofixPhasePending: boolean;
-  // The most recent explorer/autofix run for this issue's group, if any.
+  autofixState: ExplorerAutofixState | null;
   run: SeerRun | null;
 }
 
 interface UseAutofixIssuesParams {
   cursor?: string;
   query?: string;
+  // One-shot questions asked about each run (repeatable `question` param,
+  // capped at 5 by the endpoint). Defaults to this page's demo set.
+  questions?: string[];
+  // Runs-endpoint filter to enrich issues with. Defaults to the explorer runs
+  // autofix creates; pass e.g. 'type:explorer' to include all trigger sources.
+  runsQuery?: string;
 }
 
 interface UseAutofixIssuesResult {
@@ -141,13 +155,14 @@ interface UseAutofixIssuesResult {
 
 /**
  * Fetches a page of autofix issues from the issue stream and enriches each one
- * with its most recent Seer run (including one-shot outputs). The runs request
- * is scoped to exactly the groups on the page via ``group:[...]``, so we make
- * one extra request per page rather than fetching every run in the org.
+ * with its most recent Seer run (including one-shot outputs) and its autofix
+ * state — one runs request and one state request per group on the page.
  */
 export function useAutofixIssues({
   query,
   cursor,
+  questions = DEMO_QUESTIONS,
+  runsQuery: runsQueryFilter = RUNS_QUERY,
 }: UseAutofixIssuesParams): UseAutofixIssuesResult {
   const organization = useOrganization();
 
@@ -160,6 +175,10 @@ export function useAutofixIssues({
         cursor,
         project: -1,
         statsPeriod: '90d',
+        // Explicit endpoint default: last-seen desc selects the issues still
+        // actively occurring as the candidate pool; callers order the loaded
+        // page themselves (the overview applies a triage sort).
+        sort: 'date',
         limit: PER_PAGE,
       },
       staleTime: 30_000,
@@ -171,17 +190,25 @@ export function useAutofixIssues({
   const groupIds = useMemo(() => issues.map(issue => issue.id), [issues]);
   const runsEnabled = groupIds.length > 0;
 
-  // 2. Enrich with the runs for exactly those groups (one group-scoped request).
-  const runsQuery = useQuery(
-    apiOptions.as<SeerRun[]>()('/organizations/$organizationIdOrSlug/seer/runs/', {
-      path: runsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
-      query: {
-        query: `${RUNS_QUERY} group:[${groupIds.join(',')}]`,
-        question: DEMO_QUESTIONS,
-      },
-      staleTime: 30_000,
-    })
-  );
+  // 2. Enrich with each group's latest run, one request per group with
+  // per_page=1. A single batched group:[...] request looked cheaper, but the
+  // endpoint caps outputs-enabled pages at 10 runs ordered by recency — when
+  // the page's groups collectively have more runs than that, the oldest
+  // groups' runs fall off and their issues silently lose all answers. Per-
+  // group requests make coverage guaranteed with the same total one-shot work.
+  const runResults = useQueries({
+    queries: groupIds.map(groupId =>
+      apiOptions.as<SeerRun[]>()('/organizations/$organizationIdOrSlug/seer/runs/', {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {
+          query: `${runsQueryFilter} group:${groupId}`,
+          question: questions,
+          per_page: 1,
+        },
+        staleTime: 30_000,
+      })
+    ),
+  });
 
   // 3. Fetch the full autofix state per group to derive its phase. This is one
   // request per issue on the page (bounded by PER_PAGE) -- the runs list
@@ -200,43 +227,37 @@ export function useAutofixIssues({
     ),
   });
 
-  // 4. Join runs (outputs) and autofix phase onto each issue by group id. Runs
-  // come back ordered by last_triggered_at desc, so the first run seen for a
-  // group is the latest.
-  const runByGroupId = useMemo(() => {
-    const map = new Map<string, SeerRun>();
-    for (const run of runsQuery.data ?? []) {
-      if (run.groupId && !map.has(run.groupId)) {
-        map.set(run.groupId, run);
-      }
-    }
-    return map;
-  }, [runsQuery.data]);
-
+  // 4. Join each group's run (outputs) and autofix phase onto its issue.
   // Computed each render (not memoized): useQueries returns a new array every
   // render, so it can't go in a useMemo dep array (@tanstack/query/no-unstable-
   // deps). The map is cheap -- at most PER_PAGE rows.
   const enriched: AutofixIssue[] = issues.map((issue, i) => {
     const autofixResult = autofixResults[i];
+    const autofixState = autofixResult?.data?.autofix ?? null;
+    // The server already scopes each request to its group; the find() guards
+    // against mocks/responses carrying runs for other groups.
+    const runs = runResults[i]?.data;
+    const run = runs?.find(candidate => candidate.groupId === issue.id) ?? null;
     return {
       ...issue,
-      run: runByGroupId.get(issue.id) ?? null,
-      autofixPhase: deriveAutofixPhase(autofixResult?.data?.autofix ?? null),
+      run,
+      autofixPhase: deriveAutofixPhase(autofixState),
       autofixPhasePending: autofixResult?.isPending ?? false,
+      autofixState,
     };
   });
 
   return {
     issues: enriched,
-    isPending: issuesQuery.isPending || (runsEnabled && runsQuery.isPending),
-    isError: issuesQuery.isError || runsQuery.isError,
+    isPending:
+      issuesQuery.isPending ||
+      (runsEnabled && runResults.some(result => result.isPending)),
+    // A failed per-group runs request degrades that row to run-less rather
+    // than erroring the whole page.
+    isError: issuesQuery.isError,
     refetch: () => {
       issuesQuery.refetch();
-      // Only refetch the runs query when it's enabled; refetching a disabled
-      // (skipToken) query logs a React Query error.
-      if (runsEnabled) {
-        runsQuery.refetch();
-      }
+      runResults.forEach(result => result.refetch());
       autofixResults.forEach(result => result.refetch());
     },
     pageLinks: issuesQuery.data?.headers.Link,

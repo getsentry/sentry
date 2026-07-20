@@ -10,7 +10,7 @@ from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import UserManager as DjangoUserManager
 from django.contrib.auth.signals import user_logged_out
 from django.db import IntegrityError, models, router, transaction
-from django.db.models import Count, Q, Subquery
+from django.db.models import Count, Subquery
 from django.db.models.functions import Upper
 from django.db.models.query import QuerySet
 from django.dispatch import receiver
@@ -28,7 +28,6 @@ from sentry.backup.dependencies import (
     NormalizedModelName,
     PrimaryKeyMap,
     get_model_name,
-    merge_users_for_model_in_org,
 )
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
@@ -37,7 +36,6 @@ from sentry.db.models import Model, control_silo_model, sane_repr
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
@@ -100,6 +98,7 @@ class User(Model, AbstractBaseUser):
 
     backend: str  # abstract -- from `django.contrib.auth`
 
+    # outbox settings
     replication_version: int = 2
 
     username = models.CharField(_("username"), max_length=MAX_USERNAME_LENGTH, unique=True)
@@ -230,7 +229,10 @@ class User(Model, AbstractBaseUser):
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
-        with outbox_context(transaction.atomic(using=router.db_for_write(User))):
+        with outbox_context(
+            transaction.atomic(using=router.db_for_write(User)),
+            flush=False,
+        ):
             avatar = self.avatar.first()
             if avatar:
                 avatar.delete()
@@ -239,7 +241,10 @@ class User(Model, AbstractBaseUser):
             return super().delete(*args, **kwargs)
 
     def update(self, *args: Any, **kwds: Any) -> int:
-        with outbox_context(transaction.atomic(using=router.db_for_write(User))):
+        with outbox_context(
+            transaction.atomic(using=router.db_for_write(User)),
+            flush=False,
+        ):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().update(*args, **kwds)
@@ -248,7 +253,7 @@ class User(Model, AbstractBaseUser):
         is_test_user = kwargs.pop("is_test_user", False)
         is_relocated_user = kwargs.pop("is_relocated_user", False)
         try:
-            with outbox_context(transaction.atomic(using=router.db_for_write(User))):
+            with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
                 if not self.username:
                     self.username = self.email
                 # for testing purposes, we want to be able to create new users with existing emails
@@ -258,11 +263,11 @@ class User(Model, AbstractBaseUser):
                         # new users should set email_unique
                         self.email_unique = self.email
                     elif self.pk is None and is_relocated_user:
-                        # If the user is new, relocated and has email_unique blank email_unique
-                        # to dodge integrity errors.
+                        # If the user is new, relocated blank email_unique to dodge
+                        # integrity errors.
                         self.email_unique = None
                     else:
-                        # existing users with shared email addresses + relocated users should be able to save without fail
+                        # existing users with shared email addresses
                         self.email_unique = (
                             self.email
                             if User.objects.filter(email=self.email).count() == 1
@@ -428,23 +433,21 @@ class User(Model, AbstractBaseUser):
                 organization_id=organization_id, from_user_id=from_user_id, to_user_id=to_user_id
             )
 
-            # Update all organization control models to only use the new user id.
-            #
-            # TODO: in the future, proactively update `OrganizationMemberTeamReplica` as well.
-            with enforce_constraints(
-                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+            # Update all organization control models that don't use user_id
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping)),
+                flush=False,
             ):
-                control_side_org_models: tuple[type[Model], ...] = (
-                    OrgAuthToken,
-                    OrganizationMemberMapping,
-                )
-                for model in control_side_org_models:
-                    merge_users_for_model_in_org(
-                        model,
-                        organization_id=organization_id,
-                        from_user_id=from_user_id,
-                        to_user_id=to_user_id,
-                    )
+                # Update records individually as OrgAuthToken has outboxes
+                for token in OrgAuthToken.objects.filter(
+                    organization_id=organization_id, created_by_id=from_user_id
+                ):
+                    token.created_by_id = to_user_id
+                    token.save()
+
+        # Update any member map records where the the merged user was the inviter
+        queryset = OrganizationMemberMapping.objects.filter(inviter_id=from_user_id)
+        queryset.update(inviter_id=to_user_id)
 
         # While it would be nice to make the following changes in a transaction, there are too many
         # unique constraints to make this feasible. Instead, we just do it sequentially and ignore
@@ -455,14 +458,17 @@ class User(Model, AbstractBaseUser):
             UserAvatar,
             UserEmail,
             UserOption,
+            # TODO: in the future, proactively update `OrganizationMemberTeamReplica` as well.
+            OrganizationMemberMapping,
         )
-        for model in user_related_models:
-            for obj in model.objects.filter(user_id=from_user_id):
-                try:
-                    with transaction.atomic(using=router.db_for_write(User)):
-                        obj.update(user_id=to_user_id)
-                except IntegrityError:
-                    pass
+        with outbox_context(flush=False):
+            for model in user_related_models:
+                for obj in model.objects.filter(user_id=from_user_id):
+                    try:
+                        with transaction.atomic(using=router.db_for_write(User)):
+                            obj.update(user_id=to_user_id)
+                    except IntegrityError:
+                        pass
 
         # users can be either the subject or the object of actions which get logged
         AuditLogEntry.objects.filter(actor=from_user).update(actor=to_user)
@@ -553,17 +559,28 @@ class User(Model, AbstractBaseUser):
         `exclude_user_id` is the user being updated (excluded from the check); leave it
         as the default when checking a not-yet-saved user (e.g. a relocation import).
         """
-        username_or_primary_taken = (
-            cls.objects.exclude(id=exclude_user_id)
-            .filter(
-                Q(username__iexact=username)
-                | Q(email__iexact=username)
-                | Q(email_unique__iexact=username)
-            )
-            .exists()
+        # XXX: While it is tempting to combine all three of these queries to User
+        # into one, doing so results in poor execution performance as the query planner
+        # cannot effectively use its indexes and falls into SeqScan, while individual queries
+        # hit IndexScan
+        username_taken = (
+            cls.objects.exclude(id=exclude_user_id).filter(username__iexact=username).exists()
         )
-        if username_or_primary_taken:
+        if username_taken:
             return False
+
+        email_username_taken = (
+            cls.objects.exclude(id=exclude_user_id).filter(email__iexact=username).exists()
+        )
+        if email_username_taken:
+            return False
+
+        email_unique_taken = (
+            cls.objects.exclude(id=exclude_user_id).filter(email_unique__iexact=username).exists()
+        )
+        if email_unique_taken:
+            return False
+
         verified_email_taken = (
             UserEmail.objects.filter(email__iexact=username, is_verified=True)
             .exclude(user_id=exclude_user_id)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
@@ -293,7 +293,14 @@ def get_eap_transaction_volumes(
     time_interval: timedelta = timedelta(hours=1),
     order_by_volume: Literal["asc", "desc"] = "asc",
     max_transactions: int = 100,
+    root_projects: Sequence[Project] | None = None,
 ) -> list[ProjectTransactionCounts]:
+    # Spans rooted in one project can be owned by any project in the org, so the query
+    # scope stays config.projects; root_projects only narrows which root projects
+    # (dsc.project_id) are counted.
+    if root_projects is None:
+        root_projects = config.projects
+
     end_time = datetime.now(UTC)
     start_time = end_time - time_interval
     transaction_counts_by_project: defaultdict[int, list[tuple[str, float]]] = defaultdict(list)
@@ -309,7 +316,7 @@ def get_eap_transaction_volumes(
         DynamicSamplingQueryFields.DSC_TRANSACTION,
     ]
 
-    root_project_filter = ",".join(str(project.id) for project in config.projects)
+    root_project_filter = ",".join(str(project.id) for project in root_projects)
     result = Spans.run_table_query(
         params=SnubaParams(
             start=start_time,
