@@ -880,6 +880,19 @@ class ProjectUpdateTest(APITestCase):
         assert self.project.get_option("sentry:scrape_javascript") is False
         assert resp.data["scrapeJavaScript"] is False
 
+    def test_enable_auto_release_creation(self) -> None:
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, enableAutoReleaseCreation=False
+        )
+        assert self.project.get_option("sentry:enable_auto_release_creation") is False
+        assert resp.data["enableAutoReleaseCreation"] is False
+
+        resp = self.get_success_response(
+            self.org_slug, self.proj_slug, enableAutoReleaseCreation=True
+        )
+        assert self.project.get_option("sentry:enable_auto_release_creation") is True
+        assert resp.data["enableAutoReleaseCreation"] is True
+
     def test_default_environment(self) -> None:
         resp = self.get_success_response(self.org_slug, self.proj_slug, defaultEnvironment="dev")
         assert self.project.get_option("sentry:default_environment") == "dev"

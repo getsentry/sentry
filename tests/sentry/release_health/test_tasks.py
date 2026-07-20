@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.repository import Repository
 from sentry.release_health.release_monitor.base import BaseReleaseMonitorBackend
@@ -680,6 +681,57 @@ class TestAdoptReleasesPath(TestMetricReleaseMonitor):
             release__version="0.1",
             environment__name="prod",
             adopted__gt=timezone.now(),
+        ).exists()
+
+    def test_auto_creation_disabled_does_not_create_release(self) -> None:
+        # With the feature flag and the project opting out, a release referenced
+        # only by sessions must not be auto-created.
+        self.project1.update_option("sentry:enable_auto_release_creation", False)
+
+        with self.feature("organizations:auto-release-creation"):
+            adopt_releases(
+                self.organization.id,
+                {self.project1.id: {"prod": {"releases": {"9.9.9": 10}, "total_sessions": 10}}},
+            )
+
+        assert not Release.objects.filter(
+            organization_id=self.organization.id, version="9.9.9"
+        ).exists()
+        assert not ReleaseProjectEnvironment.objects.filter(
+            project_id=self.project1.id, release__version="9.9.9"
+        ).exists()
+
+    def test_auto_creation_disabled_associates_existing_release(self) -> None:
+        # An existing release (e.g. created via the CLI) is still associated when
+        # auto-creation is disabled.
+        self.project1.update_option("sentry:enable_auto_release_creation", False)
+        existing = self.create_release(project=self.project1, version="9.9.9")
+
+        with self.feature("organizations:auto-release-creation"):
+            adopt_releases(
+                self.organization.id,
+                {self.project1.id: {"prod": {"releases": {"9.9.9": 10}, "total_sessions": 10}}},
+            )
+
+        assert ReleaseProjectEnvironment.objects.filter(
+            project_id=self.project1.id,
+            release_id=existing.id,
+            environment__name="prod",
+            adopted__isnull=False,
+        ).exists()
+
+    def test_auto_creation_disabled_without_feature_flag(self) -> None:
+        # Without the feature flag the project option is ignored and the release is
+        # auto-created as before.
+        self.project1.update_option("sentry:enable_auto_release_creation", False)
+
+        adopt_releases(
+            self.organization.id,
+            {self.project1.id: {"prod": {"releases": {"9.9.9": 10}, "total_sessions": 10}}},
+        )
+
+        assert Release.objects.filter(
+            organization_id=self.organization.id, version="9.9.9"
         ).exists()
 
 

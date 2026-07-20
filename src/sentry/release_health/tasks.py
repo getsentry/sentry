@@ -5,13 +5,12 @@ from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
 from django.db.models import F, Q
 from django.utils import timezone
 from sentry_sdk import capture_exception
 from taskbroker_client.retry import Retry
 
-from sentry import options
+from sentry import features, options
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
@@ -196,19 +195,33 @@ def _handle_release_adoption(
     except (Release.DoesNotExist, ReleaseProjectEnvironment.DoesNotExist):
         metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
         try:
+            project = Project.objects.get(id=project_id)
+            # When the org has the feature flag and the project has disabled
+            # auto-creation, only associate with releases that already exist
+            # (e.g. created via the CLI) and never create new ones from telemetry.
+            create_release = not features.has(
+                "organizations:auto-release-creation", project.organization
+            ) or project.get_option("sentry:enable_auto_release_creation")
+
             env = Environment.objects.get_or_create(name=environment_name, organization_id=org_id)[
                 0
             ]
             try:
-                release = Release.objects.get_or_create(
-                    organization_id=org_id,
-                    version=release_version,
-                    defaults={
-                        "status": ReleaseStatus.OPEN,
-                    },
-                )[0]
-            except IntegrityError:
-                release = Release.objects.get(organization_id=org_id, version=release_version)
+                if create_release:
+                    release = Release.objects.get_or_create(
+                        organization_id=org_id,
+                        version=release_version,
+                        defaults={
+                            "status": ReleaseStatus.OPEN,
+                        },
+                    )[0]
+                else:
+                    release = Release.objects.get(organization_id=org_id, version=release_version)
+            except Release.DoesNotExist:
+                release = None
+                metrics.incr(
+                    "sentry.tasks.process_projects_with_sessions.release_autocreation_skipped"
+                )
             except ValidationError:
                 release = None
                 logger.exception(
@@ -220,7 +233,7 @@ def _handle_release_adoption(
                 )
 
             if release:
-                release.add_project(Project.objects.get(id=project_id))
+                release.add_project(project)
 
                 ReleaseEnvironment.objects.get_or_create(
                     environment=env, organization_id=org_id, release=release

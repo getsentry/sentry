@@ -952,6 +952,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     verifySSL: bool
     scrubIPAddresses: bool
     scrapeJavaScript: bool
+    enableAutoReleaseCreation: bool
     highlightTags: list[str]
     highlightContext: dict[str, Any]
     highlightPreset: HighlightPreset
@@ -1078,6 +1079,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "verifySSL": bool(attrs["options"].get("sentry:verify_ssl", False)),
             "scrubIPAddresses": bool(attrs["options"].get("sentry:scrub_ip_address", False)),
             "scrapeJavaScript": bool(attrs["options"].get("sentry:scrape_javascript", True)),
+            "enableAutoReleaseCreation": bool(
+                attrs["options"].get("sentry:enable_auto_release_creation", True)
+            ),
             "highlightTags": attrs["options"].get(
                 "sentry:highlight_tags",
                 attrs["highlight_preset"].get("tags", []),

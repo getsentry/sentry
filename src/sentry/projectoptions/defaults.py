@@ -152,6 +152,13 @@ register(
     default=True,
 )
 
+# Whether releases should be auto-created from ingested telemetry. When disabled,
+# releases must be created explicitly (e.g. via the Sentry CLI).
+register(
+    key="sentry:enable_auto_release_creation",
+    default=True,
+)
+
 
 # Replacement rules for transaction names discovered by the transaction clusterer.
 # Contains a mapping from rule to last seen timestamp,
