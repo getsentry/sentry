@@ -26,6 +26,7 @@ SCHEDULER_BUCKET_ORG_STATUS_METRIC = (
 
 
 class DynamicSamplingStatus(StrEnum):
+    ALL_PROJECTS_AT_FULL_SAMPLE_RATE = "all_projects_at_full_sample_rate"
     COMPLETED = "completed"
     DISPATCHED = "dispatched"
     FAILED = "failed"
