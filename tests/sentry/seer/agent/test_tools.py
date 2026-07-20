@@ -2107,6 +2107,33 @@ class TestGetEventDetails(
         assert result is not None
         assert result["formatted"] is None
 
+    def test_include_breadcrumbs_false_drops_section(self) -> None:
+        data = load_data("python", timestamp=before_now(minutes=5))
+        data["breadcrumbs"] = {
+            "values": [{"category": "auth", "message": "login", "level": "info"}]
+        }
+        event = self.store_event(data=data, project_id=self.project.id)
+
+        with override_options({"issues.standardized-markdown-for-llm": True}):
+            with_crumbs = get_event_details(
+                organization_id=self.organization.id,
+                event_id=event.event_id,
+                project_slug=self.project.slug,
+                format="markdown",
+            )
+            without_crumbs = get_event_details(
+                organization_id=self.organization.id,
+                event_id=event.event_id,
+                project_slug=self.project.slug,
+                format="markdown",
+                include_breadcrumbs=False,
+            )
+
+        assert with_crumbs is not None and with_crumbs["formatted"] is not None
+        assert "## Breadcrumbs" in with_crumbs["formatted"]
+        assert without_crumbs is not None and without_crumbs["formatted"] is not None
+        assert "## Breadcrumbs" not in without_crumbs["formatted"]
+
     def test_by_event_id_multi_project(self) -> None:
         """Fetching by event_id without project_slug hits the multi-project code path."""
         self.create_project(organization=self.organization)  # second project → multi-project path
