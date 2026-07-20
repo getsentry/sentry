@@ -141,9 +141,9 @@ describe('ProjectSourceMaps', () => {
       });
     });
 
-    it('links unknown project platforms to the JavaScript source maps docs', async () => {
+    it('links unsupported project platforms to the JavaScript source maps docs', async () => {
       const {organization, project, routerProps} = initializeOrg({
-        project: {platform: 'custom-project-platform'},
+        project: {platform: 'python'},
       });
 
       renderReleaseBundlesMockRequests({
