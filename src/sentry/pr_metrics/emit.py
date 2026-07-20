@@ -196,6 +196,23 @@ def ci_failing_at_close(pull_request: PullRequest) -> bool:
     )
 
 
+def calculate_deterministic_diagnosis_labels(
+    pull_request: PullRequest, verdict: PullRequestVerdict | None
+) -> list[str] | None:
+    """The diagnosis labels Sentry can derive on its own from a settled verdict.
+
+    Shared by every caller that settles a verdict without a judge (the cooldown
+    task's deterministic path, and the judge-reap reconciliation), so a label
+    added here reaches all of them rather than being re-derived ad hoc per
+    caller. Currently just ``CI_FAILING_AT_CLOSE``, but the shape (verdict in,
+    labels out) is meant to grow more deterministic labels over time.
+    """
+    labels = []
+    if verdict == PullRequestVerdict.CLOSED_UNMERGED and ci_failing_at_close(pull_request):
+        labels.append(CI_FAILING_AT_CLOSE)
+    return labels or None
+
+
 def is_pr_tracked(pull_request: PullRequest) -> bool:
     """Whether the PR has ≥1 valid attribution — the emission tracking gate.
 

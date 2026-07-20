@@ -17,7 +17,7 @@ from sentry.models.pullrequest import (
     PullRequestVerdict,
 )
 from sentry.models.repository import Repository
-from sentry.pr_metrics.judge import forward_pr_to_seer_judge
+from sentry.pr_metrics.judge import forward_pr_to_seer_judge, reap_stuck_judge_verdicts
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
@@ -156,3 +156,16 @@ def cleanup_pr_activity_task(*, pull_request_id: int) -> None:
     logger.info("pr_metrics.cleanup_activity", extra={"pull_request_id": pull_request_id})
     deleted, _ = PullRequestActivity.objects.filter(pull_request_id=pull_request_id).delete()
     metrics.incr("pr_metrics.cleanup_activity.deleted", amount=deleted)
+
+
+@instrumented_task(
+    name="sentry.pr_metrics.tasks.reap_stuck_judge_verdicts",
+    namespace=seer_code_review_tasks,
+    silo_mode=SiloMode.CELL,
+)
+def reap_stuck_judge_verdicts_task() -> None:
+    """Daily sweep settling ``PullRequestMetrics`` rows stuck at ``JUDGE_IN_PROGRESS``.
+
+    See ``reap_stuck_judge_verdicts`` for the settling logic and its bounds.
+    """
+    reap_stuck_judge_verdicts()
