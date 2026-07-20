@@ -63,7 +63,7 @@ class OrganizationReportContext:
         # Top spans data for the spans chart
         self.top_spans: list[dict[str, Any]] = []  # [{name, p95, sum}, ...]
         self.top_spans_timeseries: dict[str, dict[int, float]] = {}  # {span_name: {timestamp: p95}}
-        self.top_spans_projects: dict[str, set[int]] = {}  # {span_name: set of project_ids}
+        self.top_spans_projects: dict[str, int] = {}  # {span_name: project_id}
 
     def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
@@ -691,9 +691,16 @@ TOP_SPANS_QUERY_LIMIT = 50
 
 
 def _build_span_name_filter(names: list[str]) -> str:
-    return " OR ".join(
-        'span.name:"{}"'.format(name.replace("\\", "\\\\").replace('"', '\\"')) for name in names
-    )
+    escaped = [name.replace("\\", "\\\\").replace('"', '\\"') for name in names]
+    return "span.name:[{}]".format(", ".join(f'"{n}"' for n in escaped))
+
+
+def _get_transaction_projects(ctx: OrganizationReportContext) -> list[Project]:
+    return [
+        pctx.project
+        for pctx in ctx.projects_context_map.values()
+        if pctx.project.flags.has_transactions
+    ]
 
 
 def organization_top_spans(
@@ -706,13 +713,9 @@ def organization_top_spans(
     assigned to the project with the highest sum(span.duration). Spans typically
     appear in one project, so per-project aggregates match org-wide values.
 
-    The timeseries (daily p95) is fetched separately via run_top_events_timeseries_query.
+    The timeseries (6-hour granularity p95) is fetched separately via run_top_events_timeseries_query.
     """
-    projects = [
-        p
-        for p in ctx.organization.project_set.all()
-        if p.id in ctx.projects_context_map and p.flags.has_transactions
-    ]
+    projects = _get_transaction_projects(ctx)
     if not projects:
         return
 
@@ -742,16 +745,16 @@ def organization_top_spans(
             sampling_mode=None,
         )
 
-    seen_spans: set[str] = set()
     for row in result.get("data", []):
         span_name = row.get("span.name", "")
         if not span_name:
             continue
-        project_id = row.get("project.id")
-        if project_id:
-            ctx.top_spans_projects.setdefault(span_name, set()).add(int(project_id))
-        if span_name not in seen_spans:
-            seen_spans.add(span_name)
+        if span_name not in ctx.top_spans_projects:
+            if len(ctx.top_spans) >= TOP_SPANS_LIMIT:
+                break
+            project_id = row.get("project.id")
+            if project_id:
+                ctx.top_spans_projects[span_name] = int(project_id)
             ctx.top_spans.append(
                 {
                     "name": span_name,
@@ -765,12 +768,8 @@ def organization_top_spans_timeseries(
     ctx: OrganizationReportContext,
     referrer: str,
 ) -> None:
-    """Fetch daily p95(span.duration) timeseries for top spans."""
-    projects = [
-        p
-        for p in ctx.organization.project_set.all()
-        if p.id in ctx.projects_context_map and p.flags.has_transactions
-    ]
+    """Fetch p95(span.duration) timeseries for top spans with 6 hour granularity."""
+    projects = _get_transaction_projects(ctx)
     if not projects or not ctx.top_spans:
         return
 
@@ -783,7 +782,7 @@ def organization_top_spans_timeseries(
     )
     config = SearchResolverConfig(auto_fields=True)
 
-    span_name_filter = _build_span_name_filter([s["name"] for s in ctx.top_spans[:TOP_SPANS_LIMIT]])
+    span_name_filter = _build_span_name_filter([s["name"] for s in ctx.top_spans])
     with start_span(
         op="weekly_reports.top_spans_timeseries", name="weekly_reports.top_spans_timeseries"
     ):
@@ -809,7 +808,7 @@ def organization_top_spans_timeseries(
             if timestamp:
                 ts_int = (
                     int(timestamp.timestamp())
-                    if hasattr(timestamp, "timestamp")
+                    if isinstance(timestamp, datetime)
                     else int(timestamp)
                 )
                 interval_p95[ts_int] = p95_value or 0

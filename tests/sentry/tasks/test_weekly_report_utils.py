@@ -62,8 +62,8 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
         assert ctx.top_spans[0]["sum"] == 50000.0
         assert ctx.top_spans[1]["name"] == "/api/orders"
 
-        assert self.project.id in ctx.top_spans_projects["/api/users"]
-        assert self.project.id in ctx.top_spans_projects["/api/orders"]
+        assert ctx.top_spans_projects["/api/users"] == self.project.id
+        assert ctx.top_spans_projects["/api/orders"] == self.project.id
 
     def test_skips_without_transactions(self) -> None:
         ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
@@ -206,25 +206,62 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
         ):
             organization_top_spans(ctx, referrer=Referrer.REPORTS_TOP_SPANS.value)
 
-        assert ctx.top_spans_projects["/api/shared"] == {project_a.id, project_b.id}
-        assert ctx.top_spans_projects["/api/only-b"] == {project_b.id}
+        assert ctx.top_spans_projects["/api/shared"] == project_a.id
+        assert ctx.top_spans_projects["/api/only-b"] == project_b.id
 
         user_a_projects = ctx.project_ownership[user_a.id]
         user_b_projects = ctx.project_ownership[user_b.id]
 
         user_a_visible = [
-            s
-            for s in ctx.top_spans
-            if ctx.top_spans_projects.get(s["name"], set()) & user_a_projects
+            s for s in ctx.top_spans if ctx.top_spans_projects.get(s["name"]) in user_a_projects
         ]
         user_b_visible = [
-            s
-            for s in ctx.top_spans
-            if ctx.top_spans_projects.get(s["name"], set()) & user_b_projects
+            s for s in ctx.top_spans if ctx.top_spans_projects.get(s["name"]) in user_b_projects
         ]
 
         assert len(user_a_visible) == 1
         assert user_a_visible[0]["name"] == "/api/shared"
 
-        assert len(user_b_visible) == 2
-        assert {s["name"] for s in user_b_visible} == {"/api/shared", "/api/only-b"}
+        assert len(user_b_visible) == 1
+        assert user_b_visible[0]["name"] == "/api/only-b"
+
+    def test_assigns_span_to_highest_sum_project(self) -> None:
+        project_a = self.create_project(
+            organization=self.organization,
+            teams=[self.team],
+        )
+        project_b = self.create_project(
+            organization=self.organization,
+            teams=[self.team],
+        )
+        project_a.update(flags=F("flags").bitor(Project.flags.has_transactions))
+        project_b.update(flags=F("flags").bitor(Project.flags.has_transactions))
+
+        ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
+
+        mock_data = {
+            "data": [
+                {
+                    "span.name": "/api/checkout",
+                    "project.id": project_b.id,
+                    "p95(span.duration)": 200.0,
+                    "sum(span.duration)": 80000.0,
+                },
+                {
+                    "span.name": "/api/checkout",
+                    "project.id": project_a.id,
+                    "p95(span.duration)": 180.0,
+                    "sum(span.duration)": 20000.0,
+                },
+            ]
+        }
+
+        with mock.patch(
+            "sentry.tasks.summaries.utils.Spans.run_table_query",
+            return_value=mock_data,
+        ):
+            organization_top_spans(ctx, referrer=Referrer.REPORTS_TOP_SPANS.value)
+
+        assert len(ctx.top_spans) == 1
+        assert ctx.top_spans[0]["name"] == "/api/checkout"
+        assert ctx.top_spans_projects["/api/checkout"] == project_b.id
