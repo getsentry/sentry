@@ -774,6 +774,76 @@ class TestProgressSort(PostgresSortTestBase):
         assert list(page) == []
         assert page.next.has_results
 
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options(
+        {
+            "snuba.search.max-pre-snuba-candidates": 0,
+            # One row per chunk so the early-break boundary-drain runs mid-tie on every page,
+            # rather than the whole tied block arriving in a single chunk (which would exhaust
+            # the walk before the drain logic is ever exercised).
+            "snuba.search.max-chunk-size": 1,
+        }
+    )
+    def test_score_tie_spanning_pages_forward_and_back_with_tiny_chunks(self):
+        # Regression guard for the inverted path's cursor across a score tie that spans several
+        # pages while the chunk loop breaks early (max-chunk-size=1). Five groups share an
+        # identical score (same rank + same last_progressed_at), so ordering falls entirely to
+        # the -id tiebreak. Forward paging (limit=2) must yield the exact id-DESC order with no
+        # drops/dupes, and paging backward from the last page must retrace the preceding page
+        # measured against the true global ordering (not just self-consistency) -- i.e. prev
+        # returns the page adjacent to the cursor, not a window pulled from the wrong end.
+        ts = before_now(days=2).replace(microsecond=0)
+        extra = []
+        for i in range(3, 5):
+            event = self.store_event(
+                data={
+                    "fingerprint": [f"group-{i}"],
+                    "event_id": f"{chr(97 + i)}" * 32,
+                    "message": f"issue {i}",
+                    "timestamp": (self.base_datetime - timedelta(days=i)).isoformat(),
+                    "stacktrace": {"frames": [{"module": f"mod{i}"}]},
+                    "environment": "production",
+                },
+                project_id=self.project.id,
+            )
+            g = Group.objects.get(id=event.group.id)
+            g.status = GroupStatus.UNRESOLVED
+            g.substatus = GroupSubStatus.ONGOING
+            g.priority = PriorityLevel.HIGH
+            g.update(type=ErrorGroupType.type_id)
+            g.save()
+            self.store_group(g)
+            extra.append(g)
+        all_groups = self.groups + extra
+        for g in all_groups:
+            self.create_group_derived_data(group=g, progress="diagnosed", last_progressed_at=ts)
+
+        expected = sorted(all_groups, key=lambda g: g.id, reverse=True)
+
+        # Page fully forward one page (limit=2) at a time; the concatenation must be the exact
+        # id-DESC order with no drops or duplicates.
+        forward: list[Group] = []
+        pages: list[Any] = []
+        cursor = None
+        while True:
+            page = self.make_query(sort_by="progress", query="issue", limit=2, cursor=cursor)
+            results = list(page)
+            pages.append(page)
+            forward.extend(results)
+            if not page.next.has_results:
+                break
+            cursor = page.next
+        assert forward == expected
+        assert len(pages) >= 3  # the tie genuinely spanned multiple pages
+
+        # Paging backward from the last page must retrace the immediately preceding page.
+        last_page_size = len(list(pages[-1]))
+        expected_prev = expected[-last_page_size - 2 : -last_page_size]
+        back = list(
+            self.make_query(sort_by="progress", query="issue", limit=2, cursor=pages[-1].prev)
+        )
+        assert back == expected_prev
+
 
 class TestDefaultPostgresSortStrategies(TestCase):
     def test_recommended_v2_registered(self):
