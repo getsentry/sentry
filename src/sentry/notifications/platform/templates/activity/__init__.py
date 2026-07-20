@@ -49,7 +49,6 @@ __all__ = (
     "SetIgnoredActivityTemplate",
     "SetRegressionActivityTemplate",
     "SetUnresolvedActivityTemplate",
-    "AssignedNotificationData",
     "AssignedActivityTemplate",
     "UnassignedActivityTemplate",
     "NoteActivityTemplate",

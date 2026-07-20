@@ -4,6 +4,7 @@ from sentry.notifications.platform.templates.activity.base import (
     build_footer,
     build_issue_link,
     create_activity_notification_example,
+    get_issue_description,
 )
 from sentry.notifications.platform.templates.activity.status_change.base import (
     get_status_change_subject,
@@ -78,7 +79,8 @@ class SetIgnoredActivityTemplate(NotificationTemplate[ActivityNotificationData])
                         build_issue_link(data.issue_short_id, data.issue_url),
                         PlainTextBlock(text=get_archive_explanation(data)),
                     ]
-                )
+                ),
+                *get_issue_description(data=data),
             ],
             footer=build_footer(data=data),
         )

@@ -26,7 +26,8 @@ def format_datetime(
         use_24_clock: When ``True``, times render as ``"16:00"`` instead of ``"4 p.m."``.
     """
     dt = value if isinstance(value, datetime) else parse_timestamp(value)
-    if timezone_str:
-        dt = dt.astimezone(zoneinfo.ZoneInfo(timezone_str))
+    if not dt:
+        raise ValueError("Invalid value, could not create formatted string")
+    tz = zoneinfo.ZoneInfo(timezone_str) if timezone_str else zoneinfo.ZoneInfo("UTC")
     fmt = "N j, Y, H:i e" if use_24_clock else "N j, Y, P e"
-    return dateformat.format(dt, fmt)
+    return dateformat.format(dt.astimezone(tz), fmt)
