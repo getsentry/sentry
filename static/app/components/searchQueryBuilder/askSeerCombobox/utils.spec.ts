@@ -5,7 +5,9 @@ import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {
   formatQueryToNaturalLanguage,
   generateQueryTokensString,
+  getCrossEventFilterQuery,
   getExpandedProjectIds,
+  normalizeSeerDateTimeParams,
   parseNaturalLanguageToQuery,
   resolveSeerProjectSelection,
 } from './utils';
@@ -23,6 +25,67 @@ const KNOWN_KEYS = new Set([
   'release',
 ]);
 const isKey = (key: string) => KNOWN_KEYS.has(key);
+
+describe('getCrossEventFilterQuery', () => {
+  it.each(['spans', 'logs'] as const)('returns the %s query unchanged', type => {
+    expect(getCrossEventFilterQuery({type, query: 'severity:error'})).toBe(
+      'severity:error'
+    );
+  });
+
+  it('prepends the metric name to a metrics query', () => {
+    expect(
+      getCrossEventFilterQuery({
+        type: 'metrics',
+        metric: {name: 'foo.duration', type: 'distribution'},
+        query: 'value:>100',
+      })
+    ).toBe('metric.name:foo.duration value:>100');
+  });
+
+  it('returns the metric name when the metrics query is empty', () => {
+    expect(
+      getCrossEventFilterQuery({
+        type: 'metrics',
+        metric: {name: 'foo.duration', type: 'distribution'},
+        query: '',
+      })
+    ).toBe('metric.name:foo.duration');
+  });
+});
+
+describe('normalizeSeerDateTimeParams', () => {
+  it('prefers statsPeriod when relative and absolute values are provided', () => {
+    expect(
+      normalizeSeerDateTimeParams({
+        start: '2024-06-01T00:00:00',
+        end: '2024-06-02T00:00:00',
+        statsPeriod: '7d',
+      })
+    ).toEqual({start: undefined, end: undefined, statsPeriod: '7d'});
+  });
+
+  it('keeps a complete absolute range when statsPeriod is absent', () => {
+    expect(
+      normalizeSeerDateTimeParams({
+        start: '2024-06-01T00:00:00',
+        end: '2024-06-02T00:00:00',
+      })
+    ).toEqual({
+      start: '2024-06-01T00:00:00.000',
+      end: '2024-06-02T00:00:00.000',
+      statsPeriod: undefined,
+    });
+  });
+
+  it('does not add a default statsPeriod when datetime values are absent', () => {
+    expect(normalizeSeerDateTimeParams({})).toEqual({
+      start: undefined,
+      end: undefined,
+      statsPeriod: undefined,
+    });
+  });
+});
 
 describe('getExpandedProjectIds', () => {
   it.each([
@@ -173,6 +236,16 @@ describe('generateQueryTokensString', () => {
         projects
       )
     ).toContain("projects are 'seer, sentry'");
+  });
+
+  it('announces statsPeriod when relative and absolute values are provided', () => {
+    expect(
+      generateQueryTokensString({
+        start: '2024-06-01T00:00:00',
+        end: '2024-06-02T00:00:00',
+        statsPeriod: '7d',
+      })
+    ).toBe("time range is '7d'");
   });
 
   it('formats wildcard operators without private unicode markers', () => {

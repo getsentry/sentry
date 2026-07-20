@@ -1,7 +1,9 @@
 import {useCallback} from 'react';
 import {mutationOptions} from '@tanstack/react-query';
+import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
@@ -274,7 +276,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         {
           ...location,
           query: {
-            ...location.query,
+            ...omit(location.query, ALL_DATE_TIME_QUERY_KEYS),
             ...(projectIds?.length ? {project: projectIds.map(String)} : {}),
             metric: newEncodedMetrics,
             start: seerQuery.datetime.start,

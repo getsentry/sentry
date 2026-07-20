@@ -280,6 +280,35 @@ describe('AskSeerComboBox', () => {
 
     const filter = await screen.findByText('Filter');
     expect(filter).toBeInTheDocument();
+    expect(screen.queryByText('Time Range')).not.toBeInTheDocument();
+  });
+
+  it('hides the feedback option when the rework is enabled', async () => {
+    const {organization: reworkedOrganization} = initializeOrg({
+      organization: {
+        features: ['gen-ai-features', 'gen-ai-ask-seer-ux-rework'],
+        hideAiFeatures: false,
+      },
+    });
+
+    render(
+      <SearchQueryBuilderProvider {...defaultProps}>
+        <AskSeerComboBox
+          initialQuery=""
+          askSeerMutationOptions={askSeerMutationOptions}
+          applySeerSearchQuery={() => {}}
+        />
+      </SearchQueryBuilderProvider>,
+      {organization: reworkedOrganization}
+    );
+
+    const input = await screen.findByRole('combobox', {
+      name: 'Ask Seer with Natural Language',
+    });
+    await userEvent.type(input, 'test{Enter}');
+
+    expect(await screen.findByText('Filter')).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'None of these'})).not.toBeInTheDocument();
   });
 
   it('applies the query to the route query params when selected via keyboard', async () => {

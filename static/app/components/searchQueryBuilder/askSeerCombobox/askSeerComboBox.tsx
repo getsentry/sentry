@@ -178,6 +178,10 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
         key: `${index}-${query.query}`,
       }));
 
+      if (hasAskSeerUxRework) {
+        return results;
+      }
+
       results.push({
         key: 'none-of-these',
         label: t('None of these'),
@@ -187,7 +191,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     }
 
     return [];
-  }, [data?.queries]);
+  }, [data?.queries, hasAskSeerUxRework]);
 
   const state = useComboBoxState({
     ...props,
