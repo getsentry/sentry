@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {
   AskSeerSearchItems,
   NoneOfTheseItem,
@@ -211,6 +212,26 @@ export function getCrossEventFilterQuery(crossEvent: CrossEvent): string {
     .join(' ');
 }
 
+export function normalizeSeerDateTimeParams({
+  start,
+  end,
+  statsPeriod,
+}: Pick<QueryTokensProps, 'start' | 'end' | 'statsPeriod'>): Pick<
+  QueryTokensProps,
+  'start' | 'end' | 'statsPeriod'
+> {
+  const normalized = normalizeDateTimeParams(
+    {start, end, statsPeriod},
+    {allowEmptyPeriod: true}
+  );
+
+  return {
+    start: normalized.start,
+    end: normalized.end,
+    statsPeriod: normalized.statsPeriod ?? undefined,
+  };
+}
+
 const NEGATED_WILDCARD_OPERATOR_LABELS: Partial<Record<WildcardOperator, string>> = {
   [TermOperator.CONTAINS]: OP_LABELS[TermOperator.DOES_NOT_CONTAIN],
   [TermOperator.STARTS_WITH]: OP_LABELS[TermOperator.DOES_NOT_START_WITH],
@@ -365,6 +386,7 @@ export function generateQueryTokensString(
   projects: Project[] = []
 ): string {
   const parts = [];
+  const {start, end, statsPeriod} = normalizeSeerDateTimeParams(args);
 
   // Mirror the visual QueryTokens: pull the project out of the filter text and
   // announce it as a separate projects clause so screen readers don't read a
@@ -400,11 +422,10 @@ export function generateQueryTokensString(
     parts.push(`groupBys are '${groupByText}'`);
   }
 
-  // Prefer absolute date range over statsPeriod
-  if (args?.start && args?.end) {
-    parts.push(`time range is '${formatDateRange(args.start, args.end)}'`);
-  } else if (args?.statsPeriod && args.statsPeriod.length > 0) {
-    parts.push(`time range is '${args?.statsPeriod}'`);
+  if (start && end) {
+    parts.push(`time range is '${formatDateRange(start, end)}'`);
+  } else if (statsPeriod) {
+    parts.push(`time range is '${statsPeriod}'`);
   }
 
   if (args?.sort && args.sort.length > 0) {

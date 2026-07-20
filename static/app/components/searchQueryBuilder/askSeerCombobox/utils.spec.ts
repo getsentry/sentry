@@ -7,6 +7,7 @@ import {
   generateQueryTokensString,
   getCrossEventFilterQuery,
   getExpandedProjectIds,
+  normalizeSeerDateTimeParams,
   resolveSeerProjectSelection,
 } from './utils';
 
@@ -35,6 +36,39 @@ describe('getCrossEventFilterQuery', () => {
         query: '',
       })
     ).toBe('metric.name:foo.duration');
+  });
+});
+
+describe('normalizeSeerDateTimeParams', () => {
+  it('prefers statsPeriod when relative and absolute values are provided', () => {
+    expect(
+      normalizeSeerDateTimeParams({
+        start: '2024-06-01T00:00:00',
+        end: '2024-06-02T00:00:00',
+        statsPeriod: '7d',
+      })
+    ).toEqual({start: undefined, end: undefined, statsPeriod: '7d'});
+  });
+
+  it('keeps a complete absolute range when statsPeriod is absent', () => {
+    expect(
+      normalizeSeerDateTimeParams({
+        start: '2024-06-01T00:00:00',
+        end: '2024-06-02T00:00:00',
+      })
+    ).toEqual({
+      start: '2024-06-01T00:00:00.000',
+      end: '2024-06-02T00:00:00.000',
+      statsPeriod: undefined,
+    });
+  });
+
+  it('does not add a default statsPeriod when datetime values are absent', () => {
+    expect(normalizeSeerDateTimeParams({})).toEqual({
+      start: undefined,
+      end: undefined,
+      statsPeriod: undefined,
+    });
   });
 });
 
@@ -188,6 +222,16 @@ describe('generateQueryTokensString', () => {
         projects
       )
     ).toContain("projects are 'seer, sentry'");
+  });
+
+  it('announces statsPeriod when relative and absolute values are provided', () => {
+    expect(
+      generateQueryTokensString({
+        start: '2024-06-01T00:00:00',
+        end: '2024-06-02T00:00:00',
+        statsPeriod: '7d',
+      })
+    ).toBe("time range is '7d'");
   });
 
   it('formats wildcard operators without private unicode markers', () => {

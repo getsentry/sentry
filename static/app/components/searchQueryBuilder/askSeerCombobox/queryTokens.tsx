@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
   formatDateRange,
   getCrossEventFilterQuery,
+  normalizeSeerDateTimeParams,
   resolveSeerProjectSelection,
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/context';
@@ -20,20 +20,10 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {OldQueryTokens} from './oldQueryTokens';
 
 const MAX_PROJECT_CHIPS = 3;
-type NormalizedDateTimeParams = Pick<QueryTokensProps, 'start' | 'end' | 'statsPeriod'>;
 
 export function QueryTokens(props: QueryTokensProps) {
   const organization = useOrganization();
-
-  let normalizedDateTimeParams: NormalizedDateTimeParams = {};
-  if (props.start || props.end || props.statsPeriod) {
-    const {start, end, statsPeriod} = normalizeDateTimeParams({
-      start: props.start,
-      end: props.end,
-      statsPeriod: props.statsPeriod,
-    });
-    normalizedDateTimeParams = {start, end, statsPeriod: statsPeriod ?? undefined};
-  }
+  const normalizedDateTimeParams = normalizeSeerDateTimeParams(props);
 
   if (!organization.features.includes('gen-ai-ask-seer-ux-rework')) {
     return <OldQueryTokens {...props} {...normalizedDateTimeParams} />;
