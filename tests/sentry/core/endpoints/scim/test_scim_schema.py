@@ -11,6 +11,7 @@ from sentry.core.endpoints.scim.schemas import (
     SCIM_GROUP_ATTRIBUTES_SCHEMA,
     SCIM_SCHEMA_LIST,
     SCIM_USER_ATTRIBUTES_SCHEMA,
+    build_schema_representation,
 )
 from sentry.testutils.cases import SCIMTestCase
 
@@ -28,8 +29,27 @@ class SCIMSchemaEndpointTest(SCIMTestCase):
             "totalResults": 2,
             "startIndex": 1,
             "itemsPerPage": 2,
-            "Resources": SCIM_SCHEMA_LIST,
+            "Resources": [
+                build_schema_representation(self.organization, schema)
+                for schema in SCIM_SCHEMA_LIST
+            ],
         }
+
+    def test_index_entries_match_details_representation(self) -> None:
+        # Clients that list /Schemas and follow an entry's meta.location must
+        # land on a details response identical to the entry they followed.
+        response = self.get_success_response(self.organization.slug)
+        for resource in response.data["Resources"]:
+            assert resource["schemas"] == [SCIM_SCHEMA_SCHEMA]
+            location = resource["meta"]["location"]
+            assert location.endswith(
+                f"/api/0/organizations/{self.organization.slug}/scim/v2/Schemas/{resource['id']}"
+            )
+            details = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/scim/v2/Schemas/{resource['id']}"
+            )
+            assert details.status_code == 200
+            assert details.data == resource
 
     def test_pagination_params_ignored(self) -> None:
         response = self.get_success_response(self.organization.slug, qs_params={"startIndex": "5"})

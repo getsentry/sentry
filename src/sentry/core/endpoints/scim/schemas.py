@@ -135,10 +135,6 @@ SCIM_USER_ATTRIBUTES_SCHEMA: dict[str, Any] = {
             "uniqueness": "none",
         },
     ],
-    "meta": {
-        "resourceType": "Schema",
-        "location": "/v2/Schemas/urn:ietf:params:scim:schemas:core:2.0:User",
-    },
 }
 
 SCIM_GROUP_ATTRIBUTES_SCHEMA: dict[str, Any] = {
@@ -192,10 +188,6 @@ SCIM_GROUP_ATTRIBUTES_SCHEMA: dict[str, Any] = {
             "returned": "default",
         },
     ],
-    "meta": {
-        "resourceType": "Schema",
-        "location": "/v2/Schemas/urn:ietf:params:scim:schemas:core:2.0:Group",
-    },
 }
 
 SCIM_SCHEMA_LIST = [SCIM_USER_ATTRIBUTES_SCHEMA, SCIM_GROUP_ATTRIBUTES_SCHEMA]
@@ -212,17 +204,36 @@ class SCIMSchemaResponse(TypedDict):
     meta: SCIMMetaResponse
 
 
+def build_schema_representation(
+    organization: Organization, schema: dict[str, Any]
+) -> SCIMSchemaResponse:
+    return {
+        "schemas": [SCIM_SCHEMA_SCHEMA],
+        "id": schema["id"],
+        "name": schema["name"],
+        "description": schema["description"],
+        "attributes": schema["attributes"],
+        "meta": {
+            "resourceType": "Schema",
+            "location": absolute_uri(
+                f"api/0/organizations/{organization.slug}/scim/v2/Schemas/{schema['id']}"
+            ),
+        },
+    }
+
+
 @cell_silo_endpoint
 class OrganizationSCIMSchemaIndex(SCIMDiscoveryEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, *args: Any, **kwds: Any) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         self.reject_filter_param(request)
         # RFC 7644 §4: pagination parameters are ignored on discovery
         # endpoints; all schemas are always returned.
-        return Response(self.list_api_format(SCIM_SCHEMA_LIST, len(SCIM_SCHEMA_LIST), 1))
+        schemas = [build_schema_representation(organization, s) for s in SCIM_SCHEMA_LIST]
+        return Response(self.list_api_format(schemas, len(schemas), 1))
 
 
 @cell_silo_endpoint
@@ -264,20 +275,4 @@ class OrganizationSCIMSchemaDetails(SCIMDiscoveryEndpoint):
         schema = SCIM_SCHEMAS_BY_ID.get(schema_uri)
         if schema is None:
             raise SCIMApiError(detail="Schema not found.", status_code=404)
-        response_body: SCIMSchemaResponse = {
-            # The stored schema dicts predate this endpoint and carry a
-            # relative meta.location plus no "schemas" attribute; the
-            # single-resource representation corrects both (RFC 7643 §3.1).
-            "schemas": [SCIM_SCHEMA_SCHEMA],
-            "id": schema["id"],
-            "name": schema["name"],
-            "description": schema["description"],
-            "attributes": schema["attributes"],
-            "meta": {
-                "resourceType": "Schema",
-                "location": absolute_uri(
-                    f"api/0/organizations/{organization.slug}/scim/v2/Schemas/{schema_uri}"
-                ),
-            },
-        }
-        return Response(response_body)
+        return Response(build_schema_representation(organization, schema))
