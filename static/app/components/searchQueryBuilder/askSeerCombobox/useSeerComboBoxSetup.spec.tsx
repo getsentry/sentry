@@ -427,7 +427,7 @@ describe('buildSeerDateTimeSelection', () => {
     expect(result.period).toBe('7d');
   });
 
-  it('sets period to null when start and end are provided', () => {
+  it('uses statsPeriod when relative and absolute values are provided', () => {
     const result = buildSeerDateTimeSelection(
       '2024-06-01T00:00:00',
       '2024-06-02T00:00:00',
@@ -435,7 +435,12 @@ describe('buildSeerDateTimeSelection', () => {
       pageFiltersDatetime
     );
 
-    expect(result.period).toBeNull();
+    expect(result).toEqual({
+      start: pageFiltersDatetime.start,
+      end: pageFiltersDatetime.end,
+      period: '7d',
+      utc: pageFiltersDatetime.utc,
+    });
   });
 
   it('does not shift dates without a Z suffix', () => {
