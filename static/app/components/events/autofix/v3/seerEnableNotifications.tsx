@@ -19,7 +19,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const SUCCESS_VISIBLE_DURATION_MS = 25_000;
-const PROMPT_FEATURE = 'autofix-sw-notification';
+const PROMPT_FEATURE = 'seer_autofix_sw_notification';
 
 interface Props {
   status: undefined | ExplorerAutofixState['status'];
