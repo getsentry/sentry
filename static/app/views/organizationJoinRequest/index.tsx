@@ -20,7 +20,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 
 const joinRequestSchema = z.object({
-  email: z.string().email(t('Please enter a valid email address')),
+  email: z.email(t('Please enter a valid email address')),
 });
 
 export default function OrganizationJoinRequest() {
@@ -104,7 +104,7 @@ export default function OrganizationJoinRequest() {
         <Container paddingTop="xl" paddingBottom="xl">
           <form.AppField name="email">
             {field => (
-              <field.Layout.Stack label={t('Email Address')}>
+              <field.Layout.Stack label={t('Email Address')} required>
                 <field.Input
                   type="email"
                   value={field.state.value}
