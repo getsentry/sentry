@@ -833,14 +833,13 @@ export default typescript.config([
     extends: [unicorn.configs.unopinionated],
     rules: {
       'unicorn/custom-error-definition': 'error',
-      'unicorn/no-instanceof-array': 'error',
-      'unicorn/no-useless-undefined': ['error', {checkArguments: false}],
-
-      'unicorn/filename-case': ['off', {case: 'camelCase'}], // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/filename-case': ['error', {case: 'camelCase'}],
       'unicorn/no-array-push-push': 'error',
+      'unicorn/no-instanceof-array': 'error',
       'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-static-only-class': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/no-this-assignment': 'off', // TODO(ryan953): Fix violations and enable this rule
+      'unicorn/no-useless-undefined': ['error', {checkArguments: false}],
       'unicorn/no-zero-fractions': 'error',
       'unicorn/prefer-array-flat': 'off', // TODO(ryan953): Fix violations and enable this rule
       'unicorn/prefer-default-parameters': 'warn', // TODO(ryan953): Fix violations and enable this rule
