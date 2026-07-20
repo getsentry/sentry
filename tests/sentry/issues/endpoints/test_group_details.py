@@ -130,9 +130,9 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert entry["sentry_app"] is None
         assert entry["data"] == {
             "assignee": str(self.user.id),
-            "assignee_email": None,
-            "assignee_name": None,
-            "assignee_type": None,
+            "assigneeEmail": None,
+            "assigneeName": None,
+            "assigneeType": None,
             "integration": None,
             "rule": None,
         }
