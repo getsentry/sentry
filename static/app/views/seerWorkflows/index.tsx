@@ -775,7 +775,7 @@ function IssueRow({
           </Stack>
         </Flex>
         {issue.reason ? (
-          <Text size="sm" variant="muted">
+          <Text size="sm" variant="muted" wrap="pre-line">
             {issue.reason}
           </Text>
         ) : null}
