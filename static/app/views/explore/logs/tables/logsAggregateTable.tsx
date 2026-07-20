@@ -91,6 +91,14 @@ export function LogsAggregateTable({
   const organization = useOrganization();
   const {projects} = useProjects();
 
+  if (isRateLimitError(error)) {
+    return (
+      <Flex justify="center" align="center" padding="3xl" minHeight="200px">
+        <LogsRateLimitError onRetry={refetch} />
+      </Flex>
+    );
+  }
+
   const allFields: string[] = [];
   allFields.push(
     ...groupBys.filter(Boolean),
@@ -100,14 +108,6 @@ export function LogsAggregateTable({
   const numberOfRowsNeedingColor = Math.min(data?.data?.length ?? 0, topEventsLimit ?? 0);
 
   const palette = theme.chart.getColorPalette(numberOfRowsNeedingColor - 1);
-
-  if (isRateLimitError(error)) {
-    return (
-      <Flex justify="center" align="center" padding="3xl" minHeight="200px">
-        <LogsRateLimitError onRetry={refetch} />
-      </Flex>
-    );
-  }
 
   return (
     <Stack>
