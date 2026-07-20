@@ -2475,7 +2475,6 @@ class WeeklyReportsTest(
             release=release,
             type=GroupResolution.Type.in_next_release,
             status=GroupResolution.Status.pending,
-            current_release_version="1.9.0",
         )
 
         timestamp = self.now.timestamp()
