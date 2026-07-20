@@ -44,6 +44,7 @@ from sentry.issues.derived.framework import (
 from sentry.issues.derived.processing import (
     PIPELINE,
     GroupLogTimeout,
+    _entries_after_cursor,
     invalidate_group_derived_data,
     process_group_log,
 )
@@ -160,6 +161,52 @@ class ProcessGroupLogTest(TestCase):
         entries = list(GroupActionLogEntry.objects.filter(group_id=group.id).order_by("id"))
         assert derived.cursor_id == entries[-1].id
         assert len(entries) == 5
+
+    def test_cursor_same_timestamp_different_ids(self) -> None:
+        group = self.create_group()
+        ts = datetime(2025, 1, 1, tzinfo=timezone.utc)
+
+        # Create 3 entries with identical date_added but ascending ids.
+        entries = []
+        for _ in range(3):
+            e = GroupActionLogEntry.objects.create(
+                group_id=group.id,
+                project_id=group.project_id,
+                type=GroupActionType.VIEW.value,
+                actor_type=GroupActorType.SYSTEM.value,
+                actor_id=0,
+                source=SOURCE,
+                data={},
+                date_added=ts,
+            )
+            entries.append(e)
+
+        def ids_after_cursor(
+            cursor_date: datetime, cursor_id: int, batch_size: int = 10
+        ) -> list[int]:
+            return [
+                e.id for e in _entries_after_cursor(group.id, cursor_date, cursor_id, batch_size)
+            ]
+
+        e0, e1, e2 = entries[0].id, entries[1].id, entries[2].id
+
+        # Starting before all entries returns all three.
+        assert ids_after_cursor(ts, e0 - 1) == [e0, e1, e2]
+
+        # Cursor at entry[0] skips it, returns entries[1] and entries[2].
+        assert ids_after_cursor(ts, e0) == [e1, e2]
+
+        # Cursor at entry[1] returns only entries[2].
+        assert ids_after_cursor(ts, e1) == [e2]
+
+        # Cursor at entry[2] returns nothing.
+        assert ids_after_cursor(ts, e2) == []
+
+        # Cursor before the timestamp returns all entries.
+        assert ids_after_cursor(ts - timedelta(seconds=1), 0) == [e0, e1, e2]
+
+        # batch_size limits results.
+        assert ids_after_cursor(ts, e0 - 1, batch_size=2) == [e0, e1]
 
     def test_system_action_no_user(self) -> None:
         group = self.create_group()
@@ -346,6 +393,50 @@ class ProcessGroupLogTest(TestCase):
         assert second.progress == first_progress
         assert second.last_progressed_at == first_last_progressed_at
         assert second.progress == IssueProgressState.DIAGNOSED.value
+
+    def test_pipeline_hash_set_on_create(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+        assert derived.pipeline_hash == PIPELINE.pipeline_hash
+
+    def test_pipeline_hash_concurrent_change_skips_cursor_update(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        derived = process_group_log(group.id)
+        first_cursor = derived.cursor_id
+
+        # Insert a log entry directly to avoid inline processing from _publish
+        GroupActionLogEntry.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.SYSTEM,
+            actor_id=0,
+            source=SOURCE,
+            data={},
+        )
+
+        # Simulate a concurrent pipeline_hash change (e.g. migration reset)
+        # between our load and the UPDATE in _process_batch.
+        GroupDerivedData.objects.filter(group_id=group.id).update(pipeline_hash="reset")
+
+        processing._process_batch(processing.PIPELINE, derived, group.id, 1)
+
+        # The UPDATE should not have matched because the DB hash changed
+        derived.refresh_from_db()
+        assert derived.cursor_id == first_cursor
+        assert derived.pipeline_hash == "reset"
+
+    def test_invalidate_and_reprocess_restores_pipeline_hash(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+
+        invalidate_group_derived_data(group.id)
+        derived = process_group_log(group.id)
+        assert derived.pipeline_hash == PIPELINE.pipeline_hash
 
 
 # --- Pure Python tests (no DB) ---

@@ -30,7 +30,7 @@ class ProcessingStrategy(enum.Enum):
     INLINE = "inline"  # try to process all pending actions quickly; fall back to ASYNC
 
 
-def _ensure_derived(group_id: int) -> GroupDerivedData:
+def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData:
     """Get or create the GroupDerivedData row for a group.
 
     Raises Group.DoesNotExist if the group has been deleted.
@@ -43,7 +43,12 @@ def _ensure_derived(group_id: int) -> GroupDerivedData:
     try:
         derived, _created = GroupDerivedData.objects.get_or_create(
             group_id=group_id,
-            defaults={"cursor_date": EPOCH, "cursor_id": 0, "data": {}},
+            defaults={
+                "cursor_date": EPOCH,
+                "cursor_id": 0,
+                "data": {},
+                "pipeline_hash": pipeline_hash,
+            },
         )
     except IntegrityError:
         raise Group.DoesNotExist(f"Group {group_id} does not exist")
@@ -54,10 +59,12 @@ def _entries_after_cursor(
     group_id: int, cursor_date: datetime, cursor_id: int, batch_size: int
 ) -> list[GroupActionLogEntry]:
     return list(
-        GroupActionLogEntry.objects.filter(
-            Q(group_id=group_id)
-            & (Q(date_added__gt=cursor_date) | Q(date_added=cursor_date, id__gt=cursor_id))
-        ).order_by("date_added", "id")[:batch_size]
+        GroupActionLogEntry.objects.filter(group_id=group_id)
+        .extra(
+            where=['ROW("date_added", "id") > ROW(%s, %s)'],
+            params=[cursor_date, cursor_id],
+        )
+        .order_by("date_added", "id")[:batch_size]
     )
 
 
@@ -102,7 +109,9 @@ def _process_batch(
     state_update = GroupDerivedDataStore.build_update(p, result)
 
     updated = GroupDerivedData.objects.filter(
-        Q(group_id=group_id) & _cursor_lte(last_date, last_id)
+        Q(group_id=group_id)
+        & _cursor_lte(last_date, last_id)
+        & Q(pipeline_hash=derived.pipeline_hash)
     ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
 
     if updated:
@@ -164,7 +173,7 @@ def process_group_log(
     start = time.monotonic()
 
     with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
-        derived = _ensure_derived(group_id)
+        derived = _ensure_derived(group_id, p.pipeline_hash)
 
     has_more = _process_batch(p, derived, group_id, batch_size)
     while has_more:
@@ -198,14 +207,16 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
 
     assert strategy is ProcessingStrategy.INLINE
 
+    pipeline = PIPELINE
+
     with metrics.timer("issues.derived.inline_processing"):
         try:
             with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
-                derived = _ensure_derived(group_id)
+                derived = _ensure_derived(group_id, pipeline.pipeline_hash)
         except ObjectDoesNotExist:
             return
 
-        has_more = _process_batch(PIPELINE, derived, group_id, INLINE_BATCH_SIZE)
+        has_more = _process_batch(pipeline, derived, group_id, INLINE_BATCH_SIZE)
     if has_more:
         # Derived data will be stale for any code running between now and
         # when the task completes.

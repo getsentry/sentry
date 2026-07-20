@@ -455,12 +455,12 @@ class Release(Model):
         return release
 
     @classmethod
-    def get_or_create(cls, project, version, date_added=None):
+    def get_or_create(cls, project, version, date_added=None, *, create=True):
         with metrics.timer("models.release.get_or_create") as metric_tags:
-            return cls._get_or_create_impl(project, version, date_added, metric_tags)
+            return cls._get_or_create_impl(project, version, date_added, metric_tags, create)
 
     @classmethod
-    def _get_or_create_impl(cls, project, version, date_added, metric_tags):
+    def _get_or_create_impl(cls, project, version, date_added, metric_tags, create=True):
         from sentry.models.project import Project
 
         if date_added is None:
@@ -488,6 +488,26 @@ class Release(Model):
                 except IndexError:
                     release = releases[0]
                 metric_tags["created"] = "false"
+            elif not create:
+                # Auto-creation is disabled. Associate with an existing org-wide
+                # release if one exists (e.g. created via the CLI or another project)
+                # by linking it to this project, but never create a new release from
+                # telemetry. Don't cache a miss so a release created later is found
+                # next time.
+                metric_tags["created"] = "false"
+                release = cls.objects.filter(
+                    organization_id=project.organization_id,
+                    version__in=[version, project_version],
+                ).first()
+                if release is None:
+                    metric_tags["cache_hit"] = "false"
+                    return None
+
+                # NOTE: `add_project` creates a ReleaseProject instance
+                release.add_project(project)
+                if not project.flags.has_releases:
+                    project.flags.has_releases = True
+                    project.update(flags=F("flags").bitor(Project.flags.has_releases))
             else:
                 try:
                     with atomic_transaction(using=router.db_for_write(cls)):

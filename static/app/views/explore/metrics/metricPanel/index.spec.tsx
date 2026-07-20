@@ -246,7 +246,7 @@ describe('MetricPanel', () => {
 
     const equationOrg = {
       ...organization,
-      features: [...organization.features, 'data-browsing-heat-map-widget'],
+      features: [...organization.features],
     };
 
     render(
@@ -289,7 +289,7 @@ describe('MetricPanel', () => {
 
     const heatMapOrg = {
       ...organization,
-      features: [...organization.features, 'data-browsing-heat-map-widget'],
+      features: [...organization.features],
     };
 
     render(

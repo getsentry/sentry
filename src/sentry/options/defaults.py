@@ -607,6 +607,13 @@ register("slack.debug-workspace", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Log unfurl payloads for debugging
 register("slack.log-unfurl-payload", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+# Frequency of slack nudge blocks on issue alerts (0.0 to 1.0, where 0.3 = 30%)
+register(
+    "slack.nudge-frequency",
+    type=Float,
+    default=0.3,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Slack Staging App
 register("slack-staging.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -3948,13 +3955,5 @@ register(
     "issues.derived.project-max-tasks",
     default=1000,
     type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Allows GroupActionLogEntries to be written from Activity creation.
-register(
-    "group_action_log.activity.double-write",
-    default=False,
-    type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

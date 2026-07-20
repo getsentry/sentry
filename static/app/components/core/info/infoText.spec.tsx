@@ -33,6 +33,7 @@ describe('InfoText', () => {
 
     const text = screen.getByText('Text content');
     expect(text).toHaveAttribute('tabindex', '0');
+    expect(text).toHaveAttribute('aria-describedby');
     expect(
       getEmotionRules(text).some(
         rule =>
@@ -54,7 +55,17 @@ describe('InfoText', () => {
       </InfoText>
     );
 
-    await userEvent.hover(screen.getByText('Text content'));
+    const text = screen.getByText('Text content');
+    expect(text).not.toHaveAttribute('tabindex');
+    expect(text).not.toHaveAttribute('aria-describedby');
+
+    await userEvent.hover(text);
     expect(screen.queryByText('Tooltip content')).not.toBeInTheDocument();
+  });
+
+  it('keeps regular InfoText keyboard interactive', () => {
+    render(<InfoText title="Tooltip content">Text content</InfoText>);
+
+    expect(screen.getByText('Text content')).toHaveAttribute('tabindex', '0');
   });
 });
