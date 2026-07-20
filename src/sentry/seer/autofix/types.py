@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, NotRequired, TypedDict, Union
+from typing import Annotated, Any, Literal, TypedDict, Union
 
 from pydantic import BaseModel, Field
 
@@ -38,9 +38,12 @@ class AutofixHandoffResponse(TypedDict):
     failures: list[dict[str, Any]]
 
 
-class AutofixStateResponse(TypedDict):
+class _AutofixStateResponseOptional(TypedDict, total=False):
+    # present only when ``?llmFormat`` is requested and the formatter option is on
+    formatted: FormattedResponse
+
+
+class AutofixStateResponse(_AutofixStateResponseOptional):
     """Response type for the GET endpoint"""
 
     autofix: dict[str, Any] | None
-    # present only when ``?llmFormat`` is requested and the formatter option is on
-    formatted: NotRequired[FormattedResponse]
