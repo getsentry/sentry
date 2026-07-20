@@ -1,4 +1,3 @@
-import {useState} from 'react';
 import type {MouseEvent} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
@@ -26,7 +25,6 @@ const joinRequestSchema = z.object({
 export default function OrganizationJoinRequest() {
   const {orgId} = useParams<{orgId: string}>();
   const location = useLocation();
-  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const mutation = useMutation({
     mutationFn: (data: {email: string}) =>
@@ -35,26 +33,22 @@ export default function OrganizationJoinRequest() {
         method: 'POST',
         data,
       }),
+    onSuccess: () => {
+      trackAnalytics('join_request.created', {
+        organization: orgId,
+        referrer: decodeScalar(location.query.referrer, ''),
+      });
+    },
+    onError: () => {
+      addErrorMessage(t('Request to join failed'));
+    },
   });
 
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {email: ''},
     validators: {onDynamic: joinRequestSchema},
-    onSubmit: async ({value}) => {
-      try {
-        await mutation.mutateAsync(value);
-      } catch {
-        addErrorMessage(t('Request to join failed'));
-        return;
-      }
-
-      setSubmitSuccess(true);
-      trackAnalytics('join_request.created', {
-        organization: orgId,
-        referrer: decodeScalar(location.query.referrer, ''),
-      });
-    },
+    onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
 
   const handleCancel = (e: MouseEvent) => {
@@ -62,16 +56,12 @@ export default function OrganizationJoinRequest() {
     testableWindowLocation.assign(`/auth/login/${orgId}/`);
   };
 
-  if (submitSuccess) {
+  if (mutation.isSuccess) {
     return (
       <NarrowLayout maxWidth="550px">
-        <Stack align="center" paddingTop="lg" paddingBottom="3xl">
-          <Container paddingBottom="2xl">
-            <IconMegaphone size="2xl" />
-          </Container>
-          <Container paddingBottom="md">
-            <Heading as="h3">{t('Request Sent')}</Heading>
-          </Container>
+        <Stack align="center" gap="md" paddingTop="lg" paddingBottom="3xl">
+          <IconMegaphone size="2xl" />
+          <Heading as="h3">{t('Request Sent')}</Heading>
           <Text as="p" align="center">
             {t('Your request to join has been sent.')}
           </Text>
@@ -87,19 +77,17 @@ export default function OrganizationJoinRequest() {
 
   return (
     <NarrowLayout maxWidth="650px">
-      <Container paddingBottom="2xl">
+      <Stack gap="md">
         <IconMegaphone size="2xl" />
-      </Container>
-      <Container paddingBottom="md">
         <Heading as="h3" data-test-id="join-request">
           {t('Request to Join')}
         </Heading>
-      </Container>
-      <Text as="p">
-        {tct('Ask the admins if you can join the [orgId] organization.', {
-          orgId,
-        })}
-      </Text>
+        <Text as="p">
+          {tct('Ask the admins if you can join the [orgId] organization.', {
+            orgId,
+          })}
+        </Text>
+      </Stack>
       <form.AppForm form={form}>
         <Container paddingTop="xl" paddingBottom="xl">
           <form.AppField name="email">
