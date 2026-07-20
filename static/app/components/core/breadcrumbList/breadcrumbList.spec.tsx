@@ -1,39 +1,17 @@
 import {Fragment} from 'react';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-
-function collectCssRules(): string[] {
-  const rules: string[] = [];
-  for (const sheet of Array.from(document.styleSheets)) {
-    let cssRules: CSSRuleList;
-    try {
-      cssRules = sheet.cssRules;
-    } catch {
-      continue;
-    }
-    for (const rule of Array.from(cssRules)) {
-      rules.push(rule.cssText);
-    }
-  }
-  return rules;
-}
-
-/** CSS rule texts (from inserted stylesheets) that target any of `element`'s classes. */
-function rulesForElement(element: Element): string[] {
-  const classes = (element.getAttribute('class') ?? '').split(/\s+/).filter(Boolean);
-  return collectCssRules().filter(r => classes.some(c => r.includes(`.${c}`)));
-}
 
 /**
  * True when `element` carries the "hide below sm" container-query toggle:
  * a base `display: none` plus an `@container (min-width: 500px) { display: flex }`
  * that reveals it only in wide containers.
  */
-function hidesBelowSm(element: Element): boolean {
-  const classes = (element.getAttribute('class') ?? '').split(/\s+/).filter(Boolean);
-  const own = collectCssRules().filter(r => classes.some(c => r.includes(`.${c}`)));
+function hidesBelowSm(element: HTMLElement): boolean {
+  const own = getEmotionRules(element);
   const hasBaseNone = own.some(
     r => !r.includes('@container') && /display:\s*none/.test(r)
   );
@@ -73,7 +51,11 @@ describe('BreadcrumbList container-query collapse', () => {
     // The list renders as an ordered list (as inline content, not a landmark).
     expect(screen.getByRole('list')).toBeInTheDocument();
 
-    const rules = collectCssRules();
+    const list = screen.getByRole('list');
+    const rules = [
+      ...getEmotionRules(list.parentElement!),
+      ...getEmotionRules(screen.getByRole('link').closest('li')!),
+    ];
 
     // The list establishes an inline-size query container.
     // (jsdom's getComputedStyle can't read `container-type`, so assert the rule.)
@@ -179,17 +161,19 @@ describe('BreadcrumbList container-query collapse', () => {
 
     // The fixed max-width caps are gone, so labels size to content when there's
     // room. (jsdom can't compute layout — this guards the CSS intent, not pixels.)
-    expect(rulesForElement(link).some(r => /max-width:\s*132px/.test(r))).toBe(false);
+    expect(getEmotionRules(link).some(r => /max-width:\s*132px/.test(r))).toBe(false);
 
     // Regression guard: the parent <li> must not carry min-width:0 — that let it
     // collapse to 0 width when the current page's label was very long.
-    expect(rulesForElement(parentLi).join(' ')).not.toContain('min-width: 0');
+    expect(getEmotionRules(parentLi).join(' ')).not.toContain('min-width: 0');
 
     // A positive-px min-width floor is emitted so a crumb never shrinks to nothing.
-    expect(collectCssRules().some(r => /min-width:\s*[1-9]\d*px/.test(r))).toBe(true);
+    expect(
+      getEmotionRules(link.parentElement!).some(r => /min-width:\s*[1-9]\d*px/.test(r))
+    ).toBe(true);
 
     // Parents give up width first (high flex-shrink) so the current page truncates last.
-    expect(rulesForElement(parentLi).some(r => /flex-shrink:\s*999/.test(r))).toBe(true);
+    expect(getEmotionRules(parentLi).some(r => /flex-shrink:\s*999/.test(r))).toBe(true);
   });
 });
 

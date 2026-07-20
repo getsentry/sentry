@@ -1,26 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
 import {TopBar} from './topBar';
-
-function collectCssRules(): string[] {
-  const rules: string[] = [];
-  for (const sheet of Array.from(document.styleSheets)) {
-    let cssRules: CSSRuleList;
-    try {
-      cssRules = sheet.cssRules;
-    } catch {
-      continue;
-    }
-    for (const rule of Array.from(cssRules)) {
-      rules.push(rule.cssText);
-    }
-  }
-  return rules;
-}
 
 function renderTopBar() {
   render(
@@ -67,27 +52,13 @@ describe('TopBar title slot', () => {
     const breadcrumbSlot = breadcrumbList.parentElement?.parentElement?.parentElement;
     expect(breadcrumbSlot).not.toBeNull();
 
-    const classes = (breadcrumbSlot?.getAttribute('class') ?? '')
-      .split(/\s+/)
-      .filter(Boolean);
     expect(
-      collectCssRules().some(
-        rule =>
-          classes.some(className => rule.includes(`.${className}`)) &&
-          /flex:\s*0 1 auto/.test(rule)
-      )
+      getEmotionRules(breadcrumbSlot!).some(rule => /flex:\s*0 1 auto/.test(rule))
     ).toBe(true);
 
     const queryContainer = breadcrumbList.parentElement;
-    const queryContainerClasses = (queryContainer?.getAttribute('class') ?? '')
-      .split(/\s+/)
-      .filter(Boolean);
     expect(
-      collectCssRules().some(
-        rule =>
-          queryContainerClasses.some(className => rule.includes(`.${className}`)) &&
-          /container-type:\s*normal/.test(rule)
-      )
+      getEmotionRules(queryContainer!).some(rule => /container-type:\s*normal/.test(rule))
     ).toBe(true);
   });
 
