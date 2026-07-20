@@ -726,16 +726,24 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
     for job in jobs:
         data = job["data"]
         if not data.get("release"):
-            return
+            continue
 
         project = projects[job["project_id"]]
         date = job["event"].datetime
+
+        # When the org has the feature flag and the project has disabled
+        # auto-creation, we only associate with releases that already exist
+        # (e.g. created via the CLI) and never create new ones from telemetry.
+        create_release = not features.has(
+            "organizations:auto-release-creation", project.organization
+        ) or project.get_option("sentry:enable_auto_release_creation")
 
         try:
             release = Release.get_or_create(
                 project=project,
                 version=data["release"],
                 date_added=date,
+                create=create_release,
             )
         except ValidationError:
             logger.exception(
@@ -746,7 +754,9 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
 
         job["release"] = release
         if not release:
-            return
+            if not create_release:
+                metrics.incr("event_manager.release_autocreation_skipped")
+            continue
 
         # Don't allow a conflicting 'release' tag
         pop_tag(data, "release")
