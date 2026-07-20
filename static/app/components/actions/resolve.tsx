@@ -59,7 +59,6 @@ interface ResolveActionsProps {
   disableDropdown?: boolean;
   disableResolveInRelease?: boolean;
   disabled?: boolean;
-  isAutoResolved?: boolean;
   isResolved?: boolean;
   latestRelease?: Project['latestRelease'];
   multipleProjectsSelected?: boolean;
@@ -72,7 +71,6 @@ interface ResolveActionsProps {
 export function ResolveActions({
   size = 'xs',
   isResolved = false,
-  isAutoResolved = false,
   confirmLabel = t('Resolve'),
   project,
   hasRelease,
@@ -167,20 +165,11 @@ export function ResolveActions({
 
   function renderResolved() {
     return (
-      <Tooltip
-        title={
-          isAutoResolved
-            ? t(
-                'This event is resolved due to the Auto Resolve configuration for this project'
-              )
-            : t('Unresolve')
-        }
-      >
+      <Tooltip title={t('Unresolve')}>
         <Button
           variant="primary"
           size="xs"
           aria-label={t('Unresolve')}
-          disabled={isAutoResolved}
           onClick={() =>
             onUpdate({
               status: GroupStatus.UNRESOLVED,

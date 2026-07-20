@@ -86,25 +86,6 @@ describe('ResolveActions', () => {
     });
   });
 
-  describe('auto resolved', () => {
-    it('cannot be unresolved manually', async () => {
-      render(
-        <ResolveActions
-          hasSemverReleaseFeature={false}
-          onUpdate={spy}
-          disabled
-          hasRelease={false}
-          project={project}
-          isResolved
-          isAutoResolved
-        />
-      );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Unresolve'}));
-      expect(spy).not.toHaveBeenCalled();
-    });
-  });
-
   describe('without confirmation', () => {
     it('calls spy with resolved status when clicked', async () => {
       render(
