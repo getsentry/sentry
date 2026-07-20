@@ -1660,7 +1660,7 @@ function buildRoutes(): RouteObject[] {
     ],
   };
 
-  const discoverChildren: SentryRouteObject[] = [
+  const discoverErrorsChildren: SentryRouteObject[] = [
     {
       index: true,
       redirectTo: 'queries/',
@@ -1683,11 +1683,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/discover/eventDetails')),
     },
   ];
-  const discoverRoutes: SentryRouteObject = {
+  const discoverErrorsRoutes: SentryRouteObject = {
     path: '/discover/',
     component: make(() => import('sentry/views/discover')),
     withOrgPath: true,
-    children: discoverChildren,
+    children: discoverErrorsChildren,
   };
 
   const errorsChildren: SentryRouteObject[] = [
@@ -1697,7 +1697,7 @@ function buildRoutes(): RouteObject[] {
     },
   ];
   const errorsRoutes: SentryRouteObject = {
-    path: '/errors/',
+    path: '/errors-v2/',
     component: make(() => import('sentry/views/explore/errors')),
     withOrgPath: true,
     children: errorsChildren,
@@ -2247,9 +2247,14 @@ function buildRoutes(): RouteObject[] {
       children: replayChildren,
     },
     {
+      path: 'errors/',
+      component: make(() => import('sentry/views/discover')),
+      children: discoverErrorsChildren,
+    },
+    {
       path: 'discover/',
       component: make(() => import('sentry/views/discover')),
-      children: discoverChildren,
+      children: discoverErrorsChildren,
     },
     {
       path: 'releases/',
@@ -2285,7 +2290,7 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: 'errors/',
+      path: 'errors-v2/',
       component: make(() => import('sentry/views/explore/errors')),
       children: errorsChildren,
     },
@@ -2770,7 +2775,7 @@ function buildRoutes(): RouteObject[] {
       releasesRoutes,
       snapshotsRedirect,
       statsRoutes,
-      discoverRoutes,
+      discoverErrorsRoutes,
       errorsRoutes,
       performanceRoutes,
       domainViewRoutes,

@@ -925,3 +925,10 @@ export const SAVED_QUERY_DATASET_TO_WIDGET_TYPE = {
 export function getTransactionsDeprecation(organization: Organization) {
   return organization.features.includes('discover-saved-queries-deprecation');
 }
+
+export function getDiscoverDeprecation(organization: Organization) {
+  return (
+    organization.features.includes('deprecate-discover') &&
+    getTransactionsDeprecation(organization)
+  );
+}
