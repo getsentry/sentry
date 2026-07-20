@@ -60,8 +60,12 @@ export default function OrganizationJoinRequest() {
     return (
       <NarrowLayout maxWidth="550px">
         <Stack align="center" gap="md" paddingTop="lg" paddingBottom="3xl">
-          <IconMegaphone size="2xl" />
-          <Heading as="h3">{t('Request Sent')}</Heading>
+          <Container paddingBottom="md">
+            <IconMegaphone size="xl" />
+          </Container>
+          <Heading as="h3" size="xl">
+            {t('Request Sent')}
+          </Heading>
           <Text as="p" align="center">
             {t('Your request to join has been sent.')}
           </Text>
@@ -77,37 +81,43 @@ export default function OrganizationJoinRequest() {
 
   return (
     <NarrowLayout maxWidth="650px">
-      <Stack gap="md">
-        <IconMegaphone size="2xl" />
-        <Heading as="h3" data-test-id="join-request">
-          {t('Request to Join')}
-        </Heading>
-        <Text as="p">
-          {tct('Ask the admins if you can join the [orgId] organization.', {
-            orgId,
-          })}
-        </Text>
+      <Stack gap="xl">
+        <Stack gap="2xl">
+          <IconMegaphone size="xl" />
+          <Stack gap="md">
+            <Heading as="h3" size="xl" data-test-id="join-request">
+              {t('Request to Join')}
+            </Heading>
+            <Text as="p">
+              {tct('Ask the admins if you can join the [orgId] organization.', {
+                orgId,
+              })}
+            </Text>
+          </Stack>
+        </Stack>
+        <form.AppForm form={form}>
+          <Stack gap="xl">
+            <form.AppField name="email">
+              {field => (
+                <field.Layout.Stack label={t('Email Address')} required>
+                  <field.Input
+                    type="email"
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    placeholder="name@example.com"
+                  />
+                </field.Layout.Stack>
+              )}
+            </form.AppField>
+            <Container borderTop="secondary" paddingTop="xl" paddingBottom="xl">
+              <Flex gap="md" justify="end">
+                <Button onClick={handleCancel}>{t('Cancel')}</Button>
+                <form.SubmitButton>{t('Request to Join')}</form.SubmitButton>
+              </Flex>
+            </Container>
+          </Stack>
+        </form.AppForm>
       </Stack>
-      <form.AppForm form={form}>
-        <Container paddingTop="xl" paddingBottom="xl">
-          <form.AppField name="email">
-            {field => (
-              <field.Layout.Stack label={t('Email Address')} required>
-                <field.Input
-                  type="email"
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  placeholder="name@example.com"
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
-        </Container>
-        <Flex gap="md" justify="end">
-          <Button onClick={handleCancel}>{t('Cancel')}</Button>
-          <form.SubmitButton>{t('Request to Join')}</form.SubmitButton>
-        </Flex>
-      </form.AppForm>
     </NarrowLayout>
   );
 }
