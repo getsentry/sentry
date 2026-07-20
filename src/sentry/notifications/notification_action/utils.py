@@ -3,6 +3,7 @@ import logging
 import sentry_sdk
 
 from sentry import features
+from sentry.exceptions import InvalidIdentity
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.metric_alerts import incident_attachment_info
@@ -24,6 +25,11 @@ from sentry.notifications.platform.templates.issue import (
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.options.rollout import in_random_rollout
+from sentry.shared_integrations.exceptions import (
+    ApiUnauthorized,
+    IntegrationConfigurationError,
+    IntegrationFormError,
+)
 from sentry.types.activity import ActivityType
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.types import ActionInvocation
@@ -111,6 +117,15 @@ def execute_via_issue_alert_handler(invocation: ActionInvocation) -> None:
             extra={"action_id": invocation.action.id, "detector_id": invocation.detector.id},
         )
         raise
+    except (IntegrationFormError, IntegrationConfigurationError, InvalidIdentity, ApiUnauthorized):
+        # These are expected user-configuration errors (e.g. invalid repo, revoked credentials).
+        # They are already tracked at WARNING level by the SLO system in the integration layer;
+        # logging them again at ERROR here would cause spurious Sentry captures.
+        logger.warning(
+            "Integration configuration error executing via issue alert handler",
+            extra={"action_id": invocation.action.id, "detector_id": invocation.detector.id},
+        )
+        raise
     except Exception:
         logger.exception(
             "Error executing via issue alert handler",
@@ -130,6 +145,15 @@ def execute_via_metric_alert_handler(invocation: ActionInvocation) -> None:
         logger.exception(
             "No notification handler found for action type: %s",
             invocation.action.type,
+            extra={"action_id": invocation.action.id, "detector_id": invocation.detector.id},
+        )
+        raise
+    except (IntegrationFormError, IntegrationConfigurationError, InvalidIdentity, ApiUnauthorized):
+        # These are expected user-configuration errors (e.g. invalid repo, revoked credentials).
+        # They are already tracked at WARNING level by the SLO system in the integration layer;
+        # logging them again at ERROR here would cause spurious Sentry captures.
+        logger.warning(
+            "Integration configuration error executing via metric alert handler",
             extra={"action_id": invocation.action.id, "detector_id": invocation.detector.id},
         )
         raise
