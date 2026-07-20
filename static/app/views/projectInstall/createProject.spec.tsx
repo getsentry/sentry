@@ -107,58 +107,95 @@ describe('CreateProject', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    window.sessionStorage.clear();
   });
 
-  it.each([
-    {referrer: undefined, origin: 'existing_org'},
-    {referrer: 'org-creation', origin: 'org_creation'},
-    // Autofill return path — orthogonal marker; still counts as existing-org.
-    {referrer: 'getting-started', origin: 'existing_org'},
-  ] as const)(
-    'sets project-creation page-view origin to $origin when referrer is $referrer',
-    ({referrer, origin}) => {
-      const organization = OrganizationFixture({
-        access: ['project:read', 'project:write', 'project:admin'],
-      });
-      TeamStore.loadUserTeams([teamWithAccess]);
-      renderFrameworkModalMockRequests({
+  function renderCreateWithOriginQuery(query: Record<string, string> = {}) {
+    const organization = OrganizationFixture({
+      access: ['project:read', 'project:write', 'project:admin'],
+    });
+    TeamStore.loadUserTeams([teamWithAccess]);
+    renderFrameworkModalMockRequests({
+      organization,
+      teamSlug: teamWithAccess.slug,
+    });
+
+    const routeAnalytics = {
+      previousUrl: '',
+      setDisableRouteAnalytics: jest.fn(),
+      setEventNames: jest.fn(),
+      setOrganization: jest.fn(),
+      setRouteAnalyticsParams: jest.fn(),
+    };
+
+    render(
+      <RouteAnalyticsContext value={routeAnalytics}>
+        <CreateProject />
+      </RouteAnalyticsContext>,
+      {
         organization,
-        teamSlug: teamWithAccess.slug,
-      });
-
-      const routeAnalytics = {
-        previousUrl: '',
-        setDisableRouteAnalytics: jest.fn(),
-        setEventNames: jest.fn(),
-        setOrganization: jest.fn(),
-        setRouteAnalyticsParams: jest.fn(),
-      };
-
-      render(
-        <RouteAnalyticsContext value={routeAnalytics}>
-          <CreateProject />
-        </RouteAnalyticsContext>,
-        {
-          organization,
-          initialRouterConfig: {
-            location: {
-              pathname: '/organizations/org-slug/projects/new/',
-              query: referrer ? {referrer} : {},
-            },
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/projects/new/',
+            query,
           },
-        }
-      );
+        },
+      }
+    );
 
-      expect(routeAnalytics.setEventNames).toHaveBeenCalledWith(
-        'project_creation_page.viewed',
-        'Project Create: Creation page viewed'
-      );
-      expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
-        variant: 'legacy',
-        origin,
-      });
-    }
-  );
+    return {organization, routeAnalytics};
+  }
+
+  it('sets page-view origin to org_creation from the org-create seed param', () => {
+    const {routeAnalytics} = renderCreateWithOriginQuery({
+      projectCreationOrigin: 'org_creation',
+    });
+
+    expect(routeAnalytics.setEventNames).toHaveBeenCalledWith(
+      'project_creation_page.viewed',
+      'Project Create: Creation page viewed'
+    );
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'legacy',
+      origin: 'org_creation',
+    });
+  });
+
+  it('keeps org_creation origin sticky after getting-started autofill return', () => {
+    // Prior org-create land already wrote sticky origin for this org.
+    window.sessionStorage.setItem('project-creation-origin:org-slug', 'org_creation');
+
+    // Back from instructions only brings autofill referrer; journey origin sticks.
+    const {routeAnalytics} = renderCreateWithOriginQuery({
+      referrer: 'getting-started',
+      project: '123',
+    });
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'legacy',
+      origin: 'org_creation',
+    });
+  });
+
+  it('defaults page-view origin to existing_org without a seed', () => {
+    const {routeAnalytics} = renderCreateWithOriginQuery();
+
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'legacy',
+      origin: 'existing_org',
+    });
+  });
+
+  it('does not treat getting-started referrer alone as org creation', () => {
+    const {routeAnalytics} = renderCreateWithOriginQuery({
+      referrer: 'getting-started',
+      project: '123',
+    });
+
+    expect(routeAnalytics.setRouteAnalyticsParams).toHaveBeenCalledWith({
+      variant: 'legacy',
+      origin: 'existing_org',
+    });
+  });
 
   it('should block if you have access to no teams without team-roles', () => {
     const organization = OrganizationFixture({

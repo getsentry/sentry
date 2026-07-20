@@ -55,6 +55,7 @@ import {
   IssueAlertOptions,
   RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
+import {resolveProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
 import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
@@ -276,13 +277,16 @@ export function CreateProject() {
     'project_creation_page.viewed',
     'Project Create: Creation page viewed'
   );
-  // `origin` is orthogonal to `variant`: org-create success redirects here with
-  // `?referrer=org-creation` (full-page reload), everything else is existing-org.
-  // `referrer=getting-started` is the autofill path and never coexists with
-  // org-creation, so it correctly lands as existing_org.
+  // Journey origin is sticky (sessionStorage seeded by
+  // ?projectCreationOrigin=org_creation from org-create). Orthogonal to
+  // `variant` and to `referrer=getting-started` autofill — back-from-docs
+  // must not reclassify an org-activation visit as existing_org.
   useRouteAnalyticsParams({
     variant: 'legacy',
-    origin: referrer === 'org-creation' ? 'org_creation' : 'existing_org',
+    origin: resolveProjectCreationPageOrigin({
+      orgSlug: organization.slug,
+      queryValue: decodeScalar(location.query.projectCreationOrigin),
+    }),
   });
 
   const configurePlatform = useCallback(
