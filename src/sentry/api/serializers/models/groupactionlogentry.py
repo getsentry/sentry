@@ -16,8 +16,8 @@ from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.action_log.activity_translator import ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE
 
-# Mirror GroupActionTypes are serialized with the same `type` string as their
-# equivalent Activity so the frontend can consume both identically.
+# GroupActionTypes are serialized with the same `type` string as their
+# equivalent Activity so the frontend can consume both identically
 _GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE = {
     action_cls.get_type().value: activity_type
     for activity_type, action_cls in ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE.items()
@@ -44,7 +44,7 @@ PULL_REQUEST_ACTION_TYPES = {
 
 class GroupActionLogEntrySerializerResponse(TypedDict):
     id: str
-    # The serialized acting user when actorType is USER, otherwise null.
+    # the serialized acting user when actorType is USER, otherwise null
     user: dict[str, Any] | None
     sentry_app: _ActivitySentryAppEmbed | None
     type: str
