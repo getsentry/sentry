@@ -12,7 +12,7 @@ import {
   isValidDetectorType,
 } from 'sentry/views/detectors/utils/detectorTypeConfig';
 
-export function DetectorNewSettings() {
+export default function DetectorNewSettings() {
   const {fetching: isFetchingProjects} = useProjects();
   const [detectorType] = useDetectorTypeQueryState();
   useWorkflowEngineFeatureGate({redirect: true});

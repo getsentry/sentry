@@ -17,7 +17,7 @@ export const detectorRoutes: SentryRouteObject = {
         },
         {
           path: 'settings/',
-          component: make(() => import('sentry/views/detectors/newSettings')),
+          component: make(() => import('sentry/views/detectors/detectorNewSettings')),
         },
       ],
     },

@@ -838,6 +838,9 @@ export default typescript.config([
         {
           case: 'camelCase',
           ignore: [
+            'jest-pegjs-transform\\.js',
+            'jest-environment\\.js',
+            'jest-environment-node\\.js',
             '/__mocks__/',
             // Shebang scripts can't use an inline disable comment (it must sit
             // on line 1, where the shebang is) and are invoked by their

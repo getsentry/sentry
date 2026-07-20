@@ -21,7 +21,7 @@ import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import DetectorNewSettings from 'sentry/views/detectors/newSettings';
+import DetectorNewSettings from 'sentry/views/detectors/detectorNewSettings';
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
