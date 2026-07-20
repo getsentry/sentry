@@ -178,8 +178,10 @@ def get_span_evidence_value(span: Span | None = None, include_op: bool = True) -
     value = "no value"
     if not span:
         return value
+
     op = span.get("op")
     desc = span.get("description")
+
     if not op and desc and isinstance(desc, str):
         value = desc
     elif not desc and op and isinstance(op, str):
@@ -188,6 +190,7 @@ def get_span_evidence_value(span: Span | None = None, include_op: bool = True) -
         value = f"{op} - {desc}"
         if not include_op:
             value = desc
+
     return value
 
 
