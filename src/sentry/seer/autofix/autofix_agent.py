@@ -55,7 +55,7 @@ from sentry.seer.entrypoints.operator import (
     SeerAutofixOperator,
     process_autofix_updates,
 )
-from sentry.seer.models import SeerRepoDefinition
+from sentry.seer.models import SeerApiError, SeerRepoDefinition
 from sentry.seer.models.run import SeerRun
 from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.sentry_apps.event_types import SentryAppEventType
@@ -426,6 +426,43 @@ def trigger_autofix_agent(
         )
         if not has_budget:
             raise NoSeerQuotaException()
+
+    use_seer_rca_feature = features.has(
+        "organizations:autofix-rca-in-seer", group.organization, actor=user
+    )
+    if step == AutofixStep.ROOT_CAUSE and run_id is None and use_seer_rca_feature:
+        # Local import avoids a circular import (dispatch imports this module).
+        from sentry.seer.autofix_rca.dispatch import trigger_autofix_rca_feature
+
+        feature_run = trigger_autofix_rca_feature(
+            group,
+            referrer=referrer,
+            user_context=user_context,
+            stopping_point=stopping_point,
+        )
+        feature_run_id = feature_run.seer_run_state_id
+        if feature_run_id is None:
+            # flush=True populates this on success; guard defensively.
+            raise SeerApiError("autofix_rca feature run has no run id", 500)
+
+        logger.info(
+            "autofix.trigger.routed_to_rca_feature",
+            extra={
+                "group_id": group.id,
+                "organization_id": group.organization.id,
+                "run_id": feature_run_id,
+                "referrer": referrer.value,
+            },
+        )
+
+        handle_step_started_events(
+            group,
+            AutofixStep.ROOT_CAUSE,
+            feature_run_id,
+            str(feature_run.uuid),
+            referrer,
+        )
+        return feature_run
 
     config = STEP_CONFIGS[step]
 
