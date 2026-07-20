@@ -16,6 +16,7 @@ from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.grouplink import GroupLink
+from sentry.models.groupresolution import GroupResolution
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -2133,7 +2134,7 @@ class WeeklyReportsTest(
         assert len(results) == 1
         assert results[0][0].id == group1.id
         assert results[0][1] >= 1
-        assert results[0][2] is False
+        assert results[0][2] == "Resolved"
 
     @mock.patch("sentry.tasks.summaries.utils._past_resolved_performance_counts")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
@@ -2160,7 +2161,7 @@ class WeeklyReportsTest(
             ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
         )
 
-        assert results == [(group, 1, False)]
+        assert results == [(group, 1, "Resolved")]
         mock_perf_counts.assert_called_once()
         assert mock_perf_counts.call_args.args[2] == [group.id]
 
@@ -2286,9 +2287,9 @@ class WeeklyReportsTest(
         fetch_past_resolved_issue_links(ctx)
 
         updated = ctx.projects_context_map[self.project.id].past_resolved_issues
-        has_link_by_group = {group.id: has_link for group, _count, has_link in updated}
-        assert has_link_by_group[group1.id] is True
-        assert has_link_by_group[group2.id] is False
+        label_by_group = {group.id: label for group, _count, label in updated}
+        assert label_by_group[group1.id] == "Resolved"
+        assert label_by_group[group2.id] == "Resolved"
 
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
@@ -2361,3 +2362,227 @@ class WeeklyReportsTest(
             assert context["show_past_issues"] is False
             assert len(context["past_issues"]) == 0
             assert len(context["top_issues"]) == 1
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_fetch_resolution_label_pr(self) -> None:
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "pr resolved error",
+                "timestamp": min_ago,
+                "fingerprint": ["pr-resolved-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group = event.group
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.resolved_at = self.now - timedelta(minutes=1)
+        group.save()
+
+        GroupLink.objects.create(
+            group=group,
+            project=self.project,
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=1,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        timestamp = self.now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        results = project_past_resolved_issues(
+            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
+        )
+        ctx.projects_context_map[self.project.id].past_resolved_issues = results
+        fetch_past_resolved_issue_links(ctx)
+
+        updated = ctx.projects_context_map[self.project.id].past_resolved_issues
+        assert len(updated) == 1
+        assert updated[0][2] == "Resolved in PR"
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_fetch_resolution_label_release(self) -> None:
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "release resolved error",
+                "timestamp": min_ago,
+                "fingerprint": ["release-resolved-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group = event.group
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.resolved_at = self.now - timedelta(minutes=1)
+        group.save()
+
+        release = self.create_release(project=self.project, version="1.2.3")
+        GroupResolution.objects.create(
+            group=group,
+            release=release,
+            type=GroupResolution.Type.in_release,
+            status=GroupResolution.Status.resolved,
+        )
+
+        timestamp = self.now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        results = project_past_resolved_issues(
+            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
+        )
+        ctx.projects_context_map[self.project.id].past_resolved_issues = results
+        fetch_past_resolved_issue_links(ctx)
+
+        updated = ctx.projects_context_map[self.project.id].past_resolved_issues
+        assert len(updated) == 1
+        assert updated[0][2] == "Resolved in release"
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_fetch_resolution_label_next_release(self) -> None:
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "next release resolved error",
+                "timestamp": min_ago,
+                "fingerprint": ["next-release-resolved-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group = event.group
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.resolved_at = self.now - timedelta(minutes=1)
+        group.save()
+
+        release = self.create_release(project=self.project, version="2.0.0")
+        GroupResolution.objects.create(
+            group=group,
+            release=release,
+            type=GroupResolution.Type.in_next_release,
+            status=GroupResolution.Status.pending,
+            current_release_version="1.9.0",
+        )
+
+        timestamp = self.now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        results = project_past_resolved_issues(
+            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
+        )
+        ctx.projects_context_map[self.project.id].past_resolved_issues = results
+        fetch_past_resolved_issue_links(ctx)
+
+        updated = ctx.projects_context_map[self.project.id].past_resolved_issues
+        assert len(updated) == 1
+        assert updated[0][2] == "Resolved after release"
+
+    @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
+    def test_fetch_resolution_label_pr_priority_over_release(self) -> None:
+        self.project.first_event = self.now - timedelta(days=3)
+        self.project.save()
+        min_ago = (self.now - timedelta(minutes=1)).isoformat()
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "pr and release resolved error",
+                "timestamp": min_ago,
+                "fingerprint": ["pr-release-resolved-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        group = event.group
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.resolved_at = self.now - timedelta(minutes=1)
+        group.save()
+
+        GroupLink.objects.create(
+            group=group,
+            project=self.project,
+            linked_type=GroupLink.LinkedType.pull_request,
+            linked_id=1,
+            relationship=GroupLink.Relationship.resolves,
+        )
+
+        release = self.create_release(project=self.project, version="1.2.3")
+        GroupResolution.objects.create(
+            group=group,
+            release=release,
+            type=GroupResolution.Type.in_release,
+            status=GroupResolution.Status.resolved,
+        )
+
+        timestamp = self.now.timestamp()
+        ctx = OrganizationReportContext(timestamp, ONE_DAY * 7, self.organization)
+        results = project_past_resolved_issues(
+            ctx, self.project, Referrer.REPORTS_PAST_RESOLVED_ISSUES.value
+        )
+        ctx.projects_context_map[self.project.id].past_resolved_issues = results
+        fetch_past_resolved_issue_links(ctx)
+
+        updated = ctx.projects_context_map[self.project.id].past_resolved_issues
+        assert len(updated) == 1
+        assert updated[0][2] == "Resolved in PR"
+
+    @mock.patch("sentry.analytics.record")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
+    @with_feature("organizations:weekly-report-past-issues")
+    def test_resolution_label_in_template_context(
+        self, message_builder: mock.MagicMock, record: mock.MagicMock
+    ) -> None:
+        user = self.create_user()
+        self.create_member(teams=[self.team], user=user, organization=self.organization)
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "resolved with release",
+                "timestamp": self.three_days_ago.isoformat(),
+                "fingerprint": ["label-context-1"],
+            },
+            project_id=self.project.id,
+            default_event_type=EventType.DEFAULT,
+        )
+        self.store_event_outcomes(
+            self.organization.id, self.project.id, self.three_days_ago, num_times=1
+        )
+
+        group = event.group
+        group.status = GroupStatus.RESOLVED
+        group.substatus = None
+        group.resolved_at = self.two_days_ago
+        group.save()
+
+        release = self.create_release(project=self.project, version="3.0.0")
+        GroupResolution.objects.create(
+            group=group,
+            release=release,
+            type=GroupResolution.Type.in_release,
+            status=GroupResolution.Status.resolved,
+        )
+
+        prepare_organization_report(
+            self.now.timestamp(), ONE_DAY * 7, self.organization.id, self._dummy_batch_id
+        )
+
+        for call_args in message_builder.call_args_list:
+            context = call_args.kwargs["context"]
+            assert context["show_past_issues"] is True
+            assert len(context["past_issues"]) == 1
+            assert context["past_issues"][0]["resolution_label"] == "Resolved in release"
