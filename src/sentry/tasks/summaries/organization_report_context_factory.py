@@ -263,17 +263,37 @@ class OrganizationReportContextFactory:
 
         with metrics.timer("weekly_report.create_context.duration"):
             self._append_user_project_ownership(ctx)
-            self._append_project_event_counts(ctx)
-            self._append_organization_project_issue_summaries(ctx)
+
+            try:
+                self._append_project_event_counts(ctx)
+            except Exception:
+                sentry_sdk.capture_exception()
+
+            try:
+                self._append_organization_project_issue_summaries(ctx)
+            except Exception:
+                sentry_sdk.capture_exception()
+
             if features.has("organizations:weekly-report-week-over-week-metric", self.organization):
-                self._append_previous_week_counts(ctx)
+                try:
+                    self._append_previous_week_counts(ctx)
+                except Exception:
+                    sentry_sdk.capture_exception()
 
             # Enhanced privacy flag hides issue titles, transaction names, and source details
             if not self.organization.flags.enhanced_privacy:
-                self._append_project_key_issues(ctx)
+                try:
+                    self._append_project_key_issues(ctx)
+                except Exception:
+                    sentry_sdk.capture_exception()
+
                 self._hydrate_key_error_issues(ctx)
                 self._hydrate_key_performance_issues(ctx)
+
                 if features.has("organizations:weekly-report-past-issues", self.organization):
-                    self._append_project_past_resolved_issues(ctx)
+                    try:
+                        self._append_project_past_resolved_issues(ctx)
+                    except Exception:
+                        sentry_sdk.capture_exception()
 
         return ctx
