@@ -1,8 +1,8 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
-import debounce from 'lodash/debounce';
 import moment from 'moment-timezone';
+import {debounce, parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -19,9 +19,6 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 type Status = 'active' | 'disabled';
 
@@ -30,22 +27,22 @@ const STATUS_OPTIONS: Array<{label: string; value: Status}> = [
   {value: 'disabled', label: t('Disabled')},
 ];
 
-export default function AdminUsers() {
-  const location = useLocation();
-  const navigate = useNavigate();
+const STATUS_VALUES = STATUS_OPTIONS.map(option => option.value);
 
-  const query = decodeScalar(location.query.query, '');
-  const status = STATUS_OPTIONS.find(
-    option => option.value === decodeScalar(location.query.status)
-  )?.value;
+export default function AdminUsers() {
+  const [{query, status, cursor}, setSearchParams] = useQueryStates({
+    query: parseAsString.withDefault(''),
+    status: parseAsStringLiteral(STATUS_VALUES),
+    cursor: parseAsString,
+  });
 
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<User[]>()('/users/', {
       query: {
         query,
-        status,
+        status: status ?? undefined,
         sortBy: 'date',
-        cursor: decodeScalar(location.query.cursor),
+        cursor: cursor ?? undefined,
         per_page: 50,
       },
       staleTime: 0,
@@ -56,18 +53,11 @@ export default function AdminUsers() {
   const users = data?.json;
   const pageLinks = data?.headers.Link;
 
-  const debouncedSearch = useMemo(
-    () =>
-      debounce(
-        (searchQuery: string) =>
-          navigate(
-            {query: {...location.query, query: searchQuery, cursor: undefined}},
-            {replace: true}
-          ),
-        DEFAULT_DEBOUNCE_DURATION
-      ),
-    [location.query, navigate]
-  );
+  const onSearch = (searchQuery: string) =>
+    setSearchParams(
+      {query: searchQuery, cursor: null},
+      {limitUrlUpdates: debounce(DEFAULT_DEBOUNCE_DURATION), history: 'replace'}
+    );
 
   return (
     <Fragment>
@@ -77,7 +67,7 @@ export default function AdminUsers() {
             <SearchBar
               {...containerProps}
               placeholder={t('Search users')}
-              onChange={debouncedSearch}
+              onChange={onSearch}
               query={query}
             />
           )}
@@ -89,16 +79,13 @@ export default function AdminUsers() {
               {STATUS_OPTIONS.find(option => option.value === status)?.label ?? t('Any')}
             </OverlayTrigger.Button>
           )}
-          value={status}
+          value={status ?? undefined}
           options={STATUS_OPTIONS}
           onChange={option =>
-            navigate({
-              query: {
-                ...location.query,
-                status: option?.value || undefined,
-                cursor: undefined,
-              },
-            })
+            setSearchParams(
+              {status: option?.value ?? null, cursor: null},
+              {history: 'push'}
+            )
           }
         />
       </Flex>
