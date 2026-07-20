@@ -117,7 +117,7 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
       <Stack gap="md">
         {/* Header: title + change size + action */}
         <Flex justify="between" align="start" gap="md">
-          <Flex gap="sm" align="center" minWidth="0" flex="1">
+          <Flex gap="md" align="center" minWidth="0" flex="1">
             <StepIndicator row={row} />
             {/* The ellipsis Text is the shrinking flex item (overflow:hidden
                   resolves its min-width to 0); the Link must nest inside it or

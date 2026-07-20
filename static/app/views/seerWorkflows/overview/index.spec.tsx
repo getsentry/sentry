@@ -175,14 +175,16 @@ describe('AutofixOverview', () => {
       'https://github.com/getsentry/sentry/pull/123'
     );
 
-    // The step indicator reads the full pipeline with the PR-opened glyph,
-    // and hovering it reveals the step checklist.
+    // The step indicator reads the full Seer pipeline with the PR-opened
+    // glyph — merge is the outstanding final step. Hovering reveals the
+    // checklist.
     const indicator = screen.getByRole('img', {
-      name: 'Autofix progress: 4 of 4 steps — PR opened',
+      name: 'Autofix progress: 4 of 5 steps — PR opened',
     });
     await userEvent.hover(indicator);
     expect(await screen.findByText('✓ Root cause')).toBeInTheDocument();
     expect(screen.getByText('✓ PR opened')).toBeInTheDocument();
+    expect(screen.getByText('○ Merged')).toBeInTheDocument();
 
     // Exact patch stats from merged_file_patches, not an LLM estimate.
     expect(screen.getByText('1 file')).toBeInTheDocument();
@@ -385,7 +387,7 @@ describe('AutofixOverview', () => {
 
     // A settled run gets no status word — just how far it got.
     expect(
-      screen.getByRole('img', {name: 'Autofix progress: 1 of 4 steps — Root cause'})
+      screen.getByRole('img', {name: 'Autofix progress: 1 of 5 steps — Root cause'})
     ).toBeInTheDocument();
   });
 
@@ -414,7 +416,7 @@ describe('AutofixOverview', () => {
 
     // The step indicator renders its terminal all-success state.
     expect(
-      screen.getByRole('img', {name: 'Autofix progress: PR merged'})
+      screen.getByRole('img', {name: 'Autofix progress: 5 of 5 steps — PR merged'})
     ).toBeInTheDocument();
 
     // The Merged PRs stat card is live and counts the row.
@@ -526,7 +528,7 @@ describe('AutofixOverview', () => {
     // The indicator's current step wears the paused status.
     expect(
       screen.getByRole('img', {
-        name: 'Autofix progress: 1 of 4 steps — Root cause (Needs your input)',
+        name: 'Autofix progress: 1 of 5 steps — Root cause (Needs your input)',
       })
     ).toBeInTheDocument();
   });
@@ -558,7 +560,7 @@ describe('AutofixOverview', () => {
 
     expect(
       await screen.findByRole('img', {
-        name: 'Autofix progress: 1 of 4 steps — Root cause (Running)',
+        name: 'Autofix progress: 1 of 5 steps — Root cause (Running)',
       })
     ).toBeInTheDocument();
   });
@@ -599,7 +601,7 @@ describe('AutofixOverview', () => {
 
     expect(
       await screen.findByRole('img', {
-        name: 'Autofix progress: 2 of 4 steps — Plan (Errored)',
+        name: 'Autofix progress: 2 of 5 steps — Plan (Errored)',
       })
     ).toBeInTheDocument();
   });

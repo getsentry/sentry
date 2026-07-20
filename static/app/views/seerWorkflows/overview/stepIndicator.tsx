@@ -9,6 +9,7 @@ import {
   IconBug,
   IconCircle,
   IconCircleCheckmark,
+  IconCircleFill,
   IconCode,
   IconList,
   IconMerge,
@@ -43,12 +44,15 @@ const STEP_META: Record<
 
 // Not ProgressMarker: it hardcodes a color per fill level (half = warning,
 // three-quarters = success), which would fight the status-driven variant.
+// The pipeline is five steps with merge as the finale: a quarter per Seer
+// stage fills the circle at PR opened, and the checkmark is reserved for
+// the merged PR.
 const PIE_BY_FILL = [
   IconCircle,
   IconPieQuarter,
   IconPieHalf,
   IconPieThreeQuarters,
-  IconCircleCheckmark,
+  IconCircleFill,
 ] as const;
 
 type IndicatorVariant = 'accent' | 'danger' | 'muted' | 'success' | 'warning';
@@ -107,9 +111,13 @@ function StepChecklist({
           </Text>
         );
       })}
-      {merged && (
+      {merged ? (
         <Text size="xs" bold variant="success" align="left">
-          {`✓ ${t('PR merged')}`}
+          {`✓ ${t('Merged')}`}
+        </Text>
+      ) : (
+        <Text size="xs" variant="muted" align="left">
+          {`○ ${t('Merged')}`}
         </Text>
       )}
       {fill === 0 && statusWord && (
@@ -157,11 +165,11 @@ export function StepIndicator({row}: {row: OverviewRow}) {
   const stepLabel = currentStep ? STEP_META[currentStep].label : undefined;
 
   const ariaLabel = row.prMerged
-    ? t('Autofix progress: PR merged')
+    ? t('Autofix progress: 5 of 5 steps — PR merged')
     : stepLabel
       ? statusWord
-        ? t('Autofix progress: %s of 4 steps — %s (%s)', fill, stepLabel, statusWord)
-        : t('Autofix progress: %s of 4 steps — %s', fill, stepLabel)
+        ? t('Autofix progress: %s of 5 steps — %s (%s)', fill, stepLabel, statusWord)
+        : t('Autofix progress: %s of 5 steps — %s', fill, stepLabel)
       : t('Autofix progress: no steps completed');
 
   return (
@@ -176,7 +184,9 @@ export function StepIndicator({row}: {row: OverviewRow}) {
       }
       skipWrapper
     >
-      <Flex gap="2xs" align="center" flexShrink={0} role="img" aria-label={ariaLabel}>
+      {/* Tighter gap inside the pair than between the pair and the title,
+          so the two glyphs read as one unit rather than three loose marks. */}
+      <Flex gap="xs" align="center" flexShrink={0} role="img" aria-label={ariaLabel}>
         <Pie size="sm" variant={variant} aria-hidden />
         {StepIcon &&
           (row.isProcessing ? (
