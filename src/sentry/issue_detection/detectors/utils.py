@@ -1,10 +1,14 @@
 import hashlib
+import logging
 import re
 from datetime import timedelta
-from typing import TypedDict
+from typing import Any, TypedDict
 from urllib.parse import parse_qs, urlparse
 
 from ..types import Span
+
+logger = logging.getLogger("issue_detectors")
+
 
 FILTERED_KEYWORDS = [
     "[Filtered]",
@@ -313,3 +317,38 @@ def total_span_time(span_list: list[Span]) -> float:
     # Add the remaining duration
     total_duration += current_max - current_min
     return total_duration * 1000
+
+
+def log_invalid_span_data(
+    span: Span,
+    detector: str,
+    key: str,
+    value: Any,
+    error: Exception | None = None,
+    extra_data: dict[str, Any] | None = None,
+) -> None:
+    """
+    Track instances of detectors encountering data they're not expecting, so we can consider
+    updating them to handle it.
+
+    Logs an `issue_detectors.invalid_data` warning tagged with:
+        - span, trace, project, and org ids,
+        - the detector name,
+        - the bad value,
+        - the error the bad data would have caused (optional), and
+        - any other data passed in the `extra_data` parameter (also optional).
+    """
+    logger.warning(
+        "issue_detectors.invalid_data",
+        extra={
+            "detector": detector,
+            "span_id": span.get("span_id"),
+            "trace_id": span.get("trace_id"),
+            "project_id": span.get("project_id"),
+            "org_id": span.get("organization_id"),
+            "key": key,
+            "value": value,
+            "error": repr(error),  # We use `repr` over `str` to also get error type
+            **(extra_data or {}),
+        },
+    )
