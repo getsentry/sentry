@@ -16,6 +16,11 @@ from sentry.db.models import (
 from sentry.issues.action_log.types import GroupAction, GroupActionType, GroupActorType
 
 
+class GroupActionLogEntryManager(models.Manager["GroupActionLogEntry"]):
+    def user_visible(self) -> models.QuerySet[GroupActionLogEntry]:
+        return self.filter(type__in=GroupAction.get_user_visible_types())
+
+
 @cell_silo_model
 class GroupActionLogEntry(Model):
     """
@@ -27,6 +32,8 @@ class GroupActionLogEntry(Model):
     **Do not create or update rows directly.** Use the helpers in
     ``sentry.issues.action_log`` instead.
     """
+
+    objects: GroupActionLogEntryManager = GroupActionLogEntryManager()
 
     __relocation_scope__ = RelocationScope.Excluded
 
