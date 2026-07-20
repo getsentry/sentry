@@ -1,0 +1,52 @@
+from unittest.mock import patch
+
+from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix_rca.dispatch import trigger_autofix_rca_feature
+from sentry.testutils.cases import TestCase
+from sentry.testutils.pytest.fixtures import django_db_all
+
+
+@django_db_all
+class TestTriggerAutofixRCAFeature(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def test_dispatches_feature_run(self) -> None:
+        fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
+
+        with (
+            patch("sentry.seer.autofix_rca.dispatch.SeerAgentClient") as MockClient,
+            patch("sentry.seer.autofix_rca.dispatch.quotas") as mock_quotas,
+        ):
+            mock_quotas.backend.check_seer_quota.return_value = True
+            client = MockClient.return_value
+            client.start_feature_run.return_value = fake_run
+
+            run = trigger_autofix_rca_feature(
+                self.group,
+                referrer=AutofixReferrer.NIGHT_SHIFT,
+                user_context="an upstream triage summary",
+            )
+
+        assert run is fake_run
+
+        # Client scoped to the issue's org/project/group.
+        client_kwargs = MockClient.call_args.kwargs
+        assert client_kwargs["organization"] == self.group.organization
+        assert client_kwargs["project"] == self.group.project
+        assert client_kwargs["group"] == self.group
+
+        # Feature run dispatched with the RCA payload.
+        run_kwargs = client.start_feature_run.call_args.kwargs
+        assert run_kwargs["feature_id"] == "autofix_rca"
+        assert run_kwargs["flush"] is True
+        payload = run_kwargs["payload"]
+        assert payload["group_id"] == self.group.id
+        assert payload["short_id"] == (self.group.qualified_short_id or str(self.group.id))
+        assert payload["title"] == self.group.title
+        assert payload["tweaks"]["user_context"] == "an upstream triage summary"
+        assert run_kwargs["extras"]["group_id"] == self.group.id
+
+        # A new run consumes Seer autofix budget.
+        mock_quotas.backend.record_seer_run.assert_called_once()

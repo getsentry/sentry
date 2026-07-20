@@ -1,0 +1,50 @@
+from __future__ import annotations
+
+from enum import StrEnum
+from typing import Any, Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+# Keep models in sync with src/seer/automation/features/autofix_rca/models.py in Seer
+
+FEATURE_ID = "autofix_rca"
+
+
+class AutofixRCATweaks(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    intelligence_level: Literal["low", "medium", "high"] = "medium"
+    reasoning_effort: Literal["low", "medium", "high"] | None = "medium"
+    # Free-form context a user attached to the issue
+    user_context: str | None = None
+
+
+class AutofixRCAPayload(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    group_id: int
+    short_id: str
+    title: str
+    culprit: str
+    tweaks: AutofixRCATweaks = Field(default_factory=AutofixRCATweaks)
+
+
+class IntrospectionAction(StrEnum):
+    CONTINUE = "continue"
+    NEEDS_MORE_CONTEXT = "needs_more_context"
+    REDO = "redo"
+    NOT_ACTIONABLE = "not_actionable"
+
+
+class IntrospectionDecision(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    action: IntrospectionAction
+    reason: str = ""
+
+
+class AutofixRCAResult(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+    artifact: dict[str, Any] | None = None
+    introspection_decision: IntrospectionDecision | None = None

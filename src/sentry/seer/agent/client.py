@@ -570,6 +570,7 @@ class SeerAgentClient:
             if on_run_created is not None:
                 on_run_created(run)
 
+        agent_run_options = self._build_agent_run_options()
         return enqueue_seer_run(
             organization=self.organization,
             run_type=SeerRunType.FEATURE_RUN,
@@ -577,7 +578,13 @@ class SeerAgentClient:
             body=SeerFeatureRunRequest(
                 feature_id=feature_id,
                 payload=payload,
-                agent_run_options=self._build_agent_run_options(),
+                agent_run_options=agent_run_options,
+                # Seer's feature runner reads this top-level flag; mirror what
+                # _build_agent_run_options resolved so the feature honors the org's
+                # context-engine rollout / FE-override.
+                is_context_engine_enabled=bool(
+                    agent_run_options.get("is_context_engine_enabled", False)
+                ),
             ),
             viewer_context=self.viewer_context,
             user_id=user_id,

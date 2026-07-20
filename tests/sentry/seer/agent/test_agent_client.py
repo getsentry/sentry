@@ -1507,6 +1507,8 @@ class TestStartFeatureRun(TestCase):
         assert outbox is not None and outbox.payload is not None
         body = outbox.payload["body"]
         assert body["agent_run_options"]["is_context_engine_enabled"] is True
+        # Surfaced top-level for Seer's feature runner to read.
+        assert body["is_context_engine_enabled"] is True
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
@@ -1534,6 +1536,8 @@ class TestStartFeatureRun(TestCase):
         assert outbox is not None and outbox.payload is not None
         body = outbox.payload["body"]
         assert body["agent_run_options"] == {}
+        # Off by default when no context-engine rollout/override applies.
+        assert body["is_context_engine_enabled"] is False
 
 
 @with_feature("organizations:seer-infra-telemetry")
