@@ -54,3 +54,18 @@ const ACTION_LABELS: Record<string, string> = {
 export function getActionLabel(action: string): string {
   return ACTION_LABELS[action] ?? action;
 }
+
+// Maps the skip_reason categories Seer sends to display labels. skip_reason is
+// an open passthrough string, so unknown values get their underscores
+// humanized rather than dropped.
+const SKIP_REASON_LABELS: Record<string, string> = {
+  duplicate: 'duplicate',
+  insufficient_info: 'insufficient info',
+  environmental: 'environmental',
+  ambiguous_root_cause: 'ambiguous root cause',
+  other: 'other',
+};
+
+export function getSkipReasonLabel(skipReason: string): string {
+  return SKIP_REASON_LABELS[skipReason] ?? skipReason.replaceAll('_', ' ');
+}

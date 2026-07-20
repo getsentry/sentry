@@ -47,6 +47,7 @@ import {
   CATEGORY_LABELS,
   CATEGORY_ORDER,
   getActionLabel,
+  getSkipReasonLabel,
   STRATEGY_META,
 } from 'sentry/views/seerWorkflows/strategies';
 import type {
@@ -792,7 +793,11 @@ const ACTION_TAG_VARIANT: Record<string, TagVariant> = {
 };
 
 function IssueStatusTag({issue}: {issue: SeerNightShiftRunIssue}) {
-  const label = getActionLabel(issue.action);
+  const actionLabel = getActionLabel(issue.action);
+  const label =
+    issue.action === 'skip' && issue.skipReason
+      ? `${actionLabel}: ${getSkipReasonLabel(issue.skipReason)}`
+      : actionLabel;
   const variant = ACTION_TAG_VARIANT[issue.action] ?? 'muted';
   if (!issue.seerRunId) {
     return <Tag variant={variant}>{label}</Tag>;
