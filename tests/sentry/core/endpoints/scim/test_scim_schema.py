@@ -46,6 +46,26 @@ class SCIMSchemaEndpointTest(SCIMTestCase):
             "detail": "Filtering is not supported on this endpoint.",
         }
 
+    def test_create_time_attributes_are_writable(self) -> None:
+        # Entra excludes non-writable attributes from provisioning payloads
+        # entirely, and cannot create users without sending userName/emails.
+        user_attrs = {a["name"]: a for a in SCIM_USER_ATTRIBUTES_SCHEMA["attributes"]}
+        assert user_attrs["userName"]["mutability"] == "readWrite"
+        assert user_attrs["emails"]["mutability"] == "readWrite"
+
+    def test_every_attribute_declares_mutability(self) -> None:
+        # RFC 7643 §2.2 defaults mutability when omitted, but Entra's SCIM
+        # validator rejects schemas whose attributes lack it entirely.
+        for schema in SCIM_SCHEMA_LIST:
+            for attribute in schema["attributes"]:
+                assert "mutability" in attribute, (schema["name"], attribute["name"])
+                for sub_attribute in attribute.get("subAttributes", []):
+                    assert "mutability" in sub_attribute, (
+                        schema["name"],
+                        attribute["name"],
+                        sub_attribute["name"],
+                    )
+
 
 class SCIMSchemaDetailsTest(SCIMTestCase):
     endpoint = "sentry-api-0-organization-scim-schema-details"

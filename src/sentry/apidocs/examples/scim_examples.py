@@ -255,7 +255,7 @@ class SCIMExamples:
                         "description": "Unique identifier for the User, which for Sentry is an email address.",
                         "required": True,
                         "caseExact": False,
-                        "mutability": "readOnly",
+                        "mutability": "readWrite",
                         "returned": "default",
                         "uniqueness": "server",
                     }
