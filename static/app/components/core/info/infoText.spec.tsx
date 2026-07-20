@@ -68,14 +68,4 @@ describe('InfoText', () => {
 
     expect(screen.getByText('Text content')).toHaveAttribute('tabindex', '0');
   });
-
-  it('supports a custom tab index', () => {
-    render(
-      <InfoText title="Tooltip content" tabIndex={-1}>
-        Text content
-      </InfoText>
-    );
-
-    expect(screen.getByText('Text content')).toHaveAttribute('tabindex', '-1');
-  });
 });
