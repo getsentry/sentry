@@ -1,5 +1,3 @@
-import moment from 'moment-timezone';
-
 import type {PromptData} from 'sentry/actionCreators/prompts';
 import {IconBuilding, IconGroup, IconSeer, IconUser} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
@@ -426,14 +424,6 @@ export function getTrialDaysLeft(subscription: Subscription): number {
 }
 
 /**
- * Get the number of days left on contract
- */
-export function getContractDaysLeft(subscription: Subscription): number {
-  // contract period end is in the future
-  return -1 * getDaysSinceDate(subscription.billingPeriodEnd ?? '');
-}
-
-/**
  * Return a sorted list of plans the user can upgrade to.
  * Used to find the best plan for an org to upgrade to
  * based on a particular feature to unlock.
@@ -720,36 +710,6 @@ export function trialPromptIsDismissed(prompt: PromptData, subscription: Subscri
   }
   const onDemandPeriodStart = new Date(subscription.onDemandPeriodStart);
   return time >= onDemandPeriodStart.getTime() / 1000;
-}
-
-export function partnerPlanEndingModalIsDismissed(
-  prompt: PromptData,
-  subscription: Subscription,
-  timeframe: string
-) {
-  const {snoozedTime, dismissedTime} = prompt || {};
-  const time = snoozedTime || dismissedTime;
-  if (!time) {
-    return false;
-  }
-
-  const lastDaysLeft = moment(subscription.billingPeriodEnd).diff(
-    moment.unix(time),
-    'days'
-  );
-
-  switch (timeframe) {
-    case 'zero':
-      return lastDaysLeft <= 0;
-    case 'two':
-      return lastDaysLeft <= 2 && lastDaysLeft > 0;
-    case 'week':
-      return lastDaysLeft <= 7 && lastDaysLeft > 2;
-    case 'month':
-      return lastDaysLeft <= 30 && lastDaysLeft > 7;
-    default:
-      return true;
-  }
 }
 
 export function getPercentage(quantity: number, total: number | null) {

@@ -28,11 +28,6 @@ type TrialModalProps = {
   organization: Organization;
 };
 
-type PartnerPlanModalProps = {
-  organization: Organization;
-  subscription: Subscription;
-};
-
 function genTrialModalOnClose(
   options: TrialModalProps,
   type: 'trialEnd' | 'forcedTrial'
@@ -87,23 +82,6 @@ export async function openForcedTrialModal(options: TrialModalProps) {
     modalCss,
     onClose,
   });
-}
-
-export async function openPartnerPlanEndingModal(options: PartnerPlanModalProps) {
-  const {default: Modal, modalCss} =
-    await import('getsentry/components/partnerPlanEndingModal');
-  const api = new Client();
-  const promptParams = {
-    organization: options.organization,
-    feature: 'partner_plan_ending_modal',
-    status: 'dismissed',
-  } as const;
-
-  const onClose = () => {
-    promptsUpdate(api, promptParams);
-  };
-
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss, onClose});
 }
 
 interface OpenOnDemandBudgetEditModalProps {
