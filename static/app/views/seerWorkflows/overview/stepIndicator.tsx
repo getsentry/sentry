@@ -1,21 +1,17 @@
-import {keyframes} from '@emotion/react';
+import {keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ProgressRing} from 'sentry/components/progressRing';
 import {
   IconBug,
-  IconCircle,
   IconCircleCheckmark,
-  IconCircleFill,
   IconCode,
   IconList,
   IconMerge,
-  IconPieHalf,
-  IconPieQuarter,
-  IconPieThreeQuarters,
   IconPullRequest,
 } from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
@@ -42,18 +38,13 @@ const STEP_META: Record<
   pr_opened: {Icon: IconPullRequest, label: t('PR opened')},
 };
 
-// Not ProgressMarker: it hardcodes a color per fill level (half = warning,
-// three-quarters = success), which would fight the status-driven variant.
-// The pipeline is five steps with merge as the finale: a quarter per Seer
-// stage fills the circle at PR opened, and the checkmark is reserved for
-// the merged PR.
-const PIE_BY_FILL = [
-  IconCircle,
-  IconPieQuarter,
-  IconPieHalf,
-  IconPieThreeQuarters,
-  IconCircleFill,
-] as const;
+// The pipeline is five steps with merge as the finale, so the progress
+// glyph is a ring filled in fifths (the pie icons only come in quarters,
+// which would misread PR-opened as done). The checkmark is reserved for
+// the merged PR. Matches the icons' size="sm".
+const RING_SIZE = 14;
+const RING_BAR_WIDTH = 2;
+const TOTAL_STEPS = STEP_ORDER.length + 1;
 
 type IndicatorVariant = 'accent' | 'danger' | 'muted' | 'success' | 'warning';
 
@@ -130,13 +121,15 @@ function StepChecklist({
 }
 
 /**
- * Where the run is in the autofix pipeline, as a two-glyph unit: a pie fill
- * for how far it got (quarter per stage) and a step icon for which stage
- * that is, tinted by run status. Replaces the issue-level line the cards
- * used to open with — on this page every card is a Seer run, so the run's
- * progress is the fact worth a glance, not the issue's level.
+ * Where the run is in the autofix pipeline, as a two-glyph unit: a progress
+ * ring filled a fifth per step and a step icon for which step that is,
+ * tinted by run status. Replaces the issue-level line the cards used to
+ * open with — on this page every card is a Seer run, so the run's progress
+ * is the fact worth a glance, not the issue's level.
  */
 export function StepIndicator({row}: {row: OverviewRow}) {
+  const theme = useTheme();
+
   if (row.statePending) {
     return (
       <Flex
@@ -145,12 +138,24 @@ export function StepIndicator({row}: {row: OverviewRow}) {
         role="img"
         aria-label={t('Autofix status loading')}
       >
-        <IconCircle size="sm" variant="muted" aria-hidden />
+        <ProgressRing
+          value={0}
+          maxValue={TOTAL_STEPS}
+          size={RING_SIZE}
+          barWidth={RING_BAR_WIDTH}
+          aria-hidden
+        />
       </Flex>
     );
   }
 
   const {variant, statusWord} = deriveStatus(row);
+  // Same variant → color resolution the icons use (svgIcon.tsx), so the
+  // ring and the step icon beside it always agree.
+  const ringColor =
+    variant === 'warning'
+      ? theme.tokens.graphics.warning.vibrant
+      : theme.tokens.content[variant === 'muted' ? 'secondary' : variant];
   const furthest = row.outcomes.at(-1);
   // Index against the canonical order rather than counting outcomes: a
   // coding-agent run can skip the solution stage, so the array's length can
@@ -160,7 +165,6 @@ export function StepIndicator({row}: {row: OverviewRow}) {
   // empty run that's running is by definition on the first step.
   const currentStep = furthest ?? (row.isProcessing ? 'root_cause' : undefined);
 
-  const Pie = row.prMerged ? IconCircleCheckmark : (PIE_BY_FILL[fill] ?? IconCircle);
   const StepIcon = row.prMerged ? IconMerge : currentStep && STEP_META[currentStep].Icon;
   const stepLabel = currentStep ? STEP_META[currentStep].label : undefined;
 
@@ -187,7 +191,19 @@ export function StepIndicator({row}: {row: OverviewRow}) {
       {/* Tighter gap inside the pair than between the pair and the title,
           so the two glyphs read as one unit rather than three loose marks. */}
       <Flex gap="xs" align="center" flexShrink={0} role="img" aria-label={ariaLabel}>
-        <Pie size="sm" variant={variant} aria-hidden />
+        {row.prMerged ? (
+          <IconCircleCheckmark size="sm" variant="success" aria-hidden />
+        ) : (
+          <ProgressRing
+            value={fill}
+            maxValue={TOTAL_STEPS}
+            size={RING_SIZE}
+            barWidth={RING_BAR_WIDTH}
+            progressColor={ringColor}
+            progressEndcaps="round"
+            aria-hidden
+          />
+        )}
         {StepIcon &&
           (row.isProcessing ? (
             <PulseSpan>
