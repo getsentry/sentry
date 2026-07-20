@@ -93,9 +93,7 @@ interface BreadcrumbItemPaginationProps {
 export interface BreadcrumbItemPageTitleProps {
   label: string;
   /**
-   * Tooltip shown on the label. `true` (default) shows the full label — useful
-   * when text is truncated; `false` disables it; a ReactNode renders an always-on
-   * custom tooltip (e.g. an issue short-id).
+   * Tooltip shown on the label. renders an always-on custom tooltip (e.g. an issue short-id).
    */
   labelTooltip?: React.ReactNode;
   /**
@@ -154,13 +152,7 @@ export function BreadcrumbItemPageTitle({
           on the outer Flex above. */}
       <Container minWidth={0}>
         {containerProps => (
-          <InfoText
-            title={labelTooltip}
-            bold
-            ellipsis
-            variant="inherit"
-            {...containerProps}
-          >
+          <InfoText title={labelTooltip} bold variant="inherit" {...containerProps}>
             {label}
           </InfoText>
         )}
