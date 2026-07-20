@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 from django.urls import reverse
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.preprod.vcs.status_checks.skip import CONFIGURATION_ERROR_DETAIL
 from sentry.preprod.vcs.status_checks.utils import get_status_check_client_for_repo
@@ -91,6 +92,10 @@ class ProjectPreprodSkipStatusCheckEndpointTest(APITestCase):
             tags={"check_type": self.check_type, "success": True},
         )
         mock_logger.info.assert_called_once()
+        log_extra = mock_logger.info.call_args.kwargs["extra"]
+        assert log_extra["repository_id"] == self.repository.id
+        assert "repo" not in log_extra
+        assert "owner/repo" not in log_extra.values()
 
     def test_missing_sha_returns_400(self) -> None:
         response = self._post({"repository": "owner/repo"})
@@ -196,6 +201,9 @@ class ProjectPreprodSkipStatusCheckEndpointTest(APITestCase):
             "preprod.status_checks.skip.configuration_error"
         )
         assert mock_logger.warning.call_args.kwargs["exc_info"] is True
+        log_extra = mock_logger.warning.call_args.kwargs["extra"]
+        assert "repo" not in log_extra
+        assert "owner/repo" not in log_extra.values()
 
     def test_rate_limit_returns_429(self) -> None:
         mock_provider = Mock()
@@ -232,6 +240,10 @@ class ProjectPreprodSkipStatusCheckEndpointTest(APITestCase):
             tags={"check_type": self.check_type, "success": False, "reason": "upstream_error"},
         )
         assert mock_logger.warning.call_args.args[0] == "preprod.status_checks.skip.api_error"
+        log_extra = mock_logger.warning.call_args.kwargs["extra"]
+        assert log_extra["repository_id"] == self.repository.id
+        assert "repo" not in log_extra
+        assert "owner/repo" not in log_extra.values()
 
     def test_null_check_id_returns_502(self) -> None:
         mock_provider = Mock()
@@ -252,6 +264,10 @@ class ProjectPreprodSkipStatusCheckEndpointTest(APITestCase):
             tags={"check_type": self.check_type, "success": False, "reason": "null_check_id"},
         )
         assert mock_logger.warning.call_args.args[0] == "preprod.status_checks.skip.null_check_id"
+        log_extra = mock_logger.warning.call_args.kwargs["extra"]
+        assert log_extra["repository_id"] == self.repository.id
+        assert "repo" not in log_extra
+        assert "owner/repo" not in log_extra.values()
 
     def test_read_only_scope_forbidden(self) -> None:
         response = self._post(
@@ -311,3 +327,41 @@ class StatusCheckClientForRepoTest(TestCase):
         assert client is None
         assert repository is None
         get_client.assert_not_called()
+
+    def test_missing_organization_integration_is_not_resolved(self) -> None:
+        installation = Mock()
+        installation.get_client.side_effect = OrganizationIntegrationNotFound(
+            "missing org_integration"
+        )
+        integration = Mock()
+        integration.get_installation.return_value = installation
+
+        with (
+            patch(
+                "sentry.preprod.vcs.status_checks.utils.integration_service.get_integration",
+                return_value=integration,
+            ),
+            patch("sentry.preprod.vcs.status_checks.utils.logger") as mock_logger,
+        ):
+            client, repository = get_status_check_client_for_repo(
+                self.project, "owner/repo", "github"
+            )
+
+        assert client is None
+        assert repository is None
+        assert mock_logger.info.call_args.args[0] == (
+            "preprod.status_checks.create.no_organization_integration"
+        )
+        assert mock_logger.info.call_args.kwargs["extra"]["repository"] == self.repository.id
+
+    def test_unresolved_repository_name_is_not_logged(self) -> None:
+        with patch("sentry.preprod.vcs.status_checks.utils.logger") as mock_logger:
+            client, repository = get_status_check_client_for_repo(
+                self.project, "customer/private-repo", "github"
+            )
+
+        assert client is None
+        assert repository is None
+        log_extra = mock_logger.info.call_args.kwargs["extra"]
+        assert "repo_name" not in log_extra
+        assert "customer/private-repo" not in log_extra.values()

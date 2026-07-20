@@ -6,6 +6,7 @@ from django.db import router, transaction
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.errors import OrganizationIntegrationNotFound
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.source_code_management.status_check import StatusCheckClient
@@ -70,7 +71,6 @@ def get_status_check_client_for_repo(
         logger.info(
             "preprod.status_checks.resolve.no_repository",
             extra={
-                "repo_name": repo_name,
                 "provider": provider,
                 "resolution": resolution,
                 "project_id": project.id,
@@ -179,10 +179,21 @@ def _status_check_client_from_repository(
         )
         return None
 
-    installation: IntegrationInstallation = integration.get_installation(
-        organization_id=project.organization_id
-    )
-    client = installation.get_client()
+    try:
+        installation: IntegrationInstallation = integration.get_installation(
+            organization_id=project.organization_id
+        )
+        client = installation.get_client()
+    except OrganizationIntegrationNotFound:
+        logger.info(
+            "preprod.status_checks.create.no_organization_integration",
+            extra={
+                "repository": repository.id,
+                "integration_id": repository.integration_id,
+                "project_id": project.id,
+            },
+        )
+        return None
 
     if not isinstance(client, StatusCheckClient):
         logger.info(

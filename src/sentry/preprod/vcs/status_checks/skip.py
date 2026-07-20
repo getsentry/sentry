@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Literal
+from typing import Literal, Never
 
 from django.utils import timezone
 
@@ -57,6 +57,27 @@ def _skipped_check_messages(check_type: StatusCheckType, project: Project) -> tu
     return format_skipped_snapshot_status_check_messages(project)
 
 
+def _raise_configuration_error(
+    error: IntegrationError, *, project: Project, check_type: StatusCheckType, provider: str
+) -> Never:
+    logger.warning(
+        "preprod.status_checks.skip.configuration_error",
+        extra={
+            "project_id": project.id,
+            "organization_id": project.organization_id,
+            "check_type": check_type,
+            "provider": provider,
+            "error_type": type(error).__name__,
+        },
+        exc_info=True,
+    )
+    raise SkipStatusCheckError(
+        CONFIGURATION_ERROR_DETAIL,
+        status_code=400,
+        reason="config_error",
+    ) from error
+
+
 def create_skipped_status_check(
     *, project: Project, repo_name: str, provider: str, sha: str, check_type: StatusCheckType
 ) -> str:
@@ -86,32 +107,36 @@ def create_skipped_status_check(
 
     try:
         client, repository = get_status_check_client_for_repo(project, repo_name, provider)
-        if not client or not repository:
-            raise SkipStatusCheckError(
-                f"No active {provider} integration found for repository '{repo_name}'.",
-                status_code=400,
-                reason="repo_not_integrated",
-            )
+    except IntegrationError as e:
+        _raise_configuration_error(e, project=project, check_type=check_type, provider=provider)
 
-        status_check_provider = get_status_check_provider(
-            client,
-            provider,
-            project.organization_id,
-            project.organization.slug,
-            repository.integration_id,
+    if not client or not repository:
+        raise SkipStatusCheckError(
+            f"No active {provider} integration found for repository '{repo_name}'.",
+            status_code=400,
+            reason="repo_not_integrated",
         )
-        if not status_check_provider:
-            raise SkipStatusCheckError(
-                f"Status checks are not supported for provider '{provider}'.",
-                status_code=400,
-                reason="provider_unsupported",
-            )
 
-        title, subtitle, summary = _skipped_check_messages(check_type, project)
+    status_check_provider = get_status_check_provider(
+        client,
+        provider,
+        project.organization_id,
+        project.organization.slug,
+        repository.integration_id,
+    )
+    if not status_check_provider:
+        raise SkipStatusCheckError(
+            f"Status checks are not supported for provider '{provider}'.",
+            status_code=400,
+            reason="provider_unsupported",
+        )
 
-        # NEUTRAL is non-blocking for a required check; completed_at must be set or
-        # GitHub rejects a completed check.
-        now: datetime = timezone.now()
+    title, subtitle, summary = _skipped_check_messages(check_type, project)
+
+    # NEUTRAL is non-blocking for a required check; completed_at must be set or
+    # GitHub rejects a completed check.
+    now: datetime = timezone.now()
+    try:
         check_id = status_check_provider.create_status_check(
             repo=repo_name,
             sha=sha,
@@ -125,23 +150,7 @@ def create_skipped_status_check(
             completed_at=now,
         )
     except IntegrationError as e:
-        logger.warning(
-            "preprod.status_checks.skip.configuration_error",
-            extra={
-                "project_id": project.id,
-                "organization_id": project.organization_id,
-                "check_type": check_type,
-                "repo": repo_name,
-                "provider": provider,
-                "error_type": type(e).__name__,
-            },
-            exc_info=True,
-        )
-        raise SkipStatusCheckError(
-            CONFIGURATION_ERROR_DETAIL,
-            status_code=400,
-            reason="config_error",
-        ) from e
+        _raise_configuration_error(e, project=project, check_type=check_type, provider=provider)
     except ApiRateLimitedError as e:
         raise SkipStatusCheckError(
             "GitHub rate limit exceeded, please retry later.",
@@ -155,7 +164,7 @@ def create_skipped_status_check(
                 "project_id": project.id,
                 "organization_id": project.organization_id,
                 "check_type": check_type,
-                "repo": repo_name,
+                "repository_id": repository.id,
                 "status_code": e.code,
             },
         )
@@ -172,7 +181,7 @@ def create_skipped_status_check(
                 "project_id": project.id,
                 "organization_id": project.organization_id,
                 "check_type": check_type,
-                "repo": repo_name,
+                "repository_id": repository.id,
                 "provider": provider,
             },
         )
@@ -188,7 +197,7 @@ def create_skipped_status_check(
             "project_id": project.id,
             "organization_id": project.organization_id,
             "check_type": check_type,
-            "repo": repo_name,
+            "repository_id": repository.id,
             "sha": sha,
             "check_id": check_id,
         },
