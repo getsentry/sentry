@@ -29,6 +29,17 @@ function DiscoverContainer() {
   });
 
   if (redirectPath) {
+    // When the deprecation is active and the legacy /discover/ URL carries a
+    // transactions dataset, the generic redirect would send the user to
+    // /explore/errors/ — which doesn't support transactions. Intercept that
+    // case here and send them to /explore/traces/ instead.
+    if (
+      discoverTransactionsDeprecation &&
+      (location.query.queryDataset === SavedQueryDatasets.TRANSACTIONS ||
+        location.query.dataset === Dataset.TRANSACTIONS)
+    ) {
+      return <Redirect to={normalizeUrl('/explore/traces/')} />;
+    }
     return <Redirect to={redirectPath} />;
   }
 
