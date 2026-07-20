@@ -179,8 +179,8 @@ def get_span_evidence_value(span: Span | None = None, include_op: bool = True) -
     if not span:
         return value
 
-    op = span.get("op") or ""
-    desc = span.get("description") or ""
+    op = (span.get("op") or "").strip()
+    desc = (span.get("description") or "").strip()
 
     if not op and desc:
         value = desc
