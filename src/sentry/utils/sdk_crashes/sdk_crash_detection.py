@@ -5,8 +5,6 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 from uuid import uuid4
 
-from packaging.version import InvalidVersion, Version
-
 from sentry.issues.grouptype import GroupCategory
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
@@ -15,27 +13,26 @@ from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
 
-HYBRID_SDK_TOP_LEVEL_PACKAGES = {
-    "sentry.cocoa.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
-    "sentry.java.android.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
-}
 
-
-def get_hybrid_sdk_top_level(
-    sdk_name: str, event_data: Mapping[str, Any]
+def get_hybrid_sdk(
+    sdk_name: str,
+    packages: Any,
+    hybrid_sdk_packages: Mapping[str, tuple[str, str]],
 ) -> tuple[str, str] | None:
-    top_level_sdk = HYBRID_SDK_TOP_LEVEL_PACKAGES.get(sdk_name)
-    if top_level_sdk is None:
+    if not hybrid_sdk_packages:
         return None
 
-    top_level_sdk_name, top_level_package_name = top_level_sdk
-    packages = get_path(event_data, "sdk", "packages")
+    hybrid_sdk = hybrid_sdk_packages.get(sdk_name)
+    if hybrid_sdk is None:
+        return None
+
+    hybrid_sdk_name, hybrid_package_name = hybrid_sdk
     if not isinstance(packages, Sequence) or isinstance(packages, str | bytes):
         return None
 
     versions: set[str] = set()
     for package in packages:
-        if not isinstance(package, Mapping) or package.get("name") != top_level_package_name:
+        if not isinstance(package, Mapping) or package.get("name") != hybrid_package_name:
             continue
 
         version = package.get("version")
@@ -45,13 +42,7 @@ def get_hybrid_sdk_top_level(
     if len(versions) != 1:
         return None
 
-    top_level_sdk_version = next(iter(versions))
-    try:
-        Version(top_level_sdk_version)
-    except InvalidVersion:
-        return None
-
-    return top_level_sdk_name, top_level_sdk_version
+    return hybrid_sdk_name, versions.pop()
 
 
 class SDKCrashReporter:
@@ -106,19 +97,30 @@ class SDKCrashDetection:
         if not sdk_name or not sdk_version:
             return None
 
-        hybrid_sdk_top_level = get_hybrid_sdk_top_level(sdk_name, event.data)
-
         mechanism = get_path(event.data, "exception", "values", -1, "mechanism", "type")
         metric_tags = {
             "sdk_name": sdk_name,
             "sdk_version": sdk_version,
             "is_anr_or_apphang": "true" if mechanism in ("ANR", "AppExitInfo") else "false",
         }
-        if hybrid_sdk_top_level is not None:
-            top_level_sdk_name, top_level_sdk_version = hybrid_sdk_top_level
+        hybrid_sdk_packages = next(
+            (
+                config.hybrid_sdk_packages
+                for config in configs
+                if sdk_name in config.hybrid_sdk_packages
+            ),
+            {},
+        )
+        hybrid_sdk = get_hybrid_sdk(
+            sdk_name,
+            get_path(event.data, "sdk", "packages"),
+            hybrid_sdk_packages,
+        )
+        if hybrid_sdk is not None:
+            hybrid_sdk_name, hybrid_sdk_version = hybrid_sdk
             metric_tags.update(
-                top_level_sdk_name=top_level_sdk_name,
-                top_level_sdk_version=top_level_sdk_version,
+                hybrid_sdk_name=hybrid_sdk_name,
+                hybrid_sdk_version=hybrid_sdk_version,
             )
         sdk_detectors = list(map(lambda config: SDKCrashDetector(config=config), configs))
 
@@ -204,14 +206,14 @@ class SDKCrashDetection:
             sdk_version = get_path(sdk_crash_event_data, "sdk", "version")
             set_path(sdk_crash_event_data, "release", value=sdk_version)
 
-            if hybrid_sdk_top_level is not None:
-                top_level_sdk_name, top_level_sdk_version = hybrid_sdk_top_level
+            if hybrid_sdk is not None:
+                hybrid_sdk_name, hybrid_sdk_version = hybrid_sdk
                 set_path(
                     sdk_crash_event_data,
                     "tags",
                     value=[
-                        ("top_level_sdk_name", top_level_sdk_name),
-                        ("top_level_sdk_version", top_level_sdk_version),
+                        ("hybrid_sdk_name", hybrid_sdk_name),
+                        ("hybrid_sdk_version", hybrid_sdk_version),
                     ],
                 )
 

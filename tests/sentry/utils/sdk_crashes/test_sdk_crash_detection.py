@@ -14,7 +14,7 @@ from sentry.testutils.issue_detection.store_transaction import store_transaction
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.sdk_crash_detection import (
-    get_hybrid_sdk_top_level,
+    get_hybrid_sdk,
     sdk_crash_detection,
 )
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
@@ -35,17 +35,16 @@ def build_sdk_configs() -> Sequence[SDKCrashDetectionConfig]:
 
 
 @pytest.mark.parametrize("sdk_name", ["sentry.cocoa.flutter", "sentry.java.android.flutter"])
-def test_get_hybrid_sdk_top_level(sdk_name: str) -> None:
-    event_data = {
-        "sdk": {
-            "packages": [
-                {"name": "cocoapods:Sentry", "version": "8.2.0"},
-                {"name": "pub:sentry_flutter", "version": "9.24.0"},
-            ]
-        }
+def test_get_hybrid_sdk(sdk_name: str) -> None:
+    packages = [
+        {"name": "cocoapods:Sentry", "version": "8.2.0"},
+        {"name": "pub:sentry_flutter", "version": "9.24.0"},
+    ]
+    hybrid_sdk_packages = {
+        sdk_name: ("sentry.dart.flutter", "pub:sentry_flutter"),
     }
 
-    assert get_hybrid_sdk_top_level(sdk_name, event_data) == (
+    assert get_hybrid_sdk(sdk_name, packages, hybrid_sdk_packages) == (
         "sentry.dart.flutter",
         "9.24.0",
     )
@@ -56,17 +55,22 @@ def test_get_hybrid_sdk_top_level(sdk_name: str) -> None:
     [
         None,
         [],
-        [{"name": "pub:sentry_flutter", "version": "not-a-version"}],
         [
             {"name": "pub:sentry_flutter", "version": "9.23.0"},
             {"name": "pub:sentry_flutter", "version": "9.24.0"},
         ],
     ],
 )
-def test_get_hybrid_sdk_top_level_rejects_untrusted_versions(packages: object) -> None:
-    event_data = {"sdk": {"packages": packages}}
+def test_get_hybrid_sdk_rejects_ambiguous_versions(packages: object) -> None:
+    hybrid_sdk_packages = {
+        "sentry.cocoa.flutter": ("sentry.dart.flutter", "pub:sentry_flutter"),
+    }
 
-    assert get_hybrid_sdk_top_level("sentry.cocoa.flutter", event_data) is None
+    assert get_hybrid_sdk("sentry.cocoa.flutter", packages, hybrid_sdk_packages) is None
+
+
+def test_get_hybrid_sdk_exits_early_without_configured_packages() -> None:
+    assert get_hybrid_sdk("sentry.cocoa.flutter", object(), {}) is None
 
 
 class BaseSDKCrashDetectionMixin(BaseTestCase, metaclass=abc.ABCMeta):
@@ -211,16 +215,16 @@ def test_flutter_sdk_version_attributed_without_replacing_native_version(
         "version": "8.2.0",
     }
     assert reported_event_data["tags"] == [
-        ("top_level_sdk_name", "sentry.dart.flutter"),
-        ("top_level_sdk_version", "9.24.0"),
+        ("hybrid_sdk_name", "sentry.dart.flutter"),
+        ("hybrid_sdk_version", "9.24.0"),
     ]
     assert reported_event_data["release"] == "8.2.0"
     metric_tags = {
         "sdk_name": "sentry.cocoa.flutter",
         "sdk_version": "8.2.0",
         "is_anr_or_apphang": "false",
-        "top_level_sdk_name": "sentry.dart.flutter",
-        "top_level_sdk_version": "9.24.0",
+        "hybrid_sdk_name": "sentry.dart.flutter",
+        "hybrid_sdk_version": "9.24.0",
     }
     incr.assert_any_call(
         "post_process.sdk_crash_monitoring.sdk_event",
