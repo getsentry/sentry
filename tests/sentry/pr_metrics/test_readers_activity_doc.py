@@ -30,7 +30,7 @@ from sentry.pr_metrics.emit import (
     select_fallback_verdict,
     select_verdict,
 )
-from sentry.pr_metrics.judge import _pr_activity_timeline
+from sentry.pr_metrics.judge import _build_judge_request, _pr_activity_timeline
 from sentry.pr_metrics.tasks import cleanup_pr_activity_task
 from sentry.pr_metrics.utils import load_activity_document, resolved_group_ids
 from sentry.testutils.cases import TestCase
@@ -218,13 +218,62 @@ class ActivityDocumentReadersTest(TestCase):
                 },
             )
         )
-        timeline = _pr_activity_timeline(self.pr)
+        timeline, events_dropped = _pr_activity_timeline(self.pr)
         types = [event.event_type for event in timeline]
         assert "opened" in types
         assert "check_suite_completed" in types
         suite = next(e for e in timeline if e.event_type == "check_suite_completed")
         assert suite.payload["failing_check_names"] == ["test"]
         assert suite.payload["head_sha"] == "sha1"
+        assert events_dropped == 0
+
+    def test_pr_activity_timeline_forwards_dropped_count_from_doc(self) -> None:
+        # A capped document is missing its newest events, so the judge has to be
+        # told the timeline it receives is a truncated prefix.
+        self._write_doc(
+            _doc(
+                events=[_entry(PullRequestActivityType.OPENED, "o1", sender_login="a")],
+                events_dropped=7,
+            )
+        )
+        timeline, events_dropped = _pr_activity_timeline(self.pr)
+        assert [event.event_type for event in timeline] == ["opened"]
+        assert events_dropped == 7
+
+    def test_pr_activity_timeline_legacy_path_reports_not_truncated(self) -> None:
+        # No document → legacy path forwards every lifecycle row it has, so the
+        # count is a constant zero rather than an inference.
+        PullRequestActivity.objects.create(
+            pull_request=self.pr,
+            webhook_id="o1",
+            event_type=PullRequestActivityType.OPENED,
+            payload={"sender_login": "dev"},
+        )
+        timeline, events_dropped = _pr_activity_timeline(self.pr)
+        assert [event.event_type for event in timeline] == ["opened"]
+        assert events_dropped == 0
+
+    def test_judge_request_carries_dropped_count_from_doc(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr)
+        self.repo.update(external_id="10270250", integration_id=99)
+        self._write_doc(
+            _doc(
+                events=[_entry(PullRequestActivityType.OPENED, "o1", sender_login="a")],
+                events_dropped=3,
+            )
+        )
+        request = _build_judge_request(self.pr, self.repo)
+        assert request.activity_events_dropped == 3
+        assert [event.event_type for event in request.activity] == ["opened"]
+
+    def test_judge_request_untruncated_doc_reports_zero(self) -> None:
+        PullRequestMetrics.objects.create(pull_request=self.pr)
+        self.repo.update(external_id="10270250", integration_id=99)
+        self._write_doc(
+            _doc(events=[_entry(PullRequestActivityType.OPENED, "o1", sender_login="a")])
+        )
+        request = _build_judge_request(self.pr, self.repo)
+        assert request.activity_events_dropped == 0
 
     # --- post-emit sweep --------------------------------------------------
 
