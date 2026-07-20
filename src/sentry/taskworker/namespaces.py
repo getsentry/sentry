@@ -109,13 +109,6 @@ ingest_attachments_tasks = app.taskregistry.create_namespace(
     app_feature="attachments",
 )
 
-# TODO(STREAM-1191): remove once infra has fully migrated to
-# ingest_events_raw_tasks below.
-ingest_events_passthrough_tasks = app.taskregistry.create_namespace(
-    "ingest.events.passthrough",
-    app_feature="errors",
-)
-
 ingest_events_raw_tasks = app.taskregistry.create_namespace(
     "ingest.events.raw",
     app_feature="errors",

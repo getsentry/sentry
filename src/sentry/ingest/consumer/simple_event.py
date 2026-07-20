@@ -12,7 +12,7 @@ from sentry.ingest.types import ConsumerType
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import ingest_events_passthrough_tasks, ingest_events_raw_tasks
+from sentry.taskworker.namespaces import ingest_events_raw_tasks
 from sentry.utils import metrics
 
 from .processors import IngestMessage, Retriable, process_event
@@ -82,7 +82,25 @@ def process_simple_event_message(
         raise InvalidMessage(raw_value.partition, raw_value.offset) from exc
 
 
-def _process_event_from_kafka(message_bytes: bytes) -> None:
+@instrumented_task(
+    name="sentry.ingest.consumer.simple_event.process_event_from_kafka",
+    namespace=ingest_events_raw_tasks,
+    processing_deadline_duration=150,
+    retry=Retry(times=2, delay=5, on=(Retriable,)),
+    compression_type=CompressionType.ZSTD,
+    silo_mode=SiloMode.CELL,
+)
+def process_event_from_kafka(message_bytes: bytes) -> None:
+    """Process an event from raw Kafka message bytes.
+
+    This task is directly spawned from taskbroker in "raw mode". You won't find
+    any application code that calls apply_async or delay directly on it,
+    instead taskbroker itself is configured to consume a topic (in infra
+    templates) and spawns tasks for each message.
+
+    As such, the task signature, name and namespace cannot be changed without
+    coordination.
+    """
     metrics.distribution(
         "ingest_consumer.payload_size",
         len(message_bytes),
@@ -112,56 +130,3 @@ def _process_event_from_kafka(message_bytes: bytes) -> None:
         inline_save_event=options.get(INLINE_SAVE_EVENT_OPTION),
         inline_save_event_transaction=options.get(INLINE_SAVE_EVENT_TRANSACTION_OPTION),
     )
-
-
-@instrumented_task(
-    name="sentry.ingest.consumer.simple_event.process_event_from_kafka",
-    namespace=ingest_events_passthrough_tasks,
-    processing_deadline_duration=150,
-    retry=Retry(times=2, delay=5, on=(Retriable,)),
-    compression_type=CompressionType.ZSTD,
-    silo_mode=SiloMode.CELL,
-)
-def process_event_from_kafka(message_bytes: bytes) -> None:
-    """Process an event from raw Kafka message bytes.
-
-    This task is directly spawned from taskbroker in "raw mode". You won't find
-    any application code that calls apply_async or delay directly on it,
-    instead taskbroker itself is configured to consume a topic (in infra
-    templates) and spawns tasks for each message.
-
-    As such, the task signature, name and namespace cannot be changed without
-    coordination.
-
-    This is a duplicate of `process_event_from_kafka_raw`, registered under
-    the `ingest.events.passthrough` namespace instead of `ingest.events.raw`
-    (STREAM-1191). Delete this task once infra no longer routes anything to
-    `ingest.events.passthrough`.
-    """
-    return _process_event_from_kafka(message_bytes)
-
-
-@instrumented_task(
-    name="sentry.ingest.consumer.simple_event.process_event_from_kafka_raw",
-    namespace=ingest_events_raw_tasks,
-    processing_deadline_duration=150,
-    retry=Retry(times=2, delay=5, on=(Retriable,)),
-    compression_type=CompressionType.ZSTD,
-    silo_mode=SiloMode.CELL,
-)
-def process_event_from_kafka_raw(message_bytes: bytes) -> None:
-    """Process an event from raw Kafka message bytes.
-
-    This task is directly spawned from taskbroker in "raw mode". You won't find
-    any application code that calls apply_async or delay directly on it,
-    instead taskbroker itself is configured to consume a topic (in infra
-    templates) and spawns tasks for each message.
-
-    As such, the task signature, name and namespace cannot be changed without
-    coordination.
-
-    This is a duplicate of `process_event_from_kafka`, registered under the
-    `ingest.events.raw` namespace instead of `ingest.events.passthrough`
-    (STREAM-1191).
-    """
-    return _process_event_from_kafka(message_bytes)
