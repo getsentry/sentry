@@ -110,6 +110,11 @@ def get_metric_metadata(
             params=params,
         )
     except ApiError as e:
+        # A 404 means the org lacks the (feature-gated) trace-items metrics
+        # endpoint — there are no metrics to describe, so return an empty result
+        # rather than a failure (the events-backed version degraded gracefully here).
+        if getattr(e, "status_code", None) == 404:
+            return MetricMetadataSuccessResponse(candidates=[], has_more=False)
         # Surface status + body prefix in log extras so prod flakes are debuggable
         # without a new deploy. Keep the return `error` code stable for callers.
         logger.exception(

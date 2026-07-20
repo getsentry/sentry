@@ -180,6 +180,20 @@ class TestGetMetricMetadata(TestCase):
         assert result.candidates[0].unit == "none"
 
     @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
+    def test_feature_gated_404_returns_empty(self, mock_client_cls: MagicMock) -> None:
+        # Org lacks the feature-gated metrics endpoint → empty result, not a failure.
+        mock_client = mock_client_cls.return_value
+        mock_client.get.side_effect = ApiError(404, None)
+
+        result = get_metric_metadata(
+            org_id=self.org.id,
+            project_ids=[self.project.id],
+            name_substrings=["foo"],
+        )
+
+        assert result.dict() == {"candidates": [], "has_more": False}
+
+    @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
     def test_organization_not_found_returns_error(self, mock_client_cls: MagicMock) -> None:
         mock_client = mock_client_cls.return_value
         """Missing organization must surface as an explicit error code, not a silent
