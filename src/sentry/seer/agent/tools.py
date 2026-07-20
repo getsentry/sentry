@@ -2,7 +2,7 @@ import logging
 import time
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Any, TypedDict, cast
+from typing import Any, Literal, TypedDict, cast
 
 from django.core.exceptions import BadRequest
 from django.db import models
@@ -1993,7 +1993,7 @@ def get_event_details(
     end: str | None = None,
     project_slug: str | None = None,
     format: Format | None = None,
-    format_limits: str = "default",
+    format_limits: Literal["default", "low"] = "default",
     include_breadcrumbs: bool = True,
 ) -> EventDetailsResponse | None:
     """
@@ -2007,9 +2007,14 @@ def get_event_details(
         start: ISO timestamp for the start of the time range to get recommended event for (optional).
         end: ISO timestamp for the end of the time range to get recommended event for (optional).
         project_slug: The slug of the project (optional).
+        format: When set (markdown | xml), also render the event through the shared formatter into
+            the ``formatted`` field. Requires the ``issues.standardized-markdown-for-llm`` option.
+        format_limits: Truncation profile for the rendered output ("default" or "low").
+        include_breadcrumbs: Drop the breadcrumbs section from the rendered output when False.
 
     Returns:
-        Dict with serialized event, event_id, event_trace_id, project_id, project_slug, or None if not found.
+        Dict with serialized event, event_id, event_trace_id, project_id, project_slug, and
+        formatted (rendered text when a ``format`` is requested, else None), or None if not found.
     """
     if bool(event_id) == bool(issue_id):
         raise BadRequest("Either event_id or issue_id must be provided, but not both.")

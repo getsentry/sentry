@@ -471,7 +471,7 @@ class EventDetailsResponse(_DictProxyMixin):
     event_trace_id: str | None
     project_id: int
     project_slug: str
-    # shared-formatter text, present when the RPC is called with a `format`
+    # shared-formatter text; populated when the RPC is called with a `format`, else None
     formatted: str | None = None
 
 
