@@ -7,7 +7,7 @@ from typing import Annotated, Any
 
 import sentry_sdk
 from django.utils import timezone
-from pydantic import BaseModel, Field, ValidationError, parse_raw_as, root_validator
+from pydantic import BaseModel, Field, ValidationError, root_validator
 
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteFeedbackSource,
@@ -51,24 +51,33 @@ class Feedback(BaseModel):
         return values
 
 
-def parse_feedback(raw: str) -> list[Feedback]:
+def _parse_feedback_item(data: object) -> Feedback | None:
     try:
-        return parse_raw_as(list[Feedback], raw)
+        return Feedback.parse_obj(data)
     except MissingCheckSuiteAutofixRun as e:
         # History / stored feedback that no longer resolves — drop loudly.
         logger.exception("autofix.pr_iteration.parse_feedback.missing_autofix_run")
         sentry_sdk.capture_exception(e)
-        return []
+        return None
     except _PARSE_FEEDBACK_ERRORS:
-        pass
+        return None
+
+
+def parse_feedback(raw: str) -> list[Feedback]:
     try:
-        return [parse_raw_as(Feedback, raw)]
-    except MissingCheckSuiteAutofixRun as e:
-        logger.exception("autofix.pr_iteration.parse_feedback.missing_autofix_run")
-        sentry_sdk.capture_exception(e)
+        data = json.loads(raw)
+    except (TypeError, ValueError):
         return []
-    except _PARSE_FEEDBACK_ERRORS:
-        return []
+
+    if isinstance(data, list):
+        # Parse item-by-item so one bad element (e.g. unresolvable check-suite)
+        # cannot erase sibling comment/UI feedback in the same metadata blob.
+        return [
+            item for item in (_parse_feedback_item(entry) for entry in data) if item is not None
+        ]
+
+    item = _parse_feedback_item(data)
+    return [item] if item is not None else []
 
 
 def serialize_feedback(items: Sequence[Feedback]) -> str:

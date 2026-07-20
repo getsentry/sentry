@@ -203,6 +203,50 @@ class ParseSerializeFeedbackTest(TestCase):
         mock_capture.assert_called_once()
         assert isinstance(mock_capture.call_args.args[0], MissingCheckSuiteAutofixRun)
 
+    @patch("sentry.seer.autofix.pr_iteration.feedback.sentry_sdk.capture_exception")
+    @patch(
+        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
+        return_value=None,
+    )
+    def test_missing_autofix_run_skips_item_keeps_siblings(
+        self, _mock_resolve: MagicMock, mock_capture: MagicMock
+    ) -> None:
+        # One unresolvable check-suite must not erase sibling feedback in the
+        # same serialized list (hard-cap / comment / attempt dedupe rely on it).
+        raw = json.dumps(
+            [
+                {
+                    "source": {
+                        "type": "user-ui",
+                        "user_id": 7,
+                        "user_feedback": "keep me",
+                    }
+                },
+                {
+                    "source": {
+                        "type": "check-suite",
+                        "event": _check_suite_event(),
+                    }
+                },
+                {
+                    "source": {
+                        "type": "github-pr-comment",
+                        "comment": {"id": 99, "body": "@sentry also keep"},
+                    }
+                },
+            ]
+        )
+
+        parsed = parse_feedback(raw)
+
+        assert len(parsed) == 2
+        assert isinstance(parsed[0].source, UserUIFeedbackSource)
+        assert parsed[0].text == "keep me"
+        assert isinstance(parsed[1].source, GithubPrCommentFeedbackSource)
+        assert parsed[1].text == "also keep"
+        mock_capture.assert_called_once()
+        assert isinstance(mock_capture.call_args.args[0], MissingCheckSuiteAutofixRun)
+
     @patch(
         f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
         return_value=_autofix_run(),
