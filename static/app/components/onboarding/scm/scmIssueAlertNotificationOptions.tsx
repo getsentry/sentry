@@ -15,6 +15,7 @@ import {
   useIssueAlertNotificationOptions,
 } from 'sentry/views/projectInstall/issueAlertNotificationOptions';
 
+import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
 import {ScmCollapsibleReveal} from './scmCollapsibleReveal';
 import {ScmMessagingIntegrationAlertRule} from './scmMessagingIntegrationAlertRule';
 
@@ -25,7 +26,11 @@ import {ScmMessagingIntegrationAlertRule} from './scmMessagingIntegrationAlertRu
  * renders the messaging rule stacked (`ScmMessagingIntegrationAlertRule`)
  * instead of the classic inline card.
  */
-export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationProps) {
+type Props = IssueAlertNotificationProps & {
+  analyticsFlow: ScmAnalyticsFlow;
+};
+
+export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Props) {
   const {actions, setActions} = props;
   const {querySuccess, shouldRenderNotificationConfigs, shouldRenderSetupButton} =
     useIssueAlertNotificationOptions(props);
@@ -73,7 +78,12 @@ export function ScmIssueAlertNotificationOptions(props: IssueAlertNotificationPr
       </Stack>
       {shouldRenderSetupButton && (
         <SetupMessagingIntegrationButton
-          analyticsView={MessagingIntegrationAnalyticsView.PROJECT_CREATION}
+          analyticsView={
+            analyticsFlow === 'project-creation'
+              ? MessagingIntegrationAnalyticsView.PROJECT_CREATION
+              : MessagingIntegrationAnalyticsView.ONBOARDING
+          }
+          variant="scm"
         />
       )}
     </Stack>

@@ -212,6 +212,7 @@ export function ScmIntegrationConnect({
         />
         {allowIntegrationSwitching ? (
           <ScmIntegrationSelect
+            analyticsFlow={analyticsFlow}
             integrations={activeIntegrations}
             selectedIntegration={effectiveIntegration}
             onChange={handleIntegrationSelect}
