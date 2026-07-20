@@ -129,7 +129,7 @@ def user_project_ownership(ctx: OrganizationReportContext) -> None:
             ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
 
-_KEY_ERROR_ISSUES_CHUNK_SIZE = 100
+_KEY_ERROR_ISSUES_CHUNK_SIZE = 25
 
 
 def _org_key_error_issues_chunk(
