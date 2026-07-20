@@ -29,8 +29,7 @@ def get_regression_blocks(data: ActivityNotificationData) -> list[NotificationTe
         raw_version = data.activity_data["version"]
         readable_version = parse_release(raw_version, json_loads=orjson.loads)["description"]
         return [
-            PlainTextBlock(text="has regressed in release"),
-            PlainTextBlock(text=f"{readable_version or raw_version}."),
+            PlainTextBlock(text=f"has regressed in release {readable_version}."),
         ]
     return [PlainTextBlock(text="has regressed.")]
 
