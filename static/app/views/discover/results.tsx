@@ -1576,6 +1576,9 @@ export default function ResultsContainer() {
   const location = useLocation();
   const navigate = useNavigate();
   const {addAlert} = useGlobalAlerts();
+  const maxPickableDays = useMaxPickableDays({
+    dataCategories: [DataCategory.ERRORS],
+  });
 
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API
@@ -1592,6 +1595,9 @@ export default function ResultsContainer() {
     <PageFiltersContainer
       disablePersistence={
         organization.features.includes('discover-query') && !!location.query.id
+      }
+      maxPickableDays={
+        getDiscoverDeprecation(organization) ? maxPickableDays.maxPickableDays : undefined
       }
       skipLoadLastUsed={false}
       // The Discover Results component will manage URL params, including page filters state
