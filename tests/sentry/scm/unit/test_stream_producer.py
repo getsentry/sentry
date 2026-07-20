@@ -3,6 +3,7 @@ import msgspec
 from fixtures.github import PULL_REQUEST_OPENED_EVENT_EXAMPLE
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.scm.types import SubscriptionEvent
+from sentry.utils.arroyo_producer import ProducerClosedError
 
 
 def test_produce_to_scm_stream() -> None:
@@ -90,6 +91,46 @@ def test_produce_to_scm_stream_invalid_payload() -> None:
     assert metrics == [
         ("sentry.scm.produce_event_to_scm_stream.failed", 1, {"reason": "processing"})
     ]
+
+
+def test_produce_to_scm_stream_producer_closed() -> None:
+    # When the Kafka producer is shut down during a rolling deployment,
+    # produce_to_listener raises ProducerClosedError. This must be recorded
+    # as a metric but must NOT be reported to Sentry as an error.
+    metrics = []
+    reported_exception = None
+
+    def record_count(k, a, t):
+        metrics.append((k, a, t))
+
+    def report_error(e):
+        nonlocal reported_exception
+        reported_exception = e
+
+    event: SubscriptionEvent = {
+        "event": PULL_REQUEST_OPENED_EVENT_EXAMPLE.decode("utf-8"),
+        "event_type_hint": "pull_request",
+        "extra": {},
+        "received_at": 0,
+        "sentry_meta": [],
+        "type": "github",
+    }
+    def raise_producer_closed(listener_name, message, event_type_hint, silo):
+        raise ProducerClosedError("shutdown")
+
+    produce_event_to_scm_stream(
+        event,
+        "control",
+        produce_to_listener=raise_producer_closed,
+        record_count=record_count,
+        report_error=report_error,
+        rollout_enabled=lambda _: True,
+    )
+
+    # Must record a metric for observability.
+    assert metrics == [("sentry.scm.produce_event_to_scm_stream.failed", 1, {"reason": "producer-closed"})]
+    # Must NOT report to Sentry — this is expected during shutdown.
+    assert reported_exception is None
 
 
 def test_produce_to_scm_stream_rollout_disabled() -> None:

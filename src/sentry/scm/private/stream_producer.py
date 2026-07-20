@@ -6,6 +6,7 @@ from sentry.scm.private.helpers import record_count_metric, report_error_to_sent
 from sentry.scm.private.ipc import PRODUCE_TO_LISTENER, produce_to_listener, produce_to_listeners
 from sentry.scm.types import HybridCloudSilo, SubscriptionEvent
 from sentry.scm.utils import check_rollout_option
+from sentry.utils.arroyo_producer import ProducerClosedError
 
 logger = logging.getLogger("sentry.scm")
 PREFIX = "sentry.scm.produce_event_to_scm_stream"
@@ -37,6 +38,15 @@ def produce_event_to_scm_stream(
         record_count(f"{PREFIX}.success", 1, {})
         if is_dev:
             logger.info(f"Successfully processed SCM webhook event: {event['event_type_hint']}.")
+    except ProducerClosedError:
+        # The Kafka producer was shut down while this request was still in flight.
+        # This is expected during rolling deployments when Granian starts draining
+        # connections and the atexit handler closes the producer before all webhook
+        # handlers finish. Record a metric but do not report to Sentry — this is
+        # not an actionable error.
+        record_count(f"{PREFIX}.failed", 1, {"reason": "producer-closed"})
+        if is_dev:
+            logger.warning("SCM webhook event dropped: Kafka producer shut down (process shutting down).")
     except SCMProviderNotSupported:
         record_count(
             f"{PREFIX}.failed", 1, {"reason": "provider-not-supported", "provider": event["type"]}

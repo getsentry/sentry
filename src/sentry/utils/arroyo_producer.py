@@ -16,6 +16,16 @@ from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_to
 _ProducerFuture = ProducerFuture[BrokerValue[KafkaPayload]]
 
 
+class ProducerClosedError(Exception):
+    """Raised when produce() is called after the SingletonProducer has been shut down.
+
+    During rolling deployments the process atexit handler closes the underlying
+    Kafka producer while in-flight requests may still try to dispatch tasks.
+    Callers that expect this during shutdown should catch this exception
+    separately from unexpected errors so it is not reported to Sentry.
+    """
+
+
 class SingletonProducer:
     """
     A Kafka producer that can be instantiated as a global
@@ -32,6 +42,7 @@ class SingletonProducer:
         self._factory = kafka_producer_factory
         self._futures: deque[_ProducerFuture] = deque()
         self.max_futures = max_futures
+        self._closed = False
 
         # This fixes a shutdown-ordering bug with OutcomeAggregator, which
         # flushes buffered outcomes into a producer from its own atexit handler.
@@ -46,7 +57,20 @@ class SingletonProducer:
     def produce(
         self, destination: ArroyoTopic | Partition, payload: KafkaPayload
     ) -> _ProducerFuture:
-        future = self._get().produce(destination, payload)
+        # Fast path: check the closed flag before attempting to produce.
+        # _shutdown() sets this flag before closing the underlying producer,
+        # so we can detect the common case without catching a RuntimeError.
+        if self._closed:
+            raise ProducerClosedError("SingletonProducer has been shut down")
+        try:
+            future = self._get().produce(destination, payload)
+        except RuntimeError as e:
+            # Handle the race condition where _shutdown() closed the producer
+            # between our flag check above and the actual produce() call.
+            # Arroyo raises RuntimeError("producer has been closed") in this case.
+            if "producer has been closed" in str(e):
+                raise ProducerClosedError("SingletonProducer has been shut down") from e
+            raise
         self._track_futures(future)
         return future
 
@@ -67,6 +91,11 @@ class SingletonProducer:
                 future.result()
 
     def _shutdown(self) -> None:
+        # Mark as closed before flushing/closing so that concurrent produce()
+        # calls made on other threads see the flag and raise ProducerClosedError
+        # instead of hitting a RuntimeError from the underlying Kafka producer.
+        self._closed = True
+
         for future in self._futures:
             try:
                 future.result()
