@@ -51,9 +51,7 @@ class ActivityType(Enum):
     PULL_REQUEST_UNLINKED = 41
     TRIGGER_AUTOFIX = 42
 
-    # A smart-assignment run finished and delivered its verdict. Not part of the
-    # SEER_* autofix progress lifecycle -- it's an internal signal that drives
-    # scoring/auto-assignment, so it deliberately omits the SEER_ prefix.
+    # A smart-assignment run finished and delivered its verdict.
     SMART_ASSIGNMENT_COMPLETED = 43
 
 

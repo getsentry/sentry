@@ -1,14 +1,3 @@
-"""Delivery handler for smart_assignment feature results from Seer.
-
-Seer pushes the `AssigneeVerdict` artifact back via the `deliver_feature_result`
-RPC, routed here by feature_id (see `sentry.seer.agent.feature_delivery`). Seer is
-the system of record for the verdict itself; here we resolve the ranked candidates to
-Sentry users and record a `SMART_ASSIGNMENT_COMPLETED` activity (pointing back at the
-run) carrying those resolved picks, then emit a delivery outcome metric. Acting on
-the verdict -- scoring it and auto-assigning -- happens independently off that activity
-(see `completion`), so this handler stays a thin resolve-and-record step.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -32,13 +21,6 @@ def _resolve_identifier_to_user_id(
 ) -> int | None:
     """Map an agent-produced `identifier` to a Sentry user id in the org.
 
-    The agent tags each pick with `identifier_kind` (see the `RankedCandidate`
-    contract on the Seer side) so we resolve deterministically instead of inferring
-    the type from the string:
-      - "email":    verified org email (the RPC already scopes to the org).
-      - "username": unique username, confirmed to be an org member so a global match
-                    can't attribute a prediction to someone outside the org.
-    `kind` is a validated Literal by the time it gets here, so this doesn't guess.
     Returns None when the agent named no one or the identifier maps to no org user.
     """
     if not identifier:
@@ -55,10 +37,7 @@ def _resolve_identifier_to_user_id(
         return users[0].id if users else None
 
     if kind == "username":
-        # with_valid_password=False: this is identity resolution, not authentication.
-        # The default excludes users whose password is "!" (SSO-only / no-password
-        # accounts), which would silently drop valid org members and mislabel the
-        # prediction as "unlinked". Org scoping is enforced by the membership check below.
+        # use with_value_password=False to include SSO-only users
         users = user_service.get_by_username(
             username=value, with_valid_password=False, is_active=True
         )
@@ -128,10 +107,7 @@ def deliver_smart_assignment_result(
         logger.warning("smart_assignment.delivery.invalid_result", extra=log_extra)
         return
 
-    # Resolve every ranked candidate (best-first) to a Sentry user id so scoring can
-    # grade the top pick and also see where the eventual assignee placed in the list
-    # (its hit_rank). None marks a position we couldn't map to an org user, preserving
-    # each candidate's rank; the raw verdict itself is still queryable on the Seer run.
+    # Resolve every ranked candidate to a Sentry user, best-first.
     predicted_assignee_user_ids = [
         _resolve_identifier_to_user_id(
             organization_id, candidate.identifier, candidate.identifier_kind
@@ -149,11 +125,8 @@ def deliver_smart_assignment_result(
     # A Seer retry or redelivery re-invokes this handler for the same run. The completion
     # activity is this feature's system of record, and creating it re-runs scoring/
     # auto-assignment via the workflow handlers, so skip if we already recorded one for
-    # this run. Activity carries no unique constraint, so this is a best-effort pre-check
-    # keyed on the run (like night_shift's recorded-rows check) rather than a DB guard;
-    # it covers sequential redelivery but not a concurrent-redelivery race. `data` is a
-    # text-backed JSON field (not queryable via a JSON path), so match run_id in Python
-    # over the handful of completion activities a group can accumulate.
+    # this run. Activity carries no unique constraint, so this is a best-effort pre-check;
+    # it covers sequential redelivery but not a concurrent-redelivery race.
     already_recorded = any(
         (activity.data or {}).get("run_id") == agent_run.id
         for activity in Activity.objects.filter(
@@ -168,7 +141,7 @@ def deliver_smart_assignment_result(
     # Hand the resolved verdict off to the completion path via an activity that points
     # back at this run. Creating it invokes the workflow activity handlers, which score
     # the prediction (completing the pair now if ground truth already landed) and
-    # auto-assign as needed -- kept out of this RPC handler on purpose.
+    # auto-assign as needed.
     Activity.objects.create_group_activity(
         group,
         ActivityType.SMART_ASSIGNMENT_COMPLETED,
