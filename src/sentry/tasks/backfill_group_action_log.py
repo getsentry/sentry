@@ -266,7 +266,6 @@ def _backfill_project(
                 BACKFILL_ACTIVITY_SOURCE,
                 json.dumps(action.dict()),
                 activity.datetime,
-                activity.datetime,  # date_updated
                 activity_action_idempotency_key(activity),
             ]
         )

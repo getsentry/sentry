@@ -73,9 +73,6 @@ from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
-from sentry.seer.agent.client import (
-    get_monitoring_provider_connections as fetch_monitoring_provider_connections,
-)
 from sentry.seer.agent.context_engine_utils import get_instrumentation_types
 from sentry.seer.agent.custom_tool_utils import call_custom_tool
 from sentry.seer.agent.feature_delivery import DELIVERY_HANDLERS, FeatureRunStatus
@@ -84,6 +81,9 @@ from sentry.seer.agent.index_data import (
     rpc_get_profiles_for_trace,
     rpc_get_trace_for_transaction,
     rpc_get_transactions_for_project,
+)
+from sentry.seer.agent.monitoring_providers import (
+    get_monitoring_provider_connections as fetch_monitoring_provider_connections,
 )
 from sentry.seer.agent.on_completion_hook import call_on_completion_hook
 from sentry.seer.agent.tools import (

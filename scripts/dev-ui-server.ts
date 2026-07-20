@@ -31,6 +31,12 @@ function startServer(port: number): void {
     env: {...process.env, SENTRY_WEBPACK_PROXY_PORT: String(port)},
     stdio: 'inherit',
   });
+
+  // SIGINT is delivered to both this wrapper and rspack because they share a
+  // foreground process group. Keep the wrapper alive while rspack performs its
+  // graceful shutdown so the shell does not reclaim the terminal too early.
+  process.on('SIGINT', () => {});
+
   child.on('close', code => process.exit(code ?? 0));
 }
 

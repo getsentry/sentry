@@ -1,7 +1,7 @@
 import {EventOrGroupType, type Event} from 'sentry/types/event';
 import type {EventsStats} from 'sentry/types/organization';
 
-export function EventsStatsFixture(params = {}): EventsStats {
+export function EventsStatsFixture(params: Partial<EventsStats> = {}): EventsStats {
   return {
     data: [
       [Date.now(), [{count: 321}, {count: 79}]],
