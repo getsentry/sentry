@@ -129,7 +129,7 @@ def user_project_ownership(ctx: OrganizationReportContext) -> None:
             ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
 
-_KEY_ERROR_ISSUES_CHUNK_SIZE = 100
+_KEY_ERROR_ISSUES_PROJECT_CHUNK_SIZE = 25
 
 
 def _org_key_error_issues_chunk(
@@ -210,8 +210,8 @@ def org_key_error_issues(
             return {}
 
         results: dict[int, list[dict[str, Any]]] = {}
-        for i in range(0, len(project_ids), _KEY_ERROR_ISSUES_CHUNK_SIZE):
-            chunk = project_ids[i : i + _KEY_ERROR_ISSUES_CHUNK_SIZE]
+        for i in range(0, len(project_ids), _KEY_ERROR_ISSUES_PROJECT_CHUNK_SIZE):
+            chunk = project_ids[i : i + _KEY_ERROR_ISSUES_PROJECT_CHUNK_SIZE]
             chunk_results = _org_key_error_issues_chunk(ctx, chunk, referrer, per_project_limit)
             results.update(chunk_results)
 
