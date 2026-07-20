@@ -6,15 +6,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ProgressRing} from 'sentry/components/progressRing';
-import {
-  IconBug,
-  IconCircleCheckmark,
-  IconCode,
-  IconList,
-  IconMerge,
-  IconPullRequest,
-} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import {IconCircleCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import type {AutofixOutcome, OverviewRow} from './types';
@@ -26,16 +18,11 @@ const STEP_ORDER: AutofixOutcome[] = [
   'pr_opened',
 ];
 
-// Same icon vocabulary as the Seer drawer's v3 cards, so the glyph on the
-// card matches the section the user lands on after clicking through.
-const STEP_META: Record<
-  AutofixOutcome,
-  {Icon: React.ComponentType<SVGIconProps>; label: string}
-> = {
-  root_cause: {Icon: IconBug, label: t('Root cause')},
-  solution: {Icon: IconList, label: t('Plan')},
-  code_changes: {Icon: IconCode, label: t('Code changes')},
-  pr_opened: {Icon: IconPullRequest, label: t('PR opened')},
+const STEP_LABELS: Record<AutofixOutcome, string> = {
+  root_cause: t('Root cause'),
+  solution: t('Plan'),
+  code_changes: t('Code changes'),
+  pr_opened: t('PR opened'),
 };
 
 // The pipeline is five steps with merge as the finale, so the progress
@@ -81,7 +68,7 @@ function StepChecklist({
   return (
     <Stack gap="2xs" align="stretch">
       {STEP_ORDER.map((step, index) => {
-        const {label} = STEP_META[step];
+        const label = STEP_LABELS[step];
         if (index === fill - 1 && statusWord && !merged) {
           return (
             <Text key={step} size="xs" bold variant={variant} align="left">
@@ -121,11 +108,11 @@ function StepChecklist({
 }
 
 /**
- * Where the run is in the autofix pipeline, as a two-glyph unit: a progress
- * ring filled a fifth per step and a step icon for which step that is,
- * tinted by run status. Replaces the issue-level line the cards used to
- * open with — on this page every card is a Seer run, so the run's progress
- * is the fact worth a glance, not the issue's level.
+ * Where the run is in the autofix pipeline: a progress ring filled a fifth
+ * per step, tinted by run status, with the step checklist in its tooltip.
+ * Replaces the issue-level line the cards used to open with — on this page
+ * every card is a Seer run, so the run's progress is the fact worth a
+ * glance, not the issue's level.
  */
 export function StepIndicator({row}: {row: OverviewRow}) {
   const theme = useTheme();
@@ -165,8 +152,7 @@ export function StepIndicator({row}: {row: OverviewRow}) {
   // empty run that's running is by definition on the first step.
   const currentStep = furthest ?? (row.isProcessing ? 'root_cause' : undefined);
 
-  const StepIcon = row.prMerged ? IconMerge : currentStep && STEP_META[currentStep].Icon;
-  const stepLabel = currentStep ? STEP_META[currentStep].label : undefined;
+  const stepLabel = currentStep ? STEP_LABELS[currentStep] : undefined;
 
   const ariaLabel = row.prMerged
     ? t('Autofix progress: 5 of 5 steps — PR merged')
@@ -175,6 +161,18 @@ export function StepIndicator({row}: {row: OverviewRow}) {
         ? t('Autofix progress: %s of 5 steps — %s (%s)', fill, stepLabel, statusWord)
         : t('Autofix progress: %s of 5 steps — %s', fill, stepLabel)
       : t('Autofix progress: no steps completed');
+
+  const ring = (
+    <ProgressRing
+      value={fill}
+      maxValue={TOTAL_STEPS}
+      size={RING_SIZE}
+      barWidth={RING_BAR_WIDTH}
+      progressColor={ringColor}
+      progressEndcaps="round"
+      aria-hidden
+    />
+  );
 
   return (
     <Tooltip
@@ -188,30 +186,14 @@ export function StepIndicator({row}: {row: OverviewRow}) {
       }
       skipWrapper
     >
-      {/* Tighter gap inside the pair than between the pair and the title,
-          so the two glyphs read as one unit rather than three loose marks. */}
-      <Flex gap="xs" align="center" flexShrink={0} role="img" aria-label={ariaLabel}>
+      <Flex align="center" flexShrink={0} role="img" aria-label={ariaLabel}>
         {row.prMerged ? (
           <IconCircleCheckmark size="sm" variant="success" aria-hidden />
+        ) : row.isProcessing ? (
+          <PulseSpan>{ring}</PulseSpan>
         ) : (
-          <ProgressRing
-            value={fill}
-            maxValue={TOTAL_STEPS}
-            size={RING_SIZE}
-            barWidth={RING_BAR_WIDTH}
-            progressColor={ringColor}
-            progressEndcaps="round"
-            aria-hidden
-          />
+          ring
         )}
-        {StepIcon &&
-          (row.isProcessing ? (
-            <PulseSpan>
-              <StepIcon size="sm" variant={variant} aria-hidden />
-            </PulseSpan>
-          ) : (
-            <StepIcon size="sm" variant={variant} aria-hidden />
-          ))}
       </Flex>
     </Tooltip>
   );
