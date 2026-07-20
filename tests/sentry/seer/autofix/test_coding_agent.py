@@ -374,6 +374,7 @@ class TestPollGithubCopilotAgents(TestCase):
             pr_url="https://github.com/getsentry/sentry/pull/12345",
             agent_id="getsentry:sentry:task-123",
             run_id=self.run_id,
+            group_ids=[1],
         )
 
         call_kwargs = mock_sync_status.call_args.kwargs
@@ -930,6 +931,7 @@ class TestPollClaudeCodeAgents(TestCase):
             pr_url="https://github.com/getsentry/sentry/pull/999",
             agent_id="claude-session-123",
             run_id=self.run_id,
+            group_ids=[1],
         )
 
         call_kwargs = mock_sync_status.call_args.kwargs

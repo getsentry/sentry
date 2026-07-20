@@ -1340,6 +1340,7 @@ def _send_seer_delegated_agent_match(
             agent_id=match.agent_id,
             pr_url=request_body.pr_url,
             run_id=match.run_id,
+            group_ids=request_body.group_ids,
         ).dict(),
     )
     _record_delegated_candidate(provider_hint, "sync_matched")

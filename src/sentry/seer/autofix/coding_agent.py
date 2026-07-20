@@ -145,6 +145,7 @@ def poll_github_copilot_agents(
     coding_agents: dict[str, Any] | None = None,
     organization_id: int = 0,
     run_id: int | None = None,
+    group_id: int | None = None,
 ) -> None:
     agents = coding_agents or (autofix_state.coding_agents if autofix_state else None)
     if not agents:
@@ -156,6 +157,11 @@ def poll_github_copilot_agents(
         autofix_state.request.organization_id if autofix_state else 0
     )
     run_id = run_id if run_id is not None else (autofix_state.run_id if autofix_state else None)
+    group_id = (
+        group_id
+        if group_id is not None
+        else (autofix_state.request.issue["id"] if autofix_state else None)
+    )
 
     user_access_token: str | None = None
 
@@ -279,6 +285,7 @@ def poll_github_copilot_agents(
                             pr_url=pr_url,
                             agent_id=agent_id,
                             run_id=run_id,
+                            group_ids=[group_id] if group_id is not None else None,
                         )
                     except Exception:
                         logger.exception(
@@ -309,6 +316,7 @@ def poll_claude_code_agents(
     organization_id: int | None = None,
     coding_agents: dict[str, Any] | None = None,
     run_id: int | None = None,
+    group_id: int | None = None,
 ) -> None:
     """
     Poll Claude Code Agent sessions for status updates.
@@ -333,13 +341,23 @@ def poll_claude_code_agents(
     clients: dict[int, Any] = {}
 
     run_id = run_id if run_id is not None else (autofix_state.run_id if autofix_state else None)
+    group_id = (
+        group_id
+        if group_id is not None
+        else (autofix_state.request.issue["id"] if autofix_state else None)
+    )
 
     for agent_id, agent_state in agents.items():
-        poll_claude_agent(clients, agent_id, org_id, agent_state, run_id=run_id)
+        poll_claude_agent(clients, agent_id, org_id, agent_state, run_id=run_id, group_id=group_id)
 
 
 def poll_claude_agent(
-    clients, agent_id, org_id, agent_state: CodingAgentState, run_id: int | None = None
+    clients,
+    agent_id,
+    org_id,
+    agent_state: CodingAgentState,
+    run_id: int | None = None,
+    group_id: int | None = None,
 ) -> None:
     if agent_state.provider != CodingAgentProviderType.CLAUDE_CODE_AGENT:
         return
@@ -388,6 +406,7 @@ def poll_claude_agent(
                         pr_url=result.pr_url,
                         agent_id=agent_id,
                         run_id=run_id,
+                        group_ids=[group_id] if group_id is not None else None,
                     )
                 except Exception:
                     logger.exception(
