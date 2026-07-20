@@ -309,7 +309,7 @@ def contexts_section(model: EventObject, fmt: Formatter, limits: Limits) -> str:
             groups.append("\n".join([name, *fields]))
     if not groups:
         return ""
-    return fmt.block("Contexts", "\n\n".join(groups))
+    return fmt.block("Contexts", _truncate("\n\n".join(groups), limits.max_contexts_chars))
 
 
 # every section in render order, including the user identifiers that ``EVENT_SECTIONS`` holds
