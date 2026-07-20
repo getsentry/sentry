@@ -27,6 +27,10 @@ import e18e from '@e18e/eslint-plugin';
  */
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
+// eslint-disable-next-line boundaries/dependencies
+import * as sentryScrapsPlugin from '@sentry-internal/eslint-plugin-scraps';
+// eslint-disable-next-line boundaries/dependencies
+import * as sentryPlugin from '@sentry-internal/eslint-plugin-sentry';
 import pluginQuery from '@tanstack/eslint-plugin-query';
 import prettier from 'eslint-config-prettier';
 import boundaries from 'eslint-plugin-boundaries';
@@ -47,11 +51,6 @@ import {globalIgnores} from 'eslint/config';
 import globals from 'globals';
 import invariant from 'invariant';
 import typescript from 'typescript-eslint';
-
-// eslint-disable-next-line boundaries/dependencies
-import * as sentryScrapsPlugin from './static/eslint/eslintPluginScraps/index';
-// eslint-disable-next-line boundaries/dependencies
-import * as sentryPlugin from './static/eslint/eslintPluginSentry/index';
 
 invariant(react.configs.flat, 'For typescript');
 invariant(react.configs.flat.recommended, 'For typescript');
