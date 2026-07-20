@@ -38,12 +38,13 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
 
 
-def _least_privileged_scope(allowed_scopes: set[str]) -> str:
-    for scope in sorted(allowed_scopes):
+def _least_privileged_scope(allowed_scopes: set[str]) -> str | None:
+    grantable_scopes = allowed_scopes - settings.SENTRY_TOKEN_ONLY_SCOPES
+    for scope in sorted(grantable_scopes):
         implied = set(settings.SENTRY_SCOPE_HIERARCHY_MAPPING.get(scope, ()))
-        if not implied.intersection(allowed_scopes - {scope}):
+        if not implied.intersection(grantable_scopes - {scope}):
             return scope
-    return min(allowed_scopes)
+    return min(grantable_scopes) if grantable_scopes else None
 
 
 class RelayPermission(BasePermission):
@@ -141,8 +142,10 @@ class ScopedPermission(BasePermission):
             # the method, e.g. an unset scope_map entry, to avoid an empty challenge.)
             required_scopes: set[str] = allowed_scopes
             if agent_token.is_agent_auth(request.auth):
-                required_scopes = {_least_privileged_scope(allowed_scopes)}
-            setattr(request, INSUFFICIENT_SCOPE_ATTR, required_scopes)
+                required_scope = _least_privileged_scope(allowed_scopes)
+                required_scopes = {required_scope} if required_scope is not None else set()
+            if required_scopes:
+                setattr(request, INSUFFICIENT_SCOPE_ATTR, required_scopes)
         return False
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:

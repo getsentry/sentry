@@ -132,6 +132,7 @@ def create_write_grant(
     expiry, creating it if absent. The caller MUST have already capped ``scopes`` to the
     approving user's own authority. The unique constraint plus row lock keep concurrent
     approvals from racing."""
+    now = timezone.now()
     with transaction.atomic(using=router.db_for_write(SeerAgentWriteGrant)):
         grant, created = SeerAgentWriteGrant.objects.select_for_update().get_or_create(
             organization_id=organization_id,
@@ -139,11 +140,12 @@ def create_write_grant(
             agent_session_id=session_id,
             defaults={
                 "scope_list": sorted(scopes),
-                "expires_at": timezone.now() + DEFAULT_EXPIRATION,
+                "expires_at": now + DEFAULT_EXPIRATION,
             },
         )
         if not created:
-            grant.scope_list = sorted(set(grant.get_scopes()) | set(scopes))
-            grant.expires_at = timezone.now() + DEFAULT_EXPIRATION
+            previous_scopes = set() if grant.expires_at <= now else set(grant.get_scopes())
+            grant.scope_list = sorted(previous_scopes | set(scopes))
+            grant.expires_at = now + DEFAULT_EXPIRATION
             grant.save(update_fields=["scope_list", "expires_at", "date_updated"])
     return grant

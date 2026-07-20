@@ -256,3 +256,20 @@ class AgentTokenAuthAndGateTest(TestCase):
             "org:write"
         }
         assert agent_token.active_grant_scopes(self.org.id, self.owner.id, "expired") == set()
+
+    def test_reapproving_expired_grant_does_not_revive_old_scopes(self) -> None:
+        grant = self._grant(
+            session_id="expired",
+            scopes=["org:admin"],
+            expires_at=timezone.now() - timedelta(hours=1),
+        )
+
+        renewed = agent_token.create_write_grant(
+            organization_id=self.org.id,
+            user_id=self.owner.id,
+            session_id="expired",
+            scopes=["org:write"],
+        )
+
+        assert renewed.id == grant.id
+        assert renewed.get_scopes() == ["org:write"]
