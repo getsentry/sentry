@@ -29,8 +29,10 @@ from sentry.dynamic_sampling.per_org.queries import (
     get_eap_transaction_volumes,
 )
 from sentry.dynamic_sampling.per_org.telemetry import (
+    PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC,
     SCHEDULER_BUCKET_ORG_STATUS_METRIC,
     DynamicSamplingStatus,
+    emit_count,
     emit_status,
     track_dynamic_sampling,
 )
@@ -93,6 +95,13 @@ def run_calculations_per_org_task(org_id: OrganizationId) -> DynamicSamplingStat
     # run_transaction_balancing skips projects at a 100% rate (legacy parity), so their
     # transaction volumes are never used — leave them out of the query.
     sample_rates = config.get_project_sample_rates()
+    # Emitted once per org per scheduler cycle, so summing over one CYCLE_DURATION
+    # window yields the total number of projects sampled below 100%.
+    projects_below_full_sample_rate = sum(
+        1 for sample_rate in sample_rates.values() if sample_rate is not None and sample_rate < 1.0
+    )
+    if projects_below_full_sample_rate:
+        emit_count(PROJECTS_BELOW_FULL_SAMPLE_RATE_METRIC, projects_below_full_sample_rate)
     projects_to_balance = [
         project for project in config.projects if sample_rates.get(project.id) != 1.0
     ]
