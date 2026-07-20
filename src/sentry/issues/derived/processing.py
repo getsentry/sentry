@@ -6,7 +6,8 @@ from typing import NamedTuple
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, router, transaction
-from django.db.models import Max, Q
+from django.db.models import Q
+from django.utils import timezone
 
 from sentry import options
 from sentry.issues.derived.aggregators import AGGREGATORS
@@ -27,11 +28,11 @@ DEFAULT_BATCH_SIZE = 1000
 INLINE_BATCH_SIZE = 100
 
 # Fields that constitute the derived state, written by promote_to_live.
-# Derived by excluding identity and metadata fields from the model — new
-# columns are automatically included unless explicitly excluded here.
-_IDENTITY_FIELDS = frozenset({"id", "group_id", "date_added", "date_updated"})
+# Derived by excluding identity, control, and auto-managed fields from the
+# model — new columns are automatically included unless explicitly excluded.
+_EXCLUDED_FIELDS = frozenset({"id", "group_id", "invalidated_at", "date_added", "date_updated"})
 _STATE_FIELDS = tuple(
-    f.attname for f in GroupDerivedData._meta.concrete_fields if f.attname not in _IDENTITY_FIELDS
+    f.attname for f in GroupDerivedData._meta.concrete_fields if f.attname not in _EXCLUDED_FIELDS
 )
 
 
@@ -39,13 +40,13 @@ class RebuildId(NamedTuple):
     """Uniquely identifies a rebuild attempt for a group."""
 
     group_id: int
-    generation_id: int
+    invalidated_at: str  # ISO timestamp or "deleted" for hard-delete rebuilds
     pipeline_hash: str
 
 
 # Cache for in-progress rebuild state.
 _rebuild_cache = CacheMapping[RebuildId, GroupDerivedData](
-    lambda k: f"{k.group_id}:{k.generation_id}:{k.pipeline_hash}",
+    lambda k: f"{k.group_id}:{k.invalidated_at}:{k.pipeline_hash}",
     namespace="gdd-rebuild",
     ttl_seconds=86400,
 )
@@ -77,11 +78,9 @@ def _ensure_derived(group_id: int, pipeline_hash: str) -> GroupDerivedData | Non
     if not Group.objects.filter(id=group_id).exists():
         raise Group.DoesNotExist(f"Group {group_id} does not exist")
 
-    generation_id = _current_generation_id(group_id)
     derived, _created = GroupDerivedData.objects.get_or_create(
         group_id=group_id,
         defaults={
-            "generation_id": generation_id,
             "cursor_date": EPOCH,
             "cursor_id": 0,
             "data": {},
@@ -117,9 +116,10 @@ def _process_batch(
 
     When *persist* is True (default), the update is written to the database
     with an optimistic concurrency guard that ensures the row's identity,
-    generation, pipeline version, and cursor position haven't changed since
-    we read it. If the guard fails (a concurrent writer or rebuild advanced
-    the row), we refresh from the database and check for remaining work.
+    invalidation state, pipeline version, and cursor position haven't
+    changed since we read it. If the guard fails (a concurrent writer or
+    rebuild advanced the row), we refresh from the database and check for
+    remaining work.
 
     When *persist* is False, only the in-memory object is updated — the
     caller is responsible for persisting the result (e.g. via
@@ -146,13 +146,12 @@ def _process_batch(
         return len(entries) == batch_size
 
     updated = GroupDerivedData.objects.filter(
-        Q(id=derived.id, generation_id=derived.generation_id)
+        Q(id=derived.id, invalidated_at=derived.invalidated_at)
         & (Q(cursor_date__lt=last_date) | Q(cursor_date=last_date, cursor_id__lte=last_id))
         & Q(pipeline_hash=derived.pipeline_hash)
     ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
 
     if updated:
-        # Features updated in this batch (not total; a feature appears at most once per batch)
         for f in result.updated:
             metrics.incr(
                 "issues.derived.feature_updated", sample_rate=1.0, tags={"feature": f.name}
@@ -183,9 +182,6 @@ def _process_batch(
                 "db_cursor_id": derived.cursor_id,
             },
         )
-        # A concurrent caller advanced the cursor past us. Check whether
-        # there are still entries beyond the refreshed cursor so we don't
-        # silently stop processing.
         return bool(_entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, 1))
 
 
@@ -298,25 +294,13 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
 
         has_more = _process_batch(pipeline, derived, INLINE_BATCH_SIZE)
     if has_more:
-        # Derived data will be stale for any code running between now and
-        # when the task completes.
         metrics.incr("issues.derived.inline_fallback_to_async")
         process_group_log_task.delay(group_id)
 
 
 # ---------------------------------------------------------------------------
-# Rebuild lifecycle: build in memory, upsert live, cache partial progress
+# Rebuild lifecycle: build in memory, upsert, cache partial progress
 # ---------------------------------------------------------------------------
-
-
-def _current_generation_id(group_id: int) -> int:
-    """Return the current log generation for a group.
-
-    This is ``max(id)`` from the action log, which directly encodes the
-    log state at the moment a rebuild starts.
-    """
-    result = GroupActionLogEntry.objects.filter(group_id=group_id).aggregate(Max("id"))
-    return result["id__max"] or 0
 
 
 def _save_rebuild_state(rebuild_id: RebuildId, derived: GroupDerivedData) -> None:
@@ -331,78 +315,108 @@ def _load_rebuild_state(rebuild_id: RebuildId) -> GroupDerivedData | None:
 
 class PromotionResult(enum.Enum):
     PROMOTED = "promoted"
-    SUPERSEDED = "superseded"  # row has a newer generation_id
-    CURSOR_BEHIND = "cursor_behind"  # same generation, cursor is ahead
+    SUPERSEDED = "superseded"  # a newer invalidation arrived; our work is stale
+    CURSOR_BEHIND = "cursor_behind"  # same invalidation, but cursor is more advanced
 
 
-def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
+def promote_to_live(
+    candidate: GroupDerivedData,
+    invalidated_at: datetime,
+) -> PromotionResult:
     """Upsert the candidate's state into the row for its group.
 
-    If a row exists and the candidate's generation and cursor are at
-    or ahead, the row is updated in place.  If no row exists, one is created.
+    Clears ``invalidated_at`` atomically on success via a CAS: the UPDATE
+    only matches if ``invalidated_at`` still equals the value we observed
+    when the rebuild started.  If a newer invalidation arrived, the CAS
+    fails and the row stays flagged.
 
-    Returns SUPERSEDED when the row has a higher generation_id (a
-    newer rebuild already won).  Returns CURSOR_BEHIND when the generation
-    matches but the row's cursor is more advanced.
+    Returns SUPERSEDED if ``invalidated_at`` changed (newer invalidation).
+    Returns CURSOR_BEHIND if the cursor guard failed within the same
+    invalidation.
 
-    The candidate object itself is not modified or persisted — it may be an
-    unsaved in-memory instance used only to carry the computed state.
+    The candidate object itself is not modified or persisted.
     """
     values = {f: getattr(candidate, f) for f in _STATE_FIELDS}
 
-    # Try updating the existing row.  The guard requires that the
-    # candidate's generation_id is >= the row's (so a stale rebuild
-    # can't overwrite a newer one), and within the same generation the
-    # cursor must be at or ahead.
+    # CAS: clear invalidated_at only if it still matches what we observed.
     updated = (
         GroupDerivedData.objects.filter(
             group_id=candidate.group_id,
+            invalidated_at=invalidated_at,
         )
         .filter(
-            Q(generation_id__lt=candidate.generation_id)
-            | Q(
-                generation_id=candidate.generation_id,
-                cursor_date__lt=candidate.cursor_date,
-            )
-            | Q(
-                generation_id=candidate.generation_id,
-                cursor_date=candidate.cursor_date,
-                cursor_id__lte=candidate.cursor_id,
-            )
+            Q(cursor_date__lt=candidate.cursor_date)
+            | Q(cursor_date=candidate.cursor_date, cursor_id__lte=candidate.cursor_id)
         )
-        .update(**values)
+        .update(invalidated_at=None, **values)
     )
 
     if updated:
         return PromotionResult.PROMOTED
 
-    # No rows updated — either the row's generation/cursor is ahead,
-    # or no row exists yet.  Try inserting; IntegrityError means a
-    # row exists whose generation/cursor we didn't beat.  The
-    # savepoint ensures the IntegrityError doesn't poison the outer
-    # transaction, allowing the follow-up query to run.
-    try:
-        with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
-            GroupDerivedData.objects.create(
-                group_id=candidate.group_id,
-                **values,
-            )
-    except IntegrityError:
-        # Distinguish: is the row from a newer generation, or same
-        # generation with a more advanced cursor?
-        live_gen = (
-            GroupDerivedData.objects.filter(group_id=candidate.group_id)
-            .values_list("generation_id", flat=True)
-            .first()
-        )
-        if live_gen is not None and live_gen > candidate.generation_id:
-            return PromotionResult.SUPERSEDED
-        return PromotionResult.CURSOR_BEHIND
+    # Check why we failed: row missing, invalidated_at changed, or cursor?
+    row = (
+        GroupDerivedData.objects.filter(group_id=candidate.group_id)
+        .values_list("id", "invalidated_at")
+        .first()
+    )
 
-    return PromotionResult.PROMOTED
+    if row is None:
+        # Row was deleted between our read and the CAS — the rebuild
+        # that deleted it will handle recreation.
+        return PromotionResult.SUPERSEDED
+
+    _row_id, current_invalidated_at = row
+    if current_invalidated_at != invalidated_at:
+        return PromotionResult.SUPERSEDED
+    return PromotionResult.CURSOR_BEHIND
 
 
 MAX_PROMOTION_ATTEMPTS = 5
+
+
+def _build_and_insert(
+    group_id: int,
+    batch_size: int,
+    rebuild_id: RebuildId | None,
+    time_limit: timedelta,
+) -> None:
+    """Build derived data from scratch and INSERT a new row.
+
+    Used after a hard-delete invalidation where no row exists.  No CAS
+    is needed — if a concurrent writer creates the row first, the INSERT
+    fails harmlessly.
+    """
+    pipeline_hash = PIPELINE.pipeline_hash
+    current_rebuild_id = RebuildId(group_id, "deleted", pipeline_hash)
+
+    derived: GroupDerivedData | None = None
+    if rebuild_id is not None and rebuild_id == current_rebuild_id:
+        derived = _load_rebuild_state(rebuild_id)
+
+    if derived is None:
+        derived = GroupDerivedData(
+            group_id=group_id,
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=pipeline_hash,
+        )
+
+    drained = _drain_log(derived, batch_size, time_limit=time_limit, persist=False)
+    if not drained:
+        _save_rebuild_state(current_rebuild_id, derived)
+        raise GroupLogTimeout(group_id, rebuild_id=current_rebuild_id)
+
+    values = {f: getattr(derived, f) for f in _STATE_FIELDS}
+    try:
+        with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
+            GroupDerivedData.objects.create(group_id=group_id, **values)
+    except IntegrityError:
+        # A concurrent writer already created the row — that's fine.
+        logger.info("issues.derived.insert_race_lost", extra={"group_id": group_id})
+
+    _rebuild_cache.delete(current_rebuild_id)
 
 
 def build_and_promote_derived_data(
@@ -415,22 +429,42 @@ def build_and_promote_derived_data(
 
     The common path works entirely in memory: a transient GroupDerivedData
     is populated by draining the action log, then its state is upserted
-    into the row (2-3 queries total for single-batch groups).
+    into the row via a CAS on ``invalidated_at``.
 
     When *rebuild_id* is provided, previously cached partial progress is
-    loaded and resumed.  This happens after a prior run timed out and
-    saved its state to cache.
+    loaded and resumed.
 
-    If promotion fails because the row's cursor is ahead (it received
-    incremental updates while we were building), we drain additional entries
-    to catch up and retry, bounded by MAX_PROMOTION_ATTEMPTS.
+    The rebuild can bail early between batches if it detects that
+    ``invalidated_at`` changed on the row (a newer invalidation arrived),
+    avoiding wasted work.
 
     Raises GroupLogTimeout (with ``rebuild_id`` set) if the time-limited
     drain could not finish, so the caller can re-enqueue.
     """
+    # Determine which invalidation we're serving (if any).
+    # Single query: None means no row; (id, None) means row not invalidated.
+    row = (
+        GroupDerivedData.objects.filter(group_id=group_id)
+        .values_list("id", "invalidated_at")
+        .first()
+    )
+    if row is not None:
+        _row_id, invalidated_at = row
+        if invalidated_at is None:
+            # Row exists but is not invalidated — nothing to rebuild.
+            return
+    else:
+        # Row was hard-deleted — rebuild from scratch via INSERT.
+        return _build_and_insert(group_id, batch_size, rebuild_id, time_limit)
+
+    pipeline_hash = PIPELINE.pipeline_hash
+    current_rebuild_id = RebuildId(group_id, invalidated_at.isoformat(), pipeline_hash)
+
+    # Try to resume from cache.
     derived: GroupDerivedData | None = None
     if rebuild_id is not None:
-        derived = _load_rebuild_state(rebuild_id)
+        if rebuild_id == current_rebuild_id:
+            derived = _load_rebuild_state(rebuild_id)
         if derived is None:
             logger.info(
                 "issues.derived.build_and_promote.cache_miss",
@@ -438,34 +472,23 @@ def build_and_promote_derived_data(
             )
 
     if derived is None:
-        # Capture the current log generation before we start draining.
-        # This lets promote_to_live reject stale rebuilds that started
-        # before a later log mutation triggered a newer rebuild.
-        generation_id = _current_generation_id(group_id)
-        pipeline_hash = PIPELINE.pipeline_hash
-        rebuild_id = RebuildId(group_id, generation_id, pipeline_hash)
-
-        # In-memory only — cached on timeout for resumption.
         derived = GroupDerivedData(
             group_id=group_id,
-            generation_id=generation_id,
             cursor_date=EPOCH,
             cursor_id=0,
             data={},
             pipeline_hash=pipeline_hash,
         )
-    else:
-        rebuild_id = RebuildId(group_id, derived.generation_id, derived.pipeline_hash or "")
 
     result = PromotionResult.CURSOR_BEHIND
     attempt = 0
     for attempt in range(MAX_PROMOTION_ATTEMPTS):
         drained = _drain_log(derived, batch_size, time_limit=time_limit, persist=False)
         if not drained:
-            _save_rebuild_state(rebuild_id, derived)
-            raise GroupLogTimeout(group_id, rebuild_id=rebuild_id)
+            _save_rebuild_state(current_rebuild_id, derived)
+            raise GroupLogTimeout(group_id, rebuild_id=current_rebuild_id)
 
-        result = promote_to_live(derived)
+        result = promote_to_live(derived, invalidated_at)
         if result is PromotionResult.PROMOTED:
             logger.info(
                 "issues.derived.promoted",
@@ -476,14 +499,14 @@ def build_and_promote_derived_data(
                     "attempts": attempt + 1,
                 },
             )
-            _rebuild_cache.delete(rebuild_id)
+            _rebuild_cache.delete(current_rebuild_id)
             return
 
         if result is PromotionResult.SUPERSEDED:
-            # A newer rebuild already won — retrying is futile.
+            # A newer invalidation already won — retrying is futile.
             break
 
-    _rebuild_cache.delete(rebuild_id)
+    _rebuild_cache.delete(current_rebuild_id)
 
     if result is PromotionResult.CURSOR_BEHIND:
         metrics.incr("issues.derived.promotion_exhausted", sample_rate=1.0)
@@ -513,41 +536,49 @@ def invalidate_group_derived_data(
     group_id: int,
     cursor: tuple[datetime, int] | None = None,
     *,
-    hard_delete: bool = True,
+    hard_delete: bool = False,
 ) -> None:
     """Invalidate derived state so it is rebuilt.
 
     *hard_delete* controls the strategy:
 
-    - ``True`` (default): delete the row immediately and kick off an
-      async task to rebuild from scratch. Use this when the existing data is
-      known to be wrong and must not be served.
-    - ``False``: leave the current row in place and kick off a background
-      build-and-promote. The existing row continues serving reads until
-      the replacement is ready.
+    - ``False`` (default): flag the row with ``invalidated_at`` and kick
+      off a background rebuild. The existing row continues serving reads
+      until the rebuild completes and clears the flag.
+    - ``True``: delete the row immediately and kick off an async task to
+      rebuild from scratch. Use this when the existing data is known to
+      be wrong and must not be served.
 
     If *cursor* is ``(date_added, id)`` of the earliest affected entry, the
     invalidation only fires when the row's cursor is at or past that
     point; otherwise the mutation is still ahead of processing and no
-    invalidation is needed. *cursor* is only meaningful with
-    ``hard_delete=True``.
+    invalidation is needed.
     """
-    if not hard_delete:
-        rebuild_group_derived_data.delay(group_id)
-        return
+    now = timezone.now()
 
     if cursor is None:
-        GroupDerivedData.objects.filter(group_id=group_id).delete()
+        # Unconditional invalidation — always enqueue the rebuild.
+        if hard_delete:
+            GroupDerivedData.objects.filter(group_id=group_id).delete()
+        else:
+            GroupDerivedData.objects.filter(group_id=group_id).update(invalidated_at=now)
         rebuild_group_derived_data.delay(group_id)
         return
 
-    # Only invalidate if the row has already processed past the affected point.
+    # Cursor-guarded: only invalidate if the row has processed past
+    # the affected log entry.
     cursor_date, cursor_id = cursor
-    deleted, _ = GroupDerivedData.objects.filter(
+    qs = GroupDerivedData.objects.filter(
         Q(group_id=group_id)
-        & (Q(cursor_date__gt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__gte=cursor_id)),
-    ).delete()
-    if deleted:
+        & (Q(cursor_date__gt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__gte=cursor_id))
+    )
+
+    if hard_delete:
+        affected, _ = qs.delete()
+    else:
+        affected = qs.update(invalidated_at=now)
+
+    if affected:
         logger.info(
             "issues.derived.invalidated",
             extra={

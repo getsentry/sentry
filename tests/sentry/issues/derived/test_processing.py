@@ -46,7 +46,6 @@ from sentry.issues.derived.processing import (
     PIPELINE,
     GroupLogTimeout,
     PromotionResult,
-    _current_generation_id,
     _entries_after_cursor,
     build_and_promote_derived_data,
     invalidate_group_derived_data,
@@ -289,22 +288,24 @@ class ProcessGroupLogTest(TestCase):
 
     # --- invalidation ---
 
-    def test_invalidate_deletes_live_row(self) -> None:
+    def test_hard_invalidate_deletes_row(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         process_group_log(group.id)
         assert GroupDerivedData.objects.filter(group_id=group.id).exists()
 
-        invalidate_group_derived_data(group.id)
+        invalidate_group_derived_data(group.id, hard_delete=True)
         assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
 
-    def test_invalidate_with_cursor_deletes_if_past(self) -> None:
+    def test_hard_invalidate_with_cursor_deletes_if_past(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
         assert derived is not None
 
-        invalidate_group_derived_data(group.id, cursor=(derived.cursor_date, derived.cursor_id))
+        invalidate_group_derived_data(
+            group.id, cursor=(derived.cursor_date, derived.cursor_id), hard_delete=True
+        )
         assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
 
     def test_invalidate_with_cursor_noop_if_not_reached(self) -> None:
@@ -328,12 +329,12 @@ class ProcessGroupLogTest(TestCase):
         assert derived is not None
         assert derived.view_count == 2
 
-        invalidate_group_derived_data(group.id)
+        invalidate_group_derived_data(group.id, hard_delete=True)
         derived = process_group_log(group.id)
         assert derived is not None
         assert derived.view_count == 2  # rebuilt from scratch
 
-    def test_invalidate_soft_schedules_rebuild(self) -> None:
+    def test_invalidate_soft_flags_row(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         derived = process_group_log(group.id)
@@ -344,9 +345,10 @@ class ProcessGroupLogTest(TestCase):
             invalidate_group_derived_data(group.id, hard_delete=False)
             mock_task.delay.assert_called_once_with(group.id)
 
-        # Live row is still in place
+        # Row is still in place but flagged for rebuild.
         derived.refresh_from_db()
         assert derived.id == original_id
+        assert derived.invalidated_at is not None
 
     def test_resolved_in_pull_request_proposes_fix(self) -> None:
         group = self.create_group()
@@ -425,7 +427,7 @@ class ProcessGroupLogTest(TestCase):
         first_progress = first.progress
         first_last_progressed_at = first.last_progressed_at
 
-        invalidate_group_derived_data(group.id)
+        invalidate_group_derived_data(group.id, hard_delete=True)
         second = process_group_log(group.id)
         assert second is not None
 
@@ -471,7 +473,9 @@ class ProcessGroupLogTest(TestCase):
         assert derived.cursor_id == first_cursor
         assert derived.pipeline_hash == "reset"
 
-    def test_generation_id_change_skips_incremental_write(self) -> None:
+    def test_invalidated_at_change_skips_incremental_write(self) -> None:
+        from django.utils import timezone
+
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
@@ -489,22 +493,22 @@ class ProcessGroupLogTest(TestCase):
             data={},
         )
 
-        # Simulate a rebuild promoting a new generation between our read
-        # and the UPDATE in _process_batch.
-        GroupDerivedData.objects.filter(id=derived.id).update(generation_id=999999)
+        # Simulate an invalidation between our read and the UPDATE in
+        # _process_batch — the row now has invalidated_at set.
+        GroupDerivedData.objects.filter(id=derived.id).update(invalidated_at=timezone.now())
 
         processing._process_batch(processing.PIPELINE, derived, 1)
 
         derived.refresh_from_db()
         assert derived.cursor_id == first_cursor
-        assert derived.generation_id == 999999
+        assert derived.invalidated_at is not None
 
     def test_invalidate_and_reprocess_restores_pipeline_hash(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         process_group_log(group.id)
 
-        invalidate_group_derived_data(group.id)
+        invalidate_group_derived_data(group.id, hard_delete=True)
         derived = process_group_log(group.id)
         assert derived is not None
         assert derived.pipeline_hash == PIPELINE.pipeline_hash
@@ -525,27 +529,33 @@ class ProcessGroupLogTest(TestCase):
         assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
 
 
-# --- Non-live row lifecycle ---
+# --- Rebuild lifecycle ---
 
 
 @with_feature("projects:issue-action-log-write-to-db")
 class PromoteToLiveTest(TestCase):
-    def test_promote_inserts_when_no_live_row(self) -> None:
+    def _soft_invalidate(self, group: Group) -> datetime:
+        """Soft-invalidate the GDD row and return the invalidated_at value."""
+        invalidate_group_derived_data(group.id, hard_delete=False)
+        row = GroupDerivedData.objects.get(group_id=group.id)
+        assert row.invalidated_at is not None
+        return row.invalidated_at
+
+    def test_hard_delete_rebuild_inserts_new_row(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
-        gen = _current_generation_id(group.id)
-        candidate = GroupDerivedData(
-            group_id=group.id, generation_id=gen, cursor_date=EPOCH, cursor_id=0, data={}
-        )
-        processing._drain_log(candidate, persist=False)
-        assert promote_to_live(candidate) is PromotionResult.PROMOTED
+        # Hard-delete invalidation removes the row.
+        invalidate_group_derived_data(group.id, hard_delete=True)
+        assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
 
+        # Rebuild creates a new row via INSERT.
+        build_and_promote_derived_data(group.id)
         live = GroupDerivedData.objects.get(group_id=group.id)
         assert live.view_count == 1
-        assert live.generation_id == gen
+        assert live.invalidated_at is None
 
-    def test_promote_updates_existing_live_row(self) -> None:
+    def test_promote_updates_existing_row(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
@@ -554,77 +564,67 @@ class PromoteToLiveTest(TestCase):
         old_id = old.id
 
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        inv_at = self._soft_invalidate(group)
 
-        gen = _current_generation_id(group.id)
-        candidate = GroupDerivedData(
-            group_id=group.id, generation_id=gen, cursor_date=EPOCH, cursor_id=0, data={}
-        )
+        candidate = GroupDerivedData(group_id=group.id, cursor_date=EPOCH, cursor_id=0, data={})
         processing._drain_log(candidate, persist=False)
-        assert promote_to_live(candidate) is PromotionResult.PROMOTED
+        assert promote_to_live(candidate, invalidated_at=inv_at) is PromotionResult.PROMOTED
 
-        # The existing live row was updated in place, not replaced.
         live = GroupDerivedData.objects.get(group_id=group.id)
         assert live.id == old_id
         assert live.view_count == 2
+        assert live.invalidated_at is None  # cleared by promotion
 
     def test_promote_rejected_if_cursor_behind(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
-        # Create a live row that has processed everything
         live = process_group_log(group.id)
         assert live is not None
+        inv_at = self._soft_invalidate(group)
 
-        # Build a candidate with the same generation as the live row
-        # but only process the first entry so the cursor is behind.
-        candidate = GroupDerivedData(
-            group_id=group.id,
-            generation_id=live.generation_id,
-            cursor_date=EPOCH,
-            cursor_id=0,
-            data={},
-        )
+        # Candidate only processes the first entry.
+        candidate = GroupDerivedData(group_id=group.id, cursor_date=EPOCH, cursor_id=0, data={})
         processing._process_batch(PIPELINE, candidate, batch_size=1, persist=False)
 
         assert (candidate.cursor_date, candidate.cursor_id) < (
             live.cursor_date,
             live.cursor_id,
         )
-        assert promote_to_live(candidate) is PromotionResult.CURSOR_BEHIND
+        assert promote_to_live(candidate, invalidated_at=inv_at) is PromotionResult.CURSOR_BEHIND
 
-    def test_promote_rejected_if_stale_generation(self) -> None:
+    def test_promote_superseded_by_newer_invalidation(self) -> None:
+        from django.utils import timezone
+
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
 
-        # Capture generation before more entries arrive
-        stale_gen = _current_generation_id(group.id)
+        old_inv_at = self._soft_invalidate(group)
 
-        # Build and promote with current generation
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
-        build_and_promote_derived_data(group.id)
-        live = GroupDerivedData.objects.get(group_id=group.id)
-        assert live.generation_id > stale_gen
+        # A second invalidation arrives — the row now has a newer timestamp.
+        GroupDerivedData.objects.filter(group_id=group.id).update(invalidated_at=timezone.now())
 
-        # A stale rebuild with the old generation can't overwrite even if
-        # it has the same cursor position.
-        stale_candidate = GroupDerivedData(
-            group_id=group.id, generation_id=stale_gen, cursor_date=EPOCH, cursor_id=0, data={}
-        )
-        processing._drain_log(stale_candidate, persist=False)
-        assert promote_to_live(stale_candidate) is PromotionResult.SUPERSEDED
+        candidate = GroupDerivedData(group_id=group.id, cursor_date=EPOCH, cursor_id=0, data={})
+        processing._drain_log(candidate, persist=False)
+        assert promote_to_live(candidate, invalidated_at=old_inv_at) is PromotionResult.SUPERSEDED
 
     def test_build_and_promote(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
         _publish(group=group, action=ResolveAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
 
+        invalidate_group_derived_data(group.id, hard_delete=False)
         build_and_promote_derived_data(group.id)
+
         derived = GroupDerivedData.objects.get(group_id=group.id)
         assert derived.view_count == 1
         assert derived.data["status"] == "closed"
+        assert derived.invalidated_at is None
 
-    def test_build_and_promote_updates_stale_live(self) -> None:
+    def test_build_and_promote_updates_existing_row(self) -> None:
         group = self.create_group()
         user = self.user
 
@@ -634,34 +634,34 @@ class PromoteToLiveTest(TestCase):
         old_id = old.id
 
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(user.id))
+        invalidate_group_derived_data(group.id, hard_delete=False)
         build_and_promote_derived_data(group.id)
+
         live = GroupDerivedData.objects.get(group_id=group.id)
-        # Upsert updates the existing live row in place.
         assert live.id == old_id
         assert live.view_count == 2
 
-    def test_build_and_promote_no_non_live_rows_on_success(self) -> None:
+    def test_build_and_promote_noop_when_not_invalidated(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
 
+        # No invalidation — build_and_promote should be a no-op.
         build_and_promote_derived_data(group.id)
-        assert GroupDerivedData.objects.filter(group_id=group.id).exists()
+        derived = GroupDerivedData.objects.get(group_id=group.id)
+        assert derived.invalidated_at is None
 
     def test_drain_log_respects_time_limit(self) -> None:
         group = self.create_group()
         for _ in range(5):
             _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
 
-        candidate = GroupDerivedData(
-            group_id=group.id, generation_id=0, cursor_date=EPOCH, cursor_id=0, data={}
-        )
+        candidate = GroupDerivedData(group_id=group.id, cursor_date=EPOCH, cursor_id=0, data={})
 
-        # Zero time limit forces bail after first batch
         drained = processing._drain_log(
             candidate, batch_size=2, time_limit=timedelta(0), persist=False
         )
         assert not drained
-        # Processed one batch (2 entries) but not all 5
         assert candidate.cursor_id > 0
         entries = list(GroupActionLogEntry.objects.filter(group_id=group.id).order_by("id"))
         assert candidate.cursor_id < entries[-1].id
@@ -679,25 +679,12 @@ class PromoteToLiveTest(TestCase):
         assert derived is not None
         mock_task.delay.assert_called_once_with(group.id)
 
-    def test_build_and_promote_exhaustion_leaves_live_row(self) -> None:
-        group = self.create_group()
-        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
-
-        process_group_log(group.id)
-
-        with patch(
-            "sentry.issues.derived.processing.promote_to_live",
-            return_value=PromotionResult.CURSOR_BEHIND,
-        ):
-            build_and_promote_derived_data(group.id)
-
-        # The original row is untouched.
-        assert GroupDerivedData.objects.filter(group_id=group.id).exists()
-
     def test_build_and_promote_caches_on_timeout_for_resumption(self) -> None:
         group = self.create_group()
         for _ in range(5):
             _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+        invalidate_group_derived_data(group.id, hard_delete=False)
 
         with patch("sentry.issues.derived.processing._drain_log", return_value=False):
             with pytest.raises(GroupLogTimeout) as exc_info:
@@ -706,10 +693,11 @@ class PromoteToLiveTest(TestCase):
         assert exc_info.value.group_id == group.id
         assert exc_info.value.rebuild_id is not None
 
-        # Resuming with that cache_key completes the promotion.
+        # Resuming completes the promotion.
         build_and_promote_derived_data(group.id, rebuild_id=exc_info.value.rebuild_id)
         promoted = GroupDerivedData.objects.get(group_id=group.id)
         assert promoted.view_count == 5
+        assert promoted.invalidated_at is None
 
     def test_resumed_rebuild_advances_cursor_on_repeat_timeout(self) -> None:
         from sentry.issues.derived.processing import _load_rebuild_state
@@ -717,8 +705,9 @@ class PromoteToLiveTest(TestCase):
         group = self.create_group()
         for _ in range(5):
             _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+        invalidate_group_derived_data(group.id, hard_delete=False)
 
-        # First run: drain 2 entries then timeout.
         with pytest.raises(GroupLogTimeout) as exc_info:
             build_and_promote_derived_data(group.id, batch_size=2, time_limit=timedelta(0))
 
@@ -729,7 +718,6 @@ class PromoteToLiveTest(TestCase):
         first_cursor = state.cursor_id
         assert first_cursor > 0
 
-        # Second run resumes and times out again — cursor must advance.
         with pytest.raises(GroupLogTimeout) as exc_info:
             build_and_promote_derived_data(
                 group.id, rebuild_id=rid, batch_size=2, time_limit=timedelta(0)
@@ -952,7 +940,7 @@ class GroupDerivedDataStoreTest(TestCase):
         first_progress = first.progress
         first_last_progressed_at = first.last_progressed_at
 
-        invalidate_group_derived_data(group.id)
+        invalidate_group_derived_data(group.id, hard_delete=True)
         second = process_group_log(group.id)
         assert second is not None
 

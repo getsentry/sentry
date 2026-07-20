@@ -30,26 +30,30 @@ class GroupDerivedData(DefaultFieldsModel):
     The pipeline is deterministic: replaying the same log produces the same
     state. However, the log is not strictly append-only — historical entries
     may be inserted, which is a primary reason rebuilds are triggered.
-    Three guards on the row prevent stale writes:
 
-    * **generation_id** — set to ``max(GroupActionLogEntry.id)`` when a
-      rebuild starts, capturing the log state the rebuild observed. A write
-      only succeeds if its generation_id is >= the row's, so a slow
-      rebuild that started before a log mutation cannot overwrite results
-      from a newer rebuild that observed the corrected log.
+    * **invalidated_at** — set to ``now()`` by ``invalidate_group_derived_data``
+      when the log is mutated in a way that requires a full rebuild. ``NULL``
+      means the row is up-to-date. A rebuild reads ``invalidated_at`` at
+      start and clears it atomically on promotion via a CAS:
+      ``UPDATE SET invalidated_at=NULL ... WHERE invalidated_at=<observed>``.
+      If a newer invalidation arrived while the rebuild was running, the CAS
+      fails and the row stays flagged for another rebuild.
 
-    * **cursor guard** — within the same generation, a write only succeeds
-      if the writer's ``(cursor_date, cursor_id)`` is at or ahead of the
-      row's, preventing cursor regression.
+    * **cursor guard** — incremental writes only succeed if the writer's
+      ``(cursor_date, cursor_id)`` is at or ahead of the row's, preventing
+      cursor regression.
 
     * **pipeline_hash** — stamped at row creation, incremental writes only
       succeed if the pipeline version hasn't changed since the row was
       read. A pipeline upgrade invalidates in-flight incremental work.
 
-    Incremental processing writes per-batch with all three guards scoped
-    to the row's ``id``. Rebuilds accumulate state in memory and write
-    once via ``promote_to_live``, which uses the generation and cursor
-    guards.
+    Incremental processing writes per-batch with cursor and pipeline_hash
+    guards scoped to the row's ``id``. Rebuilds accumulate state in memory
+    and write once via ``promote_to_live``, which uses the invalidated_at
+    CAS and cursor guards.
+
+    Groups needing a rebuild can be efficiently queried via
+    ``WHERE invalidated_at IS NOT NULL``.
 
     See ``processing.py`` for the full lifecycle.
     """
@@ -58,11 +62,11 @@ class GroupDerivedData(DefaultFieldsModel):
 
     group = FlexibleForeignKey("sentry.Group", unique=True)
 
-    # Identifies the log state this row was built from.  Set to
-    # ``max(GroupActionLogEntry.id)`` at the start of a rebuild so that
-    # the promote guard can reject stale rebuilds that started before a
-    # later log mutation triggered a newer rebuild.
-    generation_id = BoundedBigIntegerField(db_default=0, default=0)
+    # NULL means the row is up-to-date.  Non-NULL means a rebuild is needed;
+    # the timestamp identifies *which* invalidation request the rebuild must
+    # satisfy.  Set by invalidate_group_derived_data, cleared atomically by
+    # promote_to_live.
+    invalidated_at = models.DateTimeField(null=True, default=None)
 
     cursor_date = models.DateTimeField(default=EPOCH)
     cursor_id = BoundedBigIntegerField(default=0)
@@ -92,6 +96,11 @@ class GroupDerivedData(DefaultFieldsModel):
         indexes = [
             models.Index(fields=["progress", "group"]),
             models.Index(fields=["last_progressed_at", "group"]),
+            models.Index(
+                fields=["invalidated_at"],
+                condition=models.Q(invalidated_at__isnull=False),
+                name="sentry_gdd_needs_rebuild",
+            ),
         ]
 
-    __repr__ = sane_repr("group_id", "generation_id", "cursor_date", "cursor_id")
+    __repr__ = sane_repr("group_id", "invalidated_at", "cursor_date", "cursor_id")

@@ -45,7 +45,7 @@ def process_group_log_task(group_id: int, **kwargs: object) -> None:
 )
 def rebuild_group_derived_data(
     group_id: int,
-    resume_generation_id: int | None = None,
+    resume_invalidated_at: str | None = None,
     resume_pipeline_hash: str | None = None,
     prior_runs: int = 0,
     **kwargs: object,
@@ -74,8 +74,8 @@ def rebuild_group_derived_data(
         return
 
     rebuild_id: RebuildId | None = None
-    if resume_generation_id is not None and resume_pipeline_hash is not None:
-        rebuild_id = RebuildId(group_id, resume_generation_id, resume_pipeline_hash)
+    if resume_invalidated_at is not None and resume_pipeline_hash is not None:
+        rebuild_id = RebuildId(group_id, resume_invalidated_at, resume_pipeline_hash)
 
     try:
         build_and_promote_derived_data(group_id, rebuild_id=rebuild_id)
@@ -94,7 +94,7 @@ def rebuild_group_derived_data(
         rid = e.rebuild_id
         rebuild_group_derived_data.delay(
             group_id,
-            resume_generation_id=rid.generation_id if rid else None,
+            resume_invalidated_at=rid.invalidated_at if rid else None,
             resume_pipeline_hash=rid.pipeline_hash if rid else None,
             prior_runs=prior_runs + 1,
         )
@@ -227,7 +227,7 @@ def process_project_derived_data_batch(
     rescheduled = False
 
     for group_id in group_ids:
-        remaining = timedelta(seconds=timeout_seconds - (time.monotonic() - start))
+        remaining = timedelta(seconds=max(0, timeout_seconds - (time.monotonic() - start)))
         try:
             process_group_log(group_id, timeout=remaining)
             processed += 1
@@ -416,19 +416,24 @@ def rebuild_project_derived_data_batch(
     rescheduled = False
 
     for group_id in group_ids:
-        remaining = timedelta(seconds=timeout_seconds - (time.monotonic() - start))
+        remaining = timedelta(seconds=max(0, timeout_seconds - (time.monotonic() - start)))
         try:
             build_and_promote_derived_data(group_id, time_limit=remaining)
+            processed += 1
+        except Group.DoesNotExist:
+            logger.info(
+                "rebuild_project_derived_data_batch.group_not_found",
+                extra={"group_id": group_id, "project_id": project_id},
+            )
         except GroupLogTimeout as e:
-            # Re-enqueue the single group with its id so the
-            # partially-drained row is resumed, then continue the batch.
+            # Re-enqueue the single group so the partially-drained
+            # state is resumed, then continue the batch.
             rid = e.rebuild_id
             rebuild_group_derived_data.delay(
                 group_id,
-                resume_generation_id=rid.generation_id if rid else None,
+                resume_invalidated_at=rid.invalidated_at if rid else None,
                 resume_pipeline_hash=rid.pipeline_hash if rid else None,
             )
-        processed += 1
 
         if time.monotonic() - start >= timeout_seconds:
             rescheduled = True

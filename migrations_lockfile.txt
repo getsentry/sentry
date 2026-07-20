@@ -31,7 +31,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0027_add_seer_run_coding_agent_handoff
 
-sentry: 1141_add_generation_id_to_group_derived_data
+sentry: 1141_add_invalidated_at_to_group_derived_data
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
