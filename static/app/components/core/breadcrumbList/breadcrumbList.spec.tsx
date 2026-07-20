@@ -85,7 +85,14 @@ describe('BreadcrumbList container-query collapse', () => {
     // TopBar owns the page heading. BreadcrumbList.Title only renders the title
     // content so it can be placed inside that heading without nesting one.
     expect(screen.queryByRole('heading', {name: 'General'})).not.toBeInTheDocument();
-    expect(screen.getByText('General')).toBeInTheDocument();
+    const title = screen.getByText('General');
+    expect(title).toBeInTheDocument();
+    expect(
+      getEmotionRules(title).some(
+        rule =>
+          rule.includes('overflow: hidden') && rule.includes('text-overflow: ellipsis')
+      )
+    ).toBe(true);
 
     // Parent links must not be marked current.
     expect(screen.getByRole('link', {name: 'Settings'})).not.toHaveAttribute(

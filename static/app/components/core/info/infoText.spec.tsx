@@ -68,4 +68,21 @@ describe('InfoText', () => {
 
     expect(screen.getByText('Text content')).toHaveAttribute('tabindex', '0');
   });
+
+  it('supports ellipsis with the regular always-on tooltip', () => {
+    render(
+      <InfoText title="Tooltip content" ellipsis>
+        Text content
+      </InfoText>
+    );
+
+    const text = screen.getByText('Text content');
+    expect(text).toHaveAttribute('tabindex', '0');
+    expect(
+      getEmotionRules(text).some(
+        rule =>
+          rule.includes('overflow: hidden') && rule.includes('text-overflow: ellipsis')
+      )
+    ).toBe(true);
+  });
 });

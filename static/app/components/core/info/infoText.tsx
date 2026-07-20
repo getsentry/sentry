@@ -6,7 +6,7 @@ import {Text, type TextProps} from '@sentry/scraps/text';
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
 type InfoTextBaseProps<T extends 'span' | 'p' | 'label' | 'div' | 'time'> =
-  DistributedOmit<TextProps<T>, 'title' | 'variant' | 'ellipsis'> & {
+  DistributedOmit<TextProps<T>, 'title' | 'variant'> & {
     title: React.ReactNode;
     variant?: TooltipProps['underlineColor'] | 'inherit';
   } & Pick<TooltipProps, 'position' | 'maxWidth'>;

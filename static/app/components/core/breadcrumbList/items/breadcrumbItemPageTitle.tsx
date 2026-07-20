@@ -152,7 +152,13 @@ export function BreadcrumbItemPageTitle({
           on the outer Flex above. */}
       <Container minWidth={0}>
         {containerProps => (
-          <InfoText title={labelTooltip} bold variant="inherit" {...containerProps}>
+          <InfoText
+            title={labelTooltip}
+            ellipsis
+            bold
+            variant="inherit"
+            {...containerProps}
+          >
             {label}
           </InfoText>
         )}
