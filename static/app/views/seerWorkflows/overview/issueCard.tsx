@@ -301,13 +301,7 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
             describe the same change twice), otherwise the diagnosis summary.
             Same anatomy for both; icon + label color tell them apart. */}
         {bodyEntry && (
-          <Container
-            background="secondary"
-            border="muted"
-            radius="md"
-            padding="sm md"
-            maxWidth="90ch"
-          >
+          <Container background="secondary" border="muted" radius="md" padding="sm md">
             <Stack gap="xs">
               <Flex gap="xs" align="center">
                 {isFixBody ? (
@@ -330,7 +324,7 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
             on a card (see the INLINE_DIFF_* limits): collapsed file headers
             that expand in place, aligned with the body's text column */}
         {row.inlinePatches && (
-          <Stack gap="xs" maxWidth="90ch">
+          <Stack gap="xs">
             {row.inlinePatches.map(({patch, repoName}) => (
               <FileDiffViewer
                 key={`${repoName ?? ''}:${patch.path}`}
