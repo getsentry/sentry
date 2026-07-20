@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from django.db import models
+from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -29,15 +30,14 @@ class GroupDerivedData(DefaultFieldsModel):
     ~~~~~~~~~~~~~
     The pipeline is deterministic: replaying the same log produces the same
     state. However, the log is not strictly append-only — historical entries
-    may be inserted, which is a primary reason rebuilds are triggered.
+    may be inserted, which is a primary reason generations are triggered.
 
-    * **invalidated_at** — set to ``now()`` by ``invalidate_group_derived_data``
-      when the log is mutated in a way that requires a full rebuild. ``NULL``
-      means the row is up-to-date. A rebuild reads ``invalidated_at`` at
-      start and clears it atomically on promotion via a CAS:
-      ``UPDATE SET invalidated_at=NULL ... WHERE invalidated_at=<observed>``.
-      If a newer invalidation arrived while the rebuild was running, the CAS
-      fails and the row stays flagged for another rebuild.
+    * **generated_at** — timestamp of when the generation that produced
+      this row's current state *started* processing. This is a CAS version:
+      incremental writes only succeed if ``generated_at`` hasn't changed
+      since the row was read, and generation promotes only succeed if their
+      ``generated_at`` is newer than the row's.  The start time (rather
+      than finish time) reflects the log state the generation observed.
 
     * **cursor guard** — incremental writes only succeed if the writer's
       ``(cursor_date, cursor_id)`` is at or ahead of the row's, preventing
@@ -47,14 +47,6 @@ class GroupDerivedData(DefaultFieldsModel):
       succeed if the pipeline version hasn't changed since the row was
       read. A pipeline upgrade invalidates in-flight incremental work.
 
-    Incremental processing writes per-batch with cursor and pipeline_hash
-    guards scoped to the row's ``id``. Rebuilds accumulate state in memory
-    and write once via ``promote_to_live``, which uses the invalidated_at
-    CAS and cursor guards.
-
-    Groups needing a rebuild can be efficiently queried via
-    ``WHERE invalidated_at IS NOT NULL``.
-
     See ``processing.py`` for the full lifecycle.
     """
 
@@ -62,11 +54,12 @@ class GroupDerivedData(DefaultFieldsModel):
 
     group = FlexibleForeignKey("sentry.Group", unique=True)
 
-    # NULL means the row is up-to-date.  Non-NULL means a rebuild is needed;
-    # the timestamp identifies *which* invalidation request the rebuild must
-    # satisfy.  Set by invalidate_group_derived_data, cleared atomically by
-    # promote_to_live.
-    invalidated_at = models.DateTimeField(null=True, default=None)
+    # Timestamp of when the generation that produced this state *started*
+    # processing. The start time (not finish time) reflects the log state
+    # the generation observed. Used as a CAS version — incremental writes
+    # check equality, generation promotes require their timestamp to be
+    # newer. Defaults to row creation time.
+    generated_at = models.DateTimeField(default=timezone.now, db_default=models.functions.Now())
 
     cursor_date = models.DateTimeField(default=EPOCH)
     cursor_id = BoundedBigIntegerField(default=0)
@@ -82,7 +75,7 @@ class GroupDerivedData(DefaultFieldsModel):
     # Stores the current Progress value as a string.
     progress = models.CharField(max_length=32, null=True, default="identified")
 
-    # The last time the above column was changed.
+    # The last time ``progress`` was changed.
     last_progressed_at = models.DateTimeField(null=True, default=None)
 
     # Pipeline hash stamped at row creation. If it doesn't match the current
@@ -96,11 +89,6 @@ class GroupDerivedData(DefaultFieldsModel):
         indexes = [
             models.Index(fields=["progress", "group"]),
             models.Index(fields=["last_progressed_at", "group"]),
-            models.Index(
-                fields=["invalidated_at"],
-                condition=models.Q(invalidated_at__isnull=False),
-                name="sentry_gdd_needs_rebuild",
-            ),
         ]
 
-    __repr__ = sane_repr("group_id", "invalidated_at", "cursor_date", "cursor_id")
+    __repr__ = sane_repr("group_id", "generated_at", "cursor_date", "cursor_id")

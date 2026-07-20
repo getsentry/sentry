@@ -13,11 +13,11 @@ BATCH_PROCESSING_DEADLINE = timedelta(seconds=30)  # taskworker hard kill timeou
 BATCH_RETRIGGER_TIMEOUT = timedelta(seconds=20)  # self-reschedule before the hard kill
 
 _BATCH_TASK_KEY = "process_project_derived_data_batch"
-_REBUILD_BATCH_TASK_KEY = "rebuild_project_derived_data_batch"
-_REBUILD_GROUP_TASK_KEY = "rebuild_group_derived_data"
+_GENERATE_BATCH_TASK_KEY = "generate_project_derived_data_batch"
+_GENERATE_GROUP_TASK_KEY = "generate_group_derived_data"
 
 # Cap self-rescheduling rebuilds to avoid infinite loops on very large groups.
-_MAX_REBUILD_RUNS = 20
+_MAX_GENERATION_RUNS = 20
 # Hard limit on group IDs loaded per project-level task to bound memory.
 _MAX_PROJECT_GROUPS = 10_000
 
@@ -39,75 +39,78 @@ def process_group_log_task(group_id: int, **kwargs: object) -> None:
 
 
 @instrumented_task(
-    name="sentry.issues.derived.tasks.rebuild_group_derived_data",
+    name="sentry.issues.derived.tasks.generate_group_derived_data",
     namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )
-def rebuild_group_derived_data(
+def generate_group_derived_data(
     group_id: int,
-    resume_invalidated_at: str | None = None,
+    resume_generated_at: str | None = None,
     resume_pipeline_hash: str | None = None,
     prior_runs: int = 0,
     **kwargs: object,
 ) -> None:
-    """Build a new GroupDerivedData row from scratch and promote it."""
+    """Generate derived data for a group by draining its action log."""
     from taskbroker_client.state import current_task
 
     from sentry.issues.derived.processing import (
+        GenerationId,
         GroupLogTimeout,
-        RebuildId,
         build_and_promote_derived_data,
     )
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 
     task_state = current_task()
     activation_id = task_state.id if task_state else None
-    if activation_id and already_spawned(_REBUILD_GROUP_TASK_KEY, activation_id):
+    if activation_id and already_spawned(_GENERATE_GROUP_TASK_KEY, activation_id):
         logger.info(
-            "rebuild_group_derived_data.duplicate_skipped",
+            "generate_group_derived_data.duplicate_skipped",
             extra={"group_id": group_id, "activation_id": activation_id},
         )
         metrics.incr(
             "taskworker.selfchain.duplicate_skipped",
-            tags={"task": _REBUILD_GROUP_TASK_KEY},
+            tags={"task": _GENERATE_GROUP_TASK_KEY},
         )
         return
 
-    rebuild_id: RebuildId | None = None
-    if resume_invalidated_at is not None and resume_pipeline_hash is not None:
+    generation_id: GenerationId | None = None
+    if resume_generated_at is not None and resume_pipeline_hash is not None:
         from datetime import datetime, timezone
 
-        rebuild_id = RebuildId(
+        generation_id = GenerationId(
             group_id,
-            datetime.fromisoformat(resume_invalidated_at).replace(tzinfo=timezone.utc),
+            datetime.fromisoformat(resume_generated_at).replace(tzinfo=timezone.utc),
             resume_pipeline_hash,
         )
 
+    from sentry.models.group import Group
+
     try:
-        build_and_promote_derived_data(group_id, rebuild_id=rebuild_id)
+        build_and_promote_derived_data(group_id, generation_id=generation_id)
+    except Group.DoesNotExist:
+        logger.info("generate_group_derived_data.group_not_found", extra={"group_id": group_id})
+        return
     except GroupLogTimeout as e:
-        if prior_runs + 1 >= _MAX_REBUILD_RUNS:
+        if prior_runs + 1 >= _MAX_GENERATION_RUNS:
             logger.error(
-                "rebuild_group_derived_data.max_runs_exceeded",
+                "generate_group_derived_data.max_runs_exceeded",
                 extra={
                     "group_id": group_id,
-                    "rebuild_id": e.rebuild_id,
+                    "generation_id": e.generation_id,
                     "prior_runs": prior_runs + 1,
                 },
             )
-            metrics.incr("issues.derived.rebuild_max_runs_exceeded", sample_rate=1.0)
+            metrics.incr("issues.derived.generate_max_runs_exceeded", sample_rate=1.0)
             return
-        rid = e.rebuild_id
-        rebuild_group_derived_data.delay(
+        gen_id = e.generation_id
+        generate_group_derived_data.delay(
             group_id,
-            resume_invalidated_at=rid.invalidated_at.isoformat()
-            if rid and rid.invalidated_at
-            else None,
-            resume_pipeline_hash=rid.pipeline_hash if rid else None,
+            resume_generated_at=gen_id.generated_at.isoformat() if gen_id else None,
+            resume_pipeline_hash=gen_id.pipeline_hash if gen_id else None,
             prior_runs=prior_runs + 1,
         )
         if activation_id:
-            mark_spawned(_REBUILD_GROUP_TASK_KEY, activation_id)
+            mark_spawned(_GENERATE_GROUP_TASK_KEY, activation_id)
 
 
 @instrumented_task(
@@ -296,17 +299,17 @@ def process_project_derived_data_batch(
 
 
 # ---------------------------------------------------------------------------
-# Project-level rebuild: build-and-promote without deleting existing live rows
+# Project-level generation: build-and-promote for all groups
 # ---------------------------------------------------------------------------
 
 
 @instrumented_task(
-    name="sentry.issues.derived.tasks.rebuild_project_derived_data",
+    name="sentry.issues.derived.tasks.generate_project_derived_data",
     namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
 )
-def rebuild_project_derived_data(project_id: int, **kwargs: object) -> None:
-    """Rebuild derived data for every group in a project.
+def generate_project_derived_data(project_id: int, **kwargs: object) -> None:
+    """Generate derived data for every group in a project.
 
     Partitions groups into ID ranges and fans out a batch task for each
     range. Each batch calls ``build_and_promote_derived_data`` per group,
@@ -330,7 +333,7 @@ def rebuild_project_derived_data(project_id: int, **kwargs: object) -> None:
 
     if len(group_ids) >= _MAX_PROJECT_GROUPS:
         logger.error(
-            "rebuild_project_derived_data.too_many_groups",
+            "generate_project_derived_data.too_many_groups",
             extra={
                 "project_id": project_id,
                 "limit": _MAX_PROJECT_GROUPS,
@@ -343,7 +346,7 @@ def rebuild_project_derived_data(project_id: int, **kwargs: object) -> None:
 
     if len(ranges) > max_tasks:
         logger.error(
-            "rebuild_project_derived_data.too_many_tasks",
+            "generate_project_derived_data.too_many_tasks",
             extra={
                 "project_id": project_id,
                 "task_count": len(ranges),
@@ -353,14 +356,14 @@ def rebuild_project_derived_data(project_id: int, **kwargs: object) -> None:
         return
 
     for start, end in ranges:
-        rebuild_project_derived_data_batch.delay(
+        generate_project_derived_data_batch.delay(
             project_id=project_id,
             group_id_start=start,
             group_id_end=end,
         )
 
     logger.info(
-        "rebuild_project_derived_data.scheduled",
+        "generate_project_derived_data.scheduled",
         extra={
             "project_id": project_id,
             "group_count": len(group_ids),
@@ -370,18 +373,18 @@ def rebuild_project_derived_data(project_id: int, **kwargs: object) -> None:
 
 
 @instrumented_task(
-    name="sentry.issues.derived.tasks.rebuild_project_derived_data_batch",
+    name="sentry.issues.derived.tasks.generate_project_derived_data_batch",
     namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
     processing_deadline_duration=int(BATCH_PROCESSING_DEADLINE.total_seconds()),
 )
-def rebuild_project_derived_data_batch(
+def generate_project_derived_data_batch(
     project_id: int,
     group_id_start: int,
     group_id_end: int,
     **kwargs: object,
 ) -> None:
-    """Rebuild derived data for groups in [group_id_start, group_id_end).
+    """Generate derived data for groups in [group_id_start, group_id_end).
 
     Calls build_and_promote_derived_data for each group. On per-group
     GroupLogTimeout, re-enqueues the individual group for resumption and
@@ -395,14 +398,14 @@ def rebuild_project_derived_data_batch(
 
     task_state = current_task()
     activation_id = task_state.id if task_state else None
-    if activation_id and already_spawned(_REBUILD_BATCH_TASK_KEY, activation_id):
+    if activation_id and already_spawned(_GENERATE_BATCH_TASK_KEY, activation_id):
         logger.info(
-            "rebuild_project_derived_data_batch.duplicate_skipped",
+            "generate_project_derived_data_batch.duplicate_skipped",
             extra={"project_id": project_id, "activation_id": activation_id},
         )
         metrics.incr(
             "taskworker.selfchain.duplicate_skipped",
-            tags={"task": _REBUILD_BATCH_TASK_KEY},
+            tags={"task": _GENERATE_BATCH_TASK_KEY},
         )
         return
 
@@ -429,44 +432,44 @@ def rebuild_project_derived_data_batch(
             processed += 1
         except Group.DoesNotExist:
             logger.info(
-                "rebuild_project_derived_data_batch.group_not_found",
+                "generate_project_derived_data_batch.group_not_found",
                 extra={"group_id": group_id, "project_id": project_id},
             )
         except GroupLogTimeout as e:
             # Re-enqueue the single group so the partially-drained
             # state is resumed, then continue the batch.
-            rid = e.rebuild_id
-            rebuild_group_derived_data.delay(
+            gen_id = e.generation_id
+            generate_group_derived_data.delay(
                 group_id,
-                resume_invalidated_at=rid.invalidated_at.isoformat()
-                if rid and rid.invalidated_at
+                resume_generated_at=gen_id.generated_at.isoformat()
+                if gen_id and gen_id.generated_at
                 else None,
-                resume_pipeline_hash=rid.pipeline_hash if rid else None,
+                resume_pipeline_hash=gen_id.pipeline_hash if gen_id else None,
             )
 
         if time.monotonic() - start >= timeout_seconds:
             rescheduled = True
             metrics.incr(
-                "issues.derived.rebuild_batch_rescheduled",
+                "issues.derived.generate_batch_rescheduled",
                 sample_rate=1.0,
                 tags={"reason": "batch_timeout"},
             )
-            rebuild_project_derived_data_batch.delay(
+            generate_project_derived_data_batch.delay(
                 project_id=project_id,
                 group_id_start=group_id + 1,
                 group_id_end=group_id_end,
             )
             if activation_id:
-                mark_spawned(_REBUILD_BATCH_TASK_KEY, activation_id)
+                mark_spawned(_GENERATE_BATCH_TASK_KEY, activation_id)
             break
 
     metrics.incr(
-        "issues.derived.rebuild_project_groups_processed",
+        "issues.derived.generate_project_groups_processed",
         amount=processed,
         sample_rate=1.0,
     )
     logger.info(
-        "rebuild_project_derived_data_batch.complete",
+        "generate_project_derived_data_batch.complete",
         extra={
             "project_id": project_id,
             "group_id_start": group_id_start,

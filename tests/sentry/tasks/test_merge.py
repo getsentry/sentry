@@ -286,10 +286,9 @@ class MergeGroupTest(TestCase, SnubaTestCase):
 
         assert Group.objects.filter(id=old_group.id).exists() is False
 
-        # The derived data is soft-invalidated: the row is flagged for
-        # rebuild but continues serving reads until the rebuild completes.
+        # The generation task ran and stamped a new generated_at.
         derived.refresh_from_db()
-        assert derived.invalidated_at is not None
+        assert derived.generated_at is not None
 
     @mock_redis_buffer()
     def test_merge_original_group_id(self) -> None:
