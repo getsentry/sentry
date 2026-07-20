@@ -421,7 +421,7 @@ describe('GroupReplays', () => {
       });
 
       const mockReplayRecord = mockReplay?.getReplay();
-      MockApiClient.addMockResponse({
+      const mockReplayViewedApi = MockApiClient.addMockResponse({
         method: 'POST',
         url: `/projects/${organization.slug}/${mockReplayRecord?.project_id}/replays/${mockReplayRecord?.id}/viewed-by/`,
       });
@@ -486,6 +486,8 @@ describe('GroupReplays', () => {
 
       // Expect the second row to have the correct date
       expect(screen.getByText('7 days ago')).toBeInTheDocument();
+
+      await waitFor(() => expect(mockReplayViewedApi).toHaveBeenCalled());
     });
 
     it('Should render the replay player', async () => {
@@ -538,7 +540,7 @@ describe('GroupReplays', () => {
       });
 
       const mockReplayRecord = mockReplay?.getReplay();
-      MockApiClient.addMockResponse({
+      const mockReplayViewedApi = MockApiClient.addMockResponse({
         method: 'POST',
         url: `/projects/${organization.slug}/${mockReplayRecord?.project_id}/replays/${mockReplayRecord?.id}/viewed-by/`,
       });
@@ -549,6 +551,7 @@ describe('GroupReplays', () => {
       });
 
       expect(await screen.findByText('See Full Replay')).toBeInTheDocument();
+      await waitFor(() => expect(mockReplayViewedApi).toHaveBeenCalled());
       expect(mockReplayCountApi).toHaveBeenCalledWith(
         mockReplayCountUrl,
         expect.objectContaining({

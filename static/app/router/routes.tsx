@@ -2502,6 +2502,18 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/issueList/pages/autofix/recentlyRun')),
     },
     {
+      path: 'autofix/runs/',
+      component: make(() => import('sentry/views/seerRunsDemo')),
+    },
+    {
+      path: 'autofix/issues/',
+      component: make(() => import('sentry/views/autofixIssuesDemo')),
+    },
+    {
+      path: 'autofix/overview/',
+      component: make(() => import('sentry/views/seerWorkflows/overview')),
+    },
+    {
       path: 'views/:viewId/',
       component: errorHandler(OverviewWrapper),
     },

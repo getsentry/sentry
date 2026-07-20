@@ -512,7 +512,15 @@ function decodeLegendSelection(encoded: LegendSelection): LegendSelection {
     decoded[WidgetLegendNameEncoderDecoder.decodeSeriesNameForLegend(key, true)] =
       encoded[key]!;
   }
-  return decoded;
+  // remove any keys that are empty strings
+  const filteredSelections = Object.keys(decoded).reduce<LegendSelection>((acc, key) => {
+    if (key && decoded[key] !== undefined) {
+      acc[key] = decoded[key];
+    }
+    return acc;
+  }, {});
+
+  return filteredSelections;
 }
 
 /**
