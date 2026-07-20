@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import moment from 'moment-timezone';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {LinkButton} from '@sentry/scraps/button';
@@ -14,29 +13,25 @@ import {
   NavigationCrumbs,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
+import {useEventLogsUrl} from 'sentry/components/events/ourlogs/useEventLogsUrl';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {getUtcDateString} from 'sentry/utils/dates';
 import {getShortEventId} from 'sentry/utils/events';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsSearch,
   useSetQueryParamsQuery,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {getEventEnvironment} from 'sentry/views/issueDetails/utils';
 
 interface LogIssueDrawerProps {
   event: Event;
@@ -58,7 +53,6 @@ export function OurlogsDrawer({
   embeddedOptions,
   additionalData: propAdditionalData,
 }: LogIssueDrawerProps) {
-  const organization = useOrganization();
   const setLogsQuery = useSetQueryParamsQuery();
   const logsSearch = useQueryParamsSearch();
 
@@ -93,37 +87,7 @@ export function OurlogsDrawer({
     [event, propAdditionalData?.scrollToDisabled]
   );
 
-  const exploreUrl = useMemo(() => {
-    const traceId = event.contexts.trace?.trace_id;
-    if (!traceId) {
-      return null;
-    }
-
-    const eventTimestamp = event.dateCreated || event.dateReceived;
-    if (!eventTimestamp) {
-      return null;
-    }
-
-    const eventMoment = moment(eventTimestamp);
-    const start = getUtcDateString(eventMoment.clone().subtract(1, 'day'));
-    const end = getUtcDateString(eventMoment.clone().add(1, 'day'));
-    const environment = getEventEnvironment(event);
-
-    return getLogsUrl({
-      organization,
-      selection: {
-        projects: [parseInt(project.id, 10)],
-        environments: environment ? [environment] : [],
-        datetime: {
-          start,
-          end,
-          period: null,
-          utc: null,
-        },
-      },
-      query: `${OurLogKnownFieldKey.TRACE_ID}:${traceId}`,
-    });
-  }, [event, organization, project.id]);
+  const exploreUrl = useEventLogsUrl(event, project);
 
   return (
     <SearchQueryBuilderProvider {...searchQueryBuilderProps}>
@@ -151,7 +115,7 @@ export function OurlogsDrawer({
             </Flex>
             {exploreUrl && (
               <LinkButton size="sm" to={exploreUrl} openInNewTab>
-                {t('Open in explore')}
+                {t('Open in Explore')}
               </LinkButton>
             )}
           </Flex>
