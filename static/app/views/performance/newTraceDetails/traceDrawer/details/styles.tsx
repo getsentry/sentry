@@ -58,6 +58,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -947,7 +948,11 @@ function NodeActions(props: {
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/events/${transactionId}/json/`}
+            href={
+              getDiscoverDeprecation(props.organization) && isEAPSpanNode(props.node)
+                ? `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`
+                : `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/events/${transactionId}/json/`
+            }
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
