@@ -49,9 +49,18 @@ def test_markdown_renders_root_cause_solution_and_prs() -> None:
     assert "1. parse fails" in out
     assert "- call crash()" in out
     assert "## Solution" in out
-    assert "- **Update regex**: Allow alphanumerics" in out
+    assert "**Update regex:** Allow alphanumerics" in out
     assert "## Pull Requests" in out
     assert "- getsentry/sentry: https://github.com/getsentry/sentry/pull/1" in out
+
+
+def test_xml_renders_solution_steps_with_field_tags() -> None:
+    out = format_autofix(_autofix_response(), format="xml")
+    assert "<root_cause>" in out
+    assert "<solution>" in out
+    assert "<update_regex>Allow alphanumerics</update_regex>" in out
+    assert "**" not in out
+    assert "<pull_requests>" in out
 
 
 def test_no_autofix_run_returns_empty() -> None:
