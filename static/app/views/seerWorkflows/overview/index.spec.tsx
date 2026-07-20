@@ -1,8 +1,12 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutofixOverview from 'sentry/views/seerWorkflows/overview';
 import {RUN_QUESTIONS} from 'sentry/views/seerWorkflows/overview/runQuestions';
 
@@ -87,6 +91,16 @@ describe('AutofixOverview', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+
+    // The project page filter needs seeded page-filter + project stores, or
+    // PageFiltersContainer never reports ready and the issues query stays
+    // gated off.
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    ProjectsStore.loadInitialData([ProjectFixture()]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [ProjectFixture()],
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
@@ -616,6 +630,32 @@ describe('AutofixOverview', () => {
       name: 'Autofix progress: 2 of 5 steps — Plan (Errored)',
     });
     expect(indicator).toHaveTextContent('3');
+  });
+
+  it('scopes the issue stream to the selected projects', async () => {
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
+    const issuesRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [issue],
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+    // The selector's trigger reflects the selection (the card's project badge
+    // is a link, so the button role isolates the filter)…
+    expect(screen.getByRole('button', {name: 'project-slug'})).toBeInTheDocument();
+    // …and the issues request carries it.
+    expect(issuesRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/issues/`,
+      expect.objectContaining({
+        query: expect.objectContaining({project: [2]}),
+      })
+    );
   });
 
   it('renders an inline differ for small diffs, collapsed to a file header', async () => {

@@ -136,6 +136,12 @@ export interface AutofixIssue extends Issue {
 
 interface UseAutofixIssuesParams {
   cursor?: string;
+  // Gates the issues request; pass page-filters readiness so the initial
+  // fetch waits for the restored project selection. Defaults to true.
+  enabled?: boolean;
+  // Project ids to scope the issue stream to (page-filters selection: [] is
+  // "My Projects", [-1] is all). Defaults to all accessible projects.
+  projects?: number[];
   query?: string;
   // One-shot questions asked about each run (repeatable `question` param,
   // capped at 5 by the endpoint). Defaults to this page's demo set.
@@ -161,6 +167,8 @@ interface UseAutofixIssuesResult {
 export function useAutofixIssues({
   query,
   cursor,
+  enabled = true,
+  projects,
   questions = DEMO_QUESTIONS,
   runsQuery: runsQueryFilter = RUNS_QUERY,
 }: UseAutofixIssuesParams): UseAutofixIssuesResult {
@@ -173,7 +181,7 @@ export function useAutofixIssues({
       query: {
         query: withRequiredFilter(query ?? ''),
         cursor,
-        project: -1,
+        project: projects ?? -1,
         statsPeriod: '90d',
         // Explicit endpoint default: last-seen desc selects the issues still
         // actively occurring as the candidate pool; callers order the loaded
@@ -183,6 +191,7 @@ export function useAutofixIssues({
       },
       staleTime: 30_000,
     }),
+    enabled,
     select: selectJsonWithHeaders,
   });
 
