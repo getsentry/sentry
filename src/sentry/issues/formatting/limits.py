@@ -16,6 +16,7 @@ class Limits:
     max_breadcrumbs_chars: int | None = None
     max_single_breadcrumb_chars: int | None = None
     max_spans_chars: int | None = None
+    max_contexts_chars: int | None = None
     max_frames: int = 16
     max_breadcrumbs: int = 10
     max_threads: int = 8
@@ -25,6 +26,7 @@ LIMITS_DEFAULT = Limits(
     max_exceptions_chars=100_000,
     max_stacktrace_chars=20_000,
     max_spans_chars=5_000,
+    max_contexts_chars=5_000,
 )
 
 # tighter caps for token-constrained callers; mirrors Seer's EVENT_FORMAT_LIMITS_LOW
