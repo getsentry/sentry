@@ -841,8 +841,8 @@ class GithubProxyClientTest(TestCase):
     def test__refresh_access_token_null_expires_at(self, mock_jwt) -> None:
         """GitHub can return null for expires_at; verify we fall back to a 1-hour default."""
         responses.replace(
-            method=responses.POST,
-            url=f"https://api.github.com/app/installations/{self.installation_id}/access_tokens",
+            responses.POST,
+            f"https://api.github.com/app/installations/{self.installation_id}/access_tokens",
             json={
                 "token": self.access_token,
                 "expires_at": None,

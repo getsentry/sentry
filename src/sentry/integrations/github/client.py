@@ -283,9 +283,12 @@ class GithubProxyClient(IntegrationProxyClient):
         else:
             # GitHub may return null for expires_at in some installation configurations.
             # Fall back to a 1-hour expiry, consistent with GitHub's documented token lifetime.
-            expires_at = (datetime.now(timezone.utc) + timedelta(hours=1)).strftime(
-                "%Y-%m-%dT%H:%M:%SZ"
-            )
+            # Match the naive-isoformat shape stored on the non-null path (get_access_token
+            # reads this back via datetime.fromisoformat().replace(tzinfo=None)).
+            fallback_expiry = datetime.now(timezone.utc).replace(
+                tzinfo=None, microsecond=0
+            ) + timedelta(hours=1)
+            expires_at = fallback_expiry.isoformat()
         permissions = data.get("permissions")
         integration.metadata.update(
             {
