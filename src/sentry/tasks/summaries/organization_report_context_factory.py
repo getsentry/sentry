@@ -1,7 +1,6 @@
 import sentry_sdk
 
 from sentry import features
-from sentry.constants import DataCategory
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import TeamStatus
@@ -21,7 +20,6 @@ from sentry.tasks.summaries.utils import (
 from sentry.tasks.summaries.weekly_report_cache import read_project_metrics
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
-from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
 from sentry.utils.tracing import start_span
 
@@ -125,13 +123,10 @@ class OrganizationReportContextFactory:
                     project_id = data["project_id"]
                     if project_id not in ctx.projects_context_map:
                         continue
-                    project_ctx = ctx.projects_context_map[project_id]
-                    total = data["total"]
-                    if data["outcome"] != Outcome.ACCEPTED:
+                    if project_id not in error_missed_project_ids:
                         continue
-                    if data["category"] in DataCategory.error_categories():
-                        if project_id in error_missed_project_ids:
-                            project_ctx.prev_week_accepted_error_count += total
+                    project_ctx = ctx.projects_context_map[project_id]
+                    project_ctx.prev_week_accepted_error_count += data["total"]
 
             if issue_missed_project_ids:
                 issue_data = organization_project_issue_summaries(

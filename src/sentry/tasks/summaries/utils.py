@@ -438,8 +438,6 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
     query = Query(
         match=Entity("outcomes"),
         select=[
-            Column("outcome"),
-            Column("category"),
             Function("sum", [Column("quantity")], "total"),
         ],
         where=[
@@ -453,7 +451,7 @@ def project_event_counts_for_organization(start, end, ctx, referrer: str) -> lis
                 [*DataCategory.error_categories()],
             ),
         ],
-        groupby=[Column("outcome"), Column("category"), Column("project_id"), Column("time")],
+        groupby=[Column("project_id"), Column("time")],
         granularity=Granularity(ONE_DAY),
         orderby=[OrderBy(Column("time"), Direction.ASC)],
         limit=Limit(10000),
