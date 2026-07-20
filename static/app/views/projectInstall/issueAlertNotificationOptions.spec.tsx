@@ -1,4 +1,4 @@
-import {focusManager} from '@tanstack/react-query';
+import {useQueryClient} from '@tanstack/react-query';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
@@ -195,23 +195,22 @@ describe('useCreateNotificationAction', () => {
     // First fetch returns nothing (no integrations connected yet).
     addIntegrationsResponse([]);
 
-    const {result} = renderHookWithProviders(() => useCreateNotificationAction(), {
-      organization,
-    });
+    let queryClient!: ReturnType<typeof useQueryClient>;
+    const {result} = renderHookWithProviders(() => {
+      queryClient = useQueryClient();
+      return useCreateNotificationAction();
+    }, {organization});
 
     // Query resolves but no integrations: setup button should show, guard not latched.
     await waitFor(() => expect(result.current.notificationProps.querySuccess).toBe(true));
     expect(result.current.notificationProps.provider).toBeUndefined();
     expect(result.current.notificationProps.shouldRenderSetupButton).toBe(true);
 
-    // User connects an integration. Simulate a refetch by toggling focusManager.
+    // User connects an integration. Refetch the active query directly and wait for it.
     MockApiClient.clearMockResponses();
     addIntegrationsResponse([slackIntegration]);
-    act(() => {
-      focusManager.setFocused(false);
-    });
-    act(() => {
-      focusManager.setFocused(true);
+    await act(async () => {
+      await queryClient.refetchQueries();
     });
 
     // After the refetch, the auto-select branch should fire and populate the picker.
@@ -232,10 +231,11 @@ describe('useCreateNotificationAction', () => {
       },
     ];
 
-    const {result} = renderHookWithProviders(
-      () => useCreateNotificationAction({actions: defaultActions}),
-      {organization}
-    );
+    let queryClient!: ReturnType<typeof useQueryClient>;
+    const {result} = renderHookWithProviders(() => {
+      queryClient = useQueryClient();
+      return useCreateNotificationAction({actions: defaultActions});
+    }, {organization});
 
     // Query resolved but integration list empty: setup CTA shown, guard not latched,
     // INTEGRATION must NOT be in actions (picker not half-applied).
@@ -249,11 +249,8 @@ describe('useCreateNotificationAction', () => {
     // Refetch delivers the Slack integration (e.g. user connected it via CTA).
     MockApiClient.clearMockResponses();
     addIntegrationsResponse([slackIntegration]);
-    act(() => {
-      focusManager.setFocused(false);
-    });
-    act(() => {
-      focusManager.setFocused(true);
+    await act(async () => {
+      await queryClient.refetchQueries();
     });
 
     // Full restore completes: provider, integration, channel, and actions are set.
