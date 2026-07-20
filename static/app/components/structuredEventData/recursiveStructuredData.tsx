@@ -57,20 +57,12 @@ export function RecursiveStructuredData({
       </Fragment>
     );
 
-  function Wrapper({children}: {children: React.ReactNode}) {
-    return (
-      <Fragment>
-        {formattedObjectKey}
-        {children}
-      </Fragment>
-    );
-  }
-
   if (config?.isNull?.(value) || value === null) {
     const nullValue = config?.renderNull?.(value) ?? String(value);
 
     return (
-      <Wrapper>
+      <Fragment>
+        {formattedObjectKey}
         <ValueNull data-test-id="value-null">
           <AnnotatedValue
             value={nullValue}
@@ -79,7 +71,7 @@ export function RecursiveStructuredData({
             withOnlyFormattedText={withOnlyFormattedText}
           />
         </ValueNull>
-      </Wrapper>
+      </Fragment>
     );
   }
 
@@ -87,7 +79,8 @@ export function RecursiveStructuredData({
     const booleanValue = config?.renderBoolean?.(value) ?? String(value);
 
     return (
-      <Wrapper>
+      <Fragment>
+        {formattedObjectKey}
         <ValueBoolean data-test-id="value-boolean">
           <AnnotatedValue
             value={booleanValue}
@@ -96,13 +89,14 @@ export function RecursiveStructuredData({
             withOnlyFormattedText={withOnlyFormattedText}
           />
         </ValueBoolean>
-      </Wrapper>
+      </Fragment>
     );
   }
 
   if (typeof value === 'number' || config?.isNumber?.(value)) {
     return (
-      <Wrapper>
+      <Fragment>
+        {formattedObjectKey}
         <ValueNumber data-test-id="value-number">
           <AnnotatedValue
             value={value}
@@ -111,7 +105,7 @@ export function RecursiveStructuredData({
             withOnlyFormattedText={withOnlyFormattedText}
           />
         </ValueNumber>
-      </Wrapper>
+      </Fragment>
     );
   }
 
@@ -120,7 +114,8 @@ export function RecursiveStructuredData({
       const stringValue = config.renderString?.(value) ?? value;
 
       return (
-        <Wrapper>
+        <Fragment>
+          {formattedObjectKey}
           <ValueString data-test-id="value-string">
             {'"'}
             <AnnotatedValue
@@ -132,13 +127,14 @@ export function RecursiveStructuredData({
             {'"'}
             <LinkHint meta={meta} value={stringValue} />
           </ValueString>
-        </Wrapper>
+        </Fragment>
       );
     }
 
     if (looksLikeStrippedValue(value)) {
       return (
-        <Wrapper>
+        <Fragment>
+          {formattedObjectKey}
           <ValueStrippedString>
             <AnnotatedValue
               value={value}
@@ -147,13 +143,14 @@ export function RecursiveStructuredData({
               withOnlyFormattedText={withOnlyFormattedText}
             />
           </ValueStrippedString>
-        </Wrapper>
+        </Fragment>
       );
     }
 
     if (containsCRLF(value)) {
       return (
-        <Wrapper>
+        <Fragment>
+          {formattedObjectKey}
           <ValueMultiLineString data-test-id="value-multiline-string">
             <AnnotatedValue
               value={value}
@@ -162,12 +159,13 @@ export function RecursiveStructuredData({
               withOnlyFormattedText={withOnlyFormattedText}
             />
           </ValueMultiLineString>
-        </Wrapper>
+        </Fragment>
       );
     }
 
     return (
-      <Wrapper>
+      <Fragment>
+        {formattedObjectKey}
         <span data-test-id="value-unformatted">
           <AnnotatedValue
             value={value}
@@ -177,7 +175,7 @@ export function RecursiveStructuredData({
           />
           <LinkHint meta={meta} value={value} />
         </span>
-      </Wrapper>
+      </Fragment>
     );
   }
 
