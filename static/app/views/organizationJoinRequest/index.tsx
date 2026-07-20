@@ -59,21 +59,21 @@ export default function OrganizationJoinRequest() {
   if (mutation.isSuccess) {
     return (
       <NarrowLayout maxWidth="550px">
-        <Stack align="center" gap="md" paddingTop="lg" paddingBottom="3xl">
-          <Container paddingBottom="md">
-            <IconMegaphone size="xl" />
-          </Container>
-          <Heading as="h3" size="xl">
-            {t('Request Sent')}
-          </Heading>
-          <Text as="p" align="center">
-            {t('Your request to join has been sent.')}
-          </Text>
-          <Container maxWidth="250px">
+        <Stack align="center" gap="xl" paddingTop="lg" paddingBottom="3xl">
+          <IconMegaphone size="xl" />
+          <Stack align="center" gap="md">
+            <Heading as="h3" size="xl">
+              {t('Request Sent')}
+            </Heading>
             <Text as="p" align="center">
-              {t('You will receive an email when your request is approved.')}
+              {t('Your request to join has been sent.')}
             </Text>
-          </Container>
+            <Container maxWidth="250px">
+              <Text as="p" align="center">
+                {t('You will receive an email when your request is approved.')}
+              </Text>
+            </Container>
+          </Stack>
         </Stack>
       </NarrowLayout>
     );
