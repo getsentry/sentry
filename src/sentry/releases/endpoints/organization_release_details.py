@@ -43,6 +43,11 @@ from sentry.apidocs.response_types import (
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
+from sentry.issues.action_log import (
+    action_context_scope,
+    resolve_action_actor,
+    resolve_action_source,
+)
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.release import Release, ReleaseStatus
@@ -541,7 +546,10 @@ class OrganizationReleaseDetailsEndpoint(
         if commit_list:
             # TODO(dcramer): handle errors with release payloads
             try:
-                release.set_commits(commit_list)
+                with action_context_scope(
+                    resolve_action_source(request), resolve_action_actor(request)
+                ):
+                    release.set_commits(commit_list)
                 self.track_set_commits_local(
                     request,
                     organization_id=organization.id,
