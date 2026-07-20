@@ -411,10 +411,12 @@ export function useTraceMeta(options: UseTraceMetaOptions): TraceMetaQueryResult
     };
   }
 
+  const allRequestsFailed = data?.apiErrors.length === traces.length;
+
   return {
-    data: data?.meta,
+    data: allRequestsFailed ? undefined : data?.meta,
     errors: data?.apiErrors ?? [],
-    status: data?.apiErrors?.length === traces.length ? 'error' : status,
+    status: allRequestsFailed ? 'error' : status,
     isLoading,
   };
 }
