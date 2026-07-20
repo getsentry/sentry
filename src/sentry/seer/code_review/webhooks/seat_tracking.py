@@ -29,9 +29,9 @@ that are already opted in to GitLab code review. The downstream
 
 Both processors skip seeding when the webhook actor (``event.user``) is not the
 MR author (``object_attributes.author_id``): the row is keyed by the author but
-its ``alias`` defaults to the actor's username, so on a mismatch (e.g. an MR
-opened via the API on behalf of another author) we'd store the wrong alias. We
-log ``actor_author_mismatch`` and skip instead.
+its ``alias`` defaults to the actor's username, so on a mismatch (e.g. a
+reviewer approving or a maintainer merging someone else's MR) we'd store the
+wrong alias. This is expected, high-volume traffic, so we skip silently.
 
 ``MergeEventWebhook.WEBHOOK_EVENT_PROCESSORS`` registers these
 **before** ``handle_merge_request_event`` so the contributor row exists when
@@ -72,54 +72,6 @@ logger = logging.getLogger(__name__)
 # tracking and code-review dispatch don't share a namespace.
 SEAT_SEEN_KEY_PREFIX = "webhook:gitlab:seat_tracking:"
 SEAT_SEEN_TTL_SECONDS = 20
-
-
-def _actor_author_mismatch_extra(
-    *,
-    organization: RpcOrganization,
-    repo: Repository,
-    integration: RpcIntegration,
-    event: Mapping[str, Any],
-    author_id: object,
-    actor_id: object,
-    contributor_tracking_stage: str,
-) -> dict[str, object]:
-    """Build the structured context for an actor/author mismatch.
-
-    A mismatch means the webhook actor (``event["user"]`` -- whoever performed
-    the action) is not the MR author (``object_attributes["author_id"]``). This
-    is overwhelmingly benign: a reviewer approving, a maintainer merging, or a
-    bot pushing an ``update`` all legitimately arrive with actor != author. We
-    skip seeding in that case because the contributor alias must come from the
-    author, not the actor.
-
-    The extra therefore carries enough of the event to tell a benign mismatch
-    (``root approved MR #42``) apart from a real anomaly without a second
-    lookup: the actor username, the event kind, the MR action, and the MR
-    state. GitLab's MR/note payloads only expose the author as a numeric
-    ``author_id`` (no username), so the author side stays an id.
-    """
-    object_attributes = event.get("object_attributes") or {}
-    actor = event.get("user") or {}
-    return {
-        "seer.webhooks.organization_id": organization.id,
-        "seer.webhooks.provider_name": "gitlab",
-        "seer.webhooks.repository_id": repo.id,
-        "seer.webhooks.integration_id": integration.id,
-        # object_kind distinguishes a merge_request hook from a note hook.
-        "seer.webhooks.event_kind": event.get("object_kind"),
-        "seer.webhooks.merge_request_iid": object_attributes.get("iid"),
-        "seer.webhooks.merge_request_action": object_attributes.get("action"),
-        # MR lifecycle state (opened/closed/merged) at the time of the event --
-        # a "merged" state with a mismatched actor is the expected merge case.
-        "seer.webhooks.merge_request_state": object_attributes.get("state"),
-        # The MR author (row is keyed to this) vs the event actor (who triggered
-        # the hook). Usernames make the "who did what to whose MR" legible.
-        "seer.webhooks.author_id": author_id,
-        "seer.webhooks.actor_id": actor_id,
-        "seer.webhooks.actor_username": actor.get("username"),
-        "seer.webhooks.contributor_tracking_stage": contributor_tracking_stage,
-    }
 
 
 def _is_duplicate_delivery(seen_key: str) -> bool:
@@ -187,22 +139,9 @@ def track_gitlab_contributor_seat_processor(
     # Skip when the webhook actor isn't the MR author: alias comes from the actor
     # but the row is keyed by the author, so seeding would store the wrong alias.
     # Runs before the dedup mark so a skipped mismatch doesn't block a later,
-    # matching delivery from seeding the author.
+    # matching delivery from seeding the author. This is expected traffic (a
+    # reviewer/maintainer/bot acting on someone else's MR), so we skip silently.
     if user_id != event_actor_id:
-        debug_log(
-            logger,
-            organization,
-            "actor_author_mismatch",
-            _actor_author_mismatch_extra(
-                organization=organization,
-                repo=repo,
-                integration=integration,
-                event=event,
-                author_id=user_id,
-                actor_id=event_actor_id,
-                contributor_tracking_stage="seat",
-            ),
-        )
         return
 
     # Resolve the Organization before marking the delivery as seen so a missing
@@ -258,21 +197,9 @@ def track_gitlab_contributor_action_processor(
 
     # Skip when the webhook actor isn't the MR author, to avoid seeding the wrong
     # alias against the author's row (see track_gitlab_contributor_seat_processor).
+    # Expected traffic (reviewer/maintainer/bot acting on someone else's MR), so
+    # we skip silently.
     if user_id != event_actor_id:
-        debug_log(
-            logger,
-            organization,
-            "actor_author_mismatch",
-            _actor_author_mismatch_extra(
-                organization=organization,
-                repo=repo,
-                integration=integration,
-                event=event,
-                author_id=user_id,
-                actor_id=event_actor_id,
-                contributor_tracking_stage="action",
-            ),
-        )
         return
 
     try:
