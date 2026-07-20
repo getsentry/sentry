@@ -4,7 +4,7 @@ from unittest.mock import ANY, MagicMock, patch
 from scm.errors import ResourceNotFound
 
 from sentry.scm.types import PullRequestReviewEvent, SubscriptionEvent
-from sentry.seer.agent.client_models import RepoPRState, SeerRunState
+from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewBodyFeedbackSource,
@@ -192,10 +192,10 @@ class TriggerPrIterationFromReviewTest(TestCase):
             {"id": "500", "html_url": "https://x/500", "body": "overall summary"}
         )
 
-    def _agent_state(self) -> SeerRunState:
+    def _agent_state(self, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
         return SeerRunState(
             run_id=67890,
-            blocks=[],
+            blocks=blocks or [],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
             repo_pr_states={
@@ -204,6 +204,16 @@ class TriggerPrIterationFromReviewTest(TestCase):
                 )
             },
             metadata={"group_id": self.group.id},
+        )
+
+    def _iteration_block(self, idx: int) -> MemoryBlock:
+        return MemoryBlock(
+            id=f"iter{idx}",
+            message=Message(
+                role="assistant",
+                metadata={"step": "pr_iteration", "iteration_index": idx},
+            ),
+            timestamp="2024-01-01T00:00:00Z",
         )
 
     def _mock_integration(self, pr_id: int | None = 555) -> MagicMock:
@@ -438,3 +448,22 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_make_scm.assert_not_called()
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
+
+    def test_skips_when_max_iterations_reached(self) -> None:
+        # Past the cap, consume would drop the feedback anyway, so bail before
+        # enqueueing or :eyes:-acking any inline comment — otherwise reviewers see
+        # an ack for feedback that never produces an iteration.
+        self.mock_get_state.return_value = self._agent_state(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._run()
+
+        self.mock_make_scm.assert_not_called()
+        self.mock_enqueue.assert_not_called()
+        self.mock_consume.assert_not_called()
+        self.mock_actions.create_review_comment_reaction.assert_not_called()

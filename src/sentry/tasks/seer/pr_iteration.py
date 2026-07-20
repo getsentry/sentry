@@ -93,6 +93,18 @@ def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferre
     return AutofixReferrer.UNKNOWN
 
 
+def _max_iterations_reached(state: SeerRunState) -> bool:
+    """True once the run has performed the capped number of PR iterations.
+
+    ``get_latest_iteration_index`` == the count of iterations already performed
+    (the next would be +1), so ``>=`` stops the next one. Checked both when
+    triggering (to avoid acking feedback we won't act on) and when consuming
+    (the authoritative gate, after draining the queue).
+    """
+    max_iterations = options.get("autofix.pr-iteration.max-iterations")
+    return get_latest_iteration_index(state) >= max_iterations
+
+
 def trigger_consume_pr_iteration_feedback(
     *,
     run_id: int,
@@ -223,17 +235,15 @@ def consume_queued_autofix_feedback(
         # Hard cap on iterations per run. Bounds the feedback loop when a review bot
         # re-reviews each new iteration commit (each re-review is genuinely new
         # feedback, so dedup can't stop it). Checked after draining the queue so the
-        # capped feedback doesn't accumulate. get_latest_iteration_index == the count
-        # of iterations already performed (next would be +1), so >= stops the next.
-        max_iterations = options.get("autofix.pr-iteration.max-iterations")
-        if get_latest_iteration_index(state) >= max_iterations:
+        # capped feedback doesn't accumulate.
+        if _max_iterations_reached(state):
             metrics.incr("autofix.pr_iteration.max_iterations_reached")
             logger.info(
                 "autofix.pr_iteration.consume_feedback.max_iterations_reached",
                 extra={
                     "run_id": run_id,
                     "group_id": group_id,
-                    "max_iterations": max_iterations,
+                    "max_iterations": options.get("autofix.pr-iteration.max-iterations"),
                 },
             )
             return
@@ -475,6 +485,21 @@ def trigger_pr_iteration_from_comment(
         )
         return None
 
+    # Bail before enqueueing or acking: consume enforces the same cap after
+    # draining the queue, so past the cap we'd :eyes:-ack a comment that never
+    # produces an iteration. The commenter would read that as accepted feedback.
+    if _max_iterations_reached(agent_state):
+        metrics.incr("autofix.pr_iteration.comment_trigger.max_iterations_reached")
+        logger.info(
+            "autofix.pr_iteration.comment_trigger.max_iterations_reached",
+            extra={
+                "organization_id": organization_id,
+                "repo_id": repo_id,
+                "max_iterations": options.get("autofix.pr-iteration.max-iterations"),
+            },
+        )
+        return None
+
     try:
         scm = make_scm(organization_id, repo_id, referrer="seer")
     except Exception:
@@ -700,6 +725,20 @@ def trigger_pr_iteration_from_review(
         logger.info(
             "autofix.pr_iteration.review_trigger.no_run",
             extra={**log_extra, "pr_id": pr_id},
+        )
+        return None
+
+    # Bail before enqueueing or acking: consume enforces the same cap after
+    # draining the queue, so past the cap we'd :eyes:-ack inline comments that
+    # never produce an iteration. Reviewers would read that as accepted feedback.
+    if _max_iterations_reached(agent_state):
+        metrics.incr("autofix.pr_iteration.review_trigger.max_iterations_reached")
+        logger.info(
+            "autofix.pr_iteration.review_trigger.max_iterations_reached",
+            extra={
+                **log_extra,
+                "max_iterations": options.get("autofix.pr-iteration.max-iterations"),
+            },
         )
         return None
 

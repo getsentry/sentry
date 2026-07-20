@@ -41,10 +41,10 @@ class TriggerPrIterationFromCommentTest(TestCase):
         self.comment = {"id": 999, "body": "@sentry fix it", "user": {"login": "octocat"}}
         self.feedback = Feedback(source=GithubPrCommentFeedbackSource(comment=self.comment))
 
-    def _agent_state(self) -> SeerRunState:
+    def _agent_state(self, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
         return SeerRunState(
             run_id=67890,
-            blocks=[],
+            blocks=blocks or [],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
             repo_pr_states={
@@ -53,6 +53,16 @@ class TriggerPrIterationFromCommentTest(TestCase):
                 )
             },
             metadata={"group_id": self.group.id},
+        )
+
+    def _iteration_block(self, idx: int) -> MemoryBlock:
+        return MemoryBlock(
+            id=f"iter{idx}",
+            message=Message(
+                role="assistant",
+                metadata={"step": "pr_iteration", "iteration_index": idx},
+            ),
+            timestamp="2024-01-01T00:00:00Z",
         )
 
     def _mock_integration(self, pr_id: int | None = 555) -> MagicMock:
@@ -263,6 +273,36 @@ class TriggerPrIterationFromCommentTest(TestCase):
             comment_id=999,
             reaction="eyes",
         )
+
+    @patch(f"{TASK_PATH}._add_comment_reaction")
+    @patch(f"{TASK_PATH}.make_scm")
+    @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
+    @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
+    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
+    def test_skips_when_max_iterations_reached(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+        mock_has_access: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_reaction: MagicMock,
+    ) -> None:
+        mock_get_integration.return_value = self._mock_integration()
+        mock_get_state.return_value = self._agent_state(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        # Nothing enqueued and no :eyes: ack, since consume would drop it anyway.
+        mock_enqueue.assert_not_called()
+        mock_trigger_consume.assert_not_called()
+        mock_reaction.assert_not_called()
 
 
 class ConsumeQueuedAutofixFeedbackTest(TestCase):
