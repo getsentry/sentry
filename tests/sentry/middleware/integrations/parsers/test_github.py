@@ -204,7 +204,7 @@ class GithubRequestParserTest(TestCase):
         assert response.content == b""
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}",
+            mailbox_name=f"github:{integration.id}:issues",
             cell_names=[cell.name],
         )
 
@@ -269,7 +269,7 @@ class GithubRequestParserTest(TestCase):
         assert len(responses.calls) == 0
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}",
+            mailbox_name=f"github:{integration.id}:issues",
             cell_names=[cell.name],
             destination_types={DestinationType.SENTRY_CELL: 1},
         )
@@ -334,9 +334,8 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
             headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
         )
 
-        with override_options({"github.webhook.mailbox-bucketing.enabled": True}):
-            parser = GithubRequestParser(request=request, response_handler=self.get_response)
-            response = parser.get_response()
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
@@ -365,16 +364,13 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
             headers={"X-GITHUB-EVENT": GithubWebhookType.CHECK_RUN.value},
         )
 
-        with override_options({"github.webhook.mailbox-bucketing.enabled": True}):
-            push_parser = GithubRequestParser(
-                request=push_request, response_handler=self.get_response
-            )
-            check_run_parser = GithubRequestParser(
-                request=check_run_request, response_handler=self.get_response
-            )
-            assert push_parser.get_mailbox_identifier(
-                integration, {}
-            ) != check_run_parser.get_mailbox_identifier(integration, {})
+        push_parser = GithubRequestParser(request=push_request, response_handler=self.get_response)
+        check_run_parser = GithubRequestParser(
+            request=check_run_request, response_handler=self.get_response
+        )
+        assert push_parser.get_mailbox_identifier(
+            integration, {}
+        ) != check_run_parser.get_mailbox_identifier(integration, {})
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @override_cells(cell_config)
@@ -388,9 +384,8 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
             # No X-GITHUB-EVENT header
         )
 
-        with override_options({"github.webhook.mailbox-bucketing.enabled": True}):
-            parser = GithubRequestParser(request=request, response_handler=self.get_response)
-            response = parser.get_response()
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
@@ -398,27 +393,6 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
         assert_webhook_payloads_for_mailbox(
             request=request,
             mailbox_name=f"github:{integration.id}:77",
-            cell_names=[cell.name],
-        )
-
-    @override_settings(SILO_MODE=SiloMode.CONTROL)
-    @override_cells(cell_config)
-    def test_webhook_outbox_creation_without_bucketing(self) -> None:
-        integration = self.get_integration()
-        request = self.factory.post(
-            self.path,
-            data={"installation": {"id": "1"}, "repository": {"id": 35129377}},
-            content_type="application/json",
-            headers={"X-GITHUB-EVENT": GithubWebhookType.PUSH.value},
-        )
-        parser = GithubRequestParser(request=request, response_handler=self.get_response)
-        response = parser.get_response()
-
-        assert isinstance(response, HttpResponse)
-        assert response.status_code == status.HTTP_202_ACCEPTED
-        assert_webhook_payloads_for_mailbox(
-            request=request,
-            mailbox_name=f"github:{integration.id}",
             cell_names=[cell.name],
         )
 
@@ -434,9 +408,8 @@ class GithubRequestParserMailboxBucketingTest(TestCase):
             headers={"X-GITHUB-EVENT": GithubWebhookType.ISSUE.value},
         )
 
-        with override_options({"github.webhook.mailbox-bucketing.enabled": True}):
-            parser = GithubRequestParser(request=request, response_handler=self.get_response)
-            response = parser.get_response()
+        parser = GithubRequestParser(request=request, response_handler=self.get_response)
+        response = parser.get_response()
 
         assert isinstance(response, HttpResponse)
         assert response.status_code == status.HTTP_202_ACCEPTED
@@ -507,7 +480,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}",
+            mailbox_name=f"github:{integration.id}:23:push",
             cell_names=[cell.name],
         )
 
@@ -530,7 +503,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}",
+            mailbox_name=f"github:{integration.id}:23",
             cell_names=[cell.name],
         )
 
@@ -577,7 +550,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}",
+            mailbox_name=f"github:{integration.id}:23:check_run",
             cell_names=[cell.name],
         )
 
@@ -594,7 +567,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}",
+            mailbox_name=f"github:{integration.id}:23:check_run",
             cell_names=[cell.name],
         )
 
@@ -611,7 +584,7 @@ class GithubRequestParserDropUnprocessedEventsTest(TestCase):
         assert response.status_code == status.HTTP_202_ACCEPTED
         assert_webhook_payloads_for_mailbox(
             request=request,
-            mailbox_name=f"github:{integration.id}",
+            mailbox_name=f"github:{integration.id}:23:check_run",
             cell_names=[cell.name],
         )
 
