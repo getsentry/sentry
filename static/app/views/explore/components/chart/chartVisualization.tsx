@@ -14,6 +14,7 @@ import {usePrevious} from 'sentry/utils/usePrevious';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
@@ -72,7 +73,7 @@ export function ChartVisualization({
   const isLoading = chartInfo.timeseriesResult.isPending;
   const activePlottables = isLoading ? previousPlottables : plottables;
 
-  if (isLoading && previousPlottables.length === 0) {
+  if (isLoading && !plottablesCanBeVisualized(previousPlottables)) {
     const loadingMessage =
       chartInfo.timeseriesResult.isFetching &&
       chartInfo.samplingMode === SAMPLING_MODE.HIGH_ACCURACY
@@ -96,13 +97,13 @@ export function ChartVisualization({
     );
   }
 
-  if (!isLoading && plottables.length === 0) {
+  if (!isLoading && !plottablesCanBeVisualized(plottables)) {
     // This happens when the `/events-stats/` endpoint returns a blank
     // response. This is a rare error condition that happens when
     // proxying to RPC. Adding explicit handling with a "better" message
     return (
       <Container position="absolute" inset={0}>
-        <Widget.WidgetError error={t('No data')} />
+        <TimeSeriesWidgetVisualization.NoData />
       </Container>
     );
   }
