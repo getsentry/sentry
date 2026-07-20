@@ -3,7 +3,10 @@ from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
 from sentry.models.pullrequest import PullRequest
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.user import User
 
 
 class GroupActionLogEntrySerializerTestCase(TestCase):
@@ -167,3 +170,51 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         serialized = serialize(entry)
 
         assert len(serialized["data"]["commit"]["releases"]) == 1
+
+    def test_sentry_app_entry(self) -> None:
+        user = self.create_user()
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        # regular user with no sentry_app
+        user_entry = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.RESOLVE,
+            actor_type=GroupActorType.USER,
+            actor_id=user.id,
+        )
+        assert serialize(user_entry, user)["sentry_app"] is None
+
+        sentry_app = self.create_sentry_app(name="test_sentry_app")
+        default_avatar = self.create_sentry_app_avatar(sentry_app=sentry_app)
+        upload_avatar = self.create_sentry_app_avatar(sentry_app=sentry_app)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            proxy_user = User.objects.get(id=sentry_app.proxy_user_id)
+            upload_avatar.avatar_type = 1  # an upload
+            upload_avatar.color = True  # a logo
+            upload_avatar.save()
+
+        entry = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.RESOLVE,
+            actor_type=GroupActorType.USER,
+            actor_id=proxy_user.id,
+        )
+
+        result = serialize(entry, user)
+        assert result["sentry_app"]["id"] == str(sentry_app.id)
+        assert result["sentry_app"]["name"] == sentry_app.name
+        assert result["sentry_app"]["slug"] == sentry_app.slug
+        assert {
+            "avatarType": "default",
+            "avatarUuid": default_avatar.ident,
+            "avatarUrl": f"http://testserver/sentry-app-avatar/{default_avatar.ident}/",
+            "color": False,
+            "photoType": "icon",
+        } in result["sentry_app"]["avatars"]
+        assert {
+            "avatarType": "upload",
+            "avatarUuid": upload_avatar.ident,
+            "avatarUrl": f"http://testserver/sentry-app-avatar/{upload_avatar.ident}/",
+            "color": True,
+            "photoType": "logo",
+        } in result["sentry_app"]["avatars"]

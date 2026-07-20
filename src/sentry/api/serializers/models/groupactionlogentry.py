@@ -8,6 +8,9 @@ from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.commit import Commit
 from sentry.models.pullrequest import PullRequest
+from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializer
+from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.types.activity import ActivityType
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
@@ -62,6 +65,25 @@ class GroupActionLogEntrySerializer(Serializer):
             )
             users = {u["id"]: u for u in user_list}
 
+        # add sentry app data
+
+        # If an entry is created by the proxy user of a Sentry App, attach it to the payload
+        sentry_apps_list: list[RpcSentryApp] = []
+        if user_ids:
+            sentry_apps_list = app_service.get_sentry_apps_by_proxy_users(proxy_user_ids=user_ids)
+        # Minimal Sentry App serialization to keep the payload minimal
+        sentry_apps: dict[str, _ActivitySentryAppEmbed] = {
+            str(app.proxy_user_id): {
+                "id": str(app.id),
+                "name": app.name,
+                "slug": app.slug,
+                "avatars": serialize(app.avatars, user, serializer=SentryAppAvatarSerializer()),
+            }
+            for app in sentry_apps_list
+            if app.proxy_user_id
+        }
+
+        # add commit data
         commit_ids = {
             i.data["commit"]
             for i in item_list
@@ -84,6 +106,7 @@ class GroupActionLogEntrySerializer(Serializer):
         else:
             commits = {}
 
+        # add pull request data
         pull_request_ids = {
             i.data["pull_request"]
             for i in item_list
@@ -109,6 +132,7 @@ class GroupActionLogEntrySerializer(Serializer):
                     if item.actor_type == GroupActorType.USER
                     else None
                 ),
+                "sentry_app": sentry_apps.get(str(item.actor_id)) if item.actor_id else None,
                 "commit": commits.get(item),
                 "pull_request": pull_requests.get(item),
             }
@@ -140,7 +164,7 @@ class GroupActionLogEntrySerializer(Serializer):
             "id": str(obj.id),
             "type": type_display,
             "user": attrs["user"],
-            "sentry_app": None,  # mimic Activity serializer
+            "sentry_app": attrs["sentry_app"],
             "data": data,
             "dateCreated": obj.date_added,
         }
