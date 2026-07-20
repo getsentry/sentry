@@ -43,7 +43,7 @@ def _solution(data: Any, fmt: Formatter) -> str:
     if data.get("one_line_summary"):
         parts.append(data["one_line_summary"])
     steps = [
-        f"- **{step.get('title', '')}**: {step.get('description', '')}"
+        fmt.field(step.get("title") or "Step", step.get("description") or "")
         for step in data.get("steps") or []
     ]
     if steps:
