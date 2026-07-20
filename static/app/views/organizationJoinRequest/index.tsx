@@ -115,16 +115,10 @@ export default function OrganizationJoinRequest() {
             )}
           </form.AppField>
         </Container>
-        <form.Subscribe selector={state => state.isDirty}>
-          {isDirty => (
-            <Flex gap="md" justify="end">
-              <Button onClick={handleCancel}>{t('Cancel')}</Button>
-              <form.SubmitButton disabled={!isDirty}>
-                {t('Request to Join')}
-              </form.SubmitButton>
-            </Flex>
-          )}
-        </form.Subscribe>
+        <Flex gap="md" justify="end">
+          <Button onClick={handleCancel}>{t('Cancel')}</Button>
+          <form.SubmitButton>{t('Request to Join')}</form.SubmitButton>
+        </Flex>
       </form.AppForm>
     </NarrowLayout>
   );
