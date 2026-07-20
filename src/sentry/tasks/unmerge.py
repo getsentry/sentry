@@ -14,6 +14,7 @@ from taskbroker_client.state import current_task
 from sentry import similarity, tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, parse_log_level
 from sentry.culprit import generate_culprit
+from sentry.issues.action_log import ActionSource, action_context_scope
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
@@ -558,142 +559,146 @@ def start_unmerge(
     silo_mode=SiloMode.CELL,
 )
 def unmerge(*posargs: Any, **kwargs: Any) -> None:
-    args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)
-    extra = {"source_id": args.source_id, "project_id": args.project_id}
+    with action_context_scope(ActionSource.SYSTEM):
+        args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)
+        extra = {"source_id": args.source_id, "project_id": args.project_id}
 
-    # Self-chain idempotency guard. If this activation already produced its continuation in a
-    # prior delivery, this execution is a broker re-pend: no-op so we don't fork the chain (and
-    # skip the redundant re-processing). Only effective inside a worker (current_task() set).
-    task_state = current_task()
-    activation_id = task_state.id if task_state else None
-    if activation_id and already_spawned(_TASK_KEY, activation_id):
-        logger.info(
-            "unmerge.duplicate_redelivery.skipped", extra={**extra, "activation_id": activation_id}
+        # Self-chain idempotency guard. If this activation already produced its continuation in a
+        # prior delivery, this execution is a broker re-pend: no-op so we don't fork the chain (and
+        # skip the redundant re-processing). Only effective inside a worker (current_task() set).
+        task_state = current_task()
+        activation_id = task_state.id if task_state else None
+        if activation_id and already_spawned(_TASK_KEY, activation_id):
+            logger.info(
+                "unmerge.duplicate_redelivery.skipped",
+                extra={**extra, "activation_id": activation_id},
+            )
+            metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _TASK_KEY})
+            return
+
+        logger.info("unmerge.start.task", extra=extra)
+
+        if killswitch_matches_context(
+            "unmerge.killswitch-projects", {"project_id": args.project_id}
+        ):
+            logger.warning("unmerge.halted_by_killswitch", extra=extra)
+            if isinstance(args, SuccessiveUnmergeArgs):
+                unlock_hashes(args.project_id, list(args.locked_primary_hashes))
+                for _unmerge_key, (_destination_id, eventstream_state) in args.destinations.items():
+                    if eventstream_state:
+                        args.replacement.stop_snuba_replacement(eventstream_state)
+            return
+
+        source = Group.objects.get(project_id=args.project_id, id=args.source_id)
+
+        caches: Mapping[str, Any] = get_caches()
+
+        project = caches["Project"](args.project_id)
+
+        # On the first iteration of this loop, we clear out all of the
+        # denormalizations from the source group so that we can have a clean slate
+        # for the new, repaired data.
+        if isinstance(args, InitialUnmergeArgs):
+            locked_primary_hashes = lock_hashes(
+                args.project_id, args.source_id, list(args.replacement.primary_hashes_to_lock)
+            )
+            truncate_denormalizations(project, source)
+            last_event = None
+        else:
+            last_event = args.last_event
+            locked_primary_hashes = list(args.locked_primary_hashes)
+
+        last_event, raw_events = task_run_batch_query(
+            filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
+            batch_size=args.batch_size,
+            state=last_event,
+            referrer="unmerge",
+            tenant_ids={"organization_id": source.project.organization_id},
+            eap_conditions=build_group_id_in_filter([source.id]),
         )
-        metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _TASK_KEY})
-        return
+        # Convert Event objects to GroupEvent objects
+        events: list[GroupEvent] = [event.for_group(source) for event in raw_events]
+        # Log info related to this unmerge
+        logger.info("unmerge.check", extra={**extra, "num_events": len(events)})
 
-    logger.info("unmerge.start.task", extra=extra)
-
-    if killswitch_matches_context("unmerge.killswitch-projects", {"project_id": args.project_id}):
-        logger.warning("unmerge.halted_by_killswitch", extra=extra)
-        if isinstance(args, SuccessiveUnmergeArgs):
-            unlock_hashes(args.project_id, list(args.locked_primary_hashes))
-            for _unmerge_key, (_destination_id, eventstream_state) in args.destinations.items():
+        # If there are no more events to process, we're done with the migration.
+        if not events:
+            unlock_hashes(args.project_id, locked_primary_hashes)
+            for unmerge_key, (_, eventstream_state) in args.destinations.items():
+                logger.warning(
+                    "Unmerge complete (eventstream state: %s)", eventstream_state, extra=extra
+                )
                 if eventstream_state:
                     args.replacement.stop_snuba_replacement(eventstream_state)
-        return
+            return
 
-    source = Group.objects.get(project_id=args.project_id, id=args.source_id)
+        source_events = []
+        destination_events: dict[str, list[GroupEvent]] = {}
 
-    caches: Mapping[str, Any] = get_caches()
+        for event in events:
+            key = args.replacement.get_unmerge_key(event, locked_primary_hashes)
+            if key is not None:
+                destination_events.setdefault(key, []).append(event)
+            else:
+                source_events.append(event)
 
-    project = caches["Project"](args.project_id)
+        source_fields_reset = isinstance(args, SuccessiveUnmergeArgs) and args.source_fields_reset
 
-    # On the first iteration of this loop, we clear out all of the
-    # denormalizations from the source group so that we can have a clean slate
-    # for the new, repaired data.
-    if isinstance(args, InitialUnmergeArgs):
-        locked_primary_hashes = lock_hashes(
-            args.project_id, args.source_id, list(args.replacement.primary_hashes_to_lock)
+        if source_events:
+            if not source_fields_reset:
+                source.update(**get_group_creation_attributes(caches, source, source_events))
+                source_fields_reset = True
+            else:
+                source.update(**get_group_backfill_attributes(caches, source, source_events))
+
+        destinations = dict(args.destinations)
+        # Log info related to this unmerge
+        logger.info(
+            "unmerge.destinations",
+            extra={
+                **extra,
+                "source_events": len(source_events),
+                "destination_events": len(destination_events),
+                "source_fields_reset": source_fields_reset,
+            },
         )
-        truncate_denormalizations(project, source)
-        last_event = None
-    else:
-        last_event = args.last_event
-        locked_primary_hashes = list(args.locked_primary_hashes)
 
-    last_event, raw_events = task_run_batch_query(
-        filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
-        batch_size=args.batch_size,
-        state=last_event,
-        referrer="unmerge",
-        tenant_ids={"organization_id": source.project.organization_id},
-        eap_conditions=build_group_id_in_filter([source.id]),
-    )
-    # Convert Event objects to GroupEvent objects
-    events: list[GroupEvent] = [event.for_group(source) for event in raw_events]
-    # Log info related to this unmerge
-    logger.info("unmerge.check", extra={**extra, "num_events": len(events)})
+        # XXX: This is only actually able to create a destination group and migrate
+        # the group hashes if there are events that can be migrated. How do we
+        # handle this if there aren't any events? We can't create a group (there
+        # isn't any data to derive the aggregates from), so we'd have to mark the
+        # hash as in limbo somehow...?)
 
-    # If there are no more events to process, we're done with the migration.
-    if not events:
-        unlock_hashes(args.project_id, locked_primary_hashes)
-        for unmerge_key, (_, eventstream_state) in args.destinations.items():
-            logger.warning(
-                "Unmerge complete (eventstream state: %s)", eventstream_state, extra=extra
+        for unmerge_key, _destination_events in destination_events.items():
+            destination_id, eventstream_state = destinations.get(unmerge_key) or (None, None)
+            (destination_id, eventstream_state) = migrate_events(
+                source,
+                caches,
+                project,
+                args,
+                _destination_events,
+                locked_primary_hashes,
+                destination_id,
+                eventstream_state,
             )
-            if eventstream_state:
-                args.replacement.stop_snuba_replacement(eventstream_state)
-        return
+            destinations[unmerge_key] = destination_id, eventstream_state
 
-    source_events = []
-    destination_events: dict[str, list[GroupEvent]] = {}
+        repair_denormalizations(caches, project, events)
 
-    for event in events:
-        key = args.replacement.get_unmerge_key(event, locked_primary_hashes)
-        if key is not None:
-            destination_events.setdefault(key, []).append(event)
-        else:
-            source_events.append(event)
-
-    source_fields_reset = isinstance(args, SuccessiveUnmergeArgs) and args.source_fields_reset
-
-    if source_events:
-        if not source_fields_reset:
-            source.update(**get_group_creation_attributes(caches, source, source_events))
-            source_fields_reset = True
-        else:
-            source.update(**get_group_backfill_attributes(caches, source, source_events))
-
-    destinations = dict(args.destinations)
-    # Log info related to this unmerge
-    logger.info(
-        "unmerge.destinations",
-        extra={
-            **extra,
-            "source_events": len(source_events),
-            "destination_events": len(destination_events),
-            "source_fields_reset": source_fields_reset,
-        },
-    )
-
-    # XXX: This is only actually able to create a destination group and migrate
-    # the group hashes if there are events that can be migrated. How do we
-    # handle this if there aren't any events? We can't create a group (there
-    # isn't any data to derive the aggregates from), so we'd have to mark the
-    # hash as in limbo somehow...?)
-
-    for unmerge_key, _destination_events in destination_events.items():
-        destination_id, eventstream_state = destinations.get(unmerge_key) or (None, None)
-        (destination_id, eventstream_state) = migrate_events(
-            source,
-            caches,
-            project,
-            args,
-            _destination_events,
-            locked_primary_hashes,
-            destination_id,
-            eventstream_state,
+        new_args = SuccessiveUnmergeArgs(
+            project_id=args.project_id,
+            source_id=args.source_id,
+            replacement=args.replacement,
+            actor_id=args.actor_id,
+            batch_size=args.batch_size,
+            last_event=last_event,
+            destinations=destinations,
+            locked_primary_hashes=locked_primary_hashes,
+            source_fields_reset=source_fields_reset,
         )
-        destinations[unmerge_key] = destination_id, eventstream_state
 
-    repair_denormalizations(caches, project, events)
-
-    new_args = SuccessiveUnmergeArgs(
-        project_id=args.project_id,
-        source_id=args.source_id,
-        replacement=args.replacement,
-        actor_id=args.actor_id,
-        batch_size=args.batch_size,
-        last_event=last_event,
-        destinations=destinations,
-        locked_primary_hashes=locked_primary_hashes,
-        source_fields_reset=source_fields_reset,
-    )
-
-    unmerge.delay(**new_args.dump_arguments())
-    # Record that this activation has spawned its continuation. A subsequent re-pend of this same
-    # activation will short-circuit at the guard above instead of spawning again.
-    if activation_id:
-        mark_spawned(_TASK_KEY, activation_id)
+        unmerge.delay(**new_args.dump_arguments())
+        # Record that this activation has spawned its continuation. A subsequent re-pend of this same
+        # activation will short-circuit at the guard above instead of spawning again.
+        if activation_id:
+            mark_spawned(_TASK_KEY, activation_id)
