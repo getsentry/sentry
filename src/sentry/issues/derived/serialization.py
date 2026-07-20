@@ -12,9 +12,11 @@ from datetime import datetime
 from typing import TypedDict
 
 from sentry.issues.derived.features import (
+    BLOCKER,
     HAS_OPEN_FIX_PR,
     HAS_ROOT_CAUSE,
     IS_ASSIGNED,
+    LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
     PROGRESS,
     STATUS,
@@ -29,12 +31,14 @@ logger = logging.getLogger(__name__)
 
 
 class GroupDerivedDataResponse(TypedDict):
+    blocker: str
     progress: str
     status: str
     viewCount: int
     hasOpenFixPr: bool
     isAssigned: bool
     hasRootCause: bool
+    lastCompletedAutofixStep: str
     lastProgressedAt: datetime | None
 
 
@@ -49,12 +53,14 @@ def get_bulk_group_derived_data(group_ids: set[int]) -> dict[int, GroupDerivedDa
             state = GroupDerivedDataStore.load(PIPELINE, derived)
             progress = state[PROGRESS]
             result[derived.group_id] = GroupDerivedDataResponse(
+                blocker=state[BLOCKER].value,
                 progress=(progress or IssueProgressState.FIX_APPLIED).value,
                 status=state[STATUS].value,
                 viewCount=state[VIEW_COUNT],
                 hasOpenFixPr=state[HAS_OPEN_FIX_PR],
                 isAssigned=state[IS_ASSIGNED],
                 hasRootCause=state[HAS_ROOT_CAUSE],
+                lastCompletedAutofixStep=state[LAST_COMPLETED_AUTOFIX_STEP].value,
                 lastProgressedAt=state[LAST_PROGRESSED_AT],
             )
         except (TypeError, ValueError):
