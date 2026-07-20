@@ -25,7 +25,12 @@ if TYPE_CHECKING:
 
 class GroupActionLogEntryManager(BaseManager["GroupActionLogEntry"]):
     def get_actions_for_group(self, group: Group, num: int) -> Sequence[GroupActionLogEntry]:
-        return list(self.filter(group_id=group.id).order_by("-date_added")[:num])
+        return list(
+            self.filter(group_id=group.id)
+            # XXX: hard code exclude for now - in the future make this an attribute on GroupAction
+            .exclude(type=GroupActionType.VIEW.value)
+            .order_by("-date_added", "-id")[:num]
+        )
 
 
 class GroupActionLogEntryManager(BaseManager["GroupActionLogEntry"]):

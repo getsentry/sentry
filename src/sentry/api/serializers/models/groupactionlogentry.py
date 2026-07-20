@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, Sequence, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.activity import _ActivitySentryAppEmbed
@@ -14,13 +14,29 @@ from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.types.activity import ActivityType
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
-from sentry.utils.action_log.activity_translator import ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE
+from sentry.utils.action_log.activity_translator import (
+    ACTIVITY_TYPE_TO_ARG_TRANSLATIONS,
+    ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE,
+)
 
 # GroupActionTypes are serialized with the same `type` string as their
 # equivalent Activity so the frontend can consume both identically
 _GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE = {
     action_cls.get_type().value: activity_type
     for activity_type, action_cls in ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE.items()
+}
+
+# GALE payloads are stored with the snake_case GroupAction field names, but the
+# frontend consumes the Activity `data` shape. Reverse the camelCase -> snake_case
+# renames that activity_translator applies when mirroring Activities into
+# GroupActions, keyed by GroupActionType value.
+_GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS = {
+    action_cls.get_type().value: {
+        gale_key: activity_key
+        for activity_key, gale_key in ACTIVITY_TYPE_TO_ARG_TRANSLATIONS[activity_type].items()
+    }
+    for activity_type, action_cls in ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE.items()
+    if activity_type in ACTIVITY_TYPE_TO_ARG_TRANSLATIONS
 }
 
 COMMIT_ACTION_TYPES = {
@@ -54,7 +70,7 @@ class GroupActionLogEntrySerializerResponse(TypedDict):
 
 @register(GroupActionLogEntry)
 class GroupActionLogEntrySerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(self, item_list: Sequence[GroupActionLogEntry], user, **kwargs):
         user_ids = [
             i.actor_id for i in item_list if i.actor_id and i.actor_type == GroupActorType.USER
         ]
@@ -72,16 +88,20 @@ class GroupActionLogEntrySerializer(Serializer):
         if user_ids:
             sentry_apps_list = app_service.get_sentry_apps_by_proxy_users(proxy_user_ids=user_ids)
         # Minimal Sentry App serialization to keep the payload minimal
-        sentry_apps: dict[str, _ActivitySentryAppEmbed] = {
-            str(app.proxy_user_id): {
+        apps_with_proxy = [app for app in sentry_apps_list if app.proxy_user_id]
+        all_avatars = [avatar for app in apps_with_proxy for avatar in app.avatars]
+        serialized_avatars = serialize(all_avatars, user, serializer=SentryAppAvatarSerializer())
+        sentry_apps: dict[str, _ActivitySentryAppEmbed] = {}
+        avatar_offset = 0
+        for app in apps_with_proxy:
+            avatar_count = len(app.avatars)
+            sentry_apps[str(app.proxy_user_id)] = {
                 "id": str(app.id),
                 "name": app.name,
                 "slug": app.slug,
-                "avatars": serialize(app.avatars, user, serializer=SentryAppAvatarSerializer()),
+                "avatars": serialized_avatars[avatar_offset : avatar_offset + avatar_count],
             }
-            for app in sentry_apps_list
-            if app.proxy_user_id
-        }
+            avatar_offset += avatar_count
 
         # add commit data
         commit_ids = {
@@ -139,7 +159,9 @@ class GroupActionLogEntrySerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj, attrs, user, **kwargs) -> GroupActionLogEntrySerializerResponse:
+    def serialize(
+        self, obj: GroupActionLogEntry, attrs, user, **kwargs
+    ) -> GroupActionLogEntrySerializerResponse:
         activity_type = _GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE.get(obj.type)
         type_display = (
             ActivityType(activity_type).name.lower()
@@ -157,8 +179,17 @@ class GroupActionLogEntrySerializer(Serializer):
             data = {"commit": attrs["commit"]}
         elif obj.type in PULL_REQUEST_ACTION_TYPES:
             data = {"pullRequest": attrs["pull_request"]}
+        elif obj.type == GroupActionType.MERGE_FROM_OTHER.value:
+            # Activity stores merged issues as a list of objects; GALE stores only ids.
+            counterpart_group_ids = (obj.data or {}).get("counterpart_group_ids", [])
+            data = {"issues": [{"id": str(group_id)} for group_id in counterpart_group_ids]}
         else:
-            data = obj.data or {}
+            raw_data = obj.data or {}
+            key_translations = _GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS.get(obj.type)
+            if key_translations:
+                data = {key_translations.get(key, key): value for key, value in raw_data.items()}
+            else:
+                data = raw_data
 
         return {
             "id": str(obj.id),

@@ -218,3 +218,88 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             "color": True,
             "photoType": "logo",
         } in result["sentry_app"]["avatars"]
+
+    def test_archive_entry_translates_keys(self) -> None:
+        user = self.create_user()
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        entry = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.ARCHIVE,
+            actor_type=GroupActorType.USER,
+            actor_id=user.id,
+            data={"ignore_count": 5, "ignore_until_escalating": True},
+        )
+
+        result = serialize(entry, user)
+        assert result["data"] == {"ignoreCount": 5, "ignoreUntilEscalating": True}
+
+    def test_assign_entry_translates_keys(self) -> None:
+        user = self.create_user()
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        entry = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.ASSIGN,
+            actor_type=GroupActorType.USER,
+            actor_id=user.id,
+            data={
+                "assignee": "1",
+                "assignee_email": "user@example.com",
+                "assignee_type": "user",
+                "rule": "codeowners",
+            },
+        )
+
+        result = serialize(entry, user)
+        assert result["data"] == {
+            "assignee": "1",
+            "assigneeEmail": "user@example.com",
+            "assigneeType": "user",
+            "rule": "codeowners",
+        }
+
+    def test_set_resolved_by_age_entry_translates_keys(self) -> None:
+        user = self.create_user()
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        entry = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.SET_RESOLVED_BY_AGE,
+            actor_type=GroupActorType.USER,
+            actor_id=user.id,
+            data={"auto_resolve_age_threshold": 720},
+        )
+
+        result = serialize(entry, user)
+        assert result["data"] == {"age": 720}
+
+    def test_reprocess_entry_translates_keys(self) -> None:
+        user = self.create_user()
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        entry = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.REPROCESS,
+            actor_type=GroupActorType.USER,
+            actor_id=user.id,
+            data={"event_count": 3, "old_group_id": 10, "new_group_id": 11},
+        )
+
+        result = serialize(entry, user)
+        assert result["data"] == {"eventCount": 3, "oldGroupId": 10, "newGroupId": 11}
+
+    def test_merge_entry_reshapes_issues(self) -> None:
+        user = self.create_user()
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        entry = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.MERGE_FROM_OTHER,
+            actor_type=GroupActorType.USER,
+            actor_id=user.id,
+            data={"counterpart_group_ids": [2, 3]},
+        )
+
+        result = serialize(entry, user)
+        assert result["data"] == {"issues": [{"id": "2"}, {"id": "3"}]}
