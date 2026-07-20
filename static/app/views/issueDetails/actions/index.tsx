@@ -525,7 +525,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 latestRelease={project.latestRelease}
                 hasSemverReleaseFeature={hasSemverReleaseFeature}
                 onUpdate={onUpdate}
-                projectSlug={project.slug}
+                project={project}
                 isResolved={isResolved}
                 isAutoResolved={isAutoResolved}
                 size="sm"

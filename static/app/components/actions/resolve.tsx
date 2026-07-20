@@ -53,6 +53,7 @@ interface ResolveActionsProps {
   hasRelease: boolean;
   hasSemverReleaseFeature: boolean;
   onUpdate: (data: GroupStatusResolution) => void;
+  project: Project | undefined;
   confirmLabel?: string;
   confirmMessage?: React.ReactNode;
   disableDropdown?: boolean;
@@ -64,7 +65,6 @@ interface ResolveActionsProps {
   multipleProjectsSelected?: boolean;
   priority?: 'primary';
   projectFetchError?: boolean;
-  projectSlug?: string;
   shouldConfirm?: boolean;
   size?: 'xs' | 'sm';
 }
@@ -74,7 +74,7 @@ export function ResolveActions({
   isResolved = false,
   isAutoResolved = false,
   confirmLabel = t('Resolve'),
-  projectSlug,
+  project,
   hasRelease,
   latestRelease,
   confirmMessage,
@@ -89,6 +89,7 @@ export function ResolveActions({
   onUpdate,
 }: ResolveActionsProps) {
   const {openModal} = useModal();
+  const projectSlug = project?.slug;
 
   const organization = useOrganization();
 
@@ -339,7 +340,7 @@ export function ResolveActions({
         onSelected={(statusDetails: ResolvedStatusDetails) =>
           handleAnotherExistingReleaseResolution(statusDetails)
         }
-        projectSlug={projectSlug}
+        project={project}
       />
     ));
   }
