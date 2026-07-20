@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 
 from django.utils import timezone
-from taskbroker_client.state import current_task
 
 from sentry import options
 from sentry.issues.action_log.backfill import (
@@ -16,7 +15,7 @@ from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
-from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
+from sentry.taskworker.selfchain_idempotency import selfchain, selfchaining_task
 from sentry.utils import json, metrics
 from sentry.utils.action_log.activity_translator import (
     activity_action_idempotency_key,
@@ -116,6 +115,7 @@ def reset_and_backfill_group_action_log(
     processing_deadline_duration=15 * 60,
     silo_mode=SiloMode.CELL,
 )
+@selfchaining_task(key=_TASK_KEY)
 def backfill_group_action_log_for_project(
     project_id: int,
     last_activity_id: int = 0,
@@ -124,16 +124,6 @@ def backfill_group_action_log_for_project(
     cursor_id: int = 0,
     **kwargs: object,
 ) -> None:
-    task_state = current_task()
-    activation_id = task_state.id if task_state else None
-    if activation_id and already_spawned(_TASK_KEY, activation_id):
-        logger.info(
-            "backfill_group_action_log.duplicate_redelivery.skipped",
-            extra={"project_id": project_id, "activation_id": activation_id},
-        )
-        metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _TASK_KEY})
-        return
-
     if options.get("issues.backfill_group_action_log.killswitch"):
         logger.info("backfill_group_action_log.killswitch_enabled")
         return
@@ -149,7 +139,7 @@ def backfill_group_action_log_for_project(
     parsed_cursor = datetime.fromisoformat(cursor_datetime) if cursor_datetime else None
 
     try:
-        _backfill_project(project, parsed_cursor, cursor_id, activation_id)
+        _backfill_project(project, parsed_cursor, cursor_id)
     except Exception:
         logger.exception(
             "backfill_group_action_log.task_failed",
@@ -189,7 +179,6 @@ def _backfill_project(
     project: Project,
     cursor_dt: datetime | None,
     cursor_id: int = 0,
-    activation_id: str | None = None,
 ) -> None:
     from sentry.issues.derived.tasks import process_project_derived_data
 
@@ -305,7 +294,7 @@ def _backfill_project(
     )
 
     if len(activities) == batch_size:
-        backfill_group_action_log_for_project.apply_async(
+        selfchain(backfill_group_action_log_for_project).apply_async(
             kwargs={
                 "project_id": project.id,
                 "cursor_datetime": last_activity.datetime.isoformat(),
@@ -314,8 +303,6 @@ def _backfill_project(
             countdown=inter_batch_delay_s,
             headers={"sentry-propagate-traces": False},
         )
-        if activation_id:
-            mark_spawned(_TASK_KEY, activation_id)
     else:
         logger.info(
             "backfill_group_action_log.project_completed",
