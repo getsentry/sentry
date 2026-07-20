@@ -674,11 +674,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "github.webhook.mailbox-bucketing.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "integrations.backfill_github_external_actor.gh_api_fetch_interval_s",
     type=Float,
     default=0.1,
