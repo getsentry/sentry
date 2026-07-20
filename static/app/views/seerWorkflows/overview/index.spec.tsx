@@ -217,12 +217,13 @@ describe('AutofixOverview', () => {
     // The timestamp is labeled as run activity.
     expect(screen.getByText(/^updated/)).toBeInTheDocument();
 
-    // Root cause, notes, and the short id stay behind the disclosure.
+    // Root cause, notes, and the short id stay behind the analysis toggle,
+    // which renders its block only when expanded.
     const disclosure = screen.getByRole('button', {name: 'Full analysis'});
     expect(
-      screen.getByText('Commit c5bb895 stopped sending the Authorization header.')
-    ).not.toBeVisible();
-    expect(screen.getByText('PROJ-1')).not.toBeVisible();
+      screen.queryByText('Commit c5bb895 stopped sending the Authorization header.')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('PROJ-1')).not.toBeInTheDocument();
 
     await userEvent.click(disclosure);
 
