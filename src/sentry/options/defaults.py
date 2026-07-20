@@ -906,31 +906,26 @@ register(
 )
 
 # Agentic triage sort: purpose-built for night shift candidate ranking.
-# Each factor weight defaults to 0.20 (equal weighting across 5 factors).
+# Each factor weight defaults to 0.25 (equal weighting across 4 factors).
 # Set a weight to 0 to skip that factor's aggregation entirely.
 register(
     "snuba.search.agentic-triage.recency-weight",
-    default=0.20,
+    default=0.25,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "snuba.search.agentic-triage.severity-weight",
-    default=0.20,
+    default=0.25,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "snuba.search.agentic-triage.user-impact-weight",
-    default=0.20,
+    default=0.25,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "snuba.search.agentic-triage.event-volume-weight",
-    default=0.20,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "snuba.search.agentic-triage.fixability-weight",
-    default=0.20,
+    default=0.25,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Lookback window in seconds for Snuba aggregation (default: 2 days).
