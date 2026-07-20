@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noDynamicTranslations} from './no-dynamic-translations';
+import {noDynamicTranslations} from './noDynamicTranslations';
 
 const ruleTester = new RuleTester();
 

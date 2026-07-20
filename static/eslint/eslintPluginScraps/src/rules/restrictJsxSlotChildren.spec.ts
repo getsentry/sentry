@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {restrictJsxSlotChildren, type Options} from './restrict-jsx-slot-children';
+import {restrictJsxSlotChildren, type Options} from './restrictJsxSlotChildren';
 
 const ruleTester = new RuleTester({
   languageOptions: {

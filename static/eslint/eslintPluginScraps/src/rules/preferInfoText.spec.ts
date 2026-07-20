@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {preferInfoText} from './prefer-info-text';
+import {preferInfoText} from './preferInfoText';
 
 const ruleTester = new RuleTester({
   languageOptions: {

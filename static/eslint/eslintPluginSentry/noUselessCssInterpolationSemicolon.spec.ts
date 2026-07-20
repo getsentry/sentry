@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noUselessCssInterpolationSemicolon} from './no-useless-css-interpolation-semicolon';
+import {noUselessCssInterpolationSemicolon} from './noUselessCssInterpolationSemicolon';
 
 const ruleTester = new RuleTester();
 

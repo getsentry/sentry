@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noDoubleDollarInterpolation} from './no-double-dollar-interpolation';
+import {noDoubleDollarInterpolation} from './noDoubleDollarInterpolation';
 
 const ruleTester = new RuleTester();
 

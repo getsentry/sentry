@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noRawCssInStyled} from './no-raw-css-in-styled';
+import {noRawCssInStyled} from './noRawCssInStyled';
 
 const ruleTester = new RuleTester();
 

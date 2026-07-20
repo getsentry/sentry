@@ -1,6 +1,6 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noFlagComments} from './no-flag-comments';
+import {noFlagComments} from './noFlagComments';
 
 const ruleTester = new RuleTester();
 
