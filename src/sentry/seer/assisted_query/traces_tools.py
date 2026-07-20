@@ -161,6 +161,9 @@ def get_attribute_names(
     # Maps an attribute name to its type ("string"/"number"), so context-bearing
     # attributes that aren't hardcoded built-ins can still be emitted as fields.
     type_by_name: dict[str, str] = {}
+    # Maps an attribute name to its source ("sentry"/"user"), used to decide which
+    # context-bearing attributes to surface as built-in fields.
+    source_by_name: dict[str, str] = {}
 
     # Fetch both string and number attributes from the public API
     for attr_type in ["string", "number"]:
@@ -196,20 +199,24 @@ def get_attribute_names(
             if item.get("context"):
                 context_by_name[item["name"]] = item["context"]
                 type_by_name[item["name"]] = attr_type
+                source_by_name[item["name"]] = item.get("attributeSource", {}).get("source_type")
 
     hardcoded_fields = _get_built_in_fields(item_type)
     built_in_fields = [
         BuiltInField(**f, context=context_by_name.get(f["key"])) for f in hardcoded_fields
     ]
 
-    # Convention-backed attributes (e.g. http.route) aren't in the hardcoded
-    # list, so their context would otherwise be dropped. Surface them through
-    # built_in_fields too, since that's where Seer reads attribute context from.
-    # Only conventions are promoted (isConvention=True); user-authored custom
-    # context is intentionally left out.
+    # Context-bearing attributes that aren't hardcoded built-ins (e.g. the
+    # convention http.route, or Sentry-defined fields like span.description) would
+    # otherwise be dropped. Surface them through built_in_fields too, since that's
+    # where Seer reads attribute context from. We promote conventions
+    # (isConvention=True) and Sentry-defined attributes (source=sentry);
+    # user-authored custom context is intentionally left out.
     hardcoded_keys = {f["key"] for f in hardcoded_fields}
     for name, context in context_by_name.items():
-        if name in hardcoded_keys or not context.get("isConvention"):
+        if name in hardcoded_keys:
+            continue
+        if not (context.get("isConvention") or source_by_name.get(name) == "sentry"):
             continue
         built_in_fields.append(BuiltInField(key=name, type=type_by_name[name], context=context))
 

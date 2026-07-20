@@ -5,7 +5,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -33,6 +39,22 @@ describe('IssuePreviewDrawer', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/123/attachments/',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/123/events/recommended/',
+      body: EventFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/123/external-issues/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/123/integrations/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/123/pull-requests/',
+      body: {pullRequests: []},
     });
   });
 
@@ -169,6 +191,22 @@ describe('IssuePreviewDrawer', () => {
       url: `/organizations/${organization.slug}/members/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
+      body: EventFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/external-issues/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
 
     const updateRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/issues/`,
@@ -222,6 +260,75 @@ describe('IssuePreviewDrawer', () => {
 
     expect(await screen.findByRole('tab', {name: 'Activity'})).toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Autofix'})).not.toBeInTheDocument();
+  });
+
+  it('renders the external links section', async () => {
+    const project = ProjectFixture();
+    const group = GroupFixture({id: '123', shortId: 'JAVASCRIPT-6QS', project});
+
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/`,
+      body: group,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: false, reason: null},
+        billing: {hasAutofixQuota: false},
+        seerReposLinked: false,
+      },
+    });
+
+    render(<IssuePreviewDrawer groupId={group.id} />);
+
+    expect(await screen.findByText('External Links')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Track this issue in Jira, GitHub, etc.')
+    ).toBeInTheDocument();
+  });
+
+  it('renders the activity feed in a collapsible section', async () => {
+    const project = ProjectFixture();
+    const group = GroupFixture({id: '123', shortId: 'JAVASCRIPT-6QS', project});
+
+    ProjectsStore.loadInitialData([project]);
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/`,
+      body: group,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: false, reason: null},
+        billing: {hasAutofixQuota: false},
+        seerReposLinked: false,
+      },
+    });
+
+    render(<IssuePreviewDrawer groupId={group.id} />);
+
+    const activitySection = await screen.findByRole('region', {name: 'activity'});
+
+    // Activity input is visible while the section is expanded
+    expect(
+      within(activitySection).getByPlaceholderText(
+        'Add a comment. Tag users with @, or teams with #'
+      )
+    ).toBeInTheDocument();
+
+    // Collapse the activity section
+    await userEvent.click(
+      within(activitySection).getByRole('button', {name: 'Collapse Section'})
+    );
+
+    expect(
+      within(activitySection).queryByPlaceholderText(
+        'Add a comment. Tag users with @, or teams with #'
+      )
+    ).not.toBeInTheDocument();
   });
 
   it('opens the Details tab and renders the event content', async () => {

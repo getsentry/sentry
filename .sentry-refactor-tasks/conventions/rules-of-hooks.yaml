@@ -1,0 +1,47 @@
+name: rules-of-hooks
+severity: error
+tags: [react, react-compiler, hooks, correctness]
+
+why: |
+  React identifies hook state by call order. Hooks must therefore be called at
+  the top level of a function component or custom hook, in the same order on
+  every render. Calling hooks conditionally, in loops, after early returns, or
+  from ordinary functions can associate state with the wrong call or fail at
+  runtime.
+
+  This convention corresponds to the React Compiler `Hooks` diagnostic.
+
+  See: https://react.dev/reference/eslint-plugin-react-hooks/lints/rules-of-hooks
+
+detect: |
+  Flag a hook call when any of the following is true:
+    - It is inside a condition, loop, callback, nested function, `try`/`catch`,
+      or occurs after a possible early return.
+    - It is called from an ordinary function rather than a React component or a
+      custom hook.
+    - A component or hook is selected dynamically and then called as a hook.
+    - A hook is called from a class component or module scope.
+
+  Treat functions beginning with `use` followed by a capital letter as hooks.
+  Check aliases and values returned by override/registry lookups when they are
+  later invoked like hooks.
+
+  Do NOT flag the React 19 `use` API solely because it is in a condition or
+  loop; it has special ordering semantics. It still must be called from React
+  code and not inside `try`/`catch`.
+
+fix: |
+  Move the hook to the top level and make the condition part of its input or its
+  returned behavior. Split conditional branches into separate components or
+  custom hooks when necessary. Never fix the issue by renaming a real hook so it
+  no longer begins with `use`.
+
+examples:
+  bad:
+    - 'if (enabled) { const value = useFeatureValue(); }'
+    - 'const useSelected = getOverride("react-hook:selected") ?? useDefault; useSelected();'
+  good:
+    - 'const value = useFeatureValue({enabled});'
+    - 'const value = enabled ? <EnabledView /> : <DisabledView />;'
+
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} Hooks'

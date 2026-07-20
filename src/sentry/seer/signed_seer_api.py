@@ -5,12 +5,12 @@ from typing import Any, Literal, NotRequired, TypedDict
 from urllib.parse import urlparse
 
 import orjson
-import sentry_sdk
 from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
+from sentry.utils.tracing import trace
 from sentry.viewer_context import (
     ViewerContext,
     encode_viewer_context,
@@ -109,13 +109,14 @@ def _resolve_viewer_context(
 
     return ViewerContext(
         organization_id=org_id,
+        project_id=None if has_mismatch else (vc.project_id if vc else None),
         user_id=user_id,
         actor_type=vc.actor_type,
         token=None if has_mismatch else vc.token,
     )
 
 
-@sentry_sdk.tracing.trace
+@trace
 def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool,
     path: str,
@@ -413,10 +414,9 @@ def make_oneshot_request(
 ) -> BaseHTTPResponse:
     return make_signed_seer_api_request(
         seer_autofix_default_connection_pool,
-        "/v1/automation/agent/oneshot/run",
+        "/v1/automation/oneshot/run",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         timeout=timeout,
-        metric_tags={"oneshot_id": body["oneshot_id"]},
         viewer_context=viewer_context,
     )
 

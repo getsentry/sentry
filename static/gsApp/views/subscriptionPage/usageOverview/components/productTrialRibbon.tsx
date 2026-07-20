@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconClock, IconLightning} from 'sentry/icons';
@@ -46,10 +46,10 @@ export function ProductTrialRibbon({
           )}
         </Tooltip>
       </RibbonBase>
-      <Flex direction="column" position="relative">
+      <Stack position="relative">
         <TopRibbonEdge ribbonColor={ribbonColor} />
         <BottomRibbonEdge ribbonColor={ribbonColor} />
-      </Flex>
+      </Stack>
     </RibbonContainer>
   );
 }

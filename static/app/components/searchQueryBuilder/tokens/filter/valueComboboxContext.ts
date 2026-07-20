@@ -15,7 +15,6 @@ type MultiValueSelectedAnalyticsData = Omit<
 
 type ValueComboboxContextValue = {
   analyticsData: MultiValueSelectedAnalyticsData;
-  ctrlKeyPressed: boolean;
   selectedValueMap: ReadonlyMap<string, boolean>;
   token: TokenResult<Token.FILTER>;
 };

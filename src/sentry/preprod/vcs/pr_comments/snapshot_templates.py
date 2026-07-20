@@ -7,6 +7,7 @@ from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.url_utils import get_preprod_artifact_comparison_url, get_preprod_artifact_url
+from sentry.preprod.vcs.markdown_utils import escape_markdown, escape_markdown_code
 
 _HEADER = "## Sentry Snapshot Testing"
 PROCESSING_STATUS = "⏳ Processing"
@@ -147,8 +148,10 @@ def _app_display_info(artifact: PreprodArtifact) -> tuple[str, str]:
 
 
 def _format_name_cell(app_display: str, app_id: str, url: str) -> str:
+    # app_display / app_id are untrusted artifact metadata; url is Sentry-generated.
+    app_display = escape_markdown(app_display)
     if app_id:
-        return f"[{app_display}]({url})<br>`{app_id}`"
+        return f"[{app_display}]({url})<br>`{escape_markdown_code(app_id)}`"
     return f"[{app_display}]({url})"
 
 

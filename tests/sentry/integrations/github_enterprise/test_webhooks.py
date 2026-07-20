@@ -1,7 +1,10 @@
+import hashlib
+import hmac
 from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import orjson
 import responses
 from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
@@ -17,8 +20,14 @@ from fixtures.github_enterprise import (
     PUSH_EVENT_EXAMPLE_INSTALLATION,
 )
 from sentry.integrations.github_enterprise.webhook import (
+    GitHubEnterpriseCheckRunEventWebhook,
+    GitHubEnterpriseCheckSuiteWebhook,
     GitHubEnterpriseGitHubComWebhookEndpoint,
     GitHubEnterpriseInstallationRepositoriesEventWebhook,
+    GitHubEnterpriseIssueCommentEventWebhook,
+    GitHubEnterprisePullRequestReviewCommentEventWebhook,
+    GitHubEnterprisePullRequestReviewEventWebhook,
+    GitHubEnterprisePullRequestReviewThreadEventWebhook,
     GitHubEnterpriseWebhookEndpoint,
     get_host,
 )
@@ -1162,3 +1171,91 @@ class GitHubEnterpriseParserGitHubComTest(TestCase):
         parser.view_class = GitHubEnterpriseWebhookEndpoint
         external_id = parser._get_external_id(event={"installation": {"id": 42}})
         assert external_id == "github.example.org:42"
+
+
+@patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+class IssueCommentEventWebhookTest(APITestCase):
+    def setUp(self) -> None:
+        self.url = "/extensions/github-enterprise/webhook/"
+        self.secret = "b3002c3e321d4b7880360d397db2ccfd"
+        self.metadata = {
+            "url": "35.232.149.196",
+            "id": "2",
+            "name": "test-app",
+            "webhook_secret": self.secret,
+            "private_key": "private_key",
+            "verify_ssl": True,
+        }
+
+    def _signature(self, body: bytes) -> str:
+        return "sha1=" + hmac.new(self.secret.encode("utf-8"), body, hashlib.sha1).hexdigest()
+
+    def test_handlers_are_registered(self, mock_get_installation_metadata: MagicMock) -> None:
+        # Regression: GitHub Enterprise kept its own handler map that omitted these
+        # events, so they were dropped before any handler ran. "issue_comment" is the
+        # "@sentry review" trigger; the rest round out code-review / pr-metrics parity
+        # with the GitHub.com endpoint.
+        endpoint = GitHubEnterpriseWebhookEndpoint()
+        assert endpoint.get_handler("issue_comment") is GitHubEnterpriseIssueCommentEventWebhook
+        assert endpoint.get_handler("check_run") is GitHubEnterpriseCheckRunEventWebhook
+        assert endpoint.get_handler("check_suite") is GitHubEnterpriseCheckSuiteWebhook
+        assert (
+            endpoint.get_handler("pull_request_review")
+            is GitHubEnterprisePullRequestReviewEventWebhook
+        )
+        assert (
+            endpoint.get_handler("pull_request_review_comment")
+            is GitHubEnterprisePullRequestReviewCommentEventWebhook
+        )
+        assert (
+            endpoint.get_handler("pull_request_review_thread")
+            is GitHubEnterprisePullRequestReviewThreadEventWebhook
+        )
+
+    @patch("sentry.integrations.github.webhook.IssueCommentEventWebhook.__call__")
+    def test_issue_comment_is_routed_to_handler(
+        self, mock_call: MagicMock, mock_get_installation_metadata: MagicMock
+    ) -> None:
+        # Previously this returned 204 *without* invoking any handler (no eyes
+        # reaction, no code review). It must now dispatch to the comment handler.
+        mock_get_installation_metadata.return_value = self.metadata
+        mock_call.return_value = None
+
+        body = orjson.dumps({"action": "created"})
+
+        response = self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="issue_comment",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE=self._signature(body),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+        assert mock_call.call_count == 1
+
+    @patch("sentry.integrations.github.webhook.CheckRunEventWebhook.__call__")
+    def test_check_run_is_routed_to_handler(
+        self, mock_call: MagicMock, mock_get_installation_metadata: MagicMock
+    ) -> None:
+        # check_run runs the richest processor set (code review + preprod + pr
+        # metrics); confirm the event now reaches the handler instead of a bare 204.
+        mock_get_installation_metadata.return_value = self.metadata
+        mock_call.return_value = None
+
+        body = orjson.dumps({"action": "created"})
+
+        response = self.client.post(
+            path=self.url,
+            data=body,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="check_run",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE=self._signature(body),
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+
+        assert response.status_code == 204
+        assert mock_call.call_count == 1

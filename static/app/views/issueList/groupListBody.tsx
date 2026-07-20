@@ -16,7 +16,6 @@ import {aggregateSupergroupStats} from 'sentry/views/issueList/supergroups/aggre
 import type {SupergroupDetail} from 'sentry/views/issueList/supergroups/types';
 import type {SupergroupLookup} from 'sentry/views/issueList/supergroups/useSuperGroups';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import {useIssueProgress} from 'sentry/views/issueList/useIssueProgress';
 
 import {NoGroupsHandler} from './noGroupsHandler';
 import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from './utils';
@@ -200,7 +199,6 @@ function GroupList({
   );
 
   const showProgress = withColumns.includes('progress');
-  const {data: progressData} = useIssueProgress(showProgress ? groupIds : []);
 
   const hasTopIssuesUI = organization.features.includes('top-issues-ui');
   const renderItems = useMemo(
@@ -232,9 +230,7 @@ function GroupList({
         onPriorityChange={priority => onActionTaken([id], {priority})}
         onGroupClick={onGroupClick}
         withColumns={columns}
-        progressState={
-          showProgress ? (progressData?.results[id]?.progress ?? null) : undefined
-        }
+        progressState={showProgress ? (group.derivedData?.progress ?? null) : undefined}
       />
     );
   };

@@ -52,7 +52,7 @@ class OutboxCategory(IntEnum):
     API_TOKEN_UPDATE = 32
     ORG_AUTH_TOKEN_UPDATE = 33
     ISSUE_COMMENT_UPDATE = 34
-    EXTERNAL_ACTOR_UPDATE = 35
+    UNUSED_SEVEN = 35  # was EXTERNAL_ACTOR_UPDATE, no longer in use
 
     UNUSED_FIVE = 36
     UNUSED_SIX = 37
@@ -69,6 +69,7 @@ class OutboxCategory(IntEnum):
     SCM_INTEGRATION_CONFIG_BACKFILL = 46
     ORGANIZATION_AVATAR_UPDATE = 47
     SEER_RUN_CREATE = 48
+    GROUP_ACTION_LOG_EVENT = 49
 
     @classmethod
     def as_choices(cls) -> Sequence[tuple[int, int]]:
@@ -314,7 +315,7 @@ class OutboxScope(IntEnum):
     )
     INTEGRATION_SCOPE = scope_categories(
         5,
-        {OutboxCategory.INTEGRATION_UPDATE, OutboxCategory.EXTERNAL_ACTOR_UPDATE},
+        {OutboxCategory.INTEGRATION_UPDATE, OutboxCategory.UNUSED_SEVEN},
     )
     APP_SCOPE = scope_categories(
         6,
@@ -341,6 +342,7 @@ class OutboxScope(IntEnum):
     API_TOKEN_SCOPE = scope_categories(11, {OutboxCategory.API_TOKEN_UPDATE})
     ACTION_SCOPE = scope_categories(12, {OutboxCategory.SENTRY_APP_NORMALIZE_ACTIONS})
     SEER_SCOPE = scope_categories(13, {OutboxCategory.SEER_RUN_CREATE})
+    GROUP_SCOPE = scope_categories(14, {OutboxCategory.GROUP_ACTION_LOG_EVENT})
 
     def __str__(self) -> str:
         return self.name
@@ -365,6 +367,8 @@ class OutboxScope(IntEnum):
             return "api_token_id"
         if scope == OutboxScope.SEER_SCOPE:
             return "seer_run_id"
+        if scope == OutboxScope.GROUP_SCOPE:
+            return "group_id"
 
         return "shard_identifier"
 

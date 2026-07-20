@@ -309,23 +309,27 @@ describe('MessagesPanel', () => {
     expect(screen.getByText('test@example.com')).toBeInTheDocument();
   });
 
-  it('deduplicates identical user messages', () => {
-    const sameMessage = JSON.stringify([{role: 'user', content: 'Duplicate message'}]);
-
+  it('deduplicates a last user message replayed across a cumulative tool loop', () => {
     const node1 = createMockNode({
       id: 'span-1',
       startTimestamp: 1000,
       attributes: {
-        [SpanFields.GEN_AI_REQUEST_MESSAGES]: sameMessage,
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Duplicate message'},
+        ]),
         [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response 1',
       },
     });
 
+    // Cumulative history replaying the same last message: shown once.
     const node2 = createMockNode({
       id: 'span-2',
       startTimestamp: 2000,
       attributes: {
-        [SpanFields.GEN_AI_REQUEST_MESSAGES]: sameMessage,
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Duplicate message'},
+          {role: 'assistant', content: 'Response 1'},
+        ]),
         [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response 2',
       },
     });

@@ -148,7 +148,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         },
         examples=IntegrationExamples.GROUP_INTEGRATION_ISSUE_CONFIG,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-integration-details",
+        url_names=["sentry-api-0-group-integration-details"],
+    )
     def get(
         self, request: Request, group: Group, integration_id: str
     ) -> Response[IntegrationIssueConfigResponse] | Response[DetailResponse]:
@@ -238,7 +242,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         },
         examples=IntegrationExamples.EXTERNAL_ISSUE_LINK,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-integration-details",
+        url_names=["sentry-api-0-group-integration-details"],
+    )
     def post(
         self, request: Request, group: Group, integration_id: str
     ) -> (
@@ -388,7 +396,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         },
         examples=IntegrationExamples.EXTERNAL_ISSUE_LINK,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-integration-details",
+        url_names=["sentry-api-0-group-integration-details"],
+    )
     def put(
         self, request: Request, group: Group, integration_id: str
     ) -> (
@@ -534,7 +546,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-integration-details"])
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-integration-details",
+        url_names=["sentry-api-0-group-integration-details"],
+    )
     def delete(
         self, request: Request, group: Group, integration_id: str
     ) -> Response[None] | Response[DetailResponse]:

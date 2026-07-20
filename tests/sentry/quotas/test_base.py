@@ -116,6 +116,66 @@ def test_quota_config_repr() -> None:
     assert repr(quota) == str(quota.to_json())
 
 
+def test_quota_config_equality_is_value_based() -> None:
+    a = QuotaConfig(id="o", limit=4711, window=42, reason_code="not_so_fast")
+    b = QuotaConfig(id="o", limit=4711, window=42, reason_code="not_so_fast")
+    c = QuotaConfig(id="o", limit=4712, window=42, reason_code="not_so_fast")
+
+    assert a is not b
+    assert a == b
+    assert a != c
+
+
+def test_quota_config_equality_ignores_category_order() -> None:
+    a = QuotaConfig(
+        limit=0,
+        categories=[DataCategory.ERROR, DataCategory.TRANSACTION],
+        reason_code="go_away",
+    )
+    b = QuotaConfig(
+        limit=0,
+        categories=[DataCategory.TRANSACTION, DataCategory.ERROR],
+        reason_code="go_away",
+    )
+
+    assert a == b
+    assert hash(a) == hash(b)
+
+
+def test_quota_config_is_hashable_by_value() -> None:
+    a = QuotaConfig(id="o", limit=4711, window=42, reason_code="not_so_fast")
+    b = QuotaConfig(id="o", limit=4711, window=42, reason_code="not_so_fast")
+
+    assert len({a, b}) == 1
+
+
+def test_quota_config_not_equal_to_other_types() -> None:
+    quota = QuotaConfig(limit=0, reason_code="go_away")
+
+    assert quota != object()
+    assert (quota == "not a quota") is False
+
+
+def test_quota_config_total_ordering() -> None:
+    a = QuotaConfig(id="a", limit=1, window=60, reason_code="go_away")
+    b = QuotaConfig(id="b", limit=1, window=60, reason_code="go_away")
+
+    assert a < b
+    assert b > a
+    assert a <= b
+    assert sorted([b, a]) == [a, b]
+
+
+def test_quota_config_sort_is_deterministic_regardless_of_input_order() -> None:
+    forward = [QuotaConfig(id=i, limit=1, window=60, reason_code="go_away") for i in "abc"]
+    backward = [QuotaConfig(id=i, limit=1, window=60, reason_code="go_away") for i in "cba"]
+
+    # Same quotas assembled in different orders sort to the same canonical list,
+    # so callers can compare quota lists with ``sorted(a) == sorted(b)``.
+    assert sorted(forward) == sorted(backward)
+    assert forward != backward
+
+
 def test_seat_assignable_must_have_reason() -> None:
     with pytest.raises(ValueError):
         SeatAssignmentResult(assignable=False)

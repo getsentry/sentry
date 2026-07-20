@@ -26,7 +26,6 @@ jobs:
     outputs:
       testable_modified: ${{ steps.changes.outputs.testable_modified }}
       testable_rules_changed: ${{ steps.changes.outputs.testable_rules_changed }}
-      mdx_typecheckable: ${{ steps.changes.outputs.mdx_typecheckable }}
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
       frontend_all_files: ${{ steps.changes.outputs.frontend_all_files }}
     steps:
@@ -61,25 +60,6 @@ jobs:
       - name: tsc
         id: tsc
         run: pnpm run typecheck
-
-  typescript-mdx:
-    if: needs.files-changed.outputs.mdx_typecheckable == 'true'
-    needs: files-changed
-    name: typescript (mdx)
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - uses: ./.github/actions/setup-node-pnpm
-
-      - name: setup matchers
-        run: |
-          echo "::remove-matcher owner=masters::"
-          echo "::add-matcher::.github/tsc.json"
-
-      - name: tsc (mdx)
-        id: tsc-mdx
-        run: pnpm run typecheck:mdx
 
   eslint:
     if: needs.files-changed.outputs.frontend_all == 'true'
@@ -291,7 +271,6 @@ jobs:
         jest-config,
         jest-tests,
         typescript,
-        typescript-mdx,
         eslint,
         knip,
         form-field-registry,

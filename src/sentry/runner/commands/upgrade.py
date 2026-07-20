@@ -36,8 +36,8 @@ def _check_history() -> None:
 
     # Either of these migrations need to have been run for us to proceed.
     migration_heads = (
-        "1118_add_group_derived_data",  # pre-squash
-        "0001_squashed_1118_add_group_derived_data",  # post-squash
+        "0904_onboarding_task_project_id_idx",  # pre-squash
+        "0001_squashed_0904_onboarding_task_project_id_idx",  # post-squash
     )
 
     # If we haven't run all the migration up to the latest squash abort.
@@ -97,10 +97,10 @@ def _upgrade(
         from sentry_kafka_schemas import list_topics
 
         from sentry.utils.batching_kafka_consumer import create_topics
-        from sentry.utils.kafka_config import get_topic_definition_from_name
+        from sentry.utils.kafka_config import get_topic_definition
 
         for topic in list_topics():
-            topic_defn = get_topic_definition_from_name(topic)
+            topic_defn = get_topic_definition(topic)
             create_topics(topic_defn["cluster"], [topic_defn["real_topic_name"]])
 
     if repair:

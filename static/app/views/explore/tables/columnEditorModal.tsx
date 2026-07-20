@@ -17,6 +17,7 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
+import {classifyTagKey, FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {buildAttributeOptions} from 'sentry/views/explore/components/attributeOption';
 import {
@@ -43,6 +44,7 @@ interface ColumnEditorModalProps extends ModalRenderProps {
   isDocsButtonHidden?: boolean;
   requiredTags?: string[];
   traceItemType?: TraceItemDataset;
+  validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 }
 
 export function ColumnEditorModal({
@@ -60,6 +62,7 @@ export function ColumnEditorModal({
   isDocsButtonHidden = false,
   handleReset,
   traceItemType = TraceItemDataset.SPANS,
+  validatedFieldTypes,
 }: ColumnEditorModalProps) {
   const tags = useMemo(
     () =>
@@ -70,8 +73,17 @@ export function ColumnEditorModal({
         booleanTags,
         hiddenKeys,
         traceItemType,
+        validatedFieldTypes,
       }),
-    [booleanTags, columns, hiddenKeys, numberTags, stringTags, traceItemType]
+    [
+      booleanTags,
+      columns,
+      hiddenKeys,
+      numberTags,
+      stringTags,
+      traceItemType,
+      validatedFieldTypes,
+    ]
   );
 
   // We keep a temporary state for the columns so that we can apply the changes
@@ -83,8 +95,24 @@ export function ColumnEditorModal({
     closeModal();
   }
 
+  function canReorderColumn(oldIndex: number, newIndex: number) {
+    if (!requiredTags?.length) {
+      return true;
+    }
+
+    const startIndex = Math.min(oldIndex, newIndex);
+    const endIndex = Math.max(oldIndex, newIndex);
+    return !tempColumns
+      .slice(startIndex, endIndex + 1)
+      .some(column => requiredTags.includes(column));
+  }
+
   return (
-    <DragNDropContext columns={tempColumns} setColumns={setTempColumns}>
+    <DragNDropContext
+      columns={tempColumns}
+      setColumns={setTempColumns}
+      canReorder={canReorderColumn}
+    >
       {({insertColumn, updateColumnAtIndex, deleteColumnAtIndex, editableColumns}) => (
         <Fragment>
           <Header closeButton data-test-id="editor-header">
@@ -171,6 +199,7 @@ function ColumnEditorRow({
 }: ColumnEditorRowProps) {
   const {attributes, listeners, setNodeRef, transform, transition} = useSortable({
     id: column.id,
+    disabled: required,
   });
 
   const [search, setSearch] = useState('');
@@ -302,7 +331,12 @@ function ColumnEditorRow({
       }}
       {...attributes}
     >
-      <StyledDragReorderButton size="sm" iconSize="sm" {...listeners} />
+      <StyledDragReorderButton
+        size="sm"
+        iconSize="sm"
+        disabled={required}
+        {...listeners}
+      />
       <StyledCompactSelect
         data-test-id="editor-column"
         options={options}
@@ -310,6 +344,7 @@ function ColumnEditorRow({
         onChange={handleColumnChange}
         disabled={required}
         search={{
+          highlight: true,
           onChange: setSearch,
           filter: (option, searchText) => {
             return sortSearchedAttributes({
@@ -352,6 +387,7 @@ interface BuildColumnOptionsParams {
   stringTags: TagCollection;
   traceItemType: TraceItemDataset;
   hiddenKeys?: string[];
+  validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 }
 
 function buildColumnOptions({
@@ -361,6 +397,7 @@ function buildColumnOptions({
   booleanTags,
   hiddenKeys,
   traceItemType,
+  validatedFieldTypes,
 }: BuildColumnOptionsParams) {
   return buildAttributeOptions({
     numberTags,
@@ -368,6 +405,8 @@ function buildColumnOptions({
     booleanTags,
     traceItemType,
     extraColumns: columns,
+    extraColumnKind: column =>
+      fieldKindFromFieldType(validatedFieldTypes?.[column]) ?? classifyTagKey(column),
   })
     .filter(option => {
       const hidden = hiddenKeys ?? [];
@@ -380,6 +419,19 @@ function buildColumnOptions({
       return true;
     })
     .toSorted((a, b) => sortKnownAttributes(a, b, traceItemType));
+}
+
+function fieldKindFromFieldType(fieldType?: FieldValueType) {
+  if (fieldType === FieldValueType.NUMBER) {
+    return FieldKind.MEASUREMENT;
+  }
+  if (fieldType === FieldValueType.BOOLEAN) {
+    return FieldKind.BOOLEAN;
+  }
+  if (fieldType === FieldValueType.STRING) {
+    return FieldKind.TAG;
+  }
+  return null;
 }
 
 const RowContainer = styled('div')`

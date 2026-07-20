@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,10 +9,18 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
+from sentry.sentry_apps.external_requests.utils import validate_sentry_app_uri
 from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 
 logger = logging.getLogger("sentry.sentry-apps")
+
+
+class SentryAppInstallationExternalRequestsSerializer(serializers.Serializer):
+    uri = serializers.CharField(required=True, validators=[validate_sentry_app_uri])
+    projectId = serializers.IntegerField(required=False)
+    query = serializers.CharField(required=False)
+    dependentData = serializers.CharField(required=False)
 
 
 @control_silo_endpoint
@@ -22,29 +31,22 @@ class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEnd
     }
 
     def get(self, request: Request, installation: RpcSentryAppInstallation) -> Response:
-        uri = request.GET.get("uri")
-        if not uri:
-            return Response({"detail": "uri query parameter is required"}, status=400)
+        serializer = SentryAppInstallationExternalRequestsSerializer(data=request.GET)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
         if not request.user.is_authenticated:
             return Response({"detail": "Authentication credentials were not provided."}, status=401)
 
-        project_id: int | None = None
-        project_id_raw = request.GET.get("projectId")
-        if project_id_raw:
-            try:
-                project_id = int(project_id_raw)
-            except (TypeError, ValueError):
-                return Response({"detail": "projectId must be an integer"}, status=400)
+        validated = serializer.validated_data
 
-        # Do not pass `user` until cells accept the new RPC arg everywhere (deploy phase 2).
         result = sentry_app_cell_service.get_select_options(
             organization_id=installation.organization_id,
             installation=installation,
-            uri=request.GET.get("uri"),
-            project_id=project_id,
-            query=request.GET.get("query"),
-            dependent_data=request.GET.get("dependentData"),
+            uri=validated["uri"],
+            project_id=validated.get("projectId"),
+            query=validated.get("query"),
+            dependent_data=validated.get("dependentData"),
         )
 
         if result.error:

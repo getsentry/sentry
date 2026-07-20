@@ -124,6 +124,7 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
             "end",
             "interval",
             "crossEvents",
+            "agent",
         ]
         data: ExploreSavedQueryResponse = {
             "id": str(obj.id),

@@ -274,6 +274,7 @@ export const setGroupedEntityTag = (
   }
   groups = [...groups, +Infinity];
   Sentry.setTag(`${tagName}.grouped`, `<=${groups.find(g => n <= g)}`);
+  Sentry.setAttribute(`${tagName}.grouped`, `<=${groups.find(g => n <= g)}`);
 };
 
 /**

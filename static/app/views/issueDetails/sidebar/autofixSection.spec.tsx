@@ -46,7 +46,6 @@ describe('AutofixSection', () => {
         isAutofixEnabled: true,
         isCodeReviewEnabled: true,
         isSeerConfigured: true,
-        needsConfigReminder: false,
       },
     });
   });
@@ -429,7 +428,6 @@ describe('AutofixSection', () => {
         isAutofixEnabled: false,
         isCodeReviewEnabled: false,
         isSeerConfigured: false,
-        needsConfigReminder: false,
       },
     });
 
@@ -491,7 +489,6 @@ describe('AutofixSection', () => {
         isAutofixEnabled: false,
         isCodeReviewEnabled: false,
         isSeerConfigured: false,
-        needsConfigReminder: false,
       },
     });
 

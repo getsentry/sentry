@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import logging
 import random
 from collections.abc import Sequence
@@ -13,16 +12,14 @@ from django.db import router, transaction
 from sentry_sdk.traces import StreamedSpan
 from sentry_sdk.tracing import Span
 
-from sentry import features, nodestore, options, projectoptions
+from sentry import features, options, projectoptions
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
-from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 from sentry.utils.event import is_event_from_browser_javascript_sdk
 from sentry.utils.event_frames import get_sdk_name
-from sentry.utils.safe import get_path
 from sentry.utils.tracing import set_span_tag, start_span
 from sentry.workflow_engine.models import Detector
 
@@ -125,67 +122,6 @@ WFE_DETECTOR_TYPE_TO_CONFIG_MAPPING: dict[str, DetectorType] = {
 PERFORMANCE_WFE_DETECTOR_TYPES: frozenset[str] = frozenset(
     mapping.wfe_detector_type for mapping in PERFORMANCE_DETECTOR_CONFIG_MAPPINGS.values()
 )
-
-
-class EventPerformanceProblem:
-    """
-    Wrapper that binds an Event and PerformanceProblem together and allow the problem to be saved
-    to and fetch from Nodestore
-    """
-
-    def __init__(self, event: Event | GroupEvent, problem: PerformanceProblem):
-        self.event = event
-        self.problem = problem
-
-    @property
-    def identifier(self) -> str:
-        return self.build_identifier(self.event.event_id, self.problem.fingerprint)
-
-    @classmethod
-    def build_identifier(cls, event_id: str, problem_hash: str) -> str:
-        identifier = hashlib.md5(f"{problem_hash}:{event_id}".encode()).hexdigest()
-        return f"p-i-e:{identifier}"
-
-    @property
-    def evidence_hashes(self) -> dict[str, list[str]]:
-        evidence_ids = self.problem.to_dict()
-        evidence_hashes = {}
-
-        spans_by_id = {span["span_id"]: span for span in self.event.data.get("spans", [])}
-
-        trace = get_path(self.event.data, "contexts", "trace")
-        if trace:
-            spans_by_id[trace["span_id"]] = trace
-
-        for key in ["parent", "cause", "offender"]:
-            span_ids = evidence_ids.get(key + "_span_ids", []) or []
-            spans = [spans_by_id.get(id) for id in span_ids]
-            hashes = [span.get("hash") for span in spans if span]
-            evidence_hashes[key + "_span_hashes"] = hashes
-
-        return evidence_hashes
-
-    def save(self) -> None:
-        nodestore.backend.set(self.identifier, self.problem.to_dict())
-
-    @classmethod
-    def fetch(cls, event: Event, problem_hash: str) -> EventPerformanceProblem | None:
-        return cls.fetch_multi([(event, problem_hash)])[0]
-
-    @classmethod
-    def fetch_multi(
-        cls, items: Sequence[tuple[Event | GroupEvent, str]]
-    ) -> list[EventPerformanceProblem | None]:
-        ids = [cls.build_identifier(event.event_id, problem_hash) for event, problem_hash in items]
-        results = nodestore.backend.get_multi(ids)
-        ret: list[EventPerformanceProblem | None] = []
-        for _id, (event, _) in zip(ids, items):
-            result = results.get(_id)
-            if result:
-                ret.append(cls(event, PerformanceProblem.from_dict(result)))
-            else:
-                ret.append(None)
-        return ret
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion

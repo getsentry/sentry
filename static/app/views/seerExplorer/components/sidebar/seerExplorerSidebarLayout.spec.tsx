@@ -134,9 +134,15 @@ describe('SeerExplorerSidebarLayout', () => {
       .spyOn(useSeerExplorerModule, 'useSeerExplorer')
       .mockReturnValue(defaultHookReturn);
     MockApiClient.addMockResponse({
-      url: `/organizations/${orgWithSidebar.slug}/seer/explorer-runs/`,
+      url: `/organizations/${orgWithSidebar.slug}/seer/runs/`,
       method: 'GET',
-      body: {data: []},
+      body: [],
+    });
+    // Slack integration lookup that drives the reinstall nudge.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgWithSidebar.slug}/integrations/`,
+      method: 'GET',
+      body: [],
     });
   });
 

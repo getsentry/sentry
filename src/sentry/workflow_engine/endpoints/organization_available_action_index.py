@@ -29,6 +29,7 @@ from sentry.workflow_engine.endpoints.serializers.action_handler_serializer impo
     ActionHandlerSerializer,
     ActionHandlerSerializerResponse,
 )
+from sentry.workflow_engine.endpoints.validators.base.action import DEPRECATED_ACTION_TYPES
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.processors.action import (
     get_available_action_integrations_for_org,
@@ -112,6 +113,10 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
             if not can_create_tickets and handler.group == ActionHandler.Group.TICKET_CREATION:
                 continue
 
+            # skip deprecated action types
+            if action_type in DEPRECATED_ACTION_TYPES:
+                continue
+
             # add integration actions
             if hasattr(handler, "provider_slug"):
                 integrations = provider_integrations.get(handler.provider_slug, [])
@@ -160,7 +165,7 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
                         )
                     )
 
-            # add all other action types (EMAIL, PLUGIN, etc.)
+            # add all other action types (EMAIL, etc.)
             else:
                 actions.append(
                     serialize(
@@ -171,11 +176,7 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
         actions.sort(
             key=lambda x: (
                 x["handlerGroup"],
-                (
-                    0
-                    if x["type"] in [Action.Type.EMAIL, Action.Type.PLUGIN, Action.Type.WEBHOOK]
-                    else 1
-                ),
+                (0 if x["type"] in [Action.Type.EMAIL, Action.Type.WEBHOOK] else 1),
                 x["type"],
                 (x["sentryApp"].get("name", "") if x.get("sentryApp") else ""),
             )

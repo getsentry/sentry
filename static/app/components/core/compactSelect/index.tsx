@@ -13,6 +13,8 @@ export {CompositeSelect, type CompositeSelectProps} from './composite';
 
 export {ControlContext} from './control';
 
+export {HighlightText} from './highlightText';
+
 export {MenuComponents} from './menuComponents';
 
 export {

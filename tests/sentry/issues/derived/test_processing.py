@@ -1,15 +1,22 @@
+from datetime import datetime, timedelta, timezone
+
 import pytest
 from django.db import router, transaction
 
-from sentry.issues.action_log.base import ActionSource, publish_action
+from sentry.hybridcloud.models.outbox import CellOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.issues.action_log.publish import publish_action
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
+    ActionSource,
     GroupAction,
     GroupActionActor,
     GroupActionType,
     GroupActorType,
+    PullRequestClosedAction,
     ResolveAction,
     ResolvedInPullRequestAction,
+    RootCauseIdentifiedAction,
     UnresolveAction,
     ViewAction,
 )
@@ -24,7 +31,10 @@ from sentry.issues.derived.features import (
 )
 from sentry.issues.derived.framework import (
     AggregatorResult,
+    DateTimeCodec,
+    EnumCodec,
     Feature,
+    OptionalCodec,
     Pipeline,
     State,
     StateUpdate,
@@ -33,6 +43,8 @@ from sentry.issues.derived.framework import (
 )
 from sentry.issues.derived.processing import (
     PIPELINE,
+    GroupLogTimeout,
+    _entries_after_cursor,
     invalidate_group_derived_data,
     process_group_log,
 )
@@ -43,19 +55,21 @@ from sentry.issues.progress_state import IssueProgressState
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
+from sentry.utils import json
 
 SOURCE = ActionSource.API
 
 
 def _publish(*, group: Group, action: GroupAction, actor: GroupActionActor = SYSTEM_ACTOR) -> None:
-    """Helper to call publish_action() with common defaults."""
-    publish_action(
-        action,
-        source=SOURCE,
-        group_id=group.id,
-        project=group.project,
-        actor=actor,
-    )
+    with outbox_runner():
+        publish_action(
+            action,
+            source=SOURCE,
+            group_id=group.id,
+            project=group.project,
+            actor=actor,
+        )
 
 
 @with_feature("projects:issue-action-log-write-to-db")
@@ -64,9 +78,7 @@ class ProcessGroupLogTest(TestCase):
         super().setUp()
         # Enable mutation checking so aggregators that modify state in place fail.
         self._original_pipeline = processing.PIPELINE
-        processing.PIPELINE = Pipeline(
-            AGGREGATORS, version=processing.PIPELINE.version, check_mutations=True
-        )
+        processing.PIPELINE = Pipeline(AGGREGATORS, check_mutations=True)
 
     def tearDown(self) -> None:
         processing.PIPELINE = self._original_pipeline
@@ -149,6 +161,52 @@ class ProcessGroupLogTest(TestCase):
         entries = list(GroupActionLogEntry.objects.filter(group_id=group.id).order_by("id"))
         assert derived.cursor_id == entries[-1].id
         assert len(entries) == 5
+
+    def test_cursor_same_timestamp_different_ids(self) -> None:
+        group = self.create_group()
+        ts = datetime(2025, 1, 1, tzinfo=timezone.utc)
+
+        # Create 3 entries with identical date_added but ascending ids.
+        entries = []
+        for _ in range(3):
+            e = GroupActionLogEntry.objects.create(
+                group_id=group.id,
+                project_id=group.project_id,
+                type=GroupActionType.VIEW.value,
+                actor_type=GroupActorType.SYSTEM.value,
+                actor_id=0,
+                source=SOURCE,
+                data={},
+                date_added=ts,
+            )
+            entries.append(e)
+
+        def ids_after_cursor(
+            cursor_date: datetime, cursor_id: int, batch_size: int = 10
+        ) -> list[int]:
+            return [
+                e.id for e in _entries_after_cursor(group.id, cursor_date, cursor_id, batch_size)
+            ]
+
+        e0, e1, e2 = entries[0].id, entries[1].id, entries[2].id
+
+        # Starting before all entries returns all three.
+        assert ids_after_cursor(ts, e0 - 1) == [e0, e1, e2]
+
+        # Cursor at entry[0] skips it, returns entries[1] and entries[2].
+        assert ids_after_cursor(ts, e0) == [e1, e2]
+
+        # Cursor at entry[1] returns only entries[2].
+        assert ids_after_cursor(ts, e1) == [e2]
+
+        # Cursor at entry[2] returns nothing.
+        assert ids_after_cursor(ts, e2) == []
+
+        # Cursor before the timestamp returns all entries.
+        assert ids_after_cursor(ts - timedelta(seconds=1), 0) == [e0, e1, e2]
+
+        # batch_size limits results.
+        assert ids_after_cursor(ts, e0 - 1, batch_size=2) == [e0, e1]
 
     def test_system_action_no_user(self) -> None:
         group = self.create_group()
@@ -256,7 +314,7 @@ class ProcessGroupLogTest(TestCase):
         derived = process_group_log(group.id)
         assert derived.view_count == 2  # rebuilt from scratch
 
-    def test_resolved_in_pull_request_closes(self) -> None:
+    def test_resolved_in_pull_request_proposes_fix(self) -> None:
         group = self.create_group()
         user = self.user
 
@@ -266,7 +324,119 @@ class ProcessGroupLogTest(TestCase):
             actor=GroupActionActor.user(user.id),
         )
         derived = process_group_log(group.id)
-        assert derived.data["status"] == "closed"
+        # An open PR referencing the issue proposes a fix; the issue stays open.
+        assert derived.data["status"] == "open"
+        assert derived.progress == IssueProgressState.FIX_PROPOSED.value
+
+    def test_pull_request_close_demotes_progress(self) -> None:
+        group = self.create_group()
+        actor = GroupActionActor.user(self.user.id)
+
+        _publish(group=group, action=RootCauseIdentifiedAction(), actor=actor)
+        _publish(
+            group=group,
+            action=ResolvedInPullRequestAction(pull_request=101),
+            actor=actor,
+        )
+        derived = process_group_log(group.id)
+        assert derived.progress == IssueProgressState.FIX_PROPOSED.value
+
+        _publish(
+            group=group,
+            action=PullRequestClosedAction(pull_request=101, has_other_open_prs=False),
+            actor=actor,
+        )
+        derived = process_group_log(group.id)
+        assert derived.progress == IssueProgressState.DIAGNOSED.value
+
+    def test_pull_request_close_with_remaining_keeps_progress(self) -> None:
+        group = self.create_group()
+        actor = GroupActionActor.user(self.user.id)
+
+        _publish(
+            group=group,
+            action=ResolvedInPullRequestAction(pull_request=101),
+            actor=actor,
+        )
+        _publish(
+            group=group,
+            action=PullRequestClosedAction(pull_request=101, has_other_open_prs=True),
+            actor=actor,
+        )
+        derived = process_group_log(group.id)
+        assert derived.progress == IssueProgressState.FIX_PROPOSED.value
+
+    def test_pull_request_close_invalidate_and_replay_matches(self) -> None:
+        group = self.create_group()
+        actor = GroupActionActor.user(self.user.id)
+
+        _publish(group=group, action=RootCauseIdentifiedAction(), actor=actor)
+        _publish(
+            group=group,
+            action=ResolvedInPullRequestAction(pull_request=101),
+            actor=actor,
+        )
+        _publish(
+            group=group,
+            action=PullRequestClosedAction(pull_request=101, has_other_open_prs=False),
+            actor=actor,
+        )
+        first = process_group_log(group.id)
+        first_data = first.data.copy()
+        first_progress = first.progress
+        first_last_progressed_at = first.last_progressed_at
+
+        invalidate_group_derived_data(group.id)
+        second = process_group_log(group.id)
+
+        assert second.data == first_data
+        assert second.progress == first_progress
+        assert second.last_progressed_at == first_last_progressed_at
+        assert second.progress == IssueProgressState.DIAGNOSED.value
+
+    def test_pipeline_hash_set_on_create(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        derived = process_group_log(group.id)
+        assert derived.pipeline_hash == PIPELINE.pipeline_hash
+
+    def test_pipeline_hash_concurrent_change_skips_cursor_update(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        derived = process_group_log(group.id)
+        first_cursor = derived.cursor_id
+
+        # Insert a log entry directly to avoid inline processing from _publish
+        GroupActionLogEntry.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            type=GroupActionType.VIEW,
+            actor_type=GroupActorType.SYSTEM,
+            actor_id=0,
+            source=SOURCE,
+            data={},
+        )
+
+        # Simulate a concurrent pipeline_hash change (e.g. migration reset)
+        # between our load and the UPDATE in _process_batch.
+        GroupDerivedData.objects.filter(group_id=group.id).update(pipeline_hash="reset")
+
+        processing._process_batch(processing.PIPELINE, derived, group.id, 1)
+
+        # The UPDATE should not have matched because the DB hash changed
+        derived.refresh_from_db()
+        assert derived.cursor_id == first_cursor
+        assert derived.pipeline_hash == "reset"
+
+    def test_invalidate_and_reprocess_restores_pipeline_hash(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        process_group_log(group.id)
+
+        invalidate_group_derived_data(group.id)
+        derived = process_group_log(group.id)
+        assert derived.pipeline_hash == PIPELINE.pipeline_hash
 
 
 # --- Pure Python tests (no DB) ---
@@ -280,7 +450,7 @@ def test_mutation_checking_catches_in_place_mutation() -> None:
         state[ITEMS].append("oops")
         return None
 
-    p = Pipeline([bad_mutator], version=1, check_mutations=True)
+    p = Pipeline([bad_mutator], check_mutations=True)
     state = p.initial_state()
 
     class FakeEntry:
@@ -311,7 +481,7 @@ def test_build_update_json_blob_includes_all_json_features() -> None:
     def compute(state: StateView, entry: object) -> AggregatorResult:
         return None
 
-    pipeline = Pipeline([compute], version=1)
+    pipeline = Pipeline([compute])
     state = pipeline.initial_state()
 
     # Update only A — blob should still contain both A and B
@@ -328,6 +498,98 @@ def test_store_apply_to_instance() -> None:
     GroupDerivedDataStore.apply_to_instance(derived, update)
     assert derived.data == {"status": "closed"}
     assert derived.view_count == 5
+
+
+def test_all_feature_defaults_round_trip_through_json() -> None:
+    state = PIPELINE.initial_state()
+    blob = {f.name: f.to_json(state[f]) for f in PIPELINE.features}
+    serialized = json.loads(json.dumps(blob))
+    for f in PIPELINE.features:
+        assert f.from_json(serialized[f.name]) == state[f], f"round-trip failed for {f.name}"
+
+
+# --- Codec tests ---
+
+
+class TestDateTimeCodec:
+    def test_json_round_trip(self) -> None:
+        codec = DateTimeCodec()
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        assert codec.from_json(codec.to_json(dt)) == dt
+
+    def test_to_json_produces_iso_string(self) -> None:
+        codec = DateTimeCodec()
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        dumped = codec.to_json(dt)
+        assert isinstance(dumped, str)
+        assert dumped == dt.isoformat()
+
+    def test_column_round_trip_is_identity(self) -> None:
+        codec = DateTimeCodec()
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        assert codec.from_column(codec.to_column(dt)) == dt
+        assert codec.to_column(dt) is dt
+
+    def test_optional_none(self) -> None:
+        codec = OptionalCodec(DateTimeCodec())
+        assert codec.to_json(None) is None
+        assert codec.from_json(None) is None
+
+    def test_optional_json_round_trip(self) -> None:
+        codec = OptionalCodec(DateTimeCodec())
+        dt = datetime(2025, 3, 15, 12, 30, 45, tzinfo=timezone.utc)
+        assert codec.from_json(codec.to_json(dt)) == dt
+
+
+class TestEnumCodecCoverage:
+    @pytest.mark.parametrize("raw", ["open", "closed"])
+    def test_issue_status_json_round_trip(self, raw: str) -> None:
+        codec = EnumCodec(IssueStatus)
+        loaded = codec.from_json(raw)
+        assert codec.to_json(loaded) == raw
+
+    @pytest.mark.parametrize("raw", ["open", "closed"])
+    def test_issue_status_column_round_trip(self, raw: str) -> None:
+        codec = EnumCodec(IssueStatus)
+        loaded = codec.from_column(raw)
+        assert isinstance(loaded, IssueStatus)
+        assert codec.to_column(loaded) == raw
+
+    @pytest.mark.parametrize(
+        "raw", ["identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"]
+    )
+    def test_issue_progress_state_json_round_trip(self, raw: str) -> None:
+        codec = EnumCodec(IssueProgressState)
+        loaded = codec.from_json(raw)
+        assert codec.to_json(loaded) == raw
+
+    @pytest.mark.parametrize(
+        "raw", ["identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"]
+    )
+    def test_issue_progress_state_column_produces_enum(self, raw: str) -> None:
+        codec = EnumCodec(IssueProgressState)
+        loaded = codec.from_column(raw)
+        assert isinstance(loaded, IssueProgressState)
+
+    @pytest.mark.parametrize(
+        "raw",
+        [None, "identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"],
+    )
+    def test_optional_progress_json_round_trip(self, raw: str | None) -> None:
+        codec = OptionalCodec(EnumCodec(IssueProgressState))
+        loaded = codec.from_json(raw)
+        assert codec.to_json(loaded) == raw
+
+    @pytest.mark.parametrize(
+        "raw",
+        [None, "identified", "assigned", "diagnosed", "fix_proposed", "fix_applied"],
+    )
+    def test_optional_progress_column_round_trip(self, raw: str | None) -> None:
+        codec = OptionalCodec(EnumCodec(IssueProgressState))
+        loaded = codec.from_column(raw)
+        if raw is not None:
+            assert isinstance(loaded, IssueProgressState)
+        assert codec.to_column(loaded) == raw
 
 
 # --- Store tests (need DB) ---
@@ -360,6 +622,7 @@ class GroupDerivedDataStoreTest(TestCase):
         state = GroupDerivedDataStore.load(PIPELINE, derived)
         assert state[VIEW_COUNT] == 3
         assert state[PROGRESS] == IssueProgressState.DIAGNOSED
+        assert isinstance(state[PROGRESS], IssueProgressState)
         assert state[STATUS] == IssueStatus.CLOSED
 
     def test_load_null_progress(self) -> None:
@@ -462,14 +725,24 @@ class DerivedDataTransactionTest(TestCase):
         group = self.create_group()
 
         try:
-            with transaction.atomic(using=router.db_for_write(GroupActionLogEntry)):
-                _publish(
-                    group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id)
+            with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                publish_action(
+                    ViewAction(),
+                    source=SOURCE,
+                    group_id=group.id,
+                    project=group.project,
+                    actor=GroupActionActor.user(self.user.id),
                 )
+                assert CellOutbox.objects.filter(
+                    category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+                ).exists()
                 raise _IntentionalRollback
         except _IntentionalRollback:
             pass
 
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+        ).exists()
         assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 0
         assert not GroupDerivedData.objects.filter(group_id=group.id).exists()
 
@@ -482,3 +755,24 @@ class DerivedDataTransactionTest(TestCase):
         assert GroupDerivedData.objects.filter(group_id=group.id).exists()
         derived = GroupDerivedData.objects.get(group_id=group.id)
         assert derived.view_count == 1
+
+
+@with_feature("projects:issue-action-log-write-to-db")
+class ProcessGroupLogTimeoutTest(TestCase):
+    def test_raises_when_timeout_exceeded(self) -> None:
+        group = self.create_group()
+        for _ in range(5):
+            _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        GroupDerivedData.objects.filter(group_id=group.id).delete()
+
+        with pytest.raises(GroupLogTimeout):
+            process_group_log(group.id, batch_size=1, timeout=timedelta(0))
+
+    def test_completes_with_generous_timeout(self) -> None:
+        group = self.create_group()
+        for _ in range(3):
+            _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        GroupDerivedData.objects.filter(group_id=group.id).delete()
+
+        derived = process_group_log(group.id, timeout=timedelta(minutes=5))
+        assert derived.view_count == 3

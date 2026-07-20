@@ -145,6 +145,7 @@ def build_snapshot_image_response(
         else global_diff_threshold,
         description=metadata.description,
         tags=metadata.tags,
+        canvas_theme=metadata.canvas_theme,
     )
 
 

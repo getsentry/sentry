@@ -104,7 +104,7 @@ export function ChartContextMenu({
         label: newAlertLabel,
         children: alertsUrls ?? [],
         disabled: !alertsUrls || alertsUrls.length === 0,
-        isSubmenu: true,
+        submenu: true,
       });
     }
 

@@ -573,6 +573,25 @@ class OrganizationEventsTraceEndpointTest(
         assert data[0]["children"][0]["additional_attributes"]["gen_ai.request.model"] == "gpt-4o"
         assert data[0]["children"][0]["additional_attributes"]["gen_ai.usage.total_tokens"] == 100
 
+    def test_with_span_description_in_additional_attrs(self) -> None:
+        self.load_trace()
+        with self.feature(self.FEATURES):
+            response = self.client_get(
+                data={
+                    "timestamp": self.day_ago,
+                    "additional_attributes": [
+                        "span.description",
+                    ],
+                },
+            )
+        assert response.status_code == 200, response.content
+        data = response.data
+        assert len(data) == 1
+
+        assert data[0]["additional_attributes"]["span.description"] == "root"
+
+        assert data[0]["children"][0]["additional_attributes"]["span.description"] == "GET gen1-0"
+
     def test_with_target_error(self) -> None:
         start, _ = self.get_start_end_from_day_ago(1000)
         error_data = load_data(

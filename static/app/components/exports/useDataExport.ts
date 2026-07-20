@@ -2,6 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {createExportFilename} from 'sentry/components/exports/createExportFilename';
 import {t} from 'sentry/locale';
 import type {ApiResult, ResponseMeta} from 'sentry/types/api';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -10,7 +11,6 @@ import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {createLogDownloadFilename} from 'sentry/views/explore/logs/createLogDownloadFilename';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 
 // NOTE: Coordinate with other ExportQueryType (src/sentry/data_export/base.py)
@@ -30,14 +30,14 @@ interface IssuesByTagQueryInfo {
   project: number | string;
 }
 
-type DiscoverQueryInfo = EventQuery & LocationQuery;
+export type DiscoverQueryInfo = EventQuery & LocationQuery;
 
 type EventsQuerySamplingMode =
   | 'NORMAL'
   | 'HIGHEST_ACCURACY'
   | 'HIGHEST_ACCURACY_FLEX_TIME';
 
-interface ExploreQueryInfo {
+export interface ExploreQueryInfo {
   dataset: TraceItemDataset;
   field: string[];
   project: number[];
@@ -105,7 +105,7 @@ function handleDataExportResponse(
     return;
   }
 
-  const filename = createLogDownloadFilename(data.fileName, format);
+  const filename = createExportFilename(data.fileName, format);
   downloadFromHref(
     filename,
     `/api/0/organizations/${organizationSlug}/data-export/${data.id}/?download=true`

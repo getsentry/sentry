@@ -1,9 +1,9 @@
 import {useMemo, type ReactNode} from 'react';
 
+import {FORM_FIELD_REGISTRY} from '@sentry/scraps/form';
+
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import type {FormSearchField} from 'sentry/components/search/sources/formSource';
-import {getSearchMap} from 'sentry/components/search/sources/formSource';
 import {IconLock, IconMail, IconSettings, IconSubscribed, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
@@ -77,9 +77,9 @@ type SettingsFieldSection = {
   icon?: ReactNode;
 };
 
-function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
-  const allFields = getSearchMap();
+type FormFieldDefinition = (typeof FORM_FIELD_REGISTRY)[string];
 
+function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
   const routeTitleMap = new Map<string, string>();
   for (const section of getUserOrgNavigationConfiguration()) {
     for (const item of section.items) {
@@ -87,12 +87,12 @@ function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
     }
   }
 
-  const groups = new Map<string, Map<string, FormSearchField>>();
-  for (const field of allFields) {
+  const groups = new Map<string, Map<string, FormFieldDefinition>>();
+  for (const field of Object.values(FORM_FIELD_REGISTRY)) {
     if (!isSettingsRoute(field.route)) {
       continue;
     }
-    if (typeof field.title !== 'string' || !field.title) {
+    if (typeof field.label !== 'string' || !field.label) {
       continue;
     }
 
@@ -102,7 +102,7 @@ function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
       routeFields = new Map();
       groups.set(normalizedRoute, routeFields);
     }
-    routeFields.set(field.field.name, field);
+    routeFields.set(field.name, field);
   }
 
   return Array.from(groups.entries())
@@ -116,26 +116,21 @@ function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
         icon: ROUTE_ICONS[route],
         fields: Array.from(fieldMap.values())
           .filter(
-            (f): f is FormSearchField & {title: string} =>
-              typeof f.title === 'string' && f.title.length > 0
+            (f): f is FormFieldDefinition & {label: string} =>
+              typeof f.label === 'string' && f.label.length > 0
           )
-          .map(f => {
-            const helpText =
-              typeof f.description === 'string' ? f.description : undefined;
-
-            return {
-              key: `${route}#${f.field.name}`,
-              display: {
-                label: f.title,
-                details: helpText,
-              },
-              keywords: ['settings', title, f.field.name],
-              to: {
-                pathname: resolvedPath,
-                hash: `#${encodeURIComponent(f.field.name)}`,
-              },
-            };
-          })
+          .map(f => ({
+            key: `${route}#${f.name}`,
+            display: {
+              label: f.label,
+              details: f.hintText,
+            },
+            keywords: ['settings', title, f.name],
+            to: {
+              pathname: resolvedPath,
+              hash: `#${encodeURIComponent(f.name)}`,
+            },
+          }))
           .sort((a, b) => a.display.label.localeCompare(b.display.label)),
       };
     })

@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import type {Tag, TagSegment} from 'sentry/actionCreators/events';
 import {fetchTagFacets} from 'sentry/actionCreators/events';
@@ -193,7 +193,7 @@ class Tags extends Component<Props, State> {
             (loading ? (
               this.renderPlaceholders()
             ) : (
-              <Flex direction="column" align="center">
+              <Stack align="center">
                 <Button
                   size="xs"
                   variant="primary"
@@ -205,7 +205,7 @@ class Tags extends Component<Props, State> {
                 >
                   {t('Show More')}
                 </Button>
-              </Flex>
+              </Stack>
             ))}
         </Fragment>
       );

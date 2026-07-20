@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -21,11 +21,11 @@ import {uniqueId} from 'sentry/utils/guid';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
+import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import {
-  ActivityLine,
   ActivityLineNote,
   isActivityNote,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem';
+} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
 import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
 import {CommentActionsDropdown} from 'sentry/views/issueDetails/activitySection/commentActionsDropdown';
 import {groupActivityTypeIconMapping} from 'sentry/views/issueDetails/activitySection/groupActivityIcons';
@@ -77,12 +77,7 @@ function TimelineItem({
     }
 
     return (
-      <ActivityLine
-        item={item}
-        group={group}
-        inputVariant={inputVariant}
-        timestampUnitStyle={timestampUnitStyle}
-      />
+      <ActivityLine item={item} group={group} timestampUnitStyle={timestampUnitStyle} />
     );
   }
 
@@ -151,18 +146,18 @@ function LegacyTimelineItem({
   return (
     <ActivityTimelineItem
       title={
-        <Flex gap="xs" align="center" justify="start">
-          <TitleTooltip title={title} showOnlyOnOverflow>
-            {title}
-          </TitleTooltip>
-          {item.type === GroupActivityType.NOTE && !editing && (
+        <TitleRow>
+          <Tooltip title={title} showOnlyOnOverflow skipWrapper>
+            <TitleText>{title}</TitleText>
+          </Tooltip>
+          {item.type === GroupActivityType.NOTE && !editing ? (
             <CommentActionsDropdown
               onDelete={() => handleDelete(item)}
               onEdit={() => setEditing(true)}
               user={item.user}
             />
-          )}
-        </Flex>
+          ) : null}
+        </TitleRow>
       }
       timestamp={<Timestamp date={item.dateCreated} unitStyle={timestampUnitStyle} />}
       icon={
@@ -323,35 +318,38 @@ export function ActivitySection({
   );
 
   const timeline = renderActivityList(filteredActivities.map(renderActivityItem));
-  const sidebarActivityItems =
-    filteredActivities.length < 5 ? (
-      filteredActivities.map(renderActivityItem)
-    ) : (
-      <Fragment>
-        {filteredActivities.slice(0, 3).map(renderActivityItem)}
-        <MoreActivityRow>
-          <MoreActivityIcon>
-            <RotatedEllipsisIcon direction="up" />
-          </MoreActivityIcon>
-          <Container marginTop="xs">
-            <LinkButton
-              aria-label={t('View all activity')}
-              to={activityLink}
-              size="xs"
-              replace
-              preventScrollReset
-              analyticsEventKey="issue_details.activity_expanded"
-              analyticsEventName="Issue Details: Activity Expanded"
-              analyticsParams={{
-                num_activities_hidden: filteredActivities.length - 3,
-              }}
-            >
-              {t('View %s more', filteredActivities.length - 3)}
-            </LinkButton>
-          </Container>
-        </MoreActivityRow>
-      </Fragment>
-    );
+  const hiddenActivityCount =
+    filteredActivities.length >= 5 ? filteredActivities.length - 3 : 0;
+  const sidebarVisibleActivities =
+    hiddenActivityCount > 0 ? filteredActivities.slice(0, 3) : filteredActivities;
+  const sidebarActivityItems = (
+    <Fragment>
+      {sidebarVisibleActivities.map(renderActivityItem)}
+      <MoreActivityRow>
+        <MoreActivityIcon>
+          <RotatedEllipsisIcon direction="up" />
+        </MoreActivityIcon>
+        <Container marginTop="xs">
+          <LinkButton
+            aria-label={t('View all activity')}
+            to={activityLink}
+            size="xs"
+            replace
+            preventScrollReset
+            analyticsEventKey="issue_details.activity_expanded"
+            analyticsEventName="Issue Details: Activity Expanded"
+            analyticsParams={{
+              num_activities_hidden: hiddenActivityCount,
+            }}
+          >
+            {hiddenActivityCount > 0
+              ? t('View %s more', hiddenActivityCount)
+              : t('Expand')}
+          </LinkButton>
+        </Container>
+      </MoreActivityRow>
+    </Fragment>
+  );
 
   if (variant === 'standalone') {
     return (
@@ -379,15 +377,43 @@ export function ActivitySection({
   );
 }
 
-const TitleTooltip = styled(Tooltip)`
-  justify-self: start;
+const TitleRow = styled('span')`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: ${p => p.theme.space.xs};
+  min-width: 0;
+  max-width: 100%;
+`;
+
+const TitleText = styled('span')`
+  display: inline-block;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+
+  > * {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 `;
 
 const ActivityTimelineItem = styled(Timeline.Item)`
   align-items: start;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+
+  ${Timeline.TitleRow} {
+    min-width: 0;
+  }
+
+  ${Timeline.Title} {
+    min-width: 0;
+    max-width: 100%;
+  }
 `;
 
 const Timestamp = styled(TimeSince)`
@@ -400,13 +426,15 @@ const ActivityLineList = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.md};
+  container-name: activity-list;
+  container-type: inline-size;
 
   &::before {
     content: '';
     position: absolute;
     left: 10.5px;
     top: 11px;
-    bottom: 0;
+    bottom: 11px;
     width: 0;
     border-left: 1px solid ${p => p.theme.tokens.border.transparent.neutral.muted};
   }

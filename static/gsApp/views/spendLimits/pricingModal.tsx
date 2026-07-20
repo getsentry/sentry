@@ -1,6 +1,6 @@
 import {css, type Theme} from '@emotion/react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -31,7 +31,7 @@ function SpendLimitsPricingModal({
       .map(([category, categoryInfo]) => [category, categoryInfo.reserved ?? 0])
   );
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       <Heading as="h2">
         {tct('[budgetTerm] pricing', {
           budgetTerm: displayBudgetName(subscription.planDetails, {title: true}),
@@ -51,7 +51,7 @@ function SpendLimitsPricingModal({
         includedAddOns={includedAddOns}
         currentReserved={currentReserved}
       />
-    </Flex>
+    </Stack>
   );
 }
 

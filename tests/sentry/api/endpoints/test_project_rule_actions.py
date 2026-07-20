@@ -58,9 +58,11 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
             )
 
     @mock.patch(
-        "sentry.notifications.notification_action.action_handler_registry.plugin_handler.send_legacy_webhooks_for_invocation"
+        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_legacy_webhooks_for_invocation"
     )
     def test_actions(self, mock_send) -> None:
+        # NotifyEventAction only dual-writes a WEBHOOK action when webhooks are enabled.
+        self.project.update_option("webhooks:enabled", True)
         action_data = [
             {
                 "id": "sentry.rules.actions.notify_event.NotifyEventAction",
@@ -69,6 +71,21 @@ class ProjectRuleActionsEndpointWorkflowEngineTest(APITestCase, BaseWorkflowTest
 
         self.get_success_response(self.organization.slug, self.project.slug, actions=action_data)
         assert mock_send.called
+
+    @mock.patch(
+        "sentry.notifications.notification_action.action_handler_registry.webhook_handler.send_legacy_webhooks_for_invocation"
+    )
+    def test_actions_notify_event_webhooks_disabled(self, mock_send) -> None:
+        # With webhooks disabled, NotifyEventAction translates to no action, so the test-fire should
+        # skip it gracefully (success, nothing fired) rather than raising an IndexError -> 400.
+        action_data = [
+            {
+                "id": "sentry.rules.actions.notify_event.NotifyEventAction",
+            }
+        ]
+
+        self.get_success_response(self.organization.slug, self.project.slug, actions=action_data)
+        assert not mock_send.called
 
     def test_unknown_action_returns_400(self) -> None:
         action_data = [

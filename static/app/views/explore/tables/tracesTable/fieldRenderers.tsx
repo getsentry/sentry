@@ -9,6 +9,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {MultiHighlight} from 'sentry/components/highlight';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
@@ -47,7 +48,15 @@ export const ProjectBadgeWrapper = styled('span')`
   min-width: 32px;
 `;
 
-export function SpanDescriptionRenderer({span}: {span: SpanResult<Field>}) {
+export function SpanDescriptionRenderer({
+  span,
+  highlightTerms = [],
+  caseSensitiveHighlighting = false,
+}: {
+  span: SpanResult<Field>;
+  caseSensitiveHighlighting?: boolean;
+  highlightTerms?: string[];
+}) {
   return (
     <Description data-test-id="span-description">
       <ProjectBadgeWrapper>
@@ -55,7 +64,14 @@ export function SpanDescriptionRenderer({span}: {span: SpanResult<Field>}) {
       </ProjectBadgeWrapper>
       <strong>{span['span.op']}</strong>
       <em>{'\u2014'}</em>
-      <WrappingText>{span['span.description']}</WrappingText>
+      <WrappingText>
+        <SpanDescriptionHighlight
+          caseSensitive={caseSensitiveHighlighting}
+          terms={highlightTerms}
+        >
+          {span['span.description']}
+        </SpanDescriptionHighlight>
+      </WrappingText>
       {<StatusTag status={span['span.status']} />}
     </Description>
   );
@@ -200,6 +216,13 @@ const WrappingText = styled('div')`
   width: auto;
 `;
 
+const SpanDescriptionHighlight = styled(MultiHighlight)`
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  background-color: ${p => p.theme.colors.gray200};
+  margin-right: 2px;
+  margin-left: 2px;
+`;
+
 export const TraceBreakdownContainer = styled('div')<{hoveredIndex?: number}>`
   position: relative;
   display: flex;
@@ -236,7 +259,10 @@ const RectangleTraceBreakdown = styled(RowRectangle)<{
       )
     );
   `}
-  transition: filter,opacity,transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    filter,
+    opacity,
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 `;
 
 export function TraceBreakdownRenderer({

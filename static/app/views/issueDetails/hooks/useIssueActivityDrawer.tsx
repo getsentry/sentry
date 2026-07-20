@@ -32,7 +32,6 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
       {
         ariaLabel: t('Issue Activity'),
         drawerKey: 'issue-activity-drawer',
-        shouldCloseOnInteractOutside: () => false,
         onClose: () => {
           navigate(
             {

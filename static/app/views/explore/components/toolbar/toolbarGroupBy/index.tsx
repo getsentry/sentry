@@ -112,6 +112,7 @@ export function ToolbarGroupByDropdown({
         value={column.column ?? ''}
         onChange={handleColumnChange}
         search={{
+          highlight: true,
           onChange: onSearch,
           filter: (option, search) => {
             return sortSearchedAttributes({

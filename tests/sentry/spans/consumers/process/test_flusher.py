@@ -1,4 +1,5 @@
 import time
+from concurrent.futures import Future
 from time import sleep
 from types import SimpleNamespace
 from typing import Any
@@ -6,6 +7,7 @@ from unittest import mock
 
 import orjson
 import pytest
+from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies.noop import Noop
 from django.test import override_settings
 
@@ -19,6 +21,32 @@ from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
 
 def _payload(span_id: str) -> bytes:
     return orjson.dumps({"span_id": span_id})
+
+
+def _buffer_with_segment(
+    *,
+    project_id: int = 999_002,
+    trace_id: str = "9" * 32,
+    span_id: str = "b" * 16,
+    slice_id: int = 999_002,
+) -> SpansBuffer:
+    buffer = SpansBuffer(assigned_shards=[0], slice_id=slice_id)
+    buffer.process_spans(
+        [
+            Span(
+                payload=_payload(span_id),
+                trace_id=trace_id,
+                span_id=span_id,
+                parent_span_id=None,
+                segment_id=None,
+                is_segment_span=True,
+                project_id=project_id,
+                partition=0,
+            )
+        ],
+        now=0,
+    )
+    return buffer
 
 
 def _blocking_main_for_join_test(
@@ -39,21 +67,8 @@ def test_flusher_logs_flushed_segments() -> None:
     slice_id = 999_002
     segment_key = f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode()
     queue_key = f"span-buf:q:{slice_id}-0".encode()
-    buffer = SpansBuffer(assigned_shards=[0], slice_id=slice_id)
-    buffer.process_spans(
-        [
-            Span(
-                payload=_payload(span_id),
-                trace_id=trace_id,
-                span_id=span_id,
-                parent_span_id=None,
-                segment_id=None,
-                is_segment_span=True,
-                project_id=project_id,
-                partition=0,
-            )
-        ],
-        now=0,
+    buffer = _buffer_with_segment(
+        project_id=project_id, trace_id=trace_id, span_id=span_id, slice_id=slice_id
     )
     stopped = SimpleNamespace(value=0)
     current_drift = SimpleNamespace(value=0)
@@ -91,6 +106,108 @@ def test_flusher_logs_flushed_segments() -> None:
     assert orjson.loads(produced[0][1].value)["spans"][0]["span_id"] == span_id
     assert buffer.client.zscore(queue_key, segment_key) is None
     assert not buffer.client.keys(f"*{project_id}:{trace_id}*")
+
+
+@override_options({**DEFAULT_OPTIONS, "spans.buffer.process-segments-task-rollout-rate": 0.0})
+def test_flusher_produces_flushed_segments_to_buffered_segments_topic() -> None:
+    span_id = "b" * 16
+    buffer = _buffer_with_segment(span_id=span_id)
+    stopped = SimpleNamespace(value=0)
+    current_drift = SimpleNamespace(value=0)
+    backpressure_since = SimpleNamespace(value=0)
+    healthy_since = SimpleNamespace(value=0)
+    produced_payloads: list[KafkaPayload] = []
+    producer_future: Future[None] = Future()
+    producer_future.set_result(None)
+    producer_manager = mock.Mock()
+
+    def produce(payload: KafkaPayload) -> Future[None]:
+        produced_payloads.append(payload)
+        stopped.value = 1
+        return producer_future
+
+    producer_manager.produce.side_effect = produce
+
+    with (
+        mock.patch(
+            "sentry.spans.consumers.process.flusher.MultiProducer",
+            return_value=producer_manager,
+        ) as mock_multi_producer,
+        mock.patch(
+            "sentry.spans.consumers.process.flusher.process_segment_task.apply_async_with_future"
+        ) as mock_apply_async_with_future,
+    ):
+        SpanFlusher.main(
+            buffer,
+            shards=[0],
+            stopped=stopped,
+            current_drift=current_drift,
+            backpressure_since=backpressure_since,
+            healthy_since=healthy_since,
+            produce_to_pipe=None,
+        )
+
+    mock_multi_producer.assert_called_once_with(Topic.BUFFERED_SEGMENTS)
+    mock_apply_async_with_future.assert_not_called()
+    assert len(produced_payloads) == 1
+    assert orjson.loads(produced_payloads[0].value)["spans"][0]["span_id"] == span_id
+
+
+@override_options({**DEFAULT_OPTIONS, "spans.buffer.process-segments-task-rollout-rate": 1.0})
+def test_flusher_produces_flushed_segments_to_process_segment_task() -> None:
+    project_id = 999_002
+    trace_id = "9" * 32
+    span_id = "c" * 16
+    slice_id = 999_002
+    segment_key = f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode()
+    queue_key = f"span-buf:q:{slice_id}-0".encode()
+    buffer = _buffer_with_segment(
+        project_id=project_id, trace_id=trace_id, span_id=span_id, slice_id=slice_id
+    )
+    stopped = SimpleNamespace(value=0)
+    current_drift = SimpleNamespace(value=0)
+    backpressure_since = SimpleNamespace(value=0)
+    healthy_since = SimpleNamespace(value=0)
+    producer_manager = mock.Mock()
+    task_future = mock.Mock()
+
+    def wait_for_task_delivery() -> None:
+        assert buffer.client.zscore(queue_key, segment_key) is not None
+
+    task_future.result.side_effect = wait_for_task_delivery
+
+    def apply_async_with_future(*args: Any, **kwargs: Any) -> Any:
+        stopped.value = 1
+        return task_future
+
+    with (
+        mock.patch(
+            "sentry.spans.consumers.process.flusher.MultiProducer",
+            return_value=producer_manager,
+        ) as mock_multi_producer,
+        mock.patch(
+            "sentry.spans.consumers.process.flusher.process_segment_task.apply_async_with_future",
+            side_effect=apply_async_with_future,
+        ) as mock_apply_async_with_future,
+    ):
+        SpanFlusher.main(
+            buffer,
+            shards=[0],
+            stopped=stopped,
+            current_drift=current_drift,
+            backpressure_since=backpressure_since,
+            healthy_since=healthy_since,
+            produce_to_pipe=None,
+        )
+
+    mock_multi_producer.assert_called_once_with(Topic.BUFFERED_SEGMENTS)
+    producer_manager.produce.assert_not_called()
+    mock_apply_async_with_future.assert_called_once()
+    task_args = mock_apply_async_with_future.call_args.kwargs["args"]
+    assert len(task_args) == 1
+    assert orjson.loads(task_args[0])["spans"][0]["span_id"] == span_id
+    task_future.result.assert_called_once_with()
+    assert buffer.client.zscore(queue_key, segment_key) is None
 
 
 @override_options({**DEFAULT_OPTIONS, "spans.buffer.max-flush-segments": 1})

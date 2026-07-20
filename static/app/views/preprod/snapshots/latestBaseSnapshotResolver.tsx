@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -21,6 +22,7 @@ type LatestBaseSnapshotResponse = {
 export default function LatestBaseSnapshotResolver() {
   const organization = useOrganization();
   const navigate = useNavigate();
+  const location = useLocation();
   const {projectId, appId} = useParams<{appId: string; projectId: string}>();
 
   const {data, isError} = useQuery({
@@ -42,8 +44,11 @@ export default function LatestBaseSnapshotResolver() {
     }
     const {customerDomain} = ConfigStore.getState();
     const orgPrefix = customerDomain ? '' : `/organizations/${organization.slug}`;
-    navigate(`${orgPrefix}/preprod/snapshots/${data.head_artifact_id}/`, {replace: true});
-  }, [data, navigate, organization.slug]);
+    navigate(
+      `${orgPrefix}/preprod/snapshots/${data.head_artifact_id}/${location.search}`,
+      {replace: true}
+    );
+  }, [data, location.search, navigate, organization.slug]);
 
   if (isError) {
     return (

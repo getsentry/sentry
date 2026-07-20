@@ -3,7 +3,7 @@ import {PlatformIcon} from 'platformicons';
 
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {
-  getFirstToolInputValue,
+  getToolInputPreview,
   getStringAttr,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
@@ -24,7 +24,7 @@ import {
 
 /**
  * Returns an enriched description for AI spans when attributes are available.
- * - Tool spans: "toolName: firstInputValue"
+ * - Tool spans: "toolName: inputPreview"
  * - AI client spans: responseModel (e.g., "gpt-4o")
  * Falls back to undefined so the caller can use the default description.
  */
@@ -44,9 +44,9 @@ function getAIEnhancedDescription(node: EapSpanNode): string | undefined {
 
   if (opType === GenAiOperationType.TOOL) {
     const toolName = getStringAttr(node as any, SpanFields.GEN_AI_TOOL_NAME);
-    const firstValue = getFirstToolInputValue(node as any);
-    if (toolName && firstValue) {
-      return `${toolName}: ${firstValue}`;
+    const inputPreview = getToolInputPreview(node as any);
+    if (toolName && inputPreview) {
+      return `${toolName}: ${inputPreview}`;
     }
     return toolName ?? undefined;
   }

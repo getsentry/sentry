@@ -16,7 +16,6 @@ import {MetricDetectorDetailsChart} from 'sentry/views/detectors/components/deta
 
 describe('MetricDetectorDetailsChart', () => {
   const detector = MetricDetectorFixture();
-  const snubaQuery = detector.dataSources[0].queryObj.snubaQuery;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -35,7 +34,7 @@ describe('MetricDetectorDetailsChart', () => {
       statusCode: 400,
     });
 
-    render(<MetricDetectorDetailsChart detector={detector} snubaQuery={snubaQuery} />);
+    render(<MetricDetectorDetailsChart detector={detector} />);
 
     expect(await screen.findByText('Invalid query: xyz')).toBeInTheDocument();
     expect(screen.getByText('Error loading chart data')).toBeInTheDocument();
@@ -65,7 +64,6 @@ describe('MetricDetectorDetailsChart', () => {
         ],
       },
     });
-    const anomalySnubaQuery = anomalyDetector.dataSources[0].queryObj.snubaQuery;
 
     const baseTimestamp = Date.now() / 1000;
     const CUTOFF_MESSAGE = 'Some anomaly thresholds are outside the chart area';
@@ -97,13 +95,7 @@ describe('MetricDetectorDetailsChart', () => {
       mockChartData();
       mockAnomalyData(105); // Within bounds (max 100 + 10% padding = 110)
 
-      render(
-        <MetricDetectorDetailsChart
-          detector={anomalyDetector}
-          snubaQuery={anomalySnubaQuery}
-        />,
-        {organization}
-      );
+      render(<MetricDetectorDetailsChart detector={anomalyDetector} />, {organization});
 
       expect(
         await screen.findByRole('button', {name: 'Open in Discover'})
@@ -115,13 +107,7 @@ describe('MetricDetectorDetailsChart', () => {
       mockChartData();
       mockAnomalyData(500); // yhat_upper exceeds bounds (max ~110)
 
-      render(
-        <MetricDetectorDetailsChart
-          detector={anomalyDetector}
-          snubaQuery={anomalySnubaQuery}
-        />,
-        {organization}
-      );
+      render(<MetricDetectorDetailsChart detector={anomalyDetector} />, {organization});
 
       expect(await screen.findByText(CUTOFF_MESSAGE)).toBeInTheDocument();
     });

@@ -1,12 +1,48 @@
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
+from sentry.sentry_apps.utils.webhooks import (
+    SentryAppResourceType,
+    has_granular_events,
+    is_subscribed,
+    resource_of,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
+
+
+def test_resource_of() -> None:
+    assert resource_of("issue.resolved") is SentryAppResourceType.ISSUE
+    assert resource_of("comment.deleted") is SentryAppResourceType.COMMENT
+    assert resource_of("seer.root_cause_started") is SentryAppResourceType.SEER
+    # Events outside the subscribable taxonomy (e.g. alerts) resolve to None.
+    assert resource_of("metric_alert.critical") is None
+    assert resource_of("bogus.thing") is None
+
+
+def test_has_granular_events() -> None:
+    assert has_granular_events(["issue.resolved"])
+    assert has_granular_events(["issue", "issue.resolved"])
+    assert not has_granular_events(["issue", "error"])
+    assert not has_granular_events([])
+    assert not has_granular_events(None)
+
+
+def test_is_subscribed_matches_exact_event() -> None:
+    assert is_subscribed(["issue.resolved"], "issue.resolved")
+    # Only the exact stored event matches, not siblings from the same resource.
+    assert not is_subscribed(["issue.ignored"], "issue.resolved")
+    assert not is_subscribed(["error.created"], "issue.resolved")
+    assert not is_subscribed([], "issue.resolved")
+    # Legacy installs that stored the pre-rename name still match issue.ignored.
+    assert is_subscribed(["issue.archived"], "issue.ignored")
+    assert not is_subscribed(["issue.archived"], "issue.resolved")
+    # Events whose resource has no subscribable events never match.
+    assert not is_subscribed(["metric_alert.open"], "metric_alert.critical")
 
 
 @cell_silo_test
@@ -141,8 +177,8 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
-    def test_broadcast_filters_by_consolidated_events(self, mock_installations, mock_send_webhook):
-        """Test that installations are filtered based on consolidated events."""
+    def test_broadcast_filters_by_subscription(self, mock_installations, mock_send_webhook):
+        """Only installations subscribed to the event are notified."""
         # Create an app that doesn't subscribe to the event resource
         sentry_app_5 = self.create_sentry_app(
             name="App5",
@@ -165,6 +201,27 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
         )
 
         # Only installation_1 should have webhook task queued (subscribes to issue events)
+        mock_send_webhook.delay.assert_called_once_with(
+            self.installation_1.id, "issue.created", payload
+        )
+
+    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
+    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
+    def test_broadcast_matches_exact_event(self, mock_installations, mock_send_webhook):
+        """Only the installation subscribed to the exact event is notified."""
+        # installation_1 subscribes to issue.created; installation_2 only to
+        # issue.assigned, a sibling event that must not match.
+        mock_installations.return_value = [self.installation_1, self.installation_2]
+
+        payload = {"event": "data"}
+
+        broadcast_webhooks_for_organization(
+            resource_name="issue",
+            event_name="created",
+            organization_id=self.organization.id,
+            payload=payload,
+        )
+
         mock_send_webhook.delay.assert_called_once_with(
             self.installation_1.id, "issue.created", payload
         )
@@ -227,36 +284,6 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
 
         # No webhook tasks should be queued
         mock_send_webhook.delay.assert_not_called()
-
-    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
-    def test_broadcast_consolidate_events_integration(self, mock_installations, mock_send_webhook):
-        """Test that consolidate_events function is used correctly for filtering."""
-        # Mock installation with specific events
-        mock_installation = Mock()
-        mock_installation.sentry_app.events = ["issue.created", "issue.assigned"]
-        mock_installations.return_value = [mock_installation]
-
-        payload = {"event": "data"}
-
-        # Mock consolidate_events to return the expected resource categories
-        with patch("sentry.sentry_apps.logic.consolidate_events") as mock_consolidate:
-            mock_consolidate.return_value = ["issue"]
-
-            broadcast_webhooks_for_organization(
-                resource_name="issue",
-                event_name="created",
-                organization_id=self.organization.id,
-                payload=payload,
-            )
-
-            # Verify consolidate_events was called with the installation's events
-            mock_consolidate.assert_called_once_with(mock_installation.sentry_app.events)
-
-            # Webhook task should be queued since "issue" is in consolidated events
-            mock_send_webhook.delay.assert_called_once_with(
-                mock_installation.id, "issue.created", payload
-            )
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
@@ -469,26 +496,6 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
 
     @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
-    @patch("sentry.sentry_apps.logic.consolidate_events")
-    def test_broadcast_consolidate_events_exception(
-        self, mock_consolidate, mock_installations, mock_send_webhook
-    ):
-        """Test handling of exceptions from consolidate_events."""
-        mock_installations.return_value = [self.installation_1]
-        mock_consolidate.side_effect = Exception("Consolidation failed")
-
-        payload = {"event": "data"}
-
-        with pytest.raises(Exception, match="Consolidation failed"):
-            broadcast_webhooks_for_organization(
-                resource_name="issue",
-                event_name="created",
-                organization_id=self.organization.id,
-                payload=payload,
-            )
-
-    @patch("sentry.sentry_apps.tasks.sentry_apps.send_resource_change_webhook")
-    @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_with_negative_organization_id(self, mock_installations, mock_send_webhook):
         """Test broadcasting with negative organization ID."""
         mock_installations.return_value = []
@@ -519,7 +526,13 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
     @patch("sentry.sentry_apps.tasks.sentry_apps.app_service.installations_for_organization")
     def test_broadcast_queues_tasks_asynchronously(self, mock_installations, mock_send_webhook):
         """Test that webhook sending is queued as tasks, not executed synchronously."""
-        mock_installations.return_value = [self.installation_1, self.installation_2]
+        sentry_app = self.create_sentry_app(
+            name="App6", organization=self.organization, events=["issue.created"]
+        )
+        installation = self.create_sentry_app_installation(
+            organization=self.organization, slug=sentry_app.slug
+        )
+        mock_installations.return_value = [self.installation_1, installation]
 
         payload = {"test": "data"}
 
@@ -538,4 +551,4 @@ class BroadcastWebhooksForOrganizationTest(TestCase):
 
         # Verify each installation had a task queued with correct parameters
         mock_send_webhook.delay.assert_any_call(self.installation_1.id, "issue.created", payload)
-        mock_send_webhook.delay.assert_any_call(self.installation_2.id, "issue.created", payload)
+        mock_send_webhook.delay.assert_any_call(installation.id, "issue.created", payload)

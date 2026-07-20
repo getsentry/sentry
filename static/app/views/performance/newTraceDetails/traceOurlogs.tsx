@@ -37,7 +37,7 @@ export function TraceViewLogsDataProvider({
   return (
     <LogsQueryParamsProvider
       analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
-      source="state"
+      source="location"
       freeze={{traceId: traceSlug}}
     >
       <LogsPageDataProvider>{children}</LogsPageDataProvider>

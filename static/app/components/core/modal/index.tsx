@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useRef, type ComponentProps} from 'react';
+import {useCallback, useEffect, useRef, type ComponentProps} from 'react';
 import {createPortal} from 'react-dom';
 import {css, type Interpolation, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -7,7 +7,7 @@ import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
-import {Surface} from '@sentry/scraps/layout';
+import {ContainerQueryProvider, Surface} from '@sentry/scraps/layout';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
@@ -153,6 +153,13 @@ export function GlobalModal({onClose}: Props) {
 
   const scrollLock = useScrollLock(document.body);
   const portal = getModalPortal();
+  // The portal lives at the document body, so container responsive props (bare
+  // breakpoint keys) inside a modal have no DOM container ancestor in the routed
+  // app. `#modal-portal` is a query container (see global styles); broadcast its
+  // breakpoint here so the JS resolution (which would otherwise leak the #main
+  // breakpoint through the React portal) agrees with the CSS @container rules.
+  // The ref is stable because `getModalPortal` is memoized.
+  const portalRef = useRef(portal);
   const focusTrap = useRef<FocusTrap | null>(null);
   // SentryApp might be missing on tests
   if (window.SentryApp) {
@@ -227,7 +234,7 @@ export function GlobalModal({onClose}: Props) {
   });
 
   return createPortal(
-    <Fragment>
+    <ContainerQueryProvider elementRef={portalRef}>
       <AnimatePresence>
         {backdrop && visible && (
           <Backdrop
@@ -277,7 +284,7 @@ export function GlobalModal({onClose}: Props) {
           </AnimatePresence>
         </TooltipContext>
       </ModalContainer>
-    </Fragment>,
+    </ContainerQueryProvider>,
     portal
   );
 }

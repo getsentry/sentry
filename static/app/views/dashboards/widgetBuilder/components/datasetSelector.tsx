@@ -118,6 +118,7 @@ export function WidgetBuilderDatasetSelector() {
           restoreOrSetBuilderState(newDataset);
 
           Sentry.setTag('widget_builder.dataset', newDataset);
+          Sentry.setAttribute('widget_builder.dataset', newDataset);
           trackAnalytics('dashboards_views.widget_builder.change', {
             from: source,
             widget_type: state.dataset ?? '',

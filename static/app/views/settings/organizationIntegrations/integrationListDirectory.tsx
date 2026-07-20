@@ -35,11 +35,11 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniq} from 'sentry/utils/array/uniq';
 import {
-  getAlertText,
   getCategoriesForIntegration,
   getIntegrationStatus,
   getProviderIntegrationStatus,
   getSentryAppInstallStatus,
+  integrationRequiresUpgrade,
   isDocIntegration,
   isSentryApp,
   sortIntegrations,
@@ -353,8 +353,9 @@ export default function IntegrationListDirectory() {
               .length
           }
           categories={getCategoriesForIntegration(provider)}
-          alertText={getAlertText(providerIntegrations)}
-          resolveText={t('Update Now')}
+          outdatedConfigurations={
+            providerIntegrations.filter(integrationRequiresUpgrade).length
+          }
           customAlert={
             <FirstPartyIntegrationAlert
               integrations={providerIntegrations}

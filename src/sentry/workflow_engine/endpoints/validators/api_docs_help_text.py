@@ -17,7 +17,7 @@ WORKFLOW_CONFIG_HELP_TEXT = """
         ```
         """
 
-WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger. See available options below. Note: `seer_activity_trigger` may not be available to all organizations.
+WORKFLOW_TRIGGERS_HELP_TEXT = """The conditions on which the alert will trigger. See available options below.
         ```json
             "triggers": {
                 "organizationId": "1",

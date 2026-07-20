@@ -16,7 +16,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {DiscoverExportModalButton} from 'sentry/views/discover/table/discoverExportModalButton';
 import {downloadAsCsv} from 'sentry/views/discover/utils';
+import {useShowExploreModalExport} from 'sentry/views/explore/components/exports/useShowExploreModalExport';
 
 type Props = {
   error: string | null;
@@ -40,17 +42,38 @@ function handleDownloadAsCsv(title: string, {organization, eventView, tableData}
 }
 
 function renderDownloadButton(canEdit: boolean, props: Props) {
-  const {tableData} = props;
   return (
     <Feature
       features="organizations:discover-query"
       renderDisabled={() => renderBrowserExportButton(canEdit, props)}
     >
-      {tableData?.data && tableData.data.length < 50
-        ? renderBrowserExportButton(canEdit, props)
-        : renderAsyncExportButton(canEdit, props)}
+      <DiscoverExportSwitch canEdit={canEdit} {...props} />
     </Feature>
   );
+}
+
+function DiscoverExportSwitch({canEdit, ...props}: Props & {canEdit: boolean}) {
+  const showModalExport = useShowExploreModalExport();
+  const {tableData} = props;
+
+  if (showModalExport) {
+    return (
+      <DiscoverExportModalButton
+        disabled={!canEdit}
+        error={props.error}
+        eventView={props.eventView}
+        isLoading={props.isLoading}
+        location={props.location}
+        organization={props.organization}
+        tableData={props.tableData}
+        title={props.title}
+      />
+    );
+  }
+
+  return tableData?.data && tableData.data.length < 50
+    ? renderBrowserExportButton(canEdit, props)
+    : renderAsyncExportButton(canEdit, props);
 }
 
 function renderBrowserExportButton(canEdit: boolean, props: Props) {

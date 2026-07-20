@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
@@ -33,6 +33,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
+  getBuildNumber,
   isSizeInfoCompleted,
   isSizeInfoRetryable,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -81,18 +82,12 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   // might be able to show the release breadcrumb
   if (isBuildDetailsPending) {
     return (
-      <Flex direction="column" padding="0 0 xl 0">
-        {/* Empty header space - no skeleton content */}
-      </Flex>
+      <Stack padding="0 0 xl 0">{/* Empty header space - no skeleton content */}</Stack>
     );
   }
 
   if (isBuildDetailsError || !buildDetailsData) {
-    return (
-      <Flex direction="column" padding="0 0 xl 0">
-        {/* Empty header space during error */}
-      </Flex>
-    );
+    return <Stack padding="0 0 xl 0">{/* Empty header space during error */}</Stack>;
   }
 
   const project = ProjectsStore.getBySlug(projectSlug);
@@ -105,7 +100,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   ];
 
   const version = buildDetailsData.app_info?.version;
-  const buildNumber = buildDetailsData.app_info?.build_number;
+  const buildNumber = getBuildNumber(buildDetailsData.app_info);
 
   if (version) {
     breadcrumbs.push({

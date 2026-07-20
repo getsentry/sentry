@@ -1,30 +1,22 @@
-import {useEffect, useMemo} from 'react';
+import {useCallback, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
+import {parseAsBoolean, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
-import {Container, Flex} from '@sentry/scraps/layout';
-
-import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {ConversationContentLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
-  ConversationDetailPanel,
-  ConversationLeftPanel,
-  ConversationSplitLayout,
-  ConversationViewSkeleton,
-} from 'sentry/views/explore/conversations/components/conversationLayout';
-import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
+  CONVERSATION_SPAN_DETAIL_TABS,
+  ConversationSpanDetail,
+} from 'sentry/views/explore/conversations/components/conversationSpanDetail';
+import {MessagesPanelNew} from 'sentry/views/explore/conversations/components/messagesPanelNew';
 import {
   useConversation,
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
-import {
-  extractMessagesFromNodes,
-  messagesToMarkdown,
-} from 'sentry/views/explore/conversations/utils/conversationMessages';
-import {AISpanList} from 'sentry/views/insights/pages/agents/components/aiSpanList';
+import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
+import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 
@@ -39,30 +31,50 @@ interface ConversationViewContentNewProps {
   activeTab: ConversationViewTab;
   conversation: UseConversationsOptions;
   focusedTool?: string | null;
+  onDeselectSpan?: () => void;
   onSelectSpan?: (spanId: string) => void;
+  onViewTimeline?: () => void;
   selectedSpanId?: string | null;
 }
 
-// WIP: redesigned conversation view. Reuses the existing panels for now; the
-// content treatment is still being designed.
 export function ConversationViewContentNew({
   conversation,
   activeTab,
   selectedSpanId,
   onSelectSpan,
+  onDeselectSpan,
+  onViewTimeline,
   focusedTool,
 }: ConversationViewContentNewProps) {
-  const organization = useOrganization();
+  const isTimeline = activeTab === 'timeline';
+
   const {nodes, nodeTraceMap, isLoading, error} = useConversation(conversation);
+
+  const [detailState, setDetailState] = useQueryStates(
+    {
+      detailOpen: parseAsBoolean.withDefault(true),
+      detailTab: parseAsStringLiteral(CONVERSATION_SPAN_DETAIL_TABS).withDefault('input'),
+    },
+    {history: 'replace'}
+  );
+
   const {selectedNode, handleSelectNode} = useConversationSelection({
     nodes,
     selectedSpanId,
     onSelectSpan,
     focusedTool,
     isLoading,
+    // Neither view auto-selects a span on load. The span detail only opens on
+    // user action or when a span is deep-linked in the URL.
+    autoSelectDefaultNode: false,
   });
-
-  const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+  const handleSelectAndOpenDetail = useCallback(
+    (node: AITraceSpanNode) => {
+      setDetailState({detailOpen: true});
+      handleSelectNode(node);
+    },
+    [handleSelectNode, setDetailState]
+  );
 
   useEffect(() => {
     if (!isLoading && !error && nodes.length === 0) {
@@ -72,87 +84,57 @@ export function ConversationViewContentNew({
     }
   }, [isLoading, error, nodes.length]);
 
-  if (isLoading) {
-    return <ConversationViewSkeleton />;
-  }
+  const isTranscript = !isTimeline;
 
   if (error) {
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
   }
 
-  if (nodes.length === 0) {
+  if (!isLoading && nodes.length === 0) {
     return <EmptyMessage>{t('No AI spans found in this conversation')}</EmptyMessage>;
   }
 
   return (
     <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
-      <ConversationSplitLayout
+      <ConversationContentLayout
+        leftPadding={isTranscript ? '0' : 'md'}
         left={
-          <ConversationLeftPanel>
-            <Flex
-              direction="column"
-              flex="1"
-              minHeight="0"
-              width="100%"
-              overflow="hidden"
-            >
-              {activeTab === 'transcript' && messages.length > 0 && (
-                <Flex
-                  flexShrink={0}
-                  justify="end"
-                  align="center"
-                  padding="xs sm"
-                  borderBottom="primary"
-                  background="primary"
-                >
-                  <CopyAsDropdown
-                    size="xs"
-                    items={CopyAsDropdown.makeDefaultCopyAsOptions({
-                      markdown: () => {
-                        trackAnalytics('conversations.detail.copy-conversation', {
-                          organization,
-                        });
-                        return messagesToMarkdown(messages);
-                      },
-                      text: undefined,
-                      json: undefined,
-                    })}
-                  />
-                </Flex>
-              )}
-              <Flex
-                flex="1"
-                minHeight="0"
-                width="100%"
-                overflowX="hidden"
-                overflowY="auto"
-                background="secondary"
-              >
-                {activeTab === 'transcript' ? (
-                  <MessagesPanel
-                    nodes={nodes}
-                    selectedNodeId={selectedNode?.id ?? null}
-                    onSelectNode={handleSelectNode}
-                  />
-                ) : (
-                  <Container padding="md lg md lg" width="100%">
-                    <AISpanList
-                      nodes={nodes}
-                      selectedNodeKey={selectedNode?.id ?? nodes[0]?.id ?? ''}
-                      onSelectNode={handleSelectNode}
-                      compressGaps
-                    />
-                  </Container>
-                )}
-              </Flex>
-            </Flex>
-          </ConversationLeftPanel>
+          isTranscript ? (
+            <MessagesPanelNew
+              isLoading={isLoading}
+              nodes={nodes}
+              selectedNodeId={selectedNode?.id ?? null}
+              onSelectNode={handleSelectAndOpenDetail}
+              onViewTimeline={onViewTimeline}
+            />
+          ) : (
+            <AiSpanTimeline
+              isLoading={isLoading}
+              nodes={nodes}
+              selectedNodeKey={selectedNode?.id ?? ''}
+              onSelectNode={handleSelectAndOpenDetail}
+              compressGaps
+            />
+          )
         }
         right={
-          <ConversationDetailPanel
-            selectedNode={selectedNode}
-            nodeTraceMap={nodeTraceMap}
-          />
+          // Only show the detail pane (and its loading skeleton) when a span is
+          // deep-linked in the URL, or once the user has selected one.
+          detailState.detailOpen &&
+          (isLoading ? Boolean(selectedSpanId) : Boolean(selectedNode)) ? (
+            <ConversationSpanDetail
+              isLoading={isLoading}
+              scrollResetKey={activeTab}
+              node={selectedNode ?? undefined}
+              traceId={selectedNode ? (nodeTraceMap?.get(selectedNode.id) ?? '') : ''}
+              activeTab={detailState.detailTab}
+              onTabChange={detailTab => setDetailState({detailTab})}
+              onClose={() => {
+                setDetailState({detailOpen: false, detailTab: null});
+                onDeselectSpan?.();
+              }}
+            />
+          ) : null
         }
       />
     </TraceStateProvider>

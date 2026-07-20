@@ -50,7 +50,7 @@ import {
   IconTerminal,
   IconUser,
 } from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, toggleLocaleDebug} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -107,9 +107,12 @@ export function isNavItemVisible(
   }
   return typeof item.show === 'function' ? item.show(context) : item.show;
 }
+import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
+
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
 import {useCommandPaletteState} from './commandPaletteStateContext';
+import {FeatureFlagCommandPaletteActions} from './featureFlagCommandPaletteActions';
 
 const DSN_ICONS: React.ReactElement[] = [
   <IconIssues key="issues" />,
@@ -324,6 +327,9 @@ export function GlobalCommandPaletteActions() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
+
+  const {supportsNotifications, permission, askNotificationPermission} =
+    useNotificationPermission();
   return (
     <CommandPaletteSlot name="global">
       <CMDKAction display={{label: t('Go to...')}}>
@@ -410,7 +416,7 @@ export function GlobalCommandPaletteActions() {
           {organization.features.includes('gen-ai-conversations') && (
             <CMDKAction
               display={{label: t('Conversations')}}
-              to={`${prefix}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/`}
+              to={`${prefix}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/?referrer=cmdk`}
             />
           )}
           <CMDKAction
@@ -751,6 +757,7 @@ export function GlobalCommandPaletteActions() {
 
       {user.isStaff && (
         <CMDKAction display={{label: t('Admin')}}>
+          <FeatureFlagCommandPaletteActions />
           <CMDKAction
             display={{label: t('Open _admin'), icon: <IconOpen />}}
             keywords={[t('superuser')]}
@@ -1115,6 +1122,16 @@ export function GlobalCommandPaletteActions() {
         />
       )}
 
+      {(NODE_ENV === 'development' || user.isStaff) && (
+        <CMDKAction
+          display={{label: t('Toggle Translation Markers'), icon: <IconFlag />}}
+          keywords={['locale', 'debug', 'i18n', 'translation', 'markers']}
+          onAction={() => {
+            toggleLocaleDebug();
+          }}
+        />
+      )}
+
       {user.isStaff &&
         (window.localStorage?.getItem('DEBUG_ANALYTICS') === '1' ? (
           <CMDKAction
@@ -1130,6 +1147,26 @@ export function GlobalCommandPaletteActions() {
             keywords={['analytics', 'debug', 'toggle', 'amplitude', 'reload']}
             onAction={() => {
               window.localStorage?.setItem('DEBUG_ANALYTICS', '1');
+            }}
+          />
+        ))}
+
+      {user.isStaff &&
+        supportsNotifications &&
+        (permission === 'granted' ? (
+          <CMDKAction
+            display={{label: 'Browser Notifications (granted)', icon: <IconSubscribed />}}
+            keywords={['notifications', 'browser', 'allow', 'permission', 'toggle']}
+            onAction={() => {
+              askNotificationPermission();
+            }}
+          />
+        ) : (
+          <CMDKAction
+            display={{label: 'Allow Browser Notifications', icon: <IconSubscribed />}}
+            keywords={['notifications', 'browser', 'allow', 'permission', 'toggle']}
+            onAction={() => {
+              askNotificationPermission();
             }}
           />
         ))}

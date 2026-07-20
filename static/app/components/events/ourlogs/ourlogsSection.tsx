@@ -1,20 +1,26 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
+import {useEventLogsUrl} from 'sentry/components/events/ourlogs/useEventLogsUrl';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+import {replayRecordApiOptions} from 'sentry/utils/replays/hooks/useReplayData';
+import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -25,8 +31,10 @@ import {
   useLogsPageDataQueryResult,
 } from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LOGS_DRAWER_QUERY_PARAM} from 'sentry/views/explore/logs/constants';
+import type {LogsFrozenContextProviderProps} from 'sentry/views/explore/logs/logsFrozenContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
+import {getLogBodySearchTerms} from 'sentry/views/explore/logs/utils';
 import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -41,10 +49,54 @@ export function OurlogsSection({
   project: Project;
 }) {
   const location = useLocation();
+  const organization = useOrganization();
   const traceId = event.contexts?.trace?.trace_id;
-  if (!traceId) {
+
+  // Replay-generated issues (eg. rage clicks) may not carry a usable trace context,
+  // and even when they do it's only the first of the replay's traces. For these issue
+  // types we correlate logs by the replay and its full set of trace ids. Other issue
+  // types keep the trace-only behavior so we don't add a replay fetch to their path.
+  const isReplayGeneratedIssue =
+    group.issueType === IssueType.REPLAY_RAGE_CLICK ||
+    group.issueType === IssueType.REPLAY_HYDRATION_ERROR;
+  const replayId = isReplayGeneratedIssue ? getReplayIdFromEvent(event) : undefined;
+
+  const {data: replayData, isLoading: isReplayLoading} = useQuery({
+    ...replayRecordApiOptions({organizationIdOrSlug: organization.slug, replayId}),
+    retry: false,
+  });
+
+  const freeze = useMemo<LogsFrozenContextProviderProps | undefined>(() => {
+    const replayRecord = replayData?.data
+      ? mapResponseToReplayRecord(replayData.data)
+      : undefined;
+    if (replayId && replayRecord?.started_at) {
+      const traceIds = Array.from(
+        new Set([...replayRecord.trace_ids, ...(traceId ? [traceId] : [])])
+      );
+      return {
+        replayId,
+        replayStartedAt: replayRecord.started_at,
+        replayEndedAt: replayRecord.finished_at ?? undefined,
+        ...(traceIds.length ? {traceIds} : {}),
+      };
+    }
+    if (traceId) {
+      return {traceId};
+    }
+    return;
+  }, [replayId, replayData?.data, traceId]);
+
+  if (replayId && isReplayLoading) {
     return null;
   }
+
+  if (!freeze) {
+    // No trace or replay to scope logs to (eg. profiling issues), so there's nothing
+    // to show since logs are trace/replay specific.
+    return null;
+  }
+
   return (
     <LazyRender
       disabled={
@@ -57,10 +109,15 @@ export function OurlogsSection({
       <LogsQueryParamsProvider
         analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
         source="state"
-        freeze={{traceId}}
+        freeze={freeze}
       >
         <LogsPageDataProvider disabled={false} staleTime={EXPLORE_FIVE_MIN_STALE_TIME}>
-          <OurlogsSectionContent event={event} group={group} project={project} />
+          <OurlogsSectionContent
+            event={event}
+            group={group}
+            project={project}
+            freeze={freeze}
+          />
         </LogsPageDataProvider>
       </LogsQueryParamsProvider>
     </LazyRender>
@@ -71,8 +128,10 @@ function OurlogsSectionContent({
   event,
   project,
   group,
+  freeze,
 }: {
   event: Event;
+  freeze: LogsFrozenContextProviderProps;
   group: Group;
   project: Project;
 }) {
@@ -82,12 +141,13 @@ function OurlogsSectionContent({
   const feature = organization.features.includes('ourlogs-enabled');
   const tableData = useLogsPageDataQueryResult();
   const logsSearch = useQueryParamsSearch();
+  const highlightTerms = useMemo(() => getLogBodySearchTerms(logsSearch), [logsSearch]);
   const abbreviatedTableData = (tableData.data ?? []).slice(0, 5);
   const {openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const logsUrl = useEventLogsUrl(event, project);
 
-  const traceId = event.contexts?.trace?.trace_id;
   const onOpenLogsDrawer = useCallback(
     (e: React.MouseEvent, expandedLogId?: string) => {
       e.stopPropagation();
@@ -119,7 +179,7 @@ function OurlogsSectionContent({
 
   useEffect(() => {
     const shouldOpenDrawer = location.query[LOGS_DRAWER_QUERY_PARAM] === 'true';
-    if (shouldOpenDrawer && traceId) {
+    if (shouldOpenDrawer) {
       const expandedLogId = location.query.expandedLogId as string | undefined;
 
       openDrawer(
@@ -127,10 +187,10 @@ function OurlogsSectionContent({
           <LogsQueryParamsProvider
             analyticsPageSource={LogsAnalyticsPageSource.ISSUE_DETAILS}
             source="state"
-            freeze={traceId ? {traceId} : undefined}
+            freeze={freeze}
           >
             <LogsPageDataProvider
-              disabled={!traceId}
+              disabled={false}
               staleTime={EXPLORE_FIVE_MIN_STALE_TIME}
             >
               <OurlogsDrawer
@@ -171,13 +231,8 @@ function OurlogsSectionContent({
         }
       );
     }
-  }, [location.query, traceId, group, event, project, openDrawer, navigate, location]);
+  }, [location.query, freeze, group, event, project, openDrawer, navigate, location]);
   if (!feature) {
-    return null;
-  }
-  if (!traceId) {
-    // If there isn't a traceId (eg. profiling issue), we shouldn't show logs since they are trace specific.
-    // We may change this in the future if we have a trace-group or we generate trace sids for these issue types.
     return null;
   }
   if (!tableData?.data || (tableData.data.length === 0 && logsSearch.isEmpty())) {
@@ -185,7 +240,25 @@ function OurlogsSectionContent({
     return null;
   }
   return (
-    <FoldSection sectionKey={SectionKey.LOGS} title={t('Logs')}>
+    <FoldSection
+      actions={
+        logsUrl && (
+          <Grid flow="column" align="center" gap="md">
+            <LinkButton
+              analyticsEventKey="issue_details.logs_open_in_explore_action_button_clicked"
+              analyticsEventName="Issue Details: Logs Open in Explore Action Button Clicked"
+              openInNewTab
+              size="xs"
+              to={logsUrl}
+            >
+              {t('Open in Explore')}
+            </LinkButton>
+          </Grid>
+        )
+      }
+      sectionKey={SectionKey.LOGS}
+      title={t('Logs')}
+    >
       <Stack>
         <SmallTable>
           <TableBody>
@@ -193,7 +266,7 @@ function OurlogsSectionContent({
               <LogRowContent
                 dataRow={row}
                 meta={tableData.meta}
-                highlightTerms={[]}
+                highlightTerms={highlightTerms}
                 embedded
                 sharedHoverTimeoutRef={sharedHoverTimeoutRef}
                 key={index}

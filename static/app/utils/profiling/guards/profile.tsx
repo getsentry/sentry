@@ -52,10 +52,32 @@ export function isSentryContinuousProfileChunk(
   return 'chunk_id' in profile || 'profiler_id' in profile;
 }
 
+// Mirrors PROFILE_FORMAT_V2_ANDROID_TRACE in src/sentry/profiles/utils.py
+const PROFILE_FORMAT_V2_ANDROID_TRACE = '2.android-trace';
+
 export function isSentryAndroidContinuousProfileChunk(
   profile: any
 ): profile is Profiling.SentryAndroidContinuousProfileChunk {
-  return 'platform' in profile && profile.platform === 'android';
+  const version = profile.version;
+
+  if (version === PROFILE_FORMAT_V2_ANDROID_TRACE) {
+    return true;
+  }
+
+  // A faulty version can't be trusted: it may be missing or wrongly set on
+  // android trace profiles, so probe the structure instead — only the android
+  // trace format stores its frames in "methods". A version="2" chunk on the
+  // android platform is the sampled continuous format and must not match here.
+  if (profile.platform === 'android') {
+    if (!version) {
+      return true;
+    }
+    if ('methods' in (profile.profile ?? {})) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 export function isContinuousProfileReference(

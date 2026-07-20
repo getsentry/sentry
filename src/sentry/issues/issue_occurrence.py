@@ -47,6 +47,24 @@ class IssueOccurrenceData(TypedDict):
     """
 
 
+class IssueOccurrenceResponse(TypedDict):
+    id: str
+    projectId: int
+    eventId: str
+    fingerprint: list[str]
+    issueTitle: str
+    subtitle: str
+    resourceId: str | None
+    evidenceData: dict[str, Any]
+    evidenceDisplay: list[IssueEvidenceData]
+    type: int
+    detectionTime: float
+    level: str | None
+    culprit: str | None
+    assignee: str | None
+    priority: int | None
+
+
 @dataclass(frozen=True)
 class IssueEvidence:
     name: str

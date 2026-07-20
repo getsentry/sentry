@@ -208,14 +208,3 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "apigateway.proxy.cell-rollout",
-    type=Dict,
-    default={
-        "us": 1.0,
-        "de": 0.0,
-        "us2": 0.0,
-        "s4s2": 0.0,
-    },
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)

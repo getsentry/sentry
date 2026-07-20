@@ -43,8 +43,8 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert result.dict() == {
             "fields": {
                 "string": [
-                    "span.description",
                     "transaction",
+                    "span.description",
                     "device.class",
                     "span.module",
                     "project",
@@ -120,6 +120,13 @@ class OrganizationTraceItemAttributesEndpointSpansTest(
         assert device_class_context is not None
         assert device_class_context["isConvention"] is True
         assert device_class_context["brief"]
+
+        # Sentry-defined attributes that aren't conventions (e.g. span.description)
+        # carry context too, marked isConvention=False.
+        span_description_context = built_in_by_key["span.description"].context
+        assert span_description_context is not None
+        assert span_description_context["isConvention"] is False
+        assert span_description_context["brief"]
 
         # Context is either None or populated, never an empty dict (the endpoint
         # attaches an empty context to attributes without convention metadata).

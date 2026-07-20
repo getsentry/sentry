@@ -140,7 +140,7 @@ describe('DropdownMenu', () => {
           {
             key: 'item1',
             label: 'Item',
-            isSubmenu: true,
+            submenu: true,
             children: [
               {
                 key: 'subitem',
@@ -234,7 +234,7 @@ describe('DropdownMenu', () => {
           {
             key: 'item1',
             label: 'Item',
-            isSubmenu: true,
+            submenu: true,
             children: [
               {
                 key: 'subitem',
