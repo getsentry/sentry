@@ -141,6 +141,32 @@ describe('ProjectSourceMaps', () => {
       });
     });
 
+    it('links unknown project platforms to the JavaScript source maps docs', async () => {
+      const {organization, project, routerProps} = initializeOrg({
+        project: {platform: 'custom-project-platform'},
+      });
+
+      renderReleaseBundlesMockRequests({
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        empty: true,
+      });
+      renderDebugIdBundlesMockRequests({
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        empty: true,
+      });
+
+      render(<SourceMapsList project={project} {...routerProps} />, {
+        organization,
+      });
+
+      expect(await screen.findByRole('link', {name: /read the docs/i})).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/platforms/javascript/sourcemaps/'
+      );
+    });
+
     it('renders empty state', async () => {
       const {organization, project, routerProps} = initializeOrg({
         router: {
