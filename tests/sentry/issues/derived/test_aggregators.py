@@ -1287,6 +1287,8 @@ def test_open_fix_pr_survives_close_and_restores_merge_blocker_on_reopen(
     ],
 )
 def test_regression_preserves_blocker(initial_entry: FakeEntry, expected: IssueBlocker) -> None:
+    """When the issue regresses we are intentionally preserving the last autofix step as the blocker.
+    This matches the UI behavior, which will display the same autofix status regardless of issue state changes."""
     assert (
         _run_for_feature(
             BLOCKER,

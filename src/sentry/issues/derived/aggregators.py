@@ -2,7 +2,6 @@ from sentry.issues.action_log.types import (
     ArchiveAction,
     AssignAction,
     AutofixCodingCompleteAction,
-    AutofixPrCreatedAction,
     PullRequestClosedAction,
     PullRequestMergedAction,
     PullRequestReopenedAction,
@@ -209,7 +208,6 @@ def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorRe
     (LAST_COMPLETED_AUTOFIX_STEP,),
     scope=(
         AutofixCodingCompleteAction,
-        AutofixPrCreatedAction,
         RootCauseIdentifiedAction,
         SeerCodingCompletedAction,
         SeerCodingStartedAction,
@@ -238,7 +236,7 @@ def track_last_completed_autofix_step(
             AutofixCodingCompleteAction() | SeerCodingStartedAction() | SeerCodingCompletedAction()
         ):
             new_step = IssueAutofixStep.CODE_CHANGES
-        case AutofixPrCreatedAction() | SeerPRCreatedAction():
+        case SeerPRCreatedAction():
             new_step = IssueAutofixStep.PR_CREATED
         case SeerIterationStartedAction() | SeerIterationCompletedAction():
             new_step = IssueAutofixStep.PR_ITERATION
