@@ -118,9 +118,7 @@ class RedisRateLimiter(RateLimiter):
         except RedisError:
             # We don't want rate limited endpoints to fail when ratelimits
             # can't be updated. We do want to know when that happens.
-            logger.warning(
-                "Failed to retrieve current rate limit value from redis", exc_info=True
-            )
+            logger.warning("Failed to retrieve current rate limit value from redis", exc_info=True)
             return False, 0, reset_time
 
         return result > limit, result, reset_time
