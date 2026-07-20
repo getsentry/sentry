@@ -355,6 +355,24 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     ['SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
     ['sentry dsn', /Project Settings.*Client Keys \(DSN\)/],
     ['NEXT_PUBLIC_SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
+    // Vite SDK env var and SDK-setup / rate-limit synonyms should also surface
+    // Client Keys (DSN), where the DSN and per-key rate limits are configured.
+    ['VITE_SENTRY_DSN', /Project Settings.*Client Keys \(DSN\)/],
+    ['sdk setup', /Project Settings.*Client Keys \(DSN\)/],
+    ['rate limit', /Project Settings.*Client Keys \(DSN\)/],
+    // Project identity queries route to the project General Settings page,
+    // where the slug/name/SENTRY_PROJECT are configured.
+    ['project slug', /Project Settings.*General Settings/],
+    ['SENTRY_PROJECT', /Project Settings.*General Settings/],
+    // Org identity: the SENTRY_ORG token maps to org General Settings.
+    ['SENTRY_ORG', /General Settings/],
+    // Token-creation phrasings should reach both token destinations.
+    ['create new token', /Settings.*Organization Tokens/, /Settings.*Personal Tokens/],
+    ['access token', /Settings.*Organization Tokens/, /Settings.*Personal Tokens/],
+    ['sentry auth token', /Settings.*Organization Tokens/, /Settings.*Personal Tokens/],
+    // Pluralized / spaced integration phrasings should reach Custom Integrations.
+    ['internal integrations', /Settings.*Custom Integrations/],
+    ['web hook', /Settings.*Custom Integrations/],
   ])('finds expected actions for %s', async (query, ...expectedOptions) => {
     renderPalette();
 

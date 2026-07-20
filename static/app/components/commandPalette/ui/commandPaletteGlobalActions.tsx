@@ -697,6 +697,13 @@ export function GlobalCommandPaletteActions() {
                 'SENTRY_DSN',
                 'Sentry DSN',
                 'NEXT_PUBLIC_SENTRY_DSN',
+                'VITE_SENTRY_DSN',
+                t('sdk'),
+                t('sdk setup'),
+                t('environment variables'),
+                t('env vars'),
+                t('rate limit'),
+                t('rate limits'),
                 project.slug,
               ]}
               to={`/settings/${organization.slug}/projects/${project.slug}/keys/`}
