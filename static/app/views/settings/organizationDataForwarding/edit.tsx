@@ -4,7 +4,7 @@ import {useMemo} from 'react';
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -71,9 +71,9 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
       <SentryDocumentTitle
         title={t('Edit your %s forwarder', ProviderLabels[provider])}
       />
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Flex align="center" justify="between" gap="2xl">
-          <Flex direction="column" gap="sm">
+          <Stack gap="sm">
             <Flex align="center" gap="lg">
               <Heading as="h2">{t('Edit your forwarder')}</Heading>
             </Flex>
@@ -83,7 +83,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
                 ProviderLabels[provider]
               )}
             </Text>
-          </Flex>
+          </Stack>
           <LinkButton
             size="sm"
             to={`/settings/${organization.slug}/data-forwarding/`}
@@ -203,7 +203,7 @@ function OrganizationDataForwardingEdit({dataForwarder}: {dataForwarder: DataFor
             </Fragment>
           )}
         </Feature>
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }

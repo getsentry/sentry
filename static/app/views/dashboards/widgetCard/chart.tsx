@@ -61,6 +61,7 @@ import {DetailsWidgetVisualization} from 'sentry/views/dashboards/widgets/detail
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {HeatMapWidgetVisualization} from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
+import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {RageAndDeadClicksWidgetVisualization} from 'sentry/views/dashboards/widgets/rageAndDeadClicksWidget/rageAndDeadClicksVisualization';
 import {ServerTreeWidgetVisualization} from 'sentry/views/dashboards/widgets/serverTreeWidget/serverTreeWidgetVisualization';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
@@ -191,7 +192,6 @@ function WidgetCardChart(props: WidgetCardChartProps) {
   if (widget.displayType === DisplayType.HEATMAP) {
     return (
       <TransitionChart loading={loading} reloading={loading}>
-        <LoadingScreen loading={loading} showLoadingText={showLoadingText} />
         <HeatmapSeriesComponent {...props} />
       </TransitionChart>
     );
@@ -441,18 +441,11 @@ function CategoricalSeriesComponent(props: TableComponentProps): React.ReactNode
     },
   });
 
-  // Empty series array means the widget is misconfigured (missing X-axis or aggregate)
-  // This is different from "no data found" which would return series with empty values
-  if (categoricalSeriesData.length === 0) {
-    return (
-      <StyledErrorPanel>
-        <IconWarning variant="primary" size="lg" />
-      </StyledErrorPanel>
-    );
-  }
-
-  // Create Bars plottables from the transformed data
   const plottables = categoricalSeriesData.map(series => new Bars(series));
+
+  if (!plottablesCanBeVisualized(plottables)) {
+    return <CategoricalSeriesWidgetVisualization.NoData />;
+  }
 
   return (
     <ChartWrapper autoHeightResize>
@@ -465,15 +458,13 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
   const {heatmapResults, loading} = props;
 
   if (loading || !heatmapResults) {
-    return <LoadingPlaceholder />;
+    return <HeatMapWidgetVisualization.LoadingPlaceholder />;
   }
 
-  if (heatmapResults.values.length === 0) {
-    return (
-      <StyledErrorPanel>
-        <IconWarning variant="primary" size="lg" />
-      </StyledErrorPanel>
-    );
+  const plottables: [HeatMap] = [new HeatMap(heatmapResults)];
+
+  if (!plottablesCanBeVisualized(plottables)) {
+    return <HeatMapWidgetVisualization.NoData />;
   }
 
   return (
@@ -483,7 +474,7 @@ function HeatmapSeriesComponent(props: TableComponentProps): React.ReactNode {
       selected date range, but what about the Y-axis? It might update the global
       filter, but that affects other widgets, is that okay? Or, it might affect
       just the current widget, but how does the UI react? */}
-      <HeatMapWidgetVisualization plottables={[new HeatMap(heatmapResults)]} />
+      <HeatMapWidgetVisualization plottables={plottables} />
     </ChartWrapper>
   );
 }

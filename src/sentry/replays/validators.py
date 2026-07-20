@@ -26,6 +26,7 @@ VALID_FIELD_SET = (
     "started_at",
     "tags",
     "trace_ids",
+    "segment_names",
     "urls",
     "user",
     "clicks",

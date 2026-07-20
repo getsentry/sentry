@@ -2,6 +2,7 @@ import {createContext, useCallback, useContext, useRef, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 
+import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -166,7 +167,7 @@ export function useSetLogsAutoRefresh() {
         target.query[LOGS_AUTO_REFRESH_KEY] = autoRefresh;
       }
 
-      navigate(target);
+      navigateIfQueryChanged(navigate, location, target);
     },
     [navigate, location, queryClient, queryKey, setPausedAt, currentPausedAt]
   );

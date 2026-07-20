@@ -6,7 +6,6 @@ import socket
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
-import sentry_sdk
 from django.conf import settings
 from django.utils.encoding import force_str
 from urllib3.exceptions import LocationParseError
@@ -14,7 +13,7 @@ from urllib3.util.connection import _set_socket_options, allowed_gai_family
 from urllib3.util.timeout import _DEFAULT_TIMEOUT, _TYPE_DEFAULT
 
 from sentry.exceptions import RestrictedIPAddress
-from sentry.utils.tracing import set_span_data, start_span
+from sentry.utils.tracing import set_span_data, start_span, trace
 
 if TYPE_CHECKING:
     from sentry.net.http import IsIpAddressPermitted
@@ -114,7 +113,7 @@ def is_safe_hostname(hostname: str | None) -> bool:
 
 
 # Modifed version of urllib3.util.connection.create_connection.
-@sentry_sdk.trace
+@trace
 def safe_create_connection(
     address: tuple[str, int],
     timeout: _TYPE_DEFAULT | float | None = _DEFAULT_TIMEOUT,

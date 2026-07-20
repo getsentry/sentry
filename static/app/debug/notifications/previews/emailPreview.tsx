@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
@@ -44,7 +44,7 @@ export function EmailPreview({
       }
     >
       <Container border="primary" radius="md">
-        <Flex direction="column" padding="xl">
+        <Stack padding="xl">
           <Text bold>{subject}</Text>
           <Text variant="muted">To: user@example.com</Text>
           {emailFormat === EmailFormat.HTML && (
@@ -55,7 +55,7 @@ export function EmailPreview({
               <pre>{text_content}</pre>
             </EmailTextBlock>
           )}
-        </Flex>
+        </Stack>
       </Container>
     </DebugNotificationsPreview>
   );

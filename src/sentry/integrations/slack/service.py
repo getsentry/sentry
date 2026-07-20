@@ -504,6 +504,7 @@ class SlackService:
         """Execution of send_notification_as_slack."""
 
         client = SlackSdkClient(integration_id=integration_id)
+        channel = str(payload.get("channel", ""))
         with MessagingInteractionEvent(
             interaction_type=MessagingInteractionType.SEND_GENERIC_NOTIFICATION,
             spec=SlackMessagingSpec(),
@@ -513,10 +514,14 @@ class SlackService:
                 client.chat_postMessage(
                     blocks=str(payload.get("blocks", "")),
                     text=str(payload.get("text", "")),
-                    channel=str(payload.get("channel", "")),
+                    channel=channel,
                     unfurl_links=False,
                     unfurl_media=False,
                     callback_id=str(payload.get("callback_id", "")),
+                )
+                _default_logger.info(
+                    "slack.send_message_to_slack_channel.success",
+                    extra={"integration_id": integration_id, "channel_id": channel},
                 )
             except SlackApiError as e:
                 lifecycle.add_extras(

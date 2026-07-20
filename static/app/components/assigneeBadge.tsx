@@ -4,7 +4,9 @@ import styled from '@emotion/styled';
 
 import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
+import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -12,81 +14,214 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
-import type {SuggestedOwnerReason} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
+
+type AssignmentSource =
+  | 'codeowners'
+  | 'ownershipRule'
+  | 'projectOwnership'
+  | 'suspectCommit'
+  | 'suspectCommitter';
+
+export type AssignmentDetails = {
+  actorLabel?: string;
+  isSelfAssigned?: boolean;
+  source?: AssignmentSource;
+};
 
 type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
   assignedUser?: User | undefined;
-  assignmentReason?: SuggestedOwnerReason;
+  assignmentDetails?: AssignmentDetails;
   chevronDirection?: 'up' | 'down';
   loading?: boolean;
   showLabel?: boolean;
 };
 
 const AVATAR_SIZE = 16;
+const ASSIGNED_TOOLTIP_MAX_WIDTH = 300;
 
 export function AssigneeBadge({
   assignedTo,
   assignedUser,
-  assignmentReason,
+  assignmentDetails,
   showLabel = false,
   chevronDirection = 'down',
   loading = false,
 }: AssigneeBadgeProps) {
-  const theme = useTheme();
-  const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
-    suspectCommit: tct('Based on [commit:commit data]', {
-      commit: (
-        <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
-      ),
-    }),
-    ownershipRule: t('Matching Issue Owners Rule'),
-    projectOwnership: t('Matching Issue Owners Rule'),
-    codeowners: t('Matching Codeowners Rule'),
-  };
-
-  const makeAssignedIcon = (actor: Actor) => {
-    const avatar =
-      actor.type === 'user' ? (
-        <UserAvatar
-          user={assignedUser ?? actor}
-          className="avatar"
-          size={AVATAR_SIZE}
-          hasTooltip={false}
-          data-test-id="assigned-avatar"
-        />
-      ) : (
-        <ActorAvatar
-          actor={actor}
-          className="avatar"
-          size={AVATAR_SIZE}
-          hasTooltip={false}
-          data-test-id="assigned-avatar"
-          style={{marginLeft: theme.space.xs}}
-        />
-      );
-
+  if (loading) {
     return (
-      <Fragment>
-        {avatar}
-        {showLabel && (
-          <StyledText>{`${actor.type === 'team' ? '#' : ''}${actor.name}`}</StyledText>
-        )}
-        <IconChevron variant="muted" direction={chevronDirection} size="xs" />
-      </Fragment>
+      <StyledTag
+        icon={<LoadingIcon showLabel={showLabel} chevronDirection={chevronDirection} />}
+        variant="muted"
+      />
     );
-  };
+  }
 
-  const loadingIcon = (
+  if (assignedTo) {
+    return (
+      <Tooltip
+        isHoverable
+        maxWidth={ASSIGNED_TOOLTIP_MAX_WIDTH}
+        title={
+          <AssignedTooltip
+            assignedTo={assignedTo}
+            assignmentDetails={assignmentDetails}
+          />
+        }
+        skipWrapper
+      >
+        <StyledTag
+          icon={
+            <AssignedIcon
+              assignedTo={assignedTo}
+              assignedUser={assignedUser}
+              chevronDirection={chevronDirection}
+              showLabel={showLabel}
+            />
+          }
+          variant="muted"
+        />
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Tooltip isHoverable title={<UnassignedTooltip />} skipWrapper>
+      <UnassignedTag
+        icon={
+          <UnassignedIcon showLabel={showLabel} chevronDirection={chevronDirection} />
+        }
+        variant="muted"
+      />
+    </Tooltip>
+  );
+}
+
+function getActorLabel(actor: Actor) {
+  return `${actor.type === 'team' ? '#' : ''}${actor.name}`;
+}
+
+function getAssignmentSourceLabel(source: AssignmentDetails['source']) {
+  switch (source) {
+    case 'codeowners':
+      return t('Matching Codeowners Rule');
+    case 'ownershipRule':
+    case 'projectOwnership':
+      return t('Matching Issue Owners Rule');
+    case 'suspectCommit':
+    case 'suspectCommitter':
+      return t('Based on commit data');
+    default:
+      return null;
+  }
+}
+
+function LoadingIcon({
+  showLabel,
+  chevronDirection,
+}: {
+  chevronDirection: NonNullable<AssigneeBadgeProps['chevronDirection']>;
+  showLabel: boolean;
+}) {
+  return (
     <Fragment>
       <StyledLoadingIndicator mini relative size={AVATAR_SIZE} />
       {showLabel && 'Loading...'}
       <IconChevron variant="muted" direction={chevronDirection} size="xs" />
     </Fragment>
   );
+}
 
-  const unassignedIcon = (
+function AssignedIcon({
+  assignedTo,
+  assignedUser,
+  chevronDirection,
+  showLabel,
+}: {
+  assignedTo: Actor;
+  chevronDirection: NonNullable<AssigneeBadgeProps['chevronDirection']>;
+  showLabel: boolean;
+  assignedUser?: User;
+}) {
+  const theme = useTheme();
+
+  const avatar =
+    assignedTo.type === 'user' ? (
+      <UserAvatar
+        user={assignedUser ?? assignedTo}
+        className="avatar"
+        size={AVATAR_SIZE}
+        hasTooltip={false}
+        data-test-id="assigned-avatar"
+      />
+    ) : (
+      <ActorAvatar
+        actor={assignedTo}
+        className="avatar"
+        size={AVATAR_SIZE}
+        hasTooltip={false}
+        data-test-id="assigned-avatar"
+        style={{marginLeft: theme.space.xs}}
+      />
+    );
+
+  return (
+    <Fragment>
+      {avatar}
+      {showLabel && <AssigneeLabel ellipsis>{getActorLabel(assignedTo)}</AssigneeLabel>}
+      <IconChevron variant="muted" direction={chevronDirection} size="xs" />
+    </Fragment>
+  );
+}
+
+function AssignedTooltip({
+  assignedTo,
+  assignmentDetails,
+}: {
+  assignedTo: Actor;
+  assignmentDetails?: AssignmentDetails;
+}) {
+  const assignedToLabel = getActorLabel(assignedTo);
+  const sourceLabel = getAssignmentSourceLabel(assignmentDetails?.source);
+
+  if (assignmentDetails?.actorLabel || sourceLabel) {
+    return (
+      <Stack gap="xs">
+        <Text as="div" align="left" wrap="nowrap">
+          {tct('Assigned to [name]', {name: assignedToLabel})}
+        </Text>
+        {assignmentDetails?.actorLabel && (
+          <Text as="div" align="left" variant="muted" wrap="nowrap">
+            {assignmentDetails.isSelfAssigned
+              ? t('Self-assigned')
+              : tct('By [actor]', {actor: assignmentDetails.actorLabel})}
+          </Text>
+        )}
+        {sourceLabel && (
+          <Text as="div" align="left" variant="muted">
+            {sourceLabel}
+          </Text>
+        )}
+      </Stack>
+    );
+  }
+
+  return (
+    <Text as="div" align="center" wrap="nowrap">
+      {tct('Assigned to [name]', {name: assignedToLabel})}
+    </Text>
+  );
+}
+
+function UnassignedIcon({
+  showLabel,
+  chevronDirection,
+}: {
+  chevronDirection: NonNullable<AssigneeBadgeProps['chevronDirection']>;
+  showLabel: boolean;
+}) {
+  return (
     <Fragment>
       <Placeholder
         shape="circle"
@@ -98,47 +233,22 @@ export function AssigneeBadge({
       <IconChevron variant="muted" direction={chevronDirection} size="xs" />
     </Fragment>
   );
+}
 
-  return loading ? (
-    <StyledTag icon={loadingIcon} variant="muted" />
-  ) : assignedTo ? (
-    <Tooltip
-      isHoverable
-      title={
-        <TooltipWrapper>
-          {t('Assigned to ')}
-          {assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name}
-          {assignmentReason && (
-            <TooltipSubtext>{suggestedReasons[assignmentReason]}</TooltipSubtext>
-          )}
-        </TooltipWrapper>
-      }
-      skipWrapper
-    >
-      <StyledTag icon={makeAssignedIcon(assignedTo)} variant="muted" />
-    </Tooltip>
-  ) : (
-    <Tooltip
-      isHoverable
-      title={
-        <TooltipWrapper>
-          <div>{t('Unassigned')}</div>
-          <TooltipSubtext>
-            {tct(
-              'You can auto-assign issues by adding [issueOwners:Issue Owner rules].',
-              {
-                issueOwners: (
-                  <TooltipSubExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
-                ),
-              }
-            )}
-          </TooltipSubtext>
-        </TooltipWrapper>
-      }
-      skipWrapper
-    >
-      <UnassignedTag icon={unassignedIcon} variant="muted" />
-    </Tooltip>
+function UnassignedTooltip() {
+  return (
+    <Stack gap="xs">
+      <Text as="div" align="left">
+        {t('Unassigned')}
+      </Text>
+      <Text as="div" align="left" variant="muted">
+        {tct('You can auto-assign issues by adding [issueOwners:Issue Owner rules].', {
+          issueOwners: (
+            <TooltipSubExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
+          ),
+        })}
+      </Text>
+    </Stack>
   );
 }
 
@@ -147,18 +257,8 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   align-items: center;
 `;
 
-const TooltipWrapper = styled('div')`
-  text-align: left;
-`;
-
-const StyledText = styled('div')`
-  color: ${p => p.theme.tokens.content.primary};
+const AssigneeLabel = styled(Text)`
   max-width: 114px;
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 `;
 
 const StyledTag = styled(Tag)`
@@ -172,10 +272,6 @@ const StyledTag = styled(Tag)`
 const UnassignedTag = styled(StyledTag)`
   border: 1px dashed ${p => p.theme.tokens.border.primary};
   background-color: transparent;
-`;
-
-const TooltipSubtext = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const TooltipSubExternalLink = styled(ExternalLink)`

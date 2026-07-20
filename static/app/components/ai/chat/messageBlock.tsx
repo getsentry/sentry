@@ -11,7 +11,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
  */
 
 /** Max width shared by the user and assistant message bubbles. */
-export const AI_MESSAGE_MAX_WIDTH = '800px';
+const AI_MESSAGE_MAX_WIDTH = '800px';
 
 interface MessageBlockProps {
   children: ReactNode;

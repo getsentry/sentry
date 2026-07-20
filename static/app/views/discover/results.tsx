@@ -105,6 +105,7 @@ import {
 import Table from 'sentry/views/discover/table';
 import {
   generateTitle,
+  getTransactionsDeprecation,
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
 } from 'sentry/views/discover/utils';
@@ -692,6 +693,16 @@ export class Results extends Component<Props, State> {
                   savedQueryDataset={savedQueryDataset}
                   selection={selection}
                 />
+                {savedQueryDataset === SavedQueryDatasets.ERRORS &&
+                  getTransactionsDeprecation(organization) && (
+                    <Alert.Container>
+                      <Alert variant="info">
+                        {t(
+                          'Discover \u2192 Errors will be moving soon to Explore \u2192 Errors. Same functionality, just even easier to find.'
+                        )}
+                      </Alert>
+                    </Alert.Container>
+                  )}
 
                 {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
 

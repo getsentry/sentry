@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 
@@ -197,7 +197,7 @@ function IngestionSummary({
     .reduce((acc, [_, value]) => acc + value, 0);
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <Heading as="h4">{t('Total ingested')}</Heading>
       <Flex justify="between" align="center" gap="lg">
         <Text wrap="nowrap">
@@ -213,7 +213,7 @@ function IngestionSummary({
           outcomeToBarColor={outcomeToBarColor}
         />
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -290,7 +290,7 @@ export function UsageTotalsTable({
   const hasSpikeProtection = categoryInfo?.hasSpikeProtection ?? false;
 
   return (
-    <Flex direction="column" gap="md" padding="md">
+    <Stack gap="md" padding="md">
       <IngestionSummary
         category={category}
         totals={totals}
@@ -343,7 +343,7 @@ export function UsageTotalsTable({
           />
         </OutcomeSection>
       </OutcomeTable>
-    </Flex>
+    </Stack>
   );
 }
 

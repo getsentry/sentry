@@ -2,6 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {GroupStatsFixture} from 'sentry-fixture/groupStats';
 import {MemberFixture} from 'sentry-fixture/member';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
@@ -9,6 +10,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {TagStore} from 'sentry/stores/tagStore';
+import {ProgressState} from 'sentry/types/group';
 
 import AwaitingInputPage from './awaitingInput';
 
@@ -22,7 +24,22 @@ describe('AwaitingInputPage', () => {
     slug: 'project-slug',
     firstEvent: new Date().toISOString(),
   });
-  const group = GroupFixture({id: '1', project});
+  const organization = OrganizationFixture({
+    features: ['issue-stream-progress-ui'],
+  });
+  const group = GroupFixture({
+    id: '1',
+    project,
+    derivedData: {
+      progress: ProgressState.DIAGNOSED,
+      status: 'open',
+      viewCount: 0,
+      hasOpenFixPr: false,
+      isAssigned: false,
+      hasRootCause: true,
+      lastProgressedAt: null,
+    },
+  });
 
   beforeEach(() => {
     Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
@@ -133,27 +150,23 @@ describe('AwaitingInputPage', () => {
   });
 
   it('displays progress column instead of priority', async () => {
-    MockApiClient.addMockResponse({
+    const progressRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-progress/',
       body: {results: {1: {progress: 'diagnosed'}}},
     });
 
-    render(<AwaitingInputPage />);
+    render(<AwaitingInputPage />, {organization});
 
     expect(await screen.findByText('RequestError')).toBeInTheDocument();
     const issueList = within(screen.getByTestId('issue-list'));
     expect(issueList.getByText('Progress')).toBeInTheDocument();
     expect(issueList.queryByText('Priority')).not.toBeInTheDocument();
     expect(await screen.findByText('Diagnosed')).toBeInTheDocument();
+    expect(progressRequest).not.toHaveBeenCalled();
   });
 
   it('opens an issue preview drawer instead of navigating when an issue is clicked', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues-progress/',
-      body: {results: {1: {progress: 'diagnosed'}}},
-    });
-
-    const {router} = render(<AwaitingInputPage />);
+    const {router} = render(<AwaitingInputPage />, {organization});
 
     await userEvent.click(await screen.findByText('RequestError'), {skipHover: true});
 

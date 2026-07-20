@@ -239,7 +239,11 @@ def _sync_project_debug_file(
                 return None
 
             if source_project_debug_file.storage_path is not None:
-                source_fileobj = source_project_debug_file.get_file()
+                source_fileobj = (
+                    source_project_debug_file._get_objectstore_session()
+                    .get(source_project_debug_file.storage_path)
+                    .payload
+                )
                 try:
                     target_storage_path = get_debug_files_session(
                         target_org.id, target_project.id
@@ -253,11 +257,7 @@ def _sync_project_debug_file(
 
             return ProjectDebugFile.objects.create(
                 project_id=target_project.id,
-                file=(
-                    None
-                    if source_project_debug_file.storage_path is not None
-                    else source_project_debug_file.file
-                ),
+                file=source_project_debug_file.file,
                 storage_path=target_storage_path,
                 content_type=source_project_debug_file.content_type,
                 file_size=source_project_debug_file.file_size,

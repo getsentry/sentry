@@ -36,7 +36,6 @@ from sentry.users.api.bases.user import UserAndStaffPermission, UserEndpoint
 from sentry.users.api.serializers.user import DetailedSelfUserSerializer
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
-from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.dates import get_timezone_choices
 
@@ -160,27 +159,10 @@ class BaseUserSerializer(CamelSnakeModelSerializer[User]):
     def validate_username(self, value: str) -> str:
         assert isinstance(self.instance, User), "Should be a single record not a sequence"
 
-        if (
-            User.objects.filter(username__iexact=value)
-            # Django throws an exception if `id` is `None`, which it will be when we're importing
-            # new users via the relocation logic on the `User` model. So we cast `None` to `0` to
-            # make Django happy here.
-            .exclude(id=self.instance.id if hasattr(self.instance, "id") else 0)
-            .exists()
-        ):
+        if not User.is_username_available(value, exclude_user_id=self.instance.id or 0):
             raise serializers.ValidationError("That username is already in use.")
+
         return value
-
-    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        attrs = super().validate(attrs)
-
-        assert isinstance(self.instance, User), "Should be a single record not a sequence"
-        if self.instance.email == self.instance.username:
-            if attrs.get("username", self.instance.email) != self.instance.email:
-                # ... this probably needs to handle newsletters and such?
-                attrs.setdefault("email", attrs["username"])
-
-        return attrs
 
     def update(self, instance: User, validated_data: dict[str, Any]) -> User:
         if "isActive" not in validated_data:
@@ -319,17 +301,8 @@ class UserDetailsEndpoint(UserEndpoint):
         :param string default_issue_event: Event displayed by default, "recommended", "latest" or "oldest"
         :auth: required
         """
-        email = None
-        if "email" in request.data and len(request.data["email"]) > 0:
-            email = request.data["email"]
-        elif "username" in request.data and len(request.data["username"]) > 0:
-            email = request.data["username"]
-        if email:
-            verified_email_found = UserEmail.objects.filter(
-                user_id=user.id, email=email, is_verified=True
-            ).exists()
-            if not verified_email_found:
-                return Response({"detail": "Verified email address is not found."}, status=400)
+        # `email` is not writable here: primary email changes go through UserEmailsEndpoint
+        # `username` is only editable if it does not match `email`, changing `username` does not change `email`.
 
         # We want to prevent superusers from setting users to superuser or staff
         # because this is only done through _admin. This will always be enforced

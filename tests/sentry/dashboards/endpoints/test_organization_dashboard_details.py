@@ -13,6 +13,7 @@ from sentry.discover.models import DatasetSourcesTypes
 from sentry.explore.translation.dashboards_translation import translate_dashboard_widget
 from sentry.models.dashboard import (
     Dashboard,
+    DashboardFavoriteUser,
     DashboardRevision,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
@@ -4718,14 +4719,18 @@ class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
     def test_favorite_dashboard(self) -> None:
         assert self.user.id not in self.dashboard.favorited_by
         self.login_as(user=self.user)
-        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": "true"})
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"shouldFavorite": "true"}
+        )
         assert response.status_code == 204
         assert self.user.id in self.dashboard.favorited_by
 
     def test_unfavorite_dashboard(self) -> None:
         assert self.user_1.id in self.dashboard.favorited_by
         self.login_as(user=self.user_1)
-        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": False})
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"shouldFavorite": False}
+        )
         assert response.status_code == 204
         assert self.user_1.id not in self.dashboard.favorited_by
 
@@ -4745,6 +4750,90 @@ class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
 
         # assert if user can edit the favorite status of the dashboard
         assert self.user_2.id in self.dashboard.favorited_by
-        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": False})
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"shouldFavorite": False}
+        )
         assert response.status_code == 204
         assert self.user_2.id not in self.dashboard.favorited_by
+
+
+class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTestCase):
+    """
+    These tests are intended to cover and eventually replace the existing
+    OrganizationDashboardFavoriteTest cases. These test the feature flagged
+    PUT logic for inserting and removing a dashboard from the favorite list.
+    """
+
+    features = ["organizations:dashboards-starred"]
+
+    def do_request(self, *args, **kwargs):
+        with self.feature(self.features):
+            return super().do_request(*args, **kwargs)
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user_1 = self.create_user(email="user1@example.com")
+        self.create_member(user=self.user_1, organization=self.organization)
+
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization,
+            user_id=self.user_1.id,
+            dashboard=self.dashboard,
+        )
+
+    def url(self, dashboard_id):
+        return reverse(
+            "sentry-api-0-organization-dashboard-favorite",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
+        )
+
+    def test_insert_favorite_adds_dashboard_at_end_of_list(self) -> None:
+        assert self.user.id not in self.dashboard.favorited_by
+        self.login_as(user=self.user)
+
+        preexisting_dashboard = self.create_dashboard(
+            title="Preexisting Dashboard",
+            created_by=self.user,
+            organization=self.organization,
+        )
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard=preexisting_dashboard,
+        )
+        # Insert self.dashboard
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"shouldFavorite": "true"}
+        )
+        assert response.status_code == 204
+
+        assert list(
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization,
+                user_id=self.user.id,
+            )
+            .order_by("position")
+            .values_list("dashboard_id", flat=True)
+        ) == [
+            preexisting_dashboard.id,
+            self.dashboard.id,
+        ]
+
+    def test_unfavorite_dashboard(self) -> None:
+        assert self.user_1.id in self.dashboard.favorited_by
+        self.login_as(user=self.user_1)
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"shouldFavorite": False}
+        )
+        assert response.status_code == 204
+        assert (
+            DashboardFavoriteUser.objects.get_favorite_dashboard(
+                organization=self.organization,
+                user_id=self.user_1.id,
+                dashboard=self.dashboard,
+            )
+            is None
+        )

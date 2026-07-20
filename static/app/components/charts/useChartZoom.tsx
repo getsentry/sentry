@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
 import type {DataZoomComponentOption, ECharts, ToolboxComponentOption} from 'echarts';
-import * as qs from 'query-string';
 
+import {CHART_ZOOM_MERGE_OPTIONS} from 'sentry/components/charts/chartZoomConfig';
 import {DataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
 import {ToolBox} from 'sentry/components/charts/components/toolBox';
 import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
@@ -13,6 +13,7 @@ import type {
   EChartFinishedHandler,
 } from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -20,28 +21,85 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 type DateTimeUpdate = Parameters<typeof updateDateTime>[0];
 
+type DataZoomRange = {
+  endValue: number;
+  startValue: number;
+};
+
+type DataZoomRangePayload = {
+  endValue?: number | null;
+  startValue?: number | null;
+};
+
+type DataZoomPayload = {
+  batch?: DataZoomRangePayload[];
+} & DataZoomRangePayload;
+
 /**
  * Our api query params expects a specific date format
  */
 const getQueryTime = (date: DateString | undefined) =>
   date ? getUtcDateString(date) : null;
 
+function getFormattedPeriod({period, start, end}: DateTimeUpdate) {
+  return {
+    period,
+    start: getQueryTime(start),
+    end: getQueryTime(end),
+  };
+}
+
+type FormattedPeriod = ReturnType<typeof getFormattedPeriod>;
+
+function hasZoomValues(payload: DataZoomRangePayload): payload is DataZoomRange {
+  return (
+    payload.startValue !== null &&
+    payload.startValue !== undefined &&
+    payload.endValue !== null &&
+    payload.endValue !== undefined
+  );
+}
+
+function getZoomRange(evt: Parameters<EChartDataZoomHandler>[0]): DataZoomRange | null {
+  const payload = evt as DataZoomPayload;
+  // Toolbox brush selections report their selected x-axis range in the first
+  // batch item. Some restore/back actions report nullish values instead.
+  const zoomEvent = payload.batch?.[0] ?? payload;
+
+  return hasZoomValues(zoomEvent) ? zoomEvent : null;
+}
+
+function roundZoomRange({startValue, endValue}: DataZoomRange): DataZoomRange {
+  const roundedEndValue = Math.ceil(endValue / 60_000) * 60_000;
+  let roundedStartValue = Math.floor(startValue / 60_000) * 60_000;
+
+  // Ensure the bounds have at least 1 minute resolution.
+  roundedStartValue = Math.min(roundedStartValue, roundedEndValue - 60_000);
+
+  return {
+    startValue: roundedStartValue,
+    endValue: roundedEndValue,
+  };
+}
+
 interface ZoomRenderProps {
   dataZoom: DataZoomComponentOption[];
   isGroupedByDate: boolean;
+  notMerge: boolean;
   onChartReady: EChartChartReadyHandler;
   onDataZoom: EChartDataZoomHandler;
   onFinished: EChartFinishedHandler;
+  replaceMerge: string[];
   toolBox: ToolboxComponentOption;
 }
 
-interface Props {
-  children: (props: ZoomRenderProps) => React.ReactNode;
+interface UseChartZoomOptions {
   /**
-   * Disables saving changes to the current period
+   * Disables toolbox zoom interactions and URL updates while preserving the
+   * inside dataZoom model for synced charts.
    */
   disabled?: boolean;
-  onZoom?: (period: DateTimeUpdate) => void;
+  onZoom?: (period: FormattedPeriod) => void;
   /**
    * Use either `saveOnZoom` or `usePageDate` not both
    * Will persist zoom state to page filters
@@ -50,7 +108,7 @@ interface Props {
   /**
    * Use either `saveOnZoom` or `usePageDate` not both
    * Persists zoom state to query params without updating page filters.
-   * Sets the pageStart and pageEnd query params
+   * Sets the start, end, and statsPeriod query params.
    */
   usePageDate?: boolean;
   xAxisIndex?: number | number[];
@@ -59,29 +117,37 @@ interface Props {
 /**
  * Adds listeners to the document to allow for cancelling the zoom action
  */
-function useChartZoomCancel() {
+function useChartZoomCancel(disabled?: boolean) {
   const chartInstance = useRef<ECharts | null>(null);
-  const handleKeyDown = useCallback((evt: KeyboardEvent) => {
-    if (!chartInstance.current) {
-      return;
-    }
+  const handleKeyDown = useCallback(
+    (evt: KeyboardEvent) => {
+      if (disabled || !chartInstance.current) {
+        return;
+      }
 
-    if (evt.key === 'Escape') {
-      evt.stopPropagation();
-      // Mark the component as currently cancelling a zoom selection. This allows
-      // us to prevent "restore" handlers from running
-      // "restore" removes the current chart zoom selection
-      chartInstance.current.dispatchAction({
-        type: 'restore',
-      });
-    }
-  }, []);
+      if (evt.key === 'Escape') {
+        evt.stopPropagation();
+        // Mark the component as currently cancelling a zoom selection. This allows
+        // us to prevent "restore" handlers from running
+        // "restore" removes the current chart zoom selection
+        chartInstance.current.dispatchAction({
+          type: 'restore',
+        });
+      }
+    },
+    [disabled]
+  );
 
   const handleMouseUp = useCallback(() => {
     document.body.removeEventListener('mouseup', handleMouseUp);
-  }, []);
+    document.body.removeEventListener('keydown', handleKeyDown, true);
+  }, [handleKeyDown]);
 
   const handleMouseDown = useCallback(() => {
+    if (disabled) {
+      return;
+    }
+
     // Register `mouseup` and `keydown` listeners on mouse down
     // This ensures that there is only one live listener at a time
     // regardless of how many charts are rendered. NOTE: It's
@@ -90,7 +156,7 @@ function useChartZoomCancel() {
     // chart is in. Those elements register their handlers _earlier_.
     document.body.addEventListener('mouseup', handleMouseUp);
     document.body.addEventListener('keydown', handleKeyDown, true);
-  }, [handleKeyDown, handleMouseUp]);
+  }, [disabled, handleKeyDown, handleMouseUp]);
 
   const handleChartReady = useCallback<EChartChartReadyHandler>(
     chart => {
@@ -101,19 +167,32 @@ function useChartZoomCancel() {
 
       chartInstance.current = chart;
       const chartDom = chart.getDom();
-      chartDom.addEventListener('mousedown', handleMouseDown);
+      if (!disabled) {
+        chartDom.addEventListener('mousedown', handleMouseDown);
+      }
     },
-    [handleMouseDown]
+    [disabled, handleMouseDown]
   );
 
   useEffect(() => {
+    const chartDom = chartInstance.current?.getDom();
+
+    if (disabled) {
+      chartDom?.removeEventListener('mousedown', handleMouseDown);
+      document.body.removeEventListener('mouseup', handleMouseUp);
+      document.body.removeEventListener('keydown', handleKeyDown, true);
+      return;
+    }
+
+    chartDom?.addEventListener('mousedown', handleMouseDown);
+
     return () => {
       // Cleanup listeners on unmount
       document.body.removeEventListener('mouseup', handleMouseUp);
-      document.body.removeEventListener('keydown', handleKeyDown);
-      chartInstance.current?.getDom()?.removeEventListener('mousedown', handleMouseDown);
+      document.body.removeEventListener('keydown', handleKeyDown, true);
+      chartDom?.removeEventListener('mousedown', handleMouseDown);
     };
-  }, [handleMouseDown, handleMouseUp, handleKeyDown]);
+  }, [disabled, handleKeyDown, handleMouseDown, handleMouseUp]);
 
   return {handleChartReady};
 }
@@ -123,146 +202,134 @@ function useChartZoomCancel() {
  * the props that would be passed to the `BaseChart` as zoomRenderProps.
  */
 export function useChartZoom({
+  disabled,
   onZoom,
   usePageDate,
   saveOnZoom,
   xAxisIndex,
-}: Omit<Props, 'children'>): ZoomRenderProps {
-  const {handleChartReady} = useChartZoomCancel();
+}: UseChartZoomOptions): ZoomRenderProps {
+  const {handleChartReady} = useChartZoomCancel(disabled);
   const location = useLocation();
   const navigate = useNavigate();
 
-  /**
-   * Sets the new period due to a zoom related action
-   *
-   * Saves the current period to an instance property so that we
-   * can control URL state when zoom history is being manipulated
-   * by the chart controls.
-   *
-   * Saves a callback function to be called after chart animation is completed
-   */
-  const setPeriod = useCallback(
-    (newPeriod: DateTimeUpdate) => {
-      const startFormatted = getQueryTime(newPeriod.start);
-      const endFormatted = getQueryTime(newPeriod.end);
-
-      // Callback to let parent component know zoom has changed
-      // This is required for some more perceived responsiveness since
-      // we delay updating URL state so that chart animation can finish
-      //
-      // Parent container can use this to change into a loading state before
-      // URL parameters are changed
-      onZoom?.({
-        period: newPeriod.period,
-        start: getQueryTime(newPeriod.start),
-        end: getQueryTime(newPeriod.end),
-      });
-
+  const commitZoomPeriod = useCallback(
+    (formattedPeriod: FormattedPeriod) => {
       if (usePageDate) {
         const newQuery = {
           ...location.query,
-          start: startFormatted,
-          end: endFormatted,
-          statsPeriod: newPeriod.period ?? undefined,
+          start: formattedPeriod.start,
+          end: formattedPeriod.end,
+          statsPeriod: formattedPeriod.period ?? undefined,
         };
 
-        // Only push new location if query params has changed because this will cause a heavy re-render
-        if (qs.stringify(newQuery) !== qs.stringify(location.query)) {
-          navigate({
-            pathname: location.pathname,
-            query: newQuery,
-          });
-        }
+        navigateIfQueryChanged(navigate, location, {query: newQuery});
       } else {
-        updateDateTime(
-          {
-            period: newPeriod.period,
-            start: startFormatted,
-            end: endFormatted,
-          },
-          location,
-          navigate,
-          {save: saveOnZoom}
-        );
+        updateDateTime(formattedPeriod, location, navigate, {save: saveOnZoom});
       }
     },
-    [onZoom, navigate, location, saveOnZoom, usePageDate]
+    [location, navigate, saveOnZoom, usePageDate]
+  );
+
+  const setPeriod = useCallback(
+    (newPeriod: DateTimeUpdate) => {
+      const formattedPeriod = getFormattedPeriod(newPeriod);
+
+      // Callback to let parent component know zoom has changed.
+      onZoom?.(formattedPeriod);
+
+      commitZoomPeriod(formattedPeriod);
+    },
+    [commitZoomPeriod, onZoom]
   );
 
   const handleDataZoom = useCallback<EChartDataZoomHandler>(
     evt => {
-      let {startValue, endValue} = (evt as any).batch[0] as {
-        endValue: number | null;
-        startValue: number | null;
-      };
-
-      // if `rangeStart` and `rangeEnd` are null, then we are going back
-      if (startValue && endValue) {
-        // round off the bounds to the minute
-        startValue = Math.floor(startValue / 60_000) * 60_000;
-        endValue = Math.ceil(endValue / 60_000) * 60_000;
-
-        // ensure the bounds has 1 minute resolution
-        startValue = Math.min(startValue, endValue - 60_000);
-
-        setPeriod({
-          period: null,
-          start: getUtcDateString(startValue),
-          end: getUtcDateString(endValue),
-        });
+      if (disabled) {
+        return;
       }
+
+      const range = getZoomRange(evt);
+      const roundedRange = range ? roundZoomRange(range) : null;
+
+      // If the range values are null, ECharts is restoring zoom history.
+      if (!roundedRange) {
+        return;
+      }
+
+      const {startValue, endValue} = roundedRange;
+
+      setPeriod({
+        period: null,
+        start: getUtcDateString(startValue),
+        end: getUtcDateString(endValue),
+      });
     },
-    [setPeriod]
+    [disabled, setPeriod]
   );
 
   /**
    * Chart event when *any* rendering+animation finishes
    *
-   * `this.zooming` acts as a callback function so that
-   * we can let the native zoom animation on the chart complete
-   * before we update URL state and re-render
+   * Keep the hidden toolbox area-zoom cursor active after ECharts renders.
    */
-  const handleChartFinished = useCallback<EChartFinishedHandler>((_props, chart) => {
-    activateZoomAreaSelect(chart);
-  }, []);
+  const handleChartFinished = useCallback<EChartFinishedHandler>(
+    (_props, chart) => {
+      if (disabled) {
+        return;
+      }
+
+      activateZoomAreaSelect(chart);
+    },
+    [disabled]
+  );
 
   const dataZoomProp = useMemo<DataZoomComponentOption[]>(() => {
+    // Keep the inside dataZoom model even when disabled so synced charts can
+    // still receive x-range changes without this hook writing URL state.
     const zoomInside = DataZoomInside({
+      id: 'useChartZoom-inside',
       xAxisIndex,
     });
     return zoomInside;
   }, [xAxisIndex]);
 
-  const toolBox = useMemo<ToolboxComponentOption>(
-    () =>
-      ToolBox(
-        {},
-        {
-          dataZoom: {
-            title: {
-              zoom: '',
-              back: '',
-            },
-            iconStyle: {
-              borderWidth: 0,
-              color: 'transparent',
-              opacity: 0,
-            },
-          },
-        }
-      ),
-    []
-  );
+  const toolBox = useMemo<ToolboxComponentOption>(() => {
+    if (disabled) {
+      // Remove the hidden toolbox while disabled so it cannot emit
+      // URL-changing brush selections.
+      return {};
+    }
 
-  const renderProps: ZoomRenderProps = {
-    // Zooming only works when grouped by date
-    isGroupedByDate: true,
-    dataZoom: dataZoomProp,
-    toolBox,
-    onDataZoom: handleDataZoom,
-    onFinished: handleChartFinished,
-    onChartReady: handleChartReady,
-  };
+    return ToolBox(
+      {id: 'useChartZoom-toolbox'},
+      {
+        dataZoom: {
+          xAxisIndex,
+          title: {
+            zoom: '',
+            back: '',
+          },
+          iconStyle: {
+            borderWidth: 0,
+            color: 'transparent',
+            opacity: 0,
+          },
+        },
+      }
+    );
+  }, [disabled, xAxisIndex]);
+
+  const renderProps = useMemo<ZoomRenderProps>(
+    () => ({
+      ...CHART_ZOOM_MERGE_OPTIONS,
+      dataZoom: dataZoomProp,
+      toolBox,
+      onDataZoom: handleDataZoom,
+      onFinished: handleChartFinished,
+      onChartReady: handleChartReady,
+    }),
+    [dataZoomProp, handleChartFinished, handleChartReady, handleDataZoom, toolBox]
+  );
 
   return renderProps;
 }
