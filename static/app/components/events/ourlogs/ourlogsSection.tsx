@@ -2,12 +2,13 @@ import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
+import {useEventLogsUrl} from 'sentry/components/events/ourlogs/useEventLogsUrl';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -145,6 +146,7 @@ function OurlogsSectionContent({
   const {openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const sharedHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const logsUrl = useEventLogsUrl(event, project);
 
   const onOpenLogsDrawer = useCallback(
     (e: React.MouseEvent, expandedLogId?: string) => {
@@ -238,7 +240,25 @@ function OurlogsSectionContent({
     return null;
   }
   return (
-    <FoldSection sectionKey={SectionKey.LOGS} title={t('Logs')}>
+    <FoldSection
+      actions={
+        logsUrl && (
+          <Grid flow="column" align="center" gap="md">
+            <LinkButton
+              analyticsEventKey="issue_details.logs_open_in_explore_action_button_clicked"
+              analyticsEventName="Issue Details: Logs Open in Explore Action Button Clicked"
+              openInNewTab
+              size="xs"
+              to={logsUrl}
+            >
+              {t('Open in Explore')}
+            </LinkButton>
+          </Grid>
+        )
+      }
+      sectionKey={SectionKey.LOGS}
+      title={t('Logs')}
+    >
       <Stack>
         <SmallTable>
           <TableBody>
