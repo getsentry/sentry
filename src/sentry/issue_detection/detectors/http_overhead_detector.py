@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import urllib.parse
 from collections import defaultdict
 from dataclasses import dataclass
@@ -18,6 +19,8 @@ from sentry.issues.issue_occurrence import IssueEvidence
 
 from ..performance_problem import PerformanceProblem
 from ..types import Span
+
+logger = logging.getLogger("issue_detectors")
 
 
 @dataclass
@@ -70,6 +73,25 @@ class HTTPOverheadDetector(PerformanceDetector):
 
         if not url or not span_start or not request_start:
             return
+
+        if isinstance(request_start, str):
+            try:
+                request_start = float(request_start)
+            except (ValueError, OverflowError):
+                # Track instances of this happening so we know if it's a widespread problem
+                logger.warning(
+                    "issue_detectors.invalid_data",
+                    extra={
+                        "detector": "http_overhead",
+                        "span_id": span.get("span_id"),
+                        "trace_id": span.get("trace_id"),
+                        "project_id": span.get("project_id"),
+                        "org_id": span.get("organization_id"),
+                        "key": "request_start",
+                        "value": request_start,
+                    },
+                )
+                return
 
         request_start *= 1000
 
