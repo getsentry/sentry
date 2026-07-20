@@ -5,7 +5,6 @@ import orjson
 from django.utils import timezone
 
 from sentry.notifications.platform.registry import template_registry
-from sentry.notifications.platform.templates.utils import format_datetime
 from sentry.notifications.platform.types import (
     CodeSection,
     CodeTextBlock,
@@ -18,6 +17,10 @@ from sentry.notifications.platform.types import (
     ParagraphSection,
     PlainTextBlock,
 )
+
+
+def format_date(date: datetime) -> str:
+    return date.strftime("%I:%M %p on %B %d, %Y (%Z)")
 
 
 class DataExportSuccess(NotificationData):
@@ -47,7 +50,7 @@ class DataExportSuccessTemplate(NotificationTemplate[DataExportSuccess]):
                 )
             ],
             actions=[NotificationRenderedAction(label="Take Me There", link=data.export_url)],
-            footer=f"This download file expires at {format_datetime(data.expiration_date)}. So don't get attached.",
+            footer=f"This download file expires at {format_date(data.expiration_date)}. So don't get attached.",
         )
 
 
@@ -78,7 +81,7 @@ class DataExportFailureTemplate(NotificationTemplate[DataExportFailure]):
                 ParagraphSection(
                     blocks=[
                         PlainTextBlock(
-                            text=f"Well, this is a little awkward. The data export you created at {format_datetime(data.creation_date)} didn't work. Sorry about that."
+                            text=f"Well, this is a little awkward. The data export you created at {format_date(data.creation_date)} didn't work. Sorry about that."
                         )
                     ]
                 ),

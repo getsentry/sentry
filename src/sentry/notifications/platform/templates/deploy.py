@@ -13,6 +13,7 @@ from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationCategory,
     NotificationData,
+    NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationSection,
     NotificationSource,
@@ -40,7 +41,7 @@ class DeployReleaseProject(TypedDict):
 
 
 class DeployReleaseData(NotificationData):
-    source = NotificationSource.DEPLOY_RELEASE
+    source: NotificationSource = NotificationSource.DEPLOY_RELEASE
     notification_uuid: str
     # If this notification was triggered by an alert (Workflow)...
     alert_name: str | None = None
@@ -66,6 +67,8 @@ def build_deploy_subject(data: DeployReleaseData) -> list[NotificationTextBlock]
     projects_text = ", ".join(visible_project_slugs)
     if remaining_projects > 0:
         projects_text = f"{projects_text} (+{remaining_projects} more)"
+    if not projects_text:
+        projects_text = "a project"
     return [
         PlainTextBlock(text="Deployed"),
         CodeTextBlock(text=readable_version),
@@ -135,12 +138,28 @@ def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
                 ]
                 repo_sections.append(ParagraphSection(blocks=commit_blocks))
             commits_sections.extend(repo_sections)
+    else:
+        commits_sections.append(
+            ParagraphSection(
+                blocks=[
+                    ItalicTextBlock(
+                        text="Deploys are better with commit data. Connecting repositories to Sentry will show a list of deploy commits in this message."
+                    )
+                ]
+            )
+        )
 
     return [
         *summary_sections,
         *project_sections,
         *commits_sections,
     ]
+
+
+def build_deploy_actions(data: DeployReleaseData) -> list[NotificationRenderedAction]:
+    if data.repo_name_to_commits or not data.repo_setup_link:
+        return []
+    return [NotificationRenderedAction(label="Connect a repository", link=data.repo_setup_link)]
 
 
 def build_deploy_footer(data: DeployReleaseData) -> list[NotificationTextBlock]:
@@ -219,5 +238,6 @@ class DeployReleaseTemplate(NotificationTemplate[DeployReleaseData]):
         return NotificationRenderedTemplate(
             subject=build_deploy_subject(data=data),
             body=build_deploy_body(data=data),
+            actions=build_deploy_actions(data=data),
             footer=build_deploy_footer(data=data),
         )
