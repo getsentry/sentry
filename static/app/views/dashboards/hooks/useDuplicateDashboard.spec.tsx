@@ -36,7 +36,7 @@ describe('useDuplicateDashboard', () => {
     });
 
     await act(async () => {
-      await result.current(DashboardListItemFixture({id: '42'}), 'grid');
+      await result.current(DashboardListItemFixture({id: '42'}), 'table');
     });
 
     expect(fetchMock).toHaveBeenCalled();
@@ -72,7 +72,7 @@ describe('useDuplicateDashboard', () => {
           id: '-1',
           prebuiltId: PrebuiltDashboardId.WEB_VITALS,
         }),
-        'grid'
+        'table'
       );
     });
 
@@ -130,7 +130,7 @@ describe('useDuplicateDashboard', () => {
           id: '55',
           prebuiltId: PrebuiltDashboardId.BACKEND_QUERIES,
         }),
-        'grid'
+        'table'
       );
     });
 
@@ -204,7 +204,7 @@ describe('useDuplicateDashboard', () => {
           id: '77',
           prebuiltId: PrebuiltDashboardId.WEB_VITALS,
         }),
-        'grid'
+        'table'
       );
     });
 
