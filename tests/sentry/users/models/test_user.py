@@ -155,8 +155,9 @@ class UserHybridCloudDeletionTest(TestCase):
         self.create_member(user=user, organization=na_org)
 
         with patch.object(caching_module, "cell_caching_service") as mock_caching_service:
-            user.username = "bob2"
-            user.save()
+            with outbox_runner():
+                user.username = "bob2"
+                user.save()
             mock_caching_service.clear_key.assert_any_call(
                 key=f"user_service.get_many_by_id:{user.id}",
                 cell_name=_TEST_CELLS[0].name,
@@ -435,6 +436,32 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
 
         with assume_test_silo_mode(SiloMode.CELL):
             assert not OrganizationAccessRequest.objects.filter(team__in=all_teams).exists()
+
+    def test_membership_mapping_inviter(self) -> None:
+        from_user = self.create_user("foo@example.com")
+        to_user = self.create_user("bar@example.com")
+        other_user = self.create_user("other@example.com")
+        org_slug = "org-with-duplicate-members-being-merged"
+        org = self.create_organization(name=org_slug, owner=self.user)
+        team = self.create_team(organization=org)
+
+        self.create_member(
+            organization=org, user=other_user, role="owner", teams=[team], inviter=from_user
+        )
+        assert OrganizationMemberMapping.objects.filter(
+            organization_id=org.id, inviter_id=from_user.id
+        ).exists()
+
+        with outbox_runner():
+            from_user.merge_to(to_user)
+
+        # member mapping should be updated too
+        assert OrganizationMemberMapping.objects.filter(
+            organization_id=org.id, inviter_id=to_user.id
+        ).exists()
+        assert not OrganizationMemberMapping.objects.filter(
+            organization_id=org.id, inviter_id=from_user.id
+        ).exists()
 
     @expect_models(
         ORG_MEMBER_MERGE_TESTED,

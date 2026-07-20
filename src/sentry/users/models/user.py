@@ -28,7 +28,6 @@ from sentry.backup.dependencies import (
     NormalizedModelName,
     PrimaryKeyMap,
     get_model_name,
-    merge_users_for_model_in_org,
 )
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
@@ -37,7 +36,6 @@ from sentry.db.models import Model, control_silo_model, sane_repr
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.db.postgres.transactions import enforce_constraints
 from sentry.hybridcloud.models.outbox import ControlOutboxBase, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
@@ -100,6 +98,7 @@ class User(Model, AbstractBaseUser):
 
     backend: str  # abstract -- from `django.contrib.auth`
 
+    # outbox settings
     replication_version: int = 2
 
     username = models.CharField(_("username"), max_length=MAX_USERNAME_LENGTH, unique=True)
@@ -230,7 +229,10 @@ class User(Model, AbstractBaseUser):
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
-        with outbox_context(transaction.atomic(using=router.db_for_write(User))):
+        with outbox_context(
+            transaction.atomic(using=router.db_for_write(User)),
+            flush=False,
+        ):
             avatar = self.avatar.first()
             if avatar:
                 avatar.delete()
@@ -239,7 +241,10 @@ class User(Model, AbstractBaseUser):
             return super().delete(*args, **kwargs)
 
     def update(self, *args: Any, **kwds: Any) -> int:
-        with outbox_context(transaction.atomic(using=router.db_for_write(User))):
+        with outbox_context(
+            transaction.atomic(using=router.db_for_write(User)),
+            flush=False,
+        ):
             for outbox in self.outboxes_for_update():
                 outbox.save()
             return super().update(*args, **kwds)
@@ -248,7 +253,7 @@ class User(Model, AbstractBaseUser):
         is_test_user = kwargs.pop("is_test_user", False)
         is_relocated_user = kwargs.pop("is_relocated_user", False)
         try:
-            with outbox_context(transaction.atomic(using=router.db_for_write(User))):
+            with outbox_context(transaction.atomic(using=router.db_for_write(User)), flush=False):
                 if not self.username:
                     self.username = self.email
                 # for testing purposes, we want to be able to create new users with existing emails
@@ -428,23 +433,21 @@ class User(Model, AbstractBaseUser):
                 organization_id=organization_id, from_user_id=from_user_id, to_user_id=to_user_id
             )
 
-            # Update all organization control models to only use the new user id.
-            #
-            # TODO: in the future, proactively update `OrganizationMemberTeamReplica` as well.
-            with enforce_constraints(
-                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+            # Update all organization control models that don't use user_id
+            with outbox_context(
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping)),
+                flush=False,
             ):
-                control_side_org_models: tuple[type[Model], ...] = (
-                    OrgAuthToken,
-                    OrganizationMemberMapping,
-                )
-                for model in control_side_org_models:
-                    merge_users_for_model_in_org(
-                        model,
-                        organization_id=organization_id,
-                        from_user_id=from_user_id,
-                        to_user_id=to_user_id,
-                    )
+                # Update records individually as OrgAuthToken has outboxes
+                for token in OrgAuthToken.objects.filter(
+                    organization_id=organization_id, created_by_id=from_user_id
+                ):
+                    token.created_by_id = to_user_id
+                    token.save()
+
+        # Update any member map records where the the merged user was the inviter
+        queryset = OrganizationMemberMapping.objects.filter(inviter_id=from_user_id)
+        queryset.update(inviter_id=to_user_id)
 
         # While it would be nice to make the following changes in a transaction, there are too many
         # unique constraints to make this feasible. Instead, we just do it sequentially and ignore
@@ -455,14 +458,17 @@ class User(Model, AbstractBaseUser):
             UserAvatar,
             UserEmail,
             UserOption,
+            # TODO: in the future, proactively update `OrganizationMemberTeamReplica` as well.
+            OrganizationMemberMapping,
         )
-        for model in user_related_models:
-            for obj in model.objects.filter(user_id=from_user_id):
-                try:
-                    with transaction.atomic(using=router.db_for_write(User)):
-                        obj.update(user_id=to_user_id)
-                except IntegrityError:
-                    pass
+        with outbox_context(flush=False):
+            for model in user_related_models:
+                for obj in model.objects.filter(user_id=from_user_id):
+                    try:
+                        with transaction.atomic(using=router.db_for_write(User)):
+                            obj.update(user_id=to_user_id)
+                    except IntegrityError:
+                        pass
 
         # users can be either the subject or the object of actions which get logged
         AuditLogEntry.objects.filter(actor=from_user).update(actor=to_user)

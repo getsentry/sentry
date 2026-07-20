@@ -1443,7 +1443,8 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def add_user_permission(user, permission):
-        UserPermission.objects.create(user=user, permission=permission)
+        with outbox_runner():
+            UserPermission.objects.create(user=user, permission=permission)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
