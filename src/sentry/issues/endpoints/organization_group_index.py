@@ -36,7 +36,11 @@ from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializerSnuba,
     StreamGroupSerializerSnubaResponse,
 )
-from sentry.api.utils import get_date_range_from_stats_period, handle_query_errors
+from sentry.api.utils import (
+    get_date_range_from_stats_period,
+    handle_query_errors,
+    to_valid_int_id_list,
+)
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -534,7 +538,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             self.get_environments(request, organization),
         )
 
-        ids = [int(id) for id in request.GET.getlist("id")]
+        ids = to_valid_int_id_list("id", request.GET.getlist("id"))
         return update_groups_with_search_fn(request, ids, projects, organization.id, search_fn)
 
     @extend_schema(
