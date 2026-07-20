@@ -69,7 +69,7 @@ const config: KnipConfig = {
     '!static/eslint/**/*.ts!',
   ],
   ignore: [
-    // api-docs has its own package.json with its own dependencies
+    // api-docs is a separate workspace package
     'api-docs/**',
   ],
   ignoreExportsUsedInFile: isProductionMode,
