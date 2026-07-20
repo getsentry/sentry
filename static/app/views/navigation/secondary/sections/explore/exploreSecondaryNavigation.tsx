@@ -91,7 +91,7 @@ export function ExploreSecondaryNavigation() {
                   activeTo={
                     discoverTransactionsDeprecation
                       ? `${baseUrl}/errors/`
-                      : `${baseUrl}/discover/homepage/`
+                      : `${baseUrl}/discover/`
                   }
                   analyticsItemName="explore_discover"
                 >
