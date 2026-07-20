@@ -8,7 +8,7 @@ import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceC
 import * as Storybook from 'sentry/stories';
 
 const images = Object.entries(
-  import.meta.glob<string>('../../images/**/*.{svg,gif,png}', {
+  import.meta.glob<string>('../../images/**/*.{svg,gif,png,jpg}', {
     eager: true,
     import: 'default',
   })
