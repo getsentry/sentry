@@ -33,6 +33,7 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {ColumnType} from 'sentry/utils/discover/fields';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useElementOffset} from 'sentry/utils/useElementOffset';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -69,6 +70,7 @@ import {
 } from 'sentry/views/explore/logs/styles';
 import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
 import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
+import {LogsRateLimitError} from 'sentry/views/explore/logs/tables/logsRateLimitError';
 import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
 import {useLogsTableColumnWidths} from 'sentry/views/explore/logs/tables/useLogsTableColumnWidths';
 import {
@@ -154,6 +156,8 @@ export function LogsInfiniteTable({
     meta: rawMeta,
     data: originalData,
     isError,
+    error,
+    refetch,
     fetchNextPage,
     fetchPreviousPage,
     isFetchingNextPage,
@@ -559,7 +563,7 @@ export function LogsInfiniteTable({
       <Fragment>
         <Flex justify="center" align="center" height="100%" minHeight="200px">
           {isPending && <LoadingRenderer />}
-          {isError && <ErrorRenderer />}
+          {isError && <ErrorRenderer error={error} onRetry={refetch} />}
           {isEmpty &&
             (emptyRenderer ? (
               emptyRenderer()
@@ -628,7 +632,7 @@ export function LogsInfiniteTable({
               totalPayloadBytes={totalPayloadBytes}
             />
           )}
-          {!hasReplay && isError && <ErrorRenderer />}
+          {!hasReplay && isError && <ErrorRenderer error={error} onRetry={refetch} />}
           {!hasReplay &&
             isEmpty &&
             (emptyRenderer ? (
@@ -832,10 +836,14 @@ function LogsTableHeader({
   );
 }
 
-function ErrorRenderer() {
+function ErrorRenderer({error, onRetry}: {error?: unknown; onRetry?: () => void}) {
   return (
     <TableStatus>
-      <IconWarning variant="muted" size="lg" />
+      {isRateLimitError(error) ? (
+        <LogsRateLimitError onRetry={onRetry} />
+      ) : (
+        <IconWarning variant="muted" size="lg" />
+      )}
     </TableStatus>
   );
 }
