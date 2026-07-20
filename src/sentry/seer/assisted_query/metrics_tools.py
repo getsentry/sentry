@@ -18,6 +18,10 @@ API_KEY_SCOPES = ["org:read", "project:read", "event:read"]
 # Upper bound on how many substrings a caller may pass in a single request.
 MAX_SUBSTRINGS = 8
 
+# Default and hard cap on the number of returned metrics.
+DEFAULT_LIMIT = 20
+MAX_LIMIT = 100
+
 
 def _build_or_query(name_substrings: list[str]) -> str:
     """
@@ -42,14 +46,16 @@ def get_metric_metadata(
     *,
     org_id: int,
     project_ids: list[int],
-    name_substrings: list[str],
+    name_substrings: list[str] | None = None,
     stats_period: str = "7d",
-    limit: int = 20,
+    limit: int = DEFAULT_LIMIT,
     include_context: bool = False,
 ) -> MetricMetadataSuccessResponse | MetricMetadataErrorResponse:
     """
-    Return distinct (metric.name, metric.type, metric.unit) tuples matching any of
-    the given name substrings, ordered by event count descending.
+    Return distinct (metric.name, metric.type, metric.unit) tuples ordered by
+    event count descending. When ``name_substrings`` are given, only metrics
+    whose name matches one of them are returned; otherwise all metrics are
+    returned (highest count first).
 
     Backed by the trace-items metrics endpoint (which also serves authored
     context), so Seer can surface metric descriptions. Intended to short-circuit
@@ -61,10 +67,11 @@ def get_metric_metadata(
         org_id: Organization ID.
         project_ids: Projects to query. Empty list means all accessible projects.
         name_substrings: Up to MAX_SUBSTRINGS keyword substrings. A metric matches
-            if metric.name ILIKE %sub% for any one substring.
+            if metric.name ILIKE %sub% for any one substring. Omit (or pass an
+            empty list) to return all metrics.
         stats_period: Time window, e.g. "7d". Defaults to 7d.
-        limit: Maximum number of distinct tuples to return. Caller may over-fetch
-            to rerank on their side.
+        limit: Maximum number of distinct tuples to return. Defaults to
+            DEFAULT_LIMIT and is clamped to MAX_LIMIT.
         include_context: When True, request per-metric context (brief, notes) from
             the endpoint via expand=context and attach it to each candidate.
 
@@ -79,12 +86,9 @@ def get_metric_metadata(
         }
     """
     substrings = [s for s in (name_substrings or []) if s][:MAX_SUBSTRINGS]
-    if not substrings:
-        return MetricMetadataSuccessResponse(candidates=[], has_more=False)
-
+    # No usable substrings → no name filter, i.e. return all metrics.
     query = _build_or_query(substrings)
-    if not query:
-        return MetricMetadataSuccessResponse(candidates=[], has_more=False)
+    limit = max(1, min(limit, MAX_LIMIT))
 
     try:
         organization = Organization.objects.get(id=org_id)
@@ -95,13 +99,16 @@ def get_metric_metadata(
         )
 
     params: dict[str, Any] = {
-        "query": query,
         "statsPeriod": stats_period,
         "project": project_ids or [ALL_ACCESS_PROJECT_ID],
         # Highest-count metrics first; over-fetch by 1 to detect has_more.
         "sort": "-count",
         "per_page": limit + 1,
     }
+    # Omit an empty query so the endpoint returns all metrics rather than
+    # filtering on a blank name.
+    if query:
+        params["query"] = query
     if include_context:
         params["expand"] = "context"
 

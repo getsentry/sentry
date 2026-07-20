@@ -7,6 +7,7 @@ from sentry.explore.models import (
     TraceMetricTypes,
 )
 from sentry.seer.assisted_query.metrics_tools import (
+    MAX_LIMIT,
     _build_or_query,
     get_metric_metadata,
 )
@@ -123,15 +124,43 @@ class TestGetMetricMetadata(TestCase):
         }
 
     @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
-    def test_empty_substrings_short_circuits(self, mock_client_cls: MagicMock) -> None:
+    def test_no_substrings_returns_all_metrics(self, mock_client_cls: MagicMock) -> None:
         mock_client = mock_client_cls.return_value
+        response = MagicMock()
+        response.data = [
+            {"name": "api.request.count", "type": "counter", "unit": "none", "count": 800},
+        ]
+        mock_client.get.return_value = response
+
         result = get_metric_metadata(
             org_id=self.org.id,
             project_ids=[self.project.id],
             name_substrings=[],
         )
-        assert result.dict() == {"candidates": [], "has_more": False}
-        mock_client.get.assert_not_called()
+
+        # With no substrings we still query, just without a name filter.
+        assert len(result.candidates) == 1
+        assert result.candidates[0].name == "api.request.count"
+        _args, kwargs = mock_client.get.call_args
+        assert "query" not in kwargs["params"]
+
+    @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
+    def test_limit_is_clamped_to_max(self, mock_client_cls: MagicMock) -> None:
+        mock_client = mock_client_cls.return_value
+        response = MagicMock()
+        response.data = []
+        mock_client.get.return_value = response
+
+        get_metric_metadata(
+            org_id=self.org.id,
+            project_ids=[self.project.id],
+            name_substrings=["http"],
+            limit=10_000,
+        )
+
+        _args, kwargs = mock_client.get.call_args
+        # per_page is limit + 1, with limit clamped to MAX_LIMIT.
+        assert kwargs["params"]["per_page"] == MAX_LIMIT + 1
 
     @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
     def test_has_more_when_result_exceeds_limit(self, mock_client_cls: MagicMock) -> None:
