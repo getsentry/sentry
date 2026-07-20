@@ -231,6 +231,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     setAutoSubmitFromCurrentQuery,
     setAutoSubmitSeer,
     enableAISearch,
+    skipNextSearchQueryBuilderAutoFocusRef,
   } = useSearchQueryBuilderAI();
 
   const analyticsArea = useAnalyticsArea();
@@ -314,6 +315,16 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     return [];
   }, [queries, hasAskSeerUxRework]);
 
+  const applySelectedQuery = (item: T) => {
+    askSeerNLQueryRef.current = searchQuery.trim();
+    skipNextSearchQueryBuilderAutoFocusRef.current = true;
+    inputRef.current?.blur();
+    props.applySeerSearchQuery(item, runId ?? undefined);
+    setDisplayAskSeerFeedback(true);
+    setDisplayAskSeer(false);
+    reset();
+  };
+
   const state = useComboBoxState({
     ...props,
     items,
@@ -347,11 +358,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
         return;
       }
 
-      askSeerNLQueryRef.current = searchQuery.trim();
-      props.applySeerSearchQuery(item, runId ?? undefined);
-      setDisplayAskSeerFeedback(true);
-      setDisplayAskSeer(false);
-      reset();
+      applySelectedQuery(item);
       state.close();
     },
     children: item => {
@@ -438,11 +445,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
                 return;
               }
 
-              askSeerNLQueryRef.current = searchQuery.trim();
-              props.applySeerSearchQuery(item, runId ?? undefined);
-              setDisplayAskSeerFeedback(true);
-              setDisplayAskSeer(false);
-              reset();
+              applySelectedQuery(item);
               state.close();
               return;
             }
