@@ -79,21 +79,45 @@ def _actor_author_mismatch_extra(
     organization: RpcOrganization,
     repo: Repository,
     integration: RpcIntegration,
-    merge_request_iid: object,
-    merge_request_action: object,
+    event: Mapping[str, Any],
     author_id: object,
     actor_id: object,
     contributor_tracking_stage: str,
 ) -> dict[str, object]:
+    """Build the structured context for an actor/author mismatch.
+
+    A mismatch means the webhook actor (``event["user"]`` -- whoever performed
+    the action) is not the MR author (``object_attributes["author_id"]``). This
+    is overwhelmingly benign: a reviewer approving, a maintainer merging, or a
+    bot pushing an ``update`` all legitimately arrive with actor != author. We
+    skip seeding in that case because the contributor alias must come from the
+    author, not the actor.
+
+    The extra therefore carries enough of the event to tell a benign mismatch
+    (``root approved MR #42``) apart from a real anomaly without a second
+    lookup: the actor username, the event kind, the MR action, and the MR
+    state. GitLab's MR/note payloads only expose the author as a numeric
+    ``author_id`` (no username), so the author side stays an id.
+    """
+    object_attributes = event.get("object_attributes") or {}
+    actor = event.get("user") or {}
     return {
         "seer.webhooks.organization_id": organization.id,
         "seer.webhooks.provider_name": "gitlab",
         "seer.webhooks.repository_id": repo.id,
         "seer.webhooks.integration_id": integration.id,
-        "seer.webhooks.merge_request_iid": merge_request_iid,
-        "seer.webhooks.merge_request_action": merge_request_action,
+        # object_kind distinguishes a merge_request hook from a note hook.
+        "seer.webhooks.event_kind": event.get("object_kind"),
+        "seer.webhooks.merge_request_iid": object_attributes.get("iid"),
+        "seer.webhooks.merge_request_action": object_attributes.get("action"),
+        # MR lifecycle state (opened/closed/merged) at the time of the event --
+        # a "merged" state with a mismatched actor is the expected merge case.
+        "seer.webhooks.merge_request_state": object_attributes.get("state"),
+        # The MR author (row is keyed to this) vs the event actor (who triggered
+        # the hook). Usernames make the "who did what to whose MR" legible.
         "seer.webhooks.author_id": author_id,
         "seer.webhooks.actor_id": actor_id,
+        "seer.webhooks.actor_username": actor.get("username"),
         "seer.webhooks.contributor_tracking_stage": contributor_tracking_stage,
     }
 
@@ -173,13 +197,11 @@ def track_gitlab_contributor_seat_processor(
                 organization=organization,
                 repo=repo,
                 integration=integration,
-                merge_request_iid=iid,
-                merge_request_action=object_attributes.get("action"),
+                event=event,
                 author_id=user_id,
                 actor_id=event_actor_id,
                 contributor_tracking_stage="seat",
             ),
-            level=logging.WARNING,
         )
         return
 
@@ -197,12 +219,6 @@ def track_gitlab_contributor_seat_processor(
         debug_log(logger, organization, "duplicate_delivery_skipped", base_extra)
         return
 
-    debug_log(
-        logger,
-        organization,
-        "tracking_contributor_seat",
-        {**base_extra, "author_username": user_username},
-    )
     track_contributor_seat(
         organization=org,
         repo=repo,
@@ -251,13 +267,11 @@ def track_gitlab_contributor_action_processor(
                 organization=organization,
                 repo=repo,
                 integration=integration,
-                merge_request_iid=iid,
-                merge_request_action=object_attributes.get("action"),
+                event=event,
                 author_id=user_id,
                 actor_id=event_actor_id,
                 contributor_tracking_stage="action",
             ),
-            level=logging.WARNING,
         )
         return
 

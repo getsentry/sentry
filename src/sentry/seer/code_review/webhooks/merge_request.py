@@ -430,13 +430,6 @@ def handle_merge_request_event(
     ).check()
 
     if not preflight.allowed:
-        denial = preflight.denial_reason.value if preflight.denial_reason else None
-        debug_log(
-            logger,
-            organization,
-            "preflight_denied",
-            {**base_log, "denial_reason": denial},
-        )
         if preflight.denial_reason:
             record_webhook_filtered(GITLAB_WEBHOOK_EVENT, action_value, preflight.denial_reason)
         return
@@ -898,13 +891,6 @@ def handle_merge_request_note_event(
     ).check()
 
     if not preflight.allowed:
-        denial = preflight.denial_reason.value if preflight.denial_reason else None
-        debug_log(
-            logger,
-            organization,
-            "note.preflight_denied",
-            {**base_log, "denial_reason": denial},
-        )
         if preflight.denial_reason:
             record_webhook_filtered(
                 GITLAB_WEBHOOK_NOTE_EVENT, action_value, preflight.denial_reason

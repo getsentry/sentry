@@ -127,17 +127,20 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         self._call(event=event)
         mock_track.assert_not_called()
         mock_logger.log.assert_any_call(
-            logging.WARNING,
+            logging.INFO,
             "actor_author_mismatch",
             extra={
                 "seer.webhooks.organization_id": self.organization.id,
                 "seer.webhooks.provider_name": "gitlab",
                 "seer.webhooks.repository_id": self.repo.id,
                 "seer.webhooks.integration_id": self.integration.id,
+                "seer.webhooks.event_kind": event["object_kind"],
                 "seer.webhooks.merge_request_iid": event["object_attributes"]["iid"],
                 "seer.webhooks.merge_request_action": event["object_attributes"]["action"],
+                "seer.webhooks.merge_request_state": event["object_attributes"]["state"],
                 "seer.webhooks.author_id": event["object_attributes"]["author_id"],
                 "seer.webhooks.actor_id": event["user"]["id"],
+                "seer.webhooks.actor_username": event["user"]["username"],
                 "seer.webhooks.contributor_tracking_stage": "seat",
             },
             exc_info=False,
@@ -318,17 +321,20 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
         )
         mock_record.assert_not_called()
         mock_logger.log.assert_any_call(
-            logging.WARNING,
+            logging.INFO,
             "actor_author_mismatch",
             extra={
                 "seer.webhooks.organization_id": self.organization.id,
                 "seer.webhooks.provider_name": "gitlab",
                 "seer.webhooks.repository_id": self.repo.id,
                 "seer.webhooks.integration_id": self.integration.id,
+                "seer.webhooks.event_kind": event["object_kind"],
                 "seer.webhooks.merge_request_iid": event["object_attributes"]["iid"],
                 "seer.webhooks.merge_request_action": event["object_attributes"]["action"],
+                "seer.webhooks.merge_request_state": event["object_attributes"]["state"],
                 "seer.webhooks.author_id": event["object_attributes"]["author_id"],
                 "seer.webhooks.actor_id": event["user"]["id"],
+                "seer.webhooks.actor_username": event["user"]["username"],
                 "seer.webhooks.contributor_tracking_stage": "action",
             },
             exc_info=False,
