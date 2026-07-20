@@ -74,7 +74,6 @@ const config: KnipConfig = {
   ],
   ignoreExportsUsedInFile: isProductionMode,
   ignoreDependencies: [
-    'core-js',
     'tslib', // subdependency of many packages, declare the latest version
     'odiff-bin', // raw binary consumed by Python backend, not a JS import
     'run-on-changed', // CLI used by the eslint CI job (.github/workflows/frontend.yml), not a JS import
