@@ -567,11 +567,8 @@ importers:
         specifier: 2.43.0
         version: 2.43.0
       '@sentry/jest-environment':
-        specifier: 6.1.0
-        version: 6.1.0(@sentry/node@10.66.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1)))(@sentry/profiling-node@10.66.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1)))(jest@30.4.2(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.15.43)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))
-      '@sentry/profiling-node':
-        specifier: 10.66.0
-        version: 10.66.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))
+        specifier: 7.0.0
+        version: 7.0.0(@sentry/node@10.66.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1)))(jest-environment-jsdom@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.2(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.15.43)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))
       '@swc-contrib/mut-cjs-exports':
         specifier: 14.15.0
         version: 14.15.0(@swc/core@1.15.43)(@swc/jest@0.2.39(@swc/core@1.15.43))
@@ -3229,12 +3226,19 @@ packages:
     resolution: {integrity: sha512-fr69K76Gz7RRyfMerChdNjWIeQdFh+k21GJcmPCqk43dscUChOsLc3cYLS5cK7iZ/XiUmH9lVzf7EYL2kf2qsA==}
     engines: {node: '>=18'}
 
-  '@sentry/jest-environment@6.1.0':
-    resolution: {integrity: sha512-M4ul9R0VQF2IYPxi5fyeqIgdyUsUlEeAIrDLSliHK8S7KQCfc0DU4govCQVSxqp2I9fsP8A04t0eCUeGwPqFjg==}
+  '@sentry/jest-environment@7.0.0':
+    resolution: {integrity: sha512-EgbAjcIMu62lBaJxUOhtcv9MLruG5GFUrpOjI++U8IrHkFSKAyVdW7NEJ8aDZZ9rQ2SUGgppzeq9y8waBYppyA==}
+    engines: {node: '>=24'}
     peerDependencies:
-      '@sentry/node': '>=8'
-      '@sentry/profiling-node': '>=8'
-      jest: '>=29'
+      '@sentry/node': '>=10'
+      jest: '>=30'
+      jest-environment-jsdom: '>=30'
+      jest-environment-node: '>=30'
+    peerDependenciesMeta:
+      jest-environment-jsdom:
+        optional: true
+      jest-environment-node:
+        optional: true
 
   '@sentry/node-core@10.66.0':
     resolution: {integrity: sha512-SUnXHROqSdSetKgZC1goDEKCuMz3OmQ1h4rxzWeexLyqan+pensZXfLouP6jzZXlA8e/HP7uQg78LnfqYDcZlQ==}
@@ -3257,10 +3261,6 @@ packages:
       '@opentelemetry/sdk-trace-base':
         optional: true
 
-  '@sentry/node-cpu-profiler@2.4.2':
-    resolution: {integrity: sha512-E6q+eE/sTpiofzW9jFKAx6ZQaDAoZDnsaLA/nRlkiK+K2X4k+hSyKhhLfw8PJlejB8edk7uxJF57r5JoRnyaPA==}
-    engines: {node: '>=18'}
-
   '@sentry/node@10.66.0':
     resolution: {integrity: sha512-5Ow7iQiRjaSaEOmqEIkYV368hFFzShIZCXPoj+wX3JtOmKFrsNu6lr8/VJlQs7cyjFS6tzE50PrLrD8iAPS/8w==}
     engines: {node: '>=18'}
@@ -3272,11 +3272,6 @@ packages:
       '@opentelemetry/api': ^1.9.0
       '@opentelemetry/core': ^1.30.1 || ^2.1.0
       '@opentelemetry/sdk-trace-base': ^1.30.1 || ^2.1.0
-
-  '@sentry/profiling-node@10.66.0':
-    resolution: {integrity: sha512-l37MXflBZPiZHKHhW/oe5PlUy9G9fQHPea/vVCf/4J4Cv82APJ58wE49qP+elkvygyUoed0surijdBnh4rZIVQ==}
-    engines: {node: '>=18'}
-    hasBin: true
 
   '@sentry/react@10.66.0':
     resolution: {integrity: sha512-aodV9C2NnaZBqJvaBceIIaVyMVEisO38EWtH5xL7IMbD6QSmBYsuNU7yYzRcdOj/+99FxJYRPaqwzGnIWnNTHw==}
@@ -5184,10 +5179,6 @@ packages:
   dequal@2.0.3:
     resolution: {integrity: sha512-0je+qPKHEMohvfRTCEo3CrPG6cAzAYgmzKyxRiYSSDkS6eGJdyVJm7WaYA5ECaAD9wLB2T4EEeymA5aFVcYXCA==}
     engines: {node: '>=6'}
-
-  detect-libc@2.1.2:
-    resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
-    engines: {node: '>=8'}
 
   detect-newline@3.1.0:
     resolution: {integrity: sha512-TLz+x/vEXm/Y7P7wn1EJFNLxYpUD4TgMosxY6fAVJUnJMbupHBOncxyWUG9OpTaH9EBD7uFI5LfEgmMOc54DsA==}
@@ -7308,10 +7299,6 @@ packages:
 
   no-case@3.0.4:
     resolution: {integrity: sha512-fgAN3jGAh+RoxUGZHTSOLJIqUc2wmoBwGR4tbpNAKmmovFoWq0OdRkb0VkldReO2a2iBT/OEulG9XSUc10r3zg==}
-
-  node-abi@3.94.0:
-    resolution: {integrity: sha512-W5ZNO5KRPB5TkYmGVD9F6YqhsglXJzE6etpbmT+f6EQElhiX/UTG551cnsRGvLG3fyZEg9HwaDmNmj5nwJ4z9g==}
-    engines: {node: '>=10'}
 
   node-fetch@2.7.0:
     resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
@@ -12026,11 +12013,13 @@ snapshots:
     dependencies:
       '@sentry/core': 10.66.0
 
-  '@sentry/jest-environment@6.1.0(@sentry/node@10.66.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1)))(@sentry/profiling-node@10.66.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1)))(jest@30.4.2(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.15.43)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))':
+  '@sentry/jest-environment@7.0.0(@sentry/node@10.66.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1)))(jest-environment-jsdom@30.4.1)(jest-environment-node@30.4.1)(jest@30.4.2(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.15.43)(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))':
     dependencies:
       '@sentry/node': 10.66.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))
-      '@sentry/profiling-node': 10.66.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))
       jest: 30.4.2(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.15.43)(@types/node@24.13.2)(@typescript/typescript6@6.0.2))
+    optionalDependencies:
+      jest-environment-jsdom: 30.4.1
+      jest-environment-node: 30.4.1
 
   '@sentry/node-core@10.66.0(@opentelemetry/api@1.9.1)(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))(@opentelemetry/instrumentation@0.220.0(@opentelemetry/api@1.9.1))(@opentelemetry/sdk-trace-base@2.9.0(@opentelemetry/api@1.9.1))':
     dependencies:
@@ -12043,11 +12032,6 @@ snapshots:
       '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/instrumentation': 0.220.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-base': 2.9.0(@opentelemetry/api@1.9.1)
-
-  '@sentry/node-cpu-profiler@2.4.2':
-    dependencies:
-      detect-libc: 2.1.2
-      node-abi: 3.94.0
 
   '@sentry/node@10.66.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))':
     dependencies:
@@ -12072,16 +12056,6 @@ snapshots:
       '@opentelemetry/sdk-trace-base': 2.9.0(@opentelemetry/api@1.9.1)
       '@sentry/conventions': 0.16.0
       '@sentry/core': 10.66.0
-
-  '@sentry/profiling-node@10.66.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))':
-    dependencies:
-      '@sentry/core': 10.66.0
-      '@sentry/node': 10.66.0(@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1))
-      '@sentry/node-cpu-profiler': 2.4.2
-    transitivePeerDependencies:
-      - '@opentelemetry/core'
-      - '@opentelemetry/exporter-trace-otlp-http'
-      - supports-color
 
   '@sentry/react@10.66.0(react@19.2.3)':
     dependencies:
@@ -14015,8 +13989,6 @@ snapshots:
   delayed-stream@1.0.0: {}
 
   dequal@2.0.3: {}
-
-  detect-libc@2.1.2: {}
 
   detect-newline@3.1.0: {}
 
@@ -16949,10 +16921,6 @@ snapshots:
     dependencies:
       lower-case: 2.0.2
       tslib: 2.8.1
-
-  node-abi@3.94.0:
-    dependencies:
-      semver: 7.8.5
 
   node-fetch@2.7.0(encoding@0.1.13):
     dependencies:
