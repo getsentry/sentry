@@ -38,7 +38,7 @@ from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
-from sentry.utils.tracing import start_span
+from sentry.utils.tracing import start_span, trace
 
 if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
@@ -153,7 +153,7 @@ def _capture_group_stats(job: PostProcessJob) -> None:
     metrics.incr("events.unique", tags={"platform": platform}, skip_internal=False)
 
 
-@sentry_sdk.trace
+@trace
 def should_issue_owners_ratelimit(
     project_id: int, group_id: int, organization_id: int | None
 ) -> bool:
@@ -185,7 +185,7 @@ def should_issue_owners_ratelimit(
 
 
 @metrics.wraps("post_process.handle_owner_assignment")
-@sentry_sdk.trace
+@trace
 def handle_owner_assignment(job: PostProcessJob) -> None:
     """
     The handle_owner_assignment task attempts to find issue owners for a group.
@@ -298,7 +298,7 @@ def handle_owner_assignment(job: PostProcessJob) -> None:
         handle_invalid_group_owners(group)
 
 
-@sentry_sdk.trace
+@trace
 def handle_invalid_group_owners(group: Group) -> None:
     from sentry.models.groupowner import GroupOwner, GroupOwnerType
 
@@ -314,7 +314,7 @@ def handle_invalid_group_owners(group: Group) -> None:
         )
 
 
-@sentry_sdk.trace
+@trace
 def handle_group_owners(
     project: Project,
     group: Group,
@@ -643,6 +643,9 @@ def post_process_group(
 
 
 def run_post_process_job(job: PostProcessJob) -> None:
+    from sentry.issues.action_log.publish import action_context_scope
+    from sentry.issues.action_log.types import ActionSource
+
     group_event = job["event"]
     issue_category = group_event.group.issue_category if group_event.group else None
     issue_category_metric = issue_category.name.lower() if issue_category else None
@@ -676,6 +679,7 @@ def run_post_process_job(job: PostProcessJob) -> None:
                     op=f"tasks.post_process_group.{pipeline_step.__name__}",
                     name=f"tasks.post_process_group.{pipeline_step.__name__}",
                 ),
+                action_context_scope(ActionSource.SYSTEM),
             ):
                 pipeline_step(job)
         except Exception:
@@ -1505,63 +1509,22 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
-    from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
-    from sentry.seer.autofix.trigger import (
-        get_default_seer_automation_skip_reason,
-        get_seat_based_seer_automation_skip_reason,
-    )
-    from sentry.seer.autofix.utils import (
-        is_seer_scanner_rate_limited,
-        is_seer_seat_based_tier_enabled,
-    )
-    from sentry.tasks.seer.autofix import (
-        generate_issue_summary_only,
-        generate_summary_and_run_automation,
-        run_automation_only_task,
-    )
+    from sentry.seer.autofix.trigger import get_default_seer_automation_skip_reason
+    from sentry.seer.autofix.utils import is_seer_seat_based_tier_enabled
+    from sentry.tasks.seer.autofix import generate_summary_and_run_automation
 
     event = job["event"]
     group = event.group
 
-    # Default behaviour
-    if not is_seer_seat_based_tier_enabled(group.organization):
-        skip_reason = get_default_seer_automation_skip_reason(group, locks)
-        if skip_reason is not None:
-            metrics.incr(
-                "seer.automation.filtered", tags={"reason": skip_reason, "tier": "default"}
-            )
-            return
+    if is_seer_seat_based_tier_enabled(group.organization):
+        return
 
-        generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
-    else:
-        # Seat-based tier behaviour
-        skip_reason = get_seat_based_seer_automation_skip_reason(group)
-        if skip_reason is not None:
-            metrics.incr(
-                "seer.automation.filtered", tags={"reason": skip_reason, "tier": "seat_based"}
-            )
-            if skip_reason == "below_occurrence_threshold":
-                generate_issue_summary_only.delay(group.id)
-            return
+    skip_reason = get_default_seer_automation_skip_reason(group, locks)
+    if skip_reason is not None:
+        metrics.incr("seer.automation.filtered", tags={"reason": skip_reason, "tier": "default"})
+        return
 
-        # Check if summary exists in cache
-        cache_key = get_issue_summary_cache_key(group.id)
-        if cache.get(cache_key) is not None:
-            # Summary exists, run automation directly
-            run_automation_only_task.delay(group.id)
-        else:
-            # Rate limit check before generating summary
-            if is_seer_scanner_rate_limited(group.project, group.organization):
-                metrics.incr(
-                    "seer.automation.filtered",
-                    tags={"reason": "rate_limited", "tier": "seat_based"},
-                )
-                return
-
-            # No summary yet, generate summary + run automation in one go
-            generate_summary_and_run_automation.delay(
-                group.id, trigger_path="seat_based_seer_automation"
-            )
+    generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
 
 
 def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:

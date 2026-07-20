@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from django.utils import timezone
 
+from sentry.api.serializers import serialize
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
@@ -106,8 +107,12 @@ class FindReferencedGroupsTest(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
         )
-        assert activity.data == {"version": release.version}
+        assert activity.data == {"version": release.version, "commit": commit.id}
         assert activity.ident == str(resolution.id)
+
+        serialized_data = serialize(activity)["data"]
+        assert serialized_data["version"] == release.version
+        assert serialized_data["commit"]["id"] == commit.key
 
     def test_resolve_in_pull_request(self) -> None:
         group = self.create_group()
@@ -183,8 +188,43 @@ class FindReferencedGroupsTest(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
         )
-        assert activity.data == {"version": release.version}
+        commit = Commit.objects.get(key=merge_commit_sha)
+        assert activity.data == {"version": release.version, "commit": commit.id}
         assert activity.ident == str(resolution.id)
+
+        serialized_data = serialize(activity)["data"]
+        assert serialized_data["version"] == release.version
+        assert serialized_data["commit"]["id"] == commit.key
+        assert serialized_data["commit"]["pullRequest"]["id"] == pr.key
+
+    def test_pull_request_resolves_only_when_released_to_issue_project(self) -> None:
+        frontend_project = self.project
+        backend_project = self.create_project(organization=frontend_project.organization)
+        group = self.create_group(project=frontend_project)
+        repo = self.create_repo(project=frontend_project, name="example-monorepo")
+        merge_commit_sha = sha1(uuid4().hex.encode("utf-8")).hexdigest()
+        pull_request = self.create_pull_request(
+            repository_id=repo.id,
+            organization_id=frontend_project.organization_id,
+            message=f"Fixes {group.qualified_short_id}",
+        )
+        pull_request.update(merge_commit_sha=merge_commit_sha)
+        backend_release = self.create_release(project=backend_project, version="backend@1.0.0")
+
+        backend_release.set_commits([{"id": merge_commit_sha, "repository": repo.name}])
+
+        assert not GroupResolution.objects.filter(group=group, release=backend_release).exists()
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+
+        frontend_release = self.create_release(project=frontend_project, version="frontend@1.0.0")
+        frontend_release.set_commits([{"id": merge_commit_sha, "repository": repo.name}])
+
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == frontend_release
+        assert resolution.status == GroupResolution.Status.resolved
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
 
 
 class PullRequestRetentionTest(TestCase):

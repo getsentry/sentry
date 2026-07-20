@@ -19,6 +19,10 @@ export function globalFilterKeysAreEqual(a: GlobalFilter, b: GlobalFilter): bool
   return a.tag.key === b.tag.key && a.dataset === b.dataset;
 }
 
+export function globalFiltersAreEqual(a: GlobalFilter, b: GlobalFilter): boolean {
+  return a.tag.key === b.tag.key && a.dataset === b.dataset && a.value === b.value;
+}
+
 /**
  * Merges two lists of global filters. Walks `baseFilters` in order and
  * replaces each entry with its match from `overrideFilters` (by tag key +

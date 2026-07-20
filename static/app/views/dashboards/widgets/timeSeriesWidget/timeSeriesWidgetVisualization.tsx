@@ -10,7 +10,7 @@ import type {
 import sum from 'lodash/sum';
 import unescape from 'lodash/unescape';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
@@ -23,6 +23,7 @@ import {
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {t} from 'sentry/locale';
 import type {
   EChartClickHandler,
   EChartDataZoomHandler,
@@ -353,6 +354,16 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     .toSorted((a, b) => a - b);
   const earliestTimeStamp = allBoundaries.at(0);
   const latestTimeStamp = allBoundaries.at(-1);
+  const bubbleReleases = useMemo(
+    () =>
+      hasReleaseBubbles
+        ? props.releases?.map(({timestamp, version}) => ({
+            date: timestamp,
+            version,
+          }))
+        : [],
+    [hasReleaseBubbles, props.releases]
+  );
 
   const {
     connectReleaseBubbleChartRef,
@@ -364,12 +375,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     chartId: props.id,
     minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
     maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
-    releases: hasReleaseBubbles
-      ? props.releases?.map(({timestamp, version}) => ({
-          date: timestamp,
-          version,
-        }))
-      : [],
+    releases: bubbleReleases,
+    legendSelected:
+      props.legendSelection === undefined
+        ? undefined
+        : props.legendSelection[t('Releases')] !== false,
     yAxisIndex: yAxes.length,
   });
 
@@ -579,6 +589,16 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     });
   }
 
+  // ECharts needs every known legend item to be present in the selection state.
+  // This ensures that when the legend is clicked, none of the series are permanently hidden.
+  const normalizedLegendSelection = chartLegendItems.reduce<Record<string, boolean>>(
+    (acc, item) => {
+      acc[item.name] = legendSelection[item.name] !== false;
+      return acc;
+    },
+    {}
+  );
+
   const allSeries = [...seriesFromPlottables, releaseSeries].filter(defined);
 
   const runHandler = (
@@ -631,12 +651,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   };
 
   return (
-    <Flex direction="column" height="100%">
+    <Stack height="100%">
       {ActionMenu}
       {showLegend && (
         <ChartLegend
           items={chartLegendItems}
-          selected={legendSelection}
+          selected={normalizedLegendSelection}
           onSelectionChange={handleLegendSelectionChange}
         />
       )}
@@ -644,22 +664,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         <BaseChart
           ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
           autoHeightResize
-          // `notMerge` should always be `false`. i.e., ECharts should be
-          // allowed to _merge_ the incoming options when they change. Note
-          // `replaceMerge` below which ensures that the critical components
-          // like the series and the axes are merged using the "replace"
-          // algorithm, not the "normal" algorithm.
-          //
-          // Under `notMerge`, every data refresh does a full ECharts re-init that
-          // destroys and re-creates the toolbox dataZoom "select" component. In
-          // ECharts 6.1 that rebuild re-emits a stale `dataZoom` event, so a
-          // single drag-to-zoom cascades into repeated refetches that settle on
-          // the wrong time range. See apache/echarts#21661.
-          //
-          // To guard against this, we allow ECharts to preserve the
-          // configuration of the toolbox, which prevents these stale fires.
-          notMerge={false}
-          replaceMerge={['series', 'xAxis', 'yAxis']}
           series={allSeries}
           grid={{
             // NOTE: Adding a few pixels of left padding prevents ECharts from
@@ -677,7 +681,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
             showLegend
               ? {
                   show: false,
-                  selected: legendSelection,
+                  selected: normalizedLegendSelection,
                 }
               : undefined
           }
@@ -712,7 +716,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           onClick={handleClick}
         />
       </Container>
-    </Flex>
+    </Stack>
   );
 }
 

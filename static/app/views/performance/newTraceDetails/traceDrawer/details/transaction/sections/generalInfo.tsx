@@ -1,15 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {getFormattedTimeRangeWithLeadingAndTrailingZero} from 'sentry/components/events/interfaces/spans/utils';
 import {Content} from 'sentry/components/keyValueData';
 import {t} from 'sentry/locale';
-import type {EventTransaction} from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
-import type {SpanResponse} from 'sentry/views/insights/types';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {
   TraceDrawerComponents,
@@ -19,12 +15,8 @@ import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModel
 import type {TransactionNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/transactionNode';
 
 type GeneralInfoProps = {
-  cacheMetrics: Array<Pick<SpanResponse, 'avg(cache.item_size)' | 'cache_miss_rate()'>>;
-  event: EventTransaction;
-  location: Location;
   node: TransactionNode;
   onParentClick: (node: BaseNode) => void;
-  organization: Organization;
 };
 
 export function GeneralInfo(props: GeneralInfoProps) {
@@ -48,7 +40,6 @@ export function GeneralInfo(props: GeneralInfoProps) {
       subject: t('Duration'),
       value: (
         <TraceDrawerComponents.Duration
-          node={node}
           duration={durationInSeconds}
           baseline={undefined}
           // Since transactions have ms precision, we show 2 decimal places only if the duration is greater than 1 second.

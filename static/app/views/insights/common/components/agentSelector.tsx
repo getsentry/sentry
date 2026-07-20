@@ -1,4 +1,5 @@
-import {useMemo} from 'react';
+import {useMemo, useState} from 'react';
+import sortBy from 'lodash/sortBy';
 import {parseAsArrayOf, parseAsString, useQueryStates} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -40,6 +41,8 @@ export function AgentSelector({referrer}: AgentSelectorProps) {
 
   const selectedAgents = useMemo(() => urlAgents ?? [], [urlAgents]);
 
+  const [orderAnchor, setOrderAnchor] = useState<string[]>(() => urlAgents ?? []);
+
   const {data: agentData, isPending} = useSpans(
     {
       limit: LIMIT,
@@ -72,8 +75,14 @@ export function AgentSelector({referrer}: AgentSelectorProps) {
       }
     });
 
-    return list;
-  }, [agentData, selectedAgents]);
+    // Show the agents that were selected when the menu opened at the top of the
+    // list, then sort each group alphabetically.
+    const anchor = new Set(orderAnchor);
+    return sortBy(list, [
+      option => !anchor.has(option.value),
+      option => option.label.toLowerCase(),
+    ]);
+  }, [agentData, selectedAgents, orderAnchor]);
 
   return (
     <CompactSelect
@@ -86,6 +95,11 @@ export function AgentSelector({referrer}: AgentSelectorProps) {
       loading={isPending}
       menuTitle={t('Agent')}
       data-test-id="agent-selector"
+      onOpenChange={isOpen => {
+        if (isOpen) {
+          setOrderAnchor(selectedAgents);
+        }
+      }}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} prefix={t('Agent')} />
       )}

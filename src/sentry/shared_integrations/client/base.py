@@ -316,6 +316,7 @@ class BaseApiClient:
 
         if self.integration_type:
             sentry_sdk.get_isolation_scope().set_tag(self.integration_type, self.name)
+            sentry_sdk.get_isolation_scope().set_attribute(self.integration_type, self.name)
 
         request = Request(
             method=method.upper(),

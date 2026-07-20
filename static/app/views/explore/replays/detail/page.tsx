@@ -1,4 +1,4 @@
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import {NotFound} from 'sentry/components/errors/notFound';
 import {ArchivedReplayAlert} from 'sentry/components/replays/alerts/archivedReplayAlert';
@@ -41,9 +41,9 @@ export function ReplayDetailsPage({readerResult}: Props) {
       )}
       renderProcessingError={() => (
         <Stack flex={1} padding="2xl 3xl">
-          <Flex direction="column">
+          <Stack>
             <ReplayProcessingError />
-          </Flex>
+          </Stack>
         </Stack>
       )}
     >

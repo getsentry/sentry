@@ -99,7 +99,6 @@ interface MetricChartProps {
   project: Project;
   query: string;
   rule: MetricRule;
-  theme: Theme;
   timePeriod: TimePeriodType;
   anomalies?: Anomaly[];
   formattedAggregate?: string;

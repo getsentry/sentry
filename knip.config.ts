@@ -8,6 +8,8 @@ const productionEntryPoints = [
   // defined in rspack.config.ts pipelines
   'static/app/utils/statics-setup.tsx',
   'static/app/serviceWorker/worker/worker.ts',
+  // exports used by scripts
+  'static/app/components/seer/markdown/embeds/schemas.ts',
   // very dynamically imported
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
   // frontend experiemnt framework may be unused when we have no experiemnets
@@ -74,8 +76,6 @@ const config: KnipConfig = {
   ignoreDependencies: [
     'core-js',
     'tslib', // subdependency of many packages, declare the latest version
-    'buffer', // rspack.ProvidePlugin, needs better knip plugin
-    'process', // rspack.ProvidePlugin, needs better knip plugin
     'odiff-bin', // raw binary consumed by Python backend, not a JS import
     'run-on-changed', // CLI used by the eslint CI job (.github/workflows/frontend.yml), not a JS import
     '@swc-contrib/mut-cjs-exports', // used in jest config

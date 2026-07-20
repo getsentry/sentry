@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
@@ -67,7 +67,7 @@ function UsageBreakdownField({
   help?: React.ReactNode;
 }) {
   return (
-    <Flex direction="column" gap="sm">
+    <Stack gap="sm">
       <Flex gap="sm">
         <Text variant="muted" bold uppercase size="sm">
           {field}
@@ -75,7 +75,7 @@ function UsageBreakdownField({
         {help && <QuestionTooltip title={help} size="xs" />}
       </Flex>
       <Text size="lg">{value}</Text>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -119,7 +119,7 @@ function UsageBreakdownInfo({
   return (
     <Grid columns="repeat(2, 1fr)" gap="md lg" padding="xl">
       {shouldShowIncludedVolume && (
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           <Text bold>{t('Included volume')}</Text>
           {activeProductTrial && (
             <UsageBreakdownField field={t('Trial')} value={t('Unlimited')} />
@@ -139,10 +139,10 @@ function UsageBreakdownInfo({
           {formattedGifted && (
             <UsageBreakdownField field={t('Gifted')} value={formattedGifted} />
           )}
-        </Flex>
+        </Stack>
       )}
       {shouldShowAdditionalSpend && (
-        <Flex direction="column" gap="lg">
+        <Stack gap="lg">
           <Text bold>{t('Additional spend')}</Text>
           {formattedSoftCapType && (
             <UsageBreakdownField
@@ -184,7 +184,7 @@ function UsageBreakdownInfo({
             />
           )}
           {formattedOtherSpend}
-        </Flex>
+        </Stack>
       )}
     </Grid>
   );

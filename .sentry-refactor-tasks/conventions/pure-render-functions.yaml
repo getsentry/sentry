@@ -1,0 +1,42 @@
+name: pure-render-functions
+severity: error
+tags: [react, react-compiler, purity, correctness]
+
+why: |
+  Components and hooks must return the same result for the same props, state,
+  and context. React can render repeatedly or abandon work, so reading time,
+  randomness, or other mutable external state during render makes output depend
+  on when and how often React calls the function.
+
+  This convention corresponds to the React Compiler `Purity` diagnostic:
+  "Cannot call impure function."
+
+  See: https://react.dev/reference/eslint-plugin-react-hooks/lints/purity
+
+detect: |
+  Flag known impure functions called during component or hook execution,
+  including `Date.now()`, `new Date()` with no stable input, `Math.random()`,
+  UUID generation, mutable singleton reads, and custom functions that perform
+  those operations. Include impure calls inside `useMemo`; memoization does not
+  make an impure calculation pure.
+
+  Do NOT flag calls in event handlers, Effects, subscription callbacks, or lazy
+  state initializers when the value is intentionally captured once and the
+  initializer remains otherwise side-effect free.
+
+fix: |
+  Capture the changing value at an event or external synchronization boundary
+  and store it in state, or pass it into the component as data. For a value that
+  should be fixed for one component lifetime, use a lazy `useState` initializer.
+  For time that should update, use an Effect/timer or external-store hook that
+  explicitly drives state updates.
+
+examples:
+  bad:
+    - 'const now = Date.now();'
+    - 'const color = useMemo(() => palette[Math.floor(Math.random() * palette.length)], []);'
+  good:
+    - 'const [mountedAt] = useState(() => Date.now());'
+    - 'function Clock({now}: {now: number}) { return <Time date={now} />; }'
+
+detect_command: 'bash {convention_dir}/react-compiler.detect.sh {repo_path} Purity'

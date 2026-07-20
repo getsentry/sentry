@@ -109,7 +109,7 @@ function Profiles({transaction}: ProfilesProps) {
           onSearch={handleSearch}
         />
       </FilterActions>
-      <TransactionProfilesContent query={query} transaction={transaction} />
+      <TransactionProfilesContent query={query} />
     </StyledMain>
   );
 }

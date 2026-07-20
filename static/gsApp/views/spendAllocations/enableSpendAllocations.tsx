@@ -1,7 +1,7 @@
 import type {Dispatch} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import type {Client} from 'sentry/api';
 import {Panel} from 'sentry/components/panels/panel';
@@ -42,8 +42,7 @@ export function EnableSpendAllocations({
 
   return (
     <Panel>
-      <Flex
-        direction="column"
+      <Stack
         justify="center"
         align="center"
         padding="3xl"
@@ -68,7 +67,7 @@ export function EnableSpendAllocations({
             </strong>
           </p>
         )}
-      </Flex>
+      </Stack>
     </Panel>
   );
 }

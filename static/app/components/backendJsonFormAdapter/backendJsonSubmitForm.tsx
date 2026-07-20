@@ -240,8 +240,30 @@ export function BackendJsonSubmitForm({
         await onSubmit(getSubmitValues(fields, value));
       } catch (err) {
         if (err instanceof RequestError) {
-          const detail = err.responseJSON?.detail;
-          const message = typeof detail === 'string' ? detail : detail?.message;
+          const response = err.responseJSON;
+          const getFirstError = (errors: unknown) => {
+            if (typeof errors === 'string') {
+              return errors;
+            }
+            return Array.isArray(errors) && typeof errors[0] === 'string'
+              ? errors[0]
+              : undefined;
+          };
+          const nonFieldError = getFirstError(
+            response?.non_field_errors ?? response?.nonFieldErrors
+          );
+          const fieldError = Object.entries(response ?? {}).find(
+            ([key, errors]) =>
+              key !== 'detail' &&
+              key !== 'non_field_errors' &&
+              key !== 'nonFieldErrors' &&
+              getFirstError(errors)
+          )?.[1];
+          const detail = response?.detail;
+          const message =
+            nonFieldError ??
+            (typeof detail === 'string' ? detail : detail?.message) ??
+            getFirstError(fieldError);
           addErrorMessage(message ?? t('An error occurred while submitting'));
         }
       }

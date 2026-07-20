@@ -956,7 +956,7 @@ class OrganizationExamples:
                     "packages": {"my.package": "1.0.0"},
                     "platform": "python",
                     "projectID": "1",
-                    "sdk": {},
+                    "sdk": {"name": "sentry.python", "version": "2.0.0"},
                     "size": 7055,
                     "tags": [
                         {"key": "browser", "value": "Chrome 28.0"},

@@ -1,5 +1,5 @@
 import {Button} from '@sentry/scraps/button';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -40,7 +40,7 @@ export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
         <Status status={status} />
       </Flex>
       <Flex align="center" minWidth="0" padding="sm 0">
-        <Flex direction="column" minWidth="0" overflow="hidden">
+        <Stack minWidth="0" overflow="hidden">
           <Text ellipsis>
             {codeFilename && <Tooltip title={code_file}>{codeFilename}</Tooltip>}
             {codeFilename !== debugFilename && debugFilename && (
@@ -52,7 +52,7 @@ export function DebugImage({image, isLast, onOpenImageDetailsModal}: Props) {
               {imageAddress}
             </Text>
           )}
-        </Flex>
+        </Stack>
       </Flex>
       <Flex
         align="center"

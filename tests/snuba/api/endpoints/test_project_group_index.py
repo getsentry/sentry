@@ -1327,7 +1327,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert "inbox" not in response.data
 
     @patch("sentry.issues.merge.uuid4")
-    @patch("sentry.issues.merge.merge_groups")
+    @patch("sentry.issues.merge.start_merge_groups")
     @patch("sentry.eventstream.backend")
     def test_merge(
         self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock
@@ -1369,7 +1369,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
 
     @patch("sentry.issues.merge.uuid4")
-    @patch("sentry.issues.merge.merge_groups")
+    @patch("sentry.issues.merge.start_merge_groups")
     @patch("sentry.eventstream.backend")
     def test_merge_performance_issues(
         self, mock_eventstream: MagicMock, merge_groups: MagicMock, mock_uuid4: MagicMock

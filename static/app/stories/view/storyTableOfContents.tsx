@@ -3,7 +3,7 @@ import {useLocation} from 'react-router-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 type Entry = {
@@ -224,7 +224,7 @@ function StoryContentsList({
   const LinkComponent = isChild ? StyledChildLink : StyledLink;
 
   return (
-    <Flex as="li" direction="column" aria-role="listitem">
+    <Stack as="li" aria-role="listitem">
       <LinkComponent
         href={`#${entry.entry.ref.id}`}
         isActive={entry.entry.ref.id === activeId}
@@ -257,7 +257,7 @@ function StoryContentsList({
           ))}
         </StoryIndexList>
       )}
-    </Flex>
+    </Stack>
   );
 }
 

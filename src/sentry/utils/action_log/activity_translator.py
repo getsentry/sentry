@@ -1,5 +1,5 @@
 import logging
-from typing import Mapping
+from typing import TYPE_CHECKING, Mapping
 
 from pydantic.error_wrappers import ValidationError
 
@@ -15,8 +15,11 @@ from sentry.issues.action_log.types import (
     MarkReviewedAction,
     MergeFromOtherAction,
     NewProcessingIssuesAction,
+    PullRequestClosedAction,
+    PullRequestMergedAction,
+    PullRequestReopenedAction,
+    PullRequestUnlinkedAction,
     ReferencedInCommitAction,
-    RelatedPullRequestClosedAction,
     ReprocessAction,
     ResolveAction,
     ResolvedInPullRequestAction,
@@ -42,9 +45,12 @@ from sentry.issues.action_log.types import (
     UnmergeSourceAction,
     UnresolveAction,
 )
-from sentry.models.activity import Activity
 from sentry.types.activity import ActivityType
 from sentry.utils.env import in_test_environment
+
+if TYPE_CHECKING:
+    from sentry.models.activity import Activity
+
 
 ACTIVITY_TYPES_WITH_NO_ACTION: frozenset[int] = frozenset(
     (
@@ -89,7 +95,10 @@ ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE: Mapping[int, type[GroupAction]] = {
     ActivityType.SEER_PR_CREATED.value: SeerPRCreatedAction,
     ActivityType.SEER_ITERATION_STARTED.value: SeerIterationStartedAction,
     ActivityType.SEER_ITERATION_COMPLETED.value: SeerIterationCompletedAction,
-    ActivityType.PULL_REQUEST_CLOSED.value: RelatedPullRequestClosedAction,
+    ActivityType.PULL_REQUEST_CLOSED.value: PullRequestClosedAction,
+    ActivityType.PULL_REQUEST_REOPENED.value: PullRequestReopenedAction,
+    ActivityType.PULL_REQUEST_MERGED.value: PullRequestMergedAction,
+    ActivityType.PULL_REQUEST_UNLINKED.value: PullRequestUnlinkedAction,
 }
 
 ACTIVITY_TYPE_TO_ARG_TRANSLATIONS: Mapping[int, Mapping[str, str]] = {
@@ -119,7 +128,7 @@ ACTIVITY_TYPE_TO_ARG_TRANSLATIONS: Mapping[int, Mapping[str, str]] = {
 logger = logging.getLogger(__name__)
 
 
-def activity_to_action(activity: Activity) -> GroupAction | None:
+def activity_to_action(activity: "Activity") -> GroupAction | None:
     """
     Translates an Activity to a GroupAction. None is returned in the error case.
     Does not publish the GroupAction to a GroupActionLogEntry.
@@ -169,3 +178,7 @@ def activity_to_action(activity: Activity) -> GroupAction | None:
         if in_test_environment():
             raise
         return None
+
+
+def activity_action_idempotency_key(activity: "Activity") -> str:
+    return f"activity:{activity.id}"
