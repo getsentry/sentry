@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -240,26 +240,14 @@ export default function AutofixOverview() {
       <PageFiltersContainer>
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
           <Stack gap="lg" padding="xl">
-            <Flex justify="between" align="start" gap="md">
-              <Stack gap="2xs">
-                <Heading as="h1">{t('Autofix Overview')}</Heading>
-                <Text as="p" variant="muted">
-                  {t(
-                    'Issues where Autofix has produced a root cause, solution, code changes, or pull request.'
-                  )}
-                </Text>
-              </Stack>
-              <Flex gap="sm" align="center">
-                <LinkButton to={`/organizations/${organization.slug}/issues/autofix/`}>
-                  {t('Workflow runs')}
-                </LinkButton>
-                <LinkButton
-                  to={`/organizations/${organization.slug}/issues/autofix/runs/`}
-                >
-                  {t('Runs demo')}
-                </LinkButton>
-              </Flex>
-            </Flex>
+            <Stack gap="2xs">
+              <Heading as="h1">{t('Autofix Overview')}</Heading>
+              <Text as="p" variant="muted">
+                {t(
+                  'Issues where Autofix has produced a root cause, solution, code changes, or pull request.'
+                )}
+              </Text>
+            </Stack>
 
             <Container width={{md: '100%', lg: '85%'}}>
               <Grid
