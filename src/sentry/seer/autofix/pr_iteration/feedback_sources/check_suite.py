@@ -264,7 +264,7 @@ def resolve_check_suite_check_run_ids(
         for page in iter_all_pages(
             lambda pagination: scm_actions.list_check_runs_in_check_suite(
                 scm,
-                check_suite_id,
+                str(check_suite_id),
                 timestamp_filter="latest",
                 pagination=pagination,
             )
