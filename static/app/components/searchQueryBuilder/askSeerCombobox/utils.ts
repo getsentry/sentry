@@ -15,6 +15,7 @@ import {
   Token,
   type WildcardOperator,
   wildcardOperators,
+  WildcardOperators,
 } from 'sentry/components/searchSyntax/parser';
 import type {Project} from 'sentry/types/project';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -360,13 +361,24 @@ const FILTER_PHRASES: ReadonlyArray<{
   {phrase: 'is not less than', esq: (k, v) => `!${k}:${TermOperator.LESS_THAN}${v}`},
   {phrase: 'is greater than', esq: (k, v) => `${k}:${TermOperator.GREATER_THAN}${v}`},
   {phrase: 'is less than', esq: (k, v) => `${k}:${TermOperator.LESS_THAN}${v}`},
-  // Wildcards, rendered as the human-typeable `*` glob
-  {phrase: 'does not contain', esq: (k, v) => `!${k}:*${v}*`},
-  {phrase: 'does not start with', esq: (k, v) => `!${k}:${v}*`},
-  {phrase: 'does not end with', esq: (k, v) => `!${k}:*${v}`},
-  {phrase: 'contains', esq: (k, v) => `${k}:*${v}*`},
-  {phrase: 'starts with', esq: (k, v) => `${k}:${v}*`},
-  {phrase: 'ends with', esq: (k, v) => `${k}:*${v}`},
+  // Wildcards use the wildcard markers the builder parses back into a proper
+  // chip (CONTAINS / STARTS_WITH / ENDS_WITH). Negation is the `!` prefix — the
+  // DoesNot* markers are display-only and aren't valid query input.
+  {
+    phrase: 'does not contain',
+    esq: (k, v) => `!${k}:${WildcardOperators.CONTAINS}${v}`,
+  },
+  {
+    phrase: 'does not start with',
+    esq: (k, v) => `!${k}:${WildcardOperators.STARTS_WITH}${v}`,
+  },
+  {
+    phrase: 'does not end with',
+    esq: (k, v) => `!${k}:${WildcardOperators.ENDS_WITH}${v}`,
+  },
+  {phrase: 'contains', esq: (k, v) => `${k}:${WildcardOperators.CONTAINS}${v}`},
+  {phrase: 'starts with', esq: (k, v) => `${k}:${WildcardOperators.STARTS_WITH}${v}`},
+  {phrase: 'ends with', esq: (k, v) => `${k}:${WildcardOperators.ENDS_WITH}${v}`},
   // Plain equality: "<key> is [not] <value>"
   {phrase: 'is not', esq: (k, v) => `!${k}:${v}`},
   {phrase: 'is', esq: (k, v) => `${k}:${v}`},

@@ -225,15 +225,24 @@ describe('parseNaturalLanguageToQuery', () => {
     ['count() <= 100', 'count():<=100'],
     ['count() is greater than or equal to 100', 'count():>=100'],
     ['count() is less than or equal to 5', 'count():<=5'],
-    ['browser.name contains chrome', 'browser.name:*chrome*'],
-    ['browser.name starts with Chr', 'browser.name:Chr*'],
-    ['browser.name ends with ome', 'browser.name:*ome'],
-    ['browser.name does not contain chrome', '!browser.name:*chrome*'],
-    ['browser.name does not start with Chr', '!browser.name:Chr*'],
-    ['browser.name does not end with ome', '!browser.name:*ome'],
+    ['browser.name contains chrome', `browser.name:${WildcardOperators.CONTAINS}chrome`],
+    ['browser.name starts with Chr', `browser.name:${WildcardOperators.STARTS_WITH}Chr`],
+    ['browser.name ends with ome', `browser.name:${WildcardOperators.ENDS_WITH}ome`],
+    [
+      'browser.name does not contain chrome',
+      `!browser.name:${WildcardOperators.CONTAINS}chrome`,
+    ],
+    [
+      'browser.name does not start with Chr',
+      `!browser.name:${WildcardOperators.STARTS_WITH}Chr`,
+    ],
+    [
+      'browser.name does not end with ome',
+      `!browser.name:${WildcardOperators.ENDS_WITH}ome`,
+    ],
     [
       'event.type is error, browser.name contains chrome',
-      'event.type:error browser.name:*chrome*',
+      `event.type:error browser.name:${WildcardOperators.CONTAINS}chrome`,
     ],
   ])('parses "%s" -> "%s"', (input, expected) => {
     expect(parseNaturalLanguageToQuery(input, isKey)).toBe(expected);
@@ -270,6 +279,12 @@ describe('parseNaturalLanguageToQuery', () => {
     'release:"a big release"',
     'browser:[chrome, firefox]',
     'browser:[chrome,firefox]',
+    // Wildcards now round-trip: parse emits the same TermOperator markers that
+    // formatWildcardToken reads back.
+    `browser.name:${WildcardOperators.CONTAINS}chrome`,
+    `browser.name:${WildcardOperators.STARTS_WITH}Chr`,
+    `browser.name:${WildcardOperators.ENDS_WITH}ome`,
+    `!browser.name:${WildcardOperators.CONTAINS}chrome`,
     'event.type:error error.type:ApiError',
     'event.type:error error.type:ApiError OR browser:chrome AND code',
   ])('"%s" survives format -> parse', esq => {
