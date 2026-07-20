@@ -39,8 +39,8 @@ export function NewIssues({release, projectId, withChart = false}: Props) {
     <GroupList
       queryParams={queryParams}
       query={
-        releaseDetails
-          ? `release:"${escapeDoubleQuotes(releaseDetails?.versionInfo?.version.raw ?? '')}"`
+        releaseDetails?.versionInfo
+          ? `release:"${escapeDoubleQuotes(releaseDetails.versionInfo.version.raw)}"`
           : ''
       }
       canSelectGroups={false}
