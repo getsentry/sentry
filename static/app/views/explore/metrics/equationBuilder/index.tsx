@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useTransition} from 'react';
 
 import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
+import {usePrevious} from 'sentry/utils/usePrevious';
 import {
   extractReferenceLabels,
   resolveExpression,
@@ -32,6 +33,7 @@ export function EquationBuilder({
   storedInternalExpression?: string;
 }) {
   const [_, startTransition] = useTransition();
+  const previousReferenceMap = usePrevious(referenceMap);
   const references = useMemo(
     () => new Set(Object.keys(referenceMap ?? {})),
     [referenceMap]
@@ -49,6 +51,13 @@ export function EquationBuilder({
       onReferenceLabelsChange?.([]);
     };
   }, [internalExpression, references, onReferenceLabelsChange]);
+
+  if (previousReferenceMap !== referenceMap) {
+    handleExpressionChange(
+      resolveExpression(new Expression(internalExpression, references), referenceMap),
+      internalExpression
+    );
+  }
 
   const handleInternalExpressionChange = useCallback(
     (newExpression: Expression) => {
