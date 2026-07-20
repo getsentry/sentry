@@ -512,28 +512,9 @@ def _custom_error_message_condition(values: list[str]) -> RuleCondition:
     ``"{type}: {value}"`` message. Relay's rule DSL cannot express that
     concatenation, so type and value are matched individually instead.
     """
-    exception_condition = cast(
-        RuleCondition,
-        {
-            "op": "any",
-            "name": "event.exception.values",
-            "inner": {
-                "op": "or",
-                "inner": [
-                    {"op": "glob", "name": "ty", "value": values},
-                    {"op": "glob", "name": "value", "value": values},
-                ],
-            },
-        },
-    )
-
-    return {
-        "op": "or",
-        "inner": [
-            exception_condition,
-            {"op": "glob", "name": "event.logentry.formatted", "value": values},
-        ],
-    }
+    patterns: list[tuple[str | None, str | None]] = [(glob, None) for glob in values]
+    patterns += [(None, glob) for glob in values]
+    return _error_message_condition(patterns, match_logentry=True)
 
 
 # Where a condition type's data lives: either a Relay Getter field path
