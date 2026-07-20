@@ -10,7 +10,7 @@ from django.utils import timezone
 from sentry_sdk import capture_exception
 from taskbroker_client.retry import Retry
 
-from sentry import features, options
+from sentry import options
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.release import Release, ReleaseStatus
@@ -18,6 +18,7 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.release_health import release_monitor
 from sentry.release_health.release_monitor.base import Totals
+from sentry.releases.auto_creation import should_auto_create_releases
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import release_health_tasks
 from sentry.utils import metrics
@@ -196,12 +197,7 @@ def _handle_release_adoption(
         metrics.incr("sentry.tasks.process_projects_with_sessions.creating_rpe")
         try:
             project = Project.objects.get(id=project_id)
-            # When the org has the feature flag and the project has disabled
-            # auto-creation, only associate with releases that already exist
-            # (e.g. created via the CLI) and never create new ones from telemetry.
-            create_release = not features.has(
-                "organizations:auto-release-creation", project.organization
-            ) or project.get_option("sentry:enable_auto_release_creation")
+            create_release = should_auto_create_releases(project)
 
             env = Environment.objects.get_or_create(name=environment_name, organization_id=org_id)[
                 0
