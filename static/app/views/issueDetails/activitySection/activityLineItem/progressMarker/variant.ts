@@ -1,7 +1,7 @@
 import {t} from 'sentry/locale';
 import type {GroupActivity} from 'sentry/types/group';
-import {GroupActivityType} from 'sentry/types/group';
-import {formatProgressState, ProgressState} from 'sentry/views/issueList/utils/progress';
+import {GroupActivityType, ProgressState} from 'sentry/types/group';
+import {formatProgressState} from 'sentry/views/issueList/utils/progress';
 
 export type ActivityMarkerState = ProgressState | 'activity';
 

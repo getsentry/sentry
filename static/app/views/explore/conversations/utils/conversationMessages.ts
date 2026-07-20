@@ -225,7 +225,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
         !seenAssistantContent.has(turn.assistantContent));
     const hasToolCalls = turn.toolCalls.length > 0;
 
-    if (hasAssistantContent || hasToolCalls) {
+    if (hasAssistantContent || hasToolCalls || turn.reasoning) {
       if (turn.assistantContent) {
         seenAssistantContent.add(turn.assistantContent);
       }
@@ -362,9 +362,10 @@ export function parseAssistantContent(node: AITraceSpanNode): {
         reasoning: extracted.reasoningText,
       };
     }
-    // If tool calls were found but no text, don't fall through to response
-    // attributes — tool calls are rendered separately as badges
-    if (extracted.toolCalls) {
+    // If tool calls or reasoning were found but no text, don't fall through to
+    // response attributes — tool calls are rendered separately as badges and
+    // reasoning is rendered in its own collapsible section.
+    if (extracted.toolCalls || extracted.reasoningText) {
       return {content: null, reasoning: extracted.reasoningText};
     }
   }

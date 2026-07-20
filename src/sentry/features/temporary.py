@@ -54,6 +54,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:trace-item-details-array-fields", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Auto-link repos to projects by matching repo name suffix to project slug
     manager.add("organizations:auto-link-repos-by-name", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Expose the per-project toggle for auto-creating releases from ingested telemetry
+    manager.add("organizations:auto-release-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enabled for orgs that participated in the code review beta
     manager.add("organizations:code-review-beta", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable continuous profiling
@@ -95,6 +97,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:migrate-transaction-alerts-to-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable migration of AM1 metrics alerts to transactions
     manager.add("organizations:migrate-am1-metrics-alerts-to-transactions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable deprecation of Discover as a product
+    manager.add("organizations:deprecate-discover", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable custom dynamic sampling rates
     manager.add("organizations:dynamic-sampling-custom", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable dynamic sampling minimum sample rate
@@ -255,6 +259,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-smart-assignment-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Display nightshift settings
     manager.add("organizations:seer-night-shift-settings", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Display the Seer Night Shift UI
+    manager.add("organizations:seer-night-shift-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Roll out structured LLM page context on STRUCTURED_CONTEXT_ROUTES to all orgs
     manager.add("organizations:seer-explorer-structured-context-rollout", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable context engine experimental contexts
@@ -354,8 +360,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:insights-query-date-range-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=True)
     # Make Insights overview pages use EAP instead of transactions (because eap is not on AM1)
     manager.add("organizations:insights-modules-use-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable data browsing heat map widget
-    manager.add("organizations:data-browsing-heat-map-widget", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable attribute context in data browsing
     manager.add("organizations:data-browsing-attribute-context", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable public RPC endpoint for local seer development

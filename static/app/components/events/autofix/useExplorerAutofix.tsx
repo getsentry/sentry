@@ -146,7 +146,15 @@ interface GithubPrCommentFeedbackSource {
   comment?: {html_url?: string; user?: {login: string}};
 }
 
-type RawFeedbackSource = UserUiFeedbackSource | GithubPrCommentFeedbackSource;
+interface GithubPrReviewCommentFeedbackSource {
+  type: 'github-pr-review-comment';
+  comment?: {html_url?: string; user?: {login: string}};
+}
+
+type RawFeedbackSource =
+  | UserUiFeedbackSource
+  | GithubPrCommentFeedbackSource
+  | GithubPrReviewCommentFeedbackSource;
 
 export interface RawFeedback {
   text: string;
@@ -282,7 +290,7 @@ export const getPollInterval = ({
 export interface AutofixSection {
   artifacts: AutofixArtifact[];
   blocks: Block[];
-  status: 'processing' | 'completed';
+  status: 'processing' | 'completed' | 'error';
   step: string;
   index?: number;
 }
@@ -310,6 +318,7 @@ function mergeFilePatches(blocks: Block[]): ExplorerFilePatch[] {
  */
 function buildSection(
   step: string,
+  currentStep: boolean,
   index: number,
   blocks: Block[],
   runState: ExplorerAutofixState | null
@@ -324,8 +333,10 @@ function buildSection(
     status: 'processing',
   };
 
-  if (
-    runState?.status !== 'processing' ||
+  if (currentStep && runState?.status === 'error') {
+    section.status = 'error';
+  } else if (
+    (!currentStep && runState?.status !== 'processing') ||
     isLastBlockOfSection(blocks[blocks.length - 1]) ||
     artifacts.length > 0
   ) {
@@ -367,6 +378,7 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
   // The section a step-less block belongs to. The first block always carries a
   // step, so this is set before any block is bucketed.
   let currentStep = '';
+  let lastStepIndex = -1;
 
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i]!;
@@ -379,13 +391,14 @@ export function getOrderedAutofixSections(runState: ExplorerAutofixState | null)
     if (bucket) {
       bucket.blocks.push(block);
     } else {
+      lastStepIndex = i;
       buckets.set(currentStep, {blocks: [block], index: i});
     }
   }
 
   const sections: AutofixSection[] = Array.from(buckets.entries()).map(
     ([step, {blocks: sectionBlocks, index}]) =>
-      buildSection(step, index, sectionBlocks, runState)
+      buildSection(step, index === lastStepIndex, index, sectionBlocks, runState)
   );
 
   // If there are any PR states, append a synthetic "pull_request" section.

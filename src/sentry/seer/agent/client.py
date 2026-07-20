@@ -17,11 +17,9 @@ from urllib3 import BaseHTTPResponse
 
 from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
-from sentry.hybridcloud.rpc.service import RpcException
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
 from sentry.identity.oauth2 import OAuth2Provider
-from sentry.identity.services.identity import identity_service
 from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -46,6 +44,7 @@ from sentry.seer.agent.client_utils import (
 from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
 from sentry.seer.agent.custom_tool_utils import AgentTool, extract_tool_schema
 from sentry.seer.agent.embed_widgets import get_embed_widgets
+from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
@@ -54,7 +53,6 @@ from sentry.seer.models import SeerApiError, SeerPermissionError, SeerRepoDefini
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
-from sentry.seer.utils import encrypt_access_token_for_seer
 from sentry.tasks.seer.context_engine_index import build_service_map, index_org_project_knowledge
 from sentry.tasks.seer.explorer_index import dispatch_explorer_index_projects
 from sentry.users.models.user import User
@@ -112,63 +110,6 @@ def _has_context_engine(
     organization: Organization, user: User | RpcUser | AnonymousUser | None
 ) -> bool:
     return True
-
-
-def get_monitoring_provider_connections(
-    organization: Organization, user_id: int
-) -> list[dict[str, Any]]:
-    """Fetch the user's monitoring provider identities and build connection dicts for Seer."""
-    if not features.has("organizations:seer-infra-telemetry", organization):
-        return []
-
-    connections: list[dict[str, Any]] = []
-    for provider_type in MONITORING_PROVIDERS:
-        provider = identity_manager.get(provider_type)
-        is_oauth_provider = isinstance(provider, OAuth2Provider)
-        if not isinstance(provider, McpIdentityProvider):
-            continue
-
-        try:
-            identities = identity_service.get_org_user_identities_by_provider_type(
-                organization_id=organization.id, user_id=user_id, provider_type=provider_type
-            )
-        except RpcException:
-            # Monitoring providers are optional enrichment. A control-silo RPC failure
-            # shouldn't fail a run--just move on to the next provider.
-            logger.warning(
-                "seer.monitoring_providers.fetch_failed",
-                extra={
-                    "organization_id": organization.id,
-                    "user_id": user_id,
-                    "provider": provider_type,
-                },
-                exc_info=True,
-            )
-            continue
-
-        for identity in identities:
-            access_token = identity.data.get("access_token")
-            if not access_token:
-                continue
-            urls = provider.build_mcp_urls(identity.data)
-            if not urls:
-                continue
-            encrypted_access_token = encrypt_access_token_for_seer(access_token)
-            if not encrypted_access_token:
-                continue
-            auth_method = "oauth" if is_oauth_provider else "pat"
-            for url in urls:
-                connections.append(
-                    {
-                        "provider_key": provider_type,
-                        "url": url,
-                        "encrypted_access_token": encrypted_access_token,
-                        "identity_id": identity.id,
-                        "auth_method": auth_method,
-                    }
-                )
-
-    return connections
 
 
 def get_available_monitoring_providers(
@@ -745,17 +686,23 @@ class SeerAgentClient:
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
 
-        # Add connected and available monitoring providers for runs with user context.
-        if self.user and not isinstance(self.user, AnonymousUser):
-            monitoring_provider_connections = get_monitoring_provider_connections(
-                self.organization, self.user.id
-            )
-            if monitoring_provider_connections:
-                chat_body["monitoring_providers"] = monitoring_provider_connections
+        monitoring_user_id = (
+            self.user.id
+            if self.user and not isinstance(self.user, AnonymousUser) and self.user.id is not None
+            else None
+        )
+        monitoring_provider_connections = get_monitoring_provider_connections(
+            self.organization, monitoring_user_id
+        )
+        if monitoring_provider_connections:
+            chat_body["monitoring_providers"] = [
+                connection.dict() for connection in monitoring_provider_connections
+            ]
 
+        if monitoring_user_id is not None:
             available_monitoring_providers = get_available_monitoring_providers(
                 self.organization,
-                self.user.id,
+                monitoring_user_id,
             )
             if available_monitoring_providers:
                 chat_body["available_monitoring_providers"] = available_monitoring_providers
