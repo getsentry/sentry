@@ -3204,9 +3204,9 @@ class SeatBasedSeerAutomationTestMixin(BasePostProcessGroupMixin):
             event=event,
         )
 
-        # Nothing is kicked off from post-process for seat-based orgs.
+        # Seat-based orgs skip automation but still generate summary + fixability score.
         mock_generate_summary_and_run_automation.assert_not_called()
-        mock_generate_summary_only.assert_not_called()
+        mock_generate_summary_only.assert_called_once_with(event.group.id)
         mock_run_automation.assert_not_called()
 
 
