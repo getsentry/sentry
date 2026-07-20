@@ -2,7 +2,7 @@ import {Fragment, useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
@@ -87,7 +87,7 @@ export function StreamingEmbedDemo() {
   }
 
   return (
-    <Flex direction="column" gap="lg" flexGrow={1} maxWidth="72ch">
+    <Stack gap="lg" flexGrow={1} maxWidth="72ch">
       <Flex gap="md">
         <Button variant="primary" size="sm" onClick={startStream} disabled={isStreaming}>
           Start Stream
@@ -97,7 +97,7 @@ export function StreamingEmbedDemo() {
         </Button>
       </Flex>
       <SeerMarkdown raw={text} variant="streaming" />
-    </Flex>
+    </Stack>
   );
 }
 
@@ -109,11 +109,11 @@ function formatTagSyntax(name: string, data: unknown): string {
 export function EmbedRegistry() {
   const embeds = SeerEmbedRegistry.list();
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       {embeds.map(embed => {
         const schema = SEER_EMBED_SCHEMAS[embed.name as keyof typeof SEER_EMBED_SCHEMAS];
         return (
-          <Flex key={embed.name} direction="column" gap="md" flexGrow={1}>
+          <Stack key={embed.name} gap="md" flexGrow={1}>
             <Heading as="h4" size="md">
               {embed.name}
             </Heading>
@@ -136,9 +136,9 @@ export function EmbedRegistry() {
                 </CodeBlock>
               </Fragment>
             )}
-          </Flex>
+          </Stack>
         );
       })}
-    </Flex>
+    </Stack>
   );
 }
