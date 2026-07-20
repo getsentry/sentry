@@ -195,6 +195,10 @@ describe('AutofixOverview', () => {
     expect(screen.getByText('+42')).toBeInTheDocument();
     expect(screen.getByText('−7')).toBeInTheDocument();
 
+    // 49 changed lines is over the inline-differ limit, so the file path
+    // lives only in the pill's hover tooltip — no diff header on the card.
+    expect(screen.queryByText('src/cart.py')).not.toBeInTheDocument();
+
     // Hovering the diff pill lists the changed files.
     await userEvent.hover(screen.getByText('1 file'));
     expect(await screen.findByText('src/cart.py')).toBeInTheDocument();
@@ -612,6 +616,94 @@ describe('AutofixOverview', () => {
       name: 'Autofix progress: 2 of 5 steps — Plan (Errored)',
     });
     expect(indicator).toHaveTextContent('3');
+  });
+
+  it('renders an inline differ for small diffs, collapsed to a file header', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/2/autofix/`,
+      body: {
+        autofix: {
+          run_id: 1,
+          status: 'completed',
+          updated_at: '2026-07-14T10:00:00Z',
+          blocks: [
+            {
+              id: 'b1',
+              timestamp: '2026-07-14T09:00:00Z',
+              message: {
+                role: 'assistant',
+                content: 'code',
+                metadata: {step: 'code_changes'},
+              },
+              merged_file_patches: [
+                {
+                  repo_name: 'getsentry/sentry',
+                  diff: '--- a/src/cart.py\n+++ b/src/cart.py',
+                  patch: {
+                    path: 'src/cart.py',
+                    source_file: 'src/cart.py',
+                    target_file: 'src/cart.py',
+                    type: 'M',
+                    added: 2,
+                    removed: 1,
+                    hunks: [
+                      {
+                        section_header: 'def add_to_cart',
+                        source_start: 10,
+                        source_length: 3,
+                        target_start: 10,
+                        target_length: 4,
+                        lines: [
+                          {
+                            value: 'def add_to_cart(item):',
+                            line_type: ' ',
+                            source_line_no: 10,
+                            target_line_no: 10,
+                            diff_line_no: 1,
+                          },
+                          {
+                            value: '    total = None',
+                            line_type: '-',
+                            source_line_no: 11,
+                            target_line_no: null,
+                            diff_line_no: 2,
+                          },
+                          {
+                            value: '    total = 0',
+                            line_type: '+',
+                            source_line_no: null,
+                            target_line_no: 11,
+                            diff_line_no: 3,
+                          },
+                          {
+                            value: '    return total',
+                            line_type: '+',
+                            source_line_no: null,
+                            target_line_no: 12,
+                            diff_line_no: 4,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    renderPage();
+
+    // The differ's file header shows on the card without any interaction…
+    const fileHeader = await screen.findByText('src/cart.py');
+    // …but the diff body starts collapsed.
+    expect(screen.queryByText(/@@ -10,3 \+10,4 @@/)).not.toBeInTheDocument();
+
+    await userEvent.click(fileHeader);
+
+    expect(screen.getByText(/@@ -10,3 \+10,4 @@/)).toBeInTheDocument();
   });
 
   it('normalizes space-less • bullets into a markdown list', async () => {

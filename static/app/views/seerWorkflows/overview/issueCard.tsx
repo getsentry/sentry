@@ -25,6 +25,7 @@ import {
 import {t, tn} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
+import {FileDiffViewer} from 'sentry/views/seerExplorer/components/fileDiffViewer';
 
 import {ATTENTION_META, AttentionBadge, getAttentionReason} from './attentionBadge';
 import {StepIndicator} from './stepIndicator';
@@ -323,6 +324,23 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
               </Text>
             </Stack>
           </Container>
+        )}
+
+        {/* The drafted diff itself, but only when it's small enough to read
+            on a card (see the INLINE_DIFF_* limits): collapsed file headers
+            that expand in place, aligned with the body's text column */}
+        {row.inlinePatches && (
+          <Stack gap="xs" maxWidth="90ch">
+            {row.inlinePatches.map(({patch, repoName}) => (
+              <FileDiffViewer
+                key={`${repoName ?? ''}:${patch.path}`}
+                patch={patch}
+                repoName={repoName}
+                collapsible
+                showBorder
+              />
+            ))}
+          </Stack>
         )}
 
         {/* Bottom row: the analysis toggle stretches across the card's tail

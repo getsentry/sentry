@@ -1,3 +1,4 @@
+import type {FilePatch} from 'sentry/components/events/autofix/types';
 import type {Level} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 
@@ -77,6 +78,10 @@ export interface OverviewRow {
   // Plain-language title from the run's root-cause answer (see runQuestions).
   // Falls back to the raw issue title.
   headline?: string;
+  // Structured patches for the on-card differ; present only when the diff is
+  // small enough to render inline (see the INLINE_DIFF_* limits in
+  // buildOverviewRows).
+  inlinePatches?: Array<{patch: FilePatch; repoName?: string}>;
   isProcessing?: boolean;
   patchStats?: PatchStats;
   // The question autofix paused on, when status is NEED_MORE_INFORMATION and
