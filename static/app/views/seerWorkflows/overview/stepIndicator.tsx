@@ -157,17 +157,17 @@ export function StepIndicator({row}: {row: OverviewRow}) {
 
   const stepLabel = currentStep ? STEP_LABELS[currentStep] : undefined;
 
-  // Stage hue: a traffic-light countdown toward the fix — red when the run
-  // has only diagnosed the issue, amber once a plan exists, greening as the
-  // code and PR land. Matches the "N steps until issue fix" framing (red =
-  // far, green = imminent) so the ramp reads instantly without a legend.
-  // Run urgency stays on the action button and the tooltip's status word.
+  // Stage hue: heat builds as the fix gets closer, because so does the
+  // urgency of the human's move — quiet gray while Seer is still diagnosing,
+  // warming through amber as a plan and code land, hottest at PR-opened
+  // (review and merge is the one step left), then the green checkmark once
+  // merged puts the fire out.
   const stageRingColors = [
     undefined,
-    theme.colors.red400, // root cause — fix still far off
-    theme.colors.yellow400, // plan in hand
-    theme.colors.green300, // code drafted — nearly there
-    theme.colors.green500, // PR opened — one step out
+    theme.colors.gray400, // root cause — nothing to act on yet
+    theme.colors.yellow300, // plan in hand
+    theme.colors.yellow500, // code drafted — worth a look
+    theme.colors.red400, // PR opened — your move, one step from fixed
   ];
   const ringColor = stageRingColors[fill] ?? theme.tokens.content.secondary;
 
