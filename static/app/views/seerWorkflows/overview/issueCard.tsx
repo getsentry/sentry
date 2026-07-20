@@ -26,6 +26,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 
 import {ATTENTION_META, AttentionBadge, getAttentionReason} from './attentionBadge';
+import {StepIndicator} from './stepIndicator';
 import {TriggerBadge} from './triggerBadge';
 import type {OverviewRow, PatchStats} from './types';
 
@@ -117,7 +118,7 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
         {/* Header: title + change size + action */}
         <Flex justify="between" align="start" gap="md">
           <Flex gap="sm" align="center" minWidth="0" flex="1">
-            <ErrorLevel level={row.level} />
+            <StepIndicator row={row} />
             {/* The ellipsis Text is the shrinking flex item (overflow:hidden
                   resolves its min-width to 0); the Link must nest inside it or
                   the anchor refuses to shrink and the title overflows the card.
@@ -147,9 +148,9 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
             </Text>
           </Flex>
           <Flex gap="sm" align="center" flexShrink={0}>
-            {/* No stage chip here: the action verb already encodes the stage
-                  (Review PR ⇒ PR opened, Open PR ⇒ code drafted, …) and the
-                  Outcome filter covers querying by it. One fact + one action. */}
+            {/* No stage chip here: the step indicator up front carries the
+                  stage, the action verb carries what to do about it (Review
+                  PR ⇒ PR opened, Open PR ⇒ code drafted, …). */}
             {row.patchStats && (
               <Tooltip
                 title={<PatchFilesTooltip stats={row.patchStats} />}
@@ -281,6 +282,7 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
                         fixability read — the raw title lives in the headline
                         tooltip, not here */}
                     <Flex gap="sm" align="center">
+                      <ErrorLevel level={row.level} />
                       <Text size="xs" monospace variant="muted">
                         {row.shortId}
                       </Text>

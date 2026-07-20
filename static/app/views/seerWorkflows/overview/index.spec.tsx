@@ -175,6 +175,15 @@ describe('AutofixOverview', () => {
       'https://github.com/getsentry/sentry/pull/123'
     );
 
+    // The step indicator reads the full pipeline with the PR-opened glyph,
+    // and hovering it reveals the step checklist.
+    const indicator = screen.getByRole('img', {
+      name: 'Autofix progress: 4 of 4 steps — PR opened',
+    });
+    await userEvent.hover(indicator);
+    expect(await screen.findByText('✓ Root cause')).toBeInTheDocument();
+    expect(screen.getByText('✓ PR opened')).toBeInTheDocument();
+
     // Exact patch stats from merged_file_patches, not an LLM estimate.
     expect(screen.getByText('1 file')).toBeInTheDocument();
     expect(screen.getByText('+42')).toBeInTheDocument();
@@ -231,6 +240,9 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText(/•/)).not.toBeInTheDocument();
     // Fixability lives in the expanded state as a bucketed tag (0.75 > 0.7).
     expect(screen.getByText('High fixability')).toBeVisible();
+    // The issue level moved off the header into the identity strip — exactly
+    // one occurrence (ErrorLevel's visually-hidden label).
+    expect(screen.getAllByText('Level: Warning')).toHaveLength(1);
   });
 
   it('shows Diagnosis and Next steps when no code was drafted', async () => {
@@ -370,6 +382,11 @@ describe('AutofixOverview', () => {
       'href',
       `/organizations/${organization.slug}/issues/2/?seerDrawer=true`
     );
+
+    // A settled run gets no status word — just how far it got.
+    expect(
+      screen.getByRole('img', {name: 'Autofix progress: 1 of 4 steps — Root cause'})
+    ).toBeInTheDocument();
   });
 
   it('shows merged state and enables the Merged PRs card when the API returns PR state', async () => {
@@ -394,6 +411,11 @@ describe('AutofixOverview', () => {
     // The merged run wears a Merged tag instead of a Review PR action.
     expect(await screen.findByText('Merged')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Review PR'})).not.toBeInTheDocument();
+
+    // The step indicator renders its terminal all-success state.
+    expect(
+      screen.getByRole('img', {name: 'Autofix progress: PR merged'})
+    ).toBeInTheDocument();
 
     // The Merged PRs stat card is live and counts the row.
     const mergedCard = screen.getByRole('button', {name: /Merged PRs/});
@@ -500,6 +522,85 @@ describe('AutofixOverview', () => {
 
     expect(
       await screen.findByText('Seer asked: Which environment should I target?')
+    ).toBeInTheDocument();
+    // The indicator's current step wears the paused status.
+    expect(
+      screen.getByRole('img', {
+        name: 'Autofix progress: 1 of 4 steps — Root cause (Needs your input)',
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('shows a running step indicator for an in-flight run', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/2/autofix/`,
+      body: {
+        autofix: {
+          run_id: 1,
+          status: 'processing',
+          updated_at: '2026-07-14T10:00:00Z',
+          blocks: [
+            {
+              id: 'b1',
+              timestamp: '2026-07-14T09:00:00Z',
+              message: {
+                role: 'assistant',
+                content: 'rca',
+                metadata: {step: 'root_cause'},
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('img', {
+        name: 'Autofix progress: 1 of 4 steps — Root cause (Running)',
+      })
+    ).toBeInTheDocument();
+  });
+
+  it('shows an errored step indicator at the step the run died on', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/2/autofix/`,
+      body: {
+        autofix: {
+          run_id: 1,
+          status: 'error',
+          updated_at: '2026-07-14T10:00:00Z',
+          blocks: [
+            {
+              id: 'b1',
+              timestamp: '2026-07-14T09:00:00Z',
+              message: {
+                role: 'assistant',
+                content: 'rca',
+                metadata: {step: 'root_cause'},
+              },
+            },
+            {
+              id: 'b2',
+              timestamp: '2026-07-14T09:10:00Z',
+              message: {
+                role: 'assistant',
+                content: 'plan',
+                metadata: {step: 'solution'},
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('img', {
+        name: 'Autofix progress: 2 of 4 steps — Plan (Errored)',
+      })
     ).toBeInTheDocument();
   });
 
