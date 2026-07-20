@@ -115,122 +115,250 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
   return (
     <Container background="primary" border="primary" radius="md" padding="lg">
       <Stack gap="md">
-        {/* Header: title + change size + action */}
-        <Flex justify="between" align="start" gap="md">
-          <Flex gap="md" align="center" minWidth="0" flex="1">
-            <StepIndicator row={row} />
-            {/* The ellipsis Text is the shrinking flex item (overflow:hidden
+        {/* Title block: the header row plus its meta subline, tied together
+            with a tight gap so the subline reads as part of the title while
+            the card keeps its md rhythm between blocks */}
+        <Stack gap="xs">
+          {/* Header: title + change size + action */}
+          <Flex justify="between" align="start" gap="md">
+            <Flex gap="md" align="center" minWidth="0" flex="1">
+              <StepIndicator row={row} />
+              {/* The ellipsis Text is the shrinking flex item (overflow:hidden
                   resolves its min-width to 0); the Link must nest inside it or
                   the anchor refuses to shrink and the title overflows the card.
                   When Seer produced a plain-language headline it replaces the
                   raw issue title, which stays reachable via the tooltip and
                   the expanded details. */}
-            <Text bold ellipsis>
-              {row.headline ? (
-                <Tooltip
-                  maxWidth={480}
-                  title={
-                    <Stack gap="2xs">
-                      <Text size="xs" bold uppercase variant="muted" align="left">
-                        {t('Raw issue title')}
-                      </Text>
-                      <Text size="xs" align="left">
-                        {ellipsize(row.title, 200)}
-                      </Text>
-                    </Stack>
-                  }
-                >
-                  <TitleLink to={issueUrl}>{row.headline}</TitleLink>
-                </Tooltip>
-              ) : (
-                <TitleLink to={issueUrl}>{row.title}</TitleLink>
-              )}
-            </Text>
-          </Flex>
-          <Flex gap="sm" align="center" flexShrink={0}>
-            {/* No stage chip here: the step indicator up front carries the
+              <Text bold ellipsis>
+                {row.headline ? (
+                  <Tooltip
+                    maxWidth={480}
+                    title={
+                      <Stack gap="2xs">
+                        <Text size="xs" bold uppercase variant="muted" align="left">
+                          {t('Raw issue title')}
+                        </Text>
+                        <Text size="xs" align="left">
+                          {ellipsize(row.title, 200)}
+                        </Text>
+                      </Stack>
+                    }
+                  >
+                    <TitleLink to={issueUrl}>{row.headline}</TitleLink>
+                  </Tooltip>
+                ) : (
+                  <TitleLink to={issueUrl}>{row.title}</TitleLink>
+                )}
+              </Text>
+            </Flex>
+            <Flex gap="sm" align="center" flexShrink={0}>
+              {/* No stage chip here: the step indicator up front carries the
                   stage, the action verb carries what to do about it (Review
                   PR ⇒ PR opened, Open PR ⇒ code drafted, …). */}
-            {row.patchStats && (
-              <Tooltip
-                title={<PatchFilesTooltip stats={row.patchStats} />}
-                maxWidth={480}
-                skipWrapper
-              >
-                {/* Contained like its Tag/button neighbors so the diff size
-                      doesn't read as floating text */}
-                <Container
-                  border="muted"
-                  radius="sm"
-                  background="secondary"
-                  padding="2xs sm"
+              {row.patchStats && (
+                <Tooltip
+                  title={<PatchFilesTooltip stats={row.patchStats} />}
+                  maxWidth={480}
+                  skipWrapper
                 >
-                  <Text size="xs" variant="muted" monospace wrap="nowrap">
-                    {tn('%s file', '%s files', row.patchStats.files)}{' '}
-                    <Text size="xs" variant="success">
-                      +{row.patchStats.added}
-                    </Text>{' '}
-                    <Text size="xs" variant="danger">
-                      −{row.patchStats.removed}
+                  {/* Contained like its Tag/button neighbors so the diff size
+                      doesn't read as floating text */}
+                  <Container
+                    border="muted"
+                    radius="sm"
+                    background="secondary"
+                    padding="2xs sm"
+                  >
+                    <Text size="xs" variant="muted" monospace wrap="nowrap">
+                      {tn('%s file', '%s files', row.patchStats.files)}{' '}
+                      <Text size="xs" variant="success">
+                        +{row.patchStats.added}
+                      </Text>{' '}
+                      <Text size="xs" variant="danger">
+                        −{row.patchStats.removed}
+                      </Text>
                     </Text>
-                  </Text>
-                </Container>
-              </Tooltip>
-            )}
-            {row.statePending ? (
-              <Text variant="muted">{'…'}</Text>
-            ) : row.isProcessing ? (
-              <Tag variant="info">{t('Running')}</Tag>
-            ) : row.prMerged ? (
-              <Tooltip title={t('The pull request for this fix was merged.')}>
-                <Tag variant="success" icon={<IconMerge />}>
-                  {t('Merged')}
-                </Tag>
-              </Tooltip>
-            ) : attention === 'review_pr' && row.prUrl ? (
-              <Tooltip
-                title={
-                  row.prNumber
-                    ? t(
-                        'Autofix opened pull request #%s. Review and merge it.',
-                        row.prNumber
-                      )
-                    : ATTENTION_META.review_pr.description
-                }
-                skipWrapper
-              >
+                  </Container>
+                </Tooltip>
+              )}
+              {row.statePending ? (
+                <Text variant="muted">{'…'}</Text>
+              ) : row.isProcessing ? (
+                <Tag variant="info">{t('Running')}</Tag>
+              ) : row.prMerged ? (
+                <Tooltip title={t('The pull request for this fix was merged.')}>
+                  <Tag variant="success" icon={<IconMerge />}>
+                    {t('Merged')}
+                  </Tag>
+                </Tooltip>
+              ) : attention === 'review_pr' && row.prUrl ? (
+                <Tooltip
+                  title={
+                    row.prNumber
+                      ? t(
+                          'Autofix opened pull request #%s. Review and merge it.',
+                          row.prNumber
+                        )
+                      : ATTENTION_META.review_pr.description
+                  }
+                  skipWrapper
+                >
+                  <LinkButton
+                    size="zero"
+                    variant="warning"
+                    icon={<IconPullRequest />}
+                    href={row.prUrl}
+                    external
+                  >
+                    {ATTENTION_META.review_pr.label}
+                  </LinkButton>
+                </Tooltip>
+              ) : attention ? (
+                <AttentionBadge reason={attention} to={runUrl} />
+              ) : (
+                <Tooltip title={t('Open the Seer run for this issue.')} skipWrapper>
+                  <LinkButton size="zero" variant="secondary" to={runUrl}>
+                    {t('View run')}
+                  </LinkButton>
+                </Tooltip>
+              )}
+              {row.prUrl && attention !== 'review_pr' && (
                 <LinkButton
                   size="zero"
-                  variant="warning"
+                  variant="link"
                   icon={<IconPullRequest />}
                   href={row.prUrl}
                   external
                 >
-                  {ATTENTION_META.review_pr.label}
+                  {row.prNumber ? `#${row.prNumber}` : t('PR')}
                 </LinkButton>
-              </Tooltip>
-            ) : attention ? (
-              <AttentionBadge reason={attention} to={runUrl} />
-            ) : (
-              <Tooltip title={t('Open the Seer run for this issue.')} skipWrapper>
-                <LinkButton size="zero" variant="secondary" to={runUrl}>
-                  {t('View run')}
-                </LinkButton>
-              </Tooltip>
-            )}
-            {row.prUrl && attention !== 'review_pr' && (
-              <LinkButton
-                size="zero"
-                variant="link"
-                icon={<IconPullRequest />}
-                href={row.prUrl}
-                external
-              >
-                {row.prNumber ? `#${row.prNumber}` : t('PR')}
-              </LinkButton>
-            )}
+              )}
+            </Flex>
           </Flex>
-        </Flex>
+          {/* Meta subline: the collapsed analysis on the left, provenance +
+            vitals as one quiet metadata run on the right */}
+          <Flex justify="between" align="start" gap="md">
+            <Container flex="1" minWidth="0">
+              {detailEntries.length > 0 && (
+                <Disclosure size="xs">
+                  <Disclosure.Title>{t('Full analysis')}</Disclosure.Title>
+                  <Disclosure.Content>
+                    <Stack gap="md" paddingTop="xs">
+                      {/* Compact identity strip: the short id and Seer's
+                        fixability read — the raw title lives in the headline
+                        tooltip, not here */}
+                      <Flex gap="sm" align="center">
+                        <ErrorLevel level={row.level} />
+                        <Text size="xs" monospace variant="muted">
+                          {row.shortId}
+                        </Text>
+                        {typeof row.fixabilityScore === 'number' && (
+                          <FixabilityTag score={row.fixabilityScore} />
+                        )}
+                      </Flex>
+                      {/* Sections share the body blocks' icon+label voice and
+                        sit side by side on wide screens instead of leaving
+                        the card's right half empty */}
+                      <Grid
+                        columns={{xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))'}}
+                        gap="lg xl"
+                        align="start"
+                      >
+                        {detailEntries.map(entry => {
+                          const section =
+                            entry.key === 'reviewer_notes'
+                              ? isFixBody
+                                ? {
+                                    label: t('Review checklist'),
+                                    icon: (
+                                      <IconCircleCheckmark
+                                        size="xs"
+                                        variant="muted"
+                                        aria-hidden
+                                      />
+                                    ),
+                                  }
+                                : {
+                                    label: t('Next steps'),
+                                    icon: (
+                                      <IconArrow
+                                        direction="right"
+                                        size="xs"
+                                        variant="muted"
+                                        aria-hidden
+                                      />
+                                    ),
+                                  }
+                              : {
+                                  label: entry.label,
+                                  icon: (
+                                    <IconFocus size="xs" variant="muted" aria-hidden />
+                                  ),
+                                };
+                          return (
+                            <Stack key={entry.key} gap="xs">
+                              <Flex gap="xs" align="center">
+                                {section.icon}
+                                <Text size="xs" bold uppercase variant="muted">
+                                  {section.label}
+                                </Text>
+                              </Flex>
+                              <Text size="sm" density="comfortable" as="div">
+                                <SeerMarkdown raw={entry.answer} />
+                              </Text>
+                            </Stack>
+                          );
+                        })}
+                      </Grid>
+                    </Stack>
+                  </Disclosure.Content>
+                </Disclosure>
+              )}
+            </Container>
+            {/* "Manual" is the default trigger and reads as noise on every
+              card; only non-default triggers earn a badge. The xs top padding
+              optically centers the run against the disclosure button text. */}
+            <Flex gap="md" align="center" flexShrink={0} paddingTop="xs">
+              {row.trigger !== 'manual' && (
+                <TriggerBadge trigger={row.trigger} rawSource={row.rawSource} />
+              )}
+              <Flex gap="xs" align="center">
+                <Tooltip
+                  title={
+                    row.userCount > 0
+                      ? t(
+                          '%s events and %s affected users in the last 90 days',
+                          row.eventCount.toLocaleString(),
+                          row.userCount.toLocaleString()
+                        )
+                      : t(
+                          '%s events in the last 90 days',
+                          row.eventCount.toLocaleString()
+                        )
+                  }
+                >
+                  <Text size="xs" variant="muted">
+                    {eventCountLabel}
+                    {row.userCount > 0 && ` · ${userCountLabel}`}
+                  </Text>
+                </Tooltip>
+                <Text size="xs" variant="muted" aria-hidden>
+                  {'·'}
+                </Text>
+                <Text size="xs" variant="muted" wrap="nowrap">
+                  <TimeSince
+                    date={row.lastActivityAt}
+                    prefix={t('updated')}
+                    tooltipPrefix={t('Last activity on this Seer run')}
+                  />
+                </Text>
+              </Flex>
+              <Tooltip title={t('Project')} skipWrapper>
+                <ProjectBadge project={row.project} avatarSize={14} disableLink />
+              </Tooltip>
+            </Flex>
+          </Flex>
+        </Stack>
 
         {/* The question autofix is blocked on, surfaced right on the card */}
         {row.pendingQuestion && (
@@ -268,125 +396,6 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
             </Stack>
           </Container>
         )}
-
-        {/* Footer: the collapsed analysis on the left, project pinned in the
-            card's bottom-right corner */}
-        <Flex justify="between" align="start" gap="md" borderTop="muted" paddingTop="sm">
-          <Container flex="1" minWidth="0">
-            {detailEntries.length > 0 && (
-              <Disclosure size="xs">
-                <Disclosure.Title>{t('Full analysis')}</Disclosure.Title>
-                <Disclosure.Content>
-                  <Stack gap="md" paddingTop="xs">
-                    {/* Compact identity strip: the short id and Seer's
-                        fixability read — the raw title lives in the headline
-                        tooltip, not here */}
-                    <Flex gap="sm" align="center">
-                      <ErrorLevel level={row.level} />
-                      <Text size="xs" monospace variant="muted">
-                        {row.shortId}
-                      </Text>
-                      {typeof row.fixabilityScore === 'number' && (
-                        <FixabilityTag score={row.fixabilityScore} />
-                      )}
-                    </Flex>
-                    {/* Sections share the body blocks' icon+label voice and
-                        sit side by side on wide screens instead of leaving
-                        the card's right half empty */}
-                    <Grid
-                      columns={{xs: '1fr', lg: 'repeat(2, minmax(0, 1fr))'}}
-                      gap="lg xl"
-                      align="start"
-                    >
-                      {detailEntries.map(entry => {
-                        const section =
-                          entry.key === 'reviewer_notes'
-                            ? isFixBody
-                              ? {
-                                  label: t('Review checklist'),
-                                  icon: (
-                                    <IconCircleCheckmark
-                                      size="xs"
-                                      variant="muted"
-                                      aria-hidden
-                                    />
-                                  ),
-                                }
-                              : {
-                                  label: t('Next steps'),
-                                  icon: (
-                                    <IconArrow
-                                      direction="right"
-                                      size="xs"
-                                      variant="muted"
-                                      aria-hidden
-                                    />
-                                  ),
-                                }
-                            : {
-                                label: entry.label,
-                                icon: <IconFocus size="xs" variant="muted" aria-hidden />,
-                              };
-                        return (
-                          <Stack key={entry.key} gap="xs">
-                            <Flex gap="xs" align="center">
-                              {section.icon}
-                              <Text size="xs" bold uppercase variant="muted">
-                                {section.label}
-                              </Text>
-                            </Flex>
-                            <Text size="sm" density="comfortable" as="div">
-                              <SeerMarkdown raw={entry.answer} />
-                            </Text>
-                          </Stack>
-                        );
-                      })}
-                    </Grid>
-                  </Stack>
-                </Disclosure.Content>
-              </Disclosure>
-            )}
-          </Container>
-          {/* Provenance + vitals read as one quiet metadata line */}
-          <Flex gap="md" align="center" flexShrink={0}>
-            {/* "Manual" is the default trigger and reads as noise on every
-                card; only non-default triggers earn a badge */}
-            {row.trigger !== 'manual' && (
-              <TriggerBadge trigger={row.trigger} rawSource={row.rawSource} />
-            )}
-            <Flex gap="xs" align="center">
-              <Tooltip
-                title={
-                  row.userCount > 0
-                    ? t(
-                        '%s events and %s affected users in the last 90 days',
-                        row.eventCount.toLocaleString(),
-                        row.userCount.toLocaleString()
-                      )
-                    : t('%s events in the last 90 days', row.eventCount.toLocaleString())
-                }
-              >
-                <Text size="xs" variant="muted">
-                  {eventCountLabel}
-                  {row.userCount > 0 && ` · ${userCountLabel}`}
-                </Text>
-              </Tooltip>
-              <Text size="xs" variant="muted" aria-hidden>
-                {'·'}
-              </Text>
-              <Text size="xs" variant="muted" wrap="nowrap">
-                <TimeSince
-                  date={row.lastActivityAt}
-                  prefix={t('updated')}
-                  tooltipPrefix={t('Last activity on this Seer run')}
-                />
-              </Text>
-            </Flex>
-            <Tooltip title={t('Project')} skipWrapper>
-              <ProjectBadge project={row.project} avatarSize={14} disableLink />
-            </Tooltip>
-          </Flex>
-        </Flex>
       </Stack>
     </Container>
   );
