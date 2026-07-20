@@ -335,19 +335,22 @@ def _fetch_and_score_agentic(
     without_data = [g for g in candidates if g.id not in factors]
     scores = _agentic_triage_score([g.id for g in with_data], factors)
     with_data.sort(key=lambda g: scores.get(g.id, 0.0), reverse=True)
-    top = (with_data + without_data)[:max_candidates]
 
-    # Step 4: Re-rank by fixability (descending, nulls last). Drop issues
-    # with fixability below the threshold — same filter as the recommended path.
-    top.sort(
+    # Step 4: Filter by fixability threshold BEFORE truncating, so below-threshold
+    # issues don't consume slots. Then re-rank by fixability and take top N.
+    eligible = [
+        g
+        for g in with_data + without_data
+        if g.seer_fixability_score is None or g.seer_fixability_score >= FIXABILITY_SCORE_THRESHOLD
+    ]
+    eligible.sort(
         key=lambda g: (g.seer_fixability_score is not None, g.seer_fixability_score or 0.0),
         reverse=True,
     )
 
     return [
         ScoredCandidate(group=g, fixability=g.seer_fixability_score, times_seen=g.times_seen)
-        for g in top
-        if g.seer_fixability_score is None or g.seer_fixability_score >= FIXABILITY_SCORE_THRESHOLD
+        for g in eligible[:max_candidates]
     ]
 
 
