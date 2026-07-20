@@ -9,7 +9,8 @@ quota and rewrite the PR).
 
 This covers only top-level PR comments (``issue_comment``). Inline review
 comments arrive via the ``pull_request_review`` SCM listener (see ``review.py``),
-which acts on the whole submitted review without requiring an ``@sentry`` command.
+which acts on the whole submitted review without requiring an ``@sentry`` command
+but still gates on the review author's repo write access.
 """
 
 from __future__ import annotations

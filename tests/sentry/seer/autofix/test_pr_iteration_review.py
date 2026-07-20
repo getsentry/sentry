@@ -89,6 +89,8 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         assert kwargs["integration_id"] == 42
         assert kwargs["pr_number"] == 7
         assert kwargs["review_id"] == 500
+        # Author is threaded to the task, which gates on its repo write access.
+        assert kwargs["author_username"] == "reviewer"
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
     @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
@@ -102,10 +104,12 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
     @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
-    def test_bot_review_is_acted_on(self, mock_contexts: MagicMock, mock_delay: MagicMock) -> None:
+    def test_bot_review_is_dispatched_for_write_check(
+        self, mock_contexts: MagicMock, mock_delay: MagicMock
+    ) -> None:
         self._mock_org_contexts(mock_contexts)
-        # Any submitted review triggers an iteration, including bot reviews — our
-        # own app's code review and third-party AI review bots alike.
+        # The listener dispatches every submitted review, bots included; the repo
+        # write-access gate is enforced downstream in the task, not here.
         with self.feature("organizations:autofix-pr-iteration"):
             handle_pull_request_review_for_autofix_iteration(
                 self._event(author_id="333333", is_bot=True)
@@ -147,6 +151,8 @@ class _ScmStub:
     def get_review_comments(self, *args: Any, **kwargs: Any) -> Any: ...
 
     def get_pull_request_review(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def get_repository_user_permission(self, *args: Any, **kwargs: Any) -> Any: ...
 
     def create_review_comment_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
 
@@ -191,6 +197,9 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_actions.get_pull_request_review.return_value = self._review_result(
             {"id": "500", "html_url": "https://x/500", "body": "overall summary"}
         )
+        # Default the author to a repo collaborator with write access; tests that
+        # exercise the gate override this.
+        self.mock_actions.get_repository_user_permission.return_value = {"data": {"perms": "write"}}
 
     def _agent_state(self, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
         return SeerRunState(
@@ -252,13 +261,14 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def _review_result(self, review: dict[str, Any]) -> dict[str, Any]:
         return {"data": review, "type": "github", "raw": {}}
 
-    def _run(self) -> None:
+    def _run(self, author_username: str | None = "reviewer") -> None:
         trigger_pr_iteration_from_review(
             organization_id=self.organization.id,
             repo_id=self.repo.id,
             integration_id=42,
             pr_number=7,
             review_id=500,
+            author_username=author_username,
         )
 
     def test_batch_review_with_inline_comments_and_body(self) -> None:
@@ -467,3 +477,26 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
         self.mock_actions.create_review_comment_reaction.assert_not_called()
+
+    def test_skips_review_without_repo_write_access(self) -> None:
+        # A reviewer lacking write/admin can't drive an iteration: drop before
+        # enqueueing or :eyes:-acking so their feedback isn't acted on.
+        self.mock_actions.get_repository_user_permission.return_value = {"data": {"perms": "read"}}
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        self._run()
+
+        self.mock_enqueue.assert_not_called()
+        self.mock_consume.assert_not_called()
+        self.mock_actions.create_review_comment_reaction.assert_not_called()
+
+    def test_skips_review_with_no_author(self) -> None:
+        # No author username means we can't check access, so drop without even
+        # calling the permission endpoint.
+        self._run(author_username=None)
+
+        self.mock_actions.get_repository_user_permission.assert_not_called()
+        self.mock_enqueue.assert_not_called()
+        self.mock_consume.assert_not_called()

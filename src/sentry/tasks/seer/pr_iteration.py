@@ -672,6 +672,7 @@ def trigger_pr_iteration_from_review(
     integration_id: int,
     pr_number: int,
     review_id: int,
+    author_username: str | None = None,
 ) -> None:
     """
     Resolve the Autofix run behind a submitted PR review and kick off an iteration.
@@ -680,14 +681,16 @@ def trigger_pr_iteration_from_review(
     to recover its GitHub id, looks up the agent run keyed on that id, fetches the
     review's inline comments and summary body, and triggers the iteration with the
     whole review as feedback. Unlike the comment path there is no ``@sentry``
-    command gate and no repo-write-access gate — any submitted review is acted on,
-    including our own app's reviews (Seer code review is a signal we iterate on).
+    command gate — any submitted review with content is acted on — but the review
+    author must have repo write/admin access, so an untrusted reviewer can't spend
+    Autofix quota or inject feedback that rewrites the PR.
     """
     log_extra = {
         "organization_id": organization_id,
         "repo_id": repo_id,
         "pr_number": pr_number,
         "review_id": review_id,
+        "author_username": author_username,
     }
 
     repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
@@ -754,6 +757,14 @@ def trigger_pr_iteration_from_review(
         scm, GetPullRequestReviewProtocol
     ):
         logger.warning("autofix.pr_iteration.review_trigger.unsupported_provider", extra=log_extra)
+        return None
+
+    # Gate on repo write access before fetching, enqueueing, or acking: a review
+    # from someone without write/admin is silently dropped so an untrusted
+    # reviewer can't spend Autofix quota or inject feedback that rewrites the PR.
+    if not author_username or not _github_commenter_has_repo_write_access(scm, author_username):
+        metrics.incr("autofix.pr_iteration.review_trigger.no_write_access")
+        logger.info("autofix.pr_iteration.review_trigger.no_write_access", extra=log_extra)
         return None
 
     inline_comments = _fetch_all_review_comments(scm, pr_number=pr_number, review_id=review_id)

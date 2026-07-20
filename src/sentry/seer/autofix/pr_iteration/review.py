@@ -17,8 +17,9 @@ another, and take a single ``PullRequestReviewEvent`` argument.
 The listener filters to submitted reviews, resolves org/integration/repo context
 from the event, feature-gates, and hands off to ``trigger_pr_iteration_from_review``
 which fetches the review's inline comments and summary body and dispatches an
-Autofix PR iteration. Reviews from our own app are acted on too — Seer's own code
-review is a signal we want to iterate on.
+Autofix PR iteration. The task gates on the review author's repo write access, so
+a review only drives an iteration when its author could push the change
+themselves.
 """
 
 from __future__ import annotations
@@ -156,6 +157,7 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
             integration_id=integration.id,
             pr_number=pr_number,
             review_id=review_id,
+            author_username=event.author.get("username"),
         )
         dispatched = True
 
