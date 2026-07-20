@@ -13,9 +13,6 @@ importers:
 
   .:
     dependencies:
-      js-yaml:
-        specifier: ^3.15.0
-        version: 3.15.0
       json-diff:
         specifier: ^0.7.1
         version: 0.7.4
@@ -28,10 +25,10 @@ importers:
       sane:
         specifier: ^5.0.1
         version: 5.0.1
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
     devDependencies:
-      '@types/js-yaml':
-        specifier: ^4.0.5
-        version: 4.0.9
       '@types/json-diff':
         specifier: ^0.7.0
         version: 0.7.0
@@ -60,9 +57,6 @@ packages:
     engines: {node: '>= 10.16.0'}
     peerDependencies:
       jsep: ^0.4.0||^1.0.0
-
-  '@types/js-yaml@4.0.9':
-    resolution: {integrity: sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg==}
 
   '@types/json-diff@0.7.0':
     resolution: {integrity: sha512-20IJqupGHywtIaE6fS30iygh3dVqVdzmsnrYn/VFuRaQKxLx/RGH5K9hhCfctVxgN7KzJlnD7gYFAOrNwiCgtA==}
@@ -639,9 +633,9 @@ packages:
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
-  yaml@2.7.1:
-    resolution: {integrity: sha512-10ULxpnOCQXxJvBgxsn9ptjq6uviG/htZKk9veJGhlqn3w/DxQ631zFF+nlQXLwmImeS5amR2dl2U8sg6U9jsQ==}
-    engines: {node: '>= 14'}
+  yaml@2.9.0:
+    resolution: {integrity: sha512-2AvhNX3mb8zd6Zy7INTtSpl1F15HW6Wnqj0srWlkKLcpYl/gMIMJiyuGq2KeI2YFxUPjdlB+3Lc10seMLtL4cA==}
+    engines: {node: '>= 14.6'}
     hasBin: true
 
 snapshots:
@@ -667,8 +661,6 @@ snapshots:
   '@jsep-plugin/regex@1.0.4(jsep@1.4.0)':
     dependencies:
       jsep: 1.4.0
-
-  '@types/js-yaml@4.0.9': {}
 
   '@types/json-diff@0.7.0': {}
 
@@ -1150,7 +1142,7 @@ snapshots:
       lodash.flatmap: 4.5.0
       lodash.flatten: 4.4.0
       lodash.merge: 4.6.2
-      yaml: 2.7.1
+      yaml: 2.9.0
 
   path-key@3.1.1: {}
 
@@ -1283,4 +1275,4 @@ snapshots:
 
   wrappy@1.0.2: {}
 
-  yaml@2.7.1: {}
+  yaml@2.9.0: {}
