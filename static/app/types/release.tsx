@@ -93,7 +93,6 @@ interface ReleaseData {
   lastEvent: string;
   // TODO(ts)
   newGroups: number;
-  versionInfo: VersionInfo;
   adoptionStages?: Record<
     string,
     {
@@ -106,6 +105,7 @@ interface ReleaseData {
   lastDeploy?: Deploy;
   owner?: any;
   userAgent?: string;
+  versionInfo?: VersionInfo;
 }
 
 export type ReleaseProject = {

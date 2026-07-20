@@ -52,7 +52,7 @@ export function GeneralCard({
       item: {
         key: t('Semver'),
         subject: t('Semver'),
-        value: releaseDetails ? (
+        value: releaseDetails?.versionInfo ? (
           isVersionInfoSemver(releaseDetails.versionInfo.version) ? (
             t('Yes')
           ) : (
@@ -67,7 +67,7 @@ export function GeneralCard({
       item: {
         key: t('Package'),
         subject: t('Package'),
-        value: releaseDetails ? (
+        value: releaseDetails?.versionInfo ? (
           (releaseDetails.versionInfo.package ?? '\u2014')
         ) : (
           <TinyPlaceholder />

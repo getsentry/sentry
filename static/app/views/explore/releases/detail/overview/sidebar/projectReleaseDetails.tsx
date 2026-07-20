@@ -138,13 +138,13 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
                 </Tooltip>
               </Flex>
             }
-            value={isVersionInfoSemver(versionInfo.version) ? t('Yes') : t('No')}
+            value={isVersionInfoSemver(versionInfo?.version) ? t('Yes') : t('No')}
           />
           <KeyValueTableRow
             keyName={t('Package')}
             value={
               <StyledTextOverflow ellipsisDirection="left">
-                {versionInfo.package ?? '\u2014'}
+                {versionInfo?.package ?? '\u2014'}
               </StyledTextOverflow>
             }
           />
