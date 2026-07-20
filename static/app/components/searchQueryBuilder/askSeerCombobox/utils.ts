@@ -389,10 +389,7 @@ const FILTER_PHRASES: ReadonlyArray<{
 
 function valueAt(words: string[], index: number): string | undefined {
   const token = words[index];
-  if (token === undefined) {
-    return undefined;
-  }
-  return token.endsWith(',') ? token.slice(0, -1) : token;
+  return token?.endsWith(',') ? token.slice(0, -1) : token;
 }
 
 /**

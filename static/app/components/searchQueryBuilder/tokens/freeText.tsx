@@ -42,6 +42,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
+import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
@@ -249,6 +250,33 @@ function HiddenText({
   );
 }
 
+/**
+ * Best-effort local conversion of "humanized ESQ" into a real ESQ query.
+ * Runs on every keystroke; returns null when the feature is off or the input
+ * isn't cleanly invertible, so the existing Seer path is left unchanged.
+ */
+function useHumanizedEsqSuggestion(
+  filterKeys: TagCollection,
+  inputValue: string
+): string | null {
+  const organization = useOrganization();
+  const hasHumanizedEsq = organization.features.includes(
+    'search-query-builder-humanized-esq'
+  );
+
+  return useMemo(() => {
+    if (!hasHumanizedEsq) {
+      return null;
+    }
+    const trimmed = inputValue.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const esq = parseNaturalLanguageToQuery(trimmed, key => Boolean(filterKeys[key]));
+    return esq && esq !== trimmed ? esq : null;
+  }, [hasHumanizedEsq, inputValue, filterKeys]);
+}
+
 function SearchQueryBuilderInputInternal({
   item,
   token,
@@ -304,22 +332,7 @@ function SearchQueryBuilderInputInternal({
       includeSuggestions: true,
     });
 
-  // Best-effort local conversion of "humanized ESQ".
-  // Runs on every keystroke; returns null when the input isn't cleanly invertible
-  const hasHumanizedEsq = organization.features.includes(
-    'search-query-builder-humanized-esq'
-  );
-  const humanizedEsqSuggestion = useMemo(() => {
-    if (!hasHumanizedEsq) {
-      return null;
-    }
-    const trimmed = inputValue.trim();
-    if (!trimmed) {
-      return null;
-    }
-    const esq = parseNaturalLanguageToQuery(trimmed, key => Boolean(filterKeys[key]));
-    return esq && esq !== trimmed ? esq : null;
-  }, [hasHumanizedEsq, inputValue, filterKeys]);
+  const humanizedEsqSuggestion = useHumanizedEsqSuggestion(filterKeys, inputValue);
 
   // A valid conversion must surface the Convert row in the flat list. When the
   // input ends in a space the word-at-cursor is empty, which would otherwise
