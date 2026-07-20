@@ -1,11 +1,10 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any, cast
 
 from django.conf import settings
 from rest_framework import serializers
 
 from sentry.models.custominboundfilter import (
-    PRIMARY_CONDITION_TYPES,
     CustomInboundFilter,
     CustomInboundFilterConditionType,
 )
@@ -519,31 +518,35 @@ def _custom_error_message_condition(values: list[str]) -> RuleCondition:
 
 # Where a condition type's data lives: either a Relay Getter field path
 # (matched with a glob), or a builder for condition types that span multiple
-# fields. The filter's primary condition type selects the item type the filter
-# applies to and thereby the location table; filters with only release
-# conditions (key None) apply to events, mirroring the legacy `releases`
-# inbound filter.
+# fields.
 _ConditionLocation = str | Callable[[list[str]], RuleCondition]
 
-_CONDITION_LOCATIONS: dict[
-    CustomInboundFilterConditionType | None,
-    dict[CustomInboundFilterConditionType, _ConditionLocation],
-] = {
-    None: {
-        CustomInboundFilterConditionType.RELEASE: "event.release",
-    },
-    CustomInboundFilterConditionType.ERROR_MESSAGE: {
-        CustomInboundFilterConditionType.ERROR_MESSAGE: _custom_error_message_condition,
-        CustomInboundFilterConditionType.RELEASE: "event.release",
-    },
-    CustomInboundFilterConditionType.LOG_MESSAGE: {
-        CustomInboundFilterConditionType.LOG_MESSAGE: "log.body",
-        CustomInboundFilterConditionType.RELEASE: "log.attributes.sentry.release.value",
-    },
-    CustomInboundFilterConditionType.METRIC_NAME: {
-        CustomInboundFilterConditionType.METRIC_NAME: "trace_metric.name",
-        CustomInboundFilterConditionType.RELEASE: "trace_metric.attributes.sentry.release.value",
-    },
+# Where each condition type's data lives on one ingestion item type.
+_ItemTypeLocations = Mapping[CustomInboundFilterConditionType, _ConditionLocation]
+
+_EVENT_LOCATIONS: _ItemTypeLocations = {
+    CustomInboundFilterConditionType.ERROR_MESSAGE: _custom_error_message_condition,
+    CustomInboundFilterConditionType.RELEASE: "event.release",
+}
+
+_LOG_LOCATIONS: _ItemTypeLocations = {
+    CustomInboundFilterConditionType.LOG_MESSAGE: "log.body",
+    CustomInboundFilterConditionType.RELEASE: "log.attributes.sentry.release.value",
+}
+
+_TRACE_METRIC_LOCATIONS: _ItemTypeLocations = {
+    CustomInboundFilterConditionType.METRIC_NAME: "trace_metric.name",
+    CustomInboundFilterConditionType.RELEASE: "trace_metric.attributes.sentry.release.value",
+}
+
+# A filter's primary condition type selects the item type it applies to.
+# Filters with only release conditions (key None) apply to events, mirroring
+# the legacy `releases` inbound filter.
+_LOCATIONS_BY_PRIMARY_TYPE: dict[CustomInboundFilterConditionType | None, _ItemTypeLocations] = {
+    None: _EVENT_LOCATIONS,
+    CustomInboundFilterConditionType.ERROR_MESSAGE: _EVENT_LOCATIONS,
+    CustomInboundFilterConditionType.LOG_MESSAGE: _LOG_LOCATIONS,
+    CustomInboundFilterConditionType.METRIC_NAME: _TRACE_METRIC_LOCATIONS,
 }
 
 
@@ -573,8 +576,8 @@ def _custom_filter_condition(conditions: list[dict[str, Any]]) -> RuleCondition 
 
         parsed.append((condition_type, values))
 
-    primary_type = next((ty for ty, _ in parsed if ty in PRIMARY_CONDITION_TYPES), None)
-    locations = _CONDITION_LOCATIONS[primary_type]
+    primary_type = next((ty for ty, _ in parsed if ty in _LOCATIONS_BY_PRIMARY_TYPE), None)
+    locations = _LOCATIONS_BY_PRIMARY_TYPE[primary_type]
 
     rule_conditions: list[RuleCondition] = []
     for condition_type, values in parsed:
