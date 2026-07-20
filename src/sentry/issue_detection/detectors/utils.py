@@ -187,9 +187,7 @@ def get_span_evidence_value(span: Span | None = None, include_op: bool = True) -
     elif not desc and op:
         value = op
     elif op and desc:
-        value = f"{op} - {desc}"
-        if not include_op:
-            value = desc
+        value = f"{op} - {desc}" if include_op else desc
 
     return value
 
