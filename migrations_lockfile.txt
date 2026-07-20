@@ -29,7 +29,7 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0027_add_seer_run_coding_agent_handoff
+seer: 0028_seer_run_pull_request_coding_agent_handoff
 
 sentry: 1140_organizationcontributors_unique_provider_hostname
 
