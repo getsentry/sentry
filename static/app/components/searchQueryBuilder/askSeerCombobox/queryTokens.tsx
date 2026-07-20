@@ -58,7 +58,7 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="filter">
         <ExploreParamTitle>{t('Filter')}</ExploreParamTitle>
-        <Stack wrap="wrap" gap="xs" overflow="hidden">
+        <Stack gap="xs" overflow="hidden">
           {parsedQuery
             .filter(({text}) => text.trim() !== '')
             .map(({text}) => (
@@ -75,7 +75,7 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="visualization">
         <ExploreParamTitle>{t('Visualization')}</ExploreParamTitle>
-        <Stack as="span" wrap="wrap" gap="xs" overflow="hidden">
+        <Stack as="span" gap="xs" overflow="hidden">
           {visualizations.map((visualization, vIdx) =>
             visualization.yAxes.map(yAxis => (
               <ExploreVisualizes key={`${vIdx}-${yAxis}`}>{yAxis}</ExploreVisualizes>
@@ -90,7 +90,7 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="interval">
         <ExploreParamTitle>{t('Interval')}</ExploreParamTitle>
-        <Stack as="span" wrap="wrap" gap="xs" overflow="hidden">
+        <Stack as="span" gap="xs" overflow="hidden">
           <ExploreGroupBys>{interval}</ExploreGroupBys>
         </Stack>
       </Stack>
@@ -101,7 +101,7 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="groupBy">
         <ExploreParamTitle>{t('Group By')}</ExploreParamTitle>
-        <Stack as="span" wrap="wrap" gap="xs" overflow="hidden">
+        <Stack as="span" gap="xs" overflow="hidden">
           {groupBys.map((groupBy, idx) => (
             <ExploreGroupBys key={idx}>{groupBy}</ExploreGroupBys>
           ))}
@@ -124,7 +124,7 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="timeRange">
         <ExploreParamTitle>{t('Time Range')}</ExploreParamTitle>
-        <Stack as="span" wrap="wrap" gap="xs" overflow="hidden">
+        <Stack as="span" gap="xs" overflow="hidden">
           <ExploreGroupBys>{statsPeriod}</ExploreGroupBys>
         </Stack>
       </Stack>
@@ -139,7 +139,7 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="projects">
         <ExploreParamTitle>{t('Projects')}</ExploreParamTitle>
-        <Stack as="span" wrap="wrap" gap="xs" overflow="hidden">
+        <Stack as="span" gap="xs" overflow="hidden">
           {shownSlugs.map(slug => (
             <ExploreGroupBys key={slug}>{slug}</ExploreGroupBys>
           ))}
@@ -155,7 +155,7 @@ function NewQueryTokens({
     tokens.push(
       <Stack key="sort">
         <ExploreParamTitle>{t('Sort')}</ExploreParamTitle>
-        <Stack as="span" wrap="wrap" gap="xs" overflow="hidden">
+        <Stack as="span" gap="xs" overflow="hidden">
           <ExploreGroupBys>
             {sort[0] === '-' ? sort.slice(1) + ' Desc' : sort + ' Asc'}
           </ExploreGroupBys>
