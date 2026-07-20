@@ -124,12 +124,14 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
         },
       },
       trailingActions: [
-        {
-          type: 'copy' as const,
-          text: replayUrlWithTimestamp,
-          label: t('Copy link to replay at current timestamp'),
-          tooltip: t('Copy link to replay at current timestamp'),
-        },
+        replayRecord
+          ? {
+              type: 'copy' as const,
+              text: replayUrlWithTimestamp,
+              label: t('Copy link to replay at current timestamp'),
+              tooltip: t('Copy link to replay at current timestamp'),
+            }
+          : null,
         shouldShowRefreshButton
           ? {
               type: 'button' as const,
