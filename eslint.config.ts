@@ -9,7 +9,6 @@
  * `npx eslint --inspect-config`
  */
 
-import e18e from '@e18e/eslint-plugin';
 /**
  * Import Linting Strategy
  *
@@ -25,6 +24,7 @@ import e18e from '@e18e/eslint-plugin';
  *    - Controls which internal modules can import from each other
  *    - Examples: preventing sentry from importing getsentry, core isolation, test boundaries
  */
+import e18e from '@e18e/eslint-plugin';
 import * as emotion from '@emotion/eslint-plugin';
 import eslint from '@eslint/js';
 import pluginQuery from '@tanstack/eslint-plugin-query';
@@ -833,7 +833,13 @@ export default typescript.config([
     extends: [unicorn.configs.unopinionated],
     rules: {
       'unicorn/custom-error-definition': 'error',
-      'unicorn/filename-case': ['error', {case: 'camelCase'}],
+      'unicorn/filename-case': [
+        'error',
+        {
+          case: 'camelCase',
+          ignore: ['/type-loader\\.', '/__mocks__/', '/ios-device-list\\.tsx$'],
+        },
+      ],
       'unicorn/no-array-push-push': 'error',
       'unicorn/no-instanceof-array': 'error',
       'unicorn/no-single-promise-in-promise-methods': 'warn', // TODO(ryan953): Fix violations and enable this rule
