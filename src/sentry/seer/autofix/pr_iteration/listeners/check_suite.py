@@ -8,13 +8,20 @@ from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
-from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
+from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
+    MISSING_AUTOFIX_RUN_MESSAGE,
+    CheckSuiteFeedbackSource,
+)
 from sentry.seer.autofix.pr_iteration.queue import try_enqueue_autofix_feedback
 
 logger = logging.getLogger(__name__)
 
 # Values match scm BuildConclusion after GitHub normalization (startup_failure → failure).
 CONCLUSIONS = ["failure", "timed_out", "action_required"]
+
+
+def _is_missing_autofix_run(exc: ValidationError) -> bool:
+    return any(MISSING_AUTOFIX_RUN_MESSAGE in (err.get("msg") or "") for err in exc.errors())
 
 
 @scm_event_stream.listen_for(event_type="check_suite")
@@ -27,16 +34,24 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
 
     try:
         raw = orjson.loads(check_suite_event.subscription_event["event"])
-        source = CheckSuiteFeedbackSource(event=raw)
-    except (orjson.JSONDecodeError, ValidationError, TypeError, ValueError) as e:
+    except orjson.JSONDecodeError as e:
         # Malformed webhook payload — report and drop; do not fail the listener task.
         sentry_sdk.capture_exception(e)
         return None
 
-    resolved = source.autofix_run
-    if resolved is None:
+    try:
+        source = CheckSuiteFeedbackSource(event=raw)
+    except ValidationError as e:
+        # No Autofix run for this PR is expected for unrelated check suites.
+        if _is_missing_autofix_run(e):
+            return None
+        sentry_sdk.capture_exception(e)
+        return None
+    except (TypeError, ValueError) as e:
+        sentry_sdk.capture_exception(e)
         return None
 
+    resolved = source.autofix_run
     repo = resolved.repository
     agent_state = resolved.run_state
     organization_id = repo.organization_id

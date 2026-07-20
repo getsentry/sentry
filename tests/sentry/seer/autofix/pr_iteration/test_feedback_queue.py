@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -13,6 +13,8 @@ from sentry.seer.autofix.pr_iteration.queue import (
     try_enqueue_autofix_feedback,
 )
 from sentry.testutils.cases import TestCase
+
+CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 
 
 def _run_state(*, repo_pr_states=None) -> SeerRunState:
@@ -42,6 +44,15 @@ def _check_suite_event() -> dict:
     }
 
 
+def _autofix_run(*, run_state: SeerRunState | None = None) -> CheckSuiteAutofixRun:
+    return CheckSuiteAutofixRun(
+        repository=MagicMock(organization_id=1, id=2),
+        run_state=run_state or _run_state(),
+        pr_id=99,
+        group_id=1,
+    )
+
+
 class TryEnqueueAutofixFeedbackTest(TestCase):
     def _enqueue(
         self, run_id: int, feedback: Feedback, *, run_state: SeerRunState | None = None
@@ -65,43 +76,38 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         assert queued[0].feedback.text == "fix it"
 
     def test_skips_stale_feedback(self) -> None:
-        feedback = Feedback(source=CheckSuiteFeedbackSource(event=_check_suite_event()))
+        feedback = Feedback(
+            source=CheckSuiteFeedbackSource(
+                event=_check_suite_event(),
+                autofix_run=_autofix_run(),
+            )
+        )
 
         assert self._enqueue(run_id=4343, feedback=feedback) is False
         assert peek_queued_autofix_feedback(4343) == []
 
-    def test_enqueues_check_suite_after_resolving_autofix_run(self) -> None:
-        """Listener resolves autofix_run before enqueue; Django/Seer objects must
-        not be included in the Redis JSON payload."""
-        source = CheckSuiteFeedbackSource(event=_check_suite_event())
+    def test_enqueues_check_suite_without_serializing_autofix_run(self) -> None:
+        """Django/Seer objects on autofix_run must not appear in the Redis JSON."""
         run_state = _run_state(
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
         )
-        # Same PrivateAttr cache population as source.autofix_run / source.repositories.
-        source._repositories = [MagicMock()]
-        source._autofix_run = CheckSuiteAutofixRun(
-            repository=MagicMock(),
-            run_state=run_state,
-            pr_id=99,
-            group_id=1,
-        )
-        source._autofix_run_resolved = True
+        autofix_run = _autofix_run(run_state=run_state)
+        source = CheckSuiteFeedbackSource(event=_check_suite_event(), autofix_run=autofix_run)
         feedback = Feedback(source=source)
 
-        # Direct serialization paths used by Redis enqueue / feedback metadata.
-        assert "repositories" not in source.dict()
         assert "autofix_run" not in source.dict()
-        assert "_repositories" not in source.dict()
-        assert "_autofix_run" not in source.dict()
         source.json()
         feedback.json()
 
         assert self._enqueue(run_id=4444, feedback=feedback, run_state=run_state) is True
 
-        queued = peek_queued_autofix_feedback(4444)
+        with patch(
+            f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
+            return_value=autofix_run,
+        ):
+            queued = peek_queued_autofix_feedback(4444)
+
         assert len(queued) == 1
         assert isinstance(queued[0].feedback.source, CheckSuiteFeedbackSource)
         assert queued[0].feedback.source.event.check_suite.id == 1
-        # Round-trip must not rehydrate the lazy PrivateAttr caches.
-        assert queued[0].feedback.source._repositories is None
-        assert queued[0].feedback.source._autofix_run_resolved is False
+        assert queued[0].feedback.source.autofix_run is autofix_run
