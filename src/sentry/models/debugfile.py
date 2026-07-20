@@ -437,7 +437,14 @@ def _upload_dif_to_objectstore(
     filename: str,
 ) -> str:
     """Uploads a debug file to Objectstore via parallel multipart upload, returning the key under which the file was uploaded."""
-    upload = session.initiate_multipart_upload(content_type=content_type, filename=filename)
+    for attempt in range(3):
+        try:
+            upload = session.initiate_multipart_upload(content_type=content_type, filename=filename)
+            break
+        except (RequestError, HTTPError):
+            if attempt == 2:
+                raise
+            time.sleep(2**attempt)
 
     lock = threading.Lock()
     num_parts = max(1, math.ceil(file_size / OBJECTSTORE_MULTIPART_UPLOAD_PART_SIZE))
@@ -470,7 +477,14 @@ def _upload_dif_to_objectstore(
             futures = [executor.submit(read_and_put_part, i + 1) for i in range(num_parts)]
             parts = [part for f in futures if (part := f.result()) is not None]
 
-        storage_path = upload.complete(parts)
+        for attempt in range(3):
+            try:
+                storage_path = upload.complete(parts)
+                break
+            except (RequestError, HTTPError):
+                if attempt == 2:
+                    raise
+                time.sleep(2**attempt)
         return storage_path
     except Exception:
         logger.exception("Failed to upload debug file to Objectstore")
