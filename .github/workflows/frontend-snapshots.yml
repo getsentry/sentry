@@ -41,7 +41,7 @@ jobs:
         id: nodemodulescache
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', 'api-docs/pnpm-lock.yaml', '.node-version') }}
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('pnpm-lock.yaml', '.node-version') }}
 
       - name: Install Javascript Dependencies
         if: steps.nodemodulescache.outputs.cache-hit != 'true'

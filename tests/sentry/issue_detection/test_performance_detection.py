@@ -9,6 +9,7 @@ from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.n_plus_one_db_span_detector import NPlusOneDBSpanDetector
 from sentry.issue_detection.detectors.utils import total_span_time
 from sentry.issue_detection.performance_detection import (
+    DETECTOR_CLASSES,
     PERFORMANCE_DETECTOR_CONFIG_MAPPINGS,
     SETTINGS_PROJECT_OPTION_KEY,
     SettingsMode,
@@ -17,6 +18,7 @@ from sentry.issue_detection.performance_detection import (
     get_detection_settings,
     reset_performance_settings,
     reset_wfe_detector_configs,
+    run_detector_on_data,
     sync_project_options_to_wfe_detectors,
     update_performance_settings,
 )
@@ -474,6 +476,46 @@ class PerformanceDetectionTest(TestCase):
         # Ensure all other detections are set to false in tags
         pre_checked_keys = ["sdk_name", "is_early_adopter", "browser_name", "uncompressed_assets"]
         assert not any([v for k, v in tags.items() if k not in pre_checked_keys])
+
+    def test_other_detectors_run_even_when_one_errors(self) -> None:
+        n_plus_one_event = get_event("n-plus-one-db/n-plus-one-db-mongodb")
+        sdk_span_mock = MagicMock()
+
+        with (
+            # Make the slow DB detector error out, to check if the other detectors run anyway
+            patch(
+                "sentry.issue_detection.performance_detection.SlowDBQueryDetector.visit_span",
+                side_effect=ValueError,
+            ),
+            patch(
+                "sentry.issue_detection.performance_detection.logger.exception"
+            ) as logger_exception_mock,
+            patch(
+                "sentry.issue_detection.performance_detection.run_detector_on_data",
+                wraps=run_detector_on_data,
+            ) as run_detector_spy,
+        ):
+            _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
+
+            logger_exception_mock.assert_called_with(
+                "Error running issue detector `SlowDBQueryDetector`",
+                extra={
+                    "project_id": self.project.id,
+                    "org_id": self.organization.id,
+                    "event_id": n_plus_one_event["event_id"],
+                    "standalone": False,
+                },
+            )
+
+            num_enabled_detectors = len(
+                [
+                    detector_class
+                    for detector_class in DETECTOR_CLASSES
+                    if detector_class.is_detection_allowed_for_system()
+                ]
+            )
+            # All of the detectors ran, even though the slow DB detector errored out
+            assert run_detector_spy.call_count == num_enabled_detectors
 
 
 @pytest.mark.parametrize(

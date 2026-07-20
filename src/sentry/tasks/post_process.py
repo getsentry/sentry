@@ -1509,14 +1509,29 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
+    from sentry.seer.autofix.issue_summary import (
+        get_issue_summary_cache_key,
+        get_issue_summary_lock_key,
+    )
     from sentry.seer.autofix.trigger import get_default_seer_automation_skip_reason
     from sentry.seer.autofix.utils import is_seer_seat_based_tier_enabled
-    from sentry.tasks.seer.autofix import generate_summary_and_run_automation
+    from sentry.tasks.seer.autofix import (
+        generate_issue_summary_only,
+        generate_summary_and_run_automation,
+    )
 
     event = job["event"]
     group = event.group
 
     if is_seer_seat_based_tier_enabled(group.organization):
+        # Generate issue summary and fixability score if it doesn't exist and then return.
+        # Agentic Triage handles automations for seat based orgs but it still needs summary and fixability score.
+        cache_key = get_issue_summary_cache_key(group.id)
+        if cache.get(cache_key) is None:
+            lock_key, lock_name = get_issue_summary_lock_key(group.id)
+            lock = locks.get(lock_key, duration=1, name=lock_name)
+            if not lock.locked():
+                generate_issue_summary_only.delay(group.id)
         return
 
     skip_reason = get_default_seer_automation_skip_reason(group, locks)
