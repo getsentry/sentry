@@ -761,18 +761,25 @@ class TestProgressSort(PostgresSortTestBase):
     @override_options(
         {
             "snuba.search.max-pre-snuba-candidates": 0,
-            # Force the chunk time budget to expire before the first chunk runs, so no
-            # passers are collected while the Postgres walk is not exhausted.
+            # Force the chunk time budget to expire before the first chunk runs, so no passers
+            # are collected while the Postgres walk is not exhausted.
             "snuba.search.max-total-chunk-time-seconds": 0,
         }
     )
-    def test_budget_exhausted_empty_page_still_allows_paging_forward(self):
-        # An empty page from budget exhaustion must not trap the client: next.has_results has
-        # to stay True so they can resume the walk, rather than degrading or dead-ending.
+    def test_budget_exhausted_empty_page_terminates(self):
+        # When the time budget expires before any Snuba match is found, the page must be a
+        # terminating empty result. The cursor value is a progress score and can't encode a
+        # mid-tie "resume at raw row N" checkpoint, so advertising next.has_results with a
+        # non-advancing 0:0:0 cursor would make the client rescan the same prefix forever.
+        # Following the next cursor must therefore not loop -- it terminates (has_results False).
         self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
         page = self.make_query(sort_by="progress", query="issue", limit=2)
         assert list(page) == []
-        assert page.next.has_results
+        assert not page.next.has_results
+        # Following it (defensively) returns empty again and still terminates -- no infinite walk.
+        page2 = self.make_query(sort_by="progress", query="issue", limit=2, cursor=page.next)
+        assert list(page2) == []
+        assert not page2.next.has_results
 
     @with_feature("projects:issue-stream-derived-progress")
     @override_options(
