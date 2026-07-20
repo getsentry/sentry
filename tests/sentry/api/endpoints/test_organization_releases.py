@@ -13,6 +13,7 @@ from sentry.api.release_search import FINALIZED_KEY, RELEASE_CREATED_KEY
 from sentry.api.serializers.rest_framework.release import ReleaseHeadCommitSerializer
 from sentry.auth import access
 from sentry.constants import BAD_RELEASE_CHARS, MAX_COMMIT_LENGTH, MAX_VERSION_LENGTH
+from sentry.integrations.example import ExampleRepositoryProvider
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.apikey import ApiKey
@@ -28,7 +29,6 @@ from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
-from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.search.events.constants import (
     RELEASE_ALIAS,
     RELEASE_STAGE_ALIAS,
@@ -1484,8 +1484,14 @@ class OrganizationReleaseCreateTest(APITestCase):
         org = self.create_organization()
         org.flags.allow_joinleave = False
         org.save()
+        integration = self.create_integration(
+            organization=org, provider="example", external_id="example:1"
+        )
         repo = Repository.objects.create(
-            provider="dummy", name="my-org/my-repository", organization_id=org.id
+            provider="integrations:example",
+            name="my-org/my-repository",
+            organization_id=org.id,
+            integration_id=integration.id,
         )
 
         team = self.create_team(organization=org)
@@ -1533,7 +1539,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 201, response.content
 
         with self.tasks():
-            with patch.object(DummyRepositoryProvider, "compare_commits") as mock_compare_commits:
+            with patch.object(ExampleRepositoryProvider, "compare_commits") as mock_compare_commits:
                 mock_compare_commits.return_value = [
                     {"id": "c" * 40, "repository": repo.name},
                     {"id": "d" * 40, "repository": repo.name},

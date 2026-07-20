@@ -30,40 +30,22 @@ class OrganizationMemberSerializer(Serializer):
         """
         Fetch all of the associated Users and ExternalActors needed to serialize
         the organization_members in `item_list`.
-        TODO(dcramer): assert on relations
         """
+        users_set = {member.user_id for member in item_list if member.user_id}
+        inviters_set = {member.inviter_id for member in item_list if member.inviter_id}
 
-        # Bulk load users
-        users_set = sorted(
-            {
-                organization_member.user_id
-                for organization_member in item_list
-                if organization_member.user_id
-            }
-        )
         users_by_id: MutableMapping[str, Any] = {}
         email_map: MutableMapping[str, str] = {}
-        for u in user_service.serialize_many(filter={"user_ids": users_set}):
+        for u in user_service.serialize_many(filter={"user_ids": sorted(users_set | inviters_set)}):
             users_by_id[u["id"]] = u
             email_map[u["id"]] = u["email"]
-
-        inviters_set = sorted(
-            {
-                organization_member.inviter_id
-                for organization_member in item_list
-                if organization_member.inviter_id
-            }
-        )
-        inviters_by_id: Mapping[int, RpcUser] = {
-            u.id: u for u in user_service.get_many_by_id(ids=inviters_set)
-        }
 
         external_users_map = defaultdict(list)
         if "externalUsers" in self.expand:
             organization_id = get_organization_id(item_list)
             external_actors = list(
                 ExternalActor.objects.filter(
-                    user_id__in=users_set,
+                    user_id__in=sorted(users_set),
                     organization_id=organization_id,
                 )
             )
@@ -77,14 +59,15 @@ class OrganizationMemberSerializer(Serializer):
             user_dct = users_by_id.get(str(item.user_id), None)
             user_id = user_dct["id"] if user_dct else ""
             if item.inviter_id is not None:
-                inviter = inviters_by_id.get(item.inviter_id, None)
+                inviter_dct = users_by_id.get(str(item.inviter_id), None)
+                inviter_name = inviter_dct["name"] if inviter_dct else None
             else:
-                inviter = None
+                inviter_name = None
             external_users = external_users_map.get(user_id, [])
             attrs[item] = {
                 "user": user_dct,
                 "externalUsers": external_users,
-                "inviter": inviter,
+                "inviterName": inviter_name,
                 "email": email_map.get(user_id, item.email),
             }
         return attrs
@@ -100,8 +83,11 @@ class OrganizationMemberSerializer(Serializer):
         if obj.user_id:
             # if the OrganizationMember has a user_id, the user has an account
             # `email` on the OrganizationMember will be null, so we need to pull
-            # the email address from the user's actual account
-            email = serialized_user["email"] if serialized_user else obj.email
+            # the email address from the user's actual account. When the
+            # control-silo User cannot be resolved (deleted, replication lag),
+            # fall back to the org member's email, or empty string if none
+            # exists to ensure serialization still succeeds.
+            email = serialized_user["email"] if serialized_user else obj.email or ""
         else:
             # when there is no user_id, the OrganizationMember is an invited user
             # and the email field on OrganizationMember will be populated, so we
@@ -116,12 +102,7 @@ class OrganizationMemberSerializer(Serializer):
         # invited users do not yet have a full account and the email field
         # on OrganizationMember will be populated in such cases
         assert email is not None
-
-        inviter_name = None
-        if obj.inviter_id:
-            inviter = attrs["inviter"]
-            if inviter:
-                inviter_name = inviter.get_display_name()
+        inviter_name = attrs["inviterName"] if obj.inviter_id else None
 
         name = serialized_user["name"] if serialized_user else email
 

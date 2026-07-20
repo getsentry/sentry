@@ -38,7 +38,7 @@ from sentry.integrations.utils.metrics import (
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.users.models.identity import Identity
 
@@ -288,6 +288,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
         accessible_only: bool = False,
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
+        parallel: bool = False,
     ) -> list[RepositoryInfo]:
         if not query:
             resp = self.get_client().get_repos()
@@ -379,10 +380,6 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.CODEOWNERS,
         ]
     )
-    setup_dialog_config = {"width": 1030, "height": 1000}
-
-    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
-        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [InstallationConfigApiStep(), OAuthApiStep()]

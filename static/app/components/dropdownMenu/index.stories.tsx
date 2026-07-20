@@ -162,8 +162,7 @@ export default Storybook.story('DropdownMenu', story => {
         key: 'export',
         label: 'Export',
         leadingItems: <IconDownload size="sm" />,
-        isSubmenu: true,
-        submenuTitle: 'Export Options',
+        submenu: {title: 'Export Options'},
         children: [
           {
             key: 'export-json',
@@ -194,9 +193,14 @@ export default Storybook.story('DropdownMenu', story => {
       <Fragment>
         <p>
           Menu items can trigger submenus by setting{' '}
-          <Storybook.JSXProperty name="isSubmenu" value="true" /> and providing{' '}
+          <Storybook.JSXProperty name="submenu" value="true" /> and providing{' '}
           <Storybook.JSXProperty name="children" value={[]} />. Submenus are opened on
-          hover or arrow key navigation.
+          hover or arrow key navigation. Pass an object like{' '}
+          <Storybook.JSXProperty
+            name="submenu"
+            value={{title: 'Title', position: 'left-start'}}
+          />{' '}
+          to set the submenu header or override where it opens.
         </p>
         <Storybook.SideBySide>
           <DropdownMenu triggerLabel="With Submenu" items={items} />

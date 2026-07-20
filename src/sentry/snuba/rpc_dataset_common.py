@@ -64,6 +64,7 @@ from sentry.search.events.types import SAMPLING_MODES, EventsMeta, SnubaData, Sn
 from sentry.snuba.discover import OTHER_KEY, create_groupby_dict, create_result_key, zerofill
 from sentry.utils import json, metrics, snuba_rpc
 from sentry.utils.snuba import SnubaTSResult, process_value
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.snuba.spans_rpc")
 
@@ -252,6 +253,8 @@ class RPCBase:
         """Make the query"""
         resolver = query.resolver
         sentry_sdk.set_tag("query.sampling_mode", query.sampling_mode)
+        if query.sampling_mode is not None:
+            sentry_sdk.set_attribute("query.sampling_mode", query.sampling_mode)
         meta = resolver.resolve_meta(
             referrer=query.referrer,
             sampling_mode=query.sampling_mode,
@@ -394,7 +397,7 @@ class RPCBase:
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @trace
     def _run_table_query(
         cls,
         query: TableQuery,
@@ -411,6 +414,9 @@ class RPCBase:
                 setattr(e, "debug", MessageToJson(rpc_request))
             raise
         sentry_sdk.set_tag(
+            "query.storage_meta.tier", rpc_response.meta.downsampled_storage_meta.tier
+        )
+        sentry_sdk.set_attribute(
             "query.storage_meta.tier", rpc_response.meta.downsampled_storage_meta.tier
         )
 
@@ -440,7 +446,7 @@ class RPCBase:
         raise NotImplementedError()
 
     @classmethod
-    @sentry_sdk.trace
+    @trace
     def run_bulk_table_queries(
         cls, queries: list[TableQuery], debug: str | bool = False
     ) -> dict[str, EAPResponse]:
@@ -806,7 +812,7 @@ class RPCBase:
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @trace
     def run_timeseries_query(
         cls,
         *,
@@ -902,7 +908,7 @@ class RPCBase:
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @trace
     def build_top_event_conditions(
         cls, resolver: SearchResolver, top_events: EAPResponse, groupby_columns: list[str]
     ) -> Any:
@@ -949,7 +955,7 @@ class RPCBase:
         )
 
     @classmethod
-    @sentry_sdk.trace
+    @trace
     def run_top_events_timeseries_query(
         cls,
         *,

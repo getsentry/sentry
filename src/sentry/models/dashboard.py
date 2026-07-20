@@ -18,6 +18,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.organization import Organization
+from sentry.utils import json
 
 
 @cell_silo_model
@@ -107,6 +108,15 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
                 "new_dashboard_positions": new_dashboard_positions,
             },
         )
+        sentry_sdk.set_attribute("reorder_favorite_dashboards.organization", organization.id)
+        sentry_sdk.set_attribute("reorder_favorite_dashboards.user_id", user_id)
+        sentry_sdk.set_attribute(
+            "reorder_favorite_dashboards.existing_dashboard_ids", json.dumps(existing_dashboard_ids)
+        )
+        sentry_sdk.set_attribute(
+            "reorder_favorite_dashboards.new_dashboard_positions",
+            json.dumps(new_dashboard_positions),
+        )
 
         if existing_dashboard_ids != new_dashboard_ids:
             raise ValueError("Mismatch between existing and provided favorited dashboards.")
@@ -163,6 +173,68 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
                 position = 0
             else:
                 position = self.get_last_position(organization, user_id) + 1
+
+            if existing:
+                existing.favorited = True
+                existing.position = position
+                existing.save(update_fields=["favorited", "position"])
+            else:
+                self.create(
+                    organization=organization,
+                    user_id=user_id,
+                    dashboard=dashboard,
+                    position=position,
+                )
+            return True
+
+    def insert_favorite_dashboard_alphabetically(
+        self,
+        organization: Organization,
+        user_id: int,
+        dashboard: Dashboard,
+    ) -> bool:
+        """
+        Inserts a favorited dashboard at the position of the next prebuilt favorited
+        dashboard whose title sorts after this one, shifting later positions by 1. Falls
+        back to appending at the end when nothing sorts later.
+        """
+        with transaction.atomic(using=router.db_for_write(DashboardFavoriteUser)):
+            existing = (
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    dashboard=dashboard,
+                )
+                .select_for_update()
+                .first()
+            )
+
+            if existing and existing.favorited:
+                return False
+
+            next_prebuilt = (
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    favorited=True,
+                    position__isnull=False,
+                    dashboard__prebuilt_id__isnull=False,
+                    dashboard__title__gt=dashboard.title,
+                )
+                .order_by("position")
+                .first()
+            )
+
+            position: int
+            if next_prebuilt is None or next_prebuilt.position is None:
+                position = self.get_last_position(organization, user_id) + 1
+            else:
+                position = next_prebuilt.position
+                self.filter(
+                    organization=organization,
+                    user_id=user_id,
+                    position__gte=position,
+                ).update(position=models.F("position") + 1)
 
             if existing:
                 existing.favorited = True

@@ -1,11 +1,11 @@
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconDelete, IconEdit} from 'sentry/icons';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct, tn} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DataForwarderDeleteConfirm} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm';
@@ -26,7 +26,7 @@ export function DataForwarderRow({
     <Container padding="xl" border="muted" radius="md" key={dataForwarder.id}>
       <Grid columns="auto 1fr auto" align="center" gap="md">
         <PluginIcon pluginId={dataForwarder.provider} size={32} />
-        <Flex direction="column" gap="xs">
+        <Stack gap="xs">
           <Flex align="center" gap="md">
             <Text bold>
               {tct('[provider] Data Forwarder', {
@@ -40,7 +40,7 @@ export function DataForwarderRow({
           <Text size="sm" variant="muted">
             {getDataForwarderProjectText(dataForwarder)}
           </Text>
-        </Flex>
+        </Stack>
         <Grid flow="column" align="center" gap="md">
           <LinkButton
             icon={<IconEdit />}

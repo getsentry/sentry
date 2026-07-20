@@ -8,18 +8,14 @@ import {
 } from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const HeaderLayout = styled((props: ContainerProps) => {
-  const hasPageFrame = useHasPageFrameFeature();
   return (
     <Container
       as="div"
-      padding={hasPageFrame ? 'lg xl' : 'md 2xl'}
-      background={hasPageFrame ? undefined : 'primary'}
+      padding="lg xl"
       borderBottom="primary"
       flexShrink={0}
-      minHeight="150px"
       {...props}
     />
   );
@@ -41,11 +37,6 @@ function HeaderContent(props: StackProps) {
   return <Stack {...props} />;
 }
 
-const StyledBreak = styled('hr')`
-  margin: ${p => p.theme.space.md} 0;
-  border-color: ${p => p.theme.tokens.border.primary};
-`;
-
 const StyledPlaceholder = styled(Placeholder)<{_height: number; _width: number}>`
   border-radius: ${p => p.theme.radius.md};
   height: ${p => p._height}px;
@@ -56,7 +47,6 @@ const TraceHeaderComponents = {
   HeaderLayout,
   HeaderRow,
   HeaderContent,
-  StyledBreak,
   StyledPlaceholder,
 };
 

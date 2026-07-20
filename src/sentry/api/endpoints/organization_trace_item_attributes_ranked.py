@@ -259,8 +259,9 @@ def query_attribute_distributions(
                 else f"({query_1}) AND {function_parameter}:<={function_value}"
             )
 
-    cohort_1, _, _ = resolver.resolve_query(query_1)
-    cohort_2, _, _ = resolver.resolve_query(query_2)
+    with handle_query_errors():
+        cohort_1, _, _ = resolver.resolve_query(query_1)
+        cohort_2, _, _ = resolver.resolve_query(query_2)
 
     # Fetch attribute names for parallelization
     adjusted_start_date, adjusted_end_date = adjust_start_end_window(

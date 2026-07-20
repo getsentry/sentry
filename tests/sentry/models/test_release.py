@@ -5,6 +5,7 @@ import pytest
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
+from sentry.analytics.events.issue_resolved import IssueResolvedEvent
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
@@ -39,6 +40,7 @@ from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
 from sentry.testutils.cases import SetRefsTestCase, TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.strings import truncatechars
 
@@ -93,6 +95,49 @@ def test_version_is_semver_valid(release_version) -> None:
 )
 def test_version_is_semver_invalid(release_version) -> None:
     assert Release.is_semver_version(release_version) is False
+
+
+class GetOrCreateNoCreateTest(TestCase):
+    def setUp(self) -> None:
+        self.org = self.create_organization()
+        self.project = self.create_project(organization=self.org, name="foo")
+
+    def test_returns_none_on_miss_without_creating(self) -> None:
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is None
+        assert not Release.objects.filter(organization_id=self.org.id).exists()
+
+    def test_does_not_cache_miss(self) -> None:
+        # A miss must not be cached, so a release created later is still found.
+        assert Release.get_or_create(project=self.project, version="1.0", create=False) is None
+
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(self.project)
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+
+    def test_returns_existing_release(self) -> None:
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(self.project)
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+
+    def test_associates_existing_org_release_with_project(self) -> None:
+        # A release that exists in the org but is linked to a different project is
+        # associated with the ingesting project, not skipped.
+        other_project = self.create_project(organization=self.org, name="bar")
+        existing = Release.objects.create(version="1.0", organization=self.org)
+        existing.add_project(other_project)
+        assert not existing.projects.filter(id=self.project.id).exists()
+
+        release = Release.get_or_create(project=self.project, version="1.0", create=False)
+        assert release is not None
+        assert release.id == existing.id
+        assert release.projects.filter(id=self.project.id).exists()
 
 
 class MergeReleasesTest(TestCase):
@@ -520,6 +565,149 @@ class SetCommitsTestCase(TestCase):
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=group).exists()
+
+    @receivers_raise_on_send()
+    def test_commit_resolves_only_when_released_to_issue_project(self) -> None:
+        org = self.create_organization(owner=Factories.create_user())
+        frontend_project = self.create_project(organization=org, name="frontend")
+        backend_project = self.create_project(organization=org, name="backend")
+        frontend_group = self.create_group(project=frontend_project)
+        repo = self.create_repo(project=backend_project, name="test/monorepo")
+        commit = self.create_commit(
+            repo=repo,
+            message=f"fixes {frontend_group.qualified_short_id}",
+        )
+        backend_release = self.create_release(project=backend_project, version="backend@1.0.0")
+
+        backend_release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        assert list(backend_release.projects.all()) == [backend_project]
+        assert not GroupResolution.objects.filter(
+            group=frontend_group, release=backend_release
+        ).exists()
+        assert Group.objects.get(id=frontend_group.id).status == GroupStatus.UNRESOLVED
+
+        frontend_release = self.create_release(project=frontend_project, version="frontend@1.0.0")
+        frontend_release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        resolution = GroupResolution.objects.get(group=frontend_group)
+        assert resolution.release == frontend_release
+        assert resolution.status == GroupResolution.Status.resolved
+        assert Group.objects.get(id=frontend_group.id).status == GroupStatus.RESOLVED
+
+    @patch("sentry.analytics.record")
+    @receivers_raise_on_send()
+    def test_resolution_records_commit_provider(self, mock_record: MagicMock) -> None:
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project)
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+        repo = Repository.objects.create(
+            organization_id=org.id, name="test/repo", provider="integrations:github"
+        )
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            message="fixes %s" % (group.qualified_short_id),
+            key="alksdflskdfjsldkfajsflkslk",
+        )
+
+        release = self.create_release(project=project, version="abcdabc")
+        release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert_any_analytics_event(
+            mock_record,
+            IssueResolvedEvent(
+                user_id=None,
+                project_id=project.id,
+                default_user_id=org.default_owner_id,
+                organization_id=org.id,
+                group_id=group.id,
+                resolution_type="with_commit",
+                provider="github",
+                commit_id=commit.id,
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    @receivers_raise_on_send()
+    def test_resolution_without_repository_records_no_provider(
+        self, mock_record: MagicMock
+    ) -> None:
+        """A commit with no repository configured (as uploaded manually via the API)
+        still resolves the referenced issue; the auto-created repo has no provider,
+        so the IssueResolvedEvent records provider=None."""
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project)
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+
+        release = self.create_release(project=project, version="abcdabc")
+        release.set_commits([{"id": "a" * 40, "message": "fixes %s" % (group.qualified_short_id)}])
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        commit = Commit.objects.get(organization_id=org.id, key="a" * 40)
+        assert_any_analytics_event(
+            mock_record,
+            IssueResolvedEvent(
+                user_id=None,
+                project_id=project.id,
+                default_user_id=org.default_owner_id,
+                organization_id=org.id,
+                group_id=group.id,
+                resolution_type="with_commit",
+                provider=None,
+                commit_id=commit.id,
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    @receivers_raise_on_send()
+    def test_resolution_via_pull_request_records_merge_commit(self, mock_record: MagicMock) -> None:
+        """A group resolved by a pull request records the PR's merge commit id on
+        the IssueResolvedEvent, resolved through the release's matching commit."""
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project)
+        add_group_to_inbox(group, GroupInboxReason.MANUAL)
+        repo = Repository.objects.create(
+            organization_id=org.id, name="test/repo", provider="integrations:github"
+        )
+        commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="b" * 40)
+        pull_request = self.create_pull_request(repository_id=repo.id, organization_id=org.id)
+        pull_request.update(merge_commit_sha=commit.key)
+        GroupLink.objects.create(
+            group_id=group.id,
+            project_id=group.project_id,
+            linked_type=GroupLink.LinkedType.pull_request,
+            relationship=GroupLink.Relationship.resolves,
+            linked_id=pull_request.id,
+        )
+
+        release = self.create_release(project=project, version="abcdabc")
+        release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert_any_analytics_event(
+            mock_record,
+            IssueResolvedEvent(
+                user_id=None,
+                project_id=project.id,
+                default_user_id=org.default_owner_id,
+                organization_id=org.id,
+                group_id=group.id,
+                resolution_type="with_commit",
+                provider="github",
+                commit_id=commit.id,
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
+            ),
+        )
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
     @receivers_raise_on_send()

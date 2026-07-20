@@ -14,7 +14,7 @@ import {t, tct} from 'sentry/locale';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Release, SemverVersion, VersionInfo} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 

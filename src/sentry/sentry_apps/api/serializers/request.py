@@ -13,7 +13,7 @@ from sentry.services import eventstore
 from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
 
-class RequestSerializer(Serializer):
+class RequestSerializer(Serializer[Mapping[str, Any]]):
     def __init__(self, sentry_app: SentryApp) -> None:
         self.sentry_app = sentry_app
 

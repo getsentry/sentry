@@ -7,7 +7,7 @@ from django.db import IntegrityError
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.repository import GitHubRepositoryProvider
-from sentry.models.repository import Repository
+from sentry.models.repository import REPOSITORY_NAME_LENGTH, REPOSITORY_URL_LENGTH, Repository
 from sentry.plugins.providers.integration_repository import RepoExistsError
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
@@ -41,12 +41,16 @@ class IntegrationRepositoryTestCase(TestCase):
         )
 
     @cached_property
-    def provider(self):
+    def provider(self) -> GitHubRepositoryProvider:
         return GitHubRepositoryProvider("integrations:github")
 
     def _create_repo(
-        self, external_id=None, name=None, status=ObjectStatus.ACTIVE, integration_id=None
-    ):
+        self,
+        external_id: str | None = None,
+        name: str | None = None,
+        status: int = ObjectStatus.ACTIVE,
+        integration_id: int | None = None,
+    ) -> Repository:
         if not name:
             name = self.repo_name
         return Repository.objects.create(
@@ -59,6 +63,18 @@ class IntegrationRepositoryTestCase(TestCase):
             external_id=external_id if external_id else "123456",
             status=status,
         )
+
+    def test_create_repository_truncate_overflows(self, get_jwt: MagicMock) -> None:
+        config = self.config.copy()
+        config["identifier"] = "a" * 510
+        self.provider.create_repository(config, self.organization)
+
+        repos = Repository.objects.all()
+        assert len(repos) == 1
+
+        assert repos[0].name == config["identifier"][:REPOSITORY_NAME_LENGTH]
+        assert repos[0].url == f"https://github.com/{config['identifier']}"[:REPOSITORY_URL_LENGTH]
+        assert repos[0].provider == "integrations:github"
 
     def test_create_repository(self, get_jwt: MagicMock) -> None:
         self.provider.create_repository(self.config, self.organization)

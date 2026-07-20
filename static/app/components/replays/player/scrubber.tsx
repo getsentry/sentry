@@ -163,6 +163,7 @@ export const PlayerScrubber = styled(Scrubber)`
      */
     :after {
       background: ${p => p.theme.tokens.background.accent.vibrant};
+      border-color: ${p => p.theme.tokens.border.onVibrant.light};
     }
   }
 
@@ -179,6 +180,7 @@ export const PlayerScrubber = styled(Scrubber)`
      */
     :after {
       background: ${p => p.theme.tokens.graphics.neutral.muted};
+      border-color: ${p => p.theme.tokens.border.neutral.moderate};
     }
   }
 
@@ -193,7 +195,7 @@ export const PlayerScrubber = styled(Scrubber)`
     pointer-events: none;
     box-sizing: content-box;
     border-radius: var(--size);
-    border: solid ${p => p.theme.tokens.border.onVibrant.light};
+    border-style: solid;
     border-width: var(--borderWidth);
     position: absolute;
     top: 0;

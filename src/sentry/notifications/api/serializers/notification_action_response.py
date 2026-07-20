@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any
+from typing import TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -14,8 +14,21 @@ from sentry.notifications.models.notificationaction import (
 from sentry.utils.serializers import manytoone_to_dict
 
 
+class OutgoingNotificationActionResponse(TypedDict):
+    id: int
+    organizationId: int
+    integrationId: int | None
+    sentryAppId: int | None
+    projects: list[int]
+    serviceType: str | None
+    triggerType: str
+    targetType: str | None
+    targetIdentifier: str | None
+    targetDisplay: str | None
+
+
 @register(NotificationAction)
-class OutgoingNotificationActionSerializer(Serializer):
+class OutgoingNotificationActionSerializer(Serializer[OutgoingNotificationActionResponse]):
     """
     Model serializer for outgoing NotificationAction API payloads
     """
@@ -35,7 +48,9 @@ class OutgoingNotificationActionSerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj: NotificationAction, attrs, user, **kwargs) -> dict[str, Any]:
+    def serialize(
+        self, obj: NotificationAction, attrs, user, **kwargs
+    ) -> OutgoingNotificationActionResponse:
         return {
             "id": obj.id,
             "organizationId": obj.organization_id,

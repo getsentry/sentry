@@ -38,7 +38,7 @@ from sentry.notifications.platform.slack.provider import (
 )
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.http import absolute_uri
 
@@ -70,11 +70,6 @@ FEATURES = [
     ),
 ]
 
-setup_alert = {
-    "type": "info",
-    "text": "The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.",
-}
-
 metadata = IntegrationMetadata(
     description=_(DESCRIPTION.strip()),
     features=FEATURES,
@@ -82,7 +77,7 @@ metadata = IntegrationMetadata(
     noun=_("Workspace"),
     issue_url="https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Slack%20Integration%20Problem",
     source_url="https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack",
-    aspects={"alerts": [setup_alert]},
+    aspects={},
 )
 
 
@@ -364,11 +359,7 @@ class SlackIntegrationProvider(IntegrationProvider):
         """
         return self.identity_oauth_scopes
 
-    setup_dialog_config = {"width": 600, "height": 900}
     setup_url_path = "/extensions/slack/setup/"
-
-    def get_pipeline_views(self) -> list[PipelineView[IntegrationPipeline]]:
-        return []
 
     def _make_identity_provider(self) -> SlackIdentityProvider:
         return SlackIdentityProvider(

@@ -17,6 +17,7 @@ import {
   getIsExecuteToolNode,
   getTraceNodeAttribute,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 import {hasAIInputAttribute} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {hasAIOutputAttribute} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import type {EapSpanNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/eapSpanNode';
@@ -241,15 +242,7 @@ function ManualContent({sdkLanguage}: {sdkLanguage: SupportedSDKLanguage}) {
     <Fragment>
       <Prose>
         {tct('Check out the [link:AI instrumentation docs] for more details.', {
-          link: (
-            <ExternalLink
-              href={
-                sdkLanguage === 'javascript'
-                  ? 'https://docs.sentry.io/platforms/javascript/guides/node/tracing/instrumentation/ai-agents-module/'
-                  : 'https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/'
-              }
-            />
-          ),
+          link: <ExternalLink href={getAiInstrumentationDocsLink(sdkLanguage)} />,
         })}
       </Prose>
     </Fragment>

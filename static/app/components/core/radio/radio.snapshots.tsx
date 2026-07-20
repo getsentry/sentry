@@ -9,7 +9,7 @@ const themes = {light: lightTheme, dark: darkTheme};
 
 describe('Radio', () => {
   describe.each(['light', 'dark'] as const)('theme-%s', themeName => {
-    it.snapshot.each<'sm' | 'md'>(['sm', 'md'])(
+    it.snapshot.each<'xs' | 'sm' | 'md'>(['xs', 'sm', 'md'])(
       'size-%s-unchecked',
       size => (
         <ThemeProvider theme={themes[themeName]}>
@@ -21,7 +21,7 @@ describe('Radio', () => {
       size => ({tags: {size, area: 'core'}})
     );
 
-    it.snapshot.each<'sm' | 'md'>(['sm', 'md'])(
+    it.snapshot.each<'xs' | 'sm' | 'md'>(['xs', 'sm', 'md'])(
       'size-%s-checked',
       size => (
         <ThemeProvider theme={themes[themeName]}>

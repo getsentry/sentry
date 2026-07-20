@@ -11,17 +11,10 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 
 type Props = {
-  disabled: boolean;
   onSensitivityChange: (sensitivity: AlertRuleSensitivity) => void;
   onThresholdTypeChange: (thresholdType: AlertRuleThresholdType) => void;
   sensitivity: UnsavedMetricRule['sensitivity'];
   thresholdType: UnsavedMetricRule['thresholdType'];
-  /**
-   * Map of fieldName -> errorMessage
-   */
-  error?: Record<string, string>;
-
-  hideControl?: boolean;
 };
 
 type SensitivityFormItemProps = {

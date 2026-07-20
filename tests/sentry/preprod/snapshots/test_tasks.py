@@ -1,5 +1,18 @@
 from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
-from sentry.preprod.snapshots.tasks import categorize_image_diff
+from sentry.preprod.snapshots.tasks import (
+    _chunk_result_key,
+    _comparison_key,
+    _diff_mask_key,
+    _plan_key,
+    categorize_image_diff,
+)
+
+
+def test_objectstore_key_layout():
+    assert _plan_key(1, 2, 3, 4) == "1/2/3/4/plan.json"
+    assert _chunk_result_key(1, 2, 3, 4, 5) == "1/2/3/4/chunks/5.json"
+    assert _comparison_key(1, 2, 3, 4) == "1/2/3/4/comparison.json"
+    assert _diff_mask_key(1, 2, 3, 4, "foo/bar") == "1/2/3/4/diff/foo/bar.png"
 
 
 def _meta(content_hash: str) -> ImageMetadata:
@@ -242,3 +255,121 @@ class TestCategorizeImageDiffSelective:
         assert result.skipped == {"b.png", "c.png"}
         assert result.removed == set()
         assert result.matched == {"a.png"}
+
+
+def test_build_comparison_plan_splits_diff_and_non_diff():
+    from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+    from sentry.preprod.snapshots.tasks import _build_comparison_plan
+
+    head = SnapshotManifest(
+        images={
+            "changed.png": ImageMetadata(content_hash="h1", width=100, height=100),
+            "same.png": ImageMetadata(content_hash="sameh", width=10, height=10),
+            "new.png": ImageMetadata(content_hash="n1", width=10, height=10),
+        },
+        diff_threshold=None,
+    )
+    base = SnapshotManifest(
+        images={
+            "changed.png": ImageMetadata(content_hash="h0", width=100, height=100),
+            "same.png": ImageMetadata(content_hash="sameh", width=10, height=10),
+            "gone.png": ImageMetadata(content_hash="g0", width=10, height=10),
+        },
+        diff_threshold=None,
+    )
+
+    plan = _build_comparison_plan(head, base, head_artifact_id=1, base_artifact_id=2)
+
+    diff_names = {c.name for chunk in plan.chunks for c in chunk.candidates}
+    assert diff_names == {"changed.png"}
+    assert plan.non_diff_images["same.png"].status == "unchanged"
+    assert plan.non_diff_images["new.png"].status == "added"
+    assert plan.non_diff_images["gone.png"].status == "removed"
+
+
+def test_build_comparison_plan_diff_threshold_precedence():
+    from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+    from sentry.preprod.snapshots.tasks import _build_comparison_plan
+
+    head = SnapshotManifest(
+        images={
+            "per_image.png": ImageMetadata(
+                content_hash="h1", width=10, height=10, diff_threshold=0.25
+            ),
+            "manifest_level.png": ImageMetadata(content_hash="m1", width=10, height=10),
+        },
+        diff_threshold=0.1,
+    )
+    base = SnapshotManifest(
+        images={
+            "per_image.png": ImageMetadata(content_hash="h0", width=10, height=10),
+            "manifest_level.png": ImageMetadata(content_hash="m0", width=10, height=10),
+        },
+        diff_threshold=0.1,
+    )
+
+    plan = _build_comparison_plan(head, base, head_artifact_id=1, base_artifact_id=2)
+
+    thresholds = {c.name: c.diff_threshold for chunk in plan.chunks for c in chunk.candidates}
+    assert thresholds == {"per_image.png": 0.25, "manifest_level.png": 0.1}
+
+
+def test_build_comparison_plan_diff_threshold_defaults_to_zero():
+    from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+    from sentry.preprod.snapshots.tasks import _build_comparison_plan
+
+    head = SnapshotManifest(
+        images={"default.png": ImageMetadata(content_hash="h1", width=10, height=10)},
+        diff_threshold=None,
+    )
+    base = SnapshotManifest(
+        images={"default.png": ImageMetadata(content_hash="h0", width=10, height=10)},
+        diff_threshold=None,
+    )
+
+    plan = _build_comparison_plan(head, base, head_artifact_id=1, base_artifact_id=2)
+
+    thresholds = {c.name: c.diff_threshold for chunk in plan.chunks for c in chunk.candidates}
+    assert thresholds == {"default.png": 0.0}
+
+
+def test_build_comparison_plan_exceeds_pixel_limit():
+    from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+    from sentry.preprod.snapshots.tasks import MAX_DIFF_PIXELS, _build_comparison_plan
+
+    oversized = MAX_DIFF_PIXELS + 1
+    head = SnapshotManifest(
+        images={"huge.png": ImageMetadata(content_hash="h1", width=oversized, height=1)},
+        diff_threshold=None,
+    )
+    base = SnapshotManifest(
+        images={"huge.png": ImageMetadata(content_hash="h0", width=oversized, height=1)},
+        diff_threshold=None,
+    )
+
+    plan = _build_comparison_plan(head, base, head_artifact_id=1, base_artifact_id=2)
+
+    diff_names = {c.name for chunk in plan.chunks for c in chunk.candidates}
+    assert "huge.png" not in diff_names
+    assert plan.non_diff_images["huge.png"].status == "errored"
+    assert plan.non_diff_images["huge.png"].reason == "exceeds_pixel_limit"
+
+
+def test_build_comparison_plan_detects_rename():
+    from sentry.preprod.snapshots.manifest import ImageMetadata, SnapshotManifest
+    from sentry.preprod.snapshots.tasks import _build_comparison_plan
+
+    head = SnapshotManifest(
+        images={"new.png": ImageMetadata(content_hash="shared", width=10, height=10)},
+        diff_threshold=None,
+    )
+    base = SnapshotManifest(
+        images={"old.png": ImageMetadata(content_hash="shared", width=10, height=10)},
+        diff_threshold=None,
+    )
+
+    plan = _build_comparison_plan(head, base, head_artifact_id=1, base_artifact_id=2)
+
+    assert plan.non_diff_images["new.png"].status == "renamed"
+    assert plan.non_diff_images["new.png"].previous_image_file_name == "old.png"
+    assert "old.png" not in plan.non_diff_images

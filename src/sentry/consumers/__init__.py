@@ -303,10 +303,6 @@ _POST_PROCESS_FORWARDER_OPTIONS = multiprocessing_options(
 
 # consumer name -> consumer definition
 KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
-    "ingest-profiles": {
-        "topic": Topic.PROFILES,
-        "strategy_factory": "sentry.profiles.consumers.process.factory.ProcessProfileStrategyFactory",
-    },
     "ingest-replay-recordings": {
         "topic": Topic.INGEST_REPLAYS_RECORDINGS,
         "strategy_factory": "sentry.replays.consumers.recording.ProcessReplayRecordingStrategyFactory",
@@ -346,40 +342,6 @@ KAFKA_CONSUMERS: Mapping[str, ConsumerDefinition] = {
         "topic": Topic.INGEST_OCCURRENCES,
         "strategy_factory": "sentry.issues.run.OccurrenceStrategyFactory",
         "click_options": issue_occurrence_options(),
-    },
-    "events-subscription-results": {
-        "topic": Topic.EVENTS_SUBSCRIPTIONS_RESULTS,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "events"},
-    },
-    "transactions-subscription-results": {
-        "topic": Topic.TRANSACTIONS_SUBSCRIPTIONS_RESULTS,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "transactions"},
-    },
-    "generic-metrics-subscription-results": {
-        "topic": Topic.GENERIC_METRICS_SUBSCRIPTIONS_RESULTS,
-        "validate_schema": True,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "generic_metrics"},
-    },
-    "metrics-subscription-results": {
-        "topic": Topic.METRICS_SUBSCRIPTIONS_RESULTS,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {"dataset": "metrics"},
-    },
-    "subscription-results-eap-items": {
-        "topic": Topic.EAP_ITEMS_SUBSCRIPTIONS_RESULTS,
-        "strategy_factory": "sentry.snuba.query_subscriptions.run.QuerySubscriptionStrategyFactory",
-        "click_options": multiprocessing_options(default_max_batch_size=100),
-        "static_args": {
-            "dataset": "events_analytics_platform",
-            "topic_override": "subscription-results-eap-items",
-        },
     },
     "ingest-events": {
         "topic": Topic.INGEST_EVENTS,
@@ -516,7 +478,6 @@ def get_stream_processor(
     consumer_name: str,
     consumer_args: Sequence[str],
     topic: str | None,
-    cluster: str | None,
     group_id: str,
     auto_offset_reset: str,
     strict_offset_reset: bool,
@@ -563,9 +524,6 @@ def get_stream_processor(
     if topic is None:
         topic = real_topic
 
-    if cluster is None:
-        cluster = cluster_from_config
-
     cmd = click.Command(
         name=consumer_name, params=list(consumer_definition.get("click_options") or ())
     )
@@ -583,11 +541,9 @@ def get_stream_processor(
     )
 
     def build_consumer_config(group_id: str, topic: Topic | None = consumer_topic):
-        assert cluster is not None
-
         consumer_config = build_kafka_consumer_configuration(
             kafka_config.get_kafka_consumer_cluster_options(
-                cluster,
+                cluster_from_config,
                 topic=topic,
             ),
             group_id=group_id,

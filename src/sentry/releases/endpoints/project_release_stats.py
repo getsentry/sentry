@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.release import Release
 from sentry.release_health.base import is_overview_stat
@@ -63,7 +64,7 @@ def upsert_missing_release(project, version) -> datetime | None:
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleaseStatsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -94,7 +95,9 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project, version) -> Response:
+    def get(
+        self, request: Request, project, version
+    ) -> Response[ProjectReleaseStatsResponse] | Response[DetailResponse]:
         """
         Return crash-free session/user health stats and a per-day breakdown for a release
         within a project.
@@ -150,7 +153,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
                 }
             )
 
-        return Response(
-            serialize({"stats": stats, "statTotals": totals, "usersBreakdown": users_breakdown}),
-            status=200,
+        body: ProjectReleaseStatsResponse = serialize(
+            {"stats": stats, "statTotals": totals, "usersBreakdown": users_breakdown}
         )
+        return Response(body, status=200)

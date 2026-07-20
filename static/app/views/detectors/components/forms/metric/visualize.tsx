@@ -6,11 +6,11 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import {t} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {AggregateParameter} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {
@@ -405,7 +405,7 @@ function GenericVisualize() {
   const lockedOption = lockSpanOptions ? LOCKED_SPAN_AGGREGATES[aggregate] : null;
 
   return (
-    <Flex direction="column" gap="md">
+    <Stack gap="md">
       <Flex gap="md" align="end">
         <Stack flex="1" gap="xs" maxWidth="425px">
           <div>
@@ -490,7 +490,7 @@ function GenericVisualize() {
           );
         })}
       </Flex>
-    </Flex>
+    </Stack>
   );
 }
 

@@ -23,6 +23,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +57,7 @@ def query(
     *,
     referrer: str,
 ) -> EventsResponse:
-    with sentry_sdk.start_span(op="mep", name="MetricQueryBuilder"):
+    with start_span(op="mep", name="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
             dataset=Dataset.PerformanceMetrics,
             params={},
@@ -85,14 +86,16 @@ def query(
         results = metrics_query.run_query(
             referrer=metrics_referrer, query_source=query_source, use_cache=True
         )
-    with sentry_sdk.start_span(op="mep", name="query.transform_results"):
+    with start_span(op="mep", name="query.transform_results"):
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
         results["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
         if snuba_params.debug:
             results["meta"]["debug_info"] = {"query": str(metrics_query.get_snql_query().query)}
         sentry_sdk.set_tag("performance.dataset", "metrics")
+        sentry_sdk.set_attribute("performance.dataset", "metrics")
         sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
+        sentry_sdk.set_attribute("on_demand.is_extracted", metrics_query.use_on_demand)
         return results
 
 
@@ -165,7 +168,7 @@ def bulk_timeseries_query(
         metrics_compatible = True
 
     if metrics_compatible:
-        with sentry_sdk.start_span(op="mep", name="TimeseriesMetricQueryBuilder"):
+        with start_span(op="mep", name="TimeseriesMetricQueryBuilder"):
             metrics_queries = []
             for query in queries:
                 metrics_query = TimeseriesMetricQueryBuilder(
@@ -193,9 +196,10 @@ def bulk_timeseries_query(
             for br in bulk_result:
                 _result["data"] = [*_result["data"], *br["data"]]
                 _result["meta"] = br["meta"]
-        with sentry_sdk.start_span(op="mep", name="query.transform_results"):
+        with start_span(op="mep", name="query.transform_results"):
             result = metrics_query.process_results(_result)
             sentry_sdk.set_tag("performance.dataset", "metrics")
+            sentry_sdk.set_attribute("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
 
             # Sometimes additional formatting needs to be done downstream
@@ -273,7 +277,7 @@ def timeseries_query(
     metrics_compatible = not equations
 
     def run_metrics_query(inner_params: SnubaParams):
-        with sentry_sdk.start_span(op="mep", name="TimeseriesMetricQueryBuilder"):
+        with start_span(op="mep", name="TimeseriesMetricQueryBuilder"):
             metrics_query = TimeseriesMetricQueryBuilder(
                 params={},
                 interval=rollup,
@@ -293,7 +297,7 @@ def timeseries_query(
             )
             metrics_referrer = referrer + ".metrics-enhanced"
             result = metrics_query.run_query(referrer=metrics_referrer, query_source=query_source)
-        with sentry_sdk.start_span(op="mep", name="query.transform_results"):
+        with start_span(op="mep", name="query.transform_results"):
             result = metrics_query.process_results(result)
             result["data"] = (
                 discover.zerofill(
@@ -307,8 +311,10 @@ def timeseries_query(
                 else result["data"]
             )
             sentry_sdk.set_tag("performance.dataset", "metrics")
+            sentry_sdk.set_attribute("performance.dataset", "metrics")
             result["meta"]["isMetricsData"] = True
             sentry_sdk.set_tag("on_demand.is_extracted", metrics_query.use_on_demand)
+            sentry_sdk.set_attribute("on_demand.is_extracted", metrics_query.use_on_demand)
             result["meta"]["isMetricsExtractedData"] = metrics_query.use_on_demand
 
             return {

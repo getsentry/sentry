@@ -8,21 +8,36 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models.activity import Activity
 from sentry.notifications.notification_action.registry import (
+    activity_handler_registry,
     group_type_notification_registry,
     issue_alert_handler_registry,
     metric_alert_handler_registry,
 )
-from sentry.notifications.notification_action.types import BaseMetricAlertHandler
+from sentry.notifications.notification_action.types import (
+    ActivityHandlerValidationError,
+    BaseMetricAlertHandler,
+)
 from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
     SerializableRuleProxy,
 )
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
+from sentry.options.rollout import in_random_rollout
+from sentry.types.activity import ActivityType
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
+
+RESOLUTION_ACTIVITY_TYPES = frozenset(
+    {
+        ActivityType.SET_RESOLVED,
+        ActivityType.SET_RESOLVED_IN_RELEASE,
+        ActivityType.SET_RESOLVED_BY_AGE,
+        ActivityType.SET_RESOLVED_IN_COMMIT,
+    }
+)
 
 
 def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
@@ -47,6 +62,18 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
             and invocation.event_data.group.type == MetricIssue.type_id
         ):
             return execute_via_metric_alert_handler(invocation)
+
+        try:
+            return execute_via_activity_type_registry(invocation=invocation)
+        except Exception:
+            logger.exception(
+                "Error executing via activity type registry",
+                extra={
+                    "action_id": invocation.action.id,
+                    "detector_id": invocation.detector.id,
+                    "organization_id": invocation.detector.project.organization_id,
+                },
+            )
         return invocation.event_data.event.send_notification()
 
     try:
@@ -199,3 +226,33 @@ def metric_alert_notification_data_factory(
         text=attachment_info["text"],
         chart_url=chart_url,
     )
+
+
+def execute_via_activity_type_registry(invocation: ActionInvocation) -> None:
+    logging_ctx = {
+        "action_id": invocation.action.id,
+        "detector_id": invocation.detector.id,
+        "action_type": invocation.action.type,
+    }
+    try:
+        handler = activity_handler_registry.get(invocation.action.type)
+    except NoRegistrationExistsError:
+        logger.exception("No activity handler found for action type", extra=logging_ctx)
+        raise
+
+    try:
+        activity = handler.validate_activity(invocation=invocation)
+    except (Exception, ActivityHandlerValidationError):
+        logger.exception("Error validating activity for activity handler", extra=logging_ctx)
+        raise
+
+    if ActivityType(activity.type) in RESOLUTION_ACTIVITY_TYPES:
+        if not in_random_rollout("notifications.platform.resolution-notifications.rollout-rate"):
+            return
+
+    try:
+        handler.invoke_action(invocation=invocation, activity=activity)
+    except Exception:
+        logger.exception("Error invoking action via activity handler", extra=logging_ctx)
+        raise
+    logger.info("Invoked action via activity handler", extra=logging_ctx)

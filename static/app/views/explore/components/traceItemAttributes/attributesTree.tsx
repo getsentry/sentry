@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
@@ -7,7 +6,7 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
@@ -330,7 +329,6 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
   getCustomActions,
   ...props
 }: AttributesTreeRowProps<RendererExtra>) {
-  const theme = useTheme();
   const originalAttribute = content.originalAttribute;
   const hasErrors = false; // No error handling in this simplified version
   const hasStem = !isLast && isEmptyObject(content.subtree);
@@ -381,7 +379,6 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
             content={content}
             renderers={props.renderers}
             rendererExtra={props.rendererExtra}
-            theme={theme}
           />
         </TreeValue>
         {attributeActions}
@@ -555,7 +552,7 @@ const TreeValueTrunk = styled('div')`
   height: 100%;
   align-items: center;
   min-height: 22px;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   grid-column-gap: ${p => p.theme.space.xs};
 `;
 

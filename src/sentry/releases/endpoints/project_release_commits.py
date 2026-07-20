@@ -8,7 +8,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.commit import CommitSerializerResponse
+from sentry.api.serializers.models.commit import CommitSerializerResponseWithReleases
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.release_examples import ReleaseExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
@@ -22,14 +22,15 @@ from sentry.models.repository import Repository
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ProjectReleasePermission,)
 
     @extend_schema(
-        operation_id="List a Project Release's Commits",
+        operation_id="listProjectReleaseCommits",
+        summary="List a Project Release's Commits",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -38,7 +39,7 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "ListProjectReleaseCommitsResponse", list[CommitSerializerResponse]
+                "ListProjectReleaseCommitsResponse", list[CommitSerializerResponseWithReleases]
             ),
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
@@ -46,7 +47,9 @@ class ProjectReleaseCommitsEndpoint(ProjectEndpoint):
         },
         examples=ReleaseExamples.LIST_RELEASE_COMMITS,
     )
-    def get(self, request: Request, project, version) -> Response[list[CommitSerializerResponse]]:
+    def get(
+        self, request: Request, project, version
+    ) -> Response[list[CommitSerializerResponseWithReleases]]:
         """
         Retrieve a list of commits for a given release.
         """

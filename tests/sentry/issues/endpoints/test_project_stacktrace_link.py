@@ -68,6 +68,7 @@ def serialized_integration(integration: Integration) -> Mapping[str, Any]:
         "icon": None,
         "id": str(integration.id),
         "name": "Example",
+        "outOfDate": None,
         "provider": serialized_provider(),
         "scopes": None,
         "status": "active",

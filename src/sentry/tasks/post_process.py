@@ -15,13 +15,12 @@ from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
 from sentry import features, options, projectoptions
-from sentry.exceptions import PluginError
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
-from sentry.replays.lib.kafka import initialize_replays_publisher
+from sentry.replays.lib.kafka import publish_replay_event
 from sentry.signals import event_processed, issue_unignored
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -39,6 +38,7 @@ from sentry.utils.safe import get_path, safe_execute
 from sentry.utils.sdk import bind_organization_context, set_current_event_project
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
+from sentry.utils.tracing import start_span, trace
 
 if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
@@ -70,6 +70,7 @@ class PostProcessJob(TypedDict, total=False):
     has_reappeared: bool
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool
+    halt_post_process: bool
 
 
 def _should_send_error_created_hooks(project: Project) -> bool:
@@ -152,7 +153,7 @@ def _capture_group_stats(job: PostProcessJob) -> None:
     metrics.incr("events.unique", tags={"platform": platform}, skip_internal=False)
 
 
-@sentry_sdk.trace
+@trace
 def should_issue_owners_ratelimit(
     project_id: int, group_id: int, organization_id: int | None
 ) -> bool:
@@ -184,7 +185,7 @@ def should_issue_owners_ratelimit(
 
 
 @metrics.wraps("post_process.handle_owner_assignment")
-@sentry_sdk.trace
+@trace
 def handle_owner_assignment(job: PostProcessJob) -> None:
     """
     The handle_owner_assignment task attempts to find issue owners for a group.
@@ -297,7 +298,7 @@ def handle_owner_assignment(job: PostProcessJob) -> None:
         handle_invalid_group_owners(group)
 
 
-@sentry_sdk.trace
+@trace
 def handle_invalid_group_owners(group: Group) -> None:
     from sentry.models.groupowner import GroupOwner, GroupOwnerType
 
@@ -313,7 +314,7 @@ def handle_invalid_group_owners(group: Group) -> None:
         )
 
 
-@sentry_sdk.trace
+@trace
 def handle_group_owners(
     project: Project,
     group: Group,
@@ -339,7 +340,9 @@ def handle_group_owners(
     try:
         logger.info("handle_group_owners.start", extra=logging_params)
         with (
-            sentry_sdk.start_span(op="post_process.handle_group_owners"),
+            start_span(
+                op="post_process.handle_group_owners", name="post_process.handle_group_owners"
+            ),
             lock.acquire(),
         ):
             current_group_owners = GroupOwner.objects.filter(
@@ -588,7 +591,10 @@ def post_process_group(
 
         # Re-bind Project and Org since we're reading the Event object
         # from cache which may contain stale parent models.
-        with sentry_sdk.start_span(op="tasks.post_process_group.project_get_from_cache"):
+        with start_span(
+            op="tasks.post_process_group.project_get_from_cache",
+            name="tasks.post_process_group.project_get_from_cache",
+        ):
             try:
                 event.project = Project.objects.get_from_cache(id=event.project_id)
             except Project.DoesNotExist:
@@ -601,6 +607,7 @@ def post_process_group(
 
         is_reprocessed = is_reprocessed_event(event.data)
         sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
+        sentry_sdk.set_attribute("is_reprocessed", is_reprocessed)
 
         metric_tags = {}
         if group_id:
@@ -636,6 +643,9 @@ def post_process_group(
 
 
 def run_post_process_job(job: PostProcessJob) -> None:
+    from sentry.issues.action_log.publish import action_context_scope
+    from sentry.issues.action_log.types import ActionSource
+
     group_event = job["event"]
     issue_category = group_event.group.issue_category if group_event.group else None
     issue_category_metric = issue_category.name.lower() if issue_category else None
@@ -665,7 +675,11 @@ def run_post_process_job(job: PostProcessJob) -> None:
                         "is_reprocessed": job["is_reprocessed"],
                     },
                 ),
-                sentry_sdk.start_span(op=f"tasks.post_process_group.{pipeline_step.__name__}"),
+                start_span(
+                    op=f"tasks.post_process_group.{pipeline_step.__name__}",
+                    name=f"tasks.post_process_group.{pipeline_step.__name__}",
+                ),
+                action_context_scope(ActionSource.SYSTEM),
             ):
                 pipeline_step(job)
         except Exception:
@@ -689,6 +703,15 @@ def run_post_process_job(job: PostProcessJob) -> None:
                     "pipeline": pipeline_step.__name__,
                 },
             )
+            if job.get("halt_post_process"):
+                metrics.incr(
+                    "sentry.tasks.post_process.post_process_group.halted",
+                    tags={
+                        "issue_category": issue_category_metric,
+                        "pipeline": pipeline_step.__name__,
+                    },
+                )
+                break
 
 
 def process_event(data: MutableMapping[str, Any], group_id: int | None) -> Event:
@@ -720,7 +743,10 @@ def update_event_group(event: Event, group_state: GroupState) -> GroupEvent:
     # We fetch buffered updates to group aggregates here and populate them on the Group. This
     # helps us avoid problems with processing group ignores and alert rules that rely on these
     # stats.
-    with sentry_sdk.start_span(op="tasks.post_process_group.fetch_buffered_group_stats"):
+    with start_span(
+        op="tasks.post_process_group.fetch_buffered_group_stats",
+        name="tasks.post_process_group.fetch_buffered_group_stats",
+    ):
         fetch_buffered_group_stats(rebound_group)
 
     rebound_group.project = event.project
@@ -738,7 +764,10 @@ def process_inbox_adds(job: PostProcessJob) -> None:
     from sentry.models.group import GroupStatus
     from sentry.types.group import GroupSubStatus
 
-    with sentry_sdk.start_span(op="tasks.post_process_group.add_group_to_inbox"):
+    with start_span(
+        op="tasks.post_process_group.add_group_to_inbox",
+        name="tasks.post_process_group.add_group_to_inbox",
+    ):
         event = job["event"]
         is_reprocessed = job["is_reprocessed"]
         is_new = job["group_state"]["is_new"]
@@ -768,6 +797,25 @@ def process_inbox_adds(job: PostProcessJob) -> None:
                 event.group.status = GroupStatus.UNRESOLVED
                 event.group.substatus = GroupSubStatus.REGRESSED
                 add_group_to_inbox(event.group, GroupInboxReason.REGRESSION)
+
+
+def _noop_malicious_issue_detection_hook(job: PostProcessJob) -> bool:
+    return False
+
+
+_malicious_issue_detection_hook: Callable[[PostProcessJob], bool] = (
+    _noop_malicious_issue_detection_hook
+)
+
+
+def set_malicious_issue_detection_hook(hook: Callable[[PostProcessJob], bool]) -> None:
+    global _malicious_issue_detection_hook
+    _malicious_issue_detection_hook = hook
+
+
+def process_malicious_issue_detection(job: PostProcessJob) -> None:
+    if _malicious_issue_detection_hook(job):
+        job["halt_post_process"] = True
 
 
 def process_snoozes(job: PostProcessJob) -> None:
@@ -916,14 +964,12 @@ def process_replay_link(job: PostProcessJob) -> None:
 
     metrics.incr("post_process.process_replay_link.id_exists")
 
-    publisher = initialize_replays_publisher(is_async=True)
     try:
         kafka_payload = transform_event_for_linking_payload(replay_id, group_event)
     except ValueError:
         metrics.incr("post_process.process_replay_link.id_invalid")
     else:
-        publisher.publish(
-            "ingest-replay-events",
+        publish_replay_event(
             json.dumps(kafka_payload),
         )
 
@@ -1191,24 +1237,6 @@ def process_data_forwarding(job: PostProcessJob) -> None:
             )
 
 
-def process_plugins(job: PostProcessJob) -> None:
-    if job["is_reprocessed"]:
-        return
-
-    from sentry.plugins.base import plugins
-
-    event, is_new, is_regression = (
-        job["event"],
-        job["group_state"]["is_new"],
-        job["group_state"]["is_regression"],
-    )
-
-    for plugin in plugins.for_project(event.project):
-        plugin_post_process_group(
-            plugin_slug=plugin.slug, event=event, is_new=is_new, is_regresion=is_regression
-        )
-
-
 def process_similarity(job: PostProcessJob) -> None:
     if not options.get("sentry.similarity.indexing.enabled"):
         return
@@ -1221,7 +1249,9 @@ def process_similarity(job: PostProcessJob) -> None:
 
     event = job["event"]
 
-    with sentry_sdk.start_span(op="tasks.post_process_group.similarity"):
+    with start_span(
+        op="tasks.post_process_group.similarity", name="tasks.post_process_group.similarity"
+    ):
         safe_execute(similarity.record, event.project, [event])
 
 
@@ -1243,10 +1273,7 @@ def process_processing_errors_eap(job: PostProcessJob) -> None:
 
     event = job["event"]
 
-    if not features.has("organizations:processing-errors-eap", event.project.organization):
-        return
-
-    processing_errors = event.data.get("errors", [])
+    processing_errors = get_path(event.data, "errors", filter=True, default=[])
     if not processing_errors:
         return
 
@@ -1274,35 +1301,15 @@ def sdk_crash_monitoring(job: PostProcessJob) -> None:
     if not features.has("organizations:sdk-crash-detection", event.project.organization):
         return
 
-    with sentry_sdk.start_span(op="post_process.build_sdk_crash_config"):
+    with start_span(
+        op="post_process.build_sdk_crash_config", name="post_process.build_sdk_crash_config"
+    ):
         configs = build_sdk_crash_detection_configs()
         if not configs or len(configs) == 0:
             return None
 
-    with sentry_sdk.start_span(op="post_process.detect_sdk_crash"):
+    with start_span(op="post_process.detect_sdk_crash", name="post_process.detect_sdk_crash"):
         sdk_crash_detection.detect_sdk_crash(event=event, configs=configs)
-
-
-def plugin_post_process_group(plugin_slug: str, event: GroupEvent, **kwargs: Any) -> None:
-    """
-    Fires post processing hooks for a group.
-    """
-    set_current_event_project(event.project_id)
-
-    from sentry.plugins.base import plugins
-
-    plugin = plugins.get(plugin_slug)
-    try:
-        plugin.post_process(
-            event=event,
-            group=event.group,
-            **kwargs,
-        )
-    except PluginError as e:
-        logger.info("post_process.process_error_ignored", extra={"exception": e})
-    # Since plugins are deprecated, instead of creating issues, lets just create a warning log
-    except Exception as e:
-        logger.warning("post_process.process_error", extra={"exception": e})
 
 
 def feedback_filter_decorator(
@@ -1502,63 +1509,22 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
-    from sentry.seer.autofix.issue_summary import get_issue_summary_cache_key
-    from sentry.seer.autofix.trigger import (
-        get_default_seer_automation_skip_reason,
-        get_seat_based_seer_automation_skip_reason,
-    )
-    from sentry.seer.autofix.utils import (
-        is_seer_scanner_rate_limited,
-        is_seer_seat_based_tier_enabled,
-    )
-    from sentry.tasks.seer.autofix import (
-        generate_issue_summary_only,
-        generate_summary_and_run_automation,
-        run_automation_only_task,
-    )
+    from sentry.seer.autofix.trigger import get_default_seer_automation_skip_reason
+    from sentry.seer.autofix.utils import is_seer_seat_based_tier_enabled
+    from sentry.tasks.seer.autofix import generate_summary_and_run_automation
 
     event = job["event"]
     group = event.group
 
-    # Default behaviour
-    if not is_seer_seat_based_tier_enabled(group.organization):
-        skip_reason = get_default_seer_automation_skip_reason(group, locks)
-        if skip_reason is not None:
-            metrics.incr(
-                "seer.automation.filtered", tags={"reason": skip_reason, "tier": "default"}
-            )
-            return
+    if is_seer_seat_based_tier_enabled(group.organization):
+        return
 
-        generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
-    else:
-        # Seat-based tier behaviour
-        skip_reason = get_seat_based_seer_automation_skip_reason(group)
-        if skip_reason is not None:
-            metrics.incr(
-                "seer.automation.filtered", tags={"reason": skip_reason, "tier": "seat_based"}
-            )
-            if skip_reason == "below_occurrence_threshold":
-                generate_issue_summary_only.delay(group.id)
-            return
+    skip_reason = get_default_seer_automation_skip_reason(group, locks)
+    if skip_reason is not None:
+        metrics.incr("seer.automation.filtered", tags={"reason": skip_reason, "tier": "default"})
+        return
 
-        # Check if summary exists in cache
-        cache_key = get_issue_summary_cache_key(group.id)
-        if cache.get(cache_key) is not None:
-            # Summary exists, run automation directly
-            run_automation_only_task.delay(group.id)
-        else:
-            # Rate limit check before generating summary
-            if is_seer_scanner_rate_limited(group.project, group.organization):
-                metrics.incr(
-                    "seer.automation.filtered",
-                    tags={"reason": "rate_limited", "tier": "seat_based"},
-                )
-                return
-
-            # No summary yet, generate summary + run automation in one go
-            generate_summary_and_run_automation.delay(
-                group.id, trigger_path="seat_based_seer_automation"
-            )
+    generate_summary_and_run_automation.delay(group.id, trigger_path="old_seer_automation")
 
 
 def kick_off_lightweight_rca_cluster(job: PostProcessJob) -> None:
@@ -1603,6 +1569,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         _capture_group_stats,
         process_snoozes,
         process_inbox_adds,
+        process_malicious_issue_detection,
         detect_new_escalation,
         process_commits,
         handle_owner_assignment,
@@ -1612,7 +1579,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         process_workflow_engine,
         process_resource_change_bounds,
         process_data_forwarding,
-        process_plugins,
         process_code_mappings,
         process_similarity,
         update_existing_attachments,

@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -8,7 +7,6 @@ import type {ProjectKey} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -16,6 +14,7 @@ import {RouteError} from 'sentry/views/routeError';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {KeySettings} from 'sentry/views/settings/project/projectKeys/details/keySettings';
 import {KeyStats} from 'sentry/views/settings/project/projectKeys/details/keyStats';
+import {RelayDsnOverrideAlert} from 'sentry/views/settings/project/projectKeys/relayDsnOverrideAlert';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -24,10 +23,8 @@ export default function ProjectKeyDetails() {
   const {project} = useProjectSettingsOutlet();
   const params = useParams<{keyId: string; projectId: string}>();
   const {keyId, projectId} = params;
-  const api = useApi();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const theme = useTheme();
 
   const {
     data: projKeyData,
@@ -81,7 +78,8 @@ export default function ProjectKeyDetails() {
       <div data-test-id="key-details">
         <SettingsPageHeader title={t('Key Details')} />
         <ProjectPermissionAlert project={project} />
-        <KeyStats api={api} organization={organization} params={params} theme={theme} />
+        <RelayDsnOverrideAlert />
+        <KeyStats />
         <KeySettings
           data={projKeyData}
           updateData={onDataChange}

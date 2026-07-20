@@ -16,7 +16,7 @@ import {
 import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTableSort';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useReplayPageview} from 'sentry/utils/replays/hooks/useReplayPageview';
 import {ReplayPreferencesContextProvider} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
@@ -139,13 +139,23 @@ function ReplaysListBody() {
     !rageClicksSdkVersion.needsUpdate &&
     !allMobileProj &&
     !isLoading;
+  const showDeadRageClickCardsPlaceholder =
+    hasSentReplays.hasSentOneReplay &&
+    !rageClicksSdkVersion.needsUpdate &&
+    !allMobileProj &&
+    isLoading;
+  const showDeadRageClickWidgets =
+    showDeadRageClickCards || showDeadRageClickCardsPlaceholder;
   const [widgetIsOpen, setWidgetIsOpen] = useLocalStorageState(
     'replay-dead-rage-widget-open',
     true
   );
   const toggleWidgets = () => setWidgetIsOpen(isOpen => !isOpen);
 
-  useReplayListLLMContextData({showDeadRageClickCards, widgetIsOpen});
+  useReplayListLLMContextData({
+    showDeadRageClickCards: showDeadRageClickWidgets,
+    widgetIsOpen,
+  });
 
   useRouteAnalyticsParams({
     hasSessionReplay,
@@ -161,7 +171,7 @@ function ReplaysListBody() {
           <Layout.Main width="full">
             <ReplayListControls
               onToggleWidgets={toggleWidgets}
-              showDeadRageClickCards={showDeadRageClickCards}
+              showDeadRageClickCards={showDeadRageClickWidgets}
               widgetIsOpen={widgetIsOpen}
             />
           </Layout.Main>
@@ -173,6 +183,7 @@ function ReplaysListBody() {
               <ReplayAccess fallback={<ReplayAccessFallbackAlert />}>
                 <ReplayIndexContainer
                   showDeadRageClickCards={showDeadRageClickCards}
+                  showDeadRageClickCardsPlaceholder={showDeadRageClickCardsPlaceholder}
                   widgetIsOpen={widgetIsOpen}
                 />
               </ReplayAccess>

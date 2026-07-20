@@ -117,6 +117,10 @@ export function ExploreSecondaryNavigation() {
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
                 to={`${baseUrl}/releases/`}
+                activeTo={[
+                  `${baseUrl}/releases/`,
+                  `/organizations/${organization.slug}/preprod/`,
+                ]}
                 analyticsItemName="explore_releases"
               >
                 {t('Releases')}
@@ -128,7 +132,7 @@ export function ExploreSecondaryNavigation() {
                   // TODO: Remove once query performance is improved - defaults to 24h to avoid slow loads
                   to={{
                     pathname: `${baseUrl}/${CONVERSATIONS_LANDING_SUB_PATH}/`,
-                    search: '?statsPeriod=24h',
+                    search: '?statsPeriod=24h&referrer=sidebar',
                   }}
                   analyticsItemName="explore_conversations"
                   trailingItems={<FeatureBadge type="beta" />}

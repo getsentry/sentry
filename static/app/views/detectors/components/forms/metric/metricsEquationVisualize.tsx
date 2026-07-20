@@ -10,7 +10,6 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {METRIC_DETECTOR_FORM_FIELDS} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
@@ -21,7 +20,6 @@ import {
 } from 'sentry/views/explore/metrics/equationBuilder/utils';
 import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
 import type {MetricQuery, TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   MetricsQueryParamsProvider,
   useMetricVisualize,
@@ -60,7 +58,9 @@ function computeEquationReferencedLabels(
     return [];
   }
   const labelSet = new Set(Object.keys(referenceMap));
-  const unresolvedText = unresolveExpression(visualize.expression.text, referenceMap);
+  const unresolvedText =
+    visualize.internalExpression ??
+    unresolveExpression(visualize.expression.text, referenceMap);
   return extractReferenceLabels(new Expression(unresolvedText, labelSet));
 }
 
@@ -86,8 +86,6 @@ export function MetricsEquationVisualize({
   environments,
   onQueryChange,
 }: MetricsEquationVisualizeProps) {
-  const organization = useOrganization();
-  const hasEquations = canUseMetricsEquationsInAlerts(organization);
   const aggregateFunction = useFormField<string>(aggregateFieldName);
   const query = useFormField<string>(METRIC_DETECTOR_FORM_FIELDS.query);
 
@@ -103,10 +101,7 @@ export function MetricsEquationVisualize({
   }, []);
 
   return (
-    <LocalMultiMetricsQueryParamsProvider
-      initialQueries={initialQueries}
-      hasEquations={hasEquations}
-    >
+    <LocalMultiMetricsQueryParamsProvider initialQueries={initialQueries}>
       <MetricsEquationVisualizeContent
         aggregateFieldName={aggregateFieldName}
         projectIds={projectIds}
@@ -366,7 +361,10 @@ function MetricToolbar({
   ) => {
     if (isVisualizeEquation(visualize)) {
       setVisualize(
-        visualize.replace({yAxis: `${EQUATION_PREFIX}${resolvedExpression.text}`})
+        visualize.replace({
+          yAxis: `${EQUATION_PREFIX}${resolvedExpression.text}`,
+          internalExpression: internalText,
+        })
       );
       // Report the user's typed labels (pre-resolve) so identical rows don't
       // collapse the lock onto whichever label sorts first in the map.
@@ -416,6 +414,7 @@ function MetricToolbar({
             traceMetric={traceMetric}
             projectIds={projectIds}
             environments={environments}
+            disableValidation
           />
           <DeleteMetricButton disabledReason={deleteDisabledReason} />
         </Fragment>
@@ -425,12 +424,14 @@ function MetricToolbar({
             expression={visualize.expression.text}
             referenceMap={referenceMap}
             handleExpressionChange={handleExpressionChange}
+            storedInternalExpression={visualize.internalExpression}
           />
           <Filter
             traceMetric={traceMetric}
             skipTraceMetricFilter
             projectIds={projectIds}
             environments={environments}
+            disableValidation
           />
           <DeleteMetricButton />
         </Fragment>

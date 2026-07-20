@@ -70,7 +70,7 @@ describe('LoaderScript', () => {
 
   it('renders for single project', async () => {
     const {organization, project} = initializeOrg();
-    const projectKey = ProjectKeysFixture()[0]!;
+    const projectKey = ProjectKeysFixture()[0];
     const projectKeys = [projectKey];
 
     mockApi({organization, project, projectKeys});
@@ -151,7 +151,7 @@ describe('LoaderScript', () => {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    expect(screen.getByText(`Client Key: ${projectKeys[0]!.name}`)).toBeInTheDocument();
+    expect(screen.getByText(`Client Key: ${projectKeys[0].name}`)).toBeInTheDocument();
     expect(screen.getByText(`Client Key: ${projectKeys[1]!.name}`)).toBeInTheDocument();
 
     const allLoaderScripts = screen.getAllByRole('textbox', {
@@ -163,7 +163,7 @@ describe('LoaderScript', () => {
 
   it('allows to update key settings', async () => {
     const {organization, project} = initializeOrg();
-    const baseKey = ProjectKeysFixture()[0]!;
+    const baseKey = ProjectKeysFixture()[0];
     const projectKey = {
       ...baseKey,
       dynamicSdkLoaderOptions: {
@@ -193,12 +193,12 @@ describe('LoaderScript', () => {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    expect(screen.getByText('Enable Performance Monitoring')).toBeInTheDocument();
+    expect(screen.getByText('Enable Tracing')).toBeInTheDocument();
     expect(screen.getByText('Enable Session Replay')).toBeInTheDocument();
     expect(screen.getByText('Enable SDK debugging')).toBeInTheDocument();
 
     let performanceCheckbox = screen.getByRole('checkbox', {
-      name: 'Enable Performance Monitoring',
+      name: 'Enable Tracing',
     });
     expect(performanceCheckbox).toBeEnabled();
     expect(performanceCheckbox).not.toBeChecked();
@@ -218,12 +218,12 @@ describe('LoaderScript', () => {
     // Toggle performance option
     await userEvent.click(
       screen.getByRole('checkbox', {
-        name: 'Enable Performance Monitoring',
+        name: 'Enable Tracing',
       })
     );
 
     performanceCheckbox = await screen.findByRole('checkbox', {
-      name: 'Enable Performance Monitoring',
+      name: 'Enable Tracing',
       checked: true,
     });
     expect(performanceCheckbox).toBeEnabled();
@@ -232,12 +232,7 @@ describe('LoaderScript', () => {
     expect(mockPut).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/keys/${projectKey.id}/`,
       expect.objectContaining({
-        data: expect.objectContaining({
-          dynamicSdkLoaderOptions: {
-            ...projectKey.dynamicSdkLoaderOptions,
-            hasPerformance: true,
-          },
-        }),
+        data: {dynamicSdkLoaderOptions: {hasPerformance: true}},
       })
     );
   });
@@ -316,7 +311,7 @@ describe('LoaderScript', () => {
 
     expect(
       screen.getAllByRole('checkbox', {
-        name: 'Enable Performance Monitoring',
+        name: 'Enable Tracing',
         checked: false,
       })
     ).toHaveLength(2);
@@ -336,20 +331,20 @@ describe('LoaderScript', () => {
     // Toggle performance option
     await userEvent.click(
       screen.getAllByRole('checkbox', {
-        name: 'Enable Performance Monitoring',
+        name: 'Enable Tracing',
       })[1]!
     );
 
     expect(
       await screen.findByRole('checkbox', {
-        name: 'Enable Performance Monitoring',
+        name: 'Enable Tracing',
         checked: true,
       })
     ).toBeInTheDocument();
 
     expect(
       screen.getByRole('checkbox', {
-        name: 'Enable Performance Monitoring',
+        name: 'Enable Tracing',
         checked: false,
       })
     ).toBeInTheDocument();
@@ -369,12 +364,7 @@ describe('LoaderScript', () => {
     expect(mockPut).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/keys/${projectKey!.id}/`,
       expect.objectContaining({
-        data: expect.objectContaining({
-          dynamicSdkLoaderOptions: {
-            ...projectKey!.dynamicSdkLoaderOptions,
-            hasPerformance: true,
-          },
-        }),
+        data: {dynamicSdkLoaderOptions: {hasPerformance: true}},
       })
     );
   });

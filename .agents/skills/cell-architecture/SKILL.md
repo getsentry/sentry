@@ -8,9 +8,8 @@ description: >-
   URL_NAME_TO_ACTION registry in test_urls.py to zero (with a recipe for each action type),
   rolling deploy safety and the two-phase pattern required by independent sentry/getsentry deploys,
   and the region -> cell rename including what not to rename (DB columns, AWS refs, uptime regions,
-  billing address). Also documents known issues with proposed fixes: org listing and creation
-  without a slug, integration TeamLinkageView routing, Jira cross-cell fan-out, and relocation
-  endpoint routing.
+  billing address). Also documents known issues with proposed fixes: integration TeamLinkageView
+  routing, Jira cross-cell fan-out, and relocation endpoint routing.
 ---
 
 > **Status**: Active migration in progress. Migration-specific sections should be removed once complete, leaving a stable architecture reference.
@@ -137,14 +136,28 @@ Project.objects.filter(teams__organizationmember__user_id=user_id)
 | **Denormalize to control silo** | High QPS, paginated lists, eventual consistency acceptable. Replicate needed fields to a `@control_silo_model` via outboxes — single local query, no RPC. See **hybrid-cloud-outboxes** skill.  |
 | **API gateway fan-out**         | Temporary stopgap only — breaks pagination, latency = slowest cell.                                                                                                                             |
 
-## Running Cell-Routing Locally
+## Running Cell-Routing proxy locally
 
 ```bash
 devservices up --mode cell-routing            # brings up synapse + deps
-SENTRY_CELL_ROUTING=1 sentry devserver        # or devservices serve
+SENTRY_CELL_ROUTING=1 sentry devserver --client-hostname=dev.getsentry.net # or devservices serve
 ```
 
 Only cell-scoped API XHRs (`/api/0/organizations/{slug}/*`) cross to Synapse on `:13000`; UI HTML and control API stay on the sentry devserver at `:8000`. The env var gates a block in `src/sentry/conf/server.py` that sets `system.region-api-url-template` to the Synapse port and flips `system:multi-region`. The frontend reads `regionUrl` from the bootstrap blob and routes cell XHRs there per `static/app/api.tsx:715`.
+
+### Sending a test envelope
+
+`bin/send-cell-test-event.py` exercises the ingestion path: it resolves a DSN from the
+local dev DB and sends an envelope through the edge relay (`:7899`), which forwards to
+relay-cell -> Kafka -> Sentry.
+
+```bash
+bin/send-cell-test-event.py                       # internal project (id 1)
+PROJECT_ID=42 bin/send-cell-test-event.py         # different project
+TARGET=127.0.0.1:7900 bin/send-cell-test-event.py # straight to relay-cell, bypass edge
+```
+
+Watch it route with `docker logs -f sentry-relay-edge-1`.
 
 ## Active Migration
 
@@ -244,17 +257,6 @@ the context before renaming.
 ### Known Issues
 
 Specific broken areas with a description of the problem and the proposed fix. Remove each entry once resolved.
-
-#### Org Operations Without an Existing Org Slug
-
-Several org lifecycle operations have no existing org slug to route by, so Synapse can't route them to a specific cell within a locality:
-
-- **Org listing** — the frontend fans out `/organizations/` to each locality URL (`useOrganizationsWithRegion`). `OrganizationIndexEndpoint` is `@cell_silo_endpoint` and queries `Organization.objects.get_for_user_ids()`, so even if it reaches a cell it only returns orgs in that cell.
-- **Org creation** — the user picks a locality but there's no mechanism to select which cell within that locality the new org lands in.
-
-**The fix for listing**: move `OrganizationIndexEndpoint` to `@control_silo_endpoint` and query `OrganizationMemberMapping` (user -> org IDs) joined with `OrganizationMapping` — both already exist on control silo. Some response fields (e.g. avatar, auth provider, features) are not yet in `OrganizationMapping` and would need to be replicated or dropped.
-
-**Org creation**: `Locality.new_org_cell` to route new orgs to the correct cell within the selected locality.
 
 #### Integration Views and Cell Routing
 

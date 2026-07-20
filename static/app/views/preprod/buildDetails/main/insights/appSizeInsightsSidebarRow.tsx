@@ -7,6 +7,7 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {Collapsible} from 'sentry/components/collapsible';
 import {IconInfo} from 'sentry/icons';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconFlag} from 'sentry/icons/iconFlag';
@@ -52,6 +53,11 @@ const INSIGHTS_WITH_MORE_INFO_MODAL = [
 ];
 
 const DEFAULT_ITEMS_PER_PAGE = 20;
+
+// Show this many duplicate files within a group before collapsing the rest
+// behind a toggle, so one heavily-duplicated group can't render hundreds of
+// rows at once and push every other insight off-screen.
+const DUPLICATE_GROUP_VISIBLE_FILE_COUNT = 15;
 
 export function AppSizeInsightsSidebarRow({
   insight,
@@ -125,7 +131,7 @@ export function AppSizeInsightsSidebarRow({
   };
 
   return (
-    <Flex border="muted" radius="md" padding="xl" direction="column" gap="md">
+    <Stack border="muted" radius="md" padding="xl" gap="md">
       <Flex align="start" justify="between">
         <Flex align="center" gap="xs">
           <Text variant="primary" size="md" bold>
@@ -222,7 +228,7 @@ export function AppSizeInsightsSidebarRow({
           )}
         </Container>
       )}
-    </Flex>
+    </Stack>
   );
 }
 
@@ -280,24 +286,38 @@ function DuplicateGroupFileRow({
           -{formatBytesBase10(file.savings)}
         </Text>
       </Flex>
-      <Flex direction="column" gap="xs" padding="xs sm">
-        {group.files.map((duplicateFile, index) => (
-          <Flex key={`${duplicateFile.file_path}-${index}`} align="center" gap="sm">
-            <Text size="xs" variant="muted" ellipsis style={{flex: 1, minWidth: 0}}>
-              {duplicateFile.file_path}
-            </Text>
-            <Text
-              size="xs"
-              variant="muted"
-              tabular
-              align="right"
-              style={{minWidth: '80px'}}
-            >
-              {formatBytesBase10(duplicateFile.total_savings)}
-            </Text>
-          </Flex>
-        ))}
-      </Flex>
+      <Stack gap="xs" padding="xs sm">
+        <Collapsible
+          maxVisibleItems={DUPLICATE_GROUP_VISIBLE_FILE_COUNT}
+          expandButton={({onExpand, numberOfHiddenItems}) => (
+            <Button variant="link" size="xs" onClick={onExpand}>
+              {tn('Show %s more file', 'Show %s more files', numberOfHiddenItems)}
+            </Button>
+          )}
+          collapseButton={({onCollapse}) => (
+            <Button variant="link" size="xs" onClick={onCollapse}>
+              {t('Collapse')}
+            </Button>
+          )}
+        >
+          {group.files.map(duplicateFile => (
+            <Flex key={duplicateFile.file_path} align="center" gap="sm">
+              <Text size="xs" variant="muted" ellipsis style={{flex: 1, minWidth: 0}}>
+                {duplicateFile.file_path}
+              </Text>
+              <Text
+                size="xs"
+                variant="muted"
+                tabular
+                align="right"
+                style={{minWidth: '80px'}}
+              >
+                {formatBytesBase10(duplicateFile.total_savings)}
+              </Text>
+            </Flex>
+          ))}
+        </Collapsible>
+      </Stack>
     </Fragment>
   );
 }
@@ -327,13 +347,13 @@ function OptimizableImageFileRow({
     (originalFile.idiom || originalFile.colorspace) && file.data.isDuplicateVariant;
   // TODO (EME-460): Add link to formal documentation about idiom/colorspaces in apple binaries as well as more info about app thinning
   const tooltipContent = hasMetadata && (
-    <Flex direction="column" gap="lg" align="start">
+    <Stack gap="lg" align="start">
       <Text size="xs" align="left">
         {t(
           'This image shows up multiple times because this build likely did not have app thinning applied. That means your asset catalog can include different copies of the same image meant for different device types.'
         )}
       </Text>
-      <Flex direction="column" gap="xs" align="start">
+      <Stack gap="xs" align="start">
         {originalFile.idiom && (
           <Flex align="center" gap="xs">
             <Text size="xs">{t('Idiom:')}</Text>
@@ -346,8 +366,8 @@ function OptimizableImageFileRow({
             <Text size="xs">{originalFile.colorspace}</Text>
           </Flex>
         )}
-      </Flex>
-    </Flex>
+      </Stack>
+    </Stack>
   );
 
   return (
@@ -379,7 +399,7 @@ function OptimizableImageFileRow({
           </Text>
         </Flex>
       </Flex>
-      <Flex direction="column" gap="xs" padding="xs sm">
+      <Stack gap="xs" padding="xs sm">
         {hasMinifySavings && (
           <Flex align="center" gap="sm">
             <Text size="xs" variant="muted" style={{minWidth: '100px'}}>
@@ -412,7 +432,7 @@ function OptimizableImageFileRow({
             </Text>
           </Flex>
         )}
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }

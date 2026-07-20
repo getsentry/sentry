@@ -1,6 +1,7 @@
 from collections import namedtuple
 from unittest.mock import Mock, patch
 
+import orjson
 import pytest
 from django.conf import settings
 from requests import Response
@@ -8,8 +9,9 @@ from requests.exceptions import Timeout
 
 from sentry.notifications.platform.service import NotificationService
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
+from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
 from sentry.sentry_apps.utils.webhooks import IssueActionType, SentryAppResourceType
-from sentry.shared_integrations.exceptions import ApiHostError
+from sentry.shared_integrations.exceptions import ApiHostError, ClientError
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -17,6 +19,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils import redis
 from sentry.utils.circuit_breaker2 import CircuitBreaker
+from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 from sentry.utils.sentry_apps.webhooks import WebhookTimeoutError, send_and_save_webhook_request
 
 
@@ -144,6 +147,85 @@ class WebhookCircuitBreakerTest(TestCase):
             send_and_save_webhook_request(self.sentry_app, self._make_event())
 
         mock_record_success.assert_called_once()
+
+    @with_feature("organizations:sentry-apps-custom-webhook-headers")
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    def test_error_response_buffers_masked_custom_headers(self, mock_safe_urlopen):
+        """A failed delivery records masked custom headers in the request buffer, so the
+        debug UI shows which custom headers were sent without persisting their secrets."""
+        sentry_app = self.create_sentry_app(
+            name="HeaderApp",
+            organization=self.organization,
+            webhook_url="https://example.com/webhook",
+            published=True,
+            webhook_headers=["Authorization: Bearer super-secret"],
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.organization, slug=sentry_app.slug
+        )
+        event = AppPlatformEvent(
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=install,
+            data={"test": "data"},
+        )
+        mock_safe_urlopen.return_value = _MockResponse(
+            {}, "{}", "", False, 401, _raise_status_false, None
+        )
+
+        with pytest.raises(ClientError):
+            send_and_save_webhook_request(sentry_app, event)
+
+        requests = SentryAppWebhookRequestsBuffer(sentry_app).get_requests(errors_only=True)
+        assert len(requests) == 1
+        headers = requests[0].get("request_headers")
+        assert headers is not None
+        # The custom header name is recorded but its value is masked.
+        assert headers["Authorization"] == MASKED_VALUE
+        assert "Bearer super-secret" not in headers.values()
+        # Sentry's own headers are still recorded in the clear.
+        assert headers["Content-Type"] == "application/json"
+
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    def test_custom_headers_not_sent_or_logged_without_flag(self, mock_safe_urlopen):
+        """Without the feature flag, custom headers are stripped from both the request
+        and the buffer log."""
+        sentry_app = self.create_sentry_app(
+            name="HeaderApp",
+            organization=self.organization,
+            webhook_url="https://example.com/webhook",
+            published=True,
+            webhook_headers=["Authorization: Bearer super-secret"],
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.organization, slug=sentry_app.slug
+        )
+        event = AppPlatformEvent(
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=install,
+            data={"test": "data"},
+        )
+        mock_safe_urlopen.return_value = _MockResponse(
+            {}, "{}", "", False, 401, _raise_status_false, None
+        )
+
+        with pytest.raises(ClientError):
+            send_and_save_webhook_request(sentry_app, event)
+
+        # Custom header must not appear in the outbound request.
+        call_headers = mock_safe_urlopen.call_args.kwargs["headers"]
+        assert "Authorization" not in call_headers
+
+        # Custom header must not appear in the buffer log either.
+        requests = SentryAppWebhookRequestsBuffer(sentry_app).get_requests(errors_only=True)
+        assert len(requests) == 1
+        headers = requests[0].get("request_headers")
+        assert headers is not None
+        assert "Authorization" not in headers
+        assert headers["Content-Type"] == "application/json"
 
 
 @cell_silo_test
@@ -355,3 +437,63 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
             send_and_save_webhook_request(self.sentry_app, self._make_event())
 
         assert_failure_metric(mock_record=mock_record, error_msg=RuntimeError("email boom"))
+
+
+@cell_silo_test
+class ClaudeRoutineTextSummaryTest(TestCase):
+    ROUTINE_URL = "https://api.anthropic.com/v1/claude_code/routines/trig_123/fire"
+
+    def setUp(self):
+        self.organization = self.create_organization()
+
+    def _send(self, mock_safe_urlopen, webhook_url: str) -> dict:
+        """Send an issue.created webhook and return the JSON body that went out."""
+        sentry_app = self.create_sentry_app(
+            name="RoutineApp",
+            organization=self.organization,
+            webhook_url=webhook_url,
+            published=True,
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.organization, slug=sentry_app.slug
+        )
+        event = AppPlatformEvent(
+            resource=SentryAppResourceType.ISSUE,
+            action=IssueActionType.CREATED,
+            install=install,
+            data={"issue": {"id": "123"}},
+        )
+        mock_response = Mock(spec=Response)
+        mock_response.status_code = 200
+        mock_response.headers = {}
+        mock_safe_urlopen.return_value = mock_response
+
+        send_and_save_webhook_request(sentry_app, event)
+        return orjson.loads(mock_safe_urlopen.call_args.kwargs["data"])
+
+    @with_feature("organizations:sentry-apps-claude-routine-webhooks")
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    def test_routine_url_with_flag_appends_text(self, mock_safe_urlopen):
+        body = self._send(mock_safe_urlopen, self.ROUTINE_URL)
+
+        # Summary format is pinned by the AppPlatformEvent tests; only gating matters here.
+        assert "text" in body
+        # The standard payload still rides along.
+        assert body["action"] == "created"
+        assert body["data"]["issue"]["id"] == "123"
+
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    def test_routine_url_without_flag_sends_standard_body(self, mock_safe_urlopen):
+        body = self._send(mock_safe_urlopen, self.ROUTINE_URL)
+
+        assert "text" not in body
+
+    @with_feature("organizations:sentry-apps-claude-routine-webhooks")
+    @override_options(CIRCUIT_BREAKER_OPTIONS)
+    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
+    def test_non_routine_url_with_flag_sends_standard_body(self, mock_safe_urlopen):
+        body = self._send(mock_safe_urlopen, "https://example.com/webhook")
+
+        assert "text" not in body

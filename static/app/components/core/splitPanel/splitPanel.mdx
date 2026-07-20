@@ -1,0 +1,242 @@
+---
+title: SplitPanel
+description: A two-pane component that separates two areas horizontally or vertically, with a draggable divider for resizing one pane while the other fills the remaining space.
+category: layout
+source: '@sentry/scraps/splitPanel'
+status: stable
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/splitPanel/splitPanel.tsx
+  a11y:
+    WCAG 2.1.1: https://www.w3.org/TR/WCAG22/#keyboard
+    WCAG 2.4.7: https://www.w3.org/TR/WCAG22/#focus-visible
+---
+
+import {Container, Stack} from '@sentry/scraps/layout';
+import {SplitPanel} from '@sentry/scraps/splitPanel';
+import {Text} from '@sentry/scraps/text';
+import {PersistedSizeDemo, SinglePaneDemo} from './__stories__/splitPanelDemos';
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/splitPanel/splitPanel');
+
+## When to use
+
+Use `SplitPanel` when two pieces of content share the same space and
+the user should control how much space each gets:
+
+- A resizable sidebar or detail panel next to main content
+- A chat or agent panel alongside a primary view (e.g. Seer)
+- A replay or code viewer with an adjustable side panel
+
+## When not to use
+
+- Equal-width columns that never need resizing — use `Flex` instead
+- More than two panes — `SplitPanel` only supports two
+- Layouts where one pane needs to fully hide and give its space back,
+  splitpanel always reserves space for the sized pane even at minimum size
+
+## Best practices
+
+Always give the parent explicit dimensions and `overflow: hidden`.
+`SplitPanel` fills its parent — it has no intrinsic size of its own.
+
+```tsx
+<Container width="100%" height="400px" overflow="hidden">
+  <SplitPanel defaultSize={300} sized={<Sidebar />} fill={<Content />} />
+</Container>
+```
+
+Set `minSize` and `fillMinSize` to prevent either pane from collapsing
+too small. `120px` is a reasonable floor for most surfaces.
+
+Use `defaultSize` as the meaningful reset target — double-clicking the
+divider returns to this value, so set it to the ideal starting size for
+your content.
+
+Use `placement="end"` when the resizable pane lives on the right or
+bottom — for example a chat panel on the trailing edge of the screen.
+
+Use the responsive `orientation` prop to stack panes vertically on small
+screens and side by side on larger ones, rather than building a separate
+mobile layout.
+
+```tsx
+<SplitPanel
+  orientation={{xs: 'vertical', md: 'horizontal'}}
+  defaultSize={220}
+  sized={<Sidebar />}
+  fill={<Content />}
+/>
+```
+
+## Basic Usage
+
+Pass the resizable pane as `sized` and the flexible pane as `fill`, with `defaultSize` setting the sized pane's initial size. The component fills its parent, so give the parent explicit dimensions.
+
+<Storybook.Demo>
+  <Container width="600px" height="240px" border="primary" radius="md" overflow="hidden">
+    <SplitPanel
+      defaultSize={300}
+      minSize={120}
+      fillMinSize={120}
+      sized={
+        <Stack padding="md" background="primary" height="100%">
+          <Text bold>Sized pane</Text>
+        </Stack>
+      }
+      fill={
+        <Stack padding="md" background="primary" height="100%">
+          <Text bold>Fill pane</Text>
+        </Stack>
+      }
+    />
+  </Container>
+</Storybook.Demo>
+
+```tsx
+<SplitPanel
+  defaultSize={300}
+  minSize={120}
+  fillMinSize={120}
+  sized={<SizedPane />}
+  fill={<FillPane />}
+/>
+```
+
+## Placement
+
+By default the `sized` pane sits before the divider. Set `placement="end"` to move it after, placing it on the right in horizontal layouts and on the bottom in vertical ones.
+
+<Storybook.Demo>
+  <Container width="100%" height="240px" border="primary" radius="md" overflow="hidden">
+    <SplitPanel
+      placement="end"
+      defaultSize={220}
+      minSize={120}
+      fillMinSize={240}
+      sized={
+        <Stack padding="md" background="primary" height="100%">
+          <Text bold>Sized pane</Text>
+        </Stack>
+      }
+      fill={
+        <Stack padding="md" background="primary" height="100%">
+          <Text bold>Fill pane</Text>
+        </Stack>
+      }
+    />
+  </Container>
+</Storybook.Demo>
+
+```tsx
+<SplitPanel
+  placement="end"
+  defaultSize={220}
+  minSize={120}
+  fillMinSize={240}
+  sized={<SizedPane />}
+  fill={<FillPane />}
+/>
+```
+
+## Vertical Orientation
+
+Set `orientation="vertical"` to stack the panes top-to-bottom instead of side by side.
+
+<Storybook.Demo>
+  <Container width="100%" height="400px" border="primary" radius="md" overflow="hidden">
+    <SplitPanel
+      orientation="vertical"
+      defaultSize={220}
+      minSize={120}
+      fillMinSize={160}
+      sized={
+        <Stack padding="md" background="primary" height="100%">
+          <Text bold>Sized pane</Text>
+        </Stack>
+      }
+      fill={
+        <Stack padding="md" background="primary" height="100%">
+          <Text bold>Fill pane</Text>
+        </Stack>
+      }
+    />
+  </Container>
+</Storybook.Demo>
+
+```tsx
+<SplitPanel
+  orientation="vertical"
+  defaultSize={220}
+  minSize={120}
+  fillMinSize={160}
+  sized={<SizedPane />}
+  fill={<FillPane />}
+/>
+```
+
+`orientation` also accepts a responsive value, so you can stack the panes on small screens and place them side by side on larger ones.
+
+```tsx
+<SplitPanel
+  orientation={{xs: 'vertical', md: 'horizontal'}}
+  defaultSize={220}
+  sized={<SizedPane />}
+  fill={<FillPane />}
+/>
+```
+
+## Persisting Size
+
+Use `initialSize` to restore a saved size and `onResizeEnd` to persist user changes. `defaultSize` remains the double-click reset target.
+
+<Storybook.Demo>
+  <PersistedSizeDemo />
+</Storybook.Demo>
+
+```tsx
+const [size, setSize] = useLocalStorageState('scraps-splitpanel-size', 220);
+
+<SplitPanel
+  defaultSize={220}
+  initialSize={size}
+  minSize={120}
+  fillMinSize={240}
+  onResizeEnd={({endSize}) => setSize(endSize)}
+  sized={<SizedPane />}
+  fill={<FillPane />}
+/>;
+```
+
+## Single Pane
+
+When `fill` is omitted, the `sized` pane fills the whole component and no divider is rendered. This is useful for responsive layouts that temporarily collapse to one pane.
+
+<Storybook.Demo>
+  <SinglePaneDemo />
+</Storybook.Demo>
+
+```tsx
+const [collapsed, setCollapsed] = useState(false);
+
+<SplitPanel
+  defaultSize={220}
+  minSize={120}
+  fillMinSize={240}
+  sized={<SizedPane />}
+  fill={collapsed ? undefined : <FillPane />}
+/>
+<Button onClick={() => setCollapsed(c => !c)}>
+  {collapsed ? 'Show fill pane' : 'Hide fill pane'}
+</Button>
+```
+
+## Resizing
+
+Drag the divider to resize, or double-click it to reset the panes to `defaultSize`.
+
+The divider is also keyboard accessible. Focus it and use:
+
+- **Arrow keys**: resize by 10px
+- **Shift + Arrow keys**: resize by 50px
+- **Home / End**: jump to the minimum or maximum size

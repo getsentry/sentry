@@ -1,3 +1,4 @@
+from django.http.response import FileResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,6 +17,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams
+from sentry.apidocs.response_types import ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.models.release import Release
@@ -30,15 +32,16 @@ from sentry.releases.endpoints.project_release_file_details import (
 class OrganizationReleaseFileDetailsEndpoint(
     OrganizationReleasesBaseEndpoint, ReleaseFileDetailsMixin
 ):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
-        "DELETE": ApiPublishStatus.PRIVATE,
-        "GET": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PUBLIC,
+        "GET": ApiPublishStatus.PUBLIC,
+        "PUT": ApiPublishStatus.PUBLIC,
     }
 
     @extend_schema(
-        operation_id="Retrieve an Organization Release's File",
+        operation_id="getOrganizationReleaseFile",
+        summary="Retrieve an Organization Release's File",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             ReleaseParams.VERSION,
@@ -60,7 +63,9 @@ class OrganizationReleaseFileDetailsEndpoint(
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization, version, file_id) -> Response:
+    def get(
+        self, request: Request, organization, version, file_id
+    ) -> Response[ReleaseFileSerializerResponse] | FileResponse | Response[None]:
         """
         Return metadata for an individual file within a release. Does not return the file
         contents unless `download` is set.
@@ -81,7 +86,8 @@ class OrganizationReleaseFileDetailsEndpoint(
         )
 
     @extend_schema(
-        operation_id="Update an Organization Release's File",
+        operation_id="updateOrganizationReleaseFile",
+        summary="Update an Organization Release File",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION, ReleaseParams.FILE_ID],
         request=ReleaseFileSerializer,
         responses={
@@ -94,7 +100,9 @@ class OrganizationReleaseFileDetailsEndpoint(
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def put(self, request: Request, organization: Organization, version, file_id) -> Response:
+    def put(
+        self, request: Request, organization: Organization, version, file_id
+    ) -> Response[ReleaseFileSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update metadata of an existing release file. Currently only the name of the file
         can be changed.
@@ -112,7 +120,8 @@ class OrganizationReleaseFileDetailsEndpoint(
         return self.update_releasefile(request, release, file_id)
 
     @extend_schema(
-        operation_id="Delete an Organization Release's File",
+        operation_id="deleteOrganizationReleaseFile",
+        summary="Delete an Organization Release's File",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, ReleaseParams.VERSION, ReleaseParams.FILE_ID],
         responses={
             204: RESPONSE_NO_CONTENT,
@@ -121,7 +130,7 @@ class OrganizationReleaseFileDetailsEndpoint(
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, organization, version, file_id) -> Response:
+    def delete(self, request: Request, organization, version, file_id) -> Response[None]:
         """
         Permanently remove a file from a release. Also removes the physical file from
         storage.

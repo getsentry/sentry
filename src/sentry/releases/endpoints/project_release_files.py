@@ -276,10 +276,10 @@ def pseudo_releasefile(url, info, dist):
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(
@@ -287,7 +287,8 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
     )
 
     @extend_schema(
-        operation_id="List a Project Release's Files",
+        operation_id="listProjectReleaseFiles",
+        summary="List a Project's Release Files",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -319,7 +320,9 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project, version) -> Response:
+    def get(
+        self, request: Request, project, version
+    ) -> Response[list[ReleaseFileSerializerResponse]]:
         """
         Retrieve a list of files for a given release.
         """
@@ -333,7 +336,8 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
         return self.get_releasefiles(request, release, project.organization_id)
 
     @extend_schema(
-        operation_id="Upload a New Project Release File",
+        operation_id="uploadProjectReleaseFile",
+        summary="Upload a New Project Release File",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -351,7 +355,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
             409: RESPONSE_CONFLICT,
         },
     )
-    def post(self, request: Request, project, version) -> Response:
+    def post(self, request: Request, project, version) -> Response[ReleaseFileSerializerResponse]:
         """
         Upload a new file for the given release.
 

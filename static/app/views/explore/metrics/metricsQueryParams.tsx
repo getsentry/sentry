@@ -1,10 +1,8 @@
 import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useMemo} from 'react';
 
-import {defined} from 'sentry/utils';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {defined} from 'sentry/utils/defined';
 import {type TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
-import {canUseMetricsEquations} from 'sentry/views/explore/metrics/metricsFlags';
 import {
   MetricsFrozenContextProvider,
   type MetricsFrozenForTracesProviderProps,
@@ -14,11 +12,13 @@ import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateFie
 import {
   QueryParamsContextProvider,
   useQueryParamsVisualizes,
+  useSetQueryParamsAggregateFields,
   useSetQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
+  isVisualize,
   isVisualizeEquation,
   isVisualizeFunction,
   parseVisualize,
@@ -128,13 +128,10 @@ function getUpdatedValue<T>(
 }
 
 export function useMetricVisualize(): Visualize {
-  const organization = useOrganization();
   const visualizes = useQueryParamsVisualizes();
-  const hasEquations = canUseMetricsEquations(organization);
   if (
     visualizes.length > 0 &&
-    (isVisualizeFunction(visualizes[0]!) ||
-      (isVisualizeEquation(visualizes[0]!) && hasEquations))
+    (isVisualizeFunction(visualizes[0]!) || isVisualizeEquation(visualizes[0]!))
   ) {
     return visualizes[0];
   }
@@ -142,14 +139,10 @@ export function useMetricVisualize(): Visualize {
 }
 
 export function useMetricVisualizes(): readonly Visualize[] {
-  const organization = useOrganization();
   const visualizes = useQueryParamsVisualizes();
-  const hasEquations = canUseMetricsEquations(organization);
   if (
     visualizes.length > 0 &&
-    visualizes.every(
-      v => isVisualizeFunction(v) || (isVisualizeEquation(v) && hasEquations)
-    )
+    visualizes.every(v => isVisualizeFunction(v) || isVisualizeEquation(v))
   ) {
     return visualizes;
   }
@@ -209,6 +202,21 @@ export function useSetMetricVisualizes() {
     [setVisualizes]
   );
   return setMetricVisualizes;
+}
+
+export function useSetMetricAggregateFields() {
+  const setAggregateFields = useSetQueryParamsAggregateFields();
+  const setMetricAggregateFields = useCallback(
+    (newAggregateFields: Array<Visualize | GroupBy>) => {
+      setAggregateFields(
+        newAggregateFields.map(aggregateField =>
+          isVisualize(aggregateField) ? aggregateField.serialize() : aggregateField
+        )
+      );
+    },
+    [setAggregateFields]
+  );
+  return setMetricAggregateFields;
 }
 
 function updateQueryParams(

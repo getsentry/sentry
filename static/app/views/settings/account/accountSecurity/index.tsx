@@ -85,23 +85,19 @@ export default function AccountSecurity() {
   const routePrefix = '/settings/account/security/';
   return (
     <SentryDocumentTitle title={t('Security')}>
-      <SettingsPageHeader
-        title={t('Security')}
-        tabs={
-          <TabsContainer>
-            <Tabs value={activeTab}>
-              <TabList>
-                <TabList.Item key="settings" to={routePrefix}>
-                  {t('Settings')}
-                </TabList.Item>
-                <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
-                  {t('Session History')}
-                </TabList.Item>
-              </TabList>
-            </Tabs>
-          </TabsContainer>
-        }
-      />
+      <SettingsPageHeader title={t('Security')} />
+      <TabsContainer>
+        <Tabs value={activeTab}>
+          <TabList>
+            <TabList.Item key="settings" to={routePrefix}>
+              {t('Settings')}
+            </TabList.Item>
+            <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
+              {t('Session History')}
+            </TabList.Item>
+          </TabList>
+        </Tabs>
+      </TabsContainer>
 
       {!isEmpty && countEnrolled === 0 && <TwoFactorRequired />}
 

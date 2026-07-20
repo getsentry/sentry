@@ -10,7 +10,7 @@ from typing import Any, TypeVar
 
 import rb
 from django.utils.encoding import force_bytes, force_str
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry.buffer.base import Buffer, BufferField
 from sentry.db import models
@@ -99,7 +99,9 @@ class PendingBufferRouter:
         """
         pending_buffer = PendingBuffer(self.incr_batch_size)
         self.pending_buffer_router[model_key] = PendingBufferValue(
-            model_key=model_key, pending_buffer=pending_buffer, generate_queue=generate_queue
+            model_key=model_key,
+            pending_buffer=pending_buffer,
+            generate_queue=generate_queue,
         )
 
     def get_pending_buffer(self, model_key: str | None) -> PendingBuffer:
@@ -126,7 +128,9 @@ class PendingBufferRouter:
         pending_buffers = list(self.pending_buffer_router.values())
         pending_buffers.append(
             PendingBufferValue(
-                model_key=None, pending_buffer=self.default_pending_buffer, generate_queue=None
+                model_key=None,
+                pending_buffer=self.default_pending_buffer,
+                generate_queue=None,
             )
         )
         return pending_buffers
@@ -264,11 +268,15 @@ class RedisBuffer(Buffer):
 
     @classmethod
     def _dump_value(
-        cls, value: str | datetime | date | int | float | dict[str, Any], depth: int = 0
+        cls,
+        value: str | datetime | date | int | float | dict[str, Any] | None,
+        depth: int = 0,
     ) -> tuple[str, str]:
         if depth > 3:
             raise Exception("Depth limit exceeded in _dump_value")
-        if isinstance(value, str):
+        if value is None:
+            type_ = "n"
+        elif isinstance(value, str):
             type_ = "s"
         elif isinstance(value, datetime):
             type_ = "dt"
@@ -276,6 +284,9 @@ class RedisBuffer(Buffer):
         elif isinstance(value, date):
             type_ = "d"
             value = value.strftime("%s.%f")
+        elif isinstance(value, bool):
+            type_ = "b"
+            value = int(value)
         elif isinstance(value, int):
             type_ = "i"
         elif isinstance(value, float):
@@ -290,7 +301,7 @@ class RedisBuffer(Buffer):
     @classmethod
     def _load_values(
         cls, payload: dict[str, tuple[str, Any]]
-    ) -> dict[str, str | datetime | date | int | float | dict[str, Any]]:
+    ) -> dict[str, str | datetime | date | int | float | dict[str, Any] | None]:
         result = {}
         for k, (t, v) in payload.items():
             result[k] = cls._load_value((t, v))
@@ -299,14 +310,18 @@ class RedisBuffer(Buffer):
     @classmethod
     def _load_value(
         cls, payload: tuple[str, Any]
-    ) -> dict[str, Any] | str | datetime | date | int | float:
+    ) -> dict[str, Any] | str | datetime | date | int | float | None:
         (type_, value) = payload
-        if type_ == "s":
+        if type_ == "n":
+            return None
+        elif type_ == "s":
             return force_str(value)
         elif type_ == "dt":
             return datetime.fromtimestamp(float(value)).replace(tzinfo=timezone.utc)
         elif type_ == "d":
             return date.fromtimestamp(float(value))
+        elif type_ == "b":
+            return bool(int(value))  # Stored as "0" or "1" during serialization
         elif type_ == "i":
             return int(value)
         elif type_ == "f":
@@ -368,7 +383,7 @@ class RedisBuffer(Buffer):
         key = make_key(model, filters)
         # We can't use conn.map() due to wanting to support multiple pending
         # keys (one per Redis partition)
-        pipe = self.get_redis_connection(key)
+        pipe = self.get_redis_connection(key, transaction=(not self.is_redis_cluster))
         pipe.hsetnx(key, "m", f"{model.__module__}.{model.__name__}")
         _validate_json_roundtrip(filters, model)
 

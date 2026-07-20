@@ -40,7 +40,8 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
     )
 
     @extend_schema(
-        operation_id="List a Tag's Values",
+        operation_id="listProjectTagValues",
+        summary="List a Tag's Values",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -69,7 +70,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project, key) -> Response:
+    def get(self, request: Request, project, key) -> Response[list[TagValueSerializerResponse]]:
         """
         Return a list of values associated with this tag key. The `query` parameter
         can be used to perform a "contains" match on values. Paginated, returning at

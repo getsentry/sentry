@@ -1,4 +1,4 @@
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 
 import {Visualize} from './visualizes';
 

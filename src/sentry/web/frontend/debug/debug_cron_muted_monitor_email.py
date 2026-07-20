@@ -1,4 +1,5 @@
 import datetime
+from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
@@ -8,7 +9,7 @@ from sentry.web.frontend.base import internal_cell_silo_view
 from .mail import MailPreview
 
 
-def get_context():
+def get_context() -> dict[str, Any]:
     date = datetime.datetime(2024, 1, 1, 0, 0, tzinfo=datetime.UTC)
     return {
         "muted_monitors": [

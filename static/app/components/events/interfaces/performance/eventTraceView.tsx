@@ -5,6 +5,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
 import {
+  eventHasSyntheticTrace,
   isWebVitalsEvent,
   TRACE_WATERFALL_PREFERENCES_KEY,
 } from 'sentry/components/events/interfaces/performance/utils';
@@ -53,6 +54,7 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
     parent: true,
     sibling: true,
   },
+  compressed_timeline: false,
   layout: 'drawer bottom',
   list: {
     width: 0.5,
@@ -155,13 +157,14 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     () =>
       getInitialTracePreferences(
         TRACE_WATERFALL_PREFERENCES_KEY,
-        DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES
+        DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES,
+        'issues'
       ),
     []
   );
 
   // Performance issues have a Span Evidence section that contains the trace view
-  if (!traceId || issueTypeConfig.spanEvidence.enabled) {
+  if (!traceId || eventHasSyntheticTrace(event) || issueTypeConfig.spanEvidence.enabled) {
     return null;
   }
 
@@ -171,8 +174,8 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
     {
       ...location,
       query: {
-        ...location.query,
         groupId: event.groupID,
+        referrer: location.query.referrer,
       },
     },
     TraceViewSources.ISSUE_DETAILS

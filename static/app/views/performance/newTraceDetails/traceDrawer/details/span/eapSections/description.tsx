@@ -128,7 +128,6 @@ export function SpanDescription({
         op={span.op}
         category={category}
         group={group}
-        project_id={span.project_id.toString()}
         organization={organization}
       />
       {hasExploreEnabled && (
@@ -193,7 +192,7 @@ export function SpanDescription({
         )}
       </Stack>
     ) : resolvedModule === ModuleName.HTTP && span.op === 'http.client' && spanURL ? (
-      <Flex direction="column" width="100%">
+      <Stack width="100%">
         <Flex align="start" justify="between" gap="xs" padding="md">
           <Flex align="start" paddingLeft="md" paddingTop="sm" paddingBottom="sm">
             <Flex gap="xs">
@@ -221,7 +220,7 @@ export function SpanDescription({
             }}
           />
         )}
-      </Flex>
+      </Stack>
     ) : resolvedModule === ModuleName.RESOURCE && span.op === 'resource.img' ? (
       <ResourceImageDescription
         formattedDescription={formattedDescription}

@@ -2,8 +2,9 @@ import functools
 import logging
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
+from django.core.cache import cache
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -26,8 +27,6 @@ from sentry.api.helpers.group_index import (
 from sentry.api.helpers.group_index.validators import GroupValidator
 from sentry.api.serializers import GroupSerializer, GroupSerializerSnuba, serialize
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse, GroupDetailsResponse
-from sentry.api.serializers.models.group_stream import get_actions, get_available_issue_plugins
-from sentry.api.serializers.models.plugin import PluginSerializer
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
@@ -37,24 +36,35 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.issue_examples import IssueExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.issues.action_log import ActionType, publish_action, resolve_action_source
-from sentry.issues.constants import get_issue_tsdb_group_model
+from sentry.issues.action_log import (
+    publish_action,
+    resolve_action_actor,
+    resolve_action_source,
+)
+from sentry.issues.action_log.types import ReconcileStatusAction, ViewAction
+from sentry.issues.constants import (
+    ISSUE_VIEW_CACHE_KEY_TTL,
+    cache_key_for_issue_view,
+    get_issue_tsdb_group_model,
+)
+from sentry.issues.derived.features import STATUS, IssueStatus
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
+from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import get_owner_details
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsubscription import GroupSubscriptionManager
 from sentry.models.userreport import UserReport
-from sentry.plugins.base import plugins
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.sentry_apps.api.serializers.platform_external_issue import (
     PlatformExternalIssueSerializer,
@@ -64,6 +74,7 @@ from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+from sentry.utils.http import is_mcp_request
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +82,13 @@ logger = logging.getLogger(__name__)
 def get_group_global_count(group: Group) -> str:
     fetch_buffered_group_stats(group)
     return str(group.times_seen_with_pending)
+
+
+_GROUP_STATUS_TO_DERIVED_STATUS = {
+    GroupStatus.UNRESOLVED: IssueStatus.OPEN,
+    GroupStatus.RESOLVED: IssueStatus.CLOSED,
+    GroupStatus.IGNORED: IssueStatus.CLOSED,
+}
 
 
 @extend_schema(tags=["Events"])
@@ -107,18 +125,49 @@ class GroupDetailsEndpoint(GroupEndpoint):
         seen_by = list(GroupSeen.objects.filter(group=group).order_by("-last_seen"))
         return [seen for seen in serialize(seen_by, request.user) if seen is not None]
 
-    def _get_context_plugins(self, request: Request, group: Group) -> list[dict[str, Any]]:
-        project = group.project
-        return serialize(
-            [
-                plugin
-                for plugin in plugins.for_project(project, version=None)
-                if plugin.has_project_conf()
-                and hasattr(plugin, "get_custom_contexts")
-                and plugin.get_custom_contexts()
-            ],
-            request.user,
-            PluginSerializer(project),
+    def _reconcile_status(self, request: Request, group: Group) -> None:
+        """Detect divergence between the Group model status (source of truth) and
+        the action-log-derived status and publish a ReconcileStatusAction to fix it.
+
+        This is a best-effort, non-essential side effect on a read path; callers
+        must ensure a failure here never breaks the group view.
+        """
+        if not features.has("projects:issue-status-reconciliation", group.project):
+            return
+
+        expected_status = _GROUP_STATUS_TO_DERIVED_STATUS.get(group.status)
+        if expected_status is None:
+            # XXX: some statuses like pending deletion, merge, etc. are skipped
+            # as they don't map to a derived status
+            return
+
+        derived = GroupDerivedData.objects.filter(group_id=group.id).first()
+        if derived is None:
+            # nothing to reconcile against
+            return
+
+        raw = derived.data.get(STATUS.name)
+        derived_status = STATUS.from_json(raw) if raw is not None else STATUS.initial_value()
+        if derived_status == expected_status:
+            return
+
+        metrics.incr(
+            "issues.status_reconciliation.diverged",
+            sample_rate=1.0,
+            tags={
+                "derived_status": derived_status.value,
+                "expected_status": expected_status.value,
+            },
+        )
+        publish_action(
+            ReconcileStatusAction(
+                status=expected_status.value,
+                reason=f"derived status {derived_status.value} does not match expected status {expected_status.value}",
+            ),
+            source=resolve_action_source(request),
+            group_id=group.id,
+            project=group.project,
+            actor=resolve_action_actor(request),
         )
 
     @staticmethod
@@ -167,7 +216,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
         return response
 
     @extend_schema(
-        operation_id="Retrieve an Issue",
+        operation_id="getOrganizationIssue",
+        summary="Retrieve an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -184,8 +234,12 @@ class GroupDetailsEndpoint(GroupEndpoint):
         },
         examples=IssueExamples.GROUP_DETAILS,
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
-    def get(self, request: Request, group: Group) -> Response:
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-details",
+        url_names=["sentry-api-0-group-details"],
+    )
+    def get(self, request: Request, group: Group) -> Response[GroupDetailsResponse]:
         """
         Return details on an individual issue, including its basic stats, comment
         and user-report counts, and a summary of the latest event.
@@ -203,8 +257,10 @@ class GroupDetailsEndpoint(GroupEndpoint):
 
             # WARNING: the rest of this endpoint relies on this serializer
             # populating the cache SO don't move this :)
-            data = serialize(
-                group, request.user, GroupSerializerSnuba(environment_ids=environment_ids)
+            data: GroupDetailsResponse = serialize(
+                group,
+                request.user,
+                GroupSerializerSnuba(environment_ids=environment_ids, expand=expand),
             )
 
             # TODO: these probably should be another endpoint
@@ -271,7 +327,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     ),
                 )
                 integration_issues = serialize(
-                    external_issues,
+                    list(external_issues),
                     request.user,
                     serializer=ExternalIssueSerializer(),
                 )
@@ -313,9 +369,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 {
                     "activity": serialize(activity, request.user),
                     "seenBy": seen_by,
-                    "pluginActions": get_actions(group),
-                    "pluginIssues": get_available_issue_plugins(group),
-                    "pluginContexts": self._get_context_plugins(request, group),
                     "userReportCount": user_reports.count(),
                     "count": get_group_global_count(group),
                 }
@@ -336,15 +389,17 @@ class GroupDetailsEndpoint(GroupEndpoint):
             data.update({"participants": participants})
 
             publish_action(
-                action=ActionType.VIEW,
+                ViewAction(),
                 source=resolve_action_source(request),
                 group_id=group.id,
-                organization_id=group.organization.id,
-                project_id=group.project_id,
-                actor_id=request.user.id
-                if getattr(request.user, "is_authenticated", False)
-                else None,
+                project=group.project,
+                actor=resolve_action_actor(request),
             )
+
+            try:
+                self._reconcile_status(request, group)
+            except Exception:
+                logger.exception("group.details.get.reconcile_status_failed")
 
             metrics.incr(
                 "group.get.http_response",
@@ -368,7 +423,8 @@ class GroupDetailsEndpoint(GroupEndpoint):
             raise
 
     @extend_schema(
-        operation_id="Update an Issue",
+        operation_id="updateOrganizationIssue",
+        summary="Update an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -385,8 +441,14 @@ class GroupDetailsEndpoint(GroupEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
-    def put(self, request: Request, group: Group) -> Response:
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-details",
+        url_names=["sentry-api-0-group-details"],
+    )
+    def put(
+        self, request: Request, group: Group
+    ) -> Response[BaseGroupSerializerResponse] | Response[DetailResponse]:
         """
         Update an individual issue's attributes. Only the attributes submitted
         are modified.
@@ -412,7 +474,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             # for mutation.
             group = Group.objects.get(id=group.id)
 
-            serialized = serialize(
+            serialized: BaseGroupSerializerResponse = serialize(
                 group,
                 request.user,
                 GroupSerializer(
@@ -434,10 +496,14 @@ class GroupDetailsEndpoint(GroupEndpoint):
             logger.exception(
                 "group_details:put client.ApiError",
             )
-            return Response(e.body, status=e.status_code)
+            # client.ApiError.body is opaque (proxied from another service);
+            # cast is sanctioned for this opaque-body cohort per the spec.
+            body = cast(BaseGroupSerializerResponse, e.body)
+            return Response(body, status=e.status_code)
 
     @extend_schema(
-        operation_id="Remove an Issue",
+        operation_id="deleteOrganizationIssue",
+        summary="Remove an Issue",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             IssueParams.ISSUES_OR_GROUPS,
@@ -450,8 +516,12 @@ class GroupDetailsEndpoint(GroupEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-group-details"])
-    def delete(self, request: Request, group: Group) -> Response:
+    @deprecated(
+        CELL_API_DEPRECATION_DATE,
+        suggested_api="sentry-api-0-organization-group-group-details",
+        url_names=["sentry-api-0-group-details"],
+    )
+    def delete(self, request: Request, group: Group) -> Response[None]:
         """
         Asynchronously queue an individual issue for deletion.
         """
@@ -492,15 +562,18 @@ def send_issue_view_attribution(request: Request, response: Response, group: Any
     if not isinstance(group, Group):
         return
 
-    user_agent = request.META.get("HTTP_USER_AGENT", "")
-    if isinstance(user_agent, str) and user_agent.startswith("sentry-mcp/"):
-        client_family = request.headers.get("x-sentry-mcp-client-family")
+    if is_mcp_request(request):
+        client_family = request.headers.get("x-sentry-mcp-client-family") or "unknown"
         analytics.record(
             IssueViewedEvent(
                 organization_id=group.project.organization_id,
                 project_id=group.project.id,
                 group_id=group.id,
-                client=f"mcp - {client_family or 'unknown'}",
+                client=f"mcp - {client_family}",
                 user_id=request.user.id,
             )
         )
+        if features.has("organizations:mcp-issue-view-attribution", group.project.organization):
+            cache.set(
+                cache_key_for_issue_view(group.id, "mcp"), client_family, ISSUE_VIEW_CACHE_KEY_TTL
+            )

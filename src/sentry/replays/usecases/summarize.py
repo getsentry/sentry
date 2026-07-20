@@ -23,11 +23,13 @@ from sentry.replays.usecases.ingest.event_parser import (
 )
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.search.events.types import SnubaParams
+from sentry.seer.sentry_data_models import ReplaySummaryLogsResponse
 from sentry.services.eventstore.models import Event
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
 from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.platform_categories import MOBILE
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +42,7 @@ class EventDict(TypedDict):
     category: str
 
 
-@sentry_sdk.trace
+@trace
 def fetch_error_details(project_id: int, error_ids: list[str]) -> list[EventDict]:
     """Fetch error details given error IDs and return a list of EventDict objects."""
     try:
@@ -80,7 +82,7 @@ def _parse_iso_timestamp_to_ms(timestamp: str | None) -> float:
         return 0.0
 
 
-@sentry_sdk.trace
+@trace
 def fetch_trace_connected_errors(
     project: Project,
     trace_ids: list[str],
@@ -201,7 +203,7 @@ def fetch_trace_connected_errors(
     return events
 
 
-@sentry_sdk.trace
+@trace
 def fetch_feedback_details(feedback_id: str | None, project_id) -> EventDict | None:
     """
     Fetch user feedback associated with a specific feedback event ID.
@@ -245,7 +247,7 @@ def generate_feedback_log_message(feedback: EventDict) -> str:
     return f"User submitted feedback: '{message}' at {timestamp}"
 
 
-@sentry_sdk.trace
+@trace
 def get_summary_logs(
     segment_data: Iterator[tuple[int, memoryview]],
     error_events: list[EventDict],
@@ -514,12 +516,12 @@ def _parse_url(s: str, trunc_length: int) -> str:
     return s
 
 
-@sentry_sdk.trace
+@trace
 def rpc_get_replay_summary_logs(
     project_id: int,
     replay_id: str,
     num_segments: int,
-) -> dict[str, Any]:
+) -> ReplaySummaryLogsResponse:
     """
     RPC call for Seer. Downloads a replay's segment data, queries associated errors, and parses this into summary logs.
     """
@@ -546,7 +548,7 @@ def rpc_get_replay_summary_logs(
     # 404s should be handled in the originating Sentry endpoint.
     # If the replay is missing here just return an empty response.
     if not processed_response:
-        return {"logs": []}
+        return ReplaySummaryLogsResponse(logs=[])
 
     error_ids = processed_response[0].get("error_ids", [])
     trace_ids = processed_response[0].get("trace_ids", [])
@@ -611,4 +613,4 @@ def rpc_get_replay_summary_logs(
         is_mobile_replay=is_mobile_replay,
         replay_start=replay_start,
     )
-    return {"logs": logs}
+    return ReplaySummaryLogsResponse(logs=logs)

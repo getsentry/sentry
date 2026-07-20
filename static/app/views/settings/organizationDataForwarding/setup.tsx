@@ -2,7 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -10,8 +10,8 @@ import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons/iconArrow';
+import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import {PluginIcon} from 'sentry/plugins/components/pluginIcon';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -65,16 +65,16 @@ export default function OrganizationDataForwardingSetup() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Setup Data Forwarding')} />
-      <Flex direction="column" gap="lg">
+      <Stack gap="lg">
         <Flex align="center" justify="between" gap="2xl">
-          <Flex direction="column" gap="sm">
+          <Stack gap="sm">
             <Flex align="center" gap="lg">
-              <Heading as="h1">{t('Setup Data Forwarding')}</Heading>
+              <Heading as="h2">{t('Setup Data Forwarding')}</Heading>
             </Flex>
             <Text variant="muted">
               {t('Configure the global settings for your data forwarder.')}
             </Text>
-          </Flex>
+          </Stack>
           <LinkButton
             size="sm"
             to={`/settings/${organization.slug}/data-forwarding/`}
@@ -144,7 +144,7 @@ export default function OrganizationDataForwardingSetup() {
             </Fragment>
           )}
         </Feature>
-      </Flex>
+      </Stack>
     </Fragment>
   );
 }

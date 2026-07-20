@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from pydantic import BaseModel
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -38,7 +39,24 @@ TRACE_METRICS_GUIDANCE = """When generating widgets with `widget_type: "tracemet
   - `gauge`: `avg`, `min`, `max`, `per_second`, `per_minute`.
   - `distribution`: `p50`, `p75`, `p90`, `p95`, `p99`, `avg`, `min`, `max`, `sum`, `count`, `per_second`, `per_minute`.
 - Examples: `sum(value, my.app.requests, counter, none)`, `avg(value, my.app.cpu, gauge, percent)`, `p95(value, my.app.latency, distribution, milliseconds)`.
-- Before emitting a tracemetrics widget you MUST look up the metric's `metric_type` AND `metric_unit` using available tools (e.g. by querying the tracemetrics dataset for distinct `metric.name`/`metric.type`/`metric.unit` values, or fetching trace-item attributes). Do NOT guess the type or unit — if you cannot confirm both, pick a different dataset or omit the widget."""
+- Before emitting a tracemetrics widget you MUST look up the metric's `metric_type` AND `metric_unit` using available tools (e.g. by querying the tracemetrics dataset for distinct `metric.name`/`metric.type`/`metric.unit` values, or fetching trace-item attributes). Do NOT guess the type or unit — if you cannot confirm both, pick a different dataset or omit the widget.
+- Equations are supported via the `equation|<expr>` prefix in the `aggregates` array.
+    - Equations let you combine aggregates with arithmetic (+, -, *, /).
+    - Numeric literals (e.g. `100`, `1000`) are valid operands.
+    - Each aggregate operand in the equation must be a valid 4-argument tracemetric aggregate. Numeric literals are also valid operands.
+    - Equations are arbitrary arithmetic expressions — you can chain any number of operands: `equation|<agg1> <op> <agg2> <op> <agg3> ...`
+    - Operators: `+` (plus), `-` (minus), `*` (multiply), `/` (divide).
+    - Parentheses are supported for grouping and controlling precedence: `equation|(agg1 + agg2) / (agg3 - agg4)`.
+    - Examples:
+        - `equation|sum(value, my.app.requests, counter, none) / sum(value, my.app.errors, counter, none)`
+        - `equation|p95(value, my.app.latency, distribution, milliseconds) - p50(value, my.app.latency, distribution, milliseconds)`
+        - `equation|avg(value, my.app.cpu, gauge, percent) * 100`
+        - `equation|(sum(value, my.app.requests, counter, none) - sum(value, my.app.errors, counter, none)) / sum(value, my.app.requests, counter, none) * 100`
+    - All aggregate functions support an `_if` variant that takes a backtick-wrapped search query as the first argument, followed by the standard 4 arguments (5 args total)
+        - For example, `equation|sum_if(`environment:prod`, value, my.app.errors, counter, none) / sum_if(`environment:prod`, value, my.app.requests, counter, none)`
+    - `per_second` and `per_minute` are not supported in equations, as well as the `_if` variant of these functions.
+    - An equation for tracemetrics must be the only entry in the `aggregates` array for a query (the frontend does not support rendering equations alongside aggregates).
+"""
 
 CREATE_ON_PAGE_CONTEXT = (
     "The user is on the dashboard generation page. This session must ONLY generate a dashboard "
@@ -81,6 +99,13 @@ Widget-type-specific rules:
 - For text widgets, widget_type must be null and queries must be empty.
 - Description must not exceed 255 characters for non-text widgets. For text widgets,
 description must not exceed 15,000 characters.
+- For heatmap widgets (display_type "heatmap"):
+  - widget_type must be "tracemetrics"; heatmaps are not supported on any other dataset.
+  - Use exactly one filter (one query) with exactly one aggregate.
+  - That aggregate must use the "count" function over a distribution-type trace metric, \
+in the 4-argument tracemetric form: count(value, <metric_name>, distribution, <metric_unit>). \
+Only "count" is supported; counter and gauge metrics are not.
+  - Do not use equations, group-by columns, or thresholds.
 
 Limits:
 - A dashboard can have at most {Dashboard.MAX_WIDGETS} widgets.
@@ -89,6 +114,11 @@ set. The maximum is 10 for most chart types, 25 for categorical bar charts, and 
 
 User Query:
 """
+
+
+class DashboardGenerateResponse(BaseModel):
+    run_id: int
+    sentry_run_id: str
 
 
 class DashboardGenerateSerializer(serializers.Serializer[dict[str, Any]]):
@@ -174,14 +204,18 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
                 category_value=str(organization.id),
                 reasoning_effort="medium",
             )
-            run_id = client.start_run(
+            run = client.start_run(
                 prompt=prompt,
                 on_page_context=on_page_context,
                 artifact_key="dashboard",
                 artifact_schema=GeneratedDashboard,
                 request=request,
             )
-            return Response({"run_id": run_id})
+            return Response(
+                DashboardGenerateResponse(
+                    run_id=run.seer_run_state_id, sentry_run_id=str(run.uuid)
+                ).dict()
+            )
         except SeerPermissionError as e:
             raise PermissionDenied(e.message) from e
         except SeerApiError:

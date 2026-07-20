@@ -10,9 +10,14 @@ from requests import RequestException
 
 from sentry.http import safe_urlread
 from sentry.models.group import Group
-from sentry.sentry_apps.external_requests.utils import send_and_save_sentry_app_request, validate
+from sentry.sentry_apps.event_types import SentryAppEventType
+from sentry.sentry_apps.external_requests.utils import (
+    integrator_error_message,
+    send_and_save_sentry_app_request,
+    validate,
+    validate_outbound_url,
+)
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppExternalRequestFailureReason,
     SentryAppExternalRequestHaltReason,
     SentryAppInteractionEvent,
@@ -122,9 +127,12 @@ class IssueLinkRequester:
                 )
 
                 raise SentryAppIntegratorError(
-                    message=f"Issue occurred while trying to contact {self.sentry_app.slug} to link issue",
+                    message=integrator_error_message(
+                        e.response,
+                        f"Issue occurred while trying to contact {self.sentry_app.slug} to link issue",
+                    ),
                     webhook_context={"error_type": BAD_RESPONSE_HALT_REASON, **extras},
-                    status_code=500,
+                    status_code=e.response.status_code if e.response is not None else 502,
                 )
             except SentryAppIntegratorError as e:
                 lifecycle.record_halt(halt_reason=e, extra={**extras})
@@ -160,7 +168,9 @@ class IssueLinkRequester:
             )
 
         urlparts = urlparse(self.sentry_app.webhook_url)
-        return f"{urlparts.scheme}://{urlparts.netloc}{self.uri}"
+        url = f"{urlparts.scheme}://{urlparts.netloc}{self.uri}"
+        validate_outbound_url(url, urlparts.netloc, self.uri)
+        return url
 
     def _validate_response(self, resp: dict[str, str]) -> bool:
         return validate(instance=resp, schema_type="issue_link")

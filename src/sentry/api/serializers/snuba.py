@@ -1,4 +1,29 @@
 import itertools
+from typing import Any, NotRequired, TypedDict
+
+
+class StatsTimeSeriesResult(TypedDict):
+    """Permissive, byte-faithful shape of a single serialized timeseries as
+    emitted by ``SnubaTSResultSerializer.serialize()`` and
+    ``OrganizationEventsEndpointBase.get_event_stats_data()``.
+
+    Only ``data`` is always present; every other key appears conditionally
+    (axis/top-N/comparison/on-demand/metrics paths), so all are ``NotRequired``.
+    Inner structures (``data`` buckets, ``meta``) are heterogeneous and left
+    loose on purpose — documenting every variant is out of scope. This describes
+    the existing payload; it does not constrain or change it.
+    """
+
+    data: list[Any]
+    meta: NotRequired[dict[str, Any]]
+    order: NotRequired[float]
+    isMetricsData: NotRequired[bool]
+    isMetricsExtractedData: NotRequired[bool]
+    confidence: NotRequired[list[Any]]
+    totals: NotRequired[dict[str, Any]]
+    comparisonCount: NotRequired[float]
+    start: NotRequired[int]
+    end: NotRequired[int]
 
 
 def value_from_row(row, tagkey):

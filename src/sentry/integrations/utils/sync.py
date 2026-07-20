@@ -19,7 +19,7 @@ from sentry.integrations.project_management.metrics import (
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.integrations.tasks.sync_assignee_outbound import sync_assignee_outbound
 from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE, ExternalProviderEnum
-from sentry.issues.action_log import action_context_scope
+from sentry.issues.action_log import SYSTEM_ACTOR, action_context_scope
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
@@ -43,10 +43,6 @@ def should_sync_assignee_inbound(
 ) -> bool:
     if provider == "github":
         return True
-    elif provider == "github_enterprise":
-        return features.has(
-            "organizations:integrations-github_enterprise-project-management", organization
-        )
     elif provider == "gitlab":
         return features.has("organizations:integrations-gitlab-project-management", organization)
     return True
@@ -83,7 +79,7 @@ def _handle_deassign(
         if not should_sync_assignee_inbound(group.organization, integration.provider):
             continue
 
-        with action_context_scope(source=integration.provider, actor_id=None):
+        with action_context_scope(source=integration.provider, actor=SYSTEM_ACTOR):
             GroupAssignee.objects.deassign(
                 group,
                 assignment_source=AssignmentSource.from_integration(integration),
@@ -118,7 +114,7 @@ def _handle_assign(
                     "user_id": user.id,
                 },
             )
-            with action_context_scope(source=integration.provider, actor_id=None):
+            with action_context_scope(source=integration.provider, actor=SYSTEM_ACTOR):
                 GroupAssignee.objects.assign(
                     group,
                     user,

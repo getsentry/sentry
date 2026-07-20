@@ -5,10 +5,9 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from sentry.issues.action_log import (
+    SYSTEM_ACTOR,
     ActionSource,
-    ActionType,
     action_context_scope,
-    publish_action_from_context,
 )
 from sentry.models.activity import Activity
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
@@ -78,14 +77,6 @@ def update_priority(
     )
 
     record_group_history(group, status=PRIORITY_TO_GROUP_HISTORY_STATUS[priority], actor=actor)
-
-    publish_action_from_context(
-        action=ActionType.SET_PRIORITY,
-        group_id=group.id,
-        organization_id=group.project.organization_id,
-        project_id=group.project_id,
-        metadata={"priority": priority.to_str()},
-    )
 
     # TODO (aci cleanup): if the group corresponds to a metric issue, then update its incident activity
     # we will remove this once we've fully deprecated the Incident model
@@ -180,7 +171,7 @@ def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
         new_priority = get_priority_for_ongoing_group(group)
 
     if new_priority is not None and new_priority != group.priority:
-        with action_context_scope(source=ActionSource.SYSTEM, actor_id=None):
+        with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
             update_priority(
                 group=group,
                 priority=new_priority,

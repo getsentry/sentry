@@ -6,7 +6,6 @@ HIDDEN_PLUGINS = (
     "jira",
     "pagerduty",
     "opsgenie",
-    "webhooks",
     "amazon-sqs",
     "asana",
     "trello",

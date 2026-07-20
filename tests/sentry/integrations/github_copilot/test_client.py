@@ -4,7 +4,8 @@ from unittest.mock import Mock, patch
 from sentry.integrations.coding_agent.models import CodingAgentLaunchRequest
 from sentry.integrations.github_copilot.client import GithubCopilotAgentClient
 from sentry.integrations.github_copilot.models import GithubCopilotTask
-from sentry.seer.autofix.utils import CodingAgentProviderType, CodingAgentStatus
+from sentry.seer.autofix.constants import CodingAgentStatus
+from sentry.seer.autofix.utils import CodingAgentProviderType
 from sentry.seer.models import SeerRepoDefinition
 from sentry.testutils.cases import TestCase
 
@@ -123,6 +124,7 @@ class GithubCopilotAgentClientTest(TestCase):
             "id": "task-123",
             "state": "in_progress",
             "created_at": "2024-06-01T12:00:00Z",
+            "html_url": "https://github.com/getsentry/sentry/copilot/tasks/task-123",
         }
         mock_response.status_code = 200
         mock_post.return_value = mock_response
@@ -136,6 +138,7 @@ class GithubCopilotAgentClientTest(TestCase):
         assert result.status == CodingAgentStatus.RUNNING
         assert result.provider == CodingAgentProviderType.GITHUB_COPILOT_AGENT
         assert result.started_at == datetime(2024, 6, 1, 12, 0, 0, tzinfo=UTC)
+        assert result.agent_url == "https://github.com/getsentry/sentry/copilot/tasks/task-123"
 
     @patch.object(GithubCopilotAgentClient, "post")
     def test_launch_with_missing_created_at(self, mock_post: Mock) -> None:
@@ -207,6 +210,51 @@ class GithubCopilotAgentClientTest(TestCase):
         mock_post.return_value = mock_response
 
         result = self.copilot_client.get_pr_from_graphql(global_id="PR_invalid")
+
+        assert result is None
+
+    @patch.object(GithubCopilotAgentClient, "get")
+    def test_get_pr_from_branch_success(self, mock_get: Mock) -> None:
+        """get_pr_from_branch resolves a PR from the head branch via the REST API"""
+        mock_response = Mock()
+        mock_response.json = [
+            {
+                "number": 46,
+                "title": "Fix the bug",
+                "html_url": "https://github.com/getsentry/sentry/pull/46",
+                "node_id": "PR_abc123",
+            }
+        ]
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+
+        result = self.copilot_client.get_pr_from_branch(
+            owner="getsentry", repo="sentry", head_ref="copilot/fix-bug"
+        )
+
+        assert result is not None
+        assert result.number == 46
+        assert result.title == "Fix the bug"
+        assert result.url == "https://github.com/getsentry/sentry/pull/46"
+
+        mock_get.assert_called_once_with(
+            "https://api.github.com/repos/getsentry/sentry/pulls",
+            headers={"Authorization": "Bearer test_access_token", "User-Agent": "sentry"},
+            params={"head": "getsentry:copilot/fix-bug", "state": "all"},
+            timeout=30,
+        )
+
+    @patch.object(GithubCopilotAgentClient, "get")
+    def test_get_pr_from_branch_no_pr(self, mock_get: Mock) -> None:
+        """get_pr_from_branch returns None when no PR exists for the branch"""
+        mock_response = Mock()
+        mock_response.json = []
+        mock_response.status_code = 200
+        mock_get.return_value = mock_response
+
+        result = self.copilot_client.get_pr_from_branch(
+            owner="getsentry", repo="sentry", head_ref="no-pr-branch"
+        )
 
         assert result is None
 

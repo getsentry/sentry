@@ -85,14 +85,23 @@ SIMPLE_ISSUE: StreamGroupSerializerSnubaResponse = {
     "type": "default",
     "userCount": 0,
     "integrationIssues": [],
-    "pluginIssues": [],
-    "pluginActions": [],
     "sentryAppIssues": [],
     "isUnhandled": False,
     "issueCategory": "performance",
     "issueType": "performance_n_plus_one_db_queries",
     "sessionCount": 0,
     "latestEventHasAttachments": False,
+    "matchingEventId": None,
+    "matchingEventEnvironment": None,
+    "derivedData": {
+        "progress": "fix_applied",
+        "status": "open",
+        "viewCount": 42,
+        "hasOpenFixPr": False,
+        "isAssigned": True,
+        "hasRootCause": True,
+        "lastProgressedAt": datetime.fromisoformat("2018-12-06T21:19:55Z"),
+    },
 }
 
 MUTATE_ISSUE_RESULT: MutateIssueResponse = {
@@ -177,9 +186,6 @@ GROUP_DETAILS: GroupDetailsResponse = {
         }
     ],
     "seenBy": [],
-    "pluginActions": [],
-    "pluginIssues": [],
-    "pluginContexts": [],
     "userReportCount": 0,
     "participants": [],
     # Default-included unless suppressed via `?collapse=...`

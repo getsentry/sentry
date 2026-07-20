@@ -390,9 +390,32 @@ const Component = styled('div')`
   }
 `;
 
-// ✅ Use responsive prop signature
-<Flex direction={{xs: 'column', md: 'row'}}>
+// ✅ Use responsive prop signature. `screen:` keys match the viewport, like the
+// @media query above.
+<Flex direction={{'screen:xs': 'column', 'screen:md': 'row'}}>
 ```
+
+Responsive prop keys come in two flavors, and may be combined on one prop:
+
+- **bare keys** (`{xs: …}`) resolve against the nearest **query container** —
+  container queries are the default, so they need no prefix.
+- **`screen:`-prefixed keys** (`{'screen:md': …}`) resolve against the
+  **viewport**.
+
+To react to a component's available space, declare a parent as a query container
+with `containerType="inline-size"` and use bare keys on the child (an element can
+never query its own size, so the container must be an ancestor).
+
+```tsx
+// ✅ Reflow based on the parent's width, not the viewport's
+<Container containerType="inline-size">
+  <Flex direction={{'2xs': 'column', md: 'row'}}>{/* ... */}</Flex>
+</Container>
+```
+
+When you need the resolved breakpoint in JS, use `useContainerBreakpoint(ref)`
+(the `ResizeObserver`-backed, container-scoped replacement for width-based
+`useMedia`).
 
 ### 2. Prefer Gap/Padding Over Margin
 

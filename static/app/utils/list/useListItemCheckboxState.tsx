@@ -97,7 +97,7 @@ export interface ListItemCheckboxState {
   isSelected: (id: string) => 'all-selected' | boolean;
 
   /**
-   * The number of items that are currently loaded into the browser
+   * The list of items that are currently loaded into the browser
    */
   knownIds: string[];
 

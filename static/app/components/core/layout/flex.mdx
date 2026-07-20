@@ -106,6 +106,10 @@ Simialarly to `Container`, `Flex` inherits all spacing props like `m`, `p`, `mt`
 
 #### Column direction
 
+> [!NOTE]
+> While `Flex` supports `direction="column"`, prefer [`Stack`](/stories/core/stack/)
+> for vertical layouts. It's a `Flex` that defaults to column direction with a focused API.
+
 <Storybook.Demo>
   <Flex direction="column" gap="md" justify="between" align="center">
     <Container padding="md" border="primary" radius="md" background="primary">
@@ -161,12 +165,16 @@ Similarly to `Container`, the `Flex` properties like `gap` follow the same spaci
 
 ### Responsive Props
 
-All props support responsive values using breakpoint objects. Breakpoints are: `xs`, `sm`, `md`, `lg`, `xl`, `2xl`.
+All props support responsive values using breakpoint objects. Breakpoint keys are prefixed with `screen:`: `screen:2xs`, `screen:xs`, `screen:sm`, `screen:md`, `screen:lg`, `screen:xl`, `screen:2xl`.
 
 Example of a responsive flex container that uses a static gap, but changes direction based on the breakpoint.
 
 <Storybook.Demo>
-  <Flex direction={{xs: 'row-reverse', sm: 'column', md: 'row'}} gap="md" padding="md">
+  <Flex
+    direction={{'screen:xs': 'row-reverse', 'screen:sm': 'column', 'screen:md': 'row'}}
+    gap="md"
+    padding="md"
+  >
     <Container padding="md" border="primary" radius="md" background="primary">
       Responsive
     </Container>
@@ -184,7 +192,7 @@ Example of a responsive flex container that uses a static gap, but changes direc
 ```jsx
 <Flex
   // Direction = column on sm and row on md
-  direction={{xs: 'column-reverse', sm: 'column', md: 'row'}}
+  direction={{'screen:xs': 'column-reverse', 'screen:sm': 'column', 'screen:md': 'row'}}
   // Gap = md on all sizes
   gap="md"
 >

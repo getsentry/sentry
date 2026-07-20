@@ -40,8 +40,9 @@ from sentry.models.files.utils import DEFAULT_BLOB_SIZE, MAX_FILE_SIZE, Assemble
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import export_tasks
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.db import atomic_transaction
+from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -168,7 +169,7 @@ def export_chunk_to_stored_blobs(
     batch_size: int = SNUBA_MAX_RESULTS,
 ) -> AssembleChunkResult:
     """One activation: fill up to MAX_FRAGMENTS_PER_BATCH fragments and persist a blob chunk."""
-    with sentry_sdk.start_span(op="export.chunk", name=f"offset={offset}"):
+    with start_span(op="export.chunk", name=f"offset={offset}"):
         output_mode = OutputMode.from_value(data_export.export_format)
         processor = get_processor(
             data_export,
@@ -336,7 +337,7 @@ def assemble_download(
         "requested_rows": export_limit,
         "offset_in": offset,
     }
-    with sentry_sdk.start_span(op="assemble", name="Async Export Data"):
+    with start_span(op="assemble", name="Async Export Data"):
         first_page = offset == 0
         data_export = _fetch_exported_data_req_obj(data_export_id, first_page, extra)
         if data_export is None:
@@ -475,9 +476,15 @@ def export_data_to_stored_blobs_sync(
         "requested_rows": export_limit,
     }
     sentry_sdk.set_tag("download_type", "sync")
+    sentry_sdk.set_attribute("download_type", "sync")
     sentry_sdk.set_context("data_export", extra)
+    sentry_sdk.set_attribute("data_export.data_export_id", data_export.id)
+    sentry_sdk.set_attribute("data_export.query", str(data_export.payload))
+    sentry_sdk.set_attribute("data_export.organization_id", data_export.organization_id)
+    sentry_sdk.set_attribute("data_export.download_type", "sync")
+    sentry_sdk.set_attribute("data_export.requested_rows", export_limit)
     _set_data_on_scope(data_export)
-    with sentry_sdk.start_span(op="assemble", name="Sync Export Data"):
+    with start_span(op="assemble", name="Sync Export Data"):
         logger.info("dataexport.start", extra=extra)
         metrics.incr(
             "dataexport.start",
@@ -724,7 +731,7 @@ def merge_export_blobs(
         "requested_rows": export_limit,
         "actual_rows": actual_rows,
     }
-    with sentry_sdk.start_span(op="merge"):
+    with start_span(op="merge", name="merge"):
         try:
             data_export = ExportedData.objects.get(id=data_export_id)
         except ExportedData.DoesNotExist:
@@ -853,14 +860,19 @@ def merge_export_blobs(
 
 
 def _set_data_on_scope(data_export: ExportedData) -> None:
-    scope = sentry_sdk.get_isolation_scope()
     if data_export.user_id:
         user = dict(id=data_export.user_id)
-        scope.set_user(user)
-    scope.set_tag("organization.slug", data_export.organization.slug)
-    scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
-    scope.set_tag("export.format", data_export.export_format)
+        sentry_sdk.set_user(user)
+    sentry_sdk.set_tag("organization.slug", data_export.organization.slug)
+    sentry_sdk.set_attribute("organization.slug", data_export.organization.slug)
+    sentry_sdk.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
+    sentry_sdk.set_attribute("export.type", ExportQueryType.as_str(data_export.query_type))
+    sentry_sdk.set_tag("export.format", data_export.export_format)
+    if data_export.export_format is not None:
+        sentry_sdk.set_attribute("export.format", data_export.export_format)
     qi = data_export.query_info
     if qi.get("dataset") is not None:
-        scope.set_tag("export.dataset", str(qi.get("dataset")))
-    scope.set_extra("export.query", data_export.query_info)
+        sentry_sdk.set_tag("export.dataset", str(qi.get("dataset")))
+        sentry_sdk.set_attribute("export.dataset", str(qi.get("dataset")))
+    sentry_sdk.set_extra("export.query", data_export.query_info)
+    sentry_sdk.set_attribute("export.query", json.dumps(data_export.query_info))

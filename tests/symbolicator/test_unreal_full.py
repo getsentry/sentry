@@ -10,6 +10,7 @@ from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.eventattachment import EventAttachment
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
+from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka, requires_symbolicator
 from sentry.utils.safe import get_path
@@ -36,6 +37,7 @@ def get_unreal_crash_apple_file():
     return get_fixture_path("native", "unreal_crash_apple")
 
 
+@debug_files_test_both_backends
 class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):
@@ -88,7 +90,9 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         def make_snapshot(subname=None):
             self.insta_snapshot(
                 {
-                    "contexts": event.data.get("contexts"),
+                    "contexts": {
+                        k: v for k, v in (event.data.get("contexts") or {}).items() if k != "trace"
+                    },
                     "exception": {
                         "values": [
                             normalize_native_exception(x)
@@ -107,7 +111,6 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
         return sorted(EventAttachment.objects.filter(event_id=event.event_id), key=lambda x: x.name)
 
-    @pytest.mark.skip(reason="temporary because of Relay change")
     def test_unreal_crash_with_attachments(self) -> None:
         attachments = self.unreal_crash_test_impl(get_unreal_crash_file())
         assert len(attachments) == 4
@@ -125,7 +128,6 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert log.name == "YetAnother.log"  # Log file is named after the project
         assert log.sha1 == "24d1c5f75334cd0912cc2670168d593d5fe6c081"
 
-    @pytest.mark.skip(reason="temporary because of Relay change")
     def test_unreal_apple_crash_with_attachments(self) -> None:
         attachments = self.unreal_crash_test_impl(get_unreal_crash_apple_file())
 

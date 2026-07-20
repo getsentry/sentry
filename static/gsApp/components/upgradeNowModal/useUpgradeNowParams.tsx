@@ -4,8 +4,8 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
+import {BillingConfigTier} from 'getsentry/constants';
 import type {BillingConfig, Plan, Subscription} from 'getsentry/types';
-import {PlanTier} from 'getsentry/types';
 import {hasPerformance} from 'getsentry/utils/billing';
 import {getBucket} from 'getsentry/views/amCheckout/utils';
 
@@ -41,7 +41,7 @@ export function useUpgradeNowParams({organization, subscription, enabled = true}
       }),
       {
         query: {
-          tier: PlanTier.AM2,
+          tier: BillingConfigTier.UPSELL,
         },
       },
     ],
@@ -58,7 +58,6 @@ export function useUpgradeNowParams({organization, subscription, enabled = true}
         plan.basePrice &&
         plan.userSelectable &&
         plan.billingInterval === subscription.billingInterval &&
-        plan.contractInterval === subscription.contractInterval &&
         plan.name === subscription.planDetails?.name
     );
 

@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Any, TypedDict
 
-from sentry import features
 from sentry.eventstore.models import GroupEvent
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.tasks.sentry_apps import send_alert_webhook_v2
@@ -34,6 +34,13 @@ def split_urls(value: str) -> list[str]:
     if not value:
         return []
     return list(filter(bool, (url.strip() for url in value.splitlines())))
+
+
+def is_legacy_webhook_enabled(project: Project) -> bool:
+    """Return whether the project has the legacy webhook enabled."""
+    # TODO: After the script migrates/removes all plugin actions, delete this helper and the
+    # `project` threading through the dual-write path.
+    return bool(ProjectOption.objects.get_value(project, "webhooks:enabled", default=False))
 
 
 def get_triggering_rule_name(invocation: ActionInvocation) -> str:
@@ -110,13 +117,6 @@ def send_sentry_app_webhook(
     if sentry_app is None:
         logger.warning(
             "webhook_action_handler.sentry_app_not_found",
-            extra=logging_context,
-        )
-        return
-
-    if features.has("organizations:legacy-webhook-dry-run", organization):
-        logger.info(
-            "webhook_action_handler.sentry_app_dry_run",
             extra=logging_context,
         )
         return

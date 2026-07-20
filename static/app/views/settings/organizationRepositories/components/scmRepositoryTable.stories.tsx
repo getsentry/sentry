@@ -1,7 +1,7 @@
 import {useMemo, useState} from 'react';
 
 import {Input} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 import type {
@@ -23,7 +23,6 @@ const GITHUB_PROVIDER: IntegrationProvider = {
   canAdd: true,
   canDisable: false,
   features: [],
-  setupDialog: {url: '', width: 600, height: 600},
   metadata: {
     description: '',
     features: [],
@@ -175,7 +174,7 @@ export default Storybook.story('ScmRepositoryTable', story => {
     const repoMatches = useRepoSearch(allRepos, query);
 
     return (
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         <Input
           type="search"
           placeholder="Search repositories"
@@ -187,7 +186,7 @@ export default Storybook.story('ScmRepositoryTable', story => {
           installations={installations.map(i => ({...i, initiallyExpanded: true}))}
           repoMatches={repoMatches}
         />
-      </Flex>
+      </Stack>
     );
   });
 

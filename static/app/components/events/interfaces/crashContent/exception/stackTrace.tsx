@@ -9,7 +9,7 @@ import type {Event, ExceptionValue} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
 import {StackType, StackView} from 'sentry/types/stacktrace';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {isNativePlatform} from 'sentry/utils/platform';
 
 type Props = {

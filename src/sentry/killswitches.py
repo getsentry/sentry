@@ -230,7 +230,7 @@ ALL_KILLSWITCH_OPTIONS = {
     ),
     "profiling.killswitch.ingest-profiles": KillswitchInfo(
         description="""
-        Drop profiles in the ingest-profiles consumer.
+        Drop profiles in the sentry.profiles.task.process_profile_from_kafka task.
 
         This happens after relay produces profiles to the topic but before a task
         is started to process/ingest to profile.
@@ -248,6 +248,27 @@ ALL_KILLSWITCH_OPTIONS = {
         """,
         fields={
             "org_id": "An organization ID to filter segments by.",
+        },
+    ),
+    "unmerge.killswitch-projects": KillswitchInfo(
+        description="""
+        Halt the self-chaining unmerge task for the given projects.
+
+        Note that this will orphan any events that havne't been moved to the new group.
+        """,
+        fields={
+            "project_id": "A project ID to halt unmerge for.",
+        },
+    ),
+    "merge.killswitch-projects": KillswitchInfo(
+        description="""
+        Halt the self-chaining merge_groups task for the given projects.
+
+        Note that this leaves a partial merge: groups already processed stay merged,
+        and the rest remain in PENDING_MERGE.
+        """,
+        fields={
+            "project_id": "A project ID to halt merge for.",
         },
     ),
 }

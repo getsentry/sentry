@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Stack, Flex} from '@sentry/scraps/layout';
 
 import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -17,12 +17,12 @@ export function SettingsLayout({children}: Props) {
   return (
     <SettingsColumn>
       <TopBar.Slot name="title">
-        <StyledSettingsBreadcrumb params={params} />
+        <SettingsBreadcrumb params={params} />
       </TopBar.Slot>
       <Flex flex="1">
-        <Container flex="1" padding="xl" minWidth="0">
+        <Stack flex="1" padding="xl" minWidth="0">
           {children}
-        </Container>
+        </Stack>
       </Flex>
     </SettingsColumn>
   );
@@ -36,8 +36,4 @@ const SettingsColumn = styled('div')`
   footer {
     margin-top: 0;
   }
-`;
-
-const StyledSettingsBreadcrumb = styled(SettingsBreadcrumb)`
-  flex: 1;
 `;

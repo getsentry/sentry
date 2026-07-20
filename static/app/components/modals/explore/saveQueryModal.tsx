@@ -15,8 +15,8 @@ import {
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSetQueryParamsSavedQuery} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -26,7 +26,7 @@ export type SaveQueryModalProps = {
   saveQuery: (name: string, starred?: boolean) => Promise<SavedQuery>;
   traceItemDataset: TraceItemDataset;
   name?: string;
-  source?: 'toolbar' | 'table';
+  source?: 'toolbar' | 'table' | 'conversations';
 };
 
 type Props = ModalRenderProps & SaveQueryModalProps;
@@ -59,7 +59,14 @@ function SaveQueryModal({
       }
       addSuccessMessage(t('Query saved successfully'));
       if (defined(source)) {
-        if (traceItemDataset === TraceItemDataset.LOGS) {
+        if (source === 'conversations') {
+          trackAnalytics('conversations.save_query_modal', {
+            action: 'submit',
+            save_type: initialName === undefined ? 'save_new_query' : 'rename_query',
+            ui_source: 'table',
+            organization,
+          });
+        } else if (traceItemDataset === TraceItemDataset.LOGS) {
           trackAnalytics('logs.save_query_modal', {
             action: 'submit',
             save_type: initialName === undefined ? 'save_new_query' : 'rename_query',

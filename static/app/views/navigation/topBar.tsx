@@ -1,15 +1,16 @@
 import {useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {mergeProps} from '@react-aria/utils';
 
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {slot, withSlots} from '@sentry/scraps/slot';
+import {Heading} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SearchButton} from 'sentry/views/navigation/searchButton';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
@@ -29,7 +30,6 @@ const Slot = slot(['title', 'search', 'actions', 'feedback'] as const);
 
 function TopBarContent() {
   const theme = useTheme();
-  const hasPageFrame = useHasPageFrameFeature();
   const {barTop, contentTop} = useTopOffset();
 
   const organization = useOrganization({allowNull: true});
@@ -51,20 +51,17 @@ function TopBarContent() {
     return {tags: {['feedback.source']: 'top_navigation'}};
   }, [isSeerExplorerOpen, seerExplorerRunId]);
 
-  if (!hasPageFrame) {
-    return null;
-  }
-
   return (
     <Flex
+      as="header"
       height={{
-        sm: `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
-        md: `${PRIMARY_HEADER_HEIGHT}px`,
+        'screen:sm': `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
+        'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
       }}
       justify="between"
       background="secondary"
       align="center"
-      padding={{sm: 'sm lg', md: 'md xl'}}
+      padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
       position="sticky"
       borderBottom="primary"
       top={barTop}
@@ -73,8 +70,21 @@ function TopBarContent() {
       }}
     >
       <SizeProvider size="sm">
+        {/*
+         * The title slot is rendered as a semantic <h1> so the page title
+         * (whatever a view routes into it — breadcrumbs, text, etc.) is exposed
+         * as the page heading. The Heading uses variant="inherit" so it carries
+         * the TopBar typography (no visual weight of its own), and Flex's render
+         * function applies the layout className to that same <h1> element.
+         */}
         <Slot.Outlet name="title">
-          {props => <Flex {...props} align="center" gap="sm" />}
+          {props => (
+            <Flex align="center" gap="sm" minWidth="0">
+              {flexProps => (
+                <Heading as="h1" variant="inherit" {...mergeProps(flexProps, props)} />
+              )}
+            </Flex>
+          )}
         </Slot.Outlet>
 
         <Flex align="center" gap="sm">

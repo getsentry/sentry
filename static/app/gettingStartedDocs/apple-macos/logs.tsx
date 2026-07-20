@@ -35,13 +35,6 @@ export const logs: OnboardingConfig = {
               )}"),`,
             },
             {
-              label: 'CocoaPods (Deprecated)',
-              language: 'ruby',
-              code: `# CocoaPods is deprecated and will not receive updates after June 2026.
-# Migrate to SPM or use xcframeworks instead.
-pod update`,
-            },
-            {
               label: 'Carthage',
               language: 'swift',
               code: `github "getsentry/sentry-cocoa" "${getPackageVersion(
@@ -104,7 +97,9 @@ SentrySDK.start { options in
       content: [
         {
           type: 'text',
-          text: t('Send a test log from your app to verify logs are arriving in Sentry.'),
+          text: t(
+            'Send a test log from your app, then refresh this page to verify it arrived in Sentry.'
+          ),
         },
         {
           type: 'code',

@@ -1,6 +1,5 @@
 from datetime import timedelta
 
-import sentry_sdk
 from django.core.cache import cache
 from django.utils import timezone
 from rest_framework import serializers
@@ -14,6 +13,7 @@ from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.snuba import discover
 from sentry.utils.hashlib import md5_text
+from sentry.utils.tracing import start_span
 
 MEASUREMENT_TYPES = {
     "web": [
@@ -59,7 +59,7 @@ class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsEndpointBase):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        with sentry_sdk.start_span(op="discover.endpoint", name="parse params"):
+        with start_span(op="discover.endpoint", name="parse params"):
             try:
                 snuba_params = self.get_snuba_params(request, organization)
 

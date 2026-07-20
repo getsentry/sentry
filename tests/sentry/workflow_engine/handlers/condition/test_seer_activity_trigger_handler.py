@@ -55,6 +55,8 @@ class TestSeerActivityTriggerHandler(ConditionTestCase):
             (SeerActivityTriggerStage.CODING_STARTED, ActivityType.SEER_CODING_STARTED),
             (SeerActivityTriggerStage.CODING_COMPLETED, ActivityType.SEER_CODING_COMPLETED),
             (SeerActivityTriggerStage.PR_CREATED, ActivityType.SEER_PR_CREATED),
+            (SeerActivityTriggerStage.ITERATION_STARTED, ActivityType.SEER_ITERATION_STARTED),
+            (SeerActivityTriggerStage.ITERATION_COMPLETED, ActivityType.SEER_ITERATION_COMPLETED),
         ]:
             event_data = self._create_event_data(activity_type_value)
             self.assert_passes(self.dc, event_data)

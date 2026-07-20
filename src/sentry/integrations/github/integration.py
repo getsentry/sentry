@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any, NotRequired, TypedDict
@@ -63,7 +63,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.types import PipelineStepResult
-from sentry.pipeline.views.base import ApiPipelineSteps, PipelineView
+from sentry.pipeline.views.base import ApiPipelineSteps
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -278,6 +278,7 @@ class GitHubIntegration(
         accessible_only: bool = False,
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
+        parallel: bool = False,
     ) -> list[RepositoryInfo]:
         """
         args:
@@ -291,6 +292,9 @@ class GitHubIntegration(
           page_number_limit cap with more data still available, raise
           ApiPaginationTruncated (partial result attached). Ignored when
           ``use_cache`` is True.
+        * parallel - when True, fetch pages after the first concurrently. Only
+          the interactive repo-listing endpoint opts in; not used on the Search
+          API path.
 
         This fetches all repositories accessible to the Github App
         https://docs.github.com/en/rest/apps/installations#list-repositories-accessible-to-the-app-installation
@@ -319,11 +323,12 @@ class GitHubIntegration(
         def _fetch_and_process() -> list[RepositoryInfo]:
             try:
                 raw = (
-                    client.get_repos_cached()
+                    client.get_repos_cached(parallel=parallel)
                     if use_cache
                     else client.get_repos(
                         page_number_limit=page_number_limit,
                         raise_on_page_limit=raise_on_page_limit,
+                        parallel=parallel,
                     )
                 )
             except ApiPaginationTruncated as e:
@@ -705,8 +710,6 @@ class GitHubIntegrationProvider(IntegrationProvider):
         ]
     )
 
-    setup_dialog_config = {"width": 1030, "height": 1000}
-
     @property
     def client(self) -> GithubSetupApiClient:
         # The endpoints we need to hit at this step authenticate via JWT so no need for access token in client
@@ -741,13 +744,6 @@ class GitHubIntegrationProvider(IntegrationProvider):
                 "organization_id": organization.id,
             }
         )
-
-    def get_pipeline_views(
-        self,
-    ) -> Sequence[
-        PipelineView[IntegrationPipeline] | Callable[[], PipelineView[IntegrationPipeline]]
-    ]:
-        return []
 
     def get_pipeline_api_steps(self) -> ApiPipelineSteps[IntegrationPipeline]:
         return [

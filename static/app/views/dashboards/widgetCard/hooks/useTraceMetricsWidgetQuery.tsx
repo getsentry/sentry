@@ -17,22 +17,28 @@ import {
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeSorts} from 'sentry/utils/queryString';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
+import type {
+  HeatmapWidgetQueryParams,
+  WidgetQueryParams,
+} from 'sentry/views/dashboards/datasetConfig/base';
 import {TraceMetricsConfig} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
+import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {getSelectedAggregate} from 'sentry/views/dashboards/widgetBuilder/utils/getSelectedAggregate';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
+import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
 type TraceMetricsSeriesResponse = EventsTimeSeriesResponse;
@@ -61,10 +67,6 @@ export function useTraceMetricsSeriesQuery(
     () =>
       applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
     [widget, dashboardFilters, skipDashboardFilterParens]
-  );
-
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
   );
 
   const queryResults = useQueries({
@@ -148,13 +150,7 @@ export function useTraceMetricsSeriesQuery(
           return apiFetch<TraceMetricsSeriesResponse>(context);
         },
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
+        retry: false,
         retryDelay: getRetryDelay,
         placeholderData: keepPreviousData,
       });
@@ -271,10 +267,6 @@ export function useTraceMetricsTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
   const queryResults = useQueries({
     queries: filteredWidget.queries.map(query => {
       const eventView = eventViewFromWidget('', query, pageFilters);
@@ -335,13 +327,7 @@ export function useTraceMetricsTableQuery(
           return apiFetch<TraceMetricsTableResponse>(context);
         },
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
+        retry: false,
         retryDelay: getRetryDelay,
         select: selectJsonWithHeaders,
       });
@@ -413,4 +399,72 @@ export function useTraceMetricsTableQuery(
   })();
 
   return transformedData;
+}
+
+/**
+ *
+ * The X-axis `widgetInterval` and Y-axis `yBuckets` are derived from the
+ * widget's rendered dimensions and passed in from the chart container, since
+ * the query layer has no access to the rendered size.
+ */
+export function useTraceMetricsHeatmapQuery(
+  params: HeatmapWidgetQueryParams
+): HookWidgetQueryResult {
+  const {
+    widget,
+    organization,
+    pageFilters,
+    enabled,
+    dashboardFilters,
+    skipDashboardFilterParens,
+    widgetInterval = '',
+    yBuckets = 0,
+  } = params;
+
+  const filteredWidget = useMemo(
+    () =>
+      applyDashboardFiltersToWidget(widget, dashboardFilters, skipDashboardFilterParens),
+    [widget, dashboardFilters, skipDashboardFilterParens]
+  );
+
+  const query = filteredWidget.queries[0];
+  const selectedAggregate = getSelectedAggregate(widget);
+  const traceMetric = selectedAggregate
+    ? extractTraceMetricFromColumn(selectedAggregate)
+    : undefined;
+
+  // Don't fetch until the widget's aggregate resolves to a real metric —
+  // otherwise we'd request with an empty `metric.name` filter.
+  const heatMapConditionsAreValid =
+    yBuckets > 0 && Boolean(widgetInterval) && Boolean(traceMetric?.name);
+  const heatmapEnabled = enabled && heatMapConditionsAreValid;
+
+  const {series, error, isPending, isFetching} = useMetricHeatMapData({
+    traceMetric: traceMetric ?? {name: '', type: '', unit: NONE_UNIT},
+    enabled: heatmapEnabled,
+    organization,
+    selection: pageFilters,
+    query: query?.conditions ?? '',
+    interval: widgetInterval,
+    yBuckets,
+  });
+
+  // `genericWidgetQueries` guards its `onDataFetched` effect by reference
+  // (`rawData === prev`); wrapping the single series in a fresh array each
+  // render would defeat that guard and cause an update loop, so memoize it.
+  const rawData = useMemo(() => (series ? [series] : EMPTY_ARRAY), [series]);
+
+  if (error) {
+    return {loading: false, errorMessage: error.message, rawData: EMPTY_ARRAY};
+  }
+
+  if (isFetching || isPending) {
+    return {loading: true, rawData: EMPTY_ARRAY};
+  }
+
+  return {
+    loading: false,
+    heatmapResults: series,
+    rawData,
+  };
 }

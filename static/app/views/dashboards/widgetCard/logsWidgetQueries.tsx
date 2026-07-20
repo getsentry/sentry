@@ -7,8 +7,8 @@ import type {
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
+import {defined} from 'sentry/utils/defined';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/views/alerts/rules/metric/utils/determineSeriesSampleCount';

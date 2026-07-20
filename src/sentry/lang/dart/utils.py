@@ -10,7 +10,9 @@ import sentry_sdk
 
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
+from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
+from sentry.utils.tracing import set_span_tag, start_span
 
 # Obfuscated type values are either in the form of "xyz" or "xyz<abc>" where
 # both "xyz" or "abc" need to be deobfuscated. It may also be possible for
@@ -36,7 +38,9 @@ def generate_dart_symbols_map(debug_ids: list[str], project: Project):
     Fetches and returns the dart symbols mapping for the first available debug_id.
     There should only be one mapping file per Flutter build, so we return the first mapping found.
     """
-    with sentry_sdk.start_span(op="dartsymbolmap.generate_dart_symbols_map") as span:
+    with start_span(
+        op="dartsymbolmap.generate_dart_symbols_map", name="dartsymbolmap.generate_dart_symbols_map"
+    ) as span:
         dif_paths = ProjectDebugFile.difcache.fetch_difs(project, debug_ids, features=["mapping"])
         if not dif_paths:
             return None
@@ -45,7 +49,7 @@ def generate_dart_symbols_map(debug_ids: list[str], project: Project):
 
         try:
             dart_symbols_file_size_in_mb = os.path.getsize(debug_file_path) / (1024 * 1024.0)
-            span.set_tag("dartsymbolmap_file_size_in_mb", dart_symbols_file_size_in_mb)
+            set_span_tag(span, "dartsymbolmap_file_size_in_mb", dart_symbols_file_size_in_mb)
 
             with open(debug_file_path, "rb") as f:
                 data = orjson.loads(f.read())
@@ -83,7 +87,10 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]) -> None:
     if not exceptions:
         return None
 
-    with sentry_sdk.start_span(op="dartsymbolmap.deobfuscate_exception_type"):
+    with start_span(
+        op="dartsymbolmap.deobfuscate_exception_type",
+        name="dartsymbolmap.deobfuscate_exception_type",
+    ):
         symbol_map = generate_dart_symbols_map(list(debug_ids), project)
         if symbol_map is None:
             return None
@@ -109,3 +116,11 @@ def deobfuscate_exception_type(data: MutableMapping[str, Any]) -> None:
                 new_value = re.sub(INSTANCE_OF_VALUE_RE, replace_symbol, exception_value)
                 if new_value != exception_value:
                     exception["value"] = new_value
+
+
+def has_native_frames_in_stacktraces(data) -> bool:
+    for stacktrace_info in find_stacktraces_in_data(data):
+        frames = stacktrace_info.get_frames()
+        if frames and any(frame.get("platform") == "native" for frame in frames):
+            return True
+    return False

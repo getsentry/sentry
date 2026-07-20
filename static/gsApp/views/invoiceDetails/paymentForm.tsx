@@ -1,13 +1,13 @@
 import {Fragment} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -40,7 +40,7 @@ export default function InvoiceDetailsPaymentForm({
     <Fragment>
       <Header>{t('Pay Bill')}</Header>
       <Body>
-        <Flex direction="column" gap="sm">
+        <Stack gap="sm">
           <Text as="p">
             {tct('Complete payment for [amount] USD', {
               amount: displayPriceWithCents({cents: invoice.amountBilled ?? 0}),
@@ -64,7 +64,7 @@ export default function InvoiceDetailsPaymentForm({
             referrer={decodeScalar(location?.query?.referrer)}
             buttonText={t('Pay Now')}
           />
-        </Flex>
+        </Stack>
       </Body>
     </Fragment>
   );

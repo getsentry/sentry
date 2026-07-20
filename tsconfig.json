@@ -9,7 +9,7 @@
     "moduleResolution": "bundler",
 
     // We add esnext to lib to pull in types for all newer ECMAScript features
-    "lib": ["esnext", "dom", "dom.iterable"],
+    "lib": ["esnext", "dom", "dom.iterable", "webworker"],
 
     // Skip type checking of all declaration files
     "skipLibCheck": true,
@@ -57,19 +57,7 @@
       "getsentry/*": ["./static/gsApp/*"],
       "getsentry-images/*": ["./static/images/*"],
       "admin/*": ["./static/gsAdmin/*"]
-    },
-
-    "plugins": [
-      // The styled plugin provides language server autocompletion for styled
-      // component template strings
-      {
-        "name": "@styled/typescript-styled-plugin",
-        "lint": {
-          "validProperties": ["container-type"],
-          "unknownAtRules": "ignore"
-        }
-      }
-    ]
+    }
   },
   "include": [
     "*.config.*s",
@@ -81,5 +69,5 @@
     "config",
     "scripts"
   ],
-  "exclude": ["./node_modules"]
+  "exclude": ["./node_modules", "static/app/serviceWorker/worker"]
 }

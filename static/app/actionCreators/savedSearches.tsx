@@ -1,14 +1,11 @@
 import type {Client} from 'sentry/api';
 import {MAX_AUTOCOMPLETE_RECENT_SEARCHES} from 'sentry/constants';
 import type {RecentSearch, SavedSearch, SavedSearchType} from 'sentry/types/group';
-import {defined} from 'sentry/utils';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {
-  useApiQuery,
-  type ApiQueryKey,
-  type UseApiQueryOptions,
-} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

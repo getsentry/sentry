@@ -157,6 +157,13 @@ register(
 )
 
 register(
+    "outbox_replication.sentry_apitoken.backfill.target_cells",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "hybrid_cloud.authentication.disabled_organization_shards",
     type=Sequence,
     default=[],

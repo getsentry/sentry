@@ -26,6 +26,7 @@ class IntegrationExamples:
                         "team:read",
                         "users:read",
                     ],
+                    "outOfDate": False,
                     "status": "active",
                     "provider": {
                         "key": "slack",
@@ -34,14 +35,7 @@ class IntegrationExamples:
                         "canAdd": True,
                         "canDisable": False,
                         "features": ["alert-rule", "chat-unfurl"],
-                        "aspects": {
-                            "alerts": [
-                                {
-                                    "type": "info",
-                                    "text": "The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.",
-                                }
-                            ]
-                        },
+                        "aspects": {},
                     },
                     "configOrganization": [],
                     "configData": {"installationType": "born_as_bot"},
@@ -79,6 +73,7 @@ class IntegrationExamples:
                     "team:read",
                     "users:read",
                 ],
+                "outOfDate": False,
                 "status": "active",
                 "provider": {
                     "key": "slack",
@@ -87,14 +82,7 @@ class IntegrationExamples:
                     "canAdd": True,
                     "canDisable": False,
                     "features": ["alert-rule", "chat-unfurl"],
-                    "aspects": {
-                        "alerts": [
-                            {
-                                "type": "info",
-                                "text": "The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.",
-                            }
-                        ]
-                    },
+                    "aspects": {},
                 },
                 "configOrganization": [],
                 "configData": {"installationType": "born_as_bot"},
@@ -165,11 +153,6 @@ class IntegrationExamples:
                         "canAdd": True,
                         "canDisable": False,
                         "features": ["serverless"],
-                        "setupDialog": {
-                            "url": "/organizations/devsentry-ecosystem/integrations/aws_lambda/setup/",
-                            "width": 600,
-                            "height": 600,
-                        },
                     },
                     {
                         "key": "bitbucket",
@@ -208,11 +191,6 @@ class IntegrationExamples:
                         "canAdd": True,
                         "canDisable": False,
                         "features": ["issue-basic", "commits", "stacktrace-link"],
-                        "setupDialog": {
-                            "url": "/organizations/devsentry-ecosystem/integrations/bitbucket/setup/",
-                            "width": 600,
-                            "height": 600,
-                        },
                     },
                     {
                         "key": "bitbucket_server",
@@ -239,11 +217,6 @@ class IntegrationExamples:
                         "canAdd": True,
                         "canDisable": False,
                         "features": ["commits"],
-                        "setupDialog": {
-                            "url": "/organizations/devsentry-ecosystem/integrations/bitbucket_server/setup/",
-                            "width": 1030,
-                            "height": 1000,
-                        },
                     },
                     {
                         "key": "discord",
@@ -270,11 +243,6 @@ class IntegrationExamples:
                         "canAdd": True,
                         "canDisable": False,
                         "features": ["chat-unfurl", "alert-rule"],
-                        "setupDialog": {
-                            "url": "/organizations/devsentry-ecosystem/integrations/discord/setup/",
-                            "width": 600,
-                            "height": 900,
-                        },
                     },
                     {
                         "key": "github",
@@ -313,11 +281,6 @@ class IntegrationExamples:
                         "canAdd": True,
                         "canDisable": False,
                         "features": ["issue-basic", "commits", "codeowners", "stacktrace-link"],
-                        "setupDialog": {
-                            "url": "/organizations/devsentry-ecosystem/integrations/github/setup/",
-                            "width": 1030,
-                            "height": 1000,
-                        },
                     },
                     {
                         "key": "github_enterprise",
@@ -372,11 +335,6 @@ class IntegrationExamples:
                         "canAdd": True,
                         "canDisable": False,
                         "features": ["issue-basic", "commits", "codeowners", "stacktrace-link"],
-                        "setupDialog": {
-                            "url": "/organizations/devsentry-ecosystem/integrations/github_enterprise/setup/",
-                            "width": 1030,
-                            "height": 1000,
-                        },
                     },
                     {
                         "key": "gitlab",
@@ -419,11 +377,6 @@ class IntegrationExamples:
                         "canAdd": True,
                         "canDisable": False,
                         "features": ["issue-basic", "commits", "codeowners", "stacktrace-link"],
-                        "setupDialog": {
-                            "url": "/organizations/devsentry-ecosystem/integrations/gitlab/setup/",
-                            "width": 1030,
-                            "height": 1000,
-                        },
                     },
                     {
                         "key": "jira",
@@ -464,11 +417,6 @@ class IntegrationExamples:
                         "canAdd": False,
                         "canDisable": False,
                         "features": ["issue-basic", "ticket-rules", "issue-sync"],
-                        "setupDialog": {
-                            "url": "/organizations/devsentry-ecosystem/integrations/jira/setup/",
-                            "width": 600,
-                            "height": 600,
-                        },
                     },
                     {
                         "key": "jira_server",
@@ -511,11 +459,6 @@ class IntegrationExamples:
                         "canAdd": True,
                         "canDisable": False,
                         "features": ["issue-basic", "issue-sync"],
-                        "setupDialog": {
-                            "url": "/organizations/devsentry-ecosystem/integrations/jira_server/setup/",
-                            "width": 1030,
-                            "height": 1000,
-                        },
                     },
                     {
                         "key": "msteams",
@@ -548,11 +491,6 @@ class IntegrationExamples:
                         "canAdd": False,
                         "canDisable": False,
                         "features": ["chat-unfurl", "alert-rule"],
-                        "setupDialog": {
-                            "url": "/organizations/devsentry-ecosystem/integrations/msteams/setup/",
-                            "width": 600,
-                            "height": 600,
-                        },
                     },
                     {
                         "key": "opsgenie",
@@ -579,11 +517,6 @@ class IntegrationExamples:
                         "canAdd": True,
                         "canDisable": False,
                         "features": ["incident-management", "alert-rule"],
-                        "setupDialog": {
-                            "url": "/organizations/devsentry-ecosystem/integrations/opsgenie/setup/",
-                            "width": 600,
-                            "height": 600,
-                        },
                     },
                     {
                         "key": "pagerduty",
@@ -605,23 +538,11 @@ class IntegrationExamples:
                             "noun": "Installation",
                             "issue_url": "https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=PagerDuty%20Integration%20Problem",
                             "source_url": "https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/pagerduty",
-                            "aspects": {
-                                "alerts": [
-                                    {
-                                        "type": "info",
-                                        "text": "The PagerDuty integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to PagerDuty you must create a rule using the PagerDuty action in your project settings.",
-                                    }
-                                ]
-                            },
+                            "aspects": {},
                         },
                         "canAdd": True,
                         "canDisable": False,
                         "features": ["incident-management", "alert-rule"],
-                        "setupDialog": {
-                            "url": "/organizations/devsentry-ecosystem/integrations/pagerduty/setup/",
-                            "width": 600,
-                            "height": 900,
-                        },
                     },
                     {
                         "key": "slack",
@@ -643,23 +564,11 @@ class IntegrationExamples:
                             "noun": "Workspace",
                             "issue_url": "https://github.com/getsentry/sentry/issues/new?assignees=&labels=Component:%20Integrations&template=bug.yml&title=Slack%20Integration%20Problem",
                             "source_url": "https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack",
-                            "aspects": {
-                                "alerts": [
-                                    {
-                                        "type": "info",
-                                        "text": "The Slack integration adds a new Alert Rule action to all projects. To enable automatic notifications sent to Slack you must create a rule using the slack workspace action in your project settings.",
-                                    }
-                                ]
-                            },
+                            "aspects": {},
                         },
                         "canAdd": True,
                         "canDisable": False,
                         "features": ["chat-unfurl", "alert-rule"],
-                        "setupDialog": {
-                            "url": "/organizations/devsentry-ecosystem/integrations/slack/setup/",
-                            "width": 600,
-                            "height": 900,
-                        },
                     },
                     {
                         "key": "vercel",
@@ -689,11 +598,6 @@ class IntegrationExamples:
                         "canAdd": False,
                         "canDisable": False,
                         "features": ["deployment"],
-                        "setupDialog": {
-                            "url": "/organizations/devsentry-ecosystem/integrations/vercel/setup/",
-                            "width": 600,
-                            "height": 600,
-                        },
                     },
                     {
                         "key": "vsts",
@@ -742,11 +646,6 @@ class IntegrationExamples:
                             "commits",
                             "issue-basic",
                         ],
-                        "setupDialog": {
-                            "url": "/organizations/devsentry-ecosystem/integrations/vsts/setup/",
-                            "width": 600,
-                            "height": 800,
-                        },
                     },
                 ]
             },
@@ -865,6 +764,92 @@ class IntegrationExamples:
                 },
             ],
             status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    GROUP_INTEGRATION_ISSUE_CONFIG = [
+        OpenApiExample(
+            "Config for creating a new external issue",
+            value={
+                "id": "123456",
+                "name": "Example Jira",
+                "icon": "https://example.atlassian.net/icon.png",
+                "domainName": "example.atlassian.net",
+                "accountType": None,
+                "scopes": None,
+                "outOfDate": None,
+                "status": "active",
+                "provider": {
+                    "key": "jira",
+                    "slug": "jira",
+                    "name": "Jira",
+                    "canAdd": False,
+                    "canDisable": False,
+                    "features": ["issue-basic", "issue-sync", "ticket-rules"],
+                    "aspects": {},
+                },
+                "createIssueConfig": [
+                    {
+                        "name": "title",
+                        "label": "Title",
+                        "default": 'TypeError: Cannot read property "foo" of undefined',
+                        "type": "string",
+                        "required": True,
+                    },
+                    {
+                        "name": "description",
+                        "label": "Description",
+                        "default": "Sentry Issue: PROJECT-1\nhttps://example.sentry.io/issues/1/",
+                        "type": "textarea",
+                        "autosize": True,
+                        "maxRows": 10,
+                    },
+                ],
+            },
+            status_codes=["200"],
+            response_only=True,
+        ),
+        OpenApiExample(
+            "Config for linking an existing external issue",
+            value={
+                "id": "123456",
+                "name": "Example Jira",
+                "icon": "https://example.atlassian.net/icon.png",
+                "domainName": "example.atlassian.net",
+                "accountType": None,
+                "scopes": None,
+                "outOfDate": None,
+                "status": "active",
+                "provider": {
+                    "key": "jira",
+                    "slug": "jira",
+                    "name": "Jira",
+                    "canAdd": False,
+                    "canDisable": False,
+                    "features": ["issue-basic", "issue-sync", "ticket-rules"],
+                    "aspects": {},
+                },
+                "linkIssueConfig": [
+                    {"name": "externalIssue", "label": "Issue", "default": "", "type": "string"}
+                ],
+            },
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    EXTERNAL_ISSUE_LINK = [
+        OpenApiExample(
+            "Create or link an external issue",
+            value={
+                "id": 5,
+                "key": "PROJECT-123",
+                "url": "https://example.atlassian.net/browse/PROJECT-123",
+                "integrationId": 123456,
+                "displayName": "PROJECT-123",
+            },
+            status_codes=["201"],
             response_only=True,
         )
     ]

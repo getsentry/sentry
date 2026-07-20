@@ -14,7 +14,7 @@ import {
   screen,
   userEvent,
   waitFor,
-  waitForElementToBeRemoved,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -24,7 +24,12 @@ import {TagStore} from 'sentry/stores/tagStore';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import * as parseLinkHeaderModule from 'sentry/utils/parseLinkHeader';
 import IssueListOverview from 'sentry/views/issueList/overview';
-import {DEFAULT_QUERY} from 'sentry/views/issueList/utils';
+import {
+  DEFAULT_QUERY,
+  getStoredIssueSort,
+  IssueSortOptions,
+  setStoredIssueSort,
+} from 'sentry/views/issueList/utils';
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -233,6 +238,40 @@ describe('IssueList', () => {
       expect(screen.getByRole('row', {name: 'level:error'})).toBeInTheDocument();
     });
 
+    it('requests derived data when the progress UI flag is enabled', async () => {
+      render(<IssueListOverview />, {
+        organization: OrganizationFixture({
+          features: ['issue-stream-progress-ui'],
+        }),
+        initialRouterConfig,
+      });
+
+      await waitFor(() => {
+        expect(issuesRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.stringContaining('expand=derivedData'),
+          })
+        );
+      });
+    });
+
+    it('does not request derived data when the progress UI flag is disabled', async () => {
+      render(<IssueListOverview />, {
+        organization,
+        initialRouterConfig,
+      });
+
+      await waitFor(() => {
+        expect(issuesRequest).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.not.stringContaining('expand=derivedData'),
+          })
+        );
+      });
+    });
+
     it('caches the search results', async () => {
       issuesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
@@ -357,6 +396,101 @@ describe('IssueList', () => {
     });
   });
 
+  describe('sort persistence', () => {
+    it('does not persist sort to localStorage without the recommended-sort feature', async () => {
+      render(<IssueListOverview />, {organization, initialRouterConfig});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Last Seen'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Events'}));
+
+      // Writing while the feature is off would leave a stale value that overrides
+      // the Recommended default once the flag is enabled.
+      expect(getStoredIssueSort(organization.slug)).toBeNull();
+    });
+
+    it('persists sort to localStorage with the recommended-sort-default feature', async () => {
+      const featureOrg = OrganizationFixture({
+        ...organization,
+        features: ['issue-stream-recommended-sort-default'],
+      });
+      render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
+
+      await userEvent.click(await screen.findByRole('button', {name: /Recommended/}));
+      await userEvent.click(screen.getByRole('option', {name: 'Events'}));
+
+      expect(getStoredIssueSort(featureOrg.slug)).toBe(IssueSortOptions.FREQ);
+    });
+
+    it('does not read or write the stored sort on a view page', async () => {
+      const featureOrg = OrganizationFixture({
+        ...organization,
+        features: ['issue-stream-recommended-sort-default'],
+      });
+      setStoredIssueSort(featureOrg.slug, IssueSortOptions.FREQ);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/group-search-views/1/',
+        body: GroupSearchViewFixture({querySort: IssueSortOptions.DATE}),
+      });
+
+      render(<IssueListOverview />, {
+        organization: featureOrg,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            pathname: '/organizations/org-slug/issues/views/1/',
+          },
+        },
+      });
+
+      // The view's saved sort applies, not the stored feed sort
+      await userEvent.click(await screen.findByRole('button', {name: 'Last Seen'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Users'}));
+
+      // Changing the sort within a view does not overwrite the feed's stored sort
+      expect(getStoredIssueSort(featureOrg.slug)).toBe(IssueSortOptions.FREQ);
+    });
+
+    it('shows the new-feature badge next to the sort dropdown with the recommended-sort-default feature', async () => {
+      const featureOrg = OrganizationFixture({
+        ...organization,
+        features: ['issue-stream-recommended-sort-default'],
+      });
+      render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
+
+      expect(
+        await screen.findByRole('button', {name: /Recommended/})
+      ).toBeInTheDocument();
+      expect(screen.getByLabelText('new')).toBeInTheDocument();
+
+      // The Recommended option inside the dropdown carries the badge too
+      await userEvent.click(screen.getByRole('button', {name: /Recommended/}));
+      const recommendedOption = screen.getByRole('option', {name: /Recommended/});
+      expect(within(recommendedOption).getByLabelText('new')).toBeInTheDocument();
+    });
+
+    it('hides the trigger badge once the user has chosen a sort', async () => {
+      const featureOrg = OrganizationFixture({
+        ...organization,
+        features: ['issue-stream-recommended-sort-default'],
+      });
+      // An explicitly chosen sort (even Recommended itself) means the user has
+      // seen the dropdown, so the announcement badge no longer shows
+      setStoredIssueSort(featureOrg.slug, IssueSortOptions.RECOMMENDED);
+      render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
+
+      expect(
+        await screen.findByRole('button', {name: /Recommended/})
+      ).toBeInTheDocument();
+      expect(screen.queryByLabelText('new')).not.toBeInTheDocument();
+
+      // The Recommended option inside the dropdown keeps its badge
+      await userEvent.click(screen.getByRole('button', {name: /Recommended/}));
+      const recommendedOption = screen.getByRole('option', {name: /Recommended/});
+      expect(within(recommendedOption).getByLabelText('new')).toBeInTheDocument();
+    });
+  });
+
   describe('transitionTo', () => {
     it('pushes to history when query is updated', async () => {
       MockApiClient.addMockResponse({
@@ -395,6 +529,49 @@ describe('IssueList', () => {
     await waitFor(() => {
       expect(fetchMembersRequest).toHaveBeenCalled();
     });
+  });
+
+  it('renders assignees for projects with Object prototype key slugs', async () => {
+    const constructorProject = ProjectFixture({
+      id: '999',
+      slug: 'constructor',
+      name: 'Constructor',
+      firstEvent: new Date().toISOString(),
+    });
+    const constructorGroup = GroupFixture({project: constructorProject});
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [constructorGroup],
+      headers: {
+        Link: DEFAULT_LINKS_HEADER,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      method: 'GET',
+      body: [MemberFixture({projects: [constructorProject.slug]})],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [constructorProject],
+    });
+
+    PageFiltersStore.onInitializeUrlState({
+      projects: [parseInt(constructorProject.id, 10)],
+      environments: [],
+      datetime: {period: '14d', start: null, end: null, utc: null},
+    });
+
+    render(<IssueListOverview />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByText(constructorGroup.shortId)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: 'Modify issue assignee'})
+    ).toBeInTheDocument();
   });
 
   describe('componentDidUpdate fetching groups', () => {
@@ -627,7 +804,9 @@ describe('IssueList', () => {
         initialRouterConfig,
       });
 
-      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      });
     };
 
     it('displays when no projects selected and all projects user is member of, async does not have first event', async () => {

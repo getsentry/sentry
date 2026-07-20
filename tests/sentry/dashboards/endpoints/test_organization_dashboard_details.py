@@ -13,6 +13,7 @@ from sentry.discover.models import DatasetSourcesTypes
 from sentry.explore.translation.dashboards_translation import translate_dashboard_widget
 from sentry.models.dashboard import (
     Dashboard,
+    DashboardFavoriteUser,
     DashboardRevision,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
@@ -1052,6 +1053,78 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         queries = last.dashboardwidgetquery_set.all()
         assert len(queries) == 1
         self.assert_serialized_widget_query(data["widgets"][4]["queries"][0], queries[0])
+
+    def test_save_dashboard_with_existing_tracemetrics_table_widget(self) -> None:
+        # Tracemetrics tables can't be created in the UI, but some existing
+        # widgets predate display-type validation. Saving a dashboard that
+        # contains one (without changing its display type) must still succeed.
+        widget = DashboardWidget.objects.create(
+            dashboard=self.dashboard,
+            order=2,
+            title="Metrics Table",
+            display_type=DashboardWidgetDisplayTypes.TABLE,
+            widget_type=DashboardWidgetTypes.TRACEMETRICS,
+        )
+        DashboardWidgetQuery.objects.create(
+            widget=widget,
+            fields=["sum(value)"],
+            columns=[],
+            aggregates=["sum(value)"],
+            conditions="metric.name:foo",
+            order=0,
+        )
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "id": str(widget.id),
+                    "title": "Metrics Table",
+                    "displayType": "table",
+                    "widgetType": "tracemetrics",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["sum(value)"],
+                            "columns": [],
+                            "aggregates": ["sum(value)"],
+                            "conditions": "metric.name:foo",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
+    def test_put_tracemetrics_line_chart_rejects_equation_with_aggregate(self) -> None:
+        data: dict[str, Any] = {
+            "title": "First dashboard",
+            "widgets": [
+                {
+                    "title": "Metrics Equation",
+                    "displayType": "line",
+                    "widgetType": "tracemetrics",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": [
+                                "equation|sum(value,metric_name,counter,none) / 100",
+                                "avg(value,metric_name,gauge,none)",
+                            ],
+                            "columns": [],
+                            "aggregates": [
+                                "equation|sum(value,metric_name,counter,none) / 100",
+                                "avg(value,metric_name,gauge,none)",
+                            ],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 400, response.data
+        assert "queries" in response.data["widgets"][0], response.data
 
     def test_add_widget_with_field_aliases(self) -> None:
         data: dict[str, Any] = {
@@ -3898,24 +3971,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert "queries" in response.data["widgets"][1], response.data
         assert response.data["widgets"][1]["queries"][0] == "Text widgets don't have queries"
 
-    def test_put_creates_dashboard_revision_when_feature_enabled(self) -> None:
-        with self.feature("organizations:dashboards-revisions"):
-            response = self.do_request(
-                "put", self.url(self.dashboard.id), data={"title": "Updated Title"}
-            )
-        assert response.status_code == 200, response.data
-        assert DashboardRevision.objects.filter(dashboard=self.dashboard).count() == 1
-
-    def test_put_does_not_create_revision_when_feature_disabled(self) -> None:
+    def test_put_creates_dashboard_revision(self) -> None:
         response = self.do_request(
             "put", self.url(self.dashboard.id), data={"title": "Updated Title"}
         )
         assert response.status_code == 200, response.data
-        assert DashboardRevision.objects.filter(dashboard=self.dashboard).count() == 0
+        assert DashboardRevision.objects.filter(dashboard=self.dashboard).count() == 1
 
     def test_put_snapshot_contains_pre_save_state(self) -> None:
-        with self.feature("organizations:dashboards-revisions"):
-            self.do_request("put", self.url(self.dashboard.id), data={"title": "New Title"})
+        self.do_request("put", self.url(self.dashboard.id), data={"title": "New Title"})
 
         revision = DashboardRevision.objects.get(dashboard=self.dashboard)
         # Snapshot reflects the state before the update
@@ -3926,8 +3990,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert self.dashboard.title == "New Title"
 
     def test_put_snapshot_includes_widgets_and_queries(self) -> None:
-        with self.feature("organizations:dashboards-revisions"):
-            self.do_request("put", self.url(self.dashboard.id), data={"title": "New Title"})
+        self.do_request("put", self.url(self.dashboard.id), data={"title": "New Title"})
 
         revision = DashboardRevision.objects.get(dashboard=self.dashboard)
         snapshot_widgets = revision.snapshot["widgets"]
@@ -3944,20 +4007,19 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
     def test_put_snapshot_captures_widget_state_before_widget_edit(self) -> None:
         original_widget_title = self.widget_1.title
-        with self.feature("organizations:dashboards-revisions"):
-            self.do_request(
-                "put",
-                self.url(self.dashboard.id),
-                data={
-                    "title": self.dashboard.title,
-                    "widgets": [
-                        {"id": str(self.widget_1.id), "title": "Updated Widget Title"},
-                        {"id": str(self.widget_2.id)},
-                        {"id": str(self.widget_3.id)},
-                        {"id": str(self.widget_4.id)},
-                    ],
-                },
-            )
+        self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={
+                "title": self.dashboard.title,
+                "widgets": [
+                    {"id": str(self.widget_1.id), "title": "Updated Widget Title"},
+                    {"id": str(self.widget_2.id)},
+                    {"id": str(self.widget_3.id)},
+                    {"id": str(self.widget_4.id)},
+                ],
+            },
+        )
 
         revision = DashboardRevision.objects.get(dashboard=self.dashboard)
         snapshot_widget = revision.snapshot["widgets"][0]
@@ -3969,30 +4031,27 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert self.widget_1.title == "Updated Widget Title"
 
     def test_put_revision_source_defaults_to_edit(self) -> None:
-        with self.feature("organizations:dashboards-revisions"):
-            self.do_request("put", self.url(self.dashboard.id), data={"title": "Updated"})
+        self.do_request("put", self.url(self.dashboard.id), data={"title": "Updated"})
 
         revision = DashboardRevision.objects.get(dashboard=self.dashboard)
         assert revision.source == "edit"
 
     def test_put_revision_source_edit_with_agent(self) -> None:
-        with self.feature("organizations:dashboards-revisions"):
-            self.do_request(
-                "put",
-                self.url(self.dashboard.id),
-                data={"title": "Updated", "revisionSource": "edit-with-agent"},
-            )
+        self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={"title": "Updated", "revisionSource": "edit-with-agent"},
+        )
 
         revision = DashboardRevision.objects.get(dashboard=self.dashboard)
         assert revision.source == "edit-with-agent"
 
     def test_put_revision_source_ignores_unknown_values(self) -> None:
-        with self.feature("organizations:dashboards-revisions"):
-            self.do_request(
-                "put",
-                self.url(self.dashboard.id),
-                data={"title": "Updated", "revisionSource": "malicious-value"},
-            )
+        self.do_request(
+            "put",
+            self.url(self.dashboard.id),
+            data={"title": "Updated", "revisionSource": "malicious-value"},
+        )
 
         revision = DashboardRevision.objects.get(dashboard=self.dashboard)
         assert revision.source == "edit"
@@ -4660,14 +4719,18 @@ class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
     def test_favorite_dashboard(self) -> None:
         assert self.user.id not in self.dashboard.favorited_by
         self.login_as(user=self.user)
-        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": "true"})
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"shouldFavorite": "true"}
+        )
         assert response.status_code == 204
         assert self.user.id in self.dashboard.favorited_by
 
     def test_unfavorite_dashboard(self) -> None:
         assert self.user_1.id in self.dashboard.favorited_by
         self.login_as(user=self.user_1)
-        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": False})
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"shouldFavorite": False}
+        )
         assert response.status_code == 204
         assert self.user_1.id not in self.dashboard.favorited_by
 
@@ -4687,6 +4750,90 @@ class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
 
         # assert if user can edit the favorite status of the dashboard
         assert self.user_2.id in self.dashboard.favorited_by
-        response = self.do_request("put", self.url(self.dashboard.id), data={"isFavorited": False})
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"shouldFavorite": False}
+        )
         assert response.status_code == 204
         assert self.user_2.id not in self.dashboard.favorited_by
+
+
+class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTestCase):
+    """
+    These tests are intended to cover and eventually replace the existing
+    OrganizationDashboardFavoriteTest cases. These test the feature flagged
+    PUT logic for inserting and removing a dashboard from the favorite list.
+    """
+
+    features = ["organizations:dashboards-starred"]
+
+    def do_request(self, *args, **kwargs):
+        with self.feature(self.features):
+            return super().do_request(*args, **kwargs)
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user_1 = self.create_user(email="user1@example.com")
+        self.create_member(user=self.user_1, organization=self.organization)
+
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization,
+            user_id=self.user_1.id,
+            dashboard=self.dashboard,
+        )
+
+    def url(self, dashboard_id):
+        return reverse(
+            "sentry-api-0-organization-dashboard-favorite",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
+        )
+
+    def test_insert_favorite_adds_dashboard_at_end_of_list(self) -> None:
+        assert self.user.id not in self.dashboard.favorited_by
+        self.login_as(user=self.user)
+
+        preexisting_dashboard = self.create_dashboard(
+            title="Preexisting Dashboard",
+            created_by=self.user,
+            organization=self.organization,
+        )
+        DashboardFavoriteUser.objects.insert_favorite_dashboard(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard=preexisting_dashboard,
+        )
+        # Insert self.dashboard
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"shouldFavorite": "true"}
+        )
+        assert response.status_code == 204
+
+        assert list(
+            DashboardFavoriteUser.objects.filter(
+                organization=self.organization,
+                user_id=self.user.id,
+            )
+            .order_by("position")
+            .values_list("dashboard_id", flat=True)
+        ) == [
+            preexisting_dashboard.id,
+            self.dashboard.id,
+        ]
+
+    def test_unfavorite_dashboard(self) -> None:
+        assert self.user_1.id in self.dashboard.favorited_by
+        self.login_as(user=self.user_1)
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"shouldFavorite": False}
+        )
+        assert response.status_code == 204
+        assert (
+            DashboardFavoriteUser.objects.get_favorite_dashboard(
+                organization=self.organization,
+                user_id=self.user_1.id,
+                dashboard=self.dashboard,
+            )
+            is None
+        )

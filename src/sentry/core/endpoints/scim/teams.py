@@ -31,6 +31,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.core.endpoints.organization_teams import CONFLICTING_SLUG_ERROR, TeamPostSerializer
@@ -185,7 +186,8 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
 
     @extend_schema(
-        operation_id="List an Organization's Paginated Teams",
+        operation_id="listOrganizationScimV2Groups",
+        summary="List an Organization's Paginated Teams",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, SCIMQueryParamSerializer],
         request=None,
         responses={
@@ -234,7 +236,8 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         )
 
     @extend_schema(
-        operation_id="Provision a New Team",
+        operation_id="provisionOrganizationScimV2Group",
+        summary="Provision a New Team",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=inline_serializer(
             name="SCIMTeamRequestBody",
@@ -253,7 +256,9 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         },
         examples=SCIMExamples.PROVISION_NEW_TEAM,
     )
-    def post(self, request: Request, organization: Organization, **kwds: Any) -> Response:
+    def post(
+        self, request: Request, organization: Organization, **kwds: Any
+    ) -> Response[OrganizationTeamSCIMSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a new team bound to an organization via a SCIM Groups POST
         Request. The slug will have a normalization of uppercases/spaces to
@@ -292,12 +297,10 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
                     sender=None,
                 )
             except (IntegrityError, MaxSnowflakeRetryError):
-                return Response(
-                    {
-                        "non_field_errors": [CONFLICTING_SLUG_ERROR],
-                        "detail": CONFLICTING_SLUG_ERROR,
-                    },
-                    status=409,
+                # A duplicate slug is a uniqueness collision; surface it as a
+                # spec-compliant SCIM error so IdPs can reconcile the existing team.
+                raise SCIMApiError(
+                    detail=CONFLICTING_SLUG_ERROR, status_code=409, scim_type="uniqueness"
                 )
 
             self.create_audit_entry(
@@ -307,11 +310,11 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
                 event=audit_log.get_event_id("TEAM_ADD"),
                 data=team.get_audit_log_data(),
             )
-            return Response(
-                serialize(team, request.user, TeamSCIMSerializer(expand=["members"])),
-                status=201,
+            body: OrganizationTeamSCIMSerializerResponse = serialize(
+                team, request.user, TeamSCIMSerializer(expand=["members"])
             )
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(body, status=201)
+        return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
 
 @extend_schema(tags=["SCIM"])
@@ -347,7 +350,8 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return team
 
     @extend_schema(
-        operation_id="Query an Individual Team",
+        operation_id="getOrganizationScimV2Group",
+        summary="Query an Individual Team",
         parameters=[GlobalParams.TEAM_ID_OR_SLUG, GlobalParams.ORG_ID_OR_SLUG],
         request=None,
         responses={
@@ -358,18 +362,20 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         },
         examples=SCIMExamples.QUERY_INDIVIDUAL_TEAM,
     )
-    def get(self, request: Request, organization: Organization, team: Team) -> Response:  # type: ignore[override]  # convert_args changed shape from baseclass
+    def get(  # type: ignore[override]  # convert_args changed shape from baseclass
+        self, request: Request, organization: Organization, team: Team
+    ) -> Response[OrganizationTeamSCIMSerializerResponse]:
         """
         Query an individual team with a SCIM Group GET Request.
         - Note that the members field will only contain up to 10000 members.
         """
         query_params = self.get_query_parameters(request)
 
-        context = serialize(
+        body: OrganizationTeamSCIMSerializerResponse = serialize(
             team,
             serializer=TeamSCIMSerializer(expand=_team_expand(query_params["excluded_attributes"])),
         )
-        return Response(context)
+        return Response(body)
 
     def _should_manage_privileges(self, team: Team) -> bool:
         return (
@@ -543,7 +549,8 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return None
 
     @extend_schema(
-        operation_id="Update a Team's Attributes",
+        operation_id="updateOrganizationScimV2Group",
+        summary="Update a Team's Attributes",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
         request=SCIMTeamPatchRequestSerializer,
         responses={
@@ -553,7 +560,9 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def patch(self, request: Request, organization, team):
+    def patch(
+        self, request: Request, organization, team
+    ) -> Response[None] | Response[ValidationErrorResponse]:
         """
         Update a team's attributes with a SCIM Group PATCH Request.
         """
@@ -601,9 +610,18 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                             user_ids_to_revoke_privileges.extend(revoked_users)
 
         except ParseError as e:
-            return Response(e.detail, status=400)
+            # Callers in this scope raise ParseError with a SCIM-shaped dict
+            # detail (`{"schemas": [...], "detail": str, "scimType"?: str}`).
+            # Coerce the rare non-dict branch so the union arm typechecks.
+            parse_detail: ValidationErrorResponse = (
+                dict(e.detail) if isinstance(e.detail, dict) else {"detail": str(e.detail)}
+            )
+            return Response(parse_detail, status=400)
         except UnsupportedAttributeError as e:
-            return Response(e.detail, status=400)
+            unsupported_detail: ValidationErrorResponse = (
+                dict(e.detail) if isinstance(e.detail, dict) else {"detail": str(e.detail)}
+            )
+            return Response(unsupported_detail, status=400)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist(detail=SCIM_404_USER_RES)
         except IntegrityError as e:
@@ -625,7 +643,8 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return self.respond(status=204)
 
     @extend_schema(
-        operation_id="Delete an Individual Team",
+        operation_id="deleteOrganizationScimV2Group",
+        summary="Delete an Individual Team",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.TEAM_ID_OR_SLUG],
         responses={
             204: RESPONSE_SUCCESS,
@@ -657,7 +676,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         metrics.incr("sentry.scim.team.delete")
         return super().delete(request, team)
 
-    def put(self, request: Request, organization: Organization, team: Team) -> Response:  # type: ignore[override]  # convert_args changed shape from baseclass
+    def put(self, request: Request, organization: Organization, team: Team) -> HttpResponseBase:  # type: ignore[override]  # convert_args changed shape from baseclass
         # override parent's put since we don't have puts
         # in SCIM Team routes
         return self.http_method_not_allowed(request)

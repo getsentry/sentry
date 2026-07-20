@@ -328,6 +328,18 @@
           "description": " Version",
           "default": null,
           "type": ["string", "null"]
+        },
+        "_meta": {
+          "description": " Meta-information about the event processing pipleline.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/_Meta"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": ["event_id", "platform", "project_id", "timestamp"],
@@ -3033,6 +3045,15 @@
               "type": ["string", "null"]
             }
           },
+          "additionalProperties": true
+        }
+      ]
+    },
+    "_Meta": {
+      "description": " Meta-information about the event processing pipleline.",
+      "anyOf": [
+        {
+          "type": "object",
           "additionalProperties": true
         }
       ]

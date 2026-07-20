@@ -36,9 +36,6 @@ from sentry.models.group import Group
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.plugins.bases.issue import IssueTrackingPlugin
-from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
-from sentry.plugins.bases.notify import NotificationPlugin
 from sentry.services.eventstore.models import GroupEvent
 from sentry.signals import (
     advanced_search,
@@ -245,7 +242,9 @@ def record_issue_assigned(project, group, user, **kwargs):
 
 
 @issue_resolved.connect(weak=False)
-def record_issue_resolved(organization_id, project, group, user, resolution_type, **kwargs):
+def record_issue_resolved(
+    organization_id, project, group, user, resolution_type, provider=None, commit_id=None, **kwargs
+):
     """There are three main types of ways to resolve issues
     1) via a release (current release, next release, or other)
     2) via commit (in the UI with the commit hash (marked as "in_commit")
@@ -276,6 +275,8 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
                 organization_id=organization_id,
                 group_id=group.id,
                 resolution_type=resolution_type,
+                provider=provider,
+                commit_id=commit_id,
                 issue_type=group.issue_type.slug,
                 issue_category=group.issue_category.name.lower(),
             )
@@ -458,19 +459,6 @@ def record_plugin_enabled(plugin, project, user: User | None, **kwargs):
         )
     except Exception as e:
         sentry_sdk.capture_exception(e)
-
-    if isinstance(plugin, (IssueTrackingPlugin, IssueTrackingPlugin2)):
-        FeatureAdoption.objects.record(
-            organization_id=project.organization_id,
-            feature_slug="issue_tracker_integration",
-            complete=True,
-        )
-    elif isinstance(plugin, NotificationPlugin):
-        FeatureAdoption.objects.record(
-            organization_id=project.organization_id,
-            feature_slug="notification_integration",
-            complete=True,
-        )
 
 
 @sso_enabled.connect(weak=False)

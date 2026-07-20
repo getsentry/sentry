@@ -45,6 +45,11 @@ from sentry.explore.models import (
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
+    TraceItemAttributeContext,
+    TraceItemAttributeTypes,
+    TraceItemAttributeValueContext,
+    TraceItemTypes,
+    TraceMetricTypes,
 )
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.incident import IncidentActivity
@@ -63,6 +68,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.code_review_event import CodeReviewEvent, CodeReviewEventStatus
 from sentry.models.counter import Counter
+from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
@@ -100,7 +106,6 @@ from sentry.models.recentsearch import RecentSearch
 from sentry.models.relay import Relay, RelayUsage
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.models.rule import RuleActivity, RuleActivityType
-from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.models.search_common import SearchType
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.replays.models import OrganizationMemberReplayAccess
@@ -499,6 +504,11 @@ class ExhaustiveFixtures(Fixtures):
             sdk_version="2.41.0",
         )
         self.create_notification_action(organization=org, projects=[project])
+        CustomInboundFilter.objects.create(
+            project=project,
+            name=f"custom-inbound-filter-{slug}",
+            conditions=[{"op": "eq", "name": "event.release", "value": ["1.0.0"]}],
+        )
 
         # Auth*
         self.create_exhaustive_organization_auth(owner, org, project)
@@ -596,13 +606,6 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             type=SearchType.ISSUE.value,
             query=f"some query for {slug}",
-        )
-        SavedSearch.objects.create(
-            organization=org,
-            name=f"Saved query for {slug}",
-            query=f"saved query for {slug}",
-            visibility=Visibility.ORGANIZATION,
-            owner_id=owner_id,
         )
 
         # misc
@@ -785,6 +788,30 @@ class ExhaustiveFixtures(Fixtures):
             user_id=owner_id,
             explore_saved_query=explore_saved_query,
             last_visited=timezone.now(),
+        )
+
+        TraceItemAttributeContext.objects.create(
+            organization=org,
+            project=project,
+            attribute_key="http.method",
+            item_type=TraceItemTypes.SPANS,
+            attribute_type=TraceItemAttributeTypes.STRING,
+            brief="The HTTP method of the request",
+            examples=["GET", "POST"],
+            created_by_id=owner_id,
+            updated_by_id=owner_id,
+        )
+
+        TraceItemAttributeValueContext.objects.create(
+            organization=org,
+            project=project,
+            attribute_name="metric.name",
+            attribute_value="my.custom.counter",
+            attribute_type=TraceMetricTypes.COUNTER,
+            item_type=TraceItemTypes.TRACEMETRICS,
+            brief="Total number of widgets processed",
+            created_by_id=owner_id,
+            updated_by_id=owner_id,
         )
 
         InsightsStarredSegment.objects.create(

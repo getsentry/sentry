@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import pytest
 
 from sentry.preprod.models import PreprodArtifact, PreprodComparisonApproval
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.vcs.pr_comments.snapshot_templates import (
+    _selected_types_query,
     format_missing_base_snapshot_pr_comment,
     format_snapshot_pr_comment,
     format_solo_snapshot_pr_comment,
@@ -12,6 +15,32 @@ from sentry.preprod.vcs.pr_comments.snapshot_templates import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
+
+
+def _comparison(
+    *, changed: int = 0, added: int = 0, removed: int = 0, renamed: int = 0
+) -> PreprodSnapshotComparison:
+    return SimpleNamespace(
+        images_changed=changed,
+        images_added=added,
+        images_removed=removed,
+        images_renamed=renamed,
+    )  # type: ignore[return-value]
+
+
+def test_selected_types_query_all_categories() -> None:
+    assert (
+        _selected_types_query(_comparison(changed=1, added=2, removed=3, renamed=4))
+        == "?selectedTypes=added,removed,changed,renamed"
+    )
+
+
+def test_selected_types_query_subset_preserves_order() -> None:
+    assert _selected_types_query(_comparison(changed=1, added=1)) == "?selectedTypes=added,changed"
+
+
+def test_selected_types_query_none_changed_is_empty() -> None:
+    assert _selected_types_query(_comparison()) == ""
 
 
 class SnapshotPrCommentTestBase(TestCase):
@@ -55,6 +84,7 @@ class SnapshotPrCommentTestBase(TestCase):
         images_removed: int = 0,
         images_renamed: int = 0,
         images_unchanged: int = 10,
+        images_errored: int = 0,
     ) -> PreprodSnapshotComparison:
         return PreprodSnapshotComparison.objects.create(
             head_snapshot_metrics=head_metrics,
@@ -65,6 +95,7 @@ class SnapshotPrCommentTestBase(TestCase):
             images_removed=images_removed,
             images_renamed=images_renamed,
             images_unchanged=images_unchanged,
+            images_errored=images_errored,
         )
 
     def _create_approval(self, artifact: PreprodArtifact) -> PreprodComparisonApproval:
@@ -175,6 +206,52 @@ class FormatSnapshotPrCommentFailedTest(SnapshotPrCommentTestBase):
 
 @cell_silo_test
 class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
+    def test_comment_shows_errored_note_when_errored(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App"
+        )
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+        comparison = self._create_comparison(
+            head_metrics,
+            base_metrics,
+            images_unchanged=8,
+            images_errored=2,
+        )
+
+        result = format_snapshot_pr_comment(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            {head_artifact.id: base_artifact},
+            {},
+            project=self.project,
+        )
+
+        assert "2 images failed to compare" in result
+
+    def test_comment_omits_errored_note_when_none(self) -> None:
+        head_artifact, head_metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My App"
+        )
+        base_artifact, base_metrics = self._create_artifact_with_metrics(app_id="com.example.base")
+        comparison = self._create_comparison(
+            head_metrics,
+            base_metrics,
+            images_unchanged=10,
+            images_errored=0,
+        )
+
+        result = format_snapshot_pr_comment(
+            [head_artifact],
+            {head_artifact.id: head_metrics},
+            {head_metrics.id: comparison},
+            {head_artifact.id: base_artifact},
+            {},
+            project=self.project,
+        )
+
+        assert "failed to compare" not in result
+
     def test_no_changes_shows_unchanged(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics(
             app_id="com.example.app", app_name="My App"
@@ -203,10 +280,9 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
         assert "Unchanged" in result
         assert "My App" in result
         assert "`com.example.app`" in result
-        # Zero counts are plain text, non-zero unchanged is linked
         assert "| 0 | 0 | 0 | 0 |" in result
         assert "| 0 | ✅ Unchanged |" in result
-        assert "?selectedTypes=unchanged" in result
+        assert "?selectedTypes=" not in result
 
     def test_changes_show_needs_approval(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -232,10 +308,7 @@ class FormatSnapshotPrCommentSuccessTest(SnapshotPrCommentTestBase):
         )
 
         assert "Needs approval" in result
-        assert "?selectedTypes=added" in result
-        assert "?selectedTypes=removed" in result
-        assert "?selectedTypes=changed" in result
-        assert "?selectedTypes=renamed" in result
+        assert "?selectedTypes=added,removed,changed,renamed" in result
 
     def test_approved_shows_approved_status(self) -> None:
         head_artifact, head_metrics = self._create_artifact_with_metrics()
@@ -503,3 +576,36 @@ class FormatSoloPrCommentTest(SnapshotPrCommentTestBase):
     def test_missing_base_empty_artifacts_raises(self) -> None:
         with pytest.raises(ValueError, match="Cannot format PR comment for empty artifact list"):
             format_missing_base_snapshot_pr_comment([], {}, project=self.project)
+
+
+@cell_silo_test
+class SnapshotNameCellEscapingTest(SnapshotPrCommentTestBase):
+    """Untrusted app name / id must be escaped in the snapshot comment name cell."""
+
+    def test_untrusted_name_is_escaped(self) -> None:
+        artifact, metrics = self._create_artifact_with_metrics(
+            app_id="com.example`x", app_name="App](https://sentry.io) ["
+        )
+
+        result = format_solo_snapshot_pr_comment(
+            [artifact], {artifact.id: metrics}, project=self.project
+        )
+
+        assert "App](" not in result
+        assert "App\\](https://sentry.io) \\[" in result
+        # app_id renders in a code span: the backtick is stripped so it can't
+        # close the span early.
+        assert "`com.example`x`" not in result
+        assert "`com.examplex`" in result
+
+    def test_benign_name_not_mangled(self) -> None:
+        artifact, metrics = self._create_artifact_with_metrics(
+            app_id="com.example.app", app_name="My Cool App"
+        )
+
+        result = format_solo_snapshot_pr_comment(
+            [artifact], {artifact.id: metrics}, project=self.project
+        )
+
+        assert "[My Cool App](" in result
+        assert "`com.example.app`" in result

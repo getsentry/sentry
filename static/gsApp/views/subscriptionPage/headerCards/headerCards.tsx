@@ -5,12 +5,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 
 import type {Subscription} from 'getsentry/types';
-import {
-  hasBillingAccess,
-  isDeveloperPlan,
-  isTrialPlan,
-  supportsPayg,
-} from 'getsentry/utils/billing';
+import {hasBillingAccess, isDeveloperPlan, supportsPayg} from 'getsentry/utils/billing';
 import {BillingInfoCard} from 'getsentry/views/subscriptionPage/headerCards/billingInfoCard';
 import {LinksCard} from 'getsentry/views/subscriptionPage/headerCards/linksCard';
 import {NextBillCard} from 'getsentry/views/subscriptionPage/headerCards/nextBillCard';
@@ -26,7 +21,7 @@ function getCards(organization: Organization, subscription: Subscription) {
   const hasBillingPerms = hasBillingAccess(organization);
   const cards: React.ReactNode[] = [];
   const isTrialOrFreePlan =
-    isTrialPlan(subscription.plan) || isDeveloperPlan(subscription.planDetails);
+    subscription.onTrialPlan || isDeveloperPlan(subscription.planDetails);
 
   // the organization can use PAYG
   const canUsePayg = supportsPayg(subscription);
@@ -82,10 +77,12 @@ export function HeaderCards({organization, subscription}: HeaderCardsProps) {
       <SeerAutomationAlert organization={organization} />
       <Grid
         columns={{
-          xs: '1fr',
-          sm: `repeat(min(${cards.length}, 2), minmax(0, 1fr))`,
-          md: navIsCollapsed ? `repeat(${cards.length}, minmax(0, 1fr))` : undefined,
-          lg: `repeat(${cards.length}, minmax(0, 1fr))`,
+          'screen:xs': '1fr',
+          'screen:sm': `repeat(min(${cards.length}, 2), minmax(0, 1fr))`,
+          'screen:md': navIsCollapsed
+            ? `repeat(${cards.length}, minmax(0, 1fr))`
+            : undefined,
+          'screen:lg': `repeat(${cards.length}, minmax(0, 1fr))`,
         }}
         gap="lg"
         data-test-id="subscription-header-cards"

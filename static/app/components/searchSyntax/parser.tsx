@@ -921,7 +921,7 @@ export class TokenConverter {
     if (
       this.config.validateKeys &&
       this.config.supportedTags &&
-      !this.config.supportedTags[getKeyName(key)]
+      !Object.hasOwn(this.config.supportedTags, getKeyName(key))
     ) {
       return {
         type: InvalidReason.INVALID_KEY,

@@ -2,7 +2,7 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -58,7 +58,7 @@ export function Projects({projects, logs, tree}: Props) {
         disableLink
         onProjectClick={onProjectClick}
         projectSlugs={projectSlugs}
-        visibleAvatarSize={24}
+        visibleAvatarSize={20}
         maxVisibleProjects={3}
       />
     </ProjectsRendererWrapper>

@@ -4,23 +4,14 @@ from sentry.auth.services.auth import RpcApiKey, RpcApiToken, RpcAuthIdentity, R
 from sentry.auth.services.orgauthtoken.model import RpcOrgAuthToken
 from sentry.hybridcloud.rpc.resolvers import ByCellName
 from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method, rpc_method
-from sentry.hybridcloud.services.control_organization_provisioning import (
-    RpcOrganizationSlugReservation,
-)
 from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
-from sentry.notifications.services import RpcExternalActor
-from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
+from sentry.organizations.services.organization import RpcOrganizationMemberTeam
 from sentry.silo.base import SiloMode
 
 
 class ControlReplicaService(RpcService):
     key = "control_replica"
     local_mode = SiloMode.CONTROL
-
-    @rpc_method
-    @abc.abstractmethod
-    def upsert_replicated_team(self, *, team: RpcTeam) -> None:
-        pass
 
     @rpc_method
     @abc.abstractmethod
@@ -32,11 +23,6 @@ class ControlReplicaService(RpcService):
     def remove_replicated_organization_member_team(
         self, *, organization_id: int, organization_member_team_id: int
     ) -> None:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
-    def upsert_external_actor_replica(self, *, external_actor: RpcExternalActor) -> None:
         pass
 
     @rpc_method
@@ -132,26 +118,6 @@ class CellReplicaService(RpcService):
         self,
         *,
         token: RpcOrgAuthToken,
-        cell_name: str,
-    ) -> None:
-        pass
-
-    @cell_rpc_method(resolve=ByCellName())
-    @abc.abstractmethod
-    def upsert_replicated_org_slug_reservation(
-        self,
-        *,
-        slug_reservation: RpcOrganizationSlugReservation,
-        cell_name: str,
-    ) -> None:
-        pass
-
-    @cell_rpc_method(resolve=ByCellName())
-    @abc.abstractmethod
-    def delete_replicated_org_slug_reservation(
-        self,
-        *,
-        organization_slug_reservation_id: int,
         cell_name: str,
     ) -> None:
         pass

@@ -5,6 +5,7 @@ import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/t
 import {
   BooleanOperator,
   FilterType,
+  InvalidReason,
   parseSearch,
   Token,
   type ParseResult,
@@ -12,8 +13,10 @@ import {
   type SearchConfig,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
+import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {t} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
-import {FieldValueType} from 'sentry/utils/fields';
+import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
 function getFilterKeysFromQuery(value: string | undefined): string[] {
   if (!value) {
@@ -32,12 +35,36 @@ function getFilterKeysFromQuery(value: string | undefined): string[] {
   return Array.from(keys);
 }
 
+export function getFieldDefinitionForFilterKey(
+  key: string,
+  getFieldDefinition: FieldDefinitionGetter,
+  filterKeys?: TagCollection
+): FieldDefinition | null {
+  const fieldDef = getFieldDefinition(key);
+  if (fieldDef) {
+    return fieldDef;
+  }
+
+  switch (filterKeys?.[key]?.kind) {
+    case FieldKind.MEASUREMENT:
+    case FieldKind.NUMERIC_METRICS:
+      return {kind: FieldKind.FIELD, valueType: FieldValueType.NUMBER};
+    case FieldKind.BOOLEAN:
+      return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+    case FieldKind.TAG:
+      return {kind: FieldKind.FIELD, valueType: FieldValueType.STRING};
+    default:
+      return null;
+  }
+}
+
 function addKeyToSearchConfig(
   config: Partial<SearchConfig>,
   key: string,
-  getFieldDefinition: FieldDefinitionGetter
+  getFieldDefinition: FieldDefinitionGetter,
+  filterKeys: TagCollection
 ) {
-  const fieldDef = getFieldDefinition(key);
+  const fieldDef = getFieldDefinitionForFilterKey(key, getFieldDefinition, filterKeys);
   if (!fieldDef) {
     return;
   }
@@ -89,15 +116,45 @@ function getSearchConfigFromKeys({
     sizeKeys: new Set<string>(),
   } satisfies Partial<SearchConfig>;
 
-  for (const key in keys) {
-    addKeyToSearchConfig(config, key, getFieldDefinition);
+  for (const key of Object.keys(keys)) {
+    addKeyToSearchConfig(config, key, getFieldDefinition, keys);
   }
 
   for (const key of queryKeys) {
-    addKeyToSearchConfig(config, key, getFieldDefinition);
+    addKeyToSearchConfig(config, key, getFieldDefinition, keys);
   }
 
   return config;
+}
+
+function markInvalidFilterKeys(
+  tokens: ParseResult | null,
+  invalidFilterKeys: string[] | undefined
+): ParseResult | null {
+  if (!tokens || !invalidFilterKeys?.length) {
+    return tokens;
+  }
+
+  const invalidFilterKeySet = new Set(invalidFilterKeys);
+
+  return tokens.map(token => {
+    if (token.type !== Token.FILTER) {
+      return token;
+    }
+
+    const keyName = getKeyName(token.key, {aggregateWithArgs: true});
+    if (!invalidFilterKeySet.has(keyName) || token.invalid) {
+      return token;
+    }
+
+    return {
+      ...token,
+      invalid: {
+        type: InvalidReason.INVALID_KEY,
+        reason: t('Invalid key. "%s" is not a supported search key.', token.key.text),
+      },
+    };
+  });
 }
 
 export function parseQueryBuilderValue(
@@ -111,33 +168,37 @@ export function parseQueryBuilderValue(
     disallowWildcard?: boolean;
     filterKeyAliases?: TagCollection;
     getFilterTokenWarning?: (key: string) => React.ReactNode;
+    invalidFilterKeys?: string[];
     invalidMessages?: SearchConfig['invalidMessages'];
   }
 ): ParseResult | null {
-  return collapseTextTokens(
-    parseSearch(value || ' ', {
-      flattenParenGroups: true,
-      disallowFreeText: options?.disallowFreeText,
-      getFilterTokenWarning: options?.getFilterTokenWarning,
-      validateKeys: options?.disallowUnsupportedFilters,
-      disallowWildcard: options?.disallowWildcard,
-      disallowedLogicalOperators: options?.disallowLogicalOperators
-        ? new Set([BooleanOperator.AND, BooleanOperator.OR])
-        : undefined,
-      disallowParens: options?.disallowLogicalOperators,
-      ...getSearchConfigFromKeys({
-        keys: options?.filterKeys ?? {},
-        getFieldDefinition,
-        queryKeys: options?.disallowUnsupportedFilters
-          ? []
-          : getFilterKeysFromQuery(value),
-      }),
-      invalidMessages: options?.invalidMessages,
-      supportedTags: {
-        ...(options?.filterKeys ? options.filterKeys : {}),
-        ...(options?.filterKeyAliases ? options.filterKeyAliases : {}),
-      },
-    })
+  return markInvalidFilterKeys(
+    collapseTextTokens(
+      parseSearch(value || ' ', {
+        flattenParenGroups: true,
+        disallowFreeText: options?.disallowFreeText,
+        getFilterTokenWarning: options?.getFilterTokenWarning,
+        validateKeys: options?.disallowUnsupportedFilters,
+        disallowWildcard: options?.disallowWildcard,
+        disallowedLogicalOperators: options?.disallowLogicalOperators
+          ? new Set([BooleanOperator.AND, BooleanOperator.OR])
+          : undefined,
+        disallowParens: options?.disallowLogicalOperators,
+        ...getSearchConfigFromKeys({
+          keys: options?.filterKeys ?? {},
+          getFieldDefinition,
+          queryKeys: options?.disallowUnsupportedFilters
+            ? []
+            : getFilterKeysFromQuery(value),
+        }),
+        invalidMessages: options?.invalidMessages,
+        supportedTags: {
+          ...(options?.filterKeys ? options.filterKeys : {}),
+          ...(options?.filterKeyAliases ? options.filterKeyAliases : {}),
+        },
+      })
+    ),
+    options?.invalidFilterKeys
   );
 }
 

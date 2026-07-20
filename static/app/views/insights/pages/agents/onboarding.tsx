@@ -58,6 +58,7 @@ import {
   AGENT_INTEGRATION_LABELS,
   DENO_AGENT_INTEGRATIONS,
   NODE_AGENT_INTEGRATIONS,
+  PHP_AGENT_INTEGRATIONS,
   PYTHON_AGENT_INTEGRATIONS,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
@@ -191,6 +192,11 @@ function OnboardingPanel({
                     </li>
                     <li>
                       {t(
+                        'Set a conversation ID for each chat so Sentry can group related spans in Conversations'
+                      )}
+                    </li>
+                    <li>
+                      {t(
                         'Debug failed requests and optimize prompt performance with detailed traces'
                       )}
                     </li>
@@ -240,21 +246,33 @@ export function Onboarding() {
   // Local integration options for Agent Monitoring only
   const isPythonPlatform = (project?.platform ?? '').startsWith('python');
   const isDenoPlatform = project?.platform === 'deno';
+  const isPhpPlatform = (project?.platform ?? '').startsWith('php');
 
   const integrations = isPythonPlatform
     ? PYTHON_AGENT_INTEGRATIONS
     : isDenoPlatform
       ? DENO_AGENT_INTEGRATIONS
-      : NODE_AGENT_INTEGRATIONS;
+      : isPhpPlatform
+        ? PHP_AGENT_INTEGRATIONS
+        : NODE_AGENT_INTEGRATIONS;
 
   const integrationOptions = {
     integration: {
       label: t('Integration'),
       items: integrations.map(integration => ({
-        label: AGENT_INTEGRATION_LABELS[integration],
+        label: isPhpPlatform
+          ? (currentPlatform?.name ?? t('Laravel'))
+          : AGENT_INTEGRATION_LABELS[integration],
         value: integration,
         leadingItems: (
-          <PlatformIcon platform={AGENT_INTEGRATION_ICONS[integration]} size={16} />
+          <PlatformIcon
+            platform={
+              isPhpPlatform
+                ? (project?.platform ?? 'php-laravel')
+                : AGENT_INTEGRATION_ICONS[integration]
+            }
+            size={16}
+          />
         ),
       })),
     },
@@ -327,6 +345,19 @@ export function Onboarding() {
         <PlatformOptionDropdown platformOptions={integrationOptions} />
       </OptionsWrapper>
       {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
+      <DescriptionWrapper>
+        <p>
+          {tct(
+            'To use [link:Conversations], set a conversation ID for each chat. Sentry uses the [code:gen_ai.conversation.id] attribute to group related AI spans.',
+            {
+              code: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/ai/monitoring/conversations/" />
+              ),
+            }
+          )}
+        </p>
+      </DescriptionWrapper>
       <GuidedSteps
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {

@@ -1,3 +1,6 @@
+from typing import Any
+
+from sentry.services.eventstore.models import Event
 from sentry.types.activity import ActivityType
 from sentry.utils.auth import AuthenticatedHttpRequest
 
@@ -5,7 +8,7 @@ from .mail import ActivityMailDebugView
 
 
 class DebugAssignedEmailView(ActivityMailDebugView):
-    def get_activity(self, request: AuthenticatedHttpRequest, event):
+    def get_activity(self, request: AuthenticatedHttpRequest, event: Event) -> dict[str, Any]:
         return {
             "type": ActivityType.ASSIGNED.value,
             "user_id": request.user.id,
@@ -19,7 +22,7 @@ class DebugAssignedEmailView(ActivityMailDebugView):
 
 
 class DebugSelfAssignedEmailView(ActivityMailDebugView):
-    def get_activity(self, request: AuthenticatedHttpRequest, event):
+    def get_activity(self, request: AuthenticatedHttpRequest, event: Event) -> dict[str, Any]:
         return {
             "type": ActivityType.ASSIGNED.value,
             "user_id": request.user.id,
@@ -33,7 +36,7 @@ class DebugSelfAssignedEmailView(ActivityMailDebugView):
 
 
 class DebugSelfAssignedTeamEmailView(ActivityMailDebugView):
-    def get_activity(self, request: AuthenticatedHttpRequest, event):
+    def get_activity(self, request: AuthenticatedHttpRequest, event: Event) -> dict[str, Any]:
         return {
             "type": ActivityType.ASSIGNED.value,
             "user_id": request.user.id,

@@ -8,7 +8,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {getRegions} from 'sentry/utils/regions';
+import {getCells} from 'sentry/utils/cells';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -29,10 +29,10 @@ function RelocationForm() {
   const promoCodeApi = useApi({
     api: new Client({baseUrl: ''}),
   });
-  const regions = getRegions();
+  const cells = getCells();
   const inputFileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File>();
-  const [region, setRegion] = useState(regions[0]!);
+  const [cell, setCell] = useState(cells[0]!);
 
   const handleSubmit = async (event: any) => {
     event.preventDefault();
@@ -48,7 +48,7 @@ function RelocationForm() {
         await promoCodeApi
           .requestPromise(`/promocodes-external/${promoCode}`, {
             method: 'GET',
-            host: region.url,
+            host: cell.locality_url,
           })
           .catch(error => {
             if (error instanceof RequestError && error.status === 403) {
@@ -64,12 +64,12 @@ function RelocationForm() {
       // Start the relocation.
       const response = await api.requestPromise('/relocations/', {
         method: 'POST',
-        host: region.url,
+        host: cell.locality_url,
         data: formData,
       });
 
       addSuccessMessage('The relocation job has started!');
-      navigate(`/_admin/relocations/${region.name}/${response.uuid}/`);
+      navigate(`/_admin/relocations/${cell.name}/${response.uuid}/`);
     } catch (error: any) {
       if (error.responseJSON) {
         addErrorMessage(error.responseJSON.detail);
@@ -118,17 +118,17 @@ function RelocationForm() {
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix="Region" />
           )}
-          value={region.url}
-          options={regions.map((r: any) => ({
+          value={cell.locality_url}
+          options={cells.map((r: any) => ({
             label: r.name,
-            value: r.url,
+            value: r.locality_url,
           }))}
           onChange={opt => {
-            const reg = regions.find((r: any) => r.url === opt.value);
-            if (reg === undefined) {
+            const newCell = cells.find(c => c.locality_url === opt.value);
+            if (newCell === undefined) {
               return;
             }
-            setRegion(reg);
+            setCell(newCell);
           }}
         />
         <UploadWell>

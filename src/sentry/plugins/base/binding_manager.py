@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sentry.plugins.providers import IntegrationRepositoryProvider, RepositoryProvider
+from sentry.plugins.providers import IntegrationRepositoryProvider
 
 
 class ProviderManager:
@@ -27,17 +27,12 @@ class ProviderManager:
         return self._items.items()
 
 
-class RepositoryProviderManager(ProviderManager):
-    type = RepositoryProvider
-
-
 class IntegrationRepositoryProviderManager(ProviderManager):
     type = IntegrationRepositoryProvider
 
 
 class BindingManager:
     BINDINGS = {
-        "repository.provider": RepositoryProviderManager,
         "integration-repository.provider": IntegrationRepositoryProviderManager,
     }
 

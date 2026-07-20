@@ -12,8 +12,10 @@ export function useGetTraceItemAttributeTagKeys({
   extraTags,
   query,
   hiddenKeys,
+  datetime,
 }: {
   itemType: TraceItemDataset;
+  datetime?: PageFilters['datetime'];
   extraTags?: TagCollection;
   hiddenKeys?: string[];
   projects?: PageFilters['projects'];
@@ -23,6 +25,7 @@ export function useGetTraceItemAttributeTagKeys({
     traceItemType: itemType,
     projectIds: projects,
     query,
+    datetime,
   });
 
   return useCallback(
@@ -35,7 +38,7 @@ export function useGetTraceItemAttributeTagKeys({
         ...Object.values(keys.booleanAttributes),
       ];
       const filteredFetched = hiddenKeySet
-        ? fetched.filter(t => !hiddenKeySet.has(t.key))
+        ? fetched.filter(t => !hiddenKeySet.has(t.key) && !hiddenKeySet.has(t.name))
         : fetched;
       const fetchedKeySet = new Set(filteredFetched.map(t => t.key));
       return [

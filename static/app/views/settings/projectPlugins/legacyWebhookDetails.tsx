@@ -4,7 +4,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
@@ -32,7 +32,7 @@ interface LegacyWebhookResponse {
   urls: string[];
 }
 
-export function LegacyWebhookDetails() {
+export default function LegacyWebhookDetails() {
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const queryClient = useQueryClient();
@@ -146,8 +146,8 @@ export function LegacyWebhookDetails() {
 
   return (
     <div>
-      <SentryDocumentTitle title="WebHooks" projectSlug={project.slug} />
-      <SettingsPageHeader title="WebHooks" />
+      <SentryDocumentTitle title="Webhooks" projectSlug={project.slug} />
+      <SettingsPageHeader title="Webhooks" />
       <Alert.Container>
         <Alert variant="warning">
           {tct(
@@ -187,7 +187,7 @@ export function LegacyWebhookDetails() {
           </Grid>
         </PanelHeader>
         <PanelBody withPadding>
-          <Flex direction="column" gap="md">
+          <Stack gap="md">
             <TextArea
               autosize
               rows={4}
@@ -212,7 +212,7 @@ export function LegacyWebhookDetails() {
                 {t('Save Changes')}
               </Button>
             </Flex>
-          </Flex>
+          </Stack>
         </PanelBody>
       </Panel>
     </div>

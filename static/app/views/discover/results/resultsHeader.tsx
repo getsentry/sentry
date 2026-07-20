@@ -1,5 +1,4 @@
-import {Component, Fragment, type ComponentProps} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
 
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
@@ -8,25 +7,21 @@ import type {Client} from 'sentry/api';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {withApi} from 'sentry/utils/withApi';
 import {DiscoverBreadcrumb} from 'sentry/views/discover/breadcrumb';
-import {EventInputName} from 'sentry/views/discover/eventInputName';
 import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import {DatasetSelectorTabs} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 type Props = {
   api: Client;
   errorCode: number;
   eventView: EventView;
-  hasPageFrameFeature: boolean;
   location: Location;
   organization: Organization;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
@@ -35,225 +30,117 @@ type Props = {
   splitDecision?: SavedQueryDatasets;
 };
 
-type State = {
-  homepageQuery: SavedQuery | undefined;
-  loading: boolean;
-  savedQuery: SavedQuery | undefined;
-};
+function ResultsHeaderBase({
+  api,
+  errorCode,
+  eventView,
+  location,
+  organization,
+  setSavedQuery,
+  yAxis,
+  isHomepage,
+  splitDecision,
+}: Props) {
+  const [homepageQuery, setHomepageQuery] = useState<SavedQuery | undefined>(undefined);
+  const [savedQuery, setSavedQueryState] = useState<SavedQuery | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
 
-class ResultsHeader extends Component<Props, State> {
-  state: State = {
-    homepageQuery: undefined,
-    savedQuery: undefined,
-    loading: true,
-  };
-
-  componentDidMount() {
-    const {eventView, isHomepage} = this.props;
-    const {loading} = this.state;
-    if (!isHomepage && eventView.id) {
-      this.fetchData();
-    } else if (eventView.id === undefined && loading) {
-      // If this is a new query, there's nothing to load
-      this.setState({loading: false});
-    }
-    if (isHomepage) {
-      this.fetchHomepageQueryData();
-    }
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (
-      prevProps.eventView &&
-      this.props.eventView &&
-      prevProps.eventView.id !== this.props.eventView.id
-    ) {
-      this.fetchData();
-    }
-  }
-
-  fetchData() {
-    const {api, eventView, organization, isHomepage} = this.props;
+  const fetchData = useCallback(() => {
     if (!isHomepage && typeof eventView.id === 'string') {
-      this.setState({loading: true});
-      fetchSavedQuery(api, organization.slug, eventView.id).then(savedQuery => {
-        this.setState({
-          savedQuery: getSavedQueryWithDataset(savedQuery)!,
-          loading: false,
-        });
+      setLoading(true);
+      fetchSavedQuery(api, organization.slug, eventView.id).then(fetchedSavedQuery => {
+        setSavedQueryState(getSavedQueryWithDataset(fetchedSavedQuery));
+        setLoading(false);
       });
     }
-  }
+  }, [api, eventView.id, isHomepage, organization.slug]);
 
-  fetchHomepageQueryData() {
-    const {api, organization} = this.props;
-    this.setState({loading: true});
-    fetchHomepageQuery(api, organization.slug).then(homepageQuery => {
-      this.setState({
-        homepageQuery: getSavedQueryWithDataset(homepageQuery)!,
-        loading: false,
-      });
+  const fetchHomepageQueryData = useCallback(() => {
+    setLoading(true);
+    fetchHomepageQuery(api, organization.slug).then(fetchedHomepageQuery => {
+      setHomepageQuery(getSavedQueryWithDataset(fetchedHomepageQuery));
+      setLoading(false);
     });
-  }
+  }, [api, organization.slug]);
 
-  renderAuthor() {
-    const {eventView, isHomepage} = this.props;
-    const {savedQuery} = this.state;
-    // No saved query in use.
-    if (!eventView.id || isHomepage) {
-      return null;
+  useEffect(() => {
+    if (!isHomepage && eventView.id) {
+      fetchData();
+    } else if (eventView.id === undefined) {
+      setLoading(false);
     }
-    let createdBy = ' \u2014 ';
-    let lastEdit: React.ReactNode = ' \u2014 ';
-    if (savedQuery !== undefined) {
-      createdBy = savedQuery.createdBy?.email || '\u2014';
-      lastEdit = <TimeSince date={savedQuery.dateUpdated} />;
+  }, [eventView.id, isHomepage, fetchData]);
+
+  useEffect(() => {
+    if (isHomepage) {
+      fetchHomepageQueryData();
     }
-    return (
-      <Subtitle>
-        {t('Created by:')} {createdBy} | {t('Last edited:')} {lastEdit}
-      </Subtitle>
-    );
-  }
+  }, [isHomepage, fetchHomepageQueryData]);
 
-  render() {
-    const {
-      organization,
-      location,
-      errorCode,
-      eventView,
-      yAxis,
-      setSavedQuery,
-      isHomepage,
-      splitDecision,
-      hasPageFrameFeature,
-    } = this.props;
-    const {savedQuery, loading, homepageQuery} = this.state;
-    const hasDiscoverQueryFeature = organization.features.includes('discover-query');
+  const hasDiscoverQueryFeature = organization.features.includes('discover-query');
 
-    const savedQueryButton = (
-      <SavedQueryButtonGroup
-        setSavedQuery={setSavedQuery}
-        location={location}
-        organization={organization}
-        eventView={eventView}
-        savedQuery={savedQuery}
-        queryDataLoading={loading}
-        disabled={errorCode >= 400 && errorCode < 500}
-        updateCallback={() => this.fetchData()}
-        yAxis={yAxis}
-        isHomepage={isHomepage}
-        hasPageFrameFeature={hasPageFrameFeature}
-        setHomepageQuery={updatedHomepageQuery => {
-          this.setState({
-            homepageQuery: getSavedQueryWithDataset(updatedHomepageQuery)!,
-          });
-          if (isHomepage) {
-            setSavedQuery(updatedHomepageQuery);
-          }
-        }}
-        homepageQuery={homepageQuery}
+  const savedQueryButton = (
+    <SavedQueryButtonGroup
+      setSavedQuery={setSavedQuery}
+      location={location}
+      organization={organization}
+      eventView={eventView}
+      savedQuery={savedQuery}
+      queryDataLoading={loading}
+      disabled={errorCode >= 400 && errorCode < 500}
+      updateCallback={fetchData}
+      yAxis={yAxis}
+      isHomepage={isHomepage}
+      setHomepageQuery={updatedHomepageQuery => {
+        setHomepageQuery(getSavedQueryWithDataset(updatedHomepageQuery));
+        if (isHomepage) {
+          setSavedQuery(updatedHomepageQuery);
+        }
+      }}
+      homepageQuery={homepageQuery}
+    />
+  );
+
+  const title = (
+    <Fragment>
+      {t('Discover')}
+      <PageHeadingQuestionTooltip
+        docsUrl="https://docs.sentry.io/product/discover-queries/"
+        title={t('Create queries to get insights into the health of your system.')}
       />
-    );
+    </Fragment>
+  );
 
-    const title = (
-      <Fragment>
-        {t('Discover')}
-        <PageHeadingQuestionTooltip
-          docsUrl="https://docs.sentry.io/product/discover-queries/"
-          title={t('Create queries to get insights into the health of your system.')}
-        />
-      </Fragment>
-    );
+  const pageFrameBreadcrumb = (
+    <DiscoverBreadcrumb
+      eventView={eventView}
+      organization={organization}
+      location={location}
+      isHomepage={isHomepage}
+      savedQuery={savedQuery}
+    />
+  );
 
-    const legacyBreadcrumbAndInput = (
-      <Fragment>
-        <DiscoverBreadcrumb
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          isHomepage={isHomepage}
-        />
-        <EventInputName
-          savedQuery={savedQuery}
-          organization={organization}
-          eventView={eventView}
-          isHomepage={isHomepage}
-        />
-      </Fragment>
-    );
-
-    const pageFrameBreadcrumb = (
-      <DiscoverBreadcrumb
-        eventView={eventView}
-        organization={organization}
-        location={location}
-        isHomepage={isHomepage}
-        savedQuery={savedQuery}
-      />
-    );
-
-    return (
-      <Layout.Header>
-        {hasPageFrameFeature ? (
-          <Fragment>
-            <TopBar.Slot name="title">
-              {isHomepage ? (
-                <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
-              ) : hasDiscoverQueryFeature ? (
-                pageFrameBreadcrumb
-              ) : (
-                title
-              )}
-            </TopBar.Slot>
-            <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
-          </Fragment>
+  return (
+    <Layout.Header>
+      <TopBar.Slot name="title">
+        {isHomepage ? (
+          <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
+        ) : hasDiscoverQueryFeature ? (
+          pageFrameBreadcrumb
         ) : (
-          <Fragment>
-            <Layout.HeaderContent>
-              {isHomepage ? (
-                <GuideAnchor target="discover_landing_header">
-                  <Layout.Title>{title}</Layout.Title>
-                </GuideAnchor>
-              ) : hasDiscoverQueryFeature ? (
-                legacyBreadcrumbAndInput
-              ) : (
-                // Only has discover-basic
-                <Layout.Title>{title}</Layout.Title>
-              )}
-              {this.renderAuthor()}
-            </Layout.HeaderContent>
-            <Layout.HeaderActions>{savedQueryButton}</Layout.HeaderActions>
-          </Fragment>
+          title
         )}
-        <DatasetSelectorTabs
-          eventView={eventView}
-          isHomepage={isHomepage}
-          savedQuery={savedQuery}
-          splitDecision={splitDecision}
-        />
-      </Layout.Header>
-    );
-  }
+      </TopBar.Slot>
+      <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
+      <DatasetSelectorTabs
+        eventView={eventView}
+        isHomepage={isHomepage}
+        savedQuery={savedQuery}
+        splitDecision={splitDecision}
+      />
+    </Layout.Header>
+  );
 }
 
-const Subtitle = styled('h4')`
-  font-size: ${p => p.theme.font.size.lg};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-  margin: ${p => p.theme.space.xs} 0 0 0;
-`;
-
-const ResultsHeaderWithApi = withApi(ResultsHeader);
-
-type ResultsHeaderWrapperProps = Omit<
-  ComponentProps<typeof ResultsHeaderWithApi>,
-  'hasPageFrameFeature'
->;
-
-function ResultsHeaderWrapper(props: ResultsHeaderWrapperProps) {
-  const hasPageFrameFeature = useHasPageFrameFeature();
-  return <ResultsHeaderWithApi {...props} hasPageFrameFeature={hasPageFrameFeature} />;
-}
-
-export {ResultsHeaderWrapper};
+export const ResultsHeader = withApi(ResultsHeaderBase);

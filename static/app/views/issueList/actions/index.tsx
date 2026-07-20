@@ -10,6 +10,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {bulkDelete, mergeGroups} from 'sentry/actionCreators/group';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
@@ -51,6 +52,7 @@ type IssueListActionsProps = {
   selection: PageFilters;
   statsPeriod: string;
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
+  withColumns?: GroupListColumn[];
 };
 
 const animationProps: MotionNodeAnimationOptions = {
@@ -76,9 +78,9 @@ function ActionsBarPriority({
   toggleSelectAllVisible,
   selectedProjectSlug,
   onSelectStatsPeriod,
-  isSavedSearchesOpen,
   statsPeriod,
   selection,
+  withColumns,
 }: {
   allInQuerySelected: boolean;
   anySelected: boolean;
@@ -86,7 +88,6 @@ function ActionsBarPriority({
   handleDelete: () => void;
   handleMerge: () => void;
   handleUpdate: (data: IssueUpdateData) => void;
-  isSavedSearchesOpen: boolean;
   multiSelected: boolean;
   narrowViewport: boolean;
   onSelectStatsPeriod: (period: string) => void;
@@ -98,6 +99,7 @@ function ActionsBarPriority({
   selection: PageFilters;
   statsPeriod: string;
   toggleSelectAllVisible: () => void;
+  withColumns?: GroupListColumn[];
 }) {
   const shouldDisplayActions = anySelected && !narrowViewport;
 
@@ -144,7 +146,7 @@ function ActionsBarPriority({
               selection={selection}
               statsPeriod={statsPeriod}
               isReprocessingQuery={displayReprocessingActions}
-              isSavedSearchesOpen={isSavedSearchesOpen}
+              withColumns={withColumns}
             />
           </AnimatedHeaderItemsContainer>
         )}
@@ -164,6 +166,7 @@ export function IssueListActions({
   query,
   selection,
   statsPeriod,
+  withColumns,
 }: IssueListActionsProps) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -294,9 +297,9 @@ export function IssueListActions({
         multiSelected={multiSelected}
         narrowViewport={disableActions}
         selectedProjectSlug={selectedProjectSlug}
-        isSavedSearchesOpen={isSavedSearchesOpen}
         anySelected={anySelected}
         onSelectStatsPeriod={onSelectStatsPeriod}
+        withColumns={withColumns}
       />
       {!allResultsVisible && pageSelected && (
         <Alert system variant="info">

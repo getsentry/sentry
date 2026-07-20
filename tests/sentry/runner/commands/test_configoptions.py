@@ -1,5 +1,6 @@
 from collections.abc import Generator
 from pathlib import Path
+from unittest import mock
 
 import pytest
 from django.conf import settings
@@ -30,6 +31,7 @@ class ConfigOptionsTest(CliTestCase):
         options.register("change_channel_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("to_unset_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("invalid_type", default=15, flags=FLAG_AUTOMATOR_MODIFIABLE)
+        options.register("float_option", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register(
             "set_on_disk_option",
             default="",
@@ -48,6 +50,7 @@ class ConfigOptionsTest(CliTestCase):
         options.unregister("change_channel_option")
         options.unregister("to_unset_option")
         options.unregister("invalid_type")
+        options.unregister("float_option")
         options.unregister("set_on_disk_option")
         del settings.SENTRY_OPTIONS["set_on_disk_option"]
 
@@ -121,7 +124,7 @@ class ConfigOptionsTest(CliTestCase):
         assert_not_set()
         rv = self.invoke(
             "--dry-run",
-            "--file=tests/sentry/runner/commands/valid_patch.yaml",
+            "--file=tests/sentry/runner/commands/valid_patch.json",
             "patch",
         )
         assert_output(rv)
@@ -129,7 +132,7 @@ class ConfigOptionsTest(CliTestCase):
         assert_not_set()
 
         rv = self.invoke(
-            "--file=tests/sentry/runner/commands/valid_patch.yaml",
+            "--file=tests/sentry/runner/commands/valid_patch.json",
             "patch",
         )
         assert_output(rv)
@@ -147,7 +150,7 @@ class ConfigOptionsTest(CliTestCase):
         rv = self.invoke(
             "patch",
             input=Path(
-                "tests/sentry/runner/commands/valid_patch.yaml",
+                "tests/sentry/runner/commands/valid_patch.json",
             ).read_text(),
         )
 
@@ -161,10 +164,36 @@ class ConfigOptionsTest(CliTestCase):
         assert options.get("list_option") == [1, 2]
         assert options.get("drifted_option") == [1, 2, 3]
 
+    def test_small_float_is_parsed_as_float(self) -> None:
+        # Regression: the options automator emits floats < 1e-4 in bare-exponent
+        # form (e.g. ``1e-05``). YAML 1.1 (PyYAML) decodes that as a string and
+        # fails type validation; parsing the input as JSON keeps it a float.
+        rv = self.invoke(
+            "patch",
+            input='{"options": {"float_option": 1e-05}}',
+        )
+
+        assert rv.exit_code == 0, rv.output
+        value = options.get("float_option")
+        assert value == 1e-05
+        assert isinstance(value, float)
+
+    def test_yaml_input_is_accepted(self) -> None:
+        # Hand-authored YAML (e.g. the local flagpole devloop) is not valid JSON,
+        # so it must fall back to the YAML parser.
+        rv = self.invoke(
+            "patch",
+            input="options:\n  int_option: 40\n  str_option: 'new value'\n",
+        )
+
+        assert rv.exit_code == 0, rv.output
+        assert options.get("int_option") == 40
+        assert options.get("str_option") == "new value"
+
     def test_sync(self) -> None:
         rv = self.invoke(
             "-f",
-            "tests/sentry/runner/commands/valid_patch.yaml",
+            "tests/sentry/runner/commands/valid_patch.json",
             "sync",
         )
         assert rv.exit_code == 2, rv.output
@@ -201,7 +230,7 @@ class ConfigOptionsTest(CliTestCase):
     def test_bad_sync(self) -> None:
         rv = self.invoke(
             "-f",
-            "tests/sentry/runner/commands/badsync.yaml",
+            "tests/sentry/runner/commands/badsync.json",
             "sync",
         )
         assert rv.exit_code == 2, rv.output
@@ -217,7 +246,7 @@ class ConfigOptionsTest(CliTestCase):
 
         rv = self.invoke(
             "-f",
-            "tests/sentry/runner/commands/unsetsync.yaml",
+            "tests/sentry/runner/commands/unsetsync.json",
             "sync",
         )
         assert rv.exit_code == 0, rv.output
@@ -244,14 +273,14 @@ class ConfigOptionsTest(CliTestCase):
         # assert there's no drift after unsetting
         rv = self.invoke(
             "-f",
-            "tests/sentry/runner/commands/unsetsync.yaml",
+            "tests/sentry/runner/commands/unsetsync.json",
             "sync",
         )
         assert rv.exit_code == 0, rv.output
 
     def test_bad_patch(self) -> None:
         rv = self.invoke(
-            "--file=tests/sentry/runner/commands/badpatch.yaml",
+            "--file=tests/sentry/runner/commands/badpatch.json",
             "patch",
         )
 
@@ -267,3 +296,82 @@ class ConfigOptionsTest(CliTestCase):
         assert not options.isset("readonly_option")
         assert not options.isset("invalid_type")
         assert options.get("int_option") == 50
+
+    def test_validate(self) -> None:
+        # validate reports nothing and exits 0 for a clean file, and writes
+        # nothing to the DB.
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/valid_patch.json",
+            "validate",
+        )
+
+        assert rv.exit_code == 0, rv.output
+        self._clean_cache()
+        assert not options.isset("int_option")
+        assert not options.isset("map_option")
+        assert not options.isset("list_option")
+
+    def test_validate_multiple_files(self) -> None:
+        # validate accepts -f multiple times and checks every file in a single
+        # invocation, aggregating errors and exiting non-zero if any file is
+        # invalid. The valid file alone would pass.
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/multifile_a.json",
+            "-f",
+            "tests/sentry/runner/commands/badpatch.json",
+            "validate",
+        )
+
+        assert rv.exit_code == 2, rv.output
+        assert ConsolePresenter.UNREGISTERED_OPTION_ERROR % "inexistent_option" in rv.output
+        assert (
+            ConsolePresenter.INVALID_TYPE_ERROR % ("invalid_type", "<class 'list'>", "integer")
+            in rv.output
+        )
+        # Nothing is written, even for the valid options.
+        self._clean_cache()
+        assert not options.isset("int_option")
+
+    def test_validate_does_not_read_option_store(self) -> None:
+        # validate must never touch the option store, so it can run without a
+        # database. Make every store read blow up and confirm validate still
+        # works and still catches registration/type/flag errors.
+        reads = {
+            "sentry.options.isset": AssertionError("read option store"),
+            "sentry.options.get": AssertionError("read option store"),
+            "sentry.options.get_last_update_channel": AssertionError("read option store"),
+        }
+        with mock.patch.multiple(
+            "sentry.options",
+            isset=mock.Mock(side_effect=reads["sentry.options.isset"]),
+            get=mock.Mock(side_effect=reads["sentry.options.get"]),
+            get_last_update_channel=mock.Mock(
+                side_effect=reads["sentry.options.get_last_update_channel"]
+            ),
+        ):
+            rv = self.invoke(
+                "-f",
+                "tests/sentry/runner/commands/badpatch.json",
+                "validate",
+            )
+
+        assert rv.exit_code == 2, rv.output
+        assert ConsolePresenter.UNREGISTERED_OPTION_ERROR % "inexistent_option" in rv.output
+        assert (
+            ConsolePresenter.INVALID_TYPE_ERROR % ("invalid_type", "<class 'list'>", "integer")
+            in rv.output
+        )
+
+    def test_patch_rejects_multiple_files(self) -> None:
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/multifile_a.json",
+            "-f",
+            "tests/sentry/runner/commands/multifile_b.json",
+            "patch",
+        )
+
+        assert rv.exit_code != 0
+        assert "single file" in rv.output

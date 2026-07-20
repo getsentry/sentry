@@ -150,4 +150,36 @@ describe('EventTraceView', () => {
 
     expect(await screen.findByText('Trace Preview')).toBeInTheDocument();
   });
+
+  it('does not render the trace section when the trace_id is synthetic', () => {
+    const missingTraceIdEvent = EventFixture({
+      contexts: {
+        trace: {
+          trace_id: traceId,
+        },
+      },
+      eventID: 'issue-5',
+      _meta: {
+        contexts: {
+          trace: {
+            trace_id: {
+              '': {
+                err: ['trace_id.missing'],
+              },
+            },
+          },
+        },
+      },
+    });
+
+    render(
+      <EventTraceView
+        group={group}
+        event={missingTraceIdEvent}
+        organization={organization}
+      />
+    );
+
+    expect(screen.queryByText('Trace Preview')).not.toBeInTheDocument();
+  });
 });

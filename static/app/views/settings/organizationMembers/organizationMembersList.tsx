@@ -28,9 +28,10 @@ import type {OrganizationAuthProvider} from 'sentry/types/auth';
 import type {Member} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {setApiQueryData, useApiQuery, type ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -380,9 +381,9 @@ function OrganizationMembersList() {
             onChange={handleQueryChange}
           />
           <Container flex={1}>
-            {({className}) => (
+            {containerProps => (
               <SearchBar
-                className={className}
+                {...containerProps}
                 placeholder={t('Search Members')}
                 query={searchQuery}
                 onSearch={handleQueryChange}

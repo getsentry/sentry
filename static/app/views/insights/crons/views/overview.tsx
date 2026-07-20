@@ -5,7 +5,6 @@ import * as qs from 'query-string';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -46,7 +45,6 @@ import {useCronsUpsertGuideState} from 'sentry/views/insights/crons/components/u
 import {MODULE_DESCRIPTION, MODULE_DOC_LINK} from 'sentry/views/insights/crons/settings';
 import {monitorListApiOptions} from 'sentry/views/insights/crons/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 
 const CronsListPageHeader = OverrideOrDefault({
   overrideName: 'component:crons-list-page-header',
@@ -57,7 +55,6 @@ function CronsOverview() {
   const navigate = useNavigate();
   const location = useLocation();
   const {guideVisible} = useCronsUpsertGuideState();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const project = decodeList(location.query?.project);
 
   const {data, isPending, refetch} = useQuery({
@@ -90,72 +87,38 @@ function CronsOverview() {
   const page = (
     <Fragment>
       <CronsListPageHeader organization={organization} />
-      <Layout.Header unified>
-        <Layout.HeaderContent>
-          <Layout.Title>
-            {t('Cron Monitors')}
-            <PageHeadingQuestionTooltip
-              docsUrl={MODULE_DOC_LINK}
-              title={MODULE_DESCRIPTION}
-            />
-          </Layout.Title>
-        </Layout.HeaderContent>
-        {hasPageFrameFeature ? (
-          <Fragment>
-            <TopBar.Slot name="actions">
-              <Button
-                icon={<IconList />}
-                onClick={() =>
-                  openBulkEditMonitorsModal({
-                    onClose: () => refetch(),
-                  })
-                }
-                analyticsEventKey="crons.bulk_edit_modal_button_clicked"
-                analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
-              >
-                {t('Manage Monitors')}
-              </Button>
-              {!guideVisible && (
-                <NewMonitorButton icon={<IconAdd />}>
-                  {t('Add Cron Monitor')}
-                </NewMonitorButton>
-              )}
-            </TopBar.Slot>
-            <TopBar.Slot name="feedback">
-              <FeedbackButton
-                aria-label={t('Give Feedback')}
-                tooltipProps={{title: t('Give Feedback')}}
-              >
-                {null}
-              </FeedbackButton>
-            </TopBar.Slot>
-          </Fragment>
-        ) : (
-          <Layout.HeaderActions>
-            <Grid flow="column" align="center" gap="md">
-              <FeedbackButton />
-              <Button
-                icon={<IconList />}
-                size="sm"
-                onClick={() =>
-                  openBulkEditMonitorsModal({
-                    onClose: () => refetch(),
-                  })
-                }
-                analyticsEventKey="crons.bulk_edit_modal_button_clicked"
-                analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
-              >
-                {t('Manage Monitors')}
-              </Button>
-              {!guideVisible && (
-                <NewMonitorButton size="sm" icon={<IconAdd />}>
-                  {t('Add Cron Monitor')}
-                </NewMonitorButton>
-              )}
-            </Grid>
-          </Layout.HeaderActions>
+      <Layout.Title>
+        {t('Cron Monitors')}
+        <PageHeadingQuestionTooltip
+          docsUrl={MODULE_DOC_LINK}
+          title={MODULE_DESCRIPTION}
+        />
+      </Layout.Title>
+      <TopBar.Slot name="actions">
+        <Button
+          icon={<IconList />}
+          onClick={() =>
+            openBulkEditMonitorsModal({
+              onClose: () => refetch(),
+            })
+          }
+          analyticsEventKey="crons.bulk_edit_modal_button_clicked"
+          analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
+        >
+          {t('Manage Monitors')}
+        </Button>
+        {!guideVisible && (
+          <NewMonitorButton icon={<IconAdd />}>{t('Add Cron Monitor')}</NewMonitorButton>
         )}
-      </Layout.Header>
+      </TopBar.Slot>
+      <TopBar.Slot name="feedback">
+        <FeedbackButton
+          aria-label={t('Give Feedback')}
+          tooltipProps={{title: t('Give Feedback')}}
+        >
+          {null}
+        </FeedbackButton>
+      </TopBar.Slot>
       <Layout.Body>
         <Layout.Main width="full">
           <Filters>

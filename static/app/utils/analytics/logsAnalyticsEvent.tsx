@@ -42,7 +42,7 @@ export type LogsAnalyticsEventParameters = {
     table_result_sort: string[];
     user_queries: string;
     user_queries_count: number;
-    ai_query_run_id?: number;
+    ai_query_run_id?: number | string;
   };
   'logs.explorer.setup_button_clicked': {
     organization: Organization;
@@ -65,6 +65,11 @@ export type LogsAnalyticsEventParameters = {
     organization: Organization;
     platform: PlatformKey | 'unknown';
     supports_onboarding_checklist: boolean;
+  };
+  'logs.onboarding_ai_prompt_copied': {
+    organization: Organization;
+    platform: PlatformKey | 'unknown';
+    source: 'install_command' | 'prompt';
   };
   'logs.onboarding_platform_docs_viewed': {
     organization: Organization;
@@ -120,6 +125,8 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.explorer.setup_button_clicked': 'Logs Setup Button Clicked',
   'logs.explorer.table_tab_changed': 'Logs Explorer: Table Tab Changed',
   'logs.onboarding': 'Logs Explore Empty State (Onboarding)',
+  'logs.onboarding_ai_prompt_copied':
+    'Logs Explore Empty State (Onboarding) - AI Prompt Copied',
   'logs.issue_details.drawer_opened': 'Issues Page Logs Drawer Opened',
   'logs.timestamp_tooltip.add_timezone_clicked':
     'Logs Timestamp Tooltip Add Timezone Clicked',

@@ -152,6 +152,18 @@ class BaseApiClient:
         """
         return prepared_request
 
+    def set_proxy_request_options(
+        self,
+        prepared_request: PreparedRequest,
+        timeout: int | float | tuple[float, float] | None,
+    ) -> None:
+        """
+        Allows subclasses to annotate the outgoing request with per-call options
+        (such as the resolved timeout) that aren't otherwise part of the prepared
+        request. No-op by default.
+        """
+        return None
+
     def is_response_fatal(self, resp: Response) -> bool:
         return False
 
@@ -304,6 +316,7 @@ class BaseApiClient:
 
         if self.integration_type:
             sentry_sdk.get_isolation_scope().set_tag(self.integration_type, self.name)
+            sentry_sdk.get_isolation_scope().set_attribute(self.integration_type, self.name)
 
         request = Request(
             method=method.upper(),
@@ -335,6 +348,7 @@ class BaseApiClient:
         try:
             with self.build_session() as session:
                 finalized_request = self.finalize_request(_prepared_request)
+                self.set_proxy_request_options(finalized_request, timeout)
                 environment_settings = session.merge_environment_settings(
                     url=finalized_request.url,
                     proxies={},

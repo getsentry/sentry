@@ -370,12 +370,11 @@ class TestComments(APITestCase):
 
 
 @patch("sentry.sentry_apps.tasks.sentry_apps.workflow_notification.delay")
-class TestIssueWorkflowNotificationsForSubscriptionFamily(APITestCase):
+class TestIssueWorkflowNotificationsForExactSubscription(APITestCase):
     def setUp(self) -> None:
         self.issue = self.create_group(project=self.project)
 
-        # Creating an app that is not subscribed to issue.resolved, but subscription is by resource
-        # so if an app is subscribed to issue.anything it should receive webhooks for issue.*
+        # App subscribed only to issue.ignored; only that exact event notifies.
         self.sentry_app = self.create_sentry_app(events=["issue.ignored"])
         self.install = self.create_sentry_app_installation(
             organization=self.organization, slug=self.sentry_app.slug
@@ -383,15 +382,18 @@ class TestIssueWorkflowNotificationsForSubscriptionFamily(APITestCase):
         self.url = f"/api/0/projects/{self.organization.slug}/{self.issue.project.slug}/issues/?id={self.issue.id}"
         self.login_as(self.user)
 
-    def test_notify_for_issue_event_if_subscribed_to_all_issue_events(
-        self, delay: MagicMock
-    ) -> None:
+    def test_skips_unsubscribed_issue_event(self, delay: MagicMock) -> None:
         self.client.put(self.url, data={"status": "resolved"}, format="json")
+
+        assert not delay.called
+
+    def test_notifies_subscribed_issue_event(self, delay: MagicMock) -> None:
+        self.client.put(self.url, data={"status": "ignored"}, format="json")
 
         delay.assert_called_once_with(
             installation_id=self.install.id,
             issue_id=self.issue.id,
-            type="resolved",
+            type="ignored",
             user_id=self.user.id,
-            data={"resolution_type": "now"},
+            data={},
         )

@@ -42,7 +42,8 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         return features.has("projects:servicehooks", project=project, actor=request.user)
 
     @extend_schema(
-        operation_id="List a Project's Service Hooks",
+        operation_id="listProjectHooks",
+        summary="List a Project's Service Hooks",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -57,7 +58,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[list[ServiceHookSerializerResponse]]:
         """
         Return a list of service hooks bound to a project.
 
@@ -89,7 +90,8 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         )
 
     @extend_schema(
-        operation_id="Register a New Service Hook",
+        operation_id="registerProjectServiceHook",
+        summary="Register a New Service Hook",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         request=ServiceHookValidator,
         responses={
@@ -100,7 +102,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project) -> Response[ServiceHookSerializerResponse]:
         """
         Register a new service hook on a project.
 

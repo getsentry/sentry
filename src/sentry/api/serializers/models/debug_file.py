@@ -23,6 +23,8 @@ class DebugFileSerializerResponse(TypedDict):
 @register(ProjectDebugFile)
 class DebugFileSerializer(Serializer[DebugFileSerializerResponse]):
     def serialize(self, obj, attrs, user, **kwargs) -> DebugFileSerializerResponse:
+        headers = {"Content-Type": obj.get_content_type()}
+
         return {
             "id": str(obj.id),
             "uuid": obj.debug_id[:36],
@@ -31,9 +33,9 @@ class DebugFileSerializer(Serializer[DebugFileSerializerResponse]):
             "cpuName": obj.cpu_name,
             "objectName": obj.object_name,
             "symbolType": obj.file_format,
-            "headers": obj.file.headers,
-            "size": obj.file.size,
-            "sha1": obj.file.checksum,
-            "dateCreated": obj.file.timestamp,
+            "headers": headers,
+            "size": obj.get_file_size(),
+            "sha1": obj.get_checksum(),
+            "dateCreated": obj.get_date_created(),
             "data": obj.data or {},
         }

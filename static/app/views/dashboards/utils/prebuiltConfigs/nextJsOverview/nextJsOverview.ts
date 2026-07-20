@@ -50,12 +50,12 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           conditions: `${SpanFields.SPAN_OP}:pageload`,
           aggregates: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           columns: [],
           fields: [
             `count(${SpanFields.SPAN_DURATION})`,
-            `equation|count_if(${SpanFields.TRACE_STATUS},equals,internal_error) / count(${SpanFields.SPAN_DURATION})`,
+            `equation|(count_if(${SpanFields.TRACE_STATUS},equals,internal_error) + count_if(${SpanFields.TRACE_STATUS},equals,error)) / count(${SpanFields.SPAN_DURATION})`,
           ],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
         },

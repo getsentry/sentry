@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge';
 import {IconDelete, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {SelectValue} from 'sentry/types/core';
 import type {Action} from 'sentry/types/workflowEngine/actions';
 import {
   DataConditionGroupLogicType,
@@ -90,7 +90,7 @@ export function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
   return (
     <IfThenWrapper>
       <Step>
-        <Flex direction="column" gap="md">
+        <Stack gap="md">
           <StepLead data-test-id="action-filter-logic-type">
             {tct('[if: If] [selector] of these filters match', {
               if: <ConditionBadge />,
@@ -146,7 +146,7 @@ export function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
               actions.updateIfCondition(actionFilter.id, id, params)
             }
           />
-        </Flex>
+        </Stack>
       </Step>
       <Step>
         <StepLead>

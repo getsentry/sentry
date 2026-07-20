@@ -7,10 +7,11 @@ const productionEntryPoints = [
   'static/app/index.tsx',
   // defined in rspack.config.ts pipelines
   'static/app/utils/statics-setup.tsx',
+  'static/app/serviceWorker/worker/worker.ts',
+  // exports used by scripts
+  'static/app/components/seer/markdown/embeds/schemas.ts',
   // very dynamically imported
   'static/app/gettingStartedDocs/**/*.{js,ts,tsx}',
-  // this is imported with require.context
-  'static/app/data/forms/*.tsx',
   // frontend experiemnt framework may be unused when we have no experiemnets
   'static/app/utils/useExperiment.tsx',
   // --- we should be able to get rid of those: ---
@@ -24,14 +25,15 @@ const productionEntryPoints = [
   'static/app/chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when used
   'static/app/views/seerExplorer/contexts/**/*.{js,ts,tsx}',
+  // TODO: Remove when wired into the connect repository modal
+  'static/app/components/connectRepository/**/*.{ts,tsx}',
 ];
 
 const testingEntryPoints = [
   'static/**/*.spec.{js,ts,tsx}',
   'static/**/*.snapshots.tsx',
   'tests/js/**/*.spec.{js,ts,tsx}',
-  // jest uses this
-  'tests/js/test-balancer/index.js',
+  'tests/js/test-balancer/*.ts',
 ];
 
 const storyBookEntryPoints = [
@@ -74,9 +76,8 @@ const config: KnipConfig = {
   ignoreDependencies: [
     'core-js',
     'tslib', // subdependency of many packages, declare the latest version
-    'buffer', // rspack.ProvidePlugin, needs better knip plugin
-    'process', // rspack.ProvidePlugin, needs better knip plugin
     'odiff-bin', // raw binary consumed by Python backend, not a JS import
+    'run-on-changed', // CLI used by the eslint CI job (.github/workflows/frontend.yml), not a JS import
     '@swc-contrib/mut-cjs-exports', // used in jest config
   ],
   rules: {
@@ -87,6 +88,8 @@ const config: KnipConfig = {
   mdx: {
     config: 'tsconfig.mdx.json',
   },
+  treatConfigHintsAsErrors: true,
+  treatTagHintsAsErrors: true,
 };
 
 export default config;

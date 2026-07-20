@@ -82,7 +82,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
@@ -119,7 +118,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
@@ -153,7 +151,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
@@ -188,7 +185,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
@@ -218,7 +214,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
@@ -257,7 +252,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
@@ -297,7 +291,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
@@ -335,7 +328,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
@@ -379,7 +371,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
@@ -414,7 +405,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={onSave}
@@ -444,7 +434,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={onSave}
@@ -473,7 +462,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={onSave}
@@ -497,7 +485,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={onSave}
@@ -521,7 +508,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={onSave}
@@ -549,7 +535,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
@@ -589,7 +574,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
@@ -631,7 +615,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
@@ -668,7 +651,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
@@ -701,7 +683,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
@@ -735,7 +716,6 @@ describe('WidgetBuilderSlideout', () => {
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}
@@ -768,7 +748,6 @@ describe('WidgetBuilderSlideout', () => {
       <WidgetBuilderSlideout
         dashboard={DashboardFixture([])}
         dashboardFilters={{release: undefined}}
-        isWidgetInvalid={false}
         onClose={jest.fn()}
         onQueryConditionChange={jest.fn()}
         onSave={jest.fn()}
@@ -778,11 +757,7 @@ describe('WidgetBuilderSlideout', () => {
       />,
       {
         organization: OrganizationFixture({
-          features: [
-            'tracemetrics-enabled',
-            'tracemetrics-equations-in-dashboards',
-            'tracemetrics-equations-in-explore',
-          ],
+          features: ['tracemetrics-enabled'],
         }),
         initialRouterConfig: {
           location: {
@@ -818,7 +793,6 @@ describe('WidgetBuilderSlideout', () => {
       <WidgetBuilderSlideout
         dashboard={DashboardFixture([])}
         dashboardFilters={{release: undefined}}
-        isWidgetInvalid={false}
         onClose={jest.fn()}
         onQueryConditionChange={jest.fn()}
         onSave={jest.fn()}
@@ -828,11 +802,7 @@ describe('WidgetBuilderSlideout', () => {
       />,
       {
         organization: OrganizationFixture({
-          features: [
-            'tracemetrics-enabled',
-            'tracemetrics-equations-in-dashboards',
-            'tracemetrics-equations-in-explore',
-          ],
+          features: ['tracemetrics-enabled'],
         }),
         initialRouterConfig: {
           location: {
@@ -865,47 +835,12 @@ describe('WidgetBuilderSlideout', () => {
     });
   });
 
-  it('does not show the mode toggle without the equation feature flag', async () => {
-    render(
-      <WidgetBuilderSlideout
-        dashboard={DashboardFixture([])}
-        dashboardFilters={{release: undefined}}
-        isWidgetInvalid={false}
-        onClose={jest.fn()}
-        onQueryConditionChange={jest.fn()}
-        onSave={jest.fn()}
-        setIsPreviewDraggable={jest.fn()}
-        openWidgetTemplates={false}
-        setOpenWidgetTemplates={jest.fn()}
-      />,
-      {
-        organization: OrganizationFixture({features: ['tracemetrics-enabled']}),
-        initialRouterConfig: {
-          location: {
-            pathname: '/dashboards/',
-            query: {
-              dataset: WidgetType.TRACEMETRICS,
-              displayType: DisplayType.LINE,
-              yAxis: ['sum(value,alpha_metric,counter,none)'],
-            },
-          },
-        },
-        additionalWrapper: WidgetBuilderProvider,
-      }
-    );
-
-    expect(await screen.findByText('Visualize')).toBeInTheDocument();
-    expect(screen.queryByRole('radio', {name: 'Series'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('radio', {name: 'Equation'})).not.toBeInTheDocument();
-  });
-
   it('should not show the group by selector if the widget is an issue and a chart display type', async () => {
     render(
       <WidgetBuilderProvider>
         <WidgetBuilderSlideout
           dashboard={DashboardFixture([])}
           dashboardFilters={{release: undefined}}
-          isWidgetInvalid={false}
           onClose={jest.fn()}
           onQueryConditionChange={jest.fn()}
           onSave={jest.fn()}

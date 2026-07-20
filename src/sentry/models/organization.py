@@ -544,7 +544,9 @@ class Organization(ReplicatedCellModel):
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
-        return self.option_manager.get_value(self, key, default, validate)
+        from sentry.models.options.organization_option import get_option
+
+        return get_option(self.id, key, default, validate)
 
     def update_option(self, key: str, value: Any) -> bool:
         return self.option_manager.set_value(self, key, value)

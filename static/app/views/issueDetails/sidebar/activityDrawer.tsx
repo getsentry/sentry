@@ -13,22 +13,32 @@ import {
   NavigationCrumbs,
   ShortId,
 } from 'sentry/components/events/eventDrawer';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
+import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 interface ActivityDrawerProps {
-  group: Group;
   project: Project;
 }
 
-export function ActivityDrawer({group, project}: ActivityDrawerProps) {
+export function ActivityDrawer({project}: ActivityDrawerProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const filter = searchParams.get('filter') ?? 'all';
   const organization = useOrganization();
+  const groupId = useGroupId();
+
+  // Subscribe to the query cache directly so the drawer reflects mutations
+  // (e.g. comment create/delete). The drawer's render function is captured in
+  // a closure by openDrawer, so the group in context or props would go stale.
+  const {data: group} = useGroup({groupId});
+  if (!group) {
+    return <LoadingIndicator />;
+  }
 
   return (
     <EventDrawerContainer>

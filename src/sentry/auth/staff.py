@@ -13,6 +13,7 @@ from django.core.signing import BadSignature
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone as django_timezone
 from django.utils.crypto import constant_time_compare, get_random_string
+from rest_framework.request import Request
 
 from sentry import options
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
@@ -47,7 +48,7 @@ _UnsetType = enum.Enum("_UnsetType", "UNSET")
 _Unset: Final = _UnsetType.UNSET
 
 
-def is_active_staff(request: HttpRequest) -> bool:
+def is_active_staff(request: HttpRequest | Request) -> bool:
     if is_system_auth(getattr(request, "auth", None)):
         return True
     staff = getattr(request, "staff", None) or Staff(request)

@@ -5,10 +5,6 @@ export function explodeSlug(slug: string): string {
   return slug.replace(/[-_]+/g, ' ').trim();
 }
 
-export function defined<T>(item: T): item is Exclude<T, null | undefined> {
-  return item !== undefined && item !== null;
-}
-
 export function escape(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -98,15 +94,6 @@ export function escapeDoubleQuotes(str: string) {
 export function generateOrgSlugUrl(orgSlug: any) {
   const sentryDomain = window.__initialData.links.sentryUrl.split('/')[2];
   return `${window.location.protocol}//${orgSlug}.${sentryDomain}${window.location.pathname}`;
-}
-
-/**
- * Encodes given object into url-friendly format
- */
-export function urlEncode(object: Record<string, any>): string {
-  return Object.keys(object)
-    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(object[key])}`)
-    .join('&');
 }
 
 export function isNumericString(value: string): boolean {

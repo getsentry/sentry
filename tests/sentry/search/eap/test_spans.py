@@ -5,12 +5,12 @@ import pytest
 from sentry_conventions.attributes import (
     ATTRIBUTE_METADATA,
     ATTRIBUTE_NAMES,
+    ApplyScrubbing,
+    ApplyScrubbingInfo,
     AttributeMetadata,
     AttributeType,
     DeprecationInfo,
     DeprecationStatus,
-    IsPii,
-    PiiInfo,
     Visibility,
 )
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
@@ -57,6 +57,7 @@ from sentry.search.eap.utils import can_expose_attribute_to_api
 from sentry.search.events.types import SnubaParams
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.utils.snuba import SPAN_EAP_COLUMN_MAP
 
 
 class AttributeVisibilityTest(TestCase):
@@ -802,6 +803,54 @@ class SearchResolverQueryTest(TestCase):
             group2.qualified_short_id in resolver.qualified_short_id_to_group_id_cache[project_id]
         )
 
+    def test_has_trace(self) -> None:
+        where, having, _ = self.resolver.resolve_query("has:trace")
+        trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
+        assert where == TraceItemFilter(
+            and_filter=AndFilter(
+                filters=[
+                    TraceItemFilter(
+                        exists_filter=ExistsFilter(key=trace_key),
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=trace_key,
+                            op=ComparisonFilter.OP_NOT_EQUALS,
+                            value=AttributeValue(val_str=""),
+                        )
+                    ),
+                ]
+            )
+        )
+        assert having is None
+
+    def test_not_has_trace(self) -> None:
+        where, having, _ = self.resolver.resolve_query("!has:trace")
+        trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
+        assert where == TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        not_filter=NotFilter(
+                            filters=[
+                                TraceItemFilter(
+                                    exists_filter=ExistsFilter(key=trace_key),
+                                )
+                            ]
+                        )
+                    ),
+                    TraceItemFilter(
+                        comparison_filter=ComparisonFilter(
+                            key=trace_key,
+                            op=ComparisonFilter.OP_EQUALS,
+                            value=AttributeValue(val_str=""),
+                        )
+                    ),
+                ]
+            )
+        )
+        assert having is None
+
 
 class SearchResolverColumnTest(TestCase):
     def setUp(self) -> None:
@@ -1013,6 +1062,30 @@ class SearchResolverColumnTest(TestCase):
         )
         assert virtual_context is None
 
+    def test_max_timestamp(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column("max(timestamp)")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_MAX,
+            key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+            label="max(timestamp)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+
+    def test_min_timestamp(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column("min(timestamp)")
+        assert resolved_column.proto_definition == AttributeAggregation(
+            aggregate=Function.FUNCTION_MIN,
+            key=AttributeKey(name="sentry.timestamp", type=AttributeKey.Type.TYPE_DOUBLE),
+            label="min(timestamp)",
+            extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
+        )
+        assert virtual_context is None
+
+    def test_max_string_field_raises(self) -> None:
+        with pytest.raises(InvalidSearchQuery):
+            self.resolver.resolve_column("max(span.description)")
+
     def test_resolver_cache_attribute(self) -> None:
         self.resolver.resolve_columns(["span.op"])
         assert "span.op" in self.resolver._resolved_attribute_cache
@@ -1044,10 +1117,22 @@ def _make_deprecated_metadata(
     return AttributeMetadata(
         brief="",
         type=attr_type,
-        pii=PiiInfo(isPii=IsPii.FALSE),
+        apply_scrubbing=ApplyScrubbingInfo(key=ApplyScrubbing.NEVER),
         is_in_otel=False,
         visibility=Visibility.PUBLIC,
         deprecation=DeprecationInfo(replacement=replacement, status=status),
+    )
+
+
+def test_reasoning_level_attribute_is_queryable() -> None:
+    attr = SPAN_ATTRIBUTE_DEFINITIONS["gen_ai.request.reasoning.level"]
+
+    assert attr.public_alias == "gen_ai.request.reasoning.level"
+    assert attr.internal_name == "gen_ai.request.reasoning.level"
+    assert attr.search_type == "string"
+    assert (
+        SPAN_EAP_COLUMN_MAP["gen_ai.request.reasoning.level"]
+        == "attr_str[gen_ai.request.reasoning.level]"
     )
 
 

@@ -53,6 +53,7 @@ export function GroupBySection({query, index}: Props) {
         value={query.groupBys}
         clearable
         search={{
+          highlight: true,
           filter: (option, searchText) => {
             return sortSearchedAttributes({
               fieldDefinitionType: TraceItemDataset.SPANS,

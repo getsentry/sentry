@@ -29,7 +29,7 @@ class ReleaseSetupStepResponse(TypedDict):
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -47,7 +47,7 @@ class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project) -> Response[list[ReleaseSetupStepResponse]]:
         """
         Return the release-setup onboarding progress for a project: whether the project
         has tagged an error, linked a repo, associated commits, and reported a deploy.

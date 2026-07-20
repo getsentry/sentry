@@ -3,7 +3,7 @@ import {useState} from 'react';
 import organizationDeletionIllustration from 'sentry-images/organizationDeletion.svg';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -25,8 +25,7 @@ type BodyProps = {
 
 function DeletionInProgress({organization}: OrganizationProps) {
   return (
-    <Flex
-      direction="column"
+    <Stack
       align="center"
       justify="center"
       minHeight="100dvh"
@@ -37,8 +36,7 @@ function DeletionInProgress({organization}: OrganizationProps) {
         backgroundRepeat: 'no-repeat',
       }}
     >
-      <Flex
-        direction="column"
+      <Stack
         align="start"
         gap="md"
         maxWidth="580px"
@@ -63,8 +61,8 @@ function DeletionInProgress({organization}: OrganizationProps) {
             )}
           </Text>
         </Stack>
-      </Flex>
-    </Flex>
+      </Stack>
+    </Stack>
   );
 }
 
@@ -93,8 +91,7 @@ function DeletionPending({organization}: OrganizationProps) {
   };
 
   return (
-    <Flex
-      direction="column"
+    <Stack
       align="center"
       justify="center"
       minHeight="100dvh"
@@ -105,8 +102,7 @@ function DeletionPending({organization}: OrganizationProps) {
         backgroundRepeat: 'no-repeat',
       }}
     >
-      <Flex
-        direction="column"
+      <Stack
         align="start"
         gap="md"
         maxWidth="580px"
@@ -129,11 +125,11 @@ function DeletionPending({organization}: OrganizationProps) {
           </Text>
 
           {organization.access.includes('org:admin') && (
-            <Flex direction="column" gap="sm" paddingTop="xl">
+            <Stack gap="sm" paddingTop="xl">
               <Button variant="primary" onClick={onRestore} disabled={isRestoring}>
                 {t('Restore Organization')}
               </Button>
-            </Flex>
+            </Stack>
           )}
 
           <Text as="p" size="sm" variant="muted">
@@ -142,8 +138,8 @@ function DeletionPending({organization}: OrganizationProps) {
             )}
           </Text>
         </Stack>
-      </Flex>
-    </Flex>
+      </Stack>
+    </Stack>
   );
 }
 

@@ -3,9 +3,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
 
-import {HighlightComponent} from 'sentry/components/highlight';
+import {MultiHighlight} from 'sentry/components/highlight';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {Panel} from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
@@ -89,6 +89,17 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
       }
     `}
 
+  &[data-row-hover-linked='true']:not(thead > &),
+  &[data-row-linked='true']:not(thead > &) {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.active};
+
+    &:hover {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.active};
+    }
+  }
+
   &.beforeHoverTime + &.afterHoverTime:before {
     border-top: 1px solid ${p => p.theme.tokens.border.accent.moderate};
     content: '';
@@ -131,7 +142,7 @@ export const LogAttributeTreeWrapper = styled('div')`
   border-bottom: 0px;
 `;
 
-export const LogTableBodyCell = styled(TableBodyCell)`
+export const LogTableBodyCell = styled(TableBodyCell)<{reservePinGutter?: boolean}>`
   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
   padding: 2px ${p => p.theme.space.xl};
@@ -145,7 +156,9 @@ export const LogTableBodyCell = styled(TableBodyCell)`
   }
 
   &:last-child {
-    padding: 0 ${p => p.theme.space.md};
+    padding: 0
+      ${p => (p.reservePinGutter ? 'var(--logsPinButtonArea)' : p.theme.space.md)} 0
+      ${p => p.theme.space.md};
   }
 `;
 
@@ -154,6 +167,8 @@ function ContentsTable(props: React.ComponentProps<typeof Table>) {
 }
 
 export const LogTable = styled(ContentsTable)<{minWidth: string}>`
+  --logsPinEdgeGap: ${p => p.theme.space.sm};
+  --logsPinButtonArea: calc(2rem + var(--logsPinEdgeGap));
   flex: 1;
   min-height: 0;
   display: flex;
@@ -179,6 +194,8 @@ export const LogTableBody = styled(TableBody)<{
   align-content: start;
   overflow-x: hidden;
   overflow-anchor: none;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
 
   /* If a parent renderer bails out, the element might default to 0px: which causes Tanstack Virtual to stay at 0. */
   min-height: 1px;
@@ -286,7 +303,7 @@ export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
   text-align: ${p => p.align || 'left'};
 `;
 
-export const LogsHighlight = styled(HighlightComponent)`
+export const LogsHighlight = styled(MultiHighlight)`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   background-color: ${p => p.theme.colors.gray200};
   margin-right: 2px;
@@ -302,7 +319,7 @@ export const LogsFilteredHelperText = styled('span')`
 
 export const LogPinButton = styled(Button)<{isPinned: boolean | undefined}>`
   position: absolute;
-  right: calc(-1 * var(--logsPinButtonArea));
+  right: calc(-1 * var(--logsPinButtonArea) + var(--logsPinEdgeGap));
   opacity: ${p => (p.isPinned ? 1 : 0)};
   transition: opacity 0.1s;
   z-index: 1;
@@ -342,6 +359,14 @@ export const FirstTableHeadCell = styled(TableHeadCell)`
   padding-left: ${p => p.theme.space.xl};
 `;
 
+export const LogTableHeadCell = styled(TableHeadCell)<{reservePinGutter?: boolean}>`
+  ${p =>
+    p.reservePinGutter &&
+    css`
+      padding-right: var(--logsPinButtonArea);
+    `}
+`;
+
 export const LogsTableBodyFirstCell = styled(LogTableBodyCell)`
   padding-right: 0;
   padding-left: ${p => p.theme.space.md};
@@ -352,15 +377,7 @@ export function TableActionsContainer(props: FlexProps) {
 }
 
 export function LogsItemContainer(props: FlexProps) {
-  return (
-    <Flex
-      direction="column"
-      minHeight="0"
-      overflow="hidden"
-      position="relative"
-      {...props}
-    />
-  );
+  return <Stack minHeight="0" overflow="hidden" position="relative" {...props} />;
 }
 
 export function LogsTableActionsContainer(props: FlexProps) {
@@ -376,9 +393,7 @@ export function LogsTableActionsContainer(props: FlexProps) {
 }
 
 export function LogsGraphContainer(props: FlexProps) {
-  return (
-    <Flex direction="column" flex="0 0 auto" overflow="visible" gap="md" {...props} />
-  );
+  return <Stack flex="0 0 auto" overflow="visible" gap="md" {...props} />;
 }
 
 export const AutoRefreshLabel = styled('label')`
@@ -492,12 +507,14 @@ export const FloatingBackToTopContainer = styled('div')<{
   inReplay?: boolean;
   position?: 'absolute' | 'fixed';
   tableWidth?: number;
+  topOffset?: number;
 }>`
   --floatingWidth: ${p => (p.tableWidth ? `${p.tableWidth}px` : '100%')};
   position: ${p => p.position};
   z-index: 1;
   opacity: ${p => (p.inReplay ? 1 : 0.9)};
-  top: ${p => (p.inReplay ? p.theme.space.md : '65px')};
+  top: ${p =>
+    p.inReplay ? p.theme.space.md : `calc(${p.topOffset ?? 65}px + ${p.theme.space.xl})`};
   width: var(--floatingWidth);
   display: flex;
   justify-content: center;

@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {t} from 'sentry/locale';
@@ -102,8 +102,8 @@ export function BreadcrumbWebVital({
   }
 
   return (
-    <Flex gap="lg" justify="between" align="start">
-      <NoMarginWrapper flex="1">
+    <Stack gap="sm" align="start">
+      <NoMarginWrapper>
         <StructuredEventData
           initialExpandedPaths={expandPaths ?? []}
           onToggleExpand={(expandedPaths, path) => {
@@ -128,7 +128,7 @@ export function BreadcrumbWebVital({
       >
         {t('All Web Vitals')}
       </NoWrapButton>
-    </Flex>
+    </Stack>
   );
 }
 
@@ -156,6 +156,7 @@ const SelectorButton = styled(Button)`
 `;
 
 const NoMarginWrapper = styled(Flex)`
+  width: 100%;
   pre {
     margin: 0;
     flex: 1;

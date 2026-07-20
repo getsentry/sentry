@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Any, Required, TypedDict
+from typing import Required, TypedDict
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.db.models import (
     Case,
     Exists,
+    F,
     IntegerField,
     OrderBy,
     OuterRef,
+    Subquery,
     Value,
     When,
 )
@@ -29,6 +31,7 @@ from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import (
     DashboardDetailsModelSerializer,
+    DashboardDetailsResponse,
     DashboardListResponse,
     DashboardListSerializer,
 )
@@ -41,6 +44,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
+from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
@@ -94,6 +98,7 @@ class PrebuiltDashboard(TypedDict, total=False):
     prebuilt_id: Required[PrebuiltDashboardId]
     title: Required[str]
     hidden: bool
+    pre_favorited: bool
 
 
 # Prebuilt dashboards store minimal fields in the database. The actual dashboard and widget settings are
@@ -129,6 +134,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.WEB_VITALS,
         "title": "Web Vitals",
+        "pre_favorited": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.WEB_VITALS_SUMMARY,
@@ -157,6 +163,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.BACKEND_OVERVIEW,
         "title": "Backend Overview",
+        "pre_favorited": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MOBILE_SESSION_HEALTH,
@@ -193,6 +200,7 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.AI_AGENTS_OVERVIEW,
         "title": "AI Agents Overview",
+        "pre_favorited": True,
     },
     {
         "prebuilt_id": PrebuiltDashboardId.MCP_OVERVIEW,
@@ -299,6 +307,66 @@ def sync_prebuilt_dashboards(organization: Organization) -> None:
         ).exclude(prebuilt_id__in=prebuilt_ids).delete()
 
 
+def sync_prebuilt_dashboards_favorited(organization: Organization, user_id: int) -> None:
+    """
+    Checks if pre-favorited prebuilt dashboards have a DashboardFavoriteUser record for the
+    user, and creates them if they don't. This ensures that certain prebuilt dashboards are
+    favorited by default for all users, preserving any existing starred ones.
+
+    New prebuilts are inserted alphabetically while the user's prebuilt stars are still in
+    their default (alphabetical) order.
+    """
+    enabled_prebuilt_dashboards = get_enabled_prebuilt_dashboards(organization)
+    pre_favorited_ids = [
+        d["prebuilt_id"] for d in enabled_prebuilt_dashboards if d.get("pre_favorited")
+    ]
+    if not pre_favorited_ids:
+        return
+
+    with transaction.atomic(router.db_for_write(DashboardFavoriteUser)):
+        prebuilt_favorited = list(
+            DashboardFavoriteUser.objects.filter(
+                organization=organization,
+                user_id=user_id,
+                favorited=True,
+                dashboard__prebuilt_id__isnull=False,
+            )
+            .order_by("position")
+            .select_related("dashboard")
+        )
+        # We want to know if the dashboards are alphabetically ordered (default) or
+        # have been rearranged, and respect whatever order they're in
+        favorited_titles = [f.dashboard.title for f in prebuilt_favorited]
+        is_default_order = favorited_titles == sorted(favorited_titles)
+
+        # Get any favorited dashboards, custom or prebuilt, belonging to the user.
+        # Don't explicitly exclude those with favorite=False to not show unfavorited dashboards.
+        missing_dashboards = (
+            Dashboard.objects.filter(
+                organization=organization,
+                prebuilt_id__in=pre_favorited_ids,
+            )
+            .exclude(
+                id__in=DashboardFavoriteUser.objects.filter(
+                    organization=organization,
+                    user_id=user_id,
+                ).values_list("dashboard_id", flat=True)
+            )
+            .order_by("title")
+        )
+        for dashboard in missing_dashboards:
+            if is_default_order:
+                DashboardFavoriteUser.objects.insert_favorite_dashboard_alphabetically(
+                    organization, user_id, dashboard
+                )
+            else:
+                DashboardFavoriteUser.objects.insert_favorite_dashboard(
+                    organization=organization,
+                    user_id=user_id,
+                    dashboard=dashboard,
+                )
+
+
 class OrganizationDashboardsPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
@@ -346,7 +414,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardsPermission,)
 
     @extend_schema(
-        operation_id="List an Organization's Custom Dashboards",
+        operation_id="listOrganizationDashboards",
+        summary="List an Organization's Custom Dashboards",
         parameters=[GlobalParams.ORG_ID_OR_SLUG, VisibilityParams.PER_PAGE, CursorQueryParam],
         request=None,
         responses={
@@ -371,6 +440,10 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
 
+        has_dashboards_starred = features.has(
+            "organizations:dashboards-starred", organization, actor=request.user
+        )
+
         if features.has(
             "organizations:dashboards-prebuilt-insights-dashboards",
             organization,
@@ -389,6 +462,20 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 pass
             except Exception as err:
                 sentry_sdk.capture_exception(err)
+
+            if has_dashboards_starred:
+                try:
+                    favorite_lock = locks.get(
+                        f"dashboards:sync_prebuilt_dashboards_favorited:{organization.id}:{request.user.id}",
+                        duration=10,
+                        name="sync_prebuilt_dashboards_favorited",
+                    )
+                    with favorite_lock.acquire():
+                        sync_prebuilt_dashboards_favorited(organization, request.user.id)
+                except UnableToAcquireLock:
+                    pass
+                except Exception as err:
+                    sentry_sdk.capture_exception(err)
 
         filters = request.query_params.getlist("filter")
 
@@ -501,7 +588,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 Case(When(created_by_id=request.user.id, then=-1), default=1),
                 "-last_visited",
             ]
-
+        elif "onlyFavorites" in filters and has_dashboards_starred:
+            favorite_dashboards = DashboardFavoriteUser.objects.get_favorite_dashboards(
+                organization, request.user.id
+            ).filter(dashboard_id=OuterRef("id"))
+            dashboards = dashboards.annotate(
+                favorite_position=Subquery(favorite_dashboards.values("position")[:1])
+            )
+            order_by = [F("favorite_position").asc(nulls_last=True), "title"]
         else:
             order_by = ["title"]
 
@@ -524,7 +618,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
         list_serializer = DashboardListSerializer()
 
-        def handle_results(results: list[Dashboard]) -> list[dict[str, Any]]:
+        def handle_results(results: list[Dashboard]) -> list[DashboardListResponse]:
             return serialize(
                 results,
                 request.user,
@@ -540,7 +634,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a New Dashboard for an Organization",
+        operation_id="createOrganizationDashboard",
+        summary="Create a New Dashboard for an Organization",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=DashboardSerializer,
         responses={
@@ -552,7 +647,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         },
         examples=DashboardExamples.DASHBOARD_POST_RESPONSE,
     )
-    def post(self, request: Request, organization: Organization, retry: int = 0) -> Response:
+    def post(
+        self, request: Request, organization: Organization, retry: int = 0
+    ) -> (
+        Response[DashboardDetailsResponse]
+        | Response[None]
+        | Response[ValidationErrorResponse]
+        | Response[str]
+    ):
         """
         Create a new dashboard for the given Organization
         """
@@ -573,7 +675,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         if request.GET.get("validateOnly"):
             return Response(status=200)
@@ -603,7 +705,8 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
                 dashboard = serializer.save()
 
-            return Response(serialize(dashboard, request.user), status=201)
+            body: DashboardDetailsResponse = serialize(dashboard, request.user)
+            return Response(body, status=201)
         except IntegrityError:
             if retry >= MAX_RETRIES:
                 return Response("Dashboard title already taken", status=409)

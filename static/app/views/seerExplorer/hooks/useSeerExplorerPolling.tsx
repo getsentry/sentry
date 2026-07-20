@@ -5,7 +5,10 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
 import type {PollingState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
+import type {
+  SeerExplorerResponse,
+  SeerExplorerRunId,
+} from 'sentry/views/seerExplorer/types';
 import type {Block} from 'sentry/views/seerExplorer/types';
 import {
   isSeerExplorerEnabled,
@@ -36,7 +39,7 @@ const getTimestampAge = (updatedAt: string | undefined): number | null => {
 };
 
 const getPollingState = (
-  runId: number | null,
+  runId: SeerExplorerRunId | null,
   sessionData: SeerExplorerResponse['session'] | undefined,
   isError: boolean,
   errorStatusCode: number | undefined,
@@ -70,7 +73,7 @@ const getPollingState = (
  * Called exclusively by `SeerExplorerChatStateProvider`, which dispatches the
  * derived polling state into context for all consumers.
  */
-export const useSeerExplorerPolling = ({runId}: {runId: number | null}) => {
+export const useSeerExplorerPolling = ({runId}: {runId: SeerExplorerRunId | null}) => {
   const organization = useOrganization({allowNull: true});
   const orgSlug = organization?.slug;
   const errorPollCountRef = useRef(0);

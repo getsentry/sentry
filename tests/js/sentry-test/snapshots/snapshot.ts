@@ -110,7 +110,7 @@ interface TakeSnapshotOptions {
   metadata: SnapshotTestMetadata;
   renderFn: () => ReactElement;
   testFilePath: string;
-  theme: string | undefined;
+  theme?: 'light' | 'dark';
   viewport?: {width: number; height?: number};
   viewportLabel?: string;
 }
@@ -170,6 +170,7 @@ export async function takeSnapshot({
       display_name: metadata.display_name ?? displayName,
       group: metadata.group ?? group,
       tags: Object.keys(tags).length > 0 ? tags : undefined,
+      canvas_theme: theme,
       context: {test_file_path: relativePath},
     };
 

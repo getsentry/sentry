@@ -38,7 +38,6 @@ const getRow = (row: Subscription) => [
             </span>
           )}
         </small>
-        {row.usageExceeded && <Tag variant="warning">Capacity Limit</Tag>}
         {row.isSuspended && (
           <Tooltip title={row.suspensionReason}>
             <Tag variant="danger">Suspended</Tag>
@@ -82,6 +81,12 @@ export function CustomerGrid(props: Props) {
     <ResultGrid
       inPanel
       isCellScoped
+      probeAcrossRegions
+      // An exact match is an org whose slug equals the searched term, so we can
+      // surface the cross-region hint even when only similar slugs come back in
+      // the current region. `query` arrives trimmed + lower-cased; org slugs are
+      // always lower-case, so a direct comparison is correct.
+      exactMatchQuery={(row: Subscription, query: string) => row.slug === query}
       path="/_admin/customers/"
       method="GET"
       columns={[
@@ -150,13 +155,6 @@ export function CustomerGrid(props: Props) {
         },
         suspended: {
           name: 'Suspended',
-          options: [
-            ['0', 'No'],
-            ['1', 'Yes'],
-          ],
-        },
-        usageExceeded: {
-          name: 'Usage Exceeded',
           options: [
             ['0', 'No'],
             ['1', 'Yes'],

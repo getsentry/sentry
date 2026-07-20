@@ -6,7 +6,6 @@ from collections.abc import Callable, Collection, Iterable
 from typing import TYPE_CHECKING, Any, ClassVar
 from uuid import uuid1
 
-import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.db.models import Count, Q, QuerySet, Subquery
@@ -49,6 +48,7 @@ from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
+from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -381,11 +381,11 @@ class Project(Model):
         from sentry.models.counter import Counter
 
         with (
-            sentry_sdk.start_span(op="project.next_short_id") as span,
+            start_span(op="project.next_short_id", name="project.next_short_id") as span,
             metrics.timer("project.next_short_id"),
         ):
-            span.set_data("project_id", self.id)
-            span.set_data("project_slug", self.slug)
+            set_span_data(span, "project_id", self.id)
+            set_span_data(span, "project_slug", self.slug)
             return Counter.increment(self, delta)
 
     def _save_project(self, *args, **kwargs):
@@ -442,7 +442,9 @@ class Project(Model):
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
-        return self.option_manager.get_value(self, key, default, validate)
+        from sentry.models.options.project_option import get_option
+
+        return get_option(self.id, key, default, validate)
 
     def update_option(self, key: str, value: Any) -> bool:
         """
@@ -497,6 +499,7 @@ class Project(Model):
         from sentry.integrations.models.repository_project_path_config import (
             RepositoryProjectPathConfig,
         )
+        from sentry.integrations.services.integration import integration_service
         from sentry.models.environment import Environment, EnvironmentProject
         from sentry.models.projectcodeowners import ProjectCodeOwners
         from sentry.models.projectrepository import ProjectRepository
@@ -516,6 +519,7 @@ class Project(Model):
         )
         from sentry.workflow_engine.processors.project_transfer import (
             clone_workflow_to_organization,
+            reconnect_moved_workflow_actions,
         )
 
         old_org_id = self.organization_id
@@ -661,6 +665,12 @@ class Project(Model):
             Detector.objects.filter(project_id=self.id).values_list("id", flat=True)
         )
         if detector_ids:
+            # grab the destination org's integrations outside of the transaction since it's an RPC call
+            destination_integration_ids_by_provider: dict[str, list[int]] = defaultdict(list)
+            for integration in integration_service.get_integrations(
+                organization_id=organization.id, status=ObjectStatus.ACTIVE
+            ):
+                destination_integration_ids_by_provider[integration.provider].append(integration.id)
             with transaction.atomic(router.db_for_write(Workflow)):
                 # DataSources are 1:1 with their source (e.g. QuerySubscription, Monitor) and are
                 # detector-scoped, so they always transfer.
@@ -744,6 +754,13 @@ class Project(Model):
                     organization_id=organization.id
                 )
 
+                # update the integration id or disable the action. Actions only ever attach to
+                # the if_condition_groups, not the when_condition_groups
+                reconnect_moved_workflow_actions(
+                    exclusive_condition_group_ids,
+                    destination_integration_ids_by_provider,
+                )
+
                 # Clone the shared workflows into the new org and re-point only this project's links.
                 # we use DetectorWorkflow to identify Workflows that need to be cloned, but once we clone
                 # we remove the DetectorWorkflow links to the old Workflow so that in a re-run these cloned
@@ -760,6 +777,7 @@ class Project(Model):
                             workflow,
                             organization,
                             resolve_environment_id(workflow.environment_id),
+                            destination_integration_ids_by_provider,
                         )
                         # Detectors are project-scoped and move with this project, so re-point all
                         # of their workflow links (cron, issue_stream, error, ...) onto the clone.

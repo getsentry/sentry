@@ -4,7 +4,6 @@ import base64
 import logging
 import os
 from copy import deepcopy
-from datetime import datetime
 from typing import Any
 
 import google.auth
@@ -16,12 +15,13 @@ from django.conf import settings
 from django.urls import reverse
 from google.auth import impersonated_credentials
 from google.auth.transport.requests import Request
-from rediscluster import RedisCluster
+from sentry_redis_tools.clients import RedisCluster
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
 from sentry.models.project import Project
 from sentry.utils import redis, safe
+from sentry.utils.dates import deprecated_utcnow
 from sentry.utils.http import get_origins
 
 logger = logging.getLogger(__name__)
@@ -263,7 +263,7 @@ TOKEN_TTL_SECONDS = 3600
 
 def _get_cluster() -> RedisCluster:
     cluster_key = settings.SENTRY_DEBUG_FILES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+    return redis.redis_clusters.get(cluster_key)
 
 
 def _last_upload_key(project_id: int) -> str:
@@ -271,7 +271,7 @@ def _last_upload_key(project_id: int) -> str:
 
 
 def record_last_upload(project: Project):
-    timestamp = int(datetime.utcnow().timestamp() * 1000)
+    timestamp = int(deprecated_utcnow().timestamp() * 1000)
     _get_cluster().setex(_last_upload_key(project.id), LAST_UPLOAD_TTL, timestamp)
 
 

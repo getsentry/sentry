@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {rc, type Responsive} from '@sentry/scraps/layout';
 
-import type {ContentVariant, TextSize} from 'sentry/utils/theme';
+import type {ContentVariant, TextSize, Theme} from 'sentry/utils/theme';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
 
@@ -99,9 +99,18 @@ export interface BaseTextProps {
   wrap?: 'nowrap' | 'normal' | 'pre' | 'pre-line' | 'pre-wrap';
 }
 
-export type ExclusiveTextEllipsisProps =
-  | {ellipsis?: true; wrap?: never}
-  | {ellipsis?: never; wrap?: BaseTextProps['wrap']};
+type ExclusiveTextEllipsisProps =
+  | {
+      // ellipsis always needs a block-level box to truncate
+      display?: never;
+      ellipsis?: true;
+      wrap?: never;
+    }
+  | {
+      display?: Responsive<DisplayValue>;
+      ellipsis?: never;
+      wrap?: BaseTextProps['wrap'];
+    };
 
 interface TextAttributes<T extends TextPrimitive = 'span'>
   extends
@@ -154,6 +163,58 @@ interface TextAttributes<T extends TextPrimitive = 'span'>
 
 type TextPrimitive = 'span' | 'p' | 'label' | 'div' | 'time' | 'legend';
 
+type DisplayValue = 'inline' | 'block' | 'inline-block' | 'none';
+
+function getDefaultDisplay(p: {
+  align?: BaseTextProps['align'];
+  as?: TextPrimitive;
+  ellipsis?: boolean;
+}): DisplayValue | undefined {
+  if (p.as === 'div') {
+    return 'block';
+  }
+  if (p.ellipsis || p.align) {
+    return p.as === 'span' ? 'inline-block' : 'block';
+  }
+  return undefined;
+}
+
+function getNativeDisplay(as: TextPrimitive | undefined): DisplayValue {
+  return as === 'p' || as === 'div' || as === 'legend' ? 'block' : 'inline';
+}
+
+/**
+ * When no explicit `display` prop is set, the derived default is applied.
+ * For a responsive prop we seed the base (`2xs`) slot when the consumer left it unset
+ * (with the derived default, or the element's native display when there is none)
+ * so unspecified small breakpoints keep the sensible default instead of inheriting the value of
+ * the smallest specified breakpoint (which `rc` would otherwise make the base).
+ */
+function resolveDisplay(p: {
+  theme: Theme;
+  align?: BaseTextProps['align'];
+  as?: TextPrimitive;
+  display?: Responsive<DisplayValue>;
+  ellipsis?: boolean;
+}): string | undefined {
+  const fallback = getDefaultDisplay(p);
+
+  if (p.display === undefined) {
+    return fallback ? `display: ${fallback};` : undefined;
+  }
+
+  if (typeof p.display === 'string') {
+    return `display: ${p.display};`;
+  }
+
+  const value =
+    p.display['2xs'] === undefined
+      ? {'2xs': fallback ?? getNativeDisplay(p.as), ...p.display}
+      : p.display;
+
+  return rc('display', value, p.theme);
+}
+
 export type TextProps<T extends TextPrimitive> = TextAttributes<T> &
   ExclusiveTextEllipsisProps;
 
@@ -200,6 +261,7 @@ export const Text = styled(
 )`
   ${p => rc('font-size', p.size, p.theme, v => getFontSize(v, p.theme))};
   ${p => rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
+  ${p => resolveDisplay(p)};
   ${p => rc('text-align', p.align, p.theme)};
 
   font-style: ${p => (p.italic ? 'italic' : undefined)};
@@ -219,14 +281,6 @@ export const Text = styled(
   text-wrap: ${p => p.textWrap ?? undefined};
   word-break: ${p => p.wordBreak ?? undefined};
   width: ${p => (p.ellipsis ? '100%' : undefined)};
-  display: ${p =>
-    p.as === 'div'
-      ? 'block'
-      : p.ellipsis || p.align
-        ? p.as === 'span'
-          ? 'inline-block'
-          : 'block'
-        : undefined};
 
   font-family: ${p => p.theme.font.family[p.monospace ? 'mono' : 'sans']};
   font-weight: ${p =>

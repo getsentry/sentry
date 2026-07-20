@@ -6,7 +6,6 @@ import {Button} from '@sentry/scraps/button';
 
 import {IconCircleFill, IconClose, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {EventView} from 'sentry/utils/discover/eventView';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
@@ -14,16 +13,12 @@ import {
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import type {TraceMetaQueryResults} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceMeta';
 import {DrawerContainerRefContext} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/drawerContainerRefContext';
 import {
   usePassiveResizableDrawer,
   type UsePassiveResizableDrawerOptions,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/usePassiveResizeableDrawer';
-import type {
-  TraceShape,
-  TraceTree,
-} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTreeNode/baseNode';
 import type {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
@@ -40,16 +35,12 @@ import {type TraceTabsReducerState} from 'sentry/views/performance/newTraceDetai
 
 type TraceDrawerProps = {
   manager: VirtualizedViewManager;
-  meta: TraceMetaQueryResults;
-  onScrollToNode: (node: BaseNode) => void;
   onTabScrollToNode: (node: BaseNode) => void;
   replay: ReplayRecord | null;
   scheduler: TraceScheduler;
   trace: TraceTree;
-  traceEventView: EventView;
   traceGridRef: HTMLElement | null;
   traceId: string;
-  traceType: TraceShape;
 };
 
 export function TraceDrawer(props: TraceDrawerProps) {

@@ -22,7 +22,7 @@ import {
 } from 'sentry/views/explore/spans/charts';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
-import type {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 const ERRORS_CHART_GROUP = 'errors-charts_group';
 
@@ -103,7 +103,7 @@ function Chart() {
               chartInfo={{
                 chartType: ChartType.LINE,
                 series: [],
-                timeseriesResult: {} as ReturnType<typeof useSortedTimeSeries>,
+                timeseriesResult: {} as SortedTimeSeries,
                 yAxis: 'count(errors)',
               }}
               chartRef={chartRef}

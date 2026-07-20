@@ -28,51 +28,6 @@ class Migration(CheckedMigration):
 
     is_post_deployment = True
 
-    replaces = [
-        ("uptime", "0001_uptime_subscriptions"),
-        ("uptime", "0002_remove_separate_remote_subscription"),
-        ("uptime", "0003_drop_remote_subscription"),
-        ("uptime", "0004_projectuptimesubscription_mode"),
-        ("uptime", "0005_uptime_status"),
-        ("uptime", "0006_projectuptimesubscription_name_owner"),
-        ("uptime", "0007_update_detected_subscription_interval"),
-        ("uptime", "0008_uptime_url_suffix"),
-        ("uptime", "0009_better_name_for_uptime_rdap_columns"),
-        ("uptime", "0010_remove_uptime_whois_columns_state"),
-        ("uptime", "0011_remove_uptime_whois_columns_db"),
-        ("uptime", "0012_uptime_subscription_request_fields"),
-        ("uptime", "0013_uptime_subscription_new_unique"),
-        ("uptime", "0014_add_uptime_enviromnet"),
-        ("uptime", "0015_headers_deafult_empty_list"),
-        ("uptime", "0016_translate_uptime_object_headers_to_lists"),
-        ("uptime", "0017_unique_on_timeout"),
-        ("uptime", "0018_add_trace_sampling_field_to_uptime"),
-        ("uptime", "0019_uptime_region"),
-        ("uptime", "0020_drop_region"),
-        ("uptime", "0021_drop_region_table_col"),
-        ("uptime", "0022_add_trace_sampling_to_uptime_monitors"),
-        ("uptime", "0023_translate_uptime_object_headers_to_lists_take_two"),
-        ("uptime", "0024_add_status_to_project_uptime_subscription"),
-        ("uptime", "0025_uptime_migrate_constraint"),
-        ("uptime", "0026_region_mode_col"),
-        ("uptime", "0027_remove_migrated_and_unique_constraint"),
-        ("uptime", "0028_drop_migrated_column"),
-        ("uptime", "0029_uptime_subscription_index_domain_cols"),
-        ("uptime", "0030_status_update_date"),
-        ("uptime", "0031_translate_uptime_object_headers_to_lists_take_three"),
-        ("uptime", "0032_stats_on_subscription"),
-        ("uptime", "0033_uptime_backfill_to_detectors"),
-        ("uptime", "0034_uptime_backfill_uptime_status"),
-        ("uptime", "0035_uptime_backfill_detector_enabled"),
-        ("uptime", "0036_uptime_status_indexes"),
-        ("uptime", "0037_fix_drift_default_to_db_default"),
-        ("uptime", "0038_uptime_drop_project_subscription_uptime_status"),
-        ("uptime", "0039_uptime_drop_project_subscription_uptime_status_db"),
-        ("uptime", "0040_uptime_backfill_detector_conditions"),
-        ("uptime", "0041_uptime_backfill_detector_grouphash"),
-        ("uptime", "0042_extra_uptime_indexes"),
-    ]
-
     initial = True
 
     checked = False  # This is an initial migration and can take locks

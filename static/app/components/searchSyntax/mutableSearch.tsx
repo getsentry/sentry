@@ -214,7 +214,8 @@ function parseToFlatTokens(query: string): Token[] {
           !/\s/.test(rawVal)
         ) {
           const op = t.operator ?? '';
-          text = `${keyName}:${op}${rawVal}`;
+          const negation = t.negated ? '!' : '';
+          text = `${negation}${keyName}:${op}${rawVal}`;
         }
 
         let wildcard: WildcardOperators | undefined;
@@ -691,7 +692,7 @@ export class MutableSearch {
         t.listValues && t.listValues.length > 0 ? t.listValues : [t.value ?? ''];
       (acc[t.key] ??= []).push(...values);
       return acc;
-    }, {});
+    }, Object.create(null));
   }
 
   getFilterValues(key: string): string[] {

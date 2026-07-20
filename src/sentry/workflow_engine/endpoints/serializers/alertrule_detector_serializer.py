@@ -12,7 +12,7 @@ class AlertRuleDetectorSerializerResponse(TypedDict):
 
 
 @register(AlertRuleDetector)
-class AlertRuleDetectorSerializer(Serializer):
+class AlertRuleDetectorSerializer(Serializer[AlertRuleDetectorSerializerResponse]):
     def serialize(
         self, obj: AlertRuleDetector, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> AlertRuleDetectorSerializerResponse:

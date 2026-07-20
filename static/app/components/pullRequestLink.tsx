@@ -32,7 +32,7 @@ type Props = {
 };
 
 export function PullRequestLink({pullRequest, repository}: Props) {
-  const displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title}`;
+  const displayId = `${repository.name} #${pullRequest.id}: ${pullRequest.title ?? ''}`;
 
   if (!pullRequest.externalUrl) {
     return (

@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import {createParser, parseAsStringLiteral, useQueryState, useQueryStates} from 'nuqs';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {replayDetailFilterParsers} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

@@ -1,6 +1,6 @@
-import {defined} from 'sentry/utils';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {defined} from 'sentry/utils/defined';
 import {
   DAY,
   formatAbbreviatedNumberWithDynamicPrecision,

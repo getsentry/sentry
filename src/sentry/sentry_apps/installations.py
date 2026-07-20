@@ -26,8 +26,8 @@ from sentry.sentry_apps.api.serializers.sentry_app_installation import (
     SentryAppInstallationResult,
     SentryAppInstallationSerializer,
 )
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
-    SentryAppEventType,
     SentryAppInteractionEvent,
     SentryAppInteractionType,
 )
@@ -70,6 +70,8 @@ class SentryAppInstallationTokenCreator:
             )
 
     def _create_api_token(self) -> ApiToken:
+        assert self.sentry_app.proxy_user, "requires a proxy user"
+
         return ApiToken.objects.create(
             user=self.sentry_app.proxy_user,
             application_id=self.sentry_app.application_id,

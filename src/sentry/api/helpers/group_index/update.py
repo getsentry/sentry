@@ -25,13 +25,13 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.action_log import (
-    ActionType,
     action_context_scope,
     get_action_context,
     publish_action,
-    publish_action_from_context,
+    resolve_action_actor,
     resolve_action_source,
 )
+from sentry.issues.action_log.types import MergeIntoOtherAction
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import MergedGroup, handle_merge
@@ -213,10 +213,18 @@ def update_groups(
     if discard:
         return handle_discard(request, groups, projects, acting_user)
 
-    source = resolve_action_source(request)
-    actor_id = acting_user.id if acting_user else None
+    # Defer to an outer context if one is already set (e.g. an inbound Slack/Discord/
+    # MS Teams action handler that wrapped this call), so the integration source is not
+    # overwritten by the request-derived source. Only the outermost boundary attributes.
+    existing_ctx = get_action_context()
+    if existing_ctx is not None:
+        source = existing_ctx.source
+        actor = existing_ctx.actor
+    else:
+        source = resolve_action_source(request)
+        actor = resolve_action_actor(request)
 
-    with action_context_scope(source=source, actor_id=actor_id):
+    with action_context_scope(source=source, actor=actor):
         status_details = result.pop("statusDetails", result)
         status = result.get("status")
         res_type = None
@@ -467,6 +475,7 @@ def handle_resolve_in_release(
             group=group,
             project=project_lookup[group.project_id],
             resolution_type=res_type_str,
+            commit_id=commit.id if commit else None,
             sender=update_groups,
         )
 
@@ -499,7 +508,6 @@ def process_group_resolution(
 
     now = django_timezone.now()
     resolution = None
-    created = None
     if release:
         # These are the parameters that are set for creating a GroupResolution
         resolution_params: ResolutionParams = {
@@ -596,10 +604,10 @@ def process_group_resolution(
                         # fall back to our current model
                         ...
 
-        resolution, created = GroupResolution.objects.get_or_create(
+        resolution, resolution_created = GroupResolution.objects.get_or_create(
             group=group, defaults=resolution_params
         )
-        if not created:
+        if not resolution_created:
             resolution.update(datetime=django_timezone.now(), **resolution_params)
 
     if commit:
@@ -616,8 +624,6 @@ def process_group_resolution(
     affected = Group.objects.filter(id=group.id).update(
         status=GroupStatus.RESOLVED, resolved_at=now, substatus=None
     )
-    if not resolution:
-        created = bool(affected)
 
     group.status = GroupStatus.RESOLVED
     group.substatus = None
@@ -636,27 +642,28 @@ def process_group_resolution(
     if assigned_to is not None:
         result["assignedTo"] = assigned_to
 
-    if created:
-        activity = Activity.objects.create(
-            project=group.project,
-            group=group,
-            type=activity_type,
+    if bool(affected):
+        # If the group is resolved, then create an activities, actions, etc.
+        activity = Activity.objects.create_group_activity(
+            group,
+            ActivityType(activity_type),
             user_id=acting_user.id if acting_user else None,
-            ident=resolution.id if resolution else None,
             data=dict(activity_data),
+            ident=resolution.id if resolution else None,
+            send_notification=False,  # deferred via on_commit below, will also trigger the handlers
         )
+
         record_group_history_from_activity_type(group, activity_type, actor=acting_user)
-        publish_action_from_context(
-            action=ActionType.RESOLVE,
-            group_id=group.id,
-            organization_id=group.project.organization_id,
-            project_id=group.project_id,
-        )
 
         # TODO(dcramer): we need a solution for activity rollups
         # before sending notifications on bulk changes
         if not len(group_list) > 1:
-            transaction.on_commit(lambda: activity.send_notification(), router.db_for_write(Group))
+            # TODO - This will trigger it every time a user clicks resolved
+            # should this only trigger through workflow engine or the activity handler?
+            transaction.on_commit(
+                lambda: activity.send_notification(),
+                router.db_for_write(Group),
+            )
 
         update_group_open_period(
             group=group,
@@ -716,9 +723,10 @@ def handle_other_status_updates(
     new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
 
     with transaction.atomic(router.db_for_write(Group)):
-        status_updated = queryset.exclude(status=new_status).update(
-            status=new_status, substatus=new_substatus
+        status_updated = queryset.exclude(status=new_status).update_with_returning(
+            ["id"], status=new_status, substatus=new_substatus
         )
+        changed_group_ids = {row[0] for row in status_updated}
         GroupResolution.objects.filter(group__in=group_ids).delete()
         # Also delete commit/PR resolution links when unresolving to prevent
         # showing old "resolved by commit" after manual re-resolution
@@ -739,9 +747,10 @@ def handle_other_status_updates(
         else:
             result["statusDetails"] = {}
 
-    if group_list and status_updated:
+    changed_group_list = [group for group in group_list if group.id in changed_group_ids]
+    if changed_group_list:
         handle_status_update(
-            group_list=group_list,
+            group_list=changed_group_list,
             projects=projects,
             project_lookup=project_lookup,
             new_status=new_status,
@@ -824,26 +833,14 @@ def prepare_response(
             primary_id = int(merged["parent"])
             child_ids = [int(c) for c in merged["children"]]
             group_by_id = {g.id: g for g in group_list}
-            primary = group_by_id[primary_id]
-            publish_action(
-                action=ActionType.MERGE_FROM_OTHER,
-                source=ctx.source,
-                group_id=primary_id,
-                organization_id=primary.project.organization_id,
-                project_id=primary.project_id,
-                actor_id=ctx.actor_id,
-                metadata={"counterpart_group_ids": child_ids},
-            )
             for child_id in child_ids:
                 child = group_by_id[child_id]
                 publish_action(
-                    action=ActionType.MERGE_INTO_OTHER,
+                    MergeIntoOtherAction(counterpart_group_id=primary_id),
                     source=ctx.source,
                     group_id=child_id,
-                    organization_id=child.project.organization_id,
-                    project_id=child.project_id,
-                    actor_id=ctx.actor_id,
-                    metadata={"counterpart_group_id": primary_id},
+                    project=child.project,
+                    actor=ctx.actor,
                 )
 
     inbox = result.get("inbox", None)

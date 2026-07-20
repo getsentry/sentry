@@ -27,6 +27,7 @@ from sentry.sentry_apps.services.cell.model import RpcSentryAppError
 from sentry.sentry_apps.utils.errors import (
     SentryAppError,
     SentryAppIntegratorError,
+    SentryAppPublicErrorBody,
     SentryAppSentryError,
 )
 from sentry.users.models.user import User
@@ -117,7 +118,9 @@ def _check_sentry_app_disabled(
 class IntegrationPlatformEndpoint(Endpoint):
     allow_disabled_sentry_app_for_methods: set[str] = set()
 
-    def respond_rpc_sentry_app_error(self, rpc_error: RpcSentryAppError) -> Response:
+    def respond_rpc_sentry_app_error(
+        self, rpc_error: RpcSentryAppError
+    ) -> Response[SentryAppPublicErrorBody]:
         """
         Surfaces errors from the cell-side Sentry App RPC to the client.
         """
@@ -305,6 +308,7 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
         _check_sentry_app_disabled(self, request, sentry_app)
 
         sentry_sdk.get_isolation_scope().set_tag("sentry_app", sentry_app.slug)
+        sentry_sdk.get_isolation_scope().set_attribute("sentry_app", sentry_app.slug)
 
         kwargs["sentry_app"] = sentry_app
         return (args, kwargs)
@@ -325,6 +329,7 @@ class CellSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
         _check_sentry_app_disabled(self, request, sentry_app)
 
         sentry_sdk.get_isolation_scope().set_tag("sentry_app", sentry_app.slug)
+        sentry_sdk.get_isolation_scope().set_attribute("sentry_app", sentry_app.slug)
 
         kwargs["sentry_app"] = sentry_app
         return (args, kwargs)
@@ -452,6 +457,7 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
         _check_sentry_app_disabled(self, request, installation.sentry_app)
 
         sentry_sdk.get_isolation_scope().set_tag("sentry_app_installation", installation.uuid)
+        sentry_sdk.get_isolation_scope().set_attribute("sentry_app_installation", installation.uuid)
 
         kwargs["installation"] = installation
         return (args, kwargs)
@@ -459,7 +465,7 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
 
 class SentryAppInstallationExternalIssuePermission(SentryAppInstallationPermission):
     scope_map = {
-        "POST": ("event:read", "event:write", "event:admin"),
+        "POST": ("event:write", "event:admin"),
         "DELETE": ("event:admin",),
     }
 

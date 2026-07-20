@@ -85,6 +85,7 @@ class BaseRepositoryIntegration(ABC):
         accessible_only: bool = False,
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
+        parallel: bool = False,
     ) -> list[RepositoryInfo]:
         """
         Get a list of available repositories for an installation
@@ -114,6 +115,10 @@ class BaseRepositoryIntegration(ABC):
         pagination cap with more data still available, ``ApiPaginationTruncated``
         is raised with the partial result attached. Providers without a
         pagination cap may accept and ignore this argument.
+
+        ``parallel`` is a hint that pages after the first may be fetched
+        concurrently. Providers that do not implement parallel pagination may
+        accept and ignore this argument.
         """
         raise NotImplementedError
 
@@ -339,6 +344,7 @@ class RepositoryIntegration(
             )
             scope = sentry_sdk.get_isolation_scope()
             scope.set_tag("stacktrace_link.tried_version", False)
+            scope.set_attribute("stacktrace_link.tried_version", False)
 
             def encode_url(url: str) -> str:
                 parsed = urlparse(url)
@@ -353,12 +359,15 @@ class RepositoryIntegration(
             try:
                 if version:
                     scope.set_tag("stacktrace_link.tried_version", True)
+                    scope.set_attribute("stacktrace_link.tried_version", True)
                     source_url = self.check_file(repo, filepath, version)
                     if source_url:
                         scope.set_tag("stacktrace_link.used_version", True)
+                        scope.set_attribute("stacktrace_link.used_version", True)
                         return encode_url(source_url)
 
                 scope.set_tag("stacktrace_link.used_version", False)
+                scope.set_attribute("stacktrace_link.used_version", False)
                 source_url = self.check_file(repo, filepath, default)
             except (ApiForbiddenError, IntegrationConfigurationError) as e:
                 # Similar to the `check_file` implementation, we need to re-raise

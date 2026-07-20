@@ -14,7 +14,7 @@ import type {
 } from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils';
+import {defined} from 'sentry/utils/defined';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';

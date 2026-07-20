@@ -45,6 +45,7 @@ OPTION_KEYS = frozenset(
         "sentry:replay_rage_click_issues",
         "sentry:feedback_user_report_notifications",
         "sentry:feedback_ai_spam_detection",
+        "sentry:enable_auto_release_creation",
         "sentry:toolbar_allowed_origins",
         "sentry:token",
         "sentry:token_header",
@@ -249,3 +250,12 @@ class ProjectOption(Model):
             self.save()
 
         return (self.pk, ImportKind.Inserted)
+
+
+def get_option(
+    project: int | Project,
+    key: str,
+    default: Any | None = None,
+    validate: Callable[[object], bool] | None = None,
+) -> Any:
+    return ProjectOption.objects.get_value(project, key, default, validate)

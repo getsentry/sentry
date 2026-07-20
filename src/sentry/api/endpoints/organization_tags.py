@@ -24,9 +24,10 @@ from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
-from sentry.tagstore.types import TagKeySerializerResponse
+from sentry.tagstore.types import TagKeySerializer, TagKeySerializerResponse
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import set_span_attribute
+from sentry.utils.tracing import start_span
 
 
 @extend_schema(tags=["Discover"])
@@ -38,7 +39,8 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DATA_BROWSING
 
     @extend_schema(
-        operation_id="List an Organization's Tags",
+        operation_id="listOrganizationTags",
+        summary="List an Organization's Tags",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
@@ -81,14 +83,17 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
         },
         examples=[TagsExamples.ORGANIZATION_TAGS],
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[TagKeySerializerResponse]]:
         """
         Return a list of tag keys for the given organization.
         """
         try:
             filter_params = self.get_filter_params(request, organization)
         except NoProjects:
-            return Response([])
+            empty: list[TagKeySerializerResponse] = []
+            return Response(empty)
 
         if request.GET.get("dataset"):
             try:
@@ -98,7 +103,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
         else:
             dataset = Dataset.Discover
 
-        with sentry_sdk.start_span(op="tagstore", name="get_tag_keys_for_projects"):
+        with start_span(op="tagstore", name="get_tag_keys_for_projects"):
             with handle_query_errors():
                 start = filter_params["start"]
                 end = filter_params["end"]
@@ -145,11 +150,17 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
 
                 # Setting the tag for now since the measurement is still experimental
                 sentry_sdk.set_tag("custom_tags.count", len(final_results))
+                sentry_sdk.set_attribute("custom_tags.count", len(final_results))
                 sentry_sdk.set_tag(
                     "custom_tags.count.grouped",
                     format_grouped_length(len(final_results), [1, 10, 50, 100]),
                 )
+                sentry_sdk.set_attribute(
+                    "custom_tags.count.grouped",
+                    format_grouped_length(len(final_results), [1, 10, 50, 100]),
+                )
                 sentry_sdk.set_tag("dataset_queried", dataset.value)
+                sentry_sdk.set_attribute("dataset_queried", dataset.value)
                 set_span_attribute("custom_tags.count", len(final_results))
 
-        return Response(serialize(final_results, request.user))
+        return Response(serialize(final_results, request.user, TagKeySerializer()))

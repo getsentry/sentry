@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.http import HttpRequest, HttpResponse
 from django.utils.safestring import mark_safe
 from django.views.generic import View
 
@@ -15,11 +16,12 @@ from .mail import COMMIT_EXAMPLE, MailPreview, make_feedback_issue
 
 @internal_cell_silo_view
 class DebugFeedbackIssueEmailView(View):
-    def get(self, request):
+    def get(self, request: HttpRequest) -> HttpResponse:
         org = Organization(id=1, slug="example", name="Example")
         project = Project(id=1, slug="example", name="Example", organization=org)
 
         event = make_feedback_issue(project)
+        assert event.occurrence is not None
         group = event.group
 
         rule = Rule(id=1, label="An example rule")

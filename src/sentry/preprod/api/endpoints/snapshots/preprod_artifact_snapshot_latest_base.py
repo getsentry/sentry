@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 import orjson
-from django.conf import settings
 from django.db.models import Q
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -18,14 +17,18 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationReleasePermission,
 )
+from sentry.api.helpers.projects import PROJECT_ID_OR_SLUG_SCHEMA
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.staff import is_active_staff
 from sentry.constants import ObjectStatus
+from sentry.issues.action_log import resolve_action_source
 from sentry.models.organization import Organization
 from sentry.objectstore import get_preprod_session
+from sentry.preprod.analytics import PreprodArtifactApiGetLatestBaseSnapshotEvent
 from sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot import (
     _strip_to_compact,
     build_snapshot_image_response,
@@ -50,9 +53,9 @@ LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS: dict[str, Any] = {
         "description": "Set to '1' or 'true' to strip image metadata to display_name, image_file_name, group, description",
     },
     "project": {
-        "type": "integer",
+        "type": "integer|string",
         "required": False,
-        "description": "Project ID to scope the lookup. Use either project or projectSlug when app_id is not unique across projects or project inference is unavailable.",
+        "description": "Project ID or slug to scope the lookup when app_id is not unique across projects or project inference is unavailable.",
     },
     "projectSlug": {
         "type": "string",
@@ -72,7 +75,8 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationReleasePermission,)
 
     @extend_schema(
-        operation_id="Retrieve latest base Snapshot",
+        operation_id="getOrganizationPreprodArtifactSnapshotLatestBase",
+        summary="Retrieve latest base Snapshot",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -91,10 +95,10 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
             ),
             OpenApiParameter(
                 name="project",
-                type=int,
+                type=PROJECT_ID_OR_SLUG_SCHEMA,
                 location="query",
                 required=False,
-                description="Project ID to scope the lookup.",
+                description="Project ID or slug to scope the lookup.",
             ),
             OpenApiParameter(
                 name="compact_metadata",
@@ -119,7 +123,7 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
         self,
         request: Request,
         organization: Organization,
-    ) -> Response:
+    ) -> Response[LatestBaseSnapshotResponseDict] | Response[DetailResponse]:
         """
         Retrieve the most recent base snapshot for a given app.
 
@@ -132,11 +136,6 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
 
         This endpoint requires a bearer token with `project:read` access.
         """
-        if not settings.IS_DEV and not features.has(
-            "organizations:preprod-snapshots", organization, actor=request.user
-        ):
-            return Response({"detail": "Feature not enabled"}, status=403)
-
         for param, spec in LATEST_BASE_SNAPSHOT_GET_QUERY_PARAMS.items():
             if spec.get("required") and not request.GET.get(param):
                 return Response({"detail": f"{param} query parameter is required"}, status=400)
@@ -146,10 +145,9 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
         branch = request.GET.get("branch")
         compact = request.GET.get("compact_metadata", "0") in ("1", "true")
 
-        try:
-            project_id = int(request.GET["project"]) if "project" in request.GET else None
-        except (ValueError, TypeError):
-            return Response({"detail": "Invalid project parameter"}, status=400)
+        project_filter = self.get_single_project_id_or_slug_from_request(
+            request, error_detail="Invalid project parameter"
+        )
 
         qs = (
             PreprodArtifact.objects.filter(
@@ -169,8 +167,11 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
         if not is_active_staff(request) and not request.access.has_global_access:
             qs = qs.filter(project_id__in=request.access.accessible_project_ids)
 
-        if project_id is not None:
-            qs = qs.filter(project_id=project_id)
+        if project_filter is not None:
+            if project_filter.project_id is not None:
+                qs = qs.filter(project_id=project_filter.project_id)
+            if project_filter.project_slug is not None:
+                qs = qs.filter(project__slug=project_filter.project_slug)
         if branch:
             qs = qs.filter(commit_comparison__head_ref=branch)
 
@@ -178,6 +179,19 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
 
         if artifact is None:
             return Response({"detail": "No snapshot found"}, status=404)
+
+        analytics.record(
+            PreprodArtifactApiGetLatestBaseSnapshotEvent(
+                organization_id=organization.id,
+                project_id=artifact.project_id,
+                user_id=(
+                    request.user.id if request.user and request.user.is_authenticated else None
+                ),
+                artifact_id=str(artifact.id),
+                app_id=app_id,
+                client=resolve_action_source(request),
+            )
+        )
 
         snapshot_metrics = artifact.preprodsnapshotmetrics
         manifest_key = (snapshot_metrics.extras or {}).get("manifest_key")
@@ -234,4 +248,8 @@ class OrganizationPreprodLatestBaseSnapshotEndpoint(OrganizationEndpoint):
                 for img in response_data["images"]
             ]
 
-        return Response(response_data)
+        # cast() sanctioned: response_data is a hand-built dict[str, Any] whose
+        # shape mirrors LatestBaseSnapshotResponseDict. The TypedDict and the
+        # builder are kept in sync by hand at the source of truth.
+        body = cast(LatestBaseSnapshotResponseDict, response_data)
+        return Response(body)

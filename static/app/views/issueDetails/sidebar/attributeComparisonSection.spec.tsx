@@ -6,6 +6,12 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {AttributeComparisonSection} from 'sentry/views/issueDetails/sidebar/attributeComparisonSection';
 
+jest.mock('echarts-for-react/lib/core', () => {
+  return jest.fn(({style}) => {
+    return <div style={{...style, background: 'green'}}>echarts mock</div>;
+  });
+});
+
 describe('AttributeComparisonSection', () => {
   const organization = OrganizationFixture();
   const openPeriodStart = '2024-01-01T00:00:00Z';
@@ -35,9 +41,16 @@ describe('AttributeComparisonSection', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/ranked/`,
       method: 'GET',
       body: {
-        cohort1Total: 0,
-        cohort2Total: 0,
-        rankedAttributes: [],
+        cohort1Total: 100,
+        cohort2Total: 200,
+        rankedAttributes: [
+          {
+            attributeName: 'browser.name',
+            cohort1: [{label: 'Chrome', value: 80}],
+            cohort2: [{label: 'Chrome', value: 100}],
+            order: {rrf: 1, rrr: null},
+          },
+        ],
       },
     });
 
@@ -46,6 +59,7 @@ describe('AttributeComparisonSection', () => {
     await waitFor(() => {
       expect(rankedAttributesRequest).toHaveBeenCalled();
     });
+    expect(await screen.findByText('browser.name')).toBeInTheDocument();
 
     const [requestUrl, requestOptions] = rankedAttributesRequest.mock.calls[0]!;
     expect(requestUrl).toBe(

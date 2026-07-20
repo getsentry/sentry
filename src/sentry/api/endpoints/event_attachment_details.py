@@ -15,6 +15,7 @@ from sentry.api.serializers.models.eventattachment import EventAttachmentSeriali
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.event_attachment_examples import EventAttachmentExamples
 from sentry.apidocs.parameters import EventParams, GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
@@ -32,6 +33,18 @@ ATTACHMENT_ID_PARAM = OpenApiParameter(
     required=True,
     type=str,
     description="The numeric ID of the attachment, as returned from the attachments list endpoint.",
+)
+
+DOWNLOAD_PARAM = OpenApiParameter(
+    name="download",
+    location="query",
+    required=False,
+    type=str,
+    description=(
+        "If this parameter is present, the response will be a binary file download "
+        "instead of JSON metadata. The value does not matter — any value (including "
+        "empty) triggers the download."
+    ),
 )
 
 
@@ -66,7 +79,7 @@ class EventAttachmentDetailsPermission(ProjectPermission):
 @extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class EventAttachmentDetailsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_INGEST
+    owner = ApiOwner.FOUNDATIONAL_STORAGE
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PUBLIC,
@@ -92,12 +105,14 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         return response
 
     @extend_schema(
-        operation_id="Retrieve an Event Attachment",
+        operation_id="getProjectEventAttachment",
+        summary="Retrieve an Event Attachment",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             EventParams.EVENT_ID,
             ATTACHMENT_ID_PARAM,
+            DOWNLOAD_PARAM,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -111,9 +126,15 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     )
     def get(
         self, request: Request, project, event_id, attachment_id
-    ) -> Response | StreamingHttpResponse:
+    ) -> (
+        Response[EventAttachmentSerializerResponse]
+        | Response[None]
+        | Response[DetailResponse]
+        | StreamingHttpResponse
+    ):
         """
-        Retrieve metadata for a single attachment on an event.
+        Retrieve metadata for a single attachment on an event, or download its
+        contents by passing the `download` query parameter.
 
         Requires the `event-attachments` organization feature.
         """

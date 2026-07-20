@@ -1,7 +1,6 @@
 from typing import Any
 from unittest.mock import Mock, patch
 
-import orjson
 import pytest
 
 from sentry.constants import (
@@ -14,24 +13,22 @@ from sentry.models.projectrepository import ProjectRepository
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     AutofixStatus,
+    CodingAgentStatus,
 )
 from sentry.seer.autofix.trigger import is_issue_eligible_for_seer_automation
 from sentry.seer.autofix.utils import (
     AutofixState,
     AutofixStoppingPoint,
-    AutofixTriggerSource,
     AutomationCodingAgent,
     CodingAgentProviderType,
-    CodingAgentStatus,
     add_seer_project_repos,
     bulk_read_preferences_from_sentry_db,
     bulk_write_preferences_to_sentry_db,
     clear_preference_automation_handoff,
     deduplicate_repositories,
     extract_api_error_message,
-    get_autofix_prompt,
-    get_coding_agent_prompt,
     get_org_default_seer_automation_handoff,
+    get_repo_url_path,
     has_project_connected_repos,
     is_seer_seat_based_tier_enabled,
     read_preference_from_sentry_db,
@@ -42,7 +39,6 @@ from sentry.seer.autofix.utils import (
 from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
-    SeerApiError,
     SeerAutomationHandoffConfiguration,
     SeerProjectPreference,
     SeerRepoDefinition,
@@ -55,214 +51,28 @@ from sentry.testutils.cases import TestCase
 from sentry.utils.cache import cache
 
 
-class TestGetAutofixPrompt(TestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.run_id = 12345
-        self.mock_response_data = {
-            "run_id": self.run_id,
-            "prompt": "Test prompt content",
-            "has_root_cause": True,
-            "has_solution": True,
-        }
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_root_cause_params(self, mock_make_request):
-        """Test get_autofix_prompt sends correct params for root cause."""
-        mock_response = Mock()
-        mock_response.status = 200
-        mock_response.data = orjson.dumps(self.mock_response_data)
-        mock_make_request.return_value = mock_response
-
-        result = get_autofix_prompt(self.run_id, True, False)
-
-        assert result == "Test prompt content"
-
-        mock_make_request.assert_called_once()
-        call = mock_make_request.call_args
-        # Positional args: (connection_pool, path)
-        assert call.args[0] is not None
-        assert call.args[1] == "/v1/automation/autofix/prompt"
-
-        # Keyword args
-        expected_body = {
-            "run_id": self.run_id,
-            "include_root_cause": True,
-            "include_solution": False,
-        }
-        actual_body = orjson.loads(call.kwargs["body"])  # bytes -> dict
-        assert actual_body == expected_body
-        assert call.kwargs["timeout"] == 15
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_solution_params(self, mock_make_request):
-        """Test get_autofix_prompt sends correct params for solution."""
-        mock_response = Mock()
-        mock_response.status = 200
-        mock_response.data = orjson.dumps(self.mock_response_data)
-        mock_make_request.return_value = mock_response
-
-        result = get_autofix_prompt(self.run_id, True, True)
-
-        assert result == "Test prompt content"
-
-        call = mock_make_request.call_args
-        expected_body = {
-            "run_id": self.run_id,
-            "include_root_cause": True,
-            "include_solution": True,
-        }
-        actual_body = orjson.loads(call.kwargs["body"])  # bytes -> dict
-        assert actual_body == expected_body
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_http_error_raises(self, mock_make_request):
-        """Test get_autofix_prompt raises on HTTP error status."""
-        mock_response = Mock()
-        mock_response.status = 404
-        mock_response.data = orjson.dumps({})
-        mock_make_request.return_value = mock_response
-
-        with pytest.raises(SeerApiError):
-            get_autofix_prompt(self.run_id, True, True)
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_timeout_error_raises(self, mock_make_request):
-        """Test get_autofix_prompt propagates timeout errors."""
-        mock_make_request.side_effect = Exception("Request timed out")
-
-        with pytest.raises(Exception):
-            get_autofix_prompt(self.run_id, True, True)
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_connection_error_raises(self, mock_make_request):
-        """Test get_autofix_prompt propagates connection errors."""
-        mock_make_request.side_effect = Exception("Connection failed")
-
-        with pytest.raises(Exception):
-            get_autofix_prompt(self.run_id, True, True)
-
-    @patch("sentry.seer.autofix.utils.make_signed_seer_api_request")
-    def test_get_autofix_prompt_json_decode_error_raises(self, mock_make_request):
-        """Test get_autofix_prompt propagates JSON decode errors."""
-        mock_response = Mock()
-        mock_response.status = 200
-        mock_response.data = b"invalid orjson"
-        mock_make_request.return_value = mock_response
-
-        with pytest.raises(Exception):
-            get_autofix_prompt(self.run_id, True, True)
-
-
-class TestGetCodingAgentPrompt(TestCase):
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_success(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt with successful autofix prompt."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION)
-
-        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nThis is the autofix prompt"
-        assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_root_cause_trigger(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt with root_cause trigger."""
-        mock_get_autofix_prompt.return_value = "Root cause analysis prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.ROOT_CAUSE)
-
-        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nRoot cause analysis prompt"
-        assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, False)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_instruction(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt with custom instruction."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(
-            12345, AutofixTriggerSource.SOLUTION, "Use TypeScript instead of JavaScript"
+class TestGetRepoUrlPath(TestCase):
+    def test_github_returns_name_unchanged(self) -> None:
+        repo = self.create_repo(
+            project=self.project, name="getsentry/sentry", provider="integrations:github"
         )
+        assert get_repo_url_path(repo) == "getsentry/sentry"
 
-        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nUse TypeScript instead of JavaScript\n\nThis is the autofix prompt"
-        assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_blank_instruction(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt with blank instruction is ignored."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, "   ")
-
-        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nThis is the autofix prompt"
-        assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_empty_instruction(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt with empty instruction is ignored."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, "")
-
-        expected = "Please fix the following issue. Ensure that your fix is fully working.\n\nThis is the autofix prompt"
-        assert result == expected
-        mock_get_autofix_prompt.assert_called_once_with(12345, True, True)
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_short_id(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt includes Fixes line when short_id is provided."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(
-            12345, AutofixTriggerSource.SOLUTION, None, short_id="AIML-2301"
+    def test_gitlab_returns_path_with_namespace(self) -> None:
+        repo = self.create_repo(
+            project=self.project, name="My Group / My Project", provider="integrations:gitlab"
         )
+        repo.config = {"path": "my-group/my-project"}
+        assert get_repo_url_path(repo) == "my-group/my-project"
 
-        assert "Fixes AIML-2301" in result
-        assert "Include 'Fixes AIML-2301' in the commit message" in result
-        assert "Please fix the following issue" in result
-        assert "This is the autofix prompt" in result
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_without_short_id(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt does not include Fixes line when short_id is None."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, None, short_id=None)
-
-        assert "Fixes" not in result
-        assert "Please fix the following issue" in result
-        assert "This is the autofix prompt" in result
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_short_id_and_instruction(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt includes both Fixes line and instruction."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(
-            12345,
-            AutofixTriggerSource.SOLUTION,
-            "Be careful with backwards compatibility",
-            short_id="PROJ-1234",
+    def test_gitlab_missing_path_raises(self) -> None:
+        repo = self.create_repo(
+            project=self.project, name="My Group / My Project", provider="integrations:gitlab"
         )
-
-        assert "Fixes PROJ-1234" in result
-        assert "Be careful with backwards compatibility" in result
-        assert "Please fix the following issue" in result
-        assert "This is the autofix prompt" in result
-
-    @patch("sentry.seer.autofix.utils.get_autofix_prompt")
-    def test_get_coding_agent_prompt_with_empty_short_id(self, mock_get_autofix_prompt):
-        """Test get_coding_agent_prompt does not include Fixes line when short_id is empty string."""
-        mock_get_autofix_prompt.return_value = "This is the autofix prompt"
-
-        result = get_coding_agent_prompt(12345, AutofixTriggerSource.SOLUTION, None, short_id="")
-
-        assert "Fixes" not in result
-        assert "Please fix the following issue" in result
+        # repo.config defaults to {} (no "path"), which should never happen for a
+        # real GitLab repo — fail loudly instead of returning the display name.
+        with pytest.raises(ValueError):
+            get_repo_url_path(repo)
 
 
 class TestAutofixStateParsing(TestCase):
@@ -1878,11 +1688,27 @@ class TestAddSeerProjectRepos(TestCase):
         assert overrides[0].branch_name == "release"
 
     def test_upserts_existing_repo(self):
-        self.create_seer_project_repository(self.project, repository=self.repo1, branch_name="old")
+        existing = self.create_seer_project_repository(
+            self.project, repository=self.repo1, branch_name="old"
+        )
+        SeerProjectRepositoryBranchOverride.objects.create(
+            seer_project_repository=existing,
+            tag_name="env",
+            tag_value="staging",
+            branch_name="old-staging",
+        )
 
         add_seer_project_repos(
             self.project,
-            [{"repository_id": self.repo1.id, "branch_name": "new"}],
+            [
+                {
+                    "repository_id": self.repo1.id,
+                    "branch_name": "new",
+                    "branch_overrides": [
+                        {"tag_name": "env", "tag_value": "prod", "branch_name": "release"},
+                    ],
+                }
+            ],
         )
 
         assert (
@@ -1893,6 +1719,11 @@ class TestAddSeerProjectRepos(TestCase):
             project_repository__project=self.project, project_repository__repository=self.repo1
         )
         assert pr.branch_name == "new"
+        overrides = list(pr.branch_overrides.all())
+        assert len(overrides) == 1
+        assert overrides[0].tag_name == "env"
+        assert overrides[0].tag_value == "prod"
+        assert overrides[0].branch_name == "release"
 
     def test_returns_created_ids(self):
         created_ids = add_seer_project_repos(self.project, [{"repository_id": self.repo1.id}])

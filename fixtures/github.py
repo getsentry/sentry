@@ -731,6 +731,72 @@ INSTALLATION_DELETE_EVENT_EXAMPLE = """{
   }
 }"""
 
+INSTALLATION_NEW_PERMISSIONS_EVENT_EXAMPLE = """{
+  "action": "new_permissions_accepted",
+  "installation": {
+    "id": 2,
+    "client_id": "Iv1.abc123",
+    "account": {
+      "login": "octocat",
+      "id": 1,
+      "node_id": "MDQ6VXNlcjE=",
+      "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/octocat",
+      "html_url": "https://github.com/octocat",
+      "type": "User",
+      "user_view_type": "public",
+      "site_admin": false
+    },
+    "repository_selection": "all",
+    "access_tokens_url": "https://api.github.com/app/installations/2/access_tokens",
+    "repositories_url": "https://api.github.com/installation/repositories",
+    "html_url": "https://github.com/settings/installations/2",
+    "app_id": 123,
+    "app_slug": "octocat-app",
+    "target_id": 1,
+    "target_type": "User",
+    "permissions": {
+      "actions": "read",
+      "administration": "read",
+      "checks": "write",
+      "contents": "write",
+      "issues": "write",
+      "metadata": "read",
+      "pull_requests": "write",
+      "repository_hooks": "write",
+      "statuses": "write"
+    },
+    "events": [
+      "check_suite",
+      "issues",
+      "issue_comment",
+      "pull_request",
+      "pull_request_review",
+      "push"
+    ],
+    "created_at": "2019-01-01T08:56:55.000-04:00",
+    "updated_at": "2019-01-02T12:16:12.000-04:00",
+    "single_file_name": null,
+    "has_multiple_single_files": false,
+    "single_file_paths": [],
+    "suspended_by": null,
+    "suspended_at": null
+  },
+  "sender": {
+    "login": "octocat",
+    "id": 1,
+    "node_id": "MDQ6VXNlcjE=",
+    "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+    "gravatar_id": "",
+    "url": "https://api.github.com/users/octocat",
+    "html_url": "https://github.com/octocat",
+    "type": "User",
+    "user_view_type": "public",
+    "site_admin": false
+  }
+}"""
+
 INSTALLATION_REPO_EVENT = """{
   "action": "added",
   "installation": {

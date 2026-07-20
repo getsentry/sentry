@@ -11,6 +11,9 @@ import {
   OnboardingContextProvider,
   useOnboardingContext,
 } from 'sentry/components/onboarding/onboardingContext';
+import {PageCorners} from 'sentry/components/onboarding/pageCorners';
+import {Stepper} from 'sentry/components/onboarding/stepper';
+import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
 import {Override} from 'sentry/components/override';
 import {Redirect} from 'sentry/components/redirect';
@@ -21,8 +24,8 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
-import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useExperiment} from 'sentry/utils/useExperiment';
@@ -30,14 +33,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {PageCorners} from 'sentry/views/onboarding/components/pageCorners';
 import {useBackActions} from 'sentry/views/onboarding/useBackActions';
 import {useHasNewWelcomeUI} from 'sentry/views/onboarding/useHasNewWelcomeUI';
-import {useOnboardingSidebar} from 'sentry/views/onboarding/useOnboardingSidebar';
 
 import {NewWelcomeUI} from './components/newWelcome';
 import {OnboardingSkipButton} from './components/onboardingSkipButton';
-import {Stepper} from './components/stepper';
 import {PlatformSelection} from './platformSelection';
 import {ScmConnect} from './scmConnect';
 import {ScmPlatformFeatures} from './scmPlatformFeatures';
@@ -45,6 +45,11 @@ import {ScmProjectDetails} from './scmProjectDetails';
 import {SetupDocs} from './setupDocs';
 import {OnboardingStepId, type StepDescriptor, type StepProps} from './types';
 import {TargetedOnboardingWelcome} from './welcome';
+
+// Genuine new-org onboarding happens shortly after org creation. Existing orgs
+// only reach /onboarding via stale links + login replay and are far older than
+// this window, so gating exposure on org age keeps them out of the experiment.
+const NEW_ORG_ONBOARDING_WINDOW_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
 
 const legacyOnboardingSteps: StepDescriptor[] = [
   {
@@ -263,16 +268,26 @@ export function OnboardingWithoutContext() {
     onboardingContext.createdProjectSlug ?? onboardingContext.selectedPlatform?.key;
 
   const hasNewWelcomeUI = useHasNewWelcomeUI();
+
+  // Only report experiment exposure for genuine new-org onboarding. Existing
+  // orgs can land on /onboarding via stale links, which would
+  // otherwise contaminate the experiment population. reportExposure does not
+  // affect the returned `inExperiment` assignment, so step selection below still
+  // works for everyone.
+  const isNewOrgOnboarding =
+    Date.now() - new Date(organization.dateCreated).getTime() <
+    NEW_ORG_ONBOARDING_WINDOW_MS;
+
   const {inExperiment: hasScmOnboarding} = useExperiment({
     feature: 'onboarding-scm-experiment',
-    reportExposure: true,
+    reportExposure: isNewOrgOnboarding,
   });
 
   // Only report exposure for users who are actually in SCM onboarding —
   // the assignment is irrelevant for legacy onboarding.
   const {inExperiment: hasProjectDetailsStep} = useExperiment({
     feature: 'onboarding-scm-project-details-experiment',
-    reportExposure: hasScmOnboarding,
+    reportExposure: hasScmOnboarding && isNewOrgOnboarding,
   });
 
   const scmSteps = hasProjectDetailsStep
@@ -447,16 +462,19 @@ export function OnboardingWithoutContext() {
   return (
     <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
-      <Header columns={{'2xs': 'repeat(2, 1fr)', md: 'repeat(3, 1fr)'}} as="header">
+      <Header
+        columns={{'screen:2xs': 'repeat(2, 1fr)', 'screen:md': 'repeat(3, 1fr)'}}
+        as="header"
+      >
         <LogoSvg showWordmark={!hasScmOnboarding} />
         {stepIndex !== -1 && (
           <Flex
             justify="center"
             display={{
-              '2xs': 'none',
-              xs: 'none',
-              sm: 'none',
-              md: 'flex',
+              'screen:2xs': 'none',
+              'screen:xs': 'none',
+              'screen:sm': 'none',
+              'screen:md': 'flex',
             }}
           >
             <Stepper
@@ -582,6 +600,7 @@ const OnboardingContainer = styled('div')<{
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow-x: hidden;
   background: ${p => p.theme.tokens.background.primary};
   padding: ${p => (p.hasScmOnboarding ? '60px' : '120px')} ${p => p.theme.space['2xl']};
   width: 100%;

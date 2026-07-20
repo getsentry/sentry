@@ -22,6 +22,7 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 jest.mock('sentry/utils/analytics');
 const trackAnalyticsMock = jest.mocked(trackAnalytics);
@@ -40,6 +41,16 @@ const datePageFilterProps: DatePageFilterProps = {
     '24h': 'Last 24 hours',
     '7d': 'Last 7 days',
   }),
+};
+
+const validationBody: EventValidationData = {
+  dataset: [],
+  environment: [],
+  field: [],
+  orderby: [],
+  projects: [],
+  query: {error: null, fields: [], valid: true},
+  valid: true,
 };
 
 describe('MetricsTabContent', () => {
@@ -81,6 +92,12 @@ describe('MetricsTabContent', () => {
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
       body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/validate/`,
+      method: 'GET',
+      body: validationBody,
     });
 
     setupEventsMock(metricFixtures.detailedFixtures, [
@@ -147,11 +164,6 @@ describe('MetricsTabContent', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/validate/`,
-      method: 'POST',
-      body: {attributes: {}},
     });
 
     MockApiClient.addMockResponse({
@@ -611,7 +623,7 @@ describe('MetricsTabContent', () => {
     expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
   });
 
-  it('does not show the Add Equation button when the feature flag is disabled', async () => {
+  it('shows the Add Equation button', async () => {
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
@@ -621,28 +633,12 @@ describe('MetricsTabContent', () => {
       }
     );
     expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
-    expect(screen.queryByText('Add Equation')).not.toBeInTheDocument();
-  });
-
-  it('shows the Add Equation button when the feature flag is enabled', async () => {
-    const orgWithFeature = OrganizationFixture({
-      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
-    });
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        organization: orgWithFeature,
-      }
-    );
-    expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
     expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
   });
 
   it('renders aggregate and equation panels in separate sections', async () => {
     const orgWithFeatures = OrganizationFixture({
-      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+      features: ['tracemetrics-enabled'],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${orgWithFeatures.slug}/events/`,
@@ -707,7 +703,7 @@ describe('MetricsTabContent', () => {
       mode: 'aggregate',
     });
     const orgWithFeature = OrganizationFixture({
-      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+      features: ['tracemetrics-enabled'],
     });
     render(
       <ProviderWrapper>
@@ -756,7 +752,7 @@ describe('MetricsTabContent', () => {
 
   it('disables delete button for metrics referenced by an equation', async () => {
     const orgWithEquations = OrganizationFixture({
-      features: ['tracemetrics-enabled', 'tracemetrics-equations-in-explore'],
+      features: ['tracemetrics-enabled'],
     });
 
     const metricA = JSON.stringify({

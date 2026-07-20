@@ -2,17 +2,17 @@ import {useMemo, useRef} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 
-import type {ApiResult} from 'sentry/api';
+import type {ApiResult} from 'sentry/types/api';
 import type {Series} from 'sentry/types/echarts';
 import type {
   EventsStats,
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import {defined} from 'sentry/utils';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import type {
   EventsTableData,
   TableData,
@@ -22,7 +22,6 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {doOnDemandMetricsRequest} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 import {TransactionsConfig} from 'sentry/views/dashboards/datasetConfig/transactions';
@@ -84,10 +83,6 @@ export function useTransactionsSeriesQuery(
   );
 
   // Check if organization has the async queue feature
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
   const queryResults = useQueries({
     queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
@@ -202,13 +197,7 @@ export function useTransactionsSeriesQuery(
           return apiFetch<TransactionsSeriesResponse>(context);
         },
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
+        retry: false,
         retryDelay: getRetryDelay,
         placeholderData: keepPreviousData,
       });
@@ -315,10 +304,6 @@ export function useTransactionsTableQuery(
   );
 
   // Check if organization has the async queue feature
-  const hasQueueFeature = organization.features.includes(
-    'visibility-dashboards-async-queue'
-  );
-
   const queryResults = useQueries({
     queries: filteredWidget.queries.map(query => {
       // Clone the query to avoid mutating the original
@@ -392,13 +377,7 @@ export function useTransactionsTableQuery(
           return apiFetch<TransactionsTableResponse>(context);
         },
         enabled,
-        retry: hasQueueFeature
-          ? false
-          : (failureCount, error) => {
-              return (
-                error instanceof RequestError && error.status === 429 && failureCount < 10
-              );
-            },
+        retry: false,
         retryDelay: getRetryDelay,
         select: selectJsonWithHeaders,
       });

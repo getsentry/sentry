@@ -33,6 +33,7 @@ class GroupIntegrationsTest(APITestCase):
                 "domainName": integration.metadata.get("domain_name"),
                 "accountType": integration.metadata.get("account_type"),
                 "scopes": integration.metadata.get("scopes"),
+                "outOfDate": None,
                 "status": integration.get_status_display(),
                 "provider": {
                     "key": provider.key,
