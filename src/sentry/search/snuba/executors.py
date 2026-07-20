@@ -1518,17 +1518,20 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
         # Postgres is the sort authority: order the whole candidate set by the native score
         # and walk it. Snuba only decides membership below.
-        ordered_queryset, _order_by = strategy.native_order_by(group_queryset)
+        ordered_queryset, order_by = strategy.native_order_by(group_queryset)
         ordered_queryset = ordered_queryset.using_replica()
+        # order_by is the signed key (e.g. "-progress_sort_score"); the alias it references is
+        # the same name without the direction prefix.
+        sort_key = order_by.lstrip("-")
 
         # Bound the walk by the cursor in Postgres, reusing the .extra() alias SQL exactly as
         # BasePaginator.build_queryset does. FLOOR() is required: the score's tiebreak term
         # (EXTRACT(EPOCH ...) * 1000) is fractional, but the cursor value is the floored int
         # that SequencePaginator emits, so a raw "<= value" would drop the boundary-tie row.
-        col_sql, col_params = ordered_queryset.query.extra["progress_sort_score"]
+        col_sql, col_params = ordered_queryset.query.extra[sort_key]
         walk_queryset: Any = ordered_queryset
         if is_prev:
-            walk_queryset = walk_queryset.order_by("progress_sort_score", "id")
+            walk_queryset = walk_queryset.order_by(sort_key, "id")
         if cursor.value:
             operator = ">=" if is_prev else "<="
             walk_queryset = walk_queryset.extra(
