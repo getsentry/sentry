@@ -155,7 +155,7 @@ describe('ResolveActions', () => {
   it('can resolve in "another version"', async () => {
     const onUpdate = jest.fn();
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/releases/',
+      url: '/organizations/org-slug/releases/',
       body: [ReleaseFixture()],
     });
     render(
@@ -311,7 +311,7 @@ describe('ResolveActions', () => {
   it('does render next release option with subtitle', async () => {
     const onUpdate = jest.fn();
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/releases/',
+      url: '/organizations/org-slug/releases/',
       body: [ReleaseFixture()],
     });
     render(

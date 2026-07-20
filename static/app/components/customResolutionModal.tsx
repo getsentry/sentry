@@ -73,7 +73,7 @@ function getUniqueReleases(releases: Array<Release | null | undefined>): Release
 
 interface CustomResolutionModalProps extends ModalRenderProps {
   onSelected: (change: {inRelease: string}) => void;
-  project: Project;
+  project: Project | undefined;
 }
 
 export function CustomResolutionModal(props: CustomResolutionModalProps) {
@@ -84,20 +84,12 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
   const currentUser = ConfigStore.get('user');
   const [selectionError, setSelectionError] = useState<string | null>(null);
 
-  const releaseListOptions = apiOptions.as<Release[]>()(
-    '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        projectIdOrSlug: props.project.slug,
-      },
-      query: {query: debouncedSearch},
-      staleTime: 60_000,
-    }
-  );
-
   const {data: releases = [], isFetching} = useQuery({
-    ...releaseListOptions,
+    ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {project: props.project?.id, query: debouncedSearch},
+      staleTime: 60_000,
+    }),
     retry: false,
   });
 
@@ -205,7 +197,7 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
               href={`${makeReleasesPathname({
                 organization,
                 path: `/${encodeURIComponent(selectedRelease.version)}/`,
-              })}?project=${props.project.id}`}
+              })}${props.project ? `?project=${props.project.id}` : ''}`}
               openInNewTab
             >
               <Flex align="center" gap="xs">

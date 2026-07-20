@@ -16,7 +16,7 @@ describe('CustomResolutionModal', () => {
   beforeEach(() => {
     ConfigStore.init();
     releasesMock = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/releases/',
+      url: '/organizations/org-slug/releases/',
       body: [ReleaseFixture({authors: [UserFixture()]})],
     });
   });
@@ -40,7 +40,10 @@ describe('CustomResolutionModal', () => {
         CloseButton={makeCloseButton(() => null)}
       />
     );
-    expect(releasesMock).toHaveBeenCalled();
+    expect(releasesMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: {project: '1', query: ''}})
+    );
 
     const trigger = screen.getByRole('button', {name: /version/i});
     await userEvent.click(trigger);
@@ -56,6 +59,27 @@ describe('CustomResolutionModal', () => {
     expect(onSelected).toHaveBeenCalledWith({
       inRelease: 'sentry-android-shop@1.2.0',
     });
+  });
+
+  it('queries organization releases without a project', async () => {
+    render(
+      <CustomResolutionModal
+        Header={p => <span>{p.children}</span>}
+        Body={wrapper()}
+        Footer={wrapper()}
+        project={undefined}
+        onSelected={jest.fn()}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(() => null)}
+      />
+    );
+
+    await waitFor(() =>
+      expect(releasesMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: {query: ''}})
+      )
+    );
   });
 
   it('indicates which releases had commits from the user', async () => {
@@ -81,7 +105,7 @@ describe('CustomResolutionModal', () => {
 
   it('indicates if the release is semver or timestamp', async () => {
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/releases/',
+      url: '/organizations/org-slug/releases/',
       body: [
         // Timestamp release
         ReleaseFixture({
@@ -134,7 +158,7 @@ describe('CustomResolutionModal', () => {
 
   it('treats a release without version info as non-semver', async () => {
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/releases/',
+      url: '/organizations/org-slug/releases/',
       body: [
         ReleaseFixture({
           version: 'legacy-release',

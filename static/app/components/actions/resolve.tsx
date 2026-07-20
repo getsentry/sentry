@@ -334,10 +334,6 @@ export function ResolveActions({
   }
 
   function openCustomReleaseModal() {
-    if (!project) {
-      return;
-    }
-
     openModal(deps => (
       <CustomResolutionModal
         {...deps}
