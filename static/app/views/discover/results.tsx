@@ -106,6 +106,7 @@ import {
 import Table from 'sentry/views/discover/table';
 import {
   generateTitle,
+  getDiscoverDeprecation,
   getTransactionsDeprecation,
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
@@ -1436,7 +1437,13 @@ function DiscoverPageFilters({
       <PageFilterBar condensed>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
-        <DatePageFilter maxPickableDays={maxPickableDays.maxPickableDays} />
+        <DatePageFilter
+          maxPickableDays={
+            getDiscoverDeprecation(organization)
+              ? maxPickableDays.maxPickableDays
+              : undefined
+          }
+        />
       </PageFilterBar>
       <Flex gap="md" align="center">
         {!shouldHideCreateAlert && (

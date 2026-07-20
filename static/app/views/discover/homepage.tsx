@@ -28,6 +28,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 import {Results} from './results';
 
@@ -142,13 +143,16 @@ function Homepage() {
 }
 
 export default function HomepageContainer() {
+  const organization = useOrganization();
   const maxPickableDays = useMaxPickableDays({
     dataCategories: [DataCategory.ERRORS],
   });
   return (
     <PageFiltersContainer
       skipInitializeUrlParams
-      maxPickableDays={maxPickableDays.maxPickableDays}
+      maxPickableDays={
+        getDiscoverDeprecation(organization) ? maxPickableDays.maxPickableDays : undefined
+      }
     >
       <AiQueryProvider>
         <Homepage />
