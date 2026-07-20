@@ -73,6 +73,8 @@ class OrganizationTraceItemMetricsSerializer(serializers.Serializer[Never]):
     # A response field to sort by, optionally prefixed with `-` for descending
     # (e.g. `-count`). Defaults to metric name.
     sort = serializers.CharField(required=False)
+    # Accepted now for callers to forward; behavior is wired up separately.
+    context_only = serializers.BooleanField(required=False, default=False)
 
     def validate_sort(self, value: str) -> str:
         field = value[1:] if value.startswith("-") else value

@@ -50,6 +50,7 @@ def get_metric_metadata(
     stats_period: str = "7d",
     limit: int = DEFAULT_LIMIT,
     include_context: bool = False,
+    context_only: bool = False,
 ) -> MetricMetadataSuccessResponse | MetricMetadataErrorResponse:
     """
     Return distinct (metric.name, metric.type, metric.unit) tuples ordered by
@@ -74,6 +75,8 @@ def get_metric_metadata(
             DEFAULT_LIMIT and is clamped to MAX_LIMIT.
         include_context: When True, request per-metric context (brief, notes) from
             the endpoint via expand=context and attach it to each candidate.
+        context_only: Forwarded to the metrics endpoint as `context_only`
+            (endpoint behavior for this flag is wired up separately).
 
     Returns:
         {
@@ -104,6 +107,7 @@ def get_metric_metadata(
         # Highest-count metrics first; over-fetch by 1 to detect has_more.
         "sort": "-count",
         "per_page": limit + 1,
+        "context_only": context_only,
     }
     # Omit an empty query so the endpoint returns all metrics rather than
     # filtering on a blank name.

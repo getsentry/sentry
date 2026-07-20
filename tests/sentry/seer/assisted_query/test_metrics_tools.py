@@ -124,6 +124,23 @@ class TestGetMetricMetadata(TestCase):
         }
 
     @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
+    def test_forwards_context_only(self, mock_client_cls: MagicMock) -> None:
+        mock_client = mock_client_cls.return_value
+        response = MagicMock()
+        response.data = []
+        mock_client.get.return_value = response
+
+        get_metric_metadata(
+            org_id=self.org.id,
+            project_ids=[self.project.id],
+            name_substrings=["http"],
+            context_only=True,
+        )
+
+        _args, kwargs = mock_client.get.call_args
+        assert kwargs["params"]["context_only"] is True
+
+    @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
     def test_no_substrings_returns_all_metrics(self, mock_client_cls: MagicMock) -> None:
         mock_client = mock_client_cls.return_value
         response = MagicMock()

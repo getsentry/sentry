@@ -123,6 +123,16 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         assert response.status_code == 400, response.data
         assert "sort" in response.data
 
+    def test_accepts_context_only(self) -> None:
+        # context_only is accepted (behavior wired up separately) and doesn't
+        # change the result yet.
+        self.store_metric("checkout.requests", "counter")
+
+        response = self.do_request(query={"project": self.project.id, "context_only": "1"})
+
+        assert response.status_code == 200, response.data
+        assert [row["name"] for row in response.data] == ["checkout.requests"]
+
     def test_expand_context(self) -> None:
         self.store_metric("checkout.requests", "counter")
         self.create_context(
