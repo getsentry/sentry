@@ -28,9 +28,9 @@ interface ShortIdBreadcrumbProps {
 /**
  * Builds the current-page (`page-title`) breadcrumb item for an issue: the
  * project badge as a leading graphic, the short-id as the label with an
- * always-on explanatory tooltip, and trailing copy + share actions. Returns
- * null when the issue has no short-id (nothing to show). Used by the issue
- * details header trail (`GroupHeader`).
+ * always-on explanatory tooltip, an always-present copy action, and a share
+ * action that only appears for public issues (`group.isPublic` with a share
+ * URL). Used by the issue details header trail (`GroupHeader`).
  */
 export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProps) {
   const {openModal} = useModal();
