@@ -326,14 +326,15 @@ export function CreateProject() {
           wasNameManuallyModified: hasUserModifiedProjectName.current,
         });
 
-        navigate(
-          normalizeUrl(
+        navigate({
+          pathname: normalizeUrl(
             makeProjectsPathname({
               path: `/${project.slug}/getting-started/`,
               organization,
             })
-          )
-        );
+          ),
+          query: {projectCreationVariant: 'legacy'},
+        });
       } catch (error: any) {
         addErrorMessage(t('Failed to create project %s', projectName));
 

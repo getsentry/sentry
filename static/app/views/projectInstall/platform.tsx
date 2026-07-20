@@ -9,7 +9,10 @@ import {Grid, type GridProps} from '@sentry/scraps/layout';
 import Feature from 'sentry/components/acl/feature';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {
+  DocsFlow,
+  ProductSolution,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {platformProductAvailability} from 'sentry/components/onboarding/productSelection';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {setPageFiltersStorage} from 'sentry/components/pageFilters/persistence';
@@ -19,7 +22,7 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeList} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -45,6 +48,17 @@ export function ProjectInstallPlatform({project, platform}: Props) {
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
   const onProductSelectionSync = useScmCreateProjectProductSync(project);
+
+  // Attribute setup-docs analytics from the flow that actually created this
+  // project. Experiment enrollment alone is insufficient: users can visit
+  // getting-started for older or unrelated projects while still enrolled.
+  const projectCreationVariant = decodeScalar(location.query.projectCreationVariant);
+  const docsFlow: DocsFlow | undefined =
+    projectCreationVariant === 'scm'
+      ? 'project-creation-scm'
+      : projectCreationVariant === 'legacy'
+        ? 'project-creation'
+        : undefined;
 
   const products = useMemo(
     () => decodeList(location.query.product ?? []) as ProductSolution[],
@@ -98,7 +112,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
           project={project}
           activeProductSelection={products}
           onProductSelectionSync={onProductSelectionSync}
-          docsFlow="project-creation"
+          docsFlow={docsFlow}
         />
       )}
       <div>

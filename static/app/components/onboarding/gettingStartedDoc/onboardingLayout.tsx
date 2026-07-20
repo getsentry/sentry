@@ -8,8 +8,9 @@ import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {
+  docsFlowMarkdownParams,
+  docsFlowVariantParams,
   DSN_COPIED_EVENT,
-  MARKDOWN_SOURCE_BY_FLOW,
   NEXT_STEP_CLICKED_EVENT,
   resolveDocsFlowEvent,
 } from 'sentry/components/onboarding/gettingStartedDoc/docsFlowAnalytics';
@@ -140,6 +141,7 @@ export function OnboardingLayout({
             trackAnalytics(resolveDocsFlowEvent(DSN_COPIED_EVENT, docsFlow), {
               organization,
               platform: platformKey,
+              ...docsFlowVariantParams(docsFlow),
             });
           },
         }),
@@ -213,7 +215,7 @@ export function OnboardingLayout({
               const copyButton = showCopy ? (
                 <OnboardingCopyMarkdownButton
                   steps={steps}
-                  source={MARKDOWN_SOURCE_BY_FLOW[docsFlow ?? 'project-creation']}
+                  {...docsFlowMarkdownParams(docsFlow)}
                 />
               ) : null;
 
@@ -263,6 +265,7 @@ export function OnboardingLayout({
                               newOrg:
                                 docsFlow === 'onboarding' ||
                                 docsFlow === 'onboarding-scm',
+                              ...docsFlowVariantParams(docsFlow),
                             }
                           )
                         }
