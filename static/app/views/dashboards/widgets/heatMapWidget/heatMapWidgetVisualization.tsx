@@ -29,6 +29,7 @@ import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItem
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
+import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {formatTooltipYAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatTooltipYAxisValue';
 import {formatTooltipZAxisValue} from 'sentry/views/dashboards/widgets/heatMapWidget/formatters/formatTooltipZAxisValue';
 import {
@@ -421,3 +422,4 @@ type HeatMapTooltipContext = HeatMapBucketBounds;
 export type HeatMapZoomContext = HeatMapBucketBounds;
 
 HeatMapWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;
+HeatMapWidgetVisualization.NoData = WidgetNoDataPanel;

@@ -27,6 +27,7 @@ import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItem
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
 import type {LegendSelection} from 'sentry/views/dashboards/widgets/common/types';
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
+import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatTooltipValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTooltipValue';
 import {formatYAxisValue} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatYAxisValue';
@@ -413,3 +414,4 @@ export function CategoricalSeriesWidgetVisualization(
 }
 
 CategoricalSeriesWidgetVisualization.LoadingPlaceholder = WidgetLoadingPanel;
+CategoricalSeriesWidgetVisualization.NoData = WidgetNoDataPanel;
