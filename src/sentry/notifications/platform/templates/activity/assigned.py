@@ -22,7 +22,7 @@ from sentry.types.activity import ActivityType
 
 def get_assignee_label(data: AssignedNotificationData) -> str:
     return (
-        data.activity_user_name or "a user"
+        (data.activity_user_name or "a user")
         if data.assignee_label == "themselves"
         else data.assignee_label
     )
