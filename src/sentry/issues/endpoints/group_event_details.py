@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 from collections.abc import Sequence
-from typing import Any, NotRequired
+from typing import Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -127,9 +127,15 @@ def issue_search_query_to_conditions(
     return snql_conditions, resolved_legacy_conditions
 
 
-class GroupEventDetailsFormattedResponse(GroupEventDetailsResponse):
+class _GroupEventDetailsFormattedResponseOptional(TypedDict, total=False):
     # present only when ``?llmFormat`` is requested and the formatter option is on
-    formatted: NotRequired[FormattedResponse]
+    formatted: FormattedResponse
+
+
+class GroupEventDetailsFormattedResponse(
+    GroupEventDetailsResponse, _GroupEventDetailsFormattedResponseOptional
+):
+    pass
 
 
 @extend_schema(tags=["Events"])
@@ -292,4 +298,4 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
         )
         if data is None:
             return Response({"detail": "Failed to load event"}, status=500)
-        return Response(data)
+        return Response(cast(GroupEventDetailsFormattedResponse, data))
