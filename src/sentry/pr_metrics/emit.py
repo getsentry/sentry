@@ -66,6 +66,22 @@ class VerdictDeferral(Enum):
     INDETERMINATE = "indeterminate"
 
 
+def _has_commits_after_open(pull_request: PullRequest) -> bool:
+    """Whether the PR was pushed to after it opened, read from whichever store holds it.
+
+    Shared by ``select_verdict`` and ``select_fallback_verdict``: both settle the
+    same merged-PR question off this one signal, so both must read the same store
+    for the same PR. Routing in only one of them silently mislabels a doc-store PR
+    that did iterate as ``MERGED_UNCHANGED`` on the fallback path.
+    """
+    doc = load_activity_document(pull_request)
+    if doc is not None:
+        return activity_doc.has_commits_after_open(doc)
+    return PullRequestActivity.objects.filter(
+        pull_request=pull_request, event_type=PullRequestActivityType.SYNCHRONIZED
+    ).exists()
+
+
 def select_verdict(
     pull_request: PullRequest, organization: Organization
 ) -> PullRequestVerdict | VerdictDeferral:
@@ -111,13 +127,7 @@ def select_verdict(
         metrics.incr("pr_metrics.select_verdict.metrics_row_missing")
         return VerdictDeferral.INDETERMINATE
 
-    doc = load_activity_document(pull_request)
-    if doc is not None:
-        has_commits_after_open = activity_doc.has_commits_after_open(doc)
-    else:
-        has_commits_after_open = PullRequestActivity.objects.filter(
-            pull_request=pull_request, event_type=PullRequestActivityType.SYNCHRONIZED
-        ).exists()
+    has_commits_after_open = _has_commits_after_open(pull_request)
 
     if pull_request.merged_at is not None:
         return (
@@ -156,12 +166,9 @@ def select_fallback_verdict(pull_request: PullRequest) -> PullRequestVerdict:
       engagement isn't distinguished here.
     """
     if pull_request.merged_at is not None:
-        has_commits_after_open = PullRequestActivity.objects.filter(
-            pull_request=pull_request, event_type=PullRequestActivityType.SYNCHRONIZED
-        ).exists()
         return (
             PullRequestVerdict.MERGED_WITH_ITERATION
-            if has_commits_after_open
+            if _has_commits_after_open(pull_request)
             else PullRequestVerdict.MERGED_UNCHANGED
         )
     return PullRequestVerdict.CLOSED_UNMERGED

@@ -1,8 +1,9 @@
 """Reader-routing tests for the reduced activity document (CORE-283 PR 4).
 
-Each reader (select_verdict, the activity-derived counters, ci_failing_at_close,
-resolved_group_ids, the judge timeline forward) routes per PR by store presence: a
-``PullRequestActivityLog`` row → read the document; no row → read the legacy rows.
+Each reader (select_verdict, select_fallback_verdict, the activity-derived counters,
+ci_failing_at_close, resolved_group_ids, the judge timeline forward) routes per PR by
+store presence: a ``PullRequestActivityLog`` row → read the document; no row → read
+the legacy rows.
 These craft a document and assert the reader returns the document-derived value
 (there are no legacy rows, so the two stores can't be confused). The parity check
 and the post-emit sweep are covered too.
@@ -26,6 +27,7 @@ from sentry.pr_metrics.emit import (
     VerdictDeferral,
     _activity_derived_metrics,
     ci_failing_at_close,
+    select_fallback_verdict,
     select_verdict,
 )
 from sentry.pr_metrics.judge import _pr_activity_timeline
@@ -127,6 +129,22 @@ class ActivityDocumentReadersTest(TestCase):
         # the push and defers to the judge — not the wrong MERGED_UNCHANGED it would
         # emit if the empty {} doc were read as a real (zeroed) document.
         assert select_verdict(self.pr, self.organization) is VerdictDeferral.NEEDS_JUDGE
+
+    # --- select_fallback_verdict ------------------------------------------
+
+    def test_select_fallback_verdict_reads_has_commits_from_doc(self) -> None:
+        # The judge-ineligible (weak/MCP) path: select_verdict defers NEEDS_JUDGE,
+        # no judge ever runs, and the fallback settles the verdict itself. It has to
+        # route to the same store select_verdict did — reading only the legacy rows
+        # finds nothing here and mislabels an iterated PR MERGED_UNCHANGED.
+        PullRequestMetrics.objects.create(pull_request=self.pr)
+        self._write_doc(_doc(counts={"synchronized": 1}))
+        assert select_verdict(self.pr, self.organization) is VerdictDeferral.NEEDS_JUDGE
+        assert select_fallback_verdict(self.pr) == PullRequestVerdict.MERGED_WITH_ITERATION
+
+    def test_select_fallback_verdict_merged_unchanged_from_empty_doc(self) -> None:
+        self._write_doc(_doc())
+        assert select_fallback_verdict(self.pr) == PullRequestVerdict.MERGED_UNCHANGED
 
     # --- _activity_derived_metrics ----------------------------------------
 
