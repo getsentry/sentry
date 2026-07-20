@@ -9,7 +9,6 @@ from sentry.models.group import Group
 from sentry.organizations.services.organization import organization_service
 from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.models.run import SeerAgentRun
-from sentry.seer.smart_assignment import scoring
 from sentry.seer.smart_assignment.models import SEER_FEATURE_ID, AssigneeVerdict
 from sentry.types.activity import ActivityType
 from sentry.users.services.user.service import user_service
