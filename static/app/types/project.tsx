@@ -98,6 +98,7 @@ export interface DetailedProject extends ProjectSummary {
   digestsMaxDelay: number;
   digestsMinDelay: number;
   dynamicSamplingBiases: DynamicSamplingBias[] | null;
+  enableAutoReleaseCreation: boolean;
   fingerprintingRules: string;
   groupingConfig: string;
   groupingEnhancements: string;
