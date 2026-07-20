@@ -83,19 +83,24 @@ class GroupActionLogEntrySerializer(Serializer):
 
         # add sentry app data
 
-        # If an entry is created by the proxy user of a Sentry App, attach it to the payload
+        # If an entry is created by a Sentry App, attach it to the payload. For
+        # SENTRY_APP entries, actor_id is the SentryApp id (not its proxy user id).
+        sentry_app_ids = [
+            i.actor_id
+            for i in item_list
+            if i.actor_id and i.actor_type == GroupActorType.SENTRY_APP
+        ]
         sentry_apps_list: list[RpcSentryApp] = []
-        if user_ids:
-            sentry_apps_list = app_service.get_sentry_apps_by_proxy_users(proxy_user_ids=user_ids)
+        if sentry_app_ids:
+            sentry_apps_list = app_service.get_sentry_apps_by_ids(ids=sentry_app_ids)
         # Minimal Sentry App serialization to keep the payload minimal
-        apps_with_proxy = [app for app in sentry_apps_list if app.proxy_user_id]
-        all_avatars = [avatar for app in apps_with_proxy for avatar in app.avatars]
+        all_avatars = [avatar for app in sentry_apps_list for avatar in app.avatars]
         serialized_avatars = serialize(all_avatars, user, serializer=SentryAppAvatarSerializer())
         sentry_apps: dict[str, _ActivitySentryAppEmbed] = {}
         avatar_offset = 0
-        for app in apps_with_proxy:
+        for app in sentry_apps_list:
             avatar_count = len(app.avatars)
-            sentry_apps[str(app.proxy_user_id)] = {
+            sentry_apps[str(app.id)] = {
                 "id": str(app.id),
                 "name": app.name,
                 "slug": app.slug,
@@ -152,7 +157,11 @@ class GroupActionLogEntrySerializer(Serializer):
                     if item.actor_type == GroupActorType.USER
                     else None
                 ),
-                "sentry_app": sentry_apps.get(str(item.actor_id)) if item.actor_id else None,
+                "sentry_app": (
+                    sentry_apps.get(str(item.actor_id))
+                    if item.actor_type == GroupActorType.SENTRY_APP
+                    else None
+                ),
                 "commit": commits.get(item),
                 "pull_request": pull_requests.get(item),
             }

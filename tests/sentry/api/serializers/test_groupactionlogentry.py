@@ -6,7 +6,6 @@ from sentry.models.pullrequest import PullRequest
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.user import User
 
 
 class GroupActionLogEntrySerializerTestCase(TestCase):
@@ -188,7 +187,6 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         default_avatar = self.create_sentry_app_avatar(sentry_app=sentry_app)
         upload_avatar = self.create_sentry_app_avatar(sentry_app=sentry_app)
         with assume_test_silo_mode(SiloMode.CONTROL):
-            proxy_user = User.objects.get(id=sentry_app.proxy_user_id)
             upload_avatar.avatar_type = 1  # an upload
             upload_avatar.color = True  # a logo
             upload_avatar.save()
@@ -196,8 +194,8 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         entry = self.create_group_action_log_entry(
             group=group,
             type=GroupActionType.RESOLVE,
-            actor_type=GroupActorType.USER,
-            actor_id=proxy_user.id,
+            actor_type=GroupActorType.SENTRY_APP,
+            actor_id=sentry_app.id,
         )
 
         result = serialize(entry, user)
