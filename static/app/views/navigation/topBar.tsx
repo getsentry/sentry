@@ -88,8 +88,15 @@ function TopBarContent() {
           containerType="inline-size"
         >
           <Slot.Outlet name="breadcrumbs">
-            {props => (
-              <Flex {...props} align="center" gap="sm" minWidth="0" flex="0 1 auto" />
+            {(props, hasConsumers) => (
+              <Flex
+                {...props}
+                align="center"
+                gap="sm"
+                minWidth="0"
+                flex="0 1 auto"
+                display={hasConsumers ? 'flex' : 'none'}
+              />
             )}
           </Slot.Outlet>
 

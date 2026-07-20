@@ -185,7 +185,10 @@ interface SlotConsumerProps<T extends Slot> {
 }
 
 interface SlotOutletProps<T extends Slot> {
-  children: (props: {ref: React.RefCallback<HTMLElement | null>}) => React.ReactNode;
+  children: (
+    props: {ref: React.RefCallback<HTMLElement | null>},
+    hasConsumers: boolean
+  ) => React.ReactNode;
   name: T;
 }
 
@@ -317,12 +320,12 @@ function makeSlotOutlet<T extends Slot>(
         name,
         `<Slot.Outlet> for slot "${name}" rendered without a <Slot.Provider>`
       );
-      return props.children({ref: NOOP_REF_CALLBACK});
+      return props.children({ref: NOOP_REF_CALLBACK}, false);
     }
 
     return (
       <outletNameContext.Provider value={name}>
-        {props.children({ref})}
+        {props.children({ref}, (ctx[0][name]?.counter ?? 0) > 0)}
       </outletNameContext.Provider>
     );
   }
