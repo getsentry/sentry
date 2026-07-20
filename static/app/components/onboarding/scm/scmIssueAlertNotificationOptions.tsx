@@ -5,6 +5,8 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   MessagingIntegrationAnalyticsView,
   SetupMessagingIntegrationButton,
@@ -32,6 +34,7 @@ type Props = IssueAlertNotificationProps & {
 
 export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Props) {
   const {actions, setActions} = props;
+  const organization = useOrganization();
   const {querySuccess, shouldRenderNotificationConfigs, shouldRenderSetupButton} =
     useIssueAlertNotificationOptions(props);
 
@@ -54,13 +57,20 @@ export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Prop
             <Flex as="label" align="start" gap="md">
               <Checkbox
                 checked={actions.includes(MultipleCheckboxOptions.INTEGRATION)}
-                onChange={e =>
+                onChange={e => {
                   setActions(
                     e.target.checked
                       ? [...actions, MultipleCheckboxOptions.INTEGRATION]
                       : actions.filter(a => a !== MultipleCheckboxOptions.INTEGRATION)
-                  )
-                }
+                  );
+                  if (analyticsFlow === 'project-creation') {
+                    trackAnalytics('project_creation.notify_integration_toggled', {
+                      organization,
+                      enabled: e.target.checked,
+                      variant: 'scm',
+                    });
+                  }
+                }}
               />
               <Text bold={false} ellipsis>
                 {t('Integration (Slack, Discord, MS Teams, etc.)')}
@@ -72,7 +82,7 @@ export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Prop
           open={!shouldRenderSetupButton && shouldRenderNotificationConfigs}
         >
           <IndentedRule>
-            <ScmMessagingIntegrationAlertRule {...props} />
+            <ScmMessagingIntegrationAlertRule {...props} analyticsFlow={analyticsFlow} />
           </IndentedRule>
         </ScmCollapsibleReveal>
       </Stack>

@@ -8,6 +8,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as analytics from 'sentry/utils/analytics';
 import * as integrationUtil from 'sentry/utils/integrationUtil';
 import {MessagingIntegrationAnalyticsView} from 'sentry/views/alerts/rules/issue/setupMessagingIntegrationButton';
 import {
@@ -91,6 +92,7 @@ describe('ScmAlertFrequencySection', () => {
   });
 
   it('adds the integration action when the Integration checkbox is clicked', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     const setActions = jest.fn();
     renderSection({
       analyticsFlow: 'onboarding',
@@ -109,6 +111,27 @@ describe('ScmAlertFrequencySection', () => {
       MultipleCheckboxOptions.EMAIL,
       MultipleCheckboxOptions.INTEGRATION,
     ]);
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'project_creation.notify_integration_toggled',
+      expect.anything()
+    );
+  });
+
+  it('tracks integration toggles in project creation', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    renderSection({analyticsFlow: 'project-creation'});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Alert frequency'}));
+    await userEvent.click(
+      screen.getByRole('checkbox', {
+        name: 'Integration (Slack, Discord, MS Teams, etc.)',
+      })
+    );
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+      'project_creation.notify_integration_toggled',
+      expect.objectContaining({enabled: true, variant: 'scm'})
+    );
   });
 
   it.each([

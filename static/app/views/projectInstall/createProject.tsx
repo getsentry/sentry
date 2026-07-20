@@ -53,6 +53,7 @@ import type {
 import {
   getRequestDataFragment,
   IssueAlertOptions,
+  RuleAction,
 } from 'sentry/views/projectInstall/issueAlertOptions';
 import {useValidateChannel} from 'sentry/views/projectInstall/useValidateChannel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
@@ -518,6 +519,24 @@ export function CreateProject() {
                 ...formData.alertRule,
                 [field]: value,
               });
+              if (field === 'alertSetting') {
+                const optionMap: Record<number, string> = {
+                  [RuleAction.DEFAULT_ALERT]: 'high_priority',
+                  [RuleAction.CUSTOMIZED_ALERTS]: 'custom',
+                  [RuleAction.CREATE_ALERT_LATER]: 'create_later',
+                };
+                trackAnalytics('project_creation.project_details_alert_selected', {
+                  organization,
+                  option: optionMap[value as number] ?? String(value),
+                  variant: 'legacy',
+                });
+              } else {
+                trackAnalytics('project_creation.alert_threshold_edited', {
+                  organization,
+                  field,
+                  variant: 'legacy',
+                });
+              }
             }}
           />
           <StyledListItem>

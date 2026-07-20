@@ -17,6 +17,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
+import * as analytics from 'sentry/utils/analytics';
 import {CreateProject} from 'sentry/views/projectInstall/createProject';
 import * as useValidateChannelModule from 'sentry/views/projectInstall/useValidateChannel';
 
@@ -755,6 +756,31 @@ describe('CreateProject', () => {
 
       await userEvent.click(getSubmitButton());
       expect(projectCreationMockRequest).toHaveBeenCalled();
+    });
+
+    it('fires alert_selected and alert_threshold_edited with variant=legacy', async () => {
+      renderFrameworkModalMockRequests({
+        organization,
+        teamSlug: teamWithAccess.slug,
+      });
+      const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+
+      render(<CreateProject />, {organization});
+
+      // Switch to custom alerts: fires the alert-selected event, and reveals the
+      // threshold input.
+      await userEvent.click(screen.getByText(/When there are more than/));
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'project_creation.project_details_alert_selected',
+        expect.objectContaining({option: 'custom', variant: 'legacy'})
+      );
+
+      // Edit the threshold: fires the threshold-edited event.
+      await userEvent.type(screen.getByTestId('range-input'), '5');
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'project_creation.alert_threshold_edited',
+        expect.objectContaining({field: 'threshold', variant: 'legacy'})
+      );
     });
 
     it('should disable submit button when channel validation fails and integration is selected', async () => {

@@ -7,6 +7,10 @@
 export type ProjectCreationVariant = 'scm' | 'legacy';
 
 export type ProjectCreationEventParameters = {
+  'project_creation.alert_threshold_edited': {
+    field: 'threshold' | 'metric' | 'interval';
+    variant?: ProjectCreationVariant;
+  };
   'project_creation.back_button_clicked': Record<string, unknown>;
   // SCM-first project creation wizard steps. SCM vs legacy rides in `variant`
   // (see scmFlowVariantParams); these events are only emitted by the SCM cores
@@ -58,6 +62,20 @@ export type ProjectCreationEventParameters = {
     products: string[];
     project_id: string;
     step: string;
+    variant?: ProjectCreationVariant;
+  };
+  'project_creation.notify_channel_changed': {
+    variant?: ProjectCreationVariant;
+  };
+  'project_creation.notify_integration_changed': {
+    variant?: ProjectCreationVariant;
+  };
+  'project_creation.notify_integration_toggled': {
+    enabled: boolean;
+    variant?: ProjectCreationVariant;
+  };
+  'project_creation.notify_provider_changed': {
+    provider: string;
     variant?: ProjectCreationVariant;
   };
   'project_creation.platform_change_platform_clicked': {
@@ -141,6 +159,13 @@ export const projectCreationEventMap: Record<
     'Project Creation: Data Removal Modal Rendered',
   'project_creation.data_removed': 'Project Creation: Data Removed',
   'project_creation.back_button_clicked': 'Project Creation: Back Button Clicked',
+  'project_creation.alert_threshold_edited': 'Project Creation: Alert Threshold Edited',
+  'project_creation.notify_integration_toggled':
+    'Project Creation: Notify Integration Toggled',
+  'project_creation.notify_provider_changed': 'Project Creation: Notify Provider Changed',
+  'project_creation.notify_integration_changed':
+    'Project Creation: Notify Integration Changed',
+  'project_creation.notify_channel_changed': 'Project Creation: Notify Channel Changed',
   'project_creation.connect_integration_selected':
     'Project Creation: Connect Integration Selected',
   'project_creation.connect_repo_selected': 'Project Creation: Connect Repo Selected',
