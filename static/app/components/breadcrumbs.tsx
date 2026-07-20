@@ -5,11 +5,9 @@ import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {IconSlashForward} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
 
 export interface Crumb {
   /**
@@ -87,9 +85,8 @@ function BreadCrumbItem(props: BreadCrumbItemProps) {
     <Container maxWidth="400px" width="auto">
       {styleProps => {
         return props.crumb.to ? (
-          <BreadcrumbLink
+          <Link
             to={props.crumb.to}
-            preservePageFilters={props.crumb.preservePageFilters}
             data-test-id="breadcrumb-link"
             onClick={onBreadcrumbLinkClick}
             {...styleProps}
@@ -97,7 +94,7 @@ function BreadCrumbItem(props: BreadCrumbItemProps) {
             <Text ellipsis variant={props.variant}>
               {props.crumb.label}
             </Text>
-          </BreadcrumbLink>
+          </Link>
         ) : (
           <Text
             ellipsis
@@ -111,26 +108,4 @@ function BreadCrumbItem(props: BreadCrumbItemProps) {
       }}
     </Container>
   );
-}
-
-interface BreadcrumbLinkProps extends LinkProps {
-  children?: React.ReactNode;
-  preservePageFilters?: boolean;
-}
-
-function BreadcrumbLink(props: BreadcrumbLinkProps) {
-  const {preservePageFilters, to, ...rest} = props;
-  const location = useLocation();
-
-  if (!to) {
-    return <Link to={to} {...rest} />;
-  }
-
-  const toWithQuery = preservePageFilters
-    ? typeof to === 'string'
-      ? {pathname: to, query: extractSelectionParameters(location.query)}
-      : {...to, query: {...extractSelectionParameters(location.query), ...to.query}}
-    : to;
-
-  return <Link to={toWithQuery} {...rest} />;
 }
