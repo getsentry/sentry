@@ -18,6 +18,7 @@ import {ProjectCreationErrorAlert} from 'sentry/components/onboarding/projectCre
 import {
   type ScmAnalyticsFlow,
   scmFlowVariantParams,
+  trackScmPlatformSelected,
 } from 'sentry/components/onboarding/scm/scmAnalyticsFlow';
 import {
   useCreateProjectAndRulesError,
@@ -49,10 +50,6 @@ export enum SupportedLanguages {
 const SCM_FRAMEWORK_MODAL_RENDERED_EVENT = {
   onboarding: 'onboarding.scm_select_framework_modal_rendered',
   'project-creation': 'project_creation.select_framework_modal_rendered',
-} as const;
-const SCM_PLATFORM_SELECTED_EVENT = {
-  onboarding: 'onboarding.scm_platform_selected',
-  'project-creation': 'project_creation.platform_selected',
 } as const;
 
 const topGoFrameworks: PlatformKey[] = [
@@ -246,12 +243,12 @@ export function FrameworkSuggestionModal({
     }
 
     if (hasScmOnboarding) {
-      trackAnalytics(SCM_PLATFORM_SELECTED_EVENT[analyticsFlow], {
+      trackScmPlatformSelected(
+        analyticsFlow,
         organization,
-        platform: selectedFramework.key,
-        source: 'manual',
-        ...scmFlowVariantParams(analyticsFlow),
-      });
+        selectedFramework.key,
+        'manual'
+      );
     } else {
       trackAnalytics(
         newOrg
@@ -278,12 +275,12 @@ export function FrameworkSuggestionModal({
 
   const handleSkip = useCallback(() => {
     if (hasScmOnboarding) {
-      trackAnalytics(SCM_PLATFORM_SELECTED_EVENT[analyticsFlow], {
+      trackScmPlatformSelected(
+        analyticsFlow,
         organization,
-        platform: selectedPlatform.key,
-        source: 'manual',
-        ...scmFlowVariantParams(analyticsFlow),
-      });
+        selectedPlatform.key,
+        'manual'
+      );
     } else {
       trackAnalytics(
         newOrg

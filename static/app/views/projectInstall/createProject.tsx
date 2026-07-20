@@ -501,6 +501,8 @@ export function CreateProject() {
             defaultCategory={defaultCategory}
             setPlatform={handlePlatformChange}
             organization={organization}
+            source="project-creation"
+            variant="legacy"
             showOther
             noAutoFilter
           />

@@ -20,7 +20,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDisabledGamingPlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {type ScmAnalyticsFlow, scmFlowVariantParams} from './scmAnalyticsFlow';
+import {
+  type ScmAnalyticsFlow,
+  scmFlowVariantParams,
+  trackScmPlatformSelected,
+} from './scmAnalyticsFlow';
 import {ScmPlatformCard} from './scmPlatformCard';
 import {
   DEFAULT_SCM_FEATURES,
@@ -33,10 +37,6 @@ import {ScmSearchControl} from './scmSearchControl';
 import {ScmVirtualizedMenuList} from './scmVirtualizedMenuList';
 import {useScmResolvedPlatform} from './useScmResolvedPlatform';
 
-const PLATFORM_SELECTED_EVENT = {
-  onboarding: 'onboarding.scm_platform_selected',
-  'project-creation': 'project_creation.platform_selected',
-} as const;
 const CHANGE_PLATFORM_CLICKED_EVENT = {
   onboarding: 'onboarding.scm_platform_change_platform_clicked',
   'project-creation': 'project_creation.platform_change_platform_clicked',
@@ -147,12 +147,12 @@ export function ScmPlatformFeaturesCore({
     }
     autoDetectionTrackedRef.current = true;
     setPlatform(detectedPlatformKey);
-    trackAnalytics(PLATFORM_SELECTED_EVENT[analyticsFlow], {
+    trackScmPlatformSelected(
+      analyticsFlow,
       organization,
-      platform: detectedPlatformKey,
-      source: 'detected',
-      ...scmFlowVariantParams(analyticsFlow),
-    });
+      detectedPlatformKey,
+      'detected'
+    );
   }, [
     detectedPlatformKey,
     selectedPlatform?.key,
@@ -245,12 +245,7 @@ export function ScmPlatformFeaturesCore({
     onFeaturesChange(DEFAULT_SCM_FEATURES);
     onClearProjectDetailsForm();
 
-    trackAnalytics(PLATFORM_SELECTED_EVENT[analyticsFlow], {
-      organization,
-      platform: platformKey,
-      source: 'manual',
-      ...scmFlowVariantParams(analyticsFlow),
-    });
+    trackScmPlatformSelected(analyticsFlow, organization, platformKey, 'manual');
   };
 
   const handleSelectDetectedPlatform = (platformKey: PlatformKey) => {
@@ -261,12 +256,7 @@ export function ScmPlatformFeaturesCore({
     onFeaturesChange(DEFAULT_SCM_FEATURES);
     onClearProjectDetailsForm();
 
-    trackAnalytics(PLATFORM_SELECTED_EVENT[analyticsFlow], {
-      organization,
-      platform: platformKey,
-      source: 'detected',
-      ...scmFlowVariantParams(analyticsFlow),
-    });
+    trackScmPlatformSelected(analyticsFlow, organization, platformKey, 'detected');
   };
 
   function handleChangePlatformClick() {
@@ -309,12 +299,12 @@ export function ScmPlatformFeaturesCore({
     // selection, so record it as the detected source (mirrors the auto-adopt
     // path and handleSelectDetectedPlatform, which were the only detected-source
     // emitters before).
-    trackAnalytics(PLATFORM_SELECTED_EVENT[analyticsFlow], {
+    trackScmPlatformSelected(
+      analyticsFlow,
       organization,
-      platform: detectedPlatformKey,
-      source: 'detected',
-      ...scmFlowVariantParams(analyticsFlow),
-    });
+      detectedPlatformKey,
+      'detected'
+    );
   }
 
   // Shared by both manual-picker variants. A null option is the clear action,
