@@ -2,6 +2,7 @@ import logging
 from collections.abc import Sequence
 from copy import deepcopy
 from datetime import UTC, datetime
+from typing import TypedDict
 
 from django.db import connections, router, transaction
 from django.db.models import (
@@ -41,11 +42,19 @@ from sentry.api.paginator import (
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.api.utils import to_valid_int_id
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALERTS_API_DEPRECATION_DATE, ALERTS_API_DEPRECATION_KEY, ObjectStatus
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import InvalidParams
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleBaseEndpoint
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializerResponse
 from sentry.incidents.endpoints.serializers.workflow_engine_combined import (
     WorkflowEngineCombinedRuleSerializer,
 )
@@ -101,6 +110,12 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 from sentry.workflow_engine.utils.legacy_metric_tracking import track_alert_endpoint_execution
 
 logger = logging.getLogger(__name__)
+
+
+class MetricAlertRuleAsyncResponse(TypedDict):
+    # Returned with HTTP 202 when the rule contains a Slack action whose channel
+    # must be resolved asynchronously; the created rule is not in the body yet.
+    uuid: str
 
 
 # Sentinel values for incident_status annotation when sorting combined rules
@@ -701,6 +716,14 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
 
     @extend_schema(
         operation_id="(DEPRECATED) List an Organization's Metric Alert Rules",
+        responses={
+            200: inline_sentry_response_serializer(
+                "ListMetricAlertRuleResponse", list[AlertRuleSerializerResponse]
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
     )
     @track_alert_endpoint_execution("GET", "sentry-api-0-organization-alert-rules")
     @deprecated(
@@ -728,6 +751,19 @@ class OrganizationAlertRuleIndexEndpoint(OrganizationAlertRuleBaseEndpoint, Aler
 
     @extend_schema(
         operation_id="(DEPRECATED) Create a Metric Alert Rule for an Organization",
+        request=DrfAlertRuleSerializer,
+        responses={
+            201: inline_sentry_response_serializer(
+                "MetricAlertRuleResponse", AlertRuleSerializerResponse
+            ),
+            202: inline_sentry_response_serializer(
+                "MetricAlertRuleAsyncResponse", MetricAlertRuleAsyncResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
     )
     @track_alert_endpoint_execution("POST", "sentry-api-0-organization-alert-rules")
     @deprecated(
