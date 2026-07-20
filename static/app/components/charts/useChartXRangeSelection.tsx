@@ -8,6 +8,14 @@ import {
 } from 'react';
 import {createPortal} from 'react-dom';
 import type {BrushComponentOption, EChartsOption, ToolboxComponentOption} from 'echarts';
+// FOOTGUN: this imports the full `echarts` bundle (not `echarts/core`), whose
+// entry calls `use()` on *every* feature — including `LegacyGridContainLabel`.
+// ECharts' feature registry is a process-wide singleton shared with
+// `echarts/core`, so this flips every `grid.containLabel` chart in the app
+// (e.g., anything built on `BaseChart`) onto the legacy grid layout, which
+// reserves space differently than ECharts 6's default `outerBounds` layout.
+// If you switch this to `echarts/core`, audit `containLabel` charts for shifted
+// axis padding. See heatMapWidget/utils/heatMapAxes.tsx for one place this bit us.
 import * as echarts from 'echarts';
 import type EChartsReact from 'echarts-for-react';
 import type {EChartsInstance} from 'echarts-for-react';

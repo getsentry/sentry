@@ -84,6 +84,7 @@ export function VisualizeSection({query, index}: Props) {
           />
           <CompactSelect
             search={{
+              highlight: true,
               filter: (option, searchText) => {
                 return sortSearchedAttributes({
                   fieldDefinitionType: TraceItemDataset.SPANS,

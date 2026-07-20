@@ -617,24 +617,6 @@ class EmailActionTranslator(BaseActionTranslator, EmailActionHelper):
         return {}
 
 
-class PluginActionTranslator(BaseActionTranslator):
-    @property
-    def action_type(self) -> ActionType:
-        return ActionType.PLUGIN
-
-    @property
-    def required_fields(self) -> list[str]:
-        # NotifyEventAction doesn't appear to have any required fields
-        # beyond the standard id and uuid
-        return []
-
-    @property
-    def target_type(self) -> None:
-        # This appears to be a generic plugin notification
-        # so we'll use SPECIFIC as the target type
-        return None
-
-
 class WebhookActionTranslator(BaseActionTranslator):
     @property
     def action_type(self) -> ActionType:
@@ -651,6 +633,26 @@ class WebhookActionTranslator(BaseActionTranslator):
                 ActionFieldMappingKeys.TARGET_IDENTIFIER_KEY.value
             ]
         ]
+
+
+class NotifyEventActionTranslator(WebhookActionTranslator):
+    """
+    Translates the legacy ``NotifyEventAction`` ("Send a notification for all legacy integrations")
+    into a ``WEBHOOK`` action targeting the legacy webhooks service.
+    """
+
+    @property
+    def required_fields(self) -> list[str]:
+        # Unlike NotifyEventServiceAction, a NotifyEventAction blob has no `service` field, so there
+        # are no required fields beyond the standard id/uuid.
+        return []
+
+    @property
+    def target_identifier(self) -> str:
+        # At delivery time, WebhookActionHandler.execute routes the action to the legacy webhook
+        # path (_handle_legacy_webhooks) when target_identifier == "webhooks". The blob has no
+        # target field, so return the literal to opt into that path.
+        return "webhooks"
 
 
 class SentryAppActionTranslator(BaseActionTranslator):
@@ -790,7 +792,7 @@ issue_alert_action_translator_mapping: dict[str, type[BaseActionTranslator]] = {
     ACTION_FIELD_MAPPINGS[ActionType.JIRA]["id"]: JiraActionTranslatorBase,
     ACTION_FIELD_MAPPINGS[ActionType.JIRA_SERVER]["id"]: JiraServerActionTranslatorBase,
     ACTION_FIELD_MAPPINGS[ActionType.EMAIL]["id"]: EmailActionTranslator,
-    ACTION_FIELD_MAPPINGS[ActionType.PLUGIN]["id"]: PluginActionTranslator,
+    ACTION_FIELD_MAPPINGS[ActionType.PLUGIN]["id"]: NotifyEventActionTranslator,
     ACTION_FIELD_MAPPINGS[ActionType.WEBHOOK]["id"]: WebhookActionTranslator,
     ACTION_FIELD_MAPPINGS[ActionType.SENTRY_APP]["id"]: SentryAppActionTranslator,
 }

@@ -13,7 +13,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 
 
-class OrganizationTraceItemsStatsEndpointTest(
+class OrganizationTraceItemStatsEndpointTest(
     APITransactionTestCase,
     SnubaTestCase,
     SpanTestCase,
@@ -43,13 +43,17 @@ class OrganizationTraceItemsStatsEndpointTest(
 
         return response
 
-    def _store_span(self, description=None, tags=None, duration=None):
-        if tags is None:
-            tags = {"foo": "bar"}
+    def _store_span(self, description=None, sentry_tags=None, tags=None, duration=None):
+        if sentry_tags is None:
+            sentry_tags = {"foo": "bar"}
+
+        data = {"description": description or "foo", "sentry_tags": sentry_tags}
+        if tags is not None:
+            data["tags"] = tags
 
         self.store_span(
             self.create_span(
-                {"description": description or "foo", "sentry_tags": tags},
+                data,
                 start_ts=self.ten_mins_ago,
                 duration=duration or 1000,
             ),
@@ -112,7 +116,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         ]
 
         for tag, duration in tags:
-            self._store_span(tags=tag, duration=duration)
+            self._store_span(sentry_tags=tag, duration=duration)
 
         response = self.do_request(
             query={
@@ -123,7 +127,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
         device_data = attribute_distribution["sentry.device"]
         assert {"label": "mobile", "value": 3.0} in device_data
         assert {"label": "desktop", "value": 1.0} in device_data
@@ -137,7 +141,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         ]
 
         for tag, duration in tags:
-            self._store_span(tags=tag, duration=duration)
+            self._store_span(sentry_tags=tag, duration=duration)
 
         response = self.do_request(
             query={
@@ -147,7 +151,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
 
         assert "browser.name" in attribute_distribution
         assert "device" not in attribute_distribution
@@ -157,7 +161,7 @@ class OrganizationTraceItemsStatsEndpointTest(
             {"browser": "chrome", "device": "desktop"},
             {"browser": "firefox", "device": "mobile"},
         ]:
-            self._store_span(tags=tag)
+            self._store_span(sentry_tags=tag)
 
         def can_expose_attribute_to_api(attribute, item_type, include_internal=False):
             return attribute not in {"device", "sentry.device"}
@@ -175,7 +179,7 @@ class OrganizationTraceItemsStatsEndpointTest(
 
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
 
         assert "browser" in attribute_distribution
         assert "device" not in attribute_distribution
@@ -210,7 +214,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
 
         assert "span.op" in attribute_distribution
         description_labels = [item["label"] for item in attribute_distribution["span.op"]]
@@ -228,7 +232,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         ]
 
         for tag, duration in tags:
-            self._store_span(tags=tag, duration=duration)
+            self._store_span(sentry_tags=tag, duration=duration)
 
         response = self.do_request(
             query={
@@ -238,7 +242,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
 
         device_data = attribute_distribution.get("sentry.device", [])
         assert any(item["label"] == "desktop" for item in device_data)
@@ -251,7 +255,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         # deterministic total, independent of the default span attributes.
         stored_names = ["pageattra", "pageattrb", "pageattrc", "pageattrd"]
         for name in stored_names:
-            self._store_span(tags={name: "value"})
+            self._store_span(sentry_tags={name: "value"})
 
         # First page: 2 of the 4 attributes, so a next page must be reported.
         response = self.do_request(
@@ -262,7 +266,7 @@ class OrganizationTraceItemsStatsEndpointTest(
             }
         )
         assert response.status_code == 200, response.data
-        first_page = response.data["data"][0]["attribute_distributions"]["data"]
+        first_page = response.data["data"][0]["attributeDistributions"]["data"]
         assert len(first_page) == 2
 
         links = self._parse_links(response)
@@ -272,7 +276,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         # Second page: the remaining 2 attributes, with no further pages.
         next_response = self.client.get(links["next"]["href"], format="json")
         assert next_response.status_code == 200, next_response.content
-        second_page = next_response.data["data"][0]["attribute_distributions"]["data"]
+        second_page = next_response.data["data"][0]["attributeDistributions"]["data"]
         assert len(second_page) == 2
 
         next_links = self._parse_links(next_response)
@@ -294,7 +298,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         ]
 
         for tag in tags:
-            self._store_span(tags=tag)
+            self._store_span(sentry_tags=tag)
 
         response = self.do_request(
             query={
@@ -305,7 +309,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         assert response.status_code == 200, response.data
 
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
         assert len(attribute_distribution) == 1
 
         if "Link" in response:
@@ -324,7 +328,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
         assert "level" in attribute_distribution
         level_buckets = attribute_distribution["level"]
         labels = {bucket["label"] for bucket in level_buckets}
@@ -339,7 +343,7 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
         for excluded in ["id", "trace", "group_id", "issue_occurrence_id", "primary_hash"]:
             assert excluded not in attribute_distribution
 
@@ -356,8 +360,45 @@ class OrganizationTraceItemsStatsEndpointTest(
         )
         assert response.status_code == 200, response.data
         assert len(response.data["data"]) == 1
-        attribute_distribution = response.data["data"][0]["attribute_distributions"]["data"]
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
         assert "level" in attribute_distribution
         labels = {bucket["label"] for bucket in attribute_distribution["level"]}
         assert "error" in labels
         assert "warning" not in labels
+
+    def test_duplicate_tags(self) -> None:
+        tags = [
+            ({"user.geo.subregion": "hello", "user.geo.city": "world"}, 500),
+            ({"user.geo.subregion": "hello", "user.geo.city": "foobar"}, 100),
+            ({"user.geo.subregion": "hello", "user.geo.city": "foobar"}, 100),
+            ({"user.geo.subregion": "hello", "user.geo.city": "world"}, 100),
+            ({"user.geo.subregion": "woop", "user.geo.city": "foobar"}, 100),
+            ({"user.geo.subregion": "hello", "user.geo.city": "world"}, 500),
+            ({"user.geo.subregion": "oop", "user.geo.city": "world"}, 500),
+        ]
+
+        for tag, duration in tags:
+            self._store_span(sentry_tags=tag, tags=tag, duration=duration)
+
+        response = self.do_request(
+            query={
+                "query": "",
+                "statsType": ["attributeDistributions"],
+                "substringMatch": "user.geo",
+                "itemType": "spans",
+            }
+        )
+        assert response.status_code == 200, response.data
+        assert len(response.data["data"]) == 1
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
+        city_data = attribute_distribution["tags[user.geo.city,string]"]
+        assert {"label": "world", "value": 4.0} in city_data
+        assert {"label": "foobar", "value": 3.0} in city_data
+
+        region_data = attribute_distribution["tags[user.geo.subregion,string]"]
+        assert {"label": "hello", "value": 5.0} in region_data
+        assert {"label": "woop", "value": 1.0} in region_data
+        assert {"label": "oop", "value": 1.0} in region_data
+
+        assert "user.geo.subregion" not in attribute_distribution
+        assert "user.geo.city" not in attribute_distribution

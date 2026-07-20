@@ -455,15 +455,15 @@ describe('Subscription > UsageHistory', () => {
           categories: {
             errors: MetricHistoryFixture({
               category: DataCategory.ERRORS,
-              trueForward: true,
+              softCapType: 'TRUE_FORWARD',
             }),
             transactions: MetricHistoryFixture({
               category: DataCategory.TRANSACTIONS,
-              trueForward: false,
+              softCapType: null,
             }),
             attachments: MetricHistoryFixture({
               category: DataCategory.ATTACHMENTS,
-              trueForward: true,
+              softCapType: 'TRUE_FORWARD',
             }),
           },
         }),

@@ -10,6 +10,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import DataError, connections, router
 from django.utils import timezone as django_timezone
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import STATUS_QUERY_CHOICES, Group
 from sentry.models.organizationmember import OrganizationMember
@@ -25,6 +26,12 @@ from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.eventuser import KEYWORD_MAP, EventUser
+from sentry.utils.validators import (
+    INVALID_ID_DETAILS,
+    INVALID_SPAN_ID,
+)
+from sentry.utils.validators import is_event_id_or_list as _is_event_id_or_list
+from sentry.utils.validators import is_span_id_or_list as _is_span_id_or_list
 
 
 class InvalidQuery(Exception):
@@ -865,3 +872,17 @@ def validate_snuba_array_parameter(parameter: Sequence[str]) -> bool:
     # 10000 loops, best of 5: 42.6 usec per loop
     converted_length = sum(len(item) for item in parameter) + (4 * len(parameter))
     return converted_length <= MAX_PARAMETERS_IN_ARRAY
+
+
+def validate_span_id(value: str | list[str]) -> bool:
+    result = _is_span_id_or_list(value)
+    if not result:
+        raise InvalidSearchQuery(INVALID_SPAN_ID.format(value))
+    return True
+
+
+def validate_event_id(value: str | list[str]) -> bool:
+    result = _is_event_id_or_list(value)
+    if not result:
+        raise InvalidSearchQuery(INVALID_ID_DETAILS.format(value))
+    return True

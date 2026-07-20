@@ -8,20 +8,11 @@ import responses
 from sentry.integrations.bitbucket.installed import BitbucketInstalledEndpoint
 from sentry.integrations.bitbucket.integration import BitbucketIntegrationProvider, scopes
 from sentry.integrations.models.integration import Integration
-from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
-from sentry.plugins.base import plugins
-from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-
-
-class BitbucketPlugin(IssueTrackingPlugin2):
-    slug = "bitbucket"
-    name = "Bitbucket Mock Plugin"
-    conf_key = slug
 
 
 @control_silo_test
@@ -91,12 +82,6 @@ class BitbucketInstalledEndpointTest(APITestCase):
         self.user_data_from_bitbucket["principal"] = self.user_data
 
         self.data_without_public_key = {"identity": {"bitbucket_client_id": self.client_key}}
-
-        plugins.register(BitbucketPlugin)
-
-    def tearDown(self) -> None:
-        plugins.unregister(BitbucketPlugin)
-        super().tearDown()
 
     def test_default_permissions(self) -> None:
         # Permissions must be empty so that it will be accessible to bitbucket.
@@ -200,42 +185,3 @@ class BitbucketInstalledEndpointTest(APITestCase):
                 )
 
                 assert Repository.objects.get(id=inaccessible_repo.id).integration_id is None
-
-    @responses.activate
-    def test_disable_plugin_when_fully_migrated(self) -> None:
-        with assume_test_silo_mode(SiloMode.CELL):
-            project = Project.objects.create(organization_id=self.organization.id)
-
-            plugin = plugins.get("bitbucket")
-            plugin.enable(project)
-
-            # Accessible to new Integration
-            Repository.objects.create(
-                organization_id=self.organization.id,
-                name="sentryuser/repo",
-                url="https://bitbucket.org/sentryuser/repo",
-                provider="bitbucket",
-                external_id="123456",
-                config={"name": "sentryuser/repo"},
-            )
-
-        self.client.post(self.path, data=self.team_data_from_bitbucket)
-
-        integration = Integration.objects.get(provider=self.provider, external_id=self.client_key)
-
-        responses.add(
-            responses.GET,
-            "https://api.bitbucket.org/2.0/repositories/sentryuser/repo/hooks",
-            json={"values": [{"description": "sentry-bitbucket-repo-hook"}]},
-        )
-
-        assert "bitbucket" in [p.slug for p in plugins.for_project(project)]
-
-        with self.tasks():
-            with assume_test_silo_mode(SiloMode.CELL):
-                org = serialize_rpc_organization(self.organization)
-            BitbucketIntegrationProvider().post_install(
-                integration=integration, organization=org, extra={}
-            )
-
-            assert "bitbucket" not in [p.slug for p in plugins.for_project(project)]

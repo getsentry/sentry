@@ -59,8 +59,8 @@ export function IssueTraceWaterfallOverlay({
         {
           ...location,
           query: {
-            ...location.query,
             ...(groupId ? {groupId} : {}),
+            referrer: location.query.referrer,
           },
         },
         TraceViewSources.ISSUE_DETAILS

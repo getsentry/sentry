@@ -7,11 +7,11 @@ import time
 import traceback
 import uuid
 import zoneinfo
-from collections.abc import Generator
+from collections.abc import Generator, Mapping, MutableMapping
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
 from random import Random
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from urllib.parse import urlencode
 
@@ -51,7 +51,7 @@ from sentry.notifications.utils.links import (
     get_issue_replay_link,
     get_rules,
 )
-from sentry.services.eventstore.models import Event
+from sentry.services.eventstore.models import BaseEvent, Event, GroupEvent
 from sentry.testutils.helpers.datetime import before_now  # NOQA:S007
 from sentry.testutils.helpers.notifications import (  # NOQA:S007
     SAMPLE_TO_OCCURRENCE_MAP,
@@ -109,7 +109,7 @@ COMMIT_EXAMPLE = """[
 REPLAY_ID = "9188182919744ea987d8e4e58f4a6dec"
 
 
-def get_random(request) -> Random:
+def get_random(request: HttpRequest) -> Random:
     seed = request.GET.get("seed", str(time.time()))
     return Random(seed)
 
@@ -121,7 +121,7 @@ def make_message(random: Random, length: int | None = None) -> str:
 
 
 def make_culprit(random: Random) -> str:
-    def make_module_path_components(min, max):
+    def make_module_path_components(min: int, max: int) -> Generator[str]:
         for _ in range(random.randint(min, max)):
             yield "".join(
                 random.sample(loremipsum.words, random.randint(1, int(random.paretovariate(2.2))))
@@ -177,7 +177,7 @@ def make_group_generator(random: Random, project: Project) -> Generator[Group]:
         yield group
 
 
-def make_error_event(request, project: Project, platform):
+def make_error_event(request: HttpRequest, project: Project, platform: str) -> Event:
     group = next(make_group_generator(get_random(request), project))
 
     data_dct = dict(load_data(platform))
@@ -203,7 +203,7 @@ def make_error_event(request, project: Project, platform):
     return event
 
 
-def make_performance_event(project: Project, sample_name: str):
+def make_performance_event(project: Project, sample_name: str) -> GroupEvent:
     timestamp = datetime(2017, 9, 6, 0, 0)
     start_timestamp = timestamp - timedelta(seconds=3)
     event_id = "44f1419e73884cd2b45c79918f4b6dc4"
@@ -233,7 +233,7 @@ def make_performance_event(project: Project, sample_name: str):
     return group_event
 
 
-def make_generic_event(project: Project):
+def make_generic_event(project: Project) -> GroupEvent:
     event_id = uuid.uuid4().hex
     occurrence_data = TEST_ISSUE_OCCURRENCE.to_dict()
     occurrence_data["event_id"] = event_id
@@ -250,10 +250,12 @@ def make_generic_event(project: Project):
     )
     assert group_info is not None
     generic_group = group_info.group
-    return generic_group.get_latest_event()
+    event = generic_group.get_latest_event()
+    assert event is not None
+    return event
 
 
-def make_feedback_issue(project):
+def make_feedback_issue(project: Project) -> GroupEvent:
     event_id = uuid.uuid4().hex
     occurrence_data = TEST_FEEDBACK_ISSUE_OCCURENCE.to_dict()
     occurrence_data["event_id"] = event_id
@@ -272,10 +274,14 @@ def make_feedback_issue(project):
     if not group_info:
         raise ValueError("No group found")
     feedback_issue = group_info.group
-    return feedback_issue.get_latest_event()
+    event = feedback_issue.get_latest_event()
+    assert event is not None
+    return event
 
 
-def get_shared_context(rule, org, project: Project, group, event):
+def get_shared_context(
+    rule: Rule, org: Organization, project: Project, group: Group, event: BaseEvent
+) -> dict[str, Any]:
     rules = get_rules([rule], org, project, group.type)
     snooze_alert = len(rules) > 0
     snooze_alert_url = rules[0].status_url + urlencode({"mute": "1"}) if snooze_alert else ""
@@ -295,7 +301,7 @@ def get_shared_context(rule, org, project: Project, group, event):
     }
 
 
-def add_unsubscribe_link(context):
+def add_unsubscribe_link(context: MutableMapping[str, Any]) -> None:
     if "unsubscribe_link" not in context:
         context["unsubscribe_link"] = (
             'javascript:alert("This is a preview page, what did you expect to happen?");'
@@ -304,24 +310,32 @@ def add_unsubscribe_link(context):
 
 # TODO(dcramer): use https://github.com/disqus/django-mailviews
 class MailPreview:
-    def __init__(self, html_template, text_template, context=None, subject=None):
+    def __init__(
+        self,
+        html_template: str | None,
+        text_template: str | None,
+        context: Mapping[str, Any] | None = None,
+        subject: str | None = None,
+    ) -> None:
         self.html_template = html_template
         self.text_template = text_template
         self.subject = subject
         self.context = context if context is not None else {}
-        add_unsubscribe_link(self.context)
+        add_unsubscribe_link(cast(MutableMapping[str, Any], self.context))
 
-    def text_body(self):
+    def text_body(self) -> str:
+        assert self.text_template is not None
         return render_to_string(self.text_template, context=self.context)
 
-    def html_body(self):
+    def html_body(self) -> str:
+        assert self.html_template is not None
         try:
             return inline_css(render_to_string(self.html_template, context=self.context))
         except Exception:
             traceback.print_exc()
             raise
 
-    def render(self, request: HttpRequest):
+    def render(self, request: HttpRequest) -> HttpResponse:
         return render_to_response(
             "sentry/debug/mail/preview.html",
             context={"preview": self, "format": request.GET.get("format")},
@@ -331,23 +345,23 @@ class MailPreview:
 @method_decorator(csrf_exempt, name="dispatch")
 class MailPreviewView(View, abc.ABC):
     @abc.abstractmethod
-    def get_context(self, request):
+    def get_context(self, request: AuthenticatedHttpRequest) -> dict[str, Any] | None:
         pass
 
-    def get_subject(self, request):
+    def get_subject(self, request: AuthenticatedHttpRequest) -> str | None:
         return None
 
     @property
     @abc.abstractmethod
-    def html_template(self):
+    def html_template(self) -> str:
         pass
 
     @property
     @abc.abstractmethod
-    def text_template(self):
+    def text_template(self) -> str:
         pass
 
-    def get(self, request):
+    def get(self, request: AuthenticatedHttpRequest) -> HttpResponse:
         return MailPreview(
             text_template=self.text_template,
             html_template=self.html_template,
@@ -355,9 +369,10 @@ class MailPreviewView(View, abc.ABC):
             subject=self.get_subject(request),
         ).render(request)
 
-    def post(self, request):
+    def post(self, request: AuthenticatedHttpRequest) -> HttpResponse:
         msg = MessageBuilder(
-            subject=self.get_subject(request),
+            # MessageBuilder requires a subject, but get_subject() may return None.
+            subject=cast(str, self.get_subject(request)),
             template=self.text_template,
             html_template=self.html_template,
             type="email.debug",
@@ -373,7 +388,7 @@ class MailPreviewAdapter(MailPreview):
     This is an adapter for MailPreview that will take similar arguments to MessageBuilder
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         kwargs["text_template"] = kwargs["template"]
         del kwargs["template"]
         if "from_email" in kwargs:
@@ -383,11 +398,11 @@ class MailPreviewAdapter(MailPreview):
 
 
 class ActivityMailPreview:
-    def __init__(self, request, activity):
+    def __init__(self, request: HttpRequest, activity: Activity) -> None:
         self.request = request
         self.email = EMAIL_CLASSES_BY_TYPE[activity.type](activity)
 
-    def get_context(self):
+    def get_context(self) -> MutableMapping[str, Any]:
         context = self.email.get_base_context()
         context["reason"] = get_random(self.request).choice(
             list(GroupSubscriptionReason.descriptions.values())
@@ -396,11 +411,11 @@ class ActivityMailPreview:
         add_unsubscribe_link(context)
         return context
 
-    def text_body(self):
+    def text_body(self) -> str:
         txt_template = f"{self.email.template_path}.txt"
         return render_to_string(txt_template, context=self.get_context())
 
-    def html_body(self):
+    def html_body(self) -> str:
         html_template = f"{self.email.template_path}.html"
         try:
             return inline_css(render_to_string(html_template, context=self.get_context()))
@@ -413,7 +428,7 @@ class ActivityMailPreview:
 
 @internal_cell_silo_view
 class ActivityMailDebugView(View):
-    def get_activity(self, request: AuthenticatedHttpRequest, event):
+    def get_activity(self, request: AuthenticatedHttpRequest, event: Event) -> dict[str, Any]:
         raise NotImplementedError
 
     def get(self, request: AuthenticatedHttpRequest) -> HttpResponse:
@@ -450,7 +465,7 @@ class ActivityMailDebugView(View):
 
 @internal_cell_silo_view
 @login_required
-def alert(request):
+def alert(request: HttpRequest) -> HttpResponse:
     random = get_random(request)
     platform = request.GET.get("platform", "python")
     org = Organization(id=1, slug="example", name="Example")
@@ -458,6 +473,7 @@ def alert(request):
 
     event = make_error_event(request, project, platform)
     group = event.group
+    assert group is not None
 
     group.substatus = random.choice(
         [GroupSubStatus.ESCALATING, GroupSubStatus.NEW, GroupSubStatus.REGRESSED]
@@ -494,7 +510,7 @@ def alert(request):
 
 @internal_cell_silo_view
 @login_required
-def digest(request):
+def digest(request: HttpRequest) -> HttpResponse:
     random = get_random(request)
 
     # TODO: Refactor all of these into something more manageable.
@@ -617,7 +633,7 @@ def digest(request):
 
 @internal_cell_silo_view
 @login_required
-def request_access(request):
+def request_access(request: HttpRequest) -> HttpResponse:
     org = Organization(id=1, slug="sentry", name="Sentry org")
     team = Team(id=1, slug="example", name="Example", organization=org)
 
@@ -638,7 +654,7 @@ def request_access(request):
 
 @internal_cell_silo_view
 @login_required
-def request_access_for_another_member(request):
+def request_access_for_another_member(request: AuthenticatedHttpRequest) -> HttpResponse:
     org = Organization(id=1, slug="sentry", name="Sentry org")
     team = Team(id=1, slug="example", name="Example", organization=org)
 
@@ -660,7 +676,7 @@ def request_access_for_another_member(request):
 
 @internal_cell_silo_view
 @login_required
-def invitation(request):
+def invitation(request: HttpRequest) -> HttpResponse:
     org = Organization(id=1, slug="example", name="Example")
     om = OrganizationMember(id=1, email="foo@example.com", organization=org)
 
@@ -686,7 +702,7 @@ def invitation(request):
 
 @internal_cell_silo_view
 @login_required
-def access_approved(request):
+def access_approved(request: HttpRequest) -> HttpResponse:
     org = Organization(id=1, slug="example", name="Example")
     team = Team(id=1, slug="example", name="Example", organization=org)
 
@@ -704,8 +720,9 @@ def access_approved(request):
 
 @internal_cell_silo_view
 @login_required
-def confirm_email(request):
+def confirm_email(request: AuthenticatedHttpRequest) -> HttpResponse:
     email = request.user.emails.first()
+    assert email is not None
     email.set_hash()
     email.save()
     return MailPreview(
@@ -726,7 +743,7 @@ def confirm_email(request):
 
 @internal_cell_silo_view
 @login_required
-def recover_account(request):
+def recover_account(request: AuthenticatedHttpRequest) -> HttpResponse:
     return MailPreview(
         html_template="sentry/emails/recover_account.html",
         text_template="sentry/emails/recover_account.txt",
@@ -747,7 +764,7 @@ def recover_account(request):
 
 @control_silo_view
 @login_required
-def relocate_account(request):
+def relocate_account(request: AuthenticatedHttpRequest) -> HttpResponse:
     password_hash, __ = LostPasswordHash.objects.get_or_create(user_id=request.user.id)
     return MailPreview(
         html_template="sentry/emails/relocate_account.html",
@@ -770,7 +787,7 @@ def relocate_account(request):
 
 @internal_cell_silo_view
 @login_required
-def relocation_failed(request):
+def relocation_failed(request: HttpRequest) -> HttpResponse:
     return MailPreview(
         html_template="sentry/emails/relocation_failed.html",
         text_template="sentry/emails/relocation_failed.txt",
@@ -785,7 +802,7 @@ def relocation_failed(request):
 
 @internal_cell_silo_view
 @login_required
-def relocation_started(request):
+def relocation_started(request: HttpRequest) -> HttpResponse:
     return MailPreview(
         html_template="sentry/emails/relocation_started.html",
         text_template="sentry/emails/relocation_started.txt",
@@ -800,7 +817,7 @@ def relocation_started(request):
 
 @internal_cell_silo_view
 @login_required
-def relocation_succeeded(request):
+def relocation_succeeded(request: HttpRequest) -> HttpResponse:
     return MailPreview(
         html_template="sentry/emails/relocation_succeeded.html",
         text_template="sentry/emails/relocation_succeeded.txt",
@@ -815,7 +832,7 @@ def relocation_succeeded(request):
 
 @internal_cell_silo_view
 @login_required
-def org_delete_confirm(request):
+def org_delete_confirm(request: AuthenticatedHttpRequest) -> HttpResponse:
     from sentry.models.auditlogentry import AuditLogEntry
 
     org = Organization.get_default()

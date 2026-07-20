@@ -31,8 +31,6 @@ from sentry.taskworker.namespaces import integrations_control_tasks
     ),
 )
 def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> None:
-    from sentry.plugins.migrator import Migrator
-
     integration = integration_service.get_integration(integration_id=integration_id)
     if integration is None:
         raise Integration.DoesNotExist
@@ -76,5 +74,3 @@ def migrate_repo(repo_id: int, integration_id: int, organization_id: int) -> Non
         organization = organization_service.get(id=organization_id)
         if organization is None:
             raise Organization.DoesNotExist
-
-        Migrator(integration=integration, organization=organization).run()

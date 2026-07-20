@@ -26,9 +26,6 @@ export const enum SectionKey {
   ASSERTIONS = 'assertions', // Only Uptime issues
   DOWNTIME = 'downtime',
   CRON_TIMELINE = 'cron-timeline', // Only Cron issues
-  CORRELATED_ISSUES = 'correlated-issues', // Only Metric issues
-  CORRELATED_TRANSACTIONS = 'correlated-transactions', // Only Metric issues
-
   HIGHLIGHTS = 'highlights',
   RESOURCES = 'resources', // Position controlled by flag
 
@@ -46,10 +43,7 @@ export const enum SectionKey {
   HYDRATION_DIFF = 'hydration-diff',
   REPLAY = 'replay',
 
-  HPKP = 'hpkp',
   CSP = 'csp',
-  EXPECTCT = 'expectct',
-  EXPECTSTAPLE = 'expectstaple',
   TEMPLATE = 'template',
 
   BREADCRUMBS = 'breadcrumbs',
@@ -76,7 +70,7 @@ export const enum SectionKey {
   GROUPING_INFO = 'grouping-info',
   PROCESSING_ERROR = 'processing-error',
   CONFIGURATION_PROBLEM = 'configuration-problem',
-  CONFIGURATION_SOLUTION = 'configuration-solution',
+  CONFIGURATION_TROUBLESHOOTING = 'configuration-troubleshooting',
   RRWEB = 'rrweb', // Legacy integration prior to replays
 
   MERGED_ISSUES = 'merged',

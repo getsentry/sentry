@@ -1,7 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo';
@@ -30,7 +30,7 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
   }
 
   return (
-    <Flex direction="column" gap="2xl">
+    <Stack gap="2xl">
       <BuildDetailsSidebarAppInfo
         appInfo={buildDetailsData.app_info}
         projectId={projectId}
@@ -46,16 +46,16 @@ export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProp
       )}
 
       <BuildVcsInfo buildDetailsData={buildDetailsData} />
-    </Flex>
+    </Stack>
   );
 }
 
 function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
   const theme = useTheme();
   return (
-    <Flex direction="column" gap="2xl" {...props}>
+    <Stack gap="2xl" {...props}>
       {/* App info skeleton - matches BuildDetailsSidebarAppInfo structure */}
-      <Flex direction="column" gap="xl">
+      <Stack gap="xl">
         {/* App icon and name */}
         <Flex align="center" gap="sm">
           <Placeholder width="40px" height="40px" style={{borderRadius: '8px'}} />
@@ -63,7 +63,7 @@ function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
         </Flex>
 
         {/* Additional info */}
-        <Flex direction="column" gap="xs">
+        <Stack gap="xs">
           <Flex align="center" gap="xs">
             <Placeholder width="16px" height="16px" />
             <Placeholder width="100px" height="16px" />
@@ -72,11 +72,11 @@ function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
             <Placeholder width="16px" height="16px" />
             <Placeholder width="120px" height="16px" />
           </Flex>
-        </Flex>
+        </Stack>
 
         {/* Install button */}
         <Placeholder width="80px" height="32px" style={{borderRadius: '4px'}} />
-      </Flex>
+      </Stack>
 
       {/* VCS info skeleton - matches KeyValueData.Card structure */}
       <SkeletonCard>
@@ -85,7 +85,7 @@ function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
           height="18px"
           style={{marginBottom: theme.space['2xl']}}
         />
-        <Flex direction="column" gap="md">
+        <Stack gap="md">
           <Flex justify="between">
             <Placeholder width="40px" height="14px" />
             <Placeholder width="100px" height="14px" />
@@ -110,9 +110,9 @@ function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
             <Placeholder width="80px" height="14px" />
             <Placeholder width="140px" height="14px" />
           </Flex>
-        </Flex>
+        </Stack>
       </SkeletonCard>
-    </Flex>
+    </Stack>
   );
 }
 

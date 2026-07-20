@@ -8,7 +8,7 @@ from django.http.response import HttpResponseBase
 
 from sentry.integrations.github.client import GitHubReaction
 from sentry.integrations.github.webhook_types import GithubWebhookType
-from sentry.seer.code_review.webhooks.issue_comment import SENTRY_REVIEW_COMMAND
+from sentry.seer.webhooks import REVIEW_COMMAND as SENTRY_REVIEW_COMMAND
 from sentry.testutils.helpers.github import GitHubWebhookCodeReviewTestCase
 
 

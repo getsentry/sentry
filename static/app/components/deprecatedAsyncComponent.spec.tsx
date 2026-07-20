@@ -15,7 +15,7 @@ describe('DeprecatedAsyncComponent', () => {
     }
   }
 
-  it('renders on successful request', () => {
+  it('renders on successful request', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/some/path/to/something/',
@@ -25,10 +25,10 @@ describe('DeprecatedAsyncComponent', () => {
       },
     });
     render(<TestAsyncComponent />);
-    expect(screen.getByText('hi')).toBeInTheDocument();
+    expect(await screen.findByText('hi')).toBeInTheDocument();
   });
 
-  it('renders error message', () => {
+  it('renders error message', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/some/path/to/something/',
@@ -39,10 +39,10 @@ describe('DeprecatedAsyncComponent', () => {
       statusCode: 400,
     });
     render(<TestAsyncComponent />);
-    expect(screen.getByText('oops there was a problem')).toBeInTheDocument();
+    expect(await screen.findByText('oops there was a problem')).toBeInTheDocument();
   });
 
-  it('renders only unique error message', () => {
+  it('renders only unique error message', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/first/path/',
@@ -88,7 +88,9 @@ describe('DeprecatedAsyncComponent', () => {
     render(<UniqueErrorsAsyncComponent />);
 
     expect(
-      screen.getByText('oops there was a problem oops there was a different problem')
+      await screen.findByText(
+        'oops there was a problem oops there was a different problem'
+      )
     ).toBeInTheDocument();
   });
 
@@ -108,13 +110,14 @@ describe('DeprecatedAsyncComponent', () => {
       }
     }
 
-    it('calls onLoadAllEndpointsSuccess when all endpoints have been loaded', () => {
+    it('calls onLoadAllEndpointsSuccess when all endpoints have been loaded', async () => {
       jest.useFakeTimers();
       jest
         .spyOn(MockApiClient.prototype, 'request')
         .mockImplementation((url, options) => {
           const timeout = url.includes('something') ? 100 : 50;
           setTimeout(() => options?.success?.({message: 'good'}), timeout);
+          return {} as ReturnType<typeof MockApiClient.prototype.request>;
         });
       const mockOnAllEndpointsSuccess = jest.spyOn(
         MultiRouteComponent.prototype,
@@ -125,14 +128,22 @@ describe('DeprecatedAsyncComponent', () => {
 
       expect(screen.getByTestId('remaining-requests')).toHaveTextContent('2');
 
-      act(() => jest.advanceTimersByTime(40));
+      // requestPromise resolves on a microtask, so flush promises after the
+      // timers fire by awaiting the async timer helper inside act().
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(40);
+      });
       expect(screen.getByTestId('remaining-requests')).toHaveTextContent('2');
 
-      act(() => jest.advanceTimersByTime(40));
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(40);
+      });
       expect(screen.getByTestId('remaining-requests')).toHaveTextContent('1');
       expect(mockOnAllEndpointsSuccess).not.toHaveBeenCalled();
 
-      act(() => jest.advanceTimersByTime(40));
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(40);
+      });
       expect(screen.queryByTestId('remaining-requests')).not.toBeInTheDocument();
       expect(mockOnAllEndpointsSuccess).toHaveBeenCalled();
 

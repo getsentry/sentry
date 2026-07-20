@@ -14,6 +14,7 @@ from django.db.models.functions import Rank
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
+from taskbroker_client.state import current_task
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.group import Group
@@ -131,9 +132,7 @@ def produce_snapshot_to_kafka(snapshot: GroupAttributesSnapshot) -> None:
             raise snuba.SnubaError(err)
     else:
         payload = KafkaPayload(None, json.dumps(snapshot).encode("utf-8"), [])
-        if settings.TASKWORKER_USE_TASK_PRODUCER and in_random_rollout(
-            "tasks.producer.snapshots.rollout"
-        ):
+        if current_task() is not None and in_random_rollout("tasks.producer.snapshots.rollout"):
             _attribute_snapshot_task_producer.produce(
                 ArroyoTopic(get_topic_definition(Topic.GROUP_ATTRIBUTES)["real_topic_name"]),
                 payload,

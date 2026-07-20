@@ -116,7 +116,7 @@ export function InstrumentationGuide() {
       onAction: () => setPlatformGuide(c.platform, g.key),
     }));
 
-    return {...item, children, isSubmenu: true};
+    return {...item, children, submenu: true};
   });
 
   const genericItems: MenuItemProps = {

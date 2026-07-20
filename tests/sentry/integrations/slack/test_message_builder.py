@@ -42,6 +42,7 @@ from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
@@ -703,7 +704,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         )
 
         # suggested user/suspect commit for user with name
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             user2.update(name="Scooby Doo")
         commit.author.update(name=user2.name)
         expected_blocks = build_test_message_blocks(
@@ -1277,3 +1278,31 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
             self.endpoint_regression_issue, self.endpoint_regression_issue.get_latest_event()
         )
         assert not tags
+
+
+class SlackAppUpdateNudgeBlockTest(TestCase):
+    def _build_nudge_text(self, has_mentions_read_scope: bool) -> str:
+        group = self.create_group(project=self.project)
+        block = SlackIssuesMessageBuilder(
+            group,
+            has_mentions_read_scope=has_mentions_read_scope,
+        ).get_slack_app_update_nudge_block()
+        return block["elements"][0]["text"]
+
+    def test_updated_app_has_app_mentions_scope(self) -> None:
+        # app_mentions:read present -> app is up to date.
+        assert (
+            self._build_nudge_text(has_mentions_read_scope=True)
+            == "Mention or tag Sentry to investigate issues more deeply."
+        )
+
+    def test_outdated_app_missing_app_mentions_scope(self) -> None:
+        # Old install missing the mandatory app_mentions:read scope.
+        org = self.organization
+        reinstall_url = org.absolute_url(
+            f"/settings/{org.slug}/integrations/slack/",
+            query="showInstallModal=1&referrer=slack_alert_nudge",
+        )
+        assert self._build_nudge_text(has_mentions_read_scope=False) == (
+            f"Ask Sentry questions and debug faster, <{reinstall_url}|reinstall Sentry Slack app>."
+        )

@@ -7,7 +7,6 @@ from datetime import datetime
 from typing import Any, ClassVar, Literal, TypedDict, cast
 
 import orjson
-import sentry_sdk
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import IntegrityError, models, router
 from django.db.models import Case, Exists, F, Func, OuterRef, Q, Sum, When
@@ -48,6 +47,7 @@ from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import hash_values, md5_text
 from sentry.utils.numbers import validate_bigint
 from sentry.utils.sdk import set_span_attribute
+from sentry.utils.tracing import start_span, trace
 
 logger = logging.getLogger(__name__)
 
@@ -455,12 +455,12 @@ class Release(Model):
         return release
 
     @classmethod
-    def get_or_create(cls, project, version, date_added=None):
+    def get_or_create(cls, project, version, date_added=None, *, create=True):
         with metrics.timer("models.release.get_or_create") as metric_tags:
-            return cls._get_or_create_impl(project, version, date_added, metric_tags)
+            return cls._get_or_create_impl(project, version, date_added, metric_tags, create)
 
     @classmethod
-    def _get_or_create_impl(cls, project, version, date_added, metric_tags):
+    def _get_or_create_impl(cls, project, version, date_added, metric_tags, create=True):
         from sentry.models.project import Project
 
         if date_added is None:
@@ -488,6 +488,26 @@ class Release(Model):
                 except IndexError:
                     release = releases[0]
                 metric_tags["created"] = "false"
+            elif not create:
+                # Auto-creation is disabled. Associate with an existing org-wide
+                # release if one exists (e.g. created via the CLI or another project)
+                # by linking it to this project, but never create a new release from
+                # telemetry. Don't cache a miss so a release created later is found
+                # next time.
+                metric_tags["created"] = "false"
+                release = cls.objects.filter(
+                    organization_id=project.organization_id,
+                    version__in=[version, project_version],
+                ).first()
+                if release is None:
+                    metric_tags["cache_hit"] = "false"
+                    return None
+
+                # NOTE: `add_project` creates a ReleaseProject instance
+                release.add_project(project)
+                if not project.flags.has_releases:
+                    project.flags.has_releases = True
+                    project.update(flags=F("flags").bitor(Project.flags.has_releases))
             else:
                 try:
                     with atomic_transaction(using=router.db_for_write(cls)):
@@ -625,7 +645,7 @@ class Release(Model):
                 ref["previousCommit"], ref["commit"] = ref["commit"].split(COMMIT_RANGE_DELIMITER)
 
     def set_refs(self, refs, user_id, fetch=False):
-        with sentry_sdk.start_span(op="set_refs"):
+        with start_span(op="set_refs", name="set_refs"):
             from sentry.api.exceptions import InvalidRepository
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
             from sentry.models.repository import Repository
@@ -666,7 +686,7 @@ class Release(Model):
                     }
                 )
 
-    @sentry_sdk.trace
+    @trace
     def set_commits(self, commit_list):
         """
         Bind a list of commits to this release.
@@ -747,7 +767,7 @@ class Release(Model):
         """
         Delete all release-specific commit data associated to this release. We will not delete the Commit model values because other releases may use these commits.
         """
-        with sentry_sdk.start_span(op="clear_commits"):
+        with start_span(op="clear_commits", name="clear_commits"):
             from sentry.models.releasecommit import ReleaseCommit
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
 

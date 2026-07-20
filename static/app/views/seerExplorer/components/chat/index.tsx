@@ -3,7 +3,7 @@ import {motion} from 'framer-motion';
 import {Container} from '@sentry/scraps/layout';
 
 import {unreachable} from 'sentry/utils/unreachable';
-import type {Block} from 'sentry/views/seerExplorer/types';
+import type {Block, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 import {AssistantBlock} from './assistant';
 import {ToolUseBlock} from './toolUse';
@@ -18,7 +18,7 @@ interface BlockProps {
   onClick?: () => void;
   readOnly?: boolean;
   ref?: React.Ref<HTMLDivElement>;
-  runId?: number;
+  runId?: SeerExplorerRunId;
   showThinking?: boolean;
 }
 

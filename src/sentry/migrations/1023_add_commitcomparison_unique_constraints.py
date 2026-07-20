@@ -56,7 +56,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("sentry", "1022_add_event_id_to_groupopenperiodactivity"),
-        ("preprod", "0026_add_initial_snapshot_models"),
+        # ("preprod", "0026_add_initial_snapshot_models"),
     ]
 
     operations = [

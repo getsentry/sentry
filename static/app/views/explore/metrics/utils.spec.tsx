@@ -2,12 +2,15 @@ import qs from 'query-string';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 import {
   createTraceMetricEventsFilter,
   getEquationMetricsTotalFilter,
   getMetricsUrlFromSavedQueryUrl,
   mapMetricUnitToFieldType,
+  parseTraceMetricFromQuery,
+  stripTraceMetricTokens,
 } from 'sentry/views/explore/metrics/utils';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 
@@ -27,6 +30,49 @@ describe('mapMetricUnitToFieldType', () => {
     ['custom_unit', {fieldType: 'number', unit: undefined}],
   ])('maps %s to the correct field type', (unit, expected) => {
     expect(mapMetricUnitToFieldType(unit)).toEqual(expected);
+  });
+});
+
+describe('parseTraceMetricFromQuery', () => {
+  it('splits the metric identity from the remaining predicate', () => {
+    expect(
+      parseTraceMetricFromQuery(
+        'metric.name:foo.duration metric.type:distribution metric.unit:millisecond value:>100'
+      )
+    ).toEqual({
+      metric: {name: 'foo.duration', type: 'distribution', unit: 'millisecond'},
+      rest: 'value:>100',
+    });
+  });
+
+  it('defaults the unit to NONE_UNIT when absent', () => {
+    expect(
+      parseTraceMetricFromQuery('metric.name:foo.duration metric.type:counter')
+    ).toEqual({
+      metric: {name: 'foo.duration', type: 'counter', unit: NONE_UNIT},
+      rest: '',
+    });
+  });
+
+  it.each([
+    ['value:>100'],
+    ['metric.name:foo.duration value:>100'],
+    ['metric.name:foo.duration metric.type:bogus'],
+  ])('returns no metric and leaves %s untouched', query => {
+    expect(parseTraceMetricFromQuery(query)).toEqual({metric: undefined, rest: query});
+  });
+});
+
+describe('stripTraceMetricTokens', () => {
+  it.each([
+    ['metric.name:foo metric.type:distribution metric.unit:ms value:>100', 'value:>100'],
+    // Incomplete identity (missing metric.type) is still stripped — the case where
+    // the metric came from the visualization aggregate but a stale metric.name
+    // token lingered in the query.
+    ['metric.name:foo value:>100', 'value:>100'],
+    ['value:>100', 'value:>100'],
+  ])('strips metric tokens from %s', (query, expected) => {
+    expect(stripTraceMetricTokens(query)).toBe(expected);
   });
 });
 

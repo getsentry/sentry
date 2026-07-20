@@ -33,7 +33,6 @@ interface InputSectionProps {
   blocks: Block[];
   enabled: boolean;
   inputValue: string;
-  onClear: () => void;
   onCreatePR: (repoName?: string) => void;
   onInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   onInputClick: () => void;

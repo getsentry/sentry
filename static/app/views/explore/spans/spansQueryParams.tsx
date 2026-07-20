@@ -33,6 +33,8 @@ import {SpanFields} from 'sentry/views/insights/types';
 const SPANS_MODE_KEY = 'mode';
 const SPANS_QUERY_KEY = 'query';
 const SPANS_CURSOR_KEY = 'cursor';
+export const SPANS_BREAKDOWN_CURSOR_KEY = 'breakdownCursor';
+const SPANS_BREAKDOWN_QUERY_KEY = 'breakdownQuery';
 const SPANS_FIELD_KEY = 'field';
 const SPANS_SORT_KEY = 'sort';
 const SPANS_AGGREGATE_FIELD_KEY = 'aggregateField';
@@ -61,6 +63,8 @@ export function getReadableQueryParamsFromLocation(
   const query = decodeScalar(location.query[SPANS_QUERY_KEY]) ?? '';
 
   const cursor = getCursorFromLocation(location, SPANS_CURSOR_KEY);
+  const breakdownCursor = decodeScalar(location.query[SPANS_BREAKDOWN_CURSOR_KEY]);
+  const breakdownQuery = decodeScalar(location.query[SPANS_BREAKDOWN_QUERY_KEY]);
   const fields = getFieldsFromLocation(location, SPANS_FIELD_KEY) ?? defaultFields();
   const sortBys =
     getSortBysFromLocation(location, SPANS_SORT_KEY, fields) ?? defaultSortBys(fields);
@@ -85,6 +89,8 @@ export function getReadableQueryParamsFromLocation(
     query,
 
     cursor,
+    breakdownCursor,
+    breakdownQuery,
     fields,
     sortBys,
 
@@ -116,6 +122,16 @@ export function getTargetWithReadableQueryParams(
   );
   updateNullableLocation(target, SPANS_QUERY_KEY, writableQueryParams.query);
   updateNullableLocation(target, SPANS_MODE_KEY, writableQueryParams.mode);
+  updateNullableLocation(
+    target,
+    SPANS_BREAKDOWN_CURSOR_KEY,
+    writableQueryParams.breakdownCursor
+  );
+  updateNullableLocation(
+    target,
+    SPANS_BREAKDOWN_QUERY_KEY,
+    writableQueryParams.breakdownQuery
+  );
 
   updateNullableLocation(
     target,

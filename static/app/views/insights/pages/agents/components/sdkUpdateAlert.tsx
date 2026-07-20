@@ -24,6 +24,10 @@ function getPackageNameFromSdkName(sdkName?: string): string | null {
     }
   }
 
+  if (sdkName === 'sentry.php.laravel') {
+    return 'sentry/sentry-laravel';
+  }
+
   return null;
 }
 

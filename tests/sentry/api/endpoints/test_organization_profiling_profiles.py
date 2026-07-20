@@ -7,6 +7,7 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 from snuba_sdk import And, Column, Condition, Function, Op, Or
 
+from sentry.models.profilechunkattachment import ProfileChunkAttachment
 from sentry.profiles.flamegraph import FlamegraphExecutor
 from sentry.profiles.utils import proxy_profiling_service
 from sentry.snuba.dataset import Dataset
@@ -789,3 +790,124 @@ class OrganizationProfilingChunksTest(APITestCase):
                 "end": str(int(end.timestamp() * 1e9)),
             },
         )
+
+
+class OrganizationProfilingChunkAttachmentsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-profiling-chunk-attachments"
+    features = {
+        "organizations:continuous-profiling-perfetto": True,
+    }
+
+    def setUp(self) -> None:
+        self.login_as(user=self.user)
+        self.url = reverse(self.endpoint, args=(self.organization.slug,))
+        self.profiler_id = uuid4().hex
+
+    def create_attachment(
+        self, chunk_id, name="trace.perfetto", content_type="application/x-perfetto"
+    ):
+        return ProfileChunkAttachment.objects.create(
+            project_id=self.project.id,
+            profiler_id=self.profiler_id,
+            chunk_id=chunk_id,
+            name=name,
+            content_type=content_type,
+            stored_id=uuid4().hex,
+        )
+
+    def test_no_feature(self) -> None:
+        response = self.client.get(self.url, {"project": [self.project.id]})
+        assert response.status_code == 404
+
+    def test_forbids_multiple_projects(self) -> None:
+        projects = [self.create_project() for _ in range(3)]
+        with self.feature(self.features):
+            response = self.client.get(self.url, {"project": [project.id for project in projects]})
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": ErrorDetail(string="one project_id must be specified.", code="parse_error")
+        }
+
+    def test_requires_profiler_id(self) -> None:
+        with self.feature(self.features):
+            response = self.client.get(self.url, {"project": [self.project.id]})
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": ErrorDetail(string="profiler_id must be specified.", code="parse_error")
+        }
+
+    @patch("sentry.profiles.profile_chunks.raw_snql_query")
+    def test_lists_attachments_for_resolved_chunks(self, mock_raw_snql_query: MagicMock) -> None:
+        chunk_ids = [uuid4().hex for _ in range(2)]
+        mock_raw_snql_query.return_value = {
+            "data": [{"chunk_id": chunk_id} for chunk_id in chunk_ids]
+        }
+
+        attachment = self.create_attachment(chunk_ids[0])
+        # An attachment on a chunk outside the resolved set must not be returned.
+        self.create_attachment(uuid4().hex)
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                {
+                    "project": [self.project.id],
+                    "profiler_id": self.profiler_id,
+                    "statsPeriod": "1d",
+                },
+            )
+
+        assert response.status_code == 200
+        assert [row["id"] for row in response.data] == [str(attachment.id)]
+        assert response.data[0]["name"] == "trace.perfetto"
+        assert response.data[0]["contentType"] == "application/x-perfetto"
+        assert response.data[0]["chunkId"] == chunk_ids[0]
+
+    @patch("sentry.profiles.profile_chunks.raw_snql_query")
+    def test_does_not_leak_other_project_attachments(self, mock_raw_snql_query: MagicMock) -> None:
+        chunk_id = uuid4().hex
+        mock_raw_snql_query.return_value = {"data": [{"chunk_id": chunk_id}]}
+
+        # Same profiler_id + chunk_id but a different project must not be returned.
+        other_project = self.create_project(organization=self.organization)
+        ProfileChunkAttachment.objects.create(
+            project_id=other_project.id,
+            profiler_id=self.profiler_id,
+            chunk_id=chunk_id,
+            name="trace.perfetto",
+            content_type="application/x-perfetto",
+            stored_id=uuid4().hex,
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                {
+                    "project": [self.project.id],
+                    "profiler_id": self.profiler_id,
+                    "statsPeriod": "1d",
+                },
+            )
+
+        assert response.status_code == 200
+        assert response.data == []
+
+    @patch("sentry.profiles.profile_chunks.raw_snql_query")
+    def test_chunk_id_param_short_circuits_snuba(self, mock_raw_snql_query: MagicMock) -> None:
+        chunk_id = uuid4().hex
+        attachment = self.create_attachment(chunk_id)
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                {
+                    "project": [self.project.id],
+                    "profiler_id": self.profiler_id,
+                    "chunk_id": chunk_id,
+                    "statsPeriod": "1d",
+                },
+            )
+
+        assert response.status_code == 200
+        assert mock_raw_snql_query.call_count == 0
+        assert [row["id"] for row in response.data] == [str(attachment.id)]

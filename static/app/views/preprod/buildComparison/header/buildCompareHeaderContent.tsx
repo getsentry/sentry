@@ -22,7 +22,6 @@ import {t} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {AppIcon} from 'sentry/views/preprod/components/appIcon';
 import {
   isSizeInfoCompleted,
@@ -55,7 +54,6 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
     props;
   const organization = useOrganization();
   const isSentryEmployee = useIsSentryEmployee();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const labels = getLabels(buildDetails.app_info?.platform ?? undefined);
   const breadcrumbs: Crumb[] = [
     {
@@ -150,19 +148,15 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
         </Flex>
       </Stack>
       <Flex align="center" gap="sm">
-        {hasPageFrameFeature ? (
-          <TopBar.Slot name="feedback">
-            <FeedbackButton
-              feedbackOptions={buildCompareFeedbackOptions}
-              aria-label={t('Give Feedback')}
-              tooltipProps={{title: t('Give Feedback')}}
-            >
-              {null}
-            </FeedbackButton>
-          </TopBar.Slot>
-        ) : (
-          <FeedbackButton feedbackOptions={buildCompareFeedbackOptions} />
-        )}
+        <TopBar.Slot name="feedback">
+          <FeedbackButton
+            feedbackOptions={buildCompareFeedbackOptions}
+            aria-label={t('Give Feedback')}
+            tooltipProps={{title: t('Give Feedback')}}
+          >
+            {null}
+          </FeedbackButton>
+        </TopBar.Slot>
         {isSentryEmployee &&
           headArtifactId &&
           baseArtifactId &&

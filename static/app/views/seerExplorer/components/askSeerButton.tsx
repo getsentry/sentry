@@ -42,7 +42,7 @@ export function AskSeerButton() {
           visibility={state === 'thinking' ? 'hidden' : undefined}
         >
           <Container>{t('Ask Seer')}</Container>
-          <Container display={{xs: 'none', md: 'inline-block'}}>
+          <Container display={{'screen:xs': 'none', 'screen:md': 'inline-block'}}>
             <Hotkey value="mod+/" variant="debossed" />
           </Container>
         </Flex>

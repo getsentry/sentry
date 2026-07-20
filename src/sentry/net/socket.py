@@ -6,7 +6,6 @@ import socket
 from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
-import sentry_sdk
 from django.conf import settings
 from django.utils.encoding import force_str
 from urllib3.exceptions import LocationParseError
@@ -14,6 +13,7 @@ from urllib3.util.connection import _set_socket_options, allowed_gai_family
 from urllib3.util.timeout import _DEFAULT_TIMEOUT, _TYPE_DEFAULT
 
 from sentry.exceptions import RestrictedIPAddress
+from sentry.utils.tracing import set_span_data, start_span, trace
 
 if TYPE_CHECKING:
     from sentry.net.http import IsIpAddressPermitted
@@ -113,7 +113,7 @@ def is_safe_hostname(hostname: str | None) -> bool:
 
 
 # Modifed version of urllib3.util.connection.create_connection.
-@sentry_sdk.trace
+@trace
 def safe_create_connection(
     address: tuple[str, int],
     timeout: _TYPE_DEFAULT | float | None = _DEFAULT_TIMEOUT,
@@ -143,13 +143,13 @@ def safe_create_connection(
     except UnicodeError:
         raise LocationParseError("'{host}', label empty or too long") from None
 
-    with sentry_sdk.start_span(op="socket.getaddrinfo", name=f"DNS resolve: {host}") as gai_span:
+    with start_span(op="socket.getaddrinfo", name=f"DNS resolve: {host}") as gai_span:
         addresses = socket.getaddrinfo(host, port, family, socket.SOCK_STREAM)
-        gai_span.set_data("address_count", len(addresses))
-        gai_span.set_data("addresses", addresses)
+        set_span_data(gai_span, "address_count", len(addresses))
+        set_span_data(gai_span, "addresses", addresses)
 
     for res in addresses:
-        with sentry_sdk.start_span(op="socket.getaddrinfo.loop", name="socket.getaddrinfo.loop"):
+        with start_span(op="socket.getaddrinfo.loop", name="socket.getaddrinfo.loop"):
             af, socktype, proto, canonname, sa = res
 
             # Begin custom code.
@@ -177,7 +177,7 @@ def safe_create_connection(
                     sock.settimeout(timeout)
                 if source_address:
                     sock.bind(source_address)
-                with sentry_sdk.start_span(op="socket.connect", name=f"sock.connect.{sa}"):
+                with start_span(op="socket.connect", name=f"sock.connect.{sa}"):
                     sock.connect(sa)
                 return sock
 

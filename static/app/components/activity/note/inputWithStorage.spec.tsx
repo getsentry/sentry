@@ -1,6 +1,9 @@
+import {GroupFixture} from 'sentry-fixture/group';
+
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {NoteInputWithStorage} from 'sentry/components/activity/note/inputWithStorage';
+import {GroupActivityType} from 'sentry/types/group';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');
@@ -26,9 +29,7 @@ describe('NoteInputWithStorage', () => {
   const defaultProps = {
     storageKey: 'storage',
     itemKey: 'item1',
-    group: {project: {}, id: 'groupId'},
-    memberList: [],
-    teams: [],
+    group: GroupFixture(),
   };
 
   it('loads draft item from local storage when mounting', async () => {
@@ -62,14 +63,27 @@ describe('NoteInputWithStorage', () => {
         JSON.stringify({item1: 'draft item', item2: 'item2', item3: 'item3'})
       );
 
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/comments/',
+      method: 'POST',
+      body: {
+        id: '1',
+        type: GroupActivityType.NOTE,
+        data: {text: 'new comment'},
+        dateCreated: '2024-01-01T00:00:00Z',
+      },
+    });
+
     render(<NoteInputWithStorage {...defaultProps} />);
 
     await changeReactMentionsInput('new comment');
     await userEvent.type(screen.getByRole('textbox'), '{Control>}{enter}{/Control}');
 
-    expect(localStorageWrapper.setItem).toHaveBeenLastCalledWith(
-      'storage',
-      JSON.stringify({item2: 'item2', item3: 'item3'})
-    );
+    await waitFor(() => {
+      expect(localStorageWrapper.setItem).toHaveBeenLastCalledWith(
+        'storage',
+        JSON.stringify({item2: 'item2', item3: 'item3'})
+      );
+    });
   });
 });

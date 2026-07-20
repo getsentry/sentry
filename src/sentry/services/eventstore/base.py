@@ -16,6 +16,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.snuba.referrer import Referrer
 from sentry.utils.services import Service
+from sentry.utils.tracing import start_span
 
 
 class Filter:
@@ -342,7 +343,7 @@ class EventStorage(Service):
         sentry_sdk.set_tag("eventstore.backend", "nodestore")
         sentry_sdk.set_attribute("eventstore.backend", "nodestore")
 
-        with sentry_sdk.start_span(op="eventstore.base.bind_nodes"):
+        with start_span(op="eventstore.base.bind_nodes", name="eventstore.base.bind_nodes"):
             object_node_list = [(i, i.data) for i in object_list if i.data.id]
 
             # Remove duplicates from the list of nodes to be fetched

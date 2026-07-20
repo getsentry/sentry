@@ -1,23 +1,25 @@
 import {useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
+import {ScmAlertFrequencySection} from 'sentry/components/onboarding/scm/scmAlertFrequencySection';
+import {ScmProjectDetailsCore} from 'sentry/components/onboarding/scm/scmProjectDetailsCore';
+import {ScmStepHeader} from 'sentry/components/onboarding/scm/scmStepHeader';
+import {
+  type ScmProjectDetailsCompletion,
+  useScmProjectDetails,
+} from 'sentry/components/onboarding/scm/useScmProjectDetails';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {GenericFooter} from 'sentry/views/onboarding/components/genericFooter';
-import {ScmProjectDetailsCore} from 'sentry/views/onboarding/components/scmProjectDetailsCore';
-import {
-  type ScmProjectDetailsCompletion,
-  useScmProjectDetails,
-} from 'sentry/views/onboarding/components/useScmProjectDetails';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
-import {ScmStepHeader} from './components/scmStepHeader';
 import type {StepProps} from './types';
 
 interface ScmProjectDetailsProps {
@@ -73,7 +75,7 @@ export function ScmProjectDetails({
   });
 
   return (
-    <Flex direction="column" align="center" gap="2xl" flexGrow={1}>
+    <Stack align="center" gap="2xl" flexGrow={1}>
       <ScmStepHeader
         heading={t('Project details')}
         subtitle={t(
@@ -81,33 +83,40 @@ export function ScmProjectDetails({
         )}
       />
 
-      <ScmProjectDetailsCore
-        analyticsFlow="onboarding"
-        projectName={form.projectName}
-        onProjectNameChange={form.onProjectNameChange}
-        onProjectNameBlur={form.onProjectNameBlur}
-        teamSlug={form.teamSlug}
-        onTeamChange={form.onTeamChange}
-        alertRuleConfig={form.alertRuleConfig}
-        onAlertChange={form.onAlertChange}
-        isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
-        contentMaxWidth={SCM_STEP_CONTENT_WIDTH}
-      />
+      <Stack gap="3xl" width="100%" maxWidth={SCM_STEP_CONTENT_WIDTH}>
+        <ScmProjectDetailsCore
+          analyticsFlow="onboarding"
+          projectName={form.projectName}
+          onProjectNameChange={form.onProjectNameChange}
+          onProjectNameBlur={form.onProjectNameBlur}
+          teamSlug={form.teamSlug}
+          onTeamChange={form.onTeamChange}
+          isOrgMemberWithNoAccess={form.isOrgMemberWithNoAccess}
+        />
+        <ScmAlertFrequencySection
+          analyticsFlow="onboarding"
+          alertRuleConfig={form.alertRuleConfig}
+          notificationProps={form.notificationProps}
+          onAlertChange={form.onAlertChange}
+        />
+      </Stack>
 
       <GenericFooter gap="3xl" padding="0 3xl">
         <Flex align="center">{genBackButton?.()}</Flex>
         <Flex align="center" gap="md">
-          <Button
-            variant="primary"
-            onClick={form.submit}
-            disabled={!form.canSubmit}
-            busy={form.isBusy}
-            icon={<IconProject />}
-          >
-            {t('Create project')}
-          </Button>
+          <Tooltip title={form.submitTooltipText} disabled={!form.submitTooltipText}>
+            <Button
+              variant="primary"
+              onClick={form.submit}
+              disabled={!form.canSubmit}
+              busy={form.isBusy}
+              icon={<IconProject />}
+            >
+              {t('Create project')}
+            </Button>
+          </Tooltip>
         </Flex>
       </GenericFooter>
-    </Flex>
+    </Stack>
   );
 }

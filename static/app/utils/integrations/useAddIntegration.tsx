@@ -26,6 +26,15 @@ export interface AddIntegrationParams {
       | 'seer_onboarding_code_review'
       | 'test_analytics_onboarding'
       | 'test_analytics_org_selector';
+    referrer?: string;
+  };
+  /**
+   * Overrides for the install modal's copy. Passed straight through to
+   * `openPipelineModal`; this hook does not read them.
+   */
+  modalParams?: {
+    description?: string;
+    title?: string;
   };
   /**
    * When true, the "%s added" success toast is not shown on install.
@@ -53,6 +62,7 @@ export function useAddIntegration() {
       analyticsParams,
       suppressSuccessMessage,
       urlParams,
+      modalParams,
     } = params;
 
     const is_scm = isScmProvider(provider);
@@ -69,6 +79,7 @@ export function useAddIntegration() {
       type: 'integration',
       provider: provider.key as ProvidersByType['integration'],
       initialData: urlParams,
+      ...modalParams,
       onComplete: data => {
         trackIntegrationAnalytics('integrations.installation_complete', {
           integration: provider.key,

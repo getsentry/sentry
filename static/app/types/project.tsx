@@ -1,18 +1,9 @@
 import type {Scope, TimeseriesValue} from './core';
 import type {SDKUpdatesSuggestion} from './event';
-import type {Plugin} from './integrations';
 import type {Organization, Team} from './organization';
 import type {PlatformKey} from './platform';
 import type {Deploy} from './release';
 import type {DynamicSamplingBias} from './sampling';
-
-export type SeerNightshiftTweaks = {
-  enabled?: boolean;
-  extra_triage_instructions?: string;
-  intelligence_level?: 'low' | 'medium' | 'high';
-  max_candidates?: number;
-  reasoning_effort?: 'low' | 'medium' | 'high';
-};
 
 // Minimal project representation for use with avatars.
 export type AvatarProject = {
@@ -107,12 +98,12 @@ export interface DetailedProject extends ProjectSummary {
   digestsMaxDelay: number;
   digestsMinDelay: number;
   dynamicSamplingBiases: DynamicSamplingBias[] | null;
+  enableAutoReleaseCreation: boolean;
   fingerprintingRules: string;
   groupingConfig: string;
   groupingEnhancements: string;
   isInternal: boolean;
   organization: Pick<Organization, 'id' | 'slug'>;
-  plugins: Plugin[];
   processingIssues: number;
   relayPiiConfig: string;
   resolveAge: number;
@@ -155,7 +146,6 @@ export interface DetailedProject extends ProjectSummary {
   scmSourceContextEnabled?: boolean;
   securityToken?: string;
   securityTokenHeader?: string;
-  seerNightshiftTweaks?: SeerNightshiftTweaks | null;
   seerScannerAutomation?: boolean;
   subjectPrefix?: string;
   symbolSources?: string;

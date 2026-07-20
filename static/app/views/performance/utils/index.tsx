@@ -161,7 +161,7 @@ export function platformToDomainView(
 /**
  * Used for transaction summary to determine appropriate columns on a page, since there is no display field set for the page.
  */
-export function platformAndConditionsToPerformanceType(
+function platformAndConditionsToPerformanceType(
   projects: Project[],
   eventView: EventView
 ) {

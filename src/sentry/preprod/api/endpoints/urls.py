@@ -13,6 +13,9 @@ from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_co
 from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_compare_download import (
     ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint,
 )
+from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_comparisons import (
+    ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint,
+)
 from sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_download import (
     ProjectPreprodArtifactSizeAnalysisDownloadEndpoint,
 )
@@ -148,6 +151,11 @@ preprod_organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/build-details/$",
         ProjectPreprodBuildDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-preprod-artifact-build-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/size-analysis/comparisons/$",
+        ProjectPreprodArtifactSizeAnalysisComparisonsEndpoint.as_view(),
+        name="sentry-api-0-organization-preprod-artifact-size-analysis-comparisons",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/preprodartifacts/(?P<head_artifact_id>[^/]+)/private-install-details/$",

@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -20,7 +21,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.grouplink import GroupLink
-from sentry.models.pullrequest import PullRequest
+from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
 from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
@@ -42,6 +43,12 @@ class WebhookTest(GitLabTestCase):
         assert pull.author == author
         assert pull.merge_commit_sha is None
         assert pull.organization_id == self.organization.id
+        assert pull.state == PullRequestLifecycleState.OPEN
+        assert pull.opened_at is not None
+        assert pull.closed_at is None
+        assert pull.merged_at is None
+        assert pull.head_commit_sha == "ba3e0d8ff79c80d5b0bbb4f3e2e343e0aaa662b7"
+        assert pull.draft is False
 
     def assert_group_link(self, group, pull):
         link = GroupLink.objects.get()
@@ -452,6 +459,81 @@ class WebhookTest(GitLabTestCase):
 
         self.assert_pull_request(pull, author)
         self.assert_group_link(group, pull)
+
+    def test_merge_event_merged_pull_request_state(self) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
+        self.create_group(project=self.project, short_id=9)
+
+        payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        payload["object_attributes"]["state"] = "merged"
+        payload["object_attributes"]["action"] = "merge"
+        payload["object_attributes"]["merge_commit_sha"] = "abc123"
+        payload["object_attributes"]["merged_at"] = "2017-09-28T12:23:42.365Z"
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+
+        pull = PullRequest.objects.get()
+        assert pull.state == PullRequestLifecycleState.MERGED
+        assert pull.merge_commit_sha == "abc123"
+        # merged_at is taken directly from the webhook's object_attributes.
+        assert pull.merged_at == datetime(2017, 9, 28, 12, 23, 42, 365000, tzinfo=timezone.utc)
+        # A merged merge request is also closed.
+        assert pull.closed_at == pull.merged_at
+
+    def test_merge_event_edit_after_merge_preserves_terminal_timestamps(self) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
+
+        # Merge the merge request, stamping merged_at from the reported
+        # merged_at and closed_at from the same value.
+        merge_payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        merge_payload["object_attributes"]["state"] = "merged"
+        merge_payload["object_attributes"]["action"] = "merge"
+        merge_payload["object_attributes"]["merged_at"] = "2017-09-28T12:23:42.365Z"
+        self.client.post(
+            self.url,
+            data=orjson.dumps(merge_payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+
+        pull = PullRequest.objects.get()
+        merged_at = pull.merged_at
+        closed_at = pull.closed_at
+        assert merged_at is not None
+        assert closed_at is not None
+
+        # GitLab fires the hook again for an edit (e.g. label change) with a
+        # later updated_at while the state is still "merged". The edit carries
+        # the same absolute merged_at, and an "update" action never touches
+        # closed_at, so the terminal timestamps must not drift to the edit time.
+        edit_payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        edit_payload["object_attributes"]["state"] = "merged"
+        edit_payload["object_attributes"]["action"] = "update"
+        edit_payload["object_attributes"]["updated_at"] = "2018-01-01T00:00:00.000Z"
+        edit_payload["object_attributes"]["merged_at"] = "2017-09-28T12:23:42.365Z"
+        edit_payload["object_attributes"]["title"] = "Edited after merge"
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(edit_payload),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+        assert response.status_code == 204
+
+        pull.refresh_from_db()
+        assert pull.title == "Edited after merge"
+        assert pull.state == PullRequestLifecycleState.MERGED
+        assert pull.merged_at == merged_at
+        assert pull.closed_at == closed_at
 
     def test_update_repo_path(self) -> None:
         repo_out_of_date_path = self.create_gitlab_repo(

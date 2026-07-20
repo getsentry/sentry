@@ -28,7 +28,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {
@@ -53,6 +52,7 @@ import {
   type SidebarSection,
   SnapshotSidebarContent,
 } from './sidebar/snapshotSidebarContent';
+import {buildSoloImages} from './soloImages';
 import {TagFilterProvider} from './tagFilterContext';
 import {narrowItemByTags} from './tagFiltering';
 
@@ -128,7 +128,6 @@ function itemMaxDiff(item: SidebarItem): number {
 export default function SnapshotsPage() {
   const organization = useOrganization();
   const theme = useTheme();
-  const hasPageFrameFeature = useHasPageFrameFeature();
   const {snapshotId} = useParams<{
     snapshotId: string;
   }>();
@@ -173,18 +172,21 @@ export default function SnapshotsPage() {
     });
   }, [isPending, data, organization]);
 
-  const [searchQuery, setSearchQuery] = useState('');
   const pushHistory = {history: 'push' as const};
   const palette = theme.chart.getColorPalette(10);
   // Will be fixed by https://github.com/typescript-eslint/typescript-eslint/pull/12206
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
   const [overlayColor, setOverlayColor] = useLocalStorageState<string>(
     'snapshot-overlay-color',
-    palette.at(-5) ?? palette[0]
+    palette.at(-3) ?? palette[0]
   );
   const [diffMode, setDiffMode] = useLocalStorageState<DiffMode>(
     'snapshot-diff-mode',
     'split'
+  );
+  const [overlayOpacity, setOverlayOpacity] = useLocalStorageState(
+    'snapshot-overlay-opacity',
+    50
   );
   const breakpoints = useBreakpoints();
   const effectiveDiffMode = !breakpoints.sm && diffMode === 'split' ? 'wipe' : diffMode;
@@ -195,6 +197,10 @@ export default function SnapshotsPage() {
       .withOptions(pushHistory)
   );
   const replaceHistory = {history: 'replace' as const};
+  const [searchQuery, setSearchQuery] = useQueryState(
+    'search',
+    parseAsString.withDefault('').withOptions(replaceHistory)
+  );
   const [activeStatusList, setActiveStatusList] = useQueryState(
     'selectedTypes',
     parseAsArrayOf(parseAsStringLiteral(Object.values(DiffStatus)))
@@ -336,7 +342,7 @@ export default function SnapshotsPage() {
       return items;
     }
 
-    return [...groupByKey(data.images, imageGroupKey).entries()]
+    return [...groupByKey(buildSoloImages(data), imageGroupKey).entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([groupKey, images]) => ({
         type: 'solo' as const,
@@ -777,13 +783,11 @@ export default function SnapshotsPage() {
           flexShrink={0}
           overflow="auto"
           borderRight="primary"
-          display={{'2xs': 'none', xs: 'none', sm: 'flex'}}
-          maxWidth={{sm: '300px', md: 'none'}}
+          display={{'screen:2xs': 'none', 'screen:xs': 'none', 'screen:sm': 'flex'}}
+          maxWidth={{'screen:sm': '300px', 'screen:md': 'none'}}
           style={{
             width: sidebarWidth,
-            height: hasPageFrameFeature
-              ? 'calc(100dvh - var(--top-bar-height, 53px))'
-              : 'calc(100vh - 205px)',
+            height: 'calc(100dvh - var(--top-bar-height, 53px))',
           }}
         >
           <SnapshotSidebarContent
@@ -814,6 +818,8 @@ export default function SnapshotsPage() {
             diffImageBaseUrl={diffImageBaseUrl}
             overlayColor={overlayColor}
             onOverlayColorChange={setOverlayColor}
+            overlayOpacity={overlayOpacity}
+            onOverlayOpacityChange={setOverlayOpacity}
             diffMode={effectiveDiffMode}
             onDiffModeChange={setDiffMode}
             viewMode={viewMode}

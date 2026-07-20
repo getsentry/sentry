@@ -116,6 +116,6 @@ for xfail in {xfail!r}:
         raise AssertionError(ret.stdout)
 
 
-@pytest.mark.parametrize("pkg", ("sentry", "sentry_plugins"))
+@pytest.mark.parametrize("pkg", ("sentry",))
 def test_startup_imports(pkg: str) -> None:
     validate_package(pkg, EXCLUDED, XFAIL)

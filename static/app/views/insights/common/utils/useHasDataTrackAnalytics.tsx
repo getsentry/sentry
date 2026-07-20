@@ -16,6 +16,7 @@ export function useHasDataTrackAnalytics(module: ModuleName, analyticEvent?: str
   const hasEverSentData = useHasFirstSpan(module);
 
   Sentry.setTag(`insights.${module}.hasEverSentData`, hasEverSentData);
+  Sentry.setAttribute(`insights.${module}.hasEverSentData`, hasEverSentData);
 
   const projects = JSON.stringify(pageFilters.selection.projects);
 

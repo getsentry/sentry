@@ -500,6 +500,7 @@ def post_snapshot_status_check_task(
         extra: dict[str, Any] = {
             "preprod_artifact_id": preprod_artifact.id,
             "organization_id": preprod_artifact.project.organization_id,
+            "organization_slug": preprod_artifact.project.organization.slug,
             "error_type": type(e).__name__,
         }
         if isinstance(e, ApiError):
@@ -526,6 +527,7 @@ def post_snapshot_status_check_task(
         extra={
             "preprod_artifact_id": preprod_artifact.id,
             "organization_id": preprod_artifact.project.organization_id,
+            "organization_slug": preprod_artifact.project.organization.slug,
             "check_id": check_id,
             "status": status,
             "subtitle": subtitle,

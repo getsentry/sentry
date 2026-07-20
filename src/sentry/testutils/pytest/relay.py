@@ -145,8 +145,8 @@ def relay_server(relay_server_setup, settings):
     # minidump/unreal endpoints resolve the project config synchronously before queueing.
     # The test project's config is never warm in Relay, so that fetch times out and Relay
     # rejects the upload with a 503 (ProjectUnavailable) -- the cause of the minidump test
-    # flakiness. These tests cover the ingestion pipeline, not the endpoint-fetch path
-    # (which also needs an objectstore the symbolicator mode doesn't run), so turn it off.
+    # flakiness. These tests cover the ingestion pipeline, not the endpoint-fetch path,
+    # so turn it off.
     # It is served to the test Relay via the upstream global config, hence the override
     # must wrap Relay startup.
     with override_options({"relay.endpoint-fetch-config.enabled": False}):

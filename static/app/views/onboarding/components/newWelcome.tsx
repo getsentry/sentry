@@ -142,7 +142,7 @@ export function NewWelcomeUI(props: StepProps) {
     <MotionContainer width="100%" margin="0 auto" maxWidth="900px" position="relative">
       <MotionFlex direction="column" align="center" {...STAGGER_CONTAINER}>
         <WelcomeBackgroundNewUi />
-        <Stack gap="3xl" align={hasScmOnboarding ? 'start' : 'center'} width="100%">
+        <Stack gap="3xl" align="center" width="100%">
           <MotionStack gap="md" {...ONBOARDING_WELCOME_STAGGER_ITEM} width="100%">
             {hasScmOnboarding ? (
               <Stack gap="lg">
@@ -154,7 +154,7 @@ export function NewWelcomeUI(props: StepProps) {
                 </Text>
               </Stack>
             ) : (
-              <Flex direction="column" gap="sm" paddingBottom="2xl">
+              <Stack gap="sm" paddingBottom="2xl">
                 <Container>
                   <Heading as="h1" density="comfortable">
                     {t('Welcome to Sentry')}
@@ -165,7 +165,7 @@ export function NewWelcomeUI(props: StepProps) {
                     {t("Your code is probably broken. Let's fix it faster.")}
                   </Text>
                 </Container>
-              </Flex>
+              </Stack>
             )}
 
             {hasScmOnboarding ? null : (
@@ -194,8 +194,9 @@ export function NewWelcomeUI(props: StepProps) {
           </MotionStack>
 
           <MotionGrid
-            columns={{xs: '1fr', md: 'repeat(3, 1fr)'}}
+            columns={{'screen:xs': '1fr', 'screen:sm': 'repeat(3, 1fr)'}}
             gap="3xl"
+            width="100%"
             {...ONBOARDING_WELCOME_STAGGER_ITEM}
             border="muted"
             background="secondary"

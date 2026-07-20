@@ -17,6 +17,8 @@ export interface ReadableQueryParamsOptions {
   readonly mode: Mode;
   readonly query: string;
   readonly sortBys: Sort[];
+  readonly breakdownCursor?: string;
+  readonly breakdownQuery?: string;
   readonly crossEvents?: CrossEvent[];
   readonly id?: string;
   readonly title?: string;
@@ -31,6 +33,9 @@ export class ReadableQueryParams {
   readonly cursor: string;
   readonly fields: string[];
   readonly sortBys: Sort[];
+
+  readonly breakdownCursor?: string;
+  readonly breakdownQuery?: string;
 
   readonly aggregateCursor: string;
   readonly aggregateFields: readonly AggregateField[];
@@ -52,6 +57,8 @@ export class ReadableQueryParams {
     this.cursor = options.cursor;
     this.fields = options.fields;
     this.sortBys = options.sortBys;
+    this.breakdownCursor = options.breakdownCursor;
+    this.breakdownQuery = options.breakdownQuery;
 
     this.aggregateCursor = options.aggregateCursor;
     this.aggregateFields = options.aggregateFields;
@@ -77,6 +84,8 @@ export class ReadableQueryParams {
       mode: options.mode ?? this.mode,
       query: options.query ?? this.query,
       sortBys: options.sortBys ?? this.sortBys,
+      breakdownCursor: options.breakdownCursor ?? this.breakdownCursor,
+      breakdownQuery: options.breakdownQuery ?? this.breakdownQuery,
       id: options.id ?? this.id,
       title: options.title ?? this.title,
       crossEvents: options.crossEvents ?? this.crossEvents,

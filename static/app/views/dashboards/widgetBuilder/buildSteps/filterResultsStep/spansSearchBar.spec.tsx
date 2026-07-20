@@ -92,12 +92,6 @@ describe('SpansSearchBar', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-items/attributes/validate/',
-      method: 'POST',
-      body: {attributes: {}},
-    });
   });
 
   it('renders the initial query conditions', async () => {

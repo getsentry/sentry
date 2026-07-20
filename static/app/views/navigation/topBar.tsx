@@ -1,5 +1,6 @@
 import {useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
+import {mergeProps} from '@react-aria/utils';
 
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
@@ -10,7 +11,6 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SearchButton} from 'sentry/views/navigation/searchButton';
-import {useHasPageFrameFeature} from 'sentry/views/navigation/useHasPageFrameFeature';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
 import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
@@ -30,7 +30,6 @@ const Slot = slot(['title', 'search', 'actions', 'feedback'] as const);
 
 function TopBarContent() {
   const theme = useTheme();
-  const hasPageFrame = useHasPageFrameFeature();
   const {barTop, contentTop} = useTopOffset();
 
   const organization = useOrganization({allowNull: true});
@@ -52,20 +51,17 @@ function TopBarContent() {
     return {tags: {['feedback.source']: 'top_navigation'}};
   }, [isSeerExplorerOpen, seerExplorerRunId]);
 
-  if (!hasPageFrame) {
-    return null;
-  }
-
   return (
     <Flex
+      as="header"
       height={{
-        sm: `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
-        md: `${PRIMARY_HEADER_HEIGHT}px`,
+        'screen:sm': `${NAVIGATION_MOBILE_TOPBAR_HEIGHT_WITH_PAGE_FRAME}px`,
+        'screen:md': `${PRIMARY_HEADER_HEIGHT}px`,
       }}
       justify="between"
       background="secondary"
       align="center"
-      padding={{sm: 'sm lg', md: 'md xl'}}
+      padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
       position="sticky"
       borderBottom="primary"
       top={barTop}
@@ -84,8 +80,8 @@ function TopBarContent() {
         <Slot.Outlet name="title">
           {props => (
             <Flex align="center" gap="sm" minWidth="0">
-              {({className}) => (
-                <Heading as="h1" variant="inherit" className={className} {...props} />
+              {flexProps => (
+                <Heading as="h1" variant="inherit" {...mergeProps(flexProps, props)} />
               )}
             </Flex>
           )}

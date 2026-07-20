@@ -16,29 +16,8 @@ class TestHandleWebhookEvent(TestCase):
     """Unit tests for handle_webhook_event."""
 
     @patch("sentry.seer.code_review.webhooks.handlers.CodeReviewPreflightService")
-    def test_skips_github_enterprise_when_flag_is_off(self, mock_preflight: MagicMock) -> None:
-        """GHE webhooks are blocked when the feature flag is disabled."""
-        integration = MagicMock()
-        integration.provider = IntegrationProviderSlug.GITHUB_ENTERPRISE
-
-        handle_webhook_event(
-            github_event=GithubWebhookType.PULL_REQUEST,
-            event={"action": "opened", "pull_request": {}},
-            organization=self.organization,
-            repo=MagicMock(),
-            integration=integration,
-        )
-
-        mock_preflight.assert_not_called()
-
-    @patch("sentry.seer.code_review.webhooks.handlers.features")
-    @patch("sentry.seer.code_review.webhooks.handlers.CodeReviewPreflightService")
-    def test_allows_github_enterprise_when_flag_is_on(
-        self, mock_preflight: MagicMock, mock_features: MagicMock
-    ) -> None:
-        """GHE webhooks proceed to preflight when the feature flag is enabled."""
-        mock_features.has.return_value = True
-
+    def test_processes_github_enterprise(self, mock_preflight: MagicMock) -> None:
+        """GHE webhooks proceed to preflight normally."""
         integration = MagicMock()
         integration.provider = IntegrationProviderSlug.GITHUB_ENTERPRISE
         integration.id = 456
@@ -56,9 +35,6 @@ class TestHandleWebhookEvent(TestCase):
             integration=integration,
         )
 
-        mock_features.has.assert_called_once_with(
-            "organizations:seer-code-review-github-enterprise", self.organization
-        )
         mock_preflight.assert_called_once()
 
     @patch("sentry.seer.code_review.webhooks.handlers.CodeReviewPreflightService")

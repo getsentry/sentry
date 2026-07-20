@@ -14,6 +14,7 @@ from sentry.testutils.cases import (
     TraceAttachmentTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 
@@ -706,6 +707,30 @@ class ProjectTraceItemDetailsEndpointTest(
             trace_details_response = self.do_request("logs", item_id, extra_data=extra_data)
 
             assert trace_details_response.status_code == 404, trace_details_response.content
+
+    @override_options({"performance.traces.trace-item-details-timebuffer-minutes": 1.0})
+    def test_timestamp_respects_timebuffer_option(self) -> None:
+        log = self.create_ourlog(
+            {
+                "body": "foo",
+                "trace_id": self.trace_uuid,
+            },
+            attributes={
+                "str_attr": {
+                    "string_value": "1",
+                },
+            },
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        trace_details_response = self.do_request(
+            "logs",
+            item_id,
+            extra_data={"timestamp": (self.one_min_ago - timedelta(minutes=2)).isoformat()},
+        )
+        assert trace_details_response.status_code == 404, trace_details_response.content
 
     def test_with_invalid_timestamp(self) -> None:
         log = self.create_ourlog(

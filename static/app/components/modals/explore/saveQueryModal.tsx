@@ -26,7 +26,7 @@ export type SaveQueryModalProps = {
   saveQuery: (name: string, starred?: boolean) => Promise<SavedQuery>;
   traceItemDataset: TraceItemDataset;
   name?: string;
-  source?: 'toolbar' | 'table';
+  source?: 'toolbar' | 'table' | 'conversations';
 };
 
 type Props = ModalRenderProps & SaveQueryModalProps;
@@ -59,7 +59,14 @@ function SaveQueryModal({
       }
       addSuccessMessage(t('Query saved successfully'));
       if (defined(source)) {
-        if (traceItemDataset === TraceItemDataset.LOGS) {
+        if (source === 'conversations') {
+          trackAnalytics('conversations.save_query_modal', {
+            action: 'submit',
+            save_type: initialName === undefined ? 'save_new_query' : 'rename_query',
+            ui_source: 'table',
+            organization,
+          });
+        } else if (traceItemDataset === TraceItemDataset.LOGS) {
           trackAnalytics('logs.save_query_modal', {
             action: 'submit',
             save_type: initialName === undefined ? 'save_new_query' : 'rename_query',

@@ -37,7 +37,7 @@ from sentry.utils.sdk import bind_organization_context
 @extend_schema(tags=["Releases"])
 @cell_silo_endpoint
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
-    owner = ApiOwner.TELEMETRY_EXPERIENCE
+    owner = ApiOwner.COMMUNITY
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
@@ -131,12 +131,14 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
             )
         except Release.DoesNotExist:
             scope.set_tag("failure_reason", "Release.DoesNotExist")
+            scope.set_attribute("failure_reason", "Release.DoesNotExist")
             raise ResourceDoesNotExist
 
         serializer = ReleaseSerializer(data=request.data, partial=True)
 
         if not serializer.is_valid():
             scope.set_tag("failure_reason", "serializer_error")
+            scope.set_attribute("failure_reason", "serializer_error")
             return Response(as_validation_errors(serializer), status=400)
 
         result = serializer.validated_data

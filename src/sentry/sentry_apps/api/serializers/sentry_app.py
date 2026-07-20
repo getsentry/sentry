@@ -26,6 +26,20 @@ from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 
 
+def mask_webhook_header_values(headers: Sequence[str]) -> list[str]:
+    """Replace each header's value with MASKED_VALUE, preserving the header name.
+
+    Webhook header values may carry secrets (e.g. bearer tokens), so they are masked
+    for viewers without elevated access. The name is kept visible so the form can
+    still render which headers are set.
+    """
+    masked = []
+    for header in headers:
+        name, separator, _value = header.partition(":")
+        masked.append(f"{name}: {MASKED_VALUE}" if separator else MASKED_VALUE)
+    return masked
+
+
 class OwnerResponseField(TypedDict):
     id: int
     slug: str
@@ -34,7 +48,12 @@ class OwnerResponseField(TypedDict):
 class SentryAppSerializerResponse(TypedDict):
     allowedOrigins: list[str]
     avatars: list[SentryAppAvatarSerializerResponse]
+    # Webhook subscriptions were originally to whole resources ("issue") but can
+    # now also be to individual events ("issue.resolved"). `events` keeps the
+    # original resource-level view by consolidating the stored events;
+    # `webhookEvents` is the exact stored list.
     events: set[str]
+    webhookEvents: list[str]
     featureData: list[str]
     isAlertable: bool
     metadata: str
@@ -45,6 +64,8 @@ class SentryAppSerializerResponse(TypedDict):
     status: str
     uuid: str
     verifyInstall: bool
+    # Header values are masked unless the viewer is allowed to see secrets.
+    webhookHeaders: list[str]
 
     # Optional fields
     isDisabled: NotRequired[bool]
@@ -130,6 +151,7 @@ class SentryAppSerializer(Serializer):
                 serializer=ResponseSentryAppAvatarSerializer(),
             ),
             events=consolidate_events(obj.events),
+            webhookEvents=sorted(obj.events),
             featureData=[],
             isAlertable=obj.is_alertable,
             isDisabled=obj.is_disabled,
@@ -145,6 +167,9 @@ class SentryAppSerializer(Serializer):
             uuid=obj.uuid,
             verifyInstall=obj.verify_install,
             webhookUrl=obj.webhook_url,
+            # Header values are write-only after save; masked values can still be
+            # resubmitted unchanged because the updater preserves stored values.
+            webhookHeaders=mask_webhook_header_values(obj.webhook_headers),
         )
 
         if obj.status != SentryAppStatus.INTERNAL:

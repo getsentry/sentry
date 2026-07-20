@@ -4,6 +4,11 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {Organization} from 'sentry/types/organization';
+import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MAX_PERIOD_FOR_CROSS_EVENTS} from 'sentry/views/explore/constants';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -26,53 +31,67 @@ describe('ExploreContent', () => {
       features: ['gen-ai-features'],
     },
   });
+  const {organization: highRangeOrganization, project: highRangeProject} = initializeOrg({
+    organization: {
+      slug: 'high-range-org',
+      features: ['gen-ai-features', 'visibility-explore-range-high'],
+    },
+  });
 
-  beforeEach(() => {
-    // Suppress console errors from CompactSelect async updates
-    jest.spyOn(console, 'error').mockImplementation();
-
-    PageFiltersStore.init();
+  function addExploreMockResponses({
+    organizationBody,
+    projectBody,
+  }: {
+    organizationBody: Organization;
+    projectBody: typeof project;
+  }) {
+    const organizationSlug = organizationBody.slug;
 
     MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/`,
+      url: `/organizations/${organizationSlug}/`,
+      method: 'GET',
+      body: organizationBody,
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organizationSlug}/`,
       method: 'GET',
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/recent-searches/`,
+      url: `/organizations/${organizationSlug}/recent-searches/`,
       method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/spans/fields/`,
+      url: `/organizations/${organizationSlug}/spans/fields/`,
       method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
+      url: `/organizations/${organizationSlug}/events/`,
       method: 'GET',
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-timeseries/`,
+      url: `/organizations/${organizationSlug}/events-timeseries/`,
       method: 'GET',
       body: {
         timeSeries: [],
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/traces/`,
+      url: `/organizations/${organizationSlug}/traces/`,
       method: 'GET',
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      url: `/organizations/${organizationSlug}/trace-items/attributes/`,
       method: 'GET',
       body: [],
       match: [MockApiClient.matchQuery({attributeType: 'number'})],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      url: `/organizations/${organizationSlug}/trace-items/attributes/`,
       method: 'GET',
       body: [
         {
@@ -84,17 +103,35 @@ describe('ExploreContent', () => {
       match: [MockApiClient.matchQuery({attributeType: 'string'})],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
+      url: `/organizations/${organizationSlug}/projects/`,
       method: 'GET',
-      body: [project],
+      body: [projectBody],
     });
     MockApiClient.addMockResponse({
-      url: '/assistant/',
+      url: `/organizations/${organizationSlug}/explore/saved/`,
       method: 'GET',
       body: [],
     });
+  }
+
+  beforeEach(() => {
+    // Suppress console errors from CompactSelect async updates
+    jest.spyOn(console, 'error').mockImplementation();
+
+    FeatureFlagOverrides.singleton().clear();
+    PageFiltersStore.init();
+    OrganizationStore.onUpdate(organization, {replace: true});
+
+    addExploreMockResponses({
+      organizationBody: organization,
+      projectBody: project,
+    });
+    addExploreMockResponses({
+      organizationBody: highRangeOrganization,
+      projectBody: highRangeProject,
+    });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: '/assistant/',
       method: 'GET',
       body: [],
     });
@@ -102,7 +139,148 @@ describe('ExploreContent', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    FeatureFlagOverrides.singleton().clear();
+    OrganizationStore.reset();
+    ProjectsStore.reset();
     jest.clearAllMocks();
+  });
+
+  it('preserves shared 90 day span links', async () => {
+    act(() => ProjectsStore.loadInitialData([highRangeProject]));
+    OrganizationStore.onUpdate(highRangeOrganization, {replace: true});
+
+    render(<ExploreContent />, {
+      organization: highRangeOrganization,
+      additionalWrapper: TopBarWrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${highRangeOrganization.slug}/explore/traces/`,
+          query: {statsPeriod: '90d'},
+        },
+      },
+    });
+
+    await screen.findByText('Traces');
+
+    await waitFor(() =>
+      expect(PageFiltersStore.getState().selection.datetime).toEqual({
+        period: '90d',
+        start: null,
+        end: null,
+        utc: null,
+      })
+    );
+  });
+
+  it('waits for organization loading before initializing shared date ranges', async () => {
+    act(() => ProjectsStore.loadInitialData([highRangeProject]));
+    OrganizationStore.reset();
+
+    const highRangeOrganizationWithoutFeature = {
+      ...highRangeOrganization,
+      features: ['gen-ai-features'],
+    };
+
+    const {rerender} = render(
+      <OrganizationContext value={highRangeOrganizationWithoutFeature}>
+        <ExploreContent />
+      </OrganizationContext>,
+      {
+        organization: highRangeOrganizationWithoutFeature,
+        additionalWrapper: TopBarWrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${highRangeOrganization.slug}/explore/traces/`,
+            query: {statsPeriod: '90d'},
+          },
+        },
+      }
+    );
+
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('page-filter-timerange-selector')
+    ).not.toBeInTheDocument();
+
+    act(() => OrganizationStore.onUpdate(highRangeOrganization, {replace: true}));
+    rerender(
+      <OrganizationContext value={highRangeOrganization}>
+        <ExploreContent />
+      </OrganizationContext>
+    );
+
+    await screen.findByText('Traces');
+
+    await waitFor(() =>
+      expect(PageFiltersStore.getState().selection.datetime).toEqual({
+        period: '90d',
+        start: null,
+        end: null,
+        utc: null,
+      })
+    );
+  });
+
+  it('clamps shared 90 day span links for 30 day users', async () => {
+    act(() => ProjectsStore.loadInitialData([project]));
+
+    render(<ExploreContent />, {
+      organization,
+      additionalWrapper: TopBarWrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {statsPeriod: '90d'},
+        },
+      },
+    });
+
+    await screen.findByText('Traces');
+
+    await waitFor(() =>
+      expect(PageFiltersStore.getState().selection.datetime).toEqual({
+        period: '30d',
+        start: null,
+        end: null,
+        utc: null,
+      })
+    );
+  });
+
+  it('does not keep loading when toolbar overrides disable the high range flag', async () => {
+    act(() => ProjectsStore.loadInitialData([highRangeProject]));
+    FeatureFlagOverrides.singleton().setStoredOverride(
+      'visibility-explore-range-high',
+      false
+    );
+
+    const highRangeOrganizationWithOverride = {
+      ...highRangeOrganization,
+      features: ['gen-ai-features'],
+    };
+    OrganizationStore.onUpdate(highRangeOrganizationWithOverride, {replace: true});
+
+    render(<ExploreContent />, {
+      organization: highRangeOrganizationWithOverride,
+      additionalWrapper: TopBarWrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${highRangeOrganization.slug}/explore/traces/`,
+          query: {statsPeriod: '90d'},
+        },
+      },
+    });
+
+    await screen.findByText('Traces');
+
+    await waitFor(() =>
+      expect(PageFiltersStore.getState().selection.datetime).toEqual({
+        period: '30d',
+        start: null,
+        end: null,
+        utc: null,
+      })
+    );
   });
 
   describe('cross events', () => {

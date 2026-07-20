@@ -110,6 +110,22 @@ class TestBaseActionValidator(TestCase):
         result = validator.is_valid()
         assert result is False
 
+    def test_validate_type__deprecated(
+        self, mock_action_handler_get: mock.MagicMock, mock_action_validator_get: mock.MagicMock
+    ) -> None:
+        validator = BaseActionValidator(
+            data={
+                **self.valid_data,
+                "type": Action.Type.PLUGIN,
+            },
+            context={"organization": self.organization},
+        )
+
+        result = validator.is_valid()
+        assert result is False
+        assert "type" in validator.errors
+        assert "deprecated" in str(validator.errors["type"][0]).lower()
+
     def test_validate_type__action_gated(
         self, mock_action_handler_get: mock.MagicMock, mock_action_validator_get: mock.MagicMock
     ) -> None:
@@ -160,7 +176,7 @@ class TestBaseActionValidator(TestCase):
         # non integration actions should not have an integration id
         validator = BaseActionValidator(
             data={
-                "type": Action.Type.PLUGIN,
+                "type": Action.Type.EMAIL,
                 "config": {"foo": "bar"},
                 "data": {"baz": "bar"},
                 "integrationId": 1,
@@ -172,7 +188,7 @@ class TestBaseActionValidator(TestCase):
         assert validator.errors == {
             "nonFieldErrors": [
                 ErrorDetail(
-                    string="Integration ID is not allowed for action type plugin", code="invalid"
+                    string="Integration ID is not allowed for action type email", code="invalid"
                 )
             ]
         }

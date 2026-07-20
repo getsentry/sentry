@@ -112,7 +112,6 @@ const commonFields = {
   addOnCategories: AM1_ADD_ON_CATEGORIES,
   categories: AM1_CATEGORIES,
   categoryDisplayNames: AM1_CATEGORY_DISPLAY_NAMES,
-  checkoutCategories: AM1_CHECKOUT_CATEGORIES,
   onDemandCategories: AM1_ONDEMAND_CATEGORIES,
   hasOnDemandModes: true,
   budgetTerm: BUDGET_TERM as 'on-demand',
@@ -128,14 +127,11 @@ export const AM1_PLANS = {
     name: 'Developer',
     trialPlan: 'am1_t',
     basePrice: 0,
-    price: 0,
     maxMembers: 1,
     allowOnDemand: false,
-    isTestPlan: false,
     userSelectable: true,
     retentionDays: 30,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     planCategories: {
       errors: [
         {
@@ -210,14 +206,11 @@ export const AM1_PLANS = {
     name: 'Trial',
     trialPlan: null,
     basePrice: 0,
-    price: 0,
     maxMembers: 20,
     allowOnDemand: false,
-    isTestPlan: false,
     userSelectable: false,
     retentionDays: 90,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     planCategories: {
       errors: [
         {
@@ -286,20 +279,17 @@ export const AM1_PLANS = {
   },
   am1_team: {
     ...commonFields,
-    totalPrice: 0,
+    totalPrice: 2900,
     id: 'am1_team',
     isEnterprise: false,
     name: 'Team',
     trialPlan: null,
     basePrice: 2900,
-    price: 2900,
     maxMembers: null,
     allowOnDemand: true,
-    isTestPlan: false,
     userSelectable: true,
     retentionDays: 90,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     planCategories: {
       errors: [
         {
@@ -878,20 +868,17 @@ export const AM1_PLANS = {
   },
   am1_team_auf: {
     ...commonFields,
-    totalPrice: 0,
+    totalPrice: 31200,
     id: 'am1_team_auf',
     isEnterprise: false,
     name: 'Team',
     trialPlan: null,
     basePrice: 31200,
-    price: 31200,
     maxMembers: null,
     allowOnDemand: true,
-    isTestPlan: false,
     userSelectable: true,
     retentionDays: 90,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     planCategories: {
       errors: [
         {
@@ -1470,20 +1457,17 @@ export const AM1_PLANS = {
   },
   am1_business: {
     ...commonFields,
-    totalPrice: 0,
+    totalPrice: 8900,
     id: 'am1_business',
     isEnterprise: false,
     name: 'Business',
     trialPlan: null,
     maxMembers: null,
     basePrice: 8900,
-    price: 8900,
     allowOnDemand: true,
-    isTestPlan: false,
     userSelectable: true,
     retentionDays: 90,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     planCategories: {
       errors: [
         {
@@ -2062,20 +2046,17 @@ export const AM1_PLANS = {
   },
   am1_business_auf: {
     ...commonFields,
-    totalPrice: 0,
+    totalPrice: 96000,
     id: 'am1_business_auf',
     isEnterprise: false,
     name: 'Business',
     trialPlan: null,
     basePrice: 96000,
-    price: 96000,
     maxMembers: null,
     allowOnDemand: true,
-    isTestPlan: false,
     userSelectable: true,
     retentionDays: 90,
     billingInterval: ANNUAL,
-    contractInterval: ANNUAL,
     planCategories: {
       errors: [
         {
@@ -2657,17 +2638,14 @@ export const AM1_PLANS = {
     id: 'am1_business_ent',
     isEnterprise: true,
     name: 'Enterprise (Business)',
-    price: 0,
     basePrice: 0,
     totalPrice: 0,
     trialPlan: 'am1_business',
-    isTestPlan: false,
     maxMembers: null,
     retentionDays: 90,
     userSelectable: false,
     features: AM1_BUSINESS_FEATURES,
     billingInterval: MONTHLY,
-    contractInterval: MONTHLY,
     allowOnDemand: true,
     planCategories: {
       errors: [

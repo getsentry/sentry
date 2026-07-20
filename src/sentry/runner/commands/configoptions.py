@@ -3,11 +3,11 @@ import time
 from typing import Any
 
 import click
-from yaml import safe_load
 
 from sentry.runner.commands.presenters.consolepresenter import ConsolePresenter
 from sentry.runner.commands.presenters.presenterdelegator import PresenterDelegator
 from sentry.runner.decorators import configuration, log_options
+from sentry.utils import json
 
 
 def _attempt_update(
@@ -17,10 +17,11 @@ def _attempt_update(
     drifted_options: set[str],
     dry_run: bool,
     hide_drift: bool,
-) -> None:
+) -> bool:
     """
     Updates the option if it is not drifted and if we are not in dry
-    run mode.
+    run mode. Returns True only when the stored value actually changed
+    (drift, no-op reconciliations, and channel takeovers return False).
     """
 
     from sentry import options
@@ -34,7 +35,7 @@ def _attempt_update(
             presenter_delegator.drift(key, "")
         else:
             presenter_delegator.drift(key, db_value_to_print)
-        return
+        return False
 
     last_update_channel = options.get_last_update_channel(key)
     if db_value == value:
@@ -57,7 +58,7 @@ def _attempt_update(
             if not dry_run:
                 options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
             presenter_delegator.channel_update(key)
-        return
+        return False
 
     if not dry_run:
         options.set(key, value, coerce=False, channel=options.UpdateChannel.AUTOMATOR)
@@ -65,15 +66,31 @@ def _attempt_update(
         presenter_delegator.update(key, db_value, value)
     else:
         presenter_delegator.set(key, value)
+    # don't emit in ci
+    return not dry_run
 
 
 def _load_options(file: str | None) -> dict[str, Any]:
     """
-    Loads the ``options`` mapping from a single yaml file, or from stdin
+    Loads the ``options`` mapping from a single JSON file, or from stdin
     when ``file`` is None.
+
+    The new golden path is via the automator, which only ever feeds in JSON (``json.dumps``).
+    We previously used YAML parsing, which worked for JSON (as it is a subset), but there was an issue with
+    small floats (0.00001) being converted to sci notation (1e-5) via repr(), getting parsed as strings
+    because YAML 1.1 only parses to float if there's a decimal (1.0e-5 not 1e-5).
+
+    We fall back to YAML for hand-authored files (e.g. the local flagpole devloop).
     """
     with open(file) if file is not None else sys.stdin as stream:
-        return safe_load(stream)["options"]
+        content = stream.read()
+    try:
+        loaded = json.loads(content)
+    except json.JSONDecodeError:
+        import yaml
+
+        loaded = yaml.safe_load(content)
+    return loaded["options"]
 
 
 def _validate_options(
@@ -119,6 +136,25 @@ def _validate_options(
     return drifted_options, invalid_options
 
 
+def _record_latency(ctx: click.Context, updated: bool, status: str) -> None:
+    """
+    Emit latency from the deployed commit (``--timestamp``) to the DB write.
+    Only when a value changed: the automator re-runs between deploys with the
+    same stale timestamp, so emitting every run made the metric ramp up as
+    "time since last deploy" instead of measuring propagation.
+    """
+    from sentry.utils import metrics
+
+    timestamp = ctx.obj["timestamp"]
+    if timestamp is not None and updated:
+        metrics.distribution(
+            key="options_automator.latency_seconds",
+            value=time.time() - timestamp,
+            tags={"status": status},
+            sample_rate=1.0,
+        )
+
+
 @click.group()
 @click.option(
     "--dry-run",
@@ -151,11 +187,11 @@ def configoptions(
     timestamp: float | None,
 ) -> None:
     """
-    Makes changes to options in bulk starting from a yaml file.
+    Makes changes to options in bulk starting from a JSON file.
     Contrarily to the `config` command, this is meant to perform
     bulk updates only.
 
-    The input must be in yaml format.
+    The input must be in JSON format.
     A dry run option is provided to test the update before performing it.
 
     A single invalid option would make the command fail and return -1,
@@ -227,17 +263,19 @@ def patch(ctx: click.Context) -> None:
 
     options_to_update = _load_options(_single_file(ctx, "patch"))
     drifted_options, invalid_options = _validate_options(options_to_update, presenter_delegator)
+    updated = False
     for key, value in options_to_update.items():
         if key not in invalid_options:
             try:
-                _attempt_update(
+                if _attempt_update(
                     presenter_delegator,
                     key,
                     value,
                     drifted_options,
                     dry_run,
                     bool(ctx.obj["hide_drift"]),
-                )
+                ):
+                    updated = True
             except Exception:
                 metrics.incr(
                     "options_automator.run",
@@ -269,13 +307,7 @@ def patch(ctx: click.Context) -> None:
         tags={"status": status},
         sample_rate=1.0,
     )
-    if ctx.obj["timestamp"] is not None:
-        metrics.distribution(
-            key="options_automator.latency_seconds",
-            value=time.time() - ctx.obj["timestamp"],
-            tags={"status": status},
-            sample_rate=1.0,
-        )
+    _record_latency(ctx, updated, status)
     exit(ret_val)
 
 
@@ -304,18 +336,20 @@ def sync(ctx: click.Context) -> None:
     options_to_update = _load_options(_single_file(ctx, "sync"))
     drifted_options, invalid_options = _validate_options(options_to_update, presenter_delegator)
     drift_found = bool(drifted_options)
+    updated = False
     for opt in all_options:
         if opt.name not in invalid_options:
             if opt.name in options_to_update:
                 try:
-                    _attempt_update(
+                    if _attempt_update(
                         presenter_delegator,
                         opt.name,
                         options_to_update[opt.name],
                         drifted_options,
                         dry_run,
                         bool(ctx.obj["hide_drift"]),
-                    )
+                    ):
+                        updated = True
                 except Exception:
                     metrics.incr(
                         "options_automator.run",
@@ -342,6 +376,8 @@ def sync(ctx: click.Context) -> None:
                             )
                             presenter_delegator.flush()
                             raise
+                        # A deletion counts as a change.
+                        updated = True
                     presenter_delegator.unset(opt.name)
                 elif last_updated == options.UpdateChannel.CLI:
                     presenter_delegator.drift(opt.name, options.get(opt.name))
@@ -373,13 +409,7 @@ def sync(ctx: click.Context) -> None:
         tags={"status": status},
         sample_rate=1.0,
     )
-    if ctx.obj["timestamp"] is not None:
-        metrics.distribution(
-            key="options_automator.latency_seconds",
-            value=time.time() - ctx.obj["timestamp"],
-            tags={"status": status},
-            sample_rate=1.0,
-        )
+    _record_latency(ctx, updated, status)
 
     exit(ret_val)
 

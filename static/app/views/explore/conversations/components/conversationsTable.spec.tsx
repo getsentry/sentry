@@ -22,8 +22,10 @@ function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
     endTimestamp: 0,
     errors: 0,
     firstInput: 'hello',
+    inputTokens: 0,
     lastOutput: 'world',
     llmCalls: 0,
+    outputTokens: 0,
     startTimestamp: 0,
     toolCalls: 0,
     toolErrors: 0,
@@ -40,7 +42,7 @@ function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
 function mockConversations(data: Conversation[], overrides = {}) {
   mockUseConversations.mockReturnValue({
     data,
-    isLoading: false,
+    isFetching: false,
     error: null,
     pageLinks: undefined,
     setCursor: jest.fn(),
@@ -87,8 +89,10 @@ describe('ConversationsTable missing messages alert', () => {
     expect(screen.queryByText(MISSING_MESSAGES_TEXT)).not.toBeInTheDocument();
   });
 
-  it('does not show the alert while loading', () => {
-    mockConversations([], {isLoading: true});
+  it('does not show the alert while fetching', () => {
+    mockConversations([makeConversation({firstInput: null, lastOutput: null})], {
+      isFetching: true,
+    });
 
     render(<ConversationsTable />, {organization});
 

@@ -13,12 +13,12 @@ import {
 
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/onboardingContext';
+import {useScmProjectDetails} from 'sentry/components/onboarding/scm/useScmProjectDetails';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
-import {useScmProjectDetails} from 'sentry/views/onboarding/components/useScmProjectDetails';
 import {MetricValues, RuleAction} from 'sentry/views/projectInstall/issueAlertOptions';
 
 import {ScmProjectDetails} from './scmProjectDetails';
@@ -89,13 +89,13 @@ describe('ScmProjectDetails', () => {
     expect(await screen.findByText('Project details')).toBeInTheDocument();
   });
 
-  it('renders section headers with icons', async () => {
+  it('renders section headers', async () => {
     render(<ScmProjectDetails {...defaultProps({selectedPlatform: mockPlatform})} />, {
       organization,
     });
 
-    expect(await screen.findByText('Give your project a name')).toBeInTheDocument();
-    expect(screen.getByText('Assign a team')).toBeInTheDocument();
+    expect(await screen.findByText('Project name')).toBeInTheDocument();
+    expect(screen.getByText('Team')).toBeInTheDocument();
     expect(screen.getByText('Alert frequency')).toBeInTheDocument();
     expect(screen.getByText('Get notified when things go wrong')).toBeInTheDocument();
   });
@@ -115,8 +115,14 @@ describe('ScmProjectDetails', () => {
     });
 
     expect(await screen.findByText('High priority issues')).toBeInTheDocument();
-    expect(screen.getByText('Custom')).toBeInTheDocument();
-    expect(screen.getByText("I'll create my own alerts later")).toBeInTheDocument();
+    expect(
+      screen.getByText('Alert on new, regressed, and escalating issues')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Custom threshold')).toBeInTheDocument();
+    expect(screen.getByText("I'll set up alerts later")).toBeInTheDocument();
+    expect(
+      screen.getByText('You can always change alerts after project creation')
+    ).toBeInTheDocument();
   });
 
   it('re-derives the fields when the host clears the form', () => {
@@ -149,6 +155,19 @@ describe('ScmProjectDetails', () => {
     render(<ScmProjectDetails {...defaultProps()} />, {organization});
 
     expect(await screen.findByRole('button', {name: 'Create project'})).toBeDisabled();
+  });
+
+  it('shows a tooltip on the disabled Create button explaining what is missing', async () => {
+    render(<ScmProjectDetails {...defaultProps()} />, {organization});
+
+    const createButton = await screen.findByRole('button', {name: 'Create project'});
+    expect(createButton).toBeDisabled();
+
+    // No platform / project name: multiple required fields missing.
+    await userEvent.hover(createButton);
+    expect(
+      await screen.findByText('Please fill out all the required fields')
+    ).toBeInTheDocument();
   });
 
   it('create project button calls API and completes on success', async () => {
@@ -185,6 +204,73 @@ describe('ScmProjectDetails', () => {
     await waitFor(() => {
       expect(props.onComplete).toHaveBeenCalled();
     });
+  });
+
+  it('stays busy while linking the repo so a second click cannot duplicate', async () => {
+    const created = ProjectFixture({
+      slug: 'javascript-nextjs',
+      name: 'javascript-nextjs',
+    });
+    const createRequest = MockApiClient.addMockResponse({
+      url: `/teams/${organization.slug}/${teamWithAccess.slug}/projects/`,
+      method: 'POST',
+      body: created,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [teamWithAccess],
+    });
+
+    // The repo link runs after the project POST resolves, i.e. while the create
+    // mutation is no longer pending. Delaying it holds the flow in exactly the
+    // window where the button used to re-enable and accept a duplicate create.
+    // The delay must comfortably exceed userEvent's inter-click time so a loaded
+    // CI runner can't let it elapse mid-second-click and re-enable the button.
+    const repoLinkRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${created.slug}/repo/`,
+      method: 'POST',
+      body: {
+        id: '1',
+        projectId: created.id,
+        repositoryId: mockRepository.id,
+        source: 'scm_onboarding',
+        created: true,
+      },
+      asyncDelay: 1000,
+    });
+
+    const props = defaultProps({
+      selectedPlatform: mockPlatform,
+      selectedRepository: mockRepository,
+    });
+    render(<ScmProjectDetails {...props} />, {organization});
+
+    const createButton = await screen.findByRole('button', {name: 'Create project'});
+    await userEvent.click(createButton);
+
+    // Project POST resolved, repo link still in flight: the button must remain
+    // disabled, so this second click is a no-op.
+    expect(createButton).toBeDisabled();
+    await userEvent.click(createButton);
+
+    // Completion only fires once the delayed repo link resolves, so give the
+    // wait headroom over the asyncDelay above.
+    await waitFor(
+      () => {
+        expect(props.onComplete).toHaveBeenCalledTimes(1);
+      },
+      {timeout: 5000}
+    );
+    expect(createRequest).toHaveBeenCalledTimes(1);
+    expect(repoLinkRequest).toHaveBeenCalledTimes(1);
   });
 
   it('links selected repository to project after creation', async () => {

@@ -16,7 +16,7 @@ import {t, tct} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
-import {getLocalityNameOptions, shouldDisplayLocalities} from 'sentry/utils/cells';
+import {getSignupLocalities} from 'sentry/utils/cells';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -34,7 +34,7 @@ function OrganizationCreate() {
   const privacyUrl = ConfigStore.get('privacyUrl');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
   const relocationUrl = normalizeUrl('/relocation/');
-  const localityOptions = getLocalityNameOptions();
+  const localityOptions = getSignupLocalities();
   const client = useApi();
 
   const hasDataConsent =
@@ -111,7 +111,7 @@ function OrganizationCreate() {
             stacked
             required
           />
-          {shouldDisplayLocalities() && (
+          {localityOptions.length > 1 && (
             <SelectField
               name="dataStorageLocation"
               label={t('Data Storage Location')}

@@ -260,14 +260,14 @@ export function SnapshotHeaderActions({
               )}
             </Flex>
             {approvers.length > 0 && (
-              <Container display={{'2xs': 'none', md: 'flex'}}>
+              <Container display={{'screen:2xs': 'none', 'screen:md': 'flex'}}>
                 <AvatarList users={approvers} avatarSize={24} maxVisibleAvatars={2} />
               </Container>
             )}
           </Flex>
         ) : approvalStatus === 'requires_approval' ? (
           <Flex align="center" gap="sm">
-            <Container display={{'2xs': 'none', lg: 'block'}}>
+            <Container display={{'screen:2xs': 'none', 'screen:lg': 'block'}}>
               <Tag variant="warning" icon={<IconTimer />}>
                 {t('Needs approval')}
               </Tag>

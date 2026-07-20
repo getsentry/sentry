@@ -67,6 +67,7 @@ export function importProfile(
     try {
       if (isSentryContinuousProfileChunk(input)) {
         scope.setTag('profile.type', 'sentry-continuous');
+        scope.setAttribute('profile.type', 'sentry-continuous');
         if (isSentryAndroidContinuousProfileChunk(input)) {
           return importAndroidContinuousProfileChunk(input, traceID, {
             span,
@@ -86,16 +87,19 @@ export function importProfile(
       }
       if (isJSProfile(input)) {
         scope.setTag('profile.type', 'js-self-profile');
+        scope.setAttribute('profile.type', 'js-self-profile');
         return importJSSelfProfile(input, traceID, {span, type});
       }
 
       if (isSentrySampledProfile(input)) {
         scope.setTag('profile.type', 'sentry-sampled');
+        scope.setAttribute('profile.type', 'sentry-sampled');
         return importSentrySampledProfile(input, {span, type, frameFilter});
       }
 
       if (isSchema(input)) {
         scope.setTag('profile.type', 'schema');
+        scope.setAttribute('profile.type', 'schema');
         return importSchema(input, traceID, {span, type, frameFilter});
       }
 

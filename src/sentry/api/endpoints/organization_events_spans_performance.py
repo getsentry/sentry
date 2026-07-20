@@ -6,7 +6,6 @@ from datetime import timedelta
 from itertools import chain
 from typing import Any, Never, TypedDict
 
-import sentry_sdk
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -32,6 +31,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaTSResult, raw_snql_query
 from sentry.utils.time_window import TimeWindow, remove_time_windows, union_time_windows
+from sentry.utils.tracing import start_span
 from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 
 
@@ -346,7 +346,7 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
             zerofill_results: bool,
             comparison_delta: timedelta | None = None,
         ) -> SnubaTSResult:
-            with sentry_sdk.start_span(op="discover.discover", name="timeseries.filter_transform"):
+            with start_span(op="discover.discover", name="timeseries.filter_transform"):
                 builder = TimeseriesQueryBuilder(
                     Dataset.Discover,
                     {},
@@ -383,7 +383,7 @@ class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
                     snql_query, "api.organization-events-spans-performance-stats"
                 )
 
-            with sentry_sdk.start_span(op="discover.discover", name="timeseries.transform_results"):
+            with start_span(op="discover.discover", name="timeseries.transform_results"):
                 result = discover.zerofill(
                     results["data"],
                     snuba_params.start_date,

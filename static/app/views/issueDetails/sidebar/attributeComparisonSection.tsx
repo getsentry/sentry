@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -74,7 +74,7 @@ export function AttributeComparisonSection({
     nextPage,
     previousPage,
   } = useFilteredRankedAttributes({
-    rankedAttributes: data?.rankedAttributes,
+    rankedAttributes: data?.json?.rankedAttributes,
     searchQuery,
     pageSize: CHARTS_PER_PAGE,
   });
@@ -131,7 +131,7 @@ export function AttributeComparisonSection({
         </LinkButton>
       }
     >
-      <Flex direction="column" gap="md">
+      <Stack gap="md">
         <AttributeBreakdownsComponent.ControlsContainer>
           <AttributeBreakdownsComponent.StyledBaseSearchBar
             placeholder={t('Search attributes')}
@@ -164,8 +164,8 @@ export function AttributeComparisonSection({
                   key={attribute.attributeName}
                   attribute={attribute}
                   theme={theme}
-                  cohort1Total={data?.cohort1Total ?? 0}
-                  cohort2Total={data?.cohort2Total ?? 0}
+                  cohort1Total={data?.json?.cohort1Total ?? 0}
+                  cohort2Total={data?.json?.cohort2Total ?? 0}
                   query={snubaQuery.query}
                 />
               ))}
@@ -182,7 +182,7 @@ export function AttributeComparisonSection({
         ) : (
           <AttributeBreakdownsComponent.EmptySearchState />
         )}
-      </Flex>
+      </Stack>
     </FoldSection>
   );
 }

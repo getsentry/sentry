@@ -25,7 +25,6 @@ interface ChartVisualizationProps {
   chartInfo: ChartInfo;
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
-  notMerge?: boolean;
 }
 
 export function useChartVisualizationPlottables(chartInfo: ChartInfo) {
@@ -63,7 +62,6 @@ export function ChartVisualization({
   chartXRangeSelection,
   chartInfo,
   chartRef,
-  notMerge,
 }: ChartVisualizationProps) {
   const plottables = useChartVisualizationPlottables(chartInfo);
   const previousPlottables = usePrevious(
@@ -115,7 +113,6 @@ export function ChartVisualization({
         ref={chartRef}
         plottables={activePlottables}
         chartXRangeSelection={chartXRangeSelection}
-        notMerge={notMerge}
       />
     </StyledTransparentLoadingMask>
   );

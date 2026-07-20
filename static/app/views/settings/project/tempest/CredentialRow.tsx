@@ -42,7 +42,7 @@ export function CredentialRow({
 
       <Flex align="center" justify="end">
         <Tooltip
-          title={t('You must be an organization admin to remove credentials.')}
+          title={t('You do not have permission to remove credentials.')}
           disabled={!!removeCredential}
         >
           <Confirm

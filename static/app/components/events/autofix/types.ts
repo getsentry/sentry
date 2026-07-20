@@ -128,12 +128,6 @@ function isDiffLine(value: unknown): value is DiffLine {
   );
 }
 
-export interface AutofixRepoDefinition {
-  name: string;
-  owner: string;
-  provider: string;
-}
-
 interface AutofixRepo {
   default_branch: string;
   external_id: string;

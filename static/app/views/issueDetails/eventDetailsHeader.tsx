@@ -120,11 +120,14 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
           >
             {tp => (
               <div {...tp}>
-                <Flex direction={{xs: 'column', md: 'row'}} gap="sm">
+                <Flex direction={{'screen:xs': 'column', 'screen:md': 'row'}} gap="sm">
                   <Grid
                     width="100%"
                     gap="sm"
-                    columns={{xs: '1fr', md: 'auto minmax(100px, 1fr) auto'}}
+                    columns={{
+                      'screen:xs': '1fr',
+                      'screen:md': 'auto minmax(100px, 1fr) auto',
+                    }}
                     rows={`minmax(${theme.form.md.height}, auto)`}
                   >
                     <PageFilterBar>

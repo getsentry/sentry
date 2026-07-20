@@ -63,6 +63,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, EAPPageTokenCursor
 from sentry.utils.snuba import SnubaError
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -247,13 +248,13 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         # Force the referrer to "api.auth-token.events" for events requests authorized through a bearer token
         if request.auth:
-            if (
-                referrer is not None
-                and is_valid_referrer(referrer)
-                and referrer.startswith("seer.")
-            ):
-                sentry_sdk.set_tag("query.from_seer", True)
-                sentry_sdk.set_attribute("query.from_seer", True)
+            if referrer is not None and is_valid_referrer(referrer):
+                if referrer.startswith("seer."):
+                    sentry_sdk.set_tag("query.from_seer", True)
+                    sentry_sdk.set_attribute("query.from_seer", True)
+                elif referrer.startswith("api.mcp."):
+                    sentry_sdk.set_tag("query.from_mcp", True)
+                    sentry_sdk.set_attribute("query.from_mcp", True)
             else:
                 referrer = Referrer.API_AUTH_TOKEN_EVENTS.value
         elif referrer is None or not referrer:
@@ -312,7 +313,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 query_source=query_source,
             )
 
-        @sentry_sdk.tracing.trace
+        @trace
         def _dashboards_data_fn(
             scoped_dataset_query: DatasetQuery,
             offset: int,
@@ -400,7 +401,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 sentry_sdk.capture_exception(e)
                 return _data_fn(scoped_dataset_query, offset, limit, scoped_query)
 
-        @sentry_sdk.tracing.trace
+        @trace
         def _discover_data_fn(
             scoped_dataset_query: DatasetQuery,
             offset: int,
@@ -560,9 +561,8 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_array_attributes=disable_array_attributes,
                     )
                 elif scoped_dataset == OurLogs:
-                    # ourlogs doesn't have use aggregate conditions
                     return SearchResolverConfig(
-                        use_aggregate_conditions=False,
+                        use_aggregate_conditions=use_aggregate_conditions,
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,

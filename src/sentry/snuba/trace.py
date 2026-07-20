@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, Literal, NotRequired, TypedDict
 
@@ -45,21 +45,25 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.uptime.eap_utils import get_columns_for_uptime_result
 from sentry.utils.numbers import base32_encode
 from sentry.utils.snuba_rpc import table_rpc
+from sentry.utils.tracing import set_span_data, start_span, trace
 
 # Mostly here for testing
 ERROR_LIMIT = 10_000
 
 
 class SerializedEvent(TypedDict):
+    """Fields shared by every item in a trace. Entries in `children` are full
+    spans at runtime; only the shared fields are documented here."""
+
     description: str
     event_id: str
-    event_type: str
     project_id: int
     project_slug: str
     transaction: str
 
 
 class SerializedIssue(SerializedEvent):
+    event_type: Literal["error", "occurrence"]
     issue_id: int
     level: str
     start_timestamp: float
@@ -70,29 +74,32 @@ class SerializedIssue(SerializedEvent):
 
 
 class SerializedSpan(SerializedEvent):
-    children: list["SerializedEvent"]
-    errors: list["SerializedIssue"]
-    occurrences: list["SerializedIssue"]
+    event_type: Literal["span"]
+    children: list[SerializedEvent]
+    errors: list[SerializedIssue]
+    occurrences: list[SerializedIssue]
     duration: float
-    end_timestamp: datetime
-    measurements: dict[str, Any]
-    browser_web_vital: dict[str, Any]
+    end_timestamp: float
+    measurements: dict[str, float]
+    browser_web_vital: dict[str, float]
+    mobile_app_vital: dict[str, float]
     op: str
     name: str
     parent_span_id: str | None
     profile_id: str
     profiler_id: str
     sdk_name: str
-    start_timestamp: datetime
+    start_timestamp: float
     is_transaction: bool
     transaction_id: str
     additional_attributes: NotRequired[dict[str, Any]]
 
 
 class SerializedUptimeCheck(SerializedEvent):
-    children: list["SerializedEvent"]
-    errors: list["SerializedIssue"]
-    occurrences: list["SerializedIssue"]
+    event_type: Literal["uptime_check"]
+    children: list[SerializedEvent]
+    errors: list[SerializedIssue]
+    occurrences: list[SerializedIssue]
     transaction_id: str
     op: str
     start_timestamp: float
@@ -101,6 +108,9 @@ class SerializedUptimeCheck(SerializedEvent):
     name: str
     region_name: str
     additional_attributes: dict[str, Any]
+
+
+SerializedTraceItem = SerializedSpan | SerializedIssue | SerializedUptimeCheck
 
 
 class TraceIssueOccurrenceData(TypedDict):
@@ -119,6 +129,15 @@ class TraceOccurrenceEvent(TypedDict):
     event_type: Literal["occurrence"]
     event_data: TraceOccurrenceEventData
     issue_data: TraceIssueOccurrenceData
+
+
+class SpanIssueMeta(TypedDict):
+    """Span fields needed to serialize an occurrence issue attached to that span."""
+
+    start_timestamp: float
+    end_timestamp: float
+    project_slug: str
+    transaction: str
 
 
 def _serialize_rpc_issue(
@@ -199,7 +218,7 @@ def _serialize_rpc_event(
     event: dict[str, Any],
     group_cache: dict[int, Group],
     additional_attributes: list[str] | None = None,
-) -> SerializedEvent | SerializedIssue | SerializedUptimeCheck | None:
+) -> SerializedTraceItem | None:
     if event.get("event_type") not in ("span", "uptime_check"):
         return _serialize_rpc_issue(event, group_cache)
 
@@ -208,7 +227,7 @@ def _serialize_rpc_event(
         for attribute in additional_attributes or []
         if attribute in event
     }
-    children = [
+    children: list[SerializedEvent] = [
         child
         for child in [
             _serialize_rpc_event(child, group_cache, additional_attributes)
@@ -273,10 +292,13 @@ def _serialize_rpc_event(
         browser_web_vital={
             key: value for key, value in event.items() if key.startswith("browser.web_vital.")
         },
+        mobile_app_vital={
+            key: value for key, value in event.items() if key.startswith("app.vitals.")
+        },
         duration=event["span.duration"],
         transaction=event["transaction"],
         is_transaction=event["is_transaction"],
-        description=event["description"],
+        description=event["span.description"],
         sdk_name=event["sdk.name"],
         op=event["span.op"],
         name=event["span.name"],
@@ -286,9 +308,9 @@ def _serialize_rpc_event(
 
 
 def _errors_query(
-    snuba_params: SnubaParams, trace_id: str, error_id: str | None
+    snuba_params: SnubaParams, trace_ids: Sequence[str], error_id: str | None
 ) -> DiscoverQueryBuilder:
-    """Run an error query, getting all the errors for a given trace id"""
+    """Run an error query, getting all the errors for the given trace ids"""
     # TODO: replace this with EAP calls, this query is copied from the old trace view
     columns = [
         "id",
@@ -313,7 +335,7 @@ def _errors_query(
         Dataset.Events,
         params={},
         snuba_params=snuba_params,
-        query=f"trace:{trace_id}",
+        query=f"trace:[{','.join(trace_ids)}]",
         selected_columns=columns,
         # Don't add timestamp to this orderby as snuba will have to split the time range up and make multiple queries
         orderby=orderby,
@@ -324,7 +346,7 @@ def _errors_query(
     )
 
 
-@sentry_sdk.tracing.trace
+@trace
 def _run_errors_query(
     errors_query: DiscoverQueryBuilder,
     referrer: str = Referrer.API_TRACE_VIEW_GET_EVENTS.value,
@@ -422,15 +444,15 @@ def _run_errors_query_eap(
 
 def _perf_issues_query(
     snuba_params: SnubaParams,
-    trace_id: str,
+    trace_ids: Sequence[str],
     organization: Organization | None = None,
 ) -> DiscoverQueryBuilder:
-    query = f"trace:{trace_id}"
+    query = f"trace:[{','.join(trace_ids)}]"
 
     if organization:
         visible_type_ids = [gt.type_id for gt in grouptype_registry.get_visible(organization)]
         if visible_type_ids:
-            query = f"trace:{trace_id} occurrence_type_id:[{','.join(map(str, visible_type_ids))}]"
+            query = f"{query} occurrence_type_id:[{','.join(map(str, visible_type_ids))}]"
 
     occurrence_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
@@ -455,7 +477,7 @@ def _perf_issues_query(
     return occurrence_query
 
 
-@sentry_sdk.tracing.trace
+@trace
 def _run_perf_issues_query(
     occurrence_query: DiscoverQueryBuilder,
     referrer: str = Referrer.API_TRACE_VIEW_GET_EVENTS.value,
@@ -484,6 +506,76 @@ def _run_perf_issues_query(
                 result.append({"occurrence": issue, "issue_id": issue_id})
 
     return result
+
+
+@trace
+def get_issues_by_span_for_traces(
+    snuba_params: SnubaParams,
+    trace_ids: Sequence[str],
+    organization: Organization,
+    referrer: str,
+    span_meta_by_id: Mapping[str, SpanIssueMeta],
+) -> dict[str, dict[str, list[SerializedIssue]]]:
+    """Map span ids to their linked error and occurrence issues for the given traces.
+
+    Reuses the same error/occurrence association the trace view uses (errors keyed by
+    ``trace.span``, occurrences keyed by ``offender_span_ids``) so spans can be annotated
+    with their issues outside of the full trace view (e.g. AI conversation span details).
+
+    ``span_meta_by_id`` provides the span fields required to serialize occurrence issues
+    and also acts as the allow-list of spans we attach issues to.
+
+    Returns a mapping of ``span_id -> {"errors": [...], "occurrences": [...]}``.
+    """
+    unique_trace_ids = list({trace_id for trace_id in trace_ids if trace_id})
+    if not unique_trace_ids:
+        return {}
+
+    errors_data = _run_errors_query(
+        _errors_query(snuba_params, unique_trace_ids, None), referrer=referrer
+    )
+    occurrence_data = _run_perf_issues_query(
+        _perf_issues_query(snuba_params, unique_trace_ids, organization), referrer=referrer
+    )
+
+    group_cache: dict[int, Group] = {}
+    issues_by_span: dict[str, dict[str, list[SerializedIssue]]] = {}
+
+    def _bucket(span_id: str) -> dict[str, list[SerializedIssue]]:
+        return issues_by_span.setdefault(span_id, {"errors": [], "occurrences": []})
+
+    for error in errors_data:
+        span_id = error.get("trace.span")
+        if not span_id or span_id not in span_meta_by_id:
+            continue
+        serialized = _serialize_rpc_issue(error, group_cache)
+        if serialized is not None:
+            _bucket(span_id)["errors"].append(serialized)
+
+    for occurrence_event in occurrence_data:
+        occurrence = occurrence_event["occurrence"]
+        issue_id = occurrence_event["issue_id"]
+        for span_id in occurrence.evidence_data.get("offender_span_ids", []):
+            meta = span_meta_by_id.get(span_id)
+            if meta is None:
+                continue
+            serialized = _serialize_rpc_issue(
+                {
+                    "event_type": "occurrence",
+                    "event_data": {
+                        "start_timestamp": meta["start_timestamp"],
+                        "end_timestamp": meta["end_timestamp"],
+                        "project_slug": meta["project_slug"],
+                        "transaction": meta["transaction"],
+                    },
+                    "issue_data": {"occurrence": occurrence, "issue_id": issue_id},
+                },
+                group_cache,
+            )
+            if serialized is not None:
+                _bucket(span_id)["occurrences"].append(serialized)
+
+    return issues_by_span
 
 
 def _uptime_results_query(
@@ -625,7 +717,7 @@ def _serialize_columnar_uptime_item(
     return uptime_check
 
 
-@sentry_sdk.tracing.trace
+@trace
 def query_trace_data(
     snuba_params: SnubaParams,
     trace_id: str,
@@ -634,7 +726,7 @@ def query_trace_data(
     additional_attributes: list[str] | None = None,
     include_uptime: bool = False,
     organization: Organization | None = None,
-) -> list[SerializedEvent]:
+) -> list[SerializedTraceItem]:
     """Queries span/error data for a given trace"""
     # This is a hack, long term EAP will store both errors and performance_issues eventually but is not ready
     # currently. But we want to move performance data off the old tables immediately. To keep the code simpler I'm
@@ -652,8 +744,8 @@ def query_trace_data(
     if referrer is None or referrer == "" or not is_valid_referrer(referrer):
         referrer = Referrer.API_TRACE_VIEW_GET_EVENTS.value
 
-    errors_query = _errors_query(snuba_params, trace_id, error_id)
-    occurrence_query = _perf_issues_query(snuba_params, trace_id, organization)
+    errors_query = _errors_query(snuba_params, [trace_id], error_id)
+    occurrence_query = _perf_issues_query(snuba_params, [trace_id], organization)
     uptime_query = _uptime_results_query(snuba_params, trace_id) if include_uptime else None
 
     # 1 worker each for spans, errors, performance issues, and optionally uptime
@@ -766,14 +858,14 @@ def query_trace_data(
     for event in errors_data:
         id_to_error.setdefault(event["trace.span"], []).append(event)
     id_to_occurrence = defaultdict(list)
-    with sentry_sdk.start_span(op="process.occurrence_data") as sdk_span:
+    with start_span(op="process.occurrence_data", name="process.occurrence_data") as sdk_span:
         for event in occurrence_data:
             offender_span_ids = event["occurrence"].evidence_data.get("offender_span_ids", [])
             if len(offender_span_ids) == 0:
-                sdk_span.set_data("evidence_data.empty", event["occurrence"].evidence_data)
+                set_span_data(sdk_span, "evidence_data.empty", event["occurrence"].evidence_data)
             for span_id in offender_span_ids:
                 id_to_occurrence[span_id].append(event)
-    with sentry_sdk.start_span(op="process.trace_data"):
+    with start_span(op="process.trace_data", name="process.trace_data"):
         # calculate min & max start as a metric then log as a metric to see if we need to adjust
         # performance.traces.transaction_query_timebuffer_days
         span_min_ts = None
@@ -842,11 +934,11 @@ def query_trace_data(
             for attr in metric_only_attributes:
                 span.pop(attr, None)
 
-    with sentry_sdk.start_span(op="process.errors_data"):
+    with start_span(op="process.errors_data", name="process.errors_data"):
         for errors in id_to_error.values():
             result.extend(errors)
     group_cache: dict[int, Group] = {}
-    with sentry_sdk.start_span(op="serializing_data"):
+    with start_span(op="serializing_data", name="serializing_data"):
         return [
             event
             for event in [

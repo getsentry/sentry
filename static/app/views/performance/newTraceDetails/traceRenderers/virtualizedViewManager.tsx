@@ -1812,14 +1812,24 @@ export class VirtualizedViewManager {
       );
 
       if (clamped_transform <= 2) {
+        // Indicator sits at the left edge: clamp the line to the edge and keep
+        // both line and label visible (they may have been hidden by the culling
+        // pass above).
         label.style.transform = `translateX(${clamped_label_transform}px)`;
-        entry.ref.style.opacity = '0';
+        label.style.opacity = '1';
+        entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
+        entry.ref.style.opacity = '1';
         indicator_label_right = clamped_label_transform + label_width;
         continue;
       } else if (clamped_transform + label_width / 2 >= indicator_max) {
+        // Indicator sits at the right edge: clamp the line to the edge and keep
+        // both line and label visible (they may have been hidden by the culling
+        // pass above).
         label.style.transform = `translateX(${clamped_label_transform}px)`;
+        label.style.opacity = '1';
+        entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
+        entry.ref.style.opacity = '1';
         indicator_label_right = clamped_label_transform;
-        entry.ref.style.opacity = '0';
         continue;
       }
 

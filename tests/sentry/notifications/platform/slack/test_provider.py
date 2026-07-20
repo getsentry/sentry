@@ -18,7 +18,10 @@ from sentry.notifications.platform.provider import (
     SendFailureStatus,
     SendSuccessResult,
 )
-from sentry.notifications.platform.slack.provider import SlackNotificationProvider, SlackRenderable
+from sentry.notifications.platform.slack.provider import (
+    SlackNotificationProvider,
+    SlackRenderable,
+)
 from sentry.notifications.platform.target import (
     GenericNotificationTarget,
     IntegrationNotificationTarget,
@@ -47,8 +50,22 @@ class SlackRendererTest(TestCase):
         rendererable_dict = [block.to_dict() for block in rendererable.get("blocks", [])]
 
         assert rendererable_dict == [
-            {"text": {"text": "Mock Notification", "type": "plain_text"}, "type": "header"},
-            {"text": {"text": "test", "type": "mrkdwn"}, "type": "section"},
+            {"text": {"text": "Alert: Mock Notification", "type": "plain_text"}, "type": "header"},
+            {
+                "text": {
+                    "text": "test *important* _urgent_ <https://sentry.io/issue/1|View Issue>",
+                    "type": "mrkdwn",
+                },
+                "type": "section",
+            },
+            {
+                "text": {"text": "```raise Exception('test')```", "type": "mrkdwn"},
+                "type": "section",
+            },
+            {
+                "text": {"text": ">This is a quoted message", "type": "mrkdwn"},
+                "type": "section",
+            },
             {
                 "elements": [
                     {
@@ -66,7 +83,7 @@ class SlackRendererTest(TestCase):
                 "type": "image",
             },
             {
-                "elements": [{"text": "This is a mock footer", "type": "mrkdwn"}],
+                "elements": [{"text": "Sent via `sentry-alerts`", "type": "mrkdwn"}],
                 "type": "context",
             },
         ]
@@ -119,14 +136,6 @@ class SlackNotificationProviderSendTest(TestCase):
         return target
 
     def _create_renderable(self) -> SlackRenderable:
-        """Create a sample SlackRenderable for testing"""
-        from slack_sdk.models.blocks import (
-            HeaderBlock,
-            MarkdownTextObject,
-            PlainTextObject,
-            SectionBlock,
-        )
-
         return SlackRenderable(
             blocks=[
                 HeaderBlock(text=PlainTextObject(text="Test Notification")),

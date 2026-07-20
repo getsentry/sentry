@@ -9,8 +9,10 @@ from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.issue_search import convert_query_values, parse_search_query
+from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.search.snuba.backend import EventsDatasetSnubaSearchBackend
 from sentry.search.snuba.executors import (
     DEFAULT_TRENDS_WEIGHTS,
@@ -22,6 +24,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 
@@ -95,7 +98,9 @@ class PostgresSortTestBase(TestCase, SnubaTestCase):
             self.store_group(group)
             self.groups.append(group)
 
-    def make_query(self, sort_by, query=None, limit=None, cursor=None):
+    def make_query(
+        self, sort_by, query=None, limit=None, cursor=None, date_to=None, environments=None
+    ):
         search_filters: list[Any] = []
         if query:
             search_filters = list(
@@ -107,11 +112,11 @@ class PostgresSortTestBase(TestCase, SnubaTestCase):
         return self.backend.query(
             [self.project],
             search_filters=search_filters,
-            environments=None,
+            environments=environments,
             count_hits=False,
             sort_by=sort_by,
             date_from=None,
-            date_to=None,
+            date_to=date_to,
             cursor=cursor,
             referrer=Referrer.TESTING_TEST,
             **kwargs,
@@ -194,6 +199,33 @@ class TestPostgresSortWithoutSnuba(PostgresSortTestBase):
             results = list(self.make_query("test_sort"))
         assert results == [self.groups[1], self.groups[2], self.groups[0]]
 
+    def test_score_fn_error_falls_back_not_drops(self):
+        # A score_fn that raises on one row must not 500 the whole sort, and the issue must
+        # not vanish from the stream: it falls back to fallback_score_fn and stays in the
+        # results. Regression for an OverflowError in the recommended_v2 newness boost that
+        # took down the entire issue stream.
+        for group in self.groups:
+            group.update(seer_fixability_score=float(group.id))
+        bad_id = self.groups[0].id
+
+        def score_fn(data):
+            if data["fix"] == bad_id:
+                raise OverflowError("boom")
+            return data["fix"]
+
+        strategy = PostgresSortStrategy(
+            postgres_fields={"fix": "seer_fixability_score"},
+            score_fn=score_fn,
+            # groups[0] fails score_fn but falls back to a high base score, so it survives
+            # and sorts to the top rather than being dropped.
+            fallback_score_fn=lambda data: 10**9,
+            exclude_null_postgres=False,
+        )
+        with _patch_pg_strategies({"test_sort": strategy}):
+            results = list(self.make_query("test_sort"))
+        assert set(results) == set(self.groups)
+        assert results[0] == self.groups[0]
+
 
 class TestExecutePostgresSort(PostgresSortTestBase):
     def test_snuba_filter_narrows_candidates(self):
@@ -259,7 +291,7 @@ class TestExecutePostgresSort(PostgresSortTestBase):
     def test_signal_resolver_influences_score(self):
         boosted = self.groups[0].id
         strategy = _ts_strategy(
-            signal_resolvers={"boost": lambda actor, org, gids: {boosted: 1}},
+            signal_resolvers={"boost": lambda actor, org, projects, gids: {boosted: 1}},
             score_fn=lambda data: data.get("boost", 0) * 10**15 + data["ts"].timestamp(),
         )
         with _patch_pg_strategies({"test_sort": strategy}):
@@ -318,6 +350,7 @@ class TestFallbackBehavior(PostgresSortTestBase):
                 actor=None,
                 start=before_now(days=90),
                 end=timezone.now(),
+                native_upper_bound_ok=True,
                 referrer=Referrer.TESTING_TEST.value,
             )
             assert result is None
@@ -380,7 +413,8 @@ class TestFallbackBehavior(PostgresSortTestBase):
 
 class TestRecommendedV2Sort(PostgresSortTestBase):
     """recommended_v2: Snuba recommended base score plus additive boosts for viewer
-    assignment, Seer fixability, and Seer agent progress.
+    relevance (assignment or suspect commit), Seer fixability, Seer agent progress,
+    regressed issues, and newly-seen issues.
 
     The base fixture's groups have events ~8d, ~5d, and ~3d old, so the recency-driven
     base score orders them [2, 1, 0] with small (<0.03) differences -- each boost below
@@ -454,6 +488,54 @@ class TestRecommendedV2Sort(PostgresSortTestBase):
 
         assert self._query(actor=self.user) == [self.groups[1], self.groups[2], self.groups[0]]
 
+    def test_regressed_boost(self):
+        # groups[0] has the lowest base score (oldest events); marking it regressed lifts
+        # it above the others, which stay ONGOING.
+        self.groups[0].update(substatus=GroupSubStatus.REGRESSED)
+
+        assert self._query(actor=self.user)[0] == self.groups[0]
+
+    def test_newness_boost(self):
+        # groups[0] is last by activity-based recency, but just appeared for the first time.
+        # The first_seen-based newness boost (distinct from last_seen recency) lifts it up.
+        self.groups[0].update(first_seen=before_now(hours=1))
+
+        assert self._query(actor=self.user)[0] == self.groups[0]
+
+    def test_very_old_first_seen_does_not_overflow(self):
+        # first_seen far enough back that hours/halflife exceeds ~1024 used to overflow
+        # the float in 1.0 / 2.0**x. The query must still succeed (newness underflows to 0).
+        self.groups[0].update(first_seen=before_now(days=3000))
+
+        assert set(self._query(actor=self.user)) == set(self.groups)
+
+    def _add_suspect_commit(self, group, user):
+        GroupOwner.objects.create(
+            group=group,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            user_id=user.id,
+        )
+
+    def test_suspect_commit_boost(self):
+        # groups[0] has the lowest base score; the viewer authored its suspect commit,
+        # which lifts it to the top even though it isn't assigned to them.
+        self._add_suspect_commit(self.groups[0], self.user)
+
+        assert self._query(actor=self.user)[0] == self.groups[0]
+
+    def test_relevance_is_max_not_sum(self):
+        # groups[0] is both assigned to the viewer and authored by them; groups[1] is only
+        # assigned to them. If the two relevance signals summed, groups[0] would win; because
+        # they're combined with max(), both get the same boost and the higher base (groups[1])
+        # stays ahead.
+        GroupAssignee.objects.assign(self.groups[0], self.user)
+        self._add_suspect_commit(self.groups[0], self.user)
+        GroupAssignee.objects.assign(self.groups[1], self.user)
+
+        assert self._query(actor=self.user) == [self.groups[1], self.groups[0], self.groups[2]]
+
 
 class TestProgressSort(PostgresSortTestBase):
     """progress: primary sort by fix-cycle rank (fix_applied > fix_proposed > diagnosed >
@@ -493,6 +575,131 @@ class TestProgressSort(PostgresSortTestBase):
         self.create_group_activity(group=self.groups[1], type=ActivityType.SEER_RCA_COMPLETED.value)
         assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
 
+    @with_feature("projects:issue-stream-derived-progress")
+    def test_reads_from_derived_data_when_flag_enabled(self):
+        # With the flag on, rank comes from GroupDerivedData.progress, not Activity.
+        # groups[0] would be fix_proposed from Activity, but its derived row says identified,
+        # so it must rank last.
+        self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_derived_data(group=self.groups[0], progress="identified")
+        self.create_group_derived_data(group=self.groups[1], progress="diagnosed")
+        self.create_group_derived_data(group=self.groups[2], progress="fix_applied")
+        assert self._query() == [self.groups[2], self.groups[1], self.groups[0]]
+
+    @with_feature("projects:issue-stream-derived-progress")
+    def test_derived_data_missing_row_defaults_to_identified(self):
+        # Only groups[0] has a derived row; the others default to identified and fall back
+        # to last_seen ordering (groups[2] newer than groups[1]).
+        self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
+        assert self._query() == [self.groups[0], self.groups[2], self.groups[1]]
+
+    def test_ignores_derived_data_when_flag_disabled(self):
+        # Flag off: rank comes from Activity, not the derived column. The derived rows claim
+        # the reverse order but Activity (groups[0] fix_proposed) must win.
+        self.create_group_activity(group=self.groups[0], type=ActivityType.SEER_PR_CREATED.value)
+        self.create_group_derived_data(group=self.groups[0], progress="identified")
+        self.create_group_derived_data(group=self.groups[1], progress="fix_applied")
+        assert self._query() == [self.groups[0], self.groups[2], self.groups[1]]
+
+    @with_feature("projects:issue-stream-derived-progress")
+    def test_last_progressed_at_breaks_ties(self):
+        # Both groups have the same rank but different last_progressed_at values;
+        # the more recently progressed group sorts first.
+        self.create_group_derived_data(
+            group=self.groups[0], progress="diagnosed", last_progressed_at=before_now(days=5)
+        )
+        self.create_group_derived_data(
+            group=self.groups[1], progress="diagnosed", last_progressed_at=before_now(days=1)
+        )
+        # groups[2] has no derived data -> identified (lowest rank), sorts last.
+        assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_native_ordering_past_candidate_cap(self):
+        # With the cap at 0, the in-memory path overflows and (pre-Tier-1) would degrade to a
+        # plain last_seen sort. The native ORDER BY must instead rank correctly, exercising all
+        # three derived-data states: a normal row, a null-progress row (closed -> fix_applied),
+        # and a missing row (-> identified).
+        self.create_group_derived_data(group=self.groups[0], progress="diagnosed")
+        self.create_group_derived_data(group=self.groups[1], progress=None)
+        # groups[2] intentionally has no derived row -> identified (lowest rank).
+
+        # fix_applied (g1) > diagnosed (g0) > identified (g2), independent of last_seen order.
+        assert self._query() == [self.groups[1], self.groups[0], self.groups[2]]
+
+        # Paginating the native path must not overlap or drop rows across pages.
+        page1 = self.make_query(sort_by="progress", limit=2)
+        assert list(page1) == [self.groups[1], self.groups[0]]
+        page2 = self.make_query(sort_by="progress", limit=2, cursor=page1.next)
+        assert list(page2) == [self.groups[2]]
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_native_ordering_paginates_across_score_tie(self):
+        # Identical rank + last_progressed_at -> identical score, so ordering falls to the -id
+        # tiebreak; paging one-at-a-time across the tie must not drop or duplicate a row.
+        ts = before_now(days=2)
+        for group in self.groups:
+            self.create_group_derived_data(group=group, progress="diagnosed", last_progressed_at=ts)
+
+        expected = sorted(self.groups, key=lambda g: g.id, reverse=True)
+        seen = []
+        cursor = None
+        for _ in self.groups:
+            page = self.make_query(sort_by="progress", limit=1, cursor=cursor)
+            seen.extend(page)
+            cursor = page.next
+        assert seen == expected
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_environment_scoping_bypasses_native_path(self):
+        # Environment scoping lives in Snuba; the Postgres-only native path can't honor it, so
+        # an environment-filtered query must fall through to Snuba. All fixture groups are in
+        # `production`, so membership is unchanged — this isolates the path choice: if native
+        # ran, the over-cap result would be progress-ranked; via Snuba it degrades to recency.
+        self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
+        # groups[1]/[2] default to identified; native would rank groups[0] first.
+        production = Environment.get_or_create(self.project, "production")
+        results = list(self.make_query(sort_by="progress", environments=[production]))
+        # Recency order (native bypassed): newest first is groups[2], [1], [0].
+        assert results == [self.groups[2], self.groups[1], self.groups[0]]
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_explicit_date_to_bypasses_native_path(self):
+        # Group.last_seen is the issue's global max event time, not its max within the window,
+        # so the native (Postgres-only) path can't honor an upper time bound correctly. An
+        # explicit date_to must fall through to Snuba, which scopes to in-window events.
+        # groups[2] is the newest (last_seen == base_datetime); a date_to before it excludes it.
+        self.create_group_derived_data(group=self.groups[2], progress="fix_applied")
+        results = self.make_query(
+            sort_by="progress", date_to=self.base_datetime - timedelta(days=1)
+        )
+        assert self.groups[2] not in set(results)
+        assert set(results) == {self.groups[0], self.groups[1]}
+
+    @with_feature("projects:issue-stream-derived-progress")
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_date_to_now_uses_native_path(self):
+        # The issue-stream endpoint always sends date_to=now. That is not a restrictive bound
+        # (last_seen can't exceed now), so the native path must still run and rank by progress
+        # rather than falling back to recency.
+        self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
+        results = list(self.make_query(sort_by="progress", date_to=timezone.now()))
+        # Progress order: groups[0] (fix_applied) first, then identified by recency.
+        assert results == [self.groups[0], self.groups[2], self.groups[1]]
+
+    @override_options({"snuba.search.max-pre-snuba-candidates": 0})
+    def test_snuba_filter_over_cap_does_not_use_native_ordering(self):
+        # A Snuba-side filter disqualifies the native path, so over the cap the sort still
+        # falls through to the chunked recency path rather than ranking by progress.
+        with self.feature("projects:issue-stream-derived-progress"):
+            self.create_group_derived_data(group=self.groups[0], progress="fix_applied")
+            results = self.make_query(sort_by="progress", query="issue 1")
+        assert list(results) == [self.groups[1]]
+
 
 class TestDefaultPostgresSortStrategies(TestCase):
     def test_recommended_v2_registered(self):
@@ -501,13 +708,20 @@ class TestDefaultPostgresSortStrategies(TestCase):
         strategy = strategies["recommended_v2"]
         assert strategy.snuba_aggregations == ["recommended"]
         assert strategy.exclude_null_postgres is False
-        assert set(strategy.signal_resolvers) == {"assignment", "agent"}
+        assert set(strategy.signal_resolvers) == {"assignment", "suspect_commit", "agent"}
+
+    def test_recommended_v2_zero_weight_drops_signal_resolver(self):
+        # A zeroed weight can't affect the score, so the strategy must not pay for that
+        # signal's query.
+        with self.options({"snuba.search.recommended.agent-weight": 0.0}):
+            strategy = PostgresSnubaQueryExecutor().postgres_sort_strategies["recommended_v2"]
+        assert set(strategy.signal_resolvers) == {"assignment", "suspect_commit"}
 
     def test_progress_registered(self):
         strategies = PostgresSnubaQueryExecutor().postgres_sort_strategies
         strategy = strategies["progress"]
         assert strategy.snuba_aggregations == ["last_seen"]
-        assert set(strategy.signal_resolvers) == {"progress_rank"}
+        assert set(strategy.signal_resolvers) == {"progress_rank", "last_progressed_at"}
         # progress maps to last_seen in sort_strategies so the chunked Snuba path has a
         # real aggregation to fall back to on candidate overflow.
         assert PostgresSnubaQueryExecutor.sort_strategies["progress"] == "last_seen"

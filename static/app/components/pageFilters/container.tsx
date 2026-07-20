@@ -22,7 +22,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {usePrevious} from 'sentry/utils/usePrevious';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
 
@@ -135,10 +134,8 @@ export function PageFiltersContainer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectsLoaded]);
 
-  // Handle dynamic maxPickableDays/maxDateRange changes (e.g., switching between pages with different limits).
-  // When the limit decreases and the current selection exceeds it, reset to the new max.
-  const previousMaxPickableDays = usePrevious(maxPickableDays);
-  const previousMaxDateRange = usePrevious(maxDateRange);
+  // Handle invalid date selections after initialization, including route changes
+  // while the container stays mounted.
   const shouldResetDateTime = useMemo(() => {
     // Don't act until page filters are initialized - selection.datetime contains
     // default values until isReady, not the actual URL state
@@ -147,16 +144,6 @@ export function PageFiltersContainer({
     }
 
     const effectiveMaxDays = maxDateRange ?? maxPickableDays;
-    const previousEffectiveMaxDays = previousMaxDateRange ?? previousMaxPickableDays;
-
-    // Only act when the effective limit decreases (increasing the limit never invalidates selection)
-    if (
-      previousEffectiveMaxDays === effectiveMaxDays ||
-      previousEffectiveMaxDays < effectiveMaxDays
-    ) {
-      return false;
-    }
-
     const {period, start, end} = selection.datetime;
 
     // For relative periods (e.g., "14d"), check if the period exceeds the new max
@@ -184,14 +171,7 @@ export function PageFiltersContainer({
     }
 
     return false;
-  }, [
-    isReady,
-    maxDateRange,
-    maxPickableDays,
-    previousMaxDateRange,
-    previousMaxPickableDays,
-    selection.datetime,
-  ]);
+  }, [isReady, maxDateRange, maxPickableDays, selection.datetime]);
 
   const resetPeriodDays = maxDateRange ?? maxPickableDays;
 

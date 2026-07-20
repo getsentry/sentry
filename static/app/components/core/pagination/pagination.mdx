@@ -11,7 +11,7 @@ resources:
 
 import {useState} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination, getPaginationCaption} from '@sentry/scraps/pagination';
 
 import * as Storybook from 'sentry/stories';
@@ -45,12 +45,12 @@ Reach for `apiOptions` with `selectJsonWithHeaders` to get the `Link` header fro
 The `size` prop is derived from `Button`'s `size` prop, so values stay in sync with the rest of the design system. The default is `sm`.
 
 <Storybook.Demo>
-  <Flex width="100%" direction="column" gap="lg">
+  <Stack width="100%" gap="lg">
     <Pagination pageLinks={samplePageLinks} size="md" />
     <Pagination pageLinks={samplePageLinks} size="sm" />
     <Pagination pageLinks={samplePageLinks} size="xs" />
     <Pagination pageLinks={samplePageLinks} size="zero" />
-  </Flex>
+  </Stack>
 </Storybook.Demo>
 
 ```tsx

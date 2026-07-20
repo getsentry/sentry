@@ -9,6 +9,7 @@
  * `npx eslint --inspect-config`
  */
 
+import e18e from '@e18e/eslint-plugin';
 /**
  * Import Linting Strategy
  *
@@ -254,6 +255,7 @@ export default typescript.config([
   globalIgnores([
     '.devenv/**/*',
     '.github/**/*',
+    '.sentry-refactor-tasks/**/*',
     '.mypy_cache/**/*',
     '.pytest_cache/**/*',
     '.venv/**/*',
@@ -425,6 +427,24 @@ export default typescript.config([
     },
   },
   {
+    extends: [e18e.configs.recommended],
+    name: 'plugin/e18e',
+    rules: {
+      'e18e/ban-dependencies': 'off',
+      'e18e/prefer-array-at': 'off',
+      'e18e/prefer-array-fill': 'off',
+      'e18e/prefer-array-from-map': 'off',
+      'e18e/prefer-array-some': 'off',
+      'e18e/prefer-array-to-reversed': 'off',
+      'e18e/prefer-array-to-sorted': 'off',
+      'e18e/prefer-object-has-own': 'off',
+      'e18e/prefer-regex-test': 'off',
+      'e18e/prefer-spread-syntax': 'off',
+      'e18e/prefer-static-regex': 'off',
+      'e18e/prefer-timer-args': 'off',
+    },
+  },
+  {
     // https://github.com/import-js/eslint-plugin-import/tree/main/docs/rules
     extends: [importPlugin.flatConfigs.recommended],
     name: 'plugin/import',
@@ -472,6 +492,7 @@ export default typescript.config([
       '@sentry/scraps/no-double-dollar-interpolation': 'error',
       '@sentry/scraps/no-token-import': 'error',
       '@sentry/scraps/prefer-info-text': 'error',
+      '@sentry/scraps/prefer-stack-for-column-flex': 'error',
       '@sentry/scraps/use-semantic-token': [
         'error',
         {enabledCategories: ['background', 'border', 'content']},
@@ -1166,6 +1187,14 @@ export default typescript.config([
     },
   },
   {
+    // Flex's own documentation intentionally demonstrates `direction="column"`.
+    name: 'files/mdx/flex-docs',
+    files: ['static/app/components/core/layout/flex.mdx'],
+    rules: {
+      '@sentry/scraps/prefer-stack-for-column-flex': 'off',
+    },
+  },
+  {
     name: 'plugin/boundaries',
     plugins: {
       boundaries,
@@ -1212,6 +1241,7 @@ export default typescript.config([
           type: 'test-getsentry',
           pattern: [
             'static/gsApp/**/*.spec.{ts,js,tsx,jsx}',
+            'static/gsApp/**/*.snapshots.tsx',
             'tests/js/getsentry-test/**/*.*',
           ],
           mode: 'full',

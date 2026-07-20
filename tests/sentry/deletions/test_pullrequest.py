@@ -9,6 +9,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
+    PullRequestActivityLog,
     PullRequestActivityType,
     PullRequestAttribution,
     PullRequestAttributionSignalType,
@@ -16,6 +17,7 @@ from sentry.models.pullrequest import (
     PullRequestCommit,
     PullRequestMetrics,
 )
+from sentry.seer.models.run import SeerRunPullRequest
 from sentry.testutils.cases import TestCase
 
 
@@ -147,13 +149,15 @@ class PullRequestDeletionTaskTest(TestCase):
 
         relations = self.task.get_child_relations(pr)
 
-        assert len(relations) == 5
+        assert len(relations) == 7
         relation_models = {r.params["model"] for r in relations}
         assert PullRequestActivity in relation_models
+        assert PullRequestActivityLog in relation_models
         assert PullRequestAttribution in relation_models
         assert PullRequestMetrics in relation_models
         assert PullRequestComment in relation_models
         assert PullRequestCommit in relation_models
+        assert SeerRunPullRequest in relation_models
 
         for relation in relations:
             assert relation.params["query"] == {"pull_request_id": pr.id}
@@ -177,18 +181,26 @@ class PullRequestDeletionTaskTest(TestCase):
             event_type=PullRequestActivityType.OPENED,
             webhook_id="11111111-1111-1111-1111-111111111111",
         )
+        activity_log = PullRequestActivityLog.objects.create(
+            pull_request=pr,
+            data={"version": 1},
+        )
         attribution = PullRequestAttribution.objects.create(
             pull_request=pr,
             signal_type=PullRequestAttributionSignalType.SENTRY_APP,
             source="webhook_data",
         )
         metrics = PullRequestMetrics.objects.create(pull_request=pr)
+        seer_run = self.create_seer_run(organization=self.organization, seer_run_state_id=4242)
+        link = SeerRunPullRequest.objects.create(seer_run=seer_run, pull_request=pr)
 
         self.task.chunk(apply_filter=True)
 
         assert not PullRequestActivity.objects.filter(id=activity.id).exists()
+        assert not PullRequestActivityLog.objects.filter(id=activity_log.id).exists()
         assert not PullRequestAttribution.objects.filter(id=attribution.id).exists()
         assert not PullRequestMetrics.objects.filter(id=metrics.id).exists()
+        assert not SeerRunPullRequest.objects.filter(id=link.id).exists()
         assert not PullRequest.objects.filter(id=pr.id).exists()
 
     def test_query_filter_with_no_prs(self) -> None:

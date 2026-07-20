@@ -30,7 +30,7 @@ class TaskSiloLimit(SiloLimit):
 
     def __call__(self, decorated_task: Task[P, R]) -> Task[P, R]:
         # Replace the sentry.taskworker.Task interface used to schedule tasks.
-        replacements = {"delay", "apply_async"}
+        replacements = {"delay", "apply_async", "apply_async_with_future"}
         for attr_name in replacements:
             task_attr = getattr(decorated_task, attr_name)
             if callable(task_attr):

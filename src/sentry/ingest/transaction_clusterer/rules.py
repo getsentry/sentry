@@ -66,7 +66,7 @@ class RedisRuleStore:
             # to be consistent with other stores, clear previous hash entries:
             p.delete(key)
             if len(rules) > 0:
-                p.hmset(name=key, mapping=rules)  # type: ignore[arg-type]
+                p.hmset(name=key, mapping=rules)
             p.execute()
 
     def update_rule(self, project: Project, rule: str, last_used: int) -> None:
@@ -154,6 +154,15 @@ class CompositeRuleStore:
                     "max_amount": self.MERGE_MAX_RULES,
                     "discarded_rules": sorted_rules[self.MERGE_MAX_RULES :],
                 },
+            )
+            sentry_sdk.get_isolation_scope().set_attribute(
+                "clustering_rules_max.num_existing_rules", len(rules)
+            )
+            sentry_sdk.get_isolation_scope().set_attribute(
+                "clustering_rules_max.max_amount", self.MERGE_MAX_RULES
+            )
+            sentry_sdk.get_isolation_scope().set_attribute(
+                "clustering_rules_max.discarded_rules", repr(sorted_rules[self.MERGE_MAX_RULES :])
             )
             sentry_sdk.set_tag("namespace", self._namespace.value.name)
             sentry_sdk.set_attribute("namespace", self._namespace.value.name)

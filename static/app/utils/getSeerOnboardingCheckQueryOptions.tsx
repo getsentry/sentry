@@ -6,7 +6,6 @@ interface SeerOnboardingCheckResponse {
   isAutofixEnabled: boolean;
   isCodeReviewEnabled: boolean;
   isSeerConfigured: boolean;
-  needsConfigReminder: boolean;
 }
 
 interface Props {

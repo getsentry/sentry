@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {closeModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -325,7 +325,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
         </Flex>
       </Header>
       <Body>
-        <Flex direction="column" gap="2xl" height="600px">
+        <Stack gap="2xl" height="600px">
           <Container height={`${MODAL_CHART_HEIGHT}px`}>
             <Container height={`${MODAL_CHART_HEIGHT}px`} position="relative">
               {computedData.mode === 'single' && singleSeries && hasPlottableValues ? (
@@ -409,7 +409,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
               return [];
             }}
           />
-        </Flex>
+        </Stack>
       </Body>
     </Fragment>
   );

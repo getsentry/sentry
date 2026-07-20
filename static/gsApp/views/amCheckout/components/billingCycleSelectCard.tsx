@@ -32,12 +32,12 @@ export function BillingCycleSelectCard({
   priceAfterDiscount,
   formattedPriceBeforeDiscount,
 }: BillingCycleSelectCardProps) {
-  const isAnnual = plan.contractInterval === ANNUAL;
+  const isAnnual = plan.billingInterval === ANNUAL;
   const intervalName = isAnnual ? t('Yearly') : t('Monthly');
   const isPartnerMigration = !!subscription.partner?.partnership.id;
 
   const isCotermUpgrade = priceAfterDiscount >= subscription.planDetails.totalPrice;
-  const isCurrentUsageCycle = subscription.contractInterval === plan.contractInterval;
+  const isCurrentUsageCycle = subscription.billingInterval === plan.billingInterval;
   // the billing day would only change for billing cycle changes or for any upgrade from developer plan
   const shouldApplyToExistingPeriod =
     isCotermUpgrade && isCurrentUsageCycle && !isDeveloperPlan(subscription.planDetails);
@@ -80,7 +80,7 @@ export function BillingCycleSelectCard({
 
   return (
     <CheckoutOption
-      dataTestId={`billing-cycle-option-${plan.contractInterval}`}
+      dataTestId={`billing-cycle-option-${plan.billingInterval}`}
       isSelected={isSelected}
       onClick={onCycleSelect}
       ariaLabel={t('%s billing cycle', intervalName)}

@@ -1,8 +1,8 @@
 import Papa from 'papaparse';
 
+import {createExportFilename} from 'sentry/components/exports/createExportFilename';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
-import {createLogDownloadFilename} from 'sentry/views/explore/logs/createLogDownloadFilename';
-import type {OurLogFieldKey, OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+import type {ExportableLogRow} from 'sentry/views/explore/logs/exports/downloadLogs';
 
 function disableMacros(value: string | null | boolean | number | undefined) {
   if (
@@ -18,8 +18,8 @@ function disableMacros(value: string | null | boolean | number | undefined) {
 }
 
 export function downloadLogsAsCsv(
-  rows: OurLogsResponseItem[],
-  fields: OurLogFieldKey[],
+  rows: ExportableLogRow[],
+  fields: string[],
   filename: string
 ) {
   const headings = fields.map(field => field);
@@ -27,14 +27,14 @@ export function downloadLogsAsCsv(
 
   const csvContent = Papa.unparse({
     fields: headings,
-    data: rows.map((row: OurLogsResponseItem) =>
-      keys.map((key: OurLogFieldKey) => {
-        return disableMacros(row[key]);
+    data: rows.map(row =>
+      keys.map(key => {
+        return disableMacros((row as Record<string, string | number>)[key]);
       })
     ),
   });
 
   const encodedDataUrl = `data:text/csv;charset=utf8,${encodeURIComponent(csvContent)}`;
 
-  downloadFromHref(createLogDownloadFilename(filename, 'csv'), encodedDataUrl);
+  downloadFromHref(createExportFilename(filename, 'csv'), encodedDataUrl);
 }

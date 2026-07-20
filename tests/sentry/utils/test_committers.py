@@ -10,6 +10,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.release import Release
+from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.utils.committers import (
@@ -19,6 +20,7 @@ from sentry.utils.committers import (
     dedupe_commits,
     get_frame_paths,
     get_previous_releases,
+    get_release_commit_candidates,
     get_serialized_event_file_committers,
     score_path_match_length,
     tokenize_path,
@@ -541,3 +543,92 @@ class DedupeCommits(CommitTestCase):
         commits = [same_commit, diff_commit, same_commit]
         result = dedupe_commits(commits)
         assert len(result) == 2
+
+
+class GetReleaseCommitCandidatesTestCase(CommitTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.now = timezone.now()
+        # release1 ships before release2; release2 is the group's first-seen release.
+        self.release1 = self._create_release("a" * 40, self.now - timedelta(days=2))
+        self.release2 = self._create_release("b" * 40, self.now - timedelta(days=1))
+        self.group = self.create_group(project=self.project, first_release=self.release2)
+
+    def _create_release(self, version: str, date_released) -> Release:
+        release = Release.objects.create(
+            organization_id=self.organization.id, version=version, date_released=date_released
+        )
+        release.add_project(self.project)
+        return release
+
+    def _link_commit(self, release: Release, order: int, date_added) -> Commit:
+        commit = Commit.objects.create(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            key=uuid4().hex,
+            date_added=date_added,
+        )
+        ReleaseCommit.objects.create(
+            organization_id=self.organization.id,
+            release=release,
+            commit=commit,
+            order=order,
+        )
+        return commit
+
+    def test_returns_pool_newest_first(self) -> None:
+        older = self._link_commit(self.release1, 0, self.now - timedelta(days=5))
+        newer = self._link_commit(self.release2, 0, self.now - timedelta(days=1))
+
+        result = get_release_commit_candidates(self.project, self.group.id)
+
+        assert result == [newer, older]
+
+    def test_filters_by_window_at_query_level(self) -> None:
+        in_window = self._link_commit(self.release2, 0, self.now - timedelta(days=3))
+        before_window = self._link_commit(self.release1, 0, self.now - timedelta(days=40))
+        after_window = self._link_commit(self.release2, 1, self.now + timedelta(days=2))
+
+        result = get_release_commit_candidates(
+            self.project,
+            self.group.id,
+            since=self.now - timedelta(days=30),
+            until=self.now,
+        )
+
+        assert result == [in_window]
+        assert before_window not in result
+        assert after_window not in result
+
+    def test_dedupes_commit_shared_across_releases(self) -> None:
+        commit = self._link_commit(self.release1, 0, self.now - timedelta(days=2))
+        # Same commit also shipped in the group's first-seen release.
+        ReleaseCommit.objects.create(
+            organization_id=self.organization.id,
+            release=self.release2,
+            commit=commit,
+            order=0,
+        )
+
+        result = get_release_commit_candidates(self.project, self.group.id)
+
+        assert result == [commit]
+
+    def test_limit_keeps_newest_in_query(self) -> None:
+        # Oldest -> newest; an explicit limit should keep only the newest ones.
+        commits = [
+            self._link_commit(self.release2, order, self.now - timedelta(days=days))
+            for order, days in enumerate([5, 4, 3, 2, 1])
+        ]
+
+        result = get_release_commit_candidates(self.project, self.group.id, limit=2)
+
+        assert result == [commits[4], commits[3]]
+
+    def test_no_first_release_returns_empty(self) -> None:
+        group = self.create_group(project=self.project)
+
+        assert get_release_commit_candidates(self.project, group.id) == []
+
+    def test_no_commits_returns_empty(self) -> None:
+        assert get_release_commit_candidates(self.project, self.group.id) == []

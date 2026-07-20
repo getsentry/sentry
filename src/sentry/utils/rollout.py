@@ -13,11 +13,12 @@ from sentry.options.manager import (
 )
 from sentry.utils import metrics
 from sentry.utils.safe import trim
-from sentry.utils.types import Bool, Float, Sequence
+from sentry.utils.sdk import sdk_logger
+from sentry.utils.types import Bool, Dict, Float, Sequence
 
 logger = logging.getLogger(__name__)
 
-TData = TypeVar("TData")
+TData = TypeVar("TData")  # The type of data being compared
 
 SourceOfTruth = Literal["control", "experimental", "neither", "both"]
 
@@ -28,10 +29,13 @@ class SafeRolloutComparator:
 
     In particular, it can (with callsite-by-callsite granularity) help to track rate at which the
     experimental branch both exactly matches and "reasonably" matches the control branch. (What
-    counts as a "reasonable" (close enough) match is definable by providing a comparison function.)
+    counts as an exact match and as a "reasonable" (close enough) match is definable by providing a
+    callback for each comparison.)
+
     Once a callsite looks correct enough, you can switch the code behavior to actually use the data
     from the experimental branch by adding the callsite indentifier to the "use experimental data"
-    allowlist option provided by the class.
+    allowlist option provided by the class. It's also possible to run the comparison separate from
+    choosing which data to use, by using the `compare` method.
 
     The flow is generally:
       1. Set up your `SafeRolloutComparator` subclass (in Sentry) & options (in options automator).
@@ -72,10 +76,28 @@ class SafeRolloutComparator:
         else:
             data = control_data
     ```
+
+    In options-automator:
+    ```
+    dynamic.saferollouts.some_new_feature.should_eval_experimental: True
+    dynamic.saferollouts.some_new_feature.callsite_experiment_sample_rate:
+      { "some.module.path.some_function": 0.0001 }
+    dynamic.saferollouts.some_new_feature.eval_experimental_sample_rate: 0.0001 # Fallback rate
+    dynamic.saferollouts.some_new_feature.mismatch_log_callsite_allowlist:
+      ["*"] # Log mismatches for all callsites
+    ```
     """
 
     # This identifies your overall rollout, and is used in option names and metrics/log tagging
     ROLLOUT_NAME: str
+    # Whether to log using the regular Python logger (which logs to both GCP and Sentry), or the SDK
+    # logger (which logs only to Sentry). Useful for situations where mismatch logs might include
+    # customer data. Defaults to False (meaning the Python logger is used).
+    internal_logs_only: bool = False
+    # Custom serializer to use when logging control and experimental data in cases where they don't
+    # match. Can also be passed directly to `compare`, `check_and_choose`, and
+    # `check_and_choose_with_timings` for callsite-specific serialization.
+    data_serializer: Callable[[TData], Any] | None = None
 
     @classmethod
     def _should_run_experiment_option(cls) -> str:
@@ -84,25 +106,6 @@ class SafeRolloutComparator:
         the `should_check_experiment` function will return False.
         """
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.should_eval_experimental"
-
-    @classmethod
-    def _callsite_experiment_blocklist_option(cls) -> str:
-        """
-        This is the callsite-level experimemt rollout option. If the option value contains a
-        callsite, the `should_check_experiment` function will return False. (This is useful if you
-        see one callsite in particular start throwing.) Defaults to an empty list.
-        """
-        return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.eval_callsite_blocklist"
-
-    @classmethod
-    def _callsite_use_experimental_data_allowlist_option(cls) -> str:
-        """
-        This is the callsite-level use-experimental-path rollout option. If the option value
-        contains a callsite, then that callsite will use the experimental-path data. This should
-        generally only be used once you've determined that there is a high rate of partial- or
-        exact- match at the callsite. Defaults to an empty list.
-        """
-        return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.use_experimental_data_callsite_allowlist"
 
     @classmethod
     def _experiment_sample_rate_option(cls) -> str:
@@ -115,6 +118,29 @@ class SafeRolloutComparator:
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.eval_experimental_sample_rate"
 
     @classmethod
+    def _callsite_sample_rate_option(cls) -> str:
+        """
+        This is a dictionary specifying a per-callsite sample rate for evaluating the experimental
+        branch. For a given callsite, when set to a value less than 1.0, only that percentage of
+        requests will actually evaluate both branches. This is useful for limiting latency impact on
+        high-traffic callsites while still collecting representative metrics. Defaults to an empty
+        dictionary.
+
+        NOTE: If a callsite is listed here, its sample rate will be used instead of the experiment-
+        wide sample rate. Any callsite which isn't included will use the experiment-wide rate.
+        """
+        return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.callsite_experiment_sample_rate"
+
+    @classmethod
+    def _callsite_experiment_blocklist_option(cls) -> str:
+        """
+        This is a list containing callsites for which the experiment shouldn't be run; if the option
+        value contains a callsite, the `should_check_experiment` function will return False. (This
+        is useful if you see one callsite in particular start throwing.) Defaults to an empty list.
+        """
+        return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.eval_callsite_blocklist"
+
+    @classmethod
     def _callsite_mismatch_log_allowlist_option(cls) -> str:
         """
         Controls which callsites emit structured mismatch logs. Add a callsite identifier to enable
@@ -122,6 +148,16 @@ class SafeRolloutComparator:
         to an empty list (no mismatch logging).
         """
         return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.mismatch_log_callsite_allowlist"
+
+    @classmethod
+    def _callsite_use_experimental_data_allowlist_option(cls) -> str:
+        """
+        This is the callsite-level use-experimental-path rollout option. If the option value
+        contains a callsite, then that callsite will use the experimental-path data. This should
+        generally only be used once you've determined that there is a high rate of partial- or
+        exact- match at the callsite. Defaults to an empty list.
+        """
+        return f"dynamic.saferollouts.{cls.ROLLOUT_NAME}.use_experimental_data_callsite_allowlist"
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -131,6 +167,18 @@ class SafeRolloutComparator:
             type=Bool,
             default=False,
             flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+        )
+        register(
+            cls._experiment_sample_rate_option(),
+            type=Float,
+            default=1.0,
+            flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+        )
+        register(
+            cls._callsite_sample_rate_option(),
+            type=Dict,
+            default={},
+            flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
         )
         register(
             cls._callsite_experiment_blocklist_option(),
@@ -143,12 +191,6 @@ class SafeRolloutComparator:
             type=Sequence,
             default=[],
             flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-        )
-        register(
-            cls._experiment_sample_rate_option(),
-            type=Float,
-            default=1.0,
-            flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
         )
         register(
             cls._callsite_mismatch_log_allowlist_option(),
@@ -164,6 +206,10 @@ class SafeRolloutComparator:
 
     @classmethod
     def _default_serialize_for_log(cls, value: Any) -> Any:
+        # The internal-only logger handles serialization itself
+        if cls.internal_logs_only:
+            return value
+
         if isinstance(value, (str, int, float, bool)) or value is None:
             return value
         if isinstance(value, dict):
@@ -191,22 +237,65 @@ class SafeRolloutComparator:
         if not cls._should_log_mismatch(callsite):
             return
 
-        serialize = data_serializer or cls._default_serialize_for_log
-
-        logger.info(
-            "saferollout.mismatch",
-            extra={
-                "rollout_name": cls.ROLLOUT_NAME,
-                "callsite": callsite,
-                "source_of_truth": source_of_truth,
-                "exact_match": is_exact_match,
-                "reasonable_match": is_reasonable_match,
-                "is_null_result": is_experimental_data_nullish,
-                "debug_context": trim(cls._default_serialize_for_log(debug_context)),
-                "control_data_raw": trim(serialize(control_data)),
-                "experimental_data_raw": trim(serialize(experimental_data)),
-            },
+        serialize = (
+            data_serializer
+            or cls.data_serializer
+            # For comparators using internal logs only, `_default_serialize_for_log` is a
+            # pass-through, since our SDK logging wrapper (which internal-only comparators use for
+            # logging) handles serialization itself. For comparators using the Python logger, it
+            # preserves structure but stringifies values of unknown types.
+            or cls._default_serialize_for_log
         )
+
+        base_logging_data = {
+            "rollout_name": cls.ROLLOUT_NAME,
+            "callsite": callsite,
+            "source_of_truth": source_of_truth,
+            "exact_match": is_exact_match,
+            "reasonable_match": is_reasonable_match,
+            "is_null_result": is_experimental_data_nullish,
+            "debug_context": cls._default_serialize_for_log(debug_context),
+            "control_data_raw": serialize(control_data),
+            "experimental_data_raw": serialize(experimental_data),
+        }
+
+        if cls.internal_logs_only:
+            sdk_logger.info("saferollout.mismatch", attributes=base_logging_data)
+        else:
+            logger.info(
+                "saferollout.mismatch",
+                extra={
+                    **base_logging_data,
+                    # Trimming has to be handled here rather than in `_default_serialize_for_log`
+                    # because the latter is recursive, and we only want to trim at the end.
+                    "debug_context": trim(base_logging_data["debug_context"]),
+                    "control_data_raw": trim(base_logging_data["control_data_raw"]),
+                    "experimental_data_raw": trim(base_logging_data["experimental_data_raw"]),
+                },
+            )
+
+    @classmethod
+    def _is_valid_sample_rate(cls, value: Any) -> bool:
+        """
+        Checks to make sure the sample rate is valid (a number between 0 and 1) and logs a warning
+        if it's not.
+        """
+        rate_is_numeric = (
+            isinstance(value, (int, float))
+            # Bools are technically special cases of int
+            and not isinstance(value, bool)
+        )
+        if not rate_is_numeric or not (0 <= value <= 1):
+            logger.warning(
+                "saferollout.invalid_callsite_sample_rate",
+                extra={
+                    "rollout_name": cls.ROLLOUT_NAME,
+                    "value": cls._default_serialize_for_log(value),
+                },
+            )
+            return False
+
+        return True
 
     @classmethod
     def should_check_experiment(cls, callsite: str) -> bool:
@@ -225,7 +314,16 @@ class SafeRolloutComparator:
         if callsite in options.get(cls._callsite_experiment_blocklist_option()):
             return False
 
-        sample_rate = options.get(cls._experiment_sample_rate_option())
+        callsite_sample_rates = options.get(cls._callsite_sample_rate_option())  # Defaults to {}
+        if callsite in callsite_sample_rates and cls._is_valid_sample_rate(
+            callsite_sample_rates[callsite]
+        ):
+            sample_rate = callsite_sample_rates[callsite]
+        else:
+            # We don't need to validate this value, because options automator does it for us - it
+            # just can't validate values inside a dictionary, hence the check above
+            sample_rate = options.get(cls._experiment_sample_rate_option())  # Defaults to 1.0
+
         return random.random() < sample_rate
 
     @classmethod
@@ -260,9 +358,11 @@ class SafeRolloutComparator:
         callsite: str,
         source_of_truth: SourceOfTruth = "neither",
         is_experimental_data_nullish: bool | None = None,
+        exact_match_comparator: Callable[[TData, TData], bool] | None = None,
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
         debug_context: dict[str, Any] | None = None,
         data_serializer: Callable[[TData], Any] | None = None,
+        metric_sample_rate: float = 0.1,
     ) -> None:
         """
         Compare control & experimental data, emit metrics, and log mismatches. Use this directly
@@ -280,13 +380,17 @@ class SafeRolloutComparator:
             should pass "both".
         * is_experimental_data_nullish: Whether the result is a "null result" (e.g. empty array).
             This helps to determine whether a "match" is significant.
-        * reasonable_match_comparator: Optional predicate for semantic correctness, returning True
-            if the data is "reasonably the same" and False otherwise. An example might be checking
-            whether the experimental data is a subset of the control data (useful in case of
-            migrating something where you don't yet have full retention in the experimental branch).
+        * exact_match_comparator: Optional function to determine if the control data and
+            experimental data are considered a match. If not provided, strict equality will be used.
+        * reasonable_match_comparator: Optional function to determine if the control data and
+            experimental data are "reasonably the same." An example might be checking whether the
+            experimental data is a subset of the control data (useful in case of migrating something
+            where you don't yet have full retention in the experimental branch). If not provided, no
+            "reasonable match" comparison will be performed.
         * debug_context: Optional structured metadata included on mismatch logs.
         * data_serializer: Optional serializer for control/experimental payloads in logs. Defaults
             to `_default_serialize_for_log`.
+        * metric_sample_rate: Optional override for the sample rate of the comparison metric.
         """
         is_exact_match = control_data == experimental_data
         is_reasonable_match: bool | None = None
@@ -301,12 +405,24 @@ class SafeRolloutComparator:
         if is_experimental_data_nullish is not None:
             tags["is_null_result"] = str(is_experimental_data_nullish)
 
+        if exact_match_comparator is not None:
+            try:
+                is_exact_match = exact_match_comparator(control_data, experimental_data)
+            except Exception:
+                logger.exception(
+                    "saferollout.exact_match_comparator_error",
+                    extra={"rollout_name": cls.ROLLOUT_NAME, "callsite": callsite},
+                )
+                is_exact_match = control_data == experimental_data
+            else:
+                tags["exact_match"] = str(is_exact_match)
+
         if reasonable_match_comparator is not None:
             try:
                 is_reasonable_match = reasonable_match_comparator(control_data, experimental_data)
             except Exception:
                 logger.exception(
-                    "saferollout.comparator_error",
+                    "saferollout.reasonable_match_comparator_error",
                     extra={"rollout_name": cls.ROLLOUT_NAME, "callsite": callsite},
                 )
                 is_reasonable_match = None
@@ -342,7 +458,7 @@ class SafeRolloutComparator:
         if getattr(cls, "use_legacy_comparison_metric_name", None):
             metrics.incr("SafeRolloutComparator.check_and_choose", tags=tags)
         else:
-            metrics.incr("SafeRolloutComparator.compare", tags=tags)
+            metrics.incr("SafeRolloutComparator.compare", sample_rate=metric_sample_rate, tags=tags)
 
     @classmethod
     def check_and_choose(
@@ -351,9 +467,11 @@ class SafeRolloutComparator:
         experimental_data: TData,
         callsite: str,
         is_experimental_data_nullish: bool | None = None,
+        exact_match_comparator: Callable[[TData, TData], bool] | None = None,
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
         debug_context: dict[str, Any] | None = None,
         data_serializer: Callable[[TData], Any] | None = None,
+        metric_sample_rate: float = 0.1,
     ) -> TData:
         """
         Compare control & experimental data (via `compare`), then return whichever branch should be
@@ -368,9 +486,11 @@ class SafeRolloutComparator:
             callsite=callsite,
             source_of_truth="experimental" if use_experimental_data else "control",
             is_experimental_data_nullish=is_experimental_data_nullish,
+            exact_match_comparator=exact_match_comparator,
             reasonable_match_comparator=reasonable_match_comparator,
             debug_context=debug_context,
             data_serializer=data_serializer,
+            metric_sample_rate=metric_sample_rate,
         )
         return experimental_data if use_experimental_data else control_data
 
@@ -381,9 +501,11 @@ class SafeRolloutComparator:
         experimental_data_func: Callable[[], TData],
         callsite: str,
         null_result_determiner: Callable[[TData], bool] | None = None,
+        exact_match_comparator: Callable[[TData, TData], bool] | None = None,
         reasonable_match_comparator: Callable[[TData, TData], bool] | None = None,
         debug_context: dict[str, Any] | None = None,
         data_serializer: Callable[[TData], Any] | None = None,
+        metric_sample_rate: float = 0.1,
     ) -> TData:
         """
         This method is a wrapper for `check_and_choose` which also captures timing information for
@@ -399,6 +521,7 @@ class SafeRolloutComparator:
 
         with metrics.timer(
             "SafeRolloutComparator.check_and_choose_with_timings",
+            sample_rate=metric_sample_rate,
             tags={
                 "rollout_name": cls.ROLLOUT_NAME,
                 "callsite": callsite,
@@ -409,6 +532,7 @@ class SafeRolloutComparator:
 
         with metrics.timer(
             "SafeRolloutComparator.check_and_choose_with_timings",
+            sample_rate=metric_sample_rate,
             tags={
                 "rollout_name": cls.ROLLOUT_NAME,
                 "callsite": callsite,
@@ -426,7 +550,9 @@ class SafeRolloutComparator:
             experimental_data=experimental_data,
             callsite=callsite,
             is_experimental_data_nullish=is_experimental_data_nullish,
+            exact_match_comparator=exact_match_comparator,
             reasonable_match_comparator=reasonable_match_comparator,
             debug_context=debug_context,
             data_serializer=data_serializer,
+            metric_sample_rate=metric_sample_rate,
         )

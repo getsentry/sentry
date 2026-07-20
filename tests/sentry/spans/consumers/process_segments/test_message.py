@@ -5,7 +5,7 @@ from unittest import mock
 
 import pytest
 
-from sentry.issues.grouptype import PerformanceStreamedSpansGroupTypeExperimental
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.spans.consumers.process_segments import message as message_module
@@ -157,10 +157,7 @@ class TestSpansTask(TestCase):
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
     def test_n_plus_one_issue_detection(self, mock_eventstream: mock.MagicMock) -> None:
         spans = self.generate_n_plus_one_spans()
-        with mock.patch(
-            "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released",
-            return_value=True,
-        ):
+        with mock.patch("sentry.issues.ingest.should_create_group", return_value=True):
             process_segment(spans)
 
         mock_eventstream.assert_called_once()
@@ -168,10 +165,10 @@ class TestSpansTask(TestCase):
         performance_problem = mock_eventstream.call_args[0][1]
         assert performance_problem.fingerprint == [
             md5(
-                b"1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-f906d576ffde8f005fd741f7b9c8a35062361e67-1019"
+                b"1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-f906d576ffde8f005fd741f7b9c8a35062361e67"
             ).hexdigest()
         ]
-        assert performance_problem.type == PerformanceStreamedSpansGroupTypeExperimental
+        assert performance_problem.type == PerformanceNPlusOneGroupType
 
     @override_options({"spans.process-segments.detect-performance-problems.enable": True})
     @mock.patch("sentry.issues.ingest.send_issue_occurrence_to_eventstream")
@@ -216,19 +213,16 @@ class TestSpansTask(TestCase):
         repeating_spans = [repeating_span() for _ in range(7)]
         spans = [segment_span, child_span, cause_span] + repeating_spans
 
-        with mock.patch(
-            "sentry.issues.grouptype.PerformanceStreamedSpansGroupTypeExperimental.released"
-        ) as mock_released:
-            mock_released.return_value = True
+        with mock.patch("sentry.issues.ingest.should_create_group", return_value=True):
             process_segment(spans)
 
         performance_problem = mock_eventstream.call_args[0][1]
         assert performance_problem.fingerprint == [
             md5(
-                b"1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-f906d576ffde8f005fd741f7b9c8a35062361e67-1019"
+                b"1-GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES-f906d576ffde8f005fd741f7b9c8a35062361e67"
             ).hexdigest()
         ]
-        assert performance_problem.type == PerformanceStreamedSpansGroupTypeExperimental
+        assert performance_problem.type == PerformanceNPlusOneGroupType
 
     @mock.patch("sentry.spans.consumers.process_segments.message.track_outcome")
     @pytest.mark.skip("temporarily disabled")
@@ -283,6 +277,49 @@ class TestSpansTask(TestCase):
 
         signals = [args[0][1] for args in mock_track.call_args_list]
         assert signals == ["has_transactions", "has_insights_agent_monitoring"]
+
+    @mock.patch("sentry.spans.consumers.process_segments.message.metrics.incr")
+    def test_gen_ai_conversation_metric(self, mock_incr: mock.MagicMock) -> None:
+        """Count once per segment when any span has gen_ai.conversation.id."""
+        metric_name = "spans.consumers.process_segments.gen_ai_conversation"
+
+        def conversation_calls() -> int:
+            return sum(1 for call in mock_incr.call_args_list if call == mock.call(metric_name))
+
+        child_span, segment_span = self.generate_basic_spans()
+        process_segment([child_span, segment_span])
+        assert conversation_calls() == 0
+
+        mock_incr.reset_mock()
+        child_span, segment_span = self.generate_basic_spans()
+        child_span["attributes"]["gen_ai.conversation.id"] = {
+            "type": "string",
+            "value": "conv-123",
+        }
+        process_segment([child_span, segment_span])
+        assert conversation_calls() == 1
+
+        mock_incr.reset_mock()
+        child_span, segment_span = self.generate_basic_spans()
+        child_span["attributes"]["gen_ai.conversation.id"] = {
+            "type": "string",
+            "value": "conv-123",
+        }
+        segment_span["attributes"]["gen_ai.conversation.id"] = {
+            "type": "string",
+            "value": "conv-123",
+        }
+        process_segment([child_span, segment_span])
+        assert conversation_calls() == 1
+
+        mock_incr.reset_mock()
+        child_span, segment_span = self.generate_basic_spans()
+        child_span["attributes"]["gen_ai.conversation.id"] = {
+            "type": "string",
+            "value": "conv-123",
+        }
+        process_segment([child_span, segment_span], skip_enrichment=True)
+        assert conversation_calls() == 1
 
     def test_segment_name_propagation(self) -> None:
         child_span, segment_span = self.generate_basic_spans()

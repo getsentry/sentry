@@ -8,4 +8,5 @@ export interface MetricSelectorOption extends SelectOption<string> {
   count?: number;
   lastSeen?: number;
   metricUnit?: string | null;
+  tooltip?: string;
 }

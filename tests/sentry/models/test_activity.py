@@ -418,3 +418,33 @@ class ActivityTest(TestCase):
         after = datetime.now(timezone.utc)
 
         assert before <= activity.datetime <= after
+
+    def test_create_group_activity_with_ident(self) -> None:
+        project = self.create_project(name="test_with_ident")
+        group = self.create_group(project)
+
+        # `ident` is typically a related row's id (e.g. a GroupResolution id) passed as an int.
+        activity = Activity.objects.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE,
+            data={"version": ""},
+            send_notification=False,
+            ident=12345,
+        )
+
+        # Activity.ident is a CharField, so the value is persisted as a string.
+        activity.refresh_from_db()
+        assert activity.ident == "12345"
+
+    def test_create_group_activity_without_ident(self) -> None:
+        project = self.create_project(name="test_without_ident")
+        group = self.create_group(project)
+
+        activity = Activity.objects.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED,
+            send_notification=False,
+        )
+
+        activity.refresh_from_db()
+        assert activity.ident is None

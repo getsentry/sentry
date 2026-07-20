@@ -247,6 +247,34 @@ analytics.record(
 )
 ```
 
+### Tracing / Spans
+
+Use the wrappers in `sentry.utils.tracing` instead of calling the SDK directly. This is required while we dogfood the streaming trace lifecycle (Span First rollout).
+
+| Instead of                       | Use                                              |
+| -------------------------------- | ------------------------------------------------ |
+| `sentry_sdk.start_span()`        | `start_span(name=..., op=...)`                   |
+| `sentry_sdk.start_transaction()` | `start_span(name=..., op=..., transaction=True)` |
+| `span.set_tag(key, value)`       | `set_span_tag(span, key, value)`                 |
+| `span.set_data(key, value)`      | `set_span_data(span, key, value)`                |
+
+```python
+from sentry.utils.tracing import start_span, set_span_tag, set_span_data
+
+# Child span — no need to capture the span when you don't set tags/data
+with start_span(name="event_manager.save", op="save"):
+    do_work()
+
+# Child span with tags/data — capture via `as span`
+with start_span(name="event_manager.save", op="save") as span:
+    set_span_tag(span, "platform", platform)
+    set_span_data(span, "rows_count", len(rows))
+
+# Transaction root (replaces sentry_sdk.start_transaction)
+with start_span(name="monitors.consumer", op="process", transaction=True):
+    process_batch()
+```
+
 ### Metrics Tags
 
 Every distinct tag-value combination is a separate time series, so keep tags **low-cardinality, meaningful, and minimal**:

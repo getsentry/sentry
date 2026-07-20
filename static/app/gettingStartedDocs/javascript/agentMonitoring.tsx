@@ -80,7 +80,6 @@ Sentry.init({
   dsn: "${params.dsn.public}",
   // Tracing must be enabled for agent monitoring to work
   tracesSampleRate: 1.0,
-  streamGenAiSpans: true,
   dataCollection: {
     // Control data collection of LLMs and tools.
     // For more info visit: https://docs.sentry.io/platforms/javascript/data-management/data-collected/

@@ -29,6 +29,7 @@ const PROGRESS_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_RCA_COMPLETED,
   GroupActivityType.SEER_PR_CREATED,
   GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST,
+  GroupActivityType.PULL_REQUEST_CLOSED,
   GroupActivityType.REFERENCED_IN_COMMIT,
   GroupActivityType.SET_RESOLVED_IN_COMMIT,
   GroupActivityType.SET_RESOLVED_IN_RELEASE,

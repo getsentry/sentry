@@ -1,14 +1,15 @@
-import sentry_sdk
 from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from django.middleware.locale import LocaleMiddleware
 from django.utils import translation
 
+from sentry.utils.tracing import start_span
+
 
 class SentryLocaleMiddleware(LocaleMiddleware):
     def process_request(self, request: HttpRequest) -> None:
-        with sentry_sdk.start_span(op="middleware.locale", name="process_request"):
+        with start_span(op="middleware.locale", name="process_request"):
             # No locale for static media, or RPC requests
             # This avoids touching user session, which means we avoid
             # setting `Vary: Cookie` as a response header which will

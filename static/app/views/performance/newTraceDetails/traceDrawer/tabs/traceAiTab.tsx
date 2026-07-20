@@ -1,5 +1,6 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useRef} from 'react';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasGenAiConversationsFeature} from 'sentry/views/explore/conversations/utils/features';
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
@@ -25,6 +26,19 @@ export function TraceAiTab({traceSlug}: {traceSlug: string}) {
   const {nodes, isLoading, error} = useAITrace(traceSlug);
 
   const conversationIds = useMemo(() => getConversationIds(nodes), [nodes]);
+
+  // Fire once per trace after load, regardless of which child tab renders.
+  const renderedTrackedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (isLoading || error || nodes.length === 0) {
+      return;
+    }
+    if (renderedTrackedFor.current === traceSlug) {
+      return;
+    }
+    renderedTrackedFor.current = traceSlug;
+    trackAnalytics('agent-monitoring.trace.rendered', {organization});
+  }, [isLoading, error, nodes.length, traceSlug, organization]);
 
   const hasConversations =
     hasGenAiConversationsFeature(organization) && conversationIds.length > 0;

@@ -7,9 +7,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 import {isSeerExplorerEnabled, usePageReferrer} from 'sentry/views/seerExplorer/utils';
 
-export const SEER_EXPLORER_DRAWER_KEY = 'seer-explorer-drawer';
+const SEER_EXPLORER_DRAWER_KEY = 'seer-explorer-drawer';
 
 export type OpenSeerExplorerDrawerOptions = {
   /**
@@ -21,7 +22,7 @@ export type OpenSeerExplorerDrawerOptions = {
    * Optional run ID to open. If provided, opens an existing session.
    * Cannot be used together with `startNewRun`.
    */
-  runId?: number;
+  runId?: SeerExplorerRunId;
   /**
    * If true, switches to a new session before opening.
    * Cannot be used together with `runId`.

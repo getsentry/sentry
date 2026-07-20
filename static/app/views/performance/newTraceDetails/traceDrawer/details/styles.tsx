@@ -1,5 +1,5 @@
 import {Fragment, useMemo, useState, type PropsWithChildren} from 'react';
-import {css, useTheme, type Theme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 import type {LocationDescriptor} from 'history';
@@ -46,7 +46,7 @@ import {
   IconProfiling,
   IconTerminal,
 } from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -77,6 +77,12 @@ import {
 import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
 
+import type {DurationComparison} from './durationComparison';
+import {
+  getDurationComparison,
+  makeDurationComparisonStatusColors,
+  MIN_PCT_DURATION_DIFFERENCE,
+} from './durationComparison';
 import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
 import {getTraceKeyValueActions, TraceDrawerActionValueKind} from './utils';
 
@@ -269,82 +275,9 @@ const HeaderContainer = styled(FlexBox)`
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-function makeDurationComparisonStatusColors(theme: Theme): {
-  equal: {light: string; normal: string};
-  faster: {light: string; normal: string};
-  slower: {light: string; normal: string};
-} {
-  return {
-    faster: {
-      light: theme.colors.green100,
-      normal: theme.colors.green600,
-    },
-    slower: {
-      light: theme.colors.red100,
-      normal: theme.colors.red600,
-    },
-    equal: {
-      light: theme.tokens.background.transparent.neutral.muted,
-      normal: theme.tokens.content.secondary,
-    },
-  };
-}
-
-const MIN_PCT_DURATION_DIFFERENCE = 10;
-
-type DurationComparison = {
-  deltaPct: number;
-  deltaText: React.JSX.Element;
-  status: 'faster' | 'slower' | 'equal';
-} | null;
-
-const getDurationComparison = (
-  baseline: number | undefined,
-  duration: number,
-  baseDescription?: string
-): DurationComparison => {
-  if (!baseline) {
-    return null;
-  }
-
-  const delta = duration - baseline;
-  const deltaPct = Math.round(Math.abs((delta / baseline) * 100));
-  const status = delta > 0 ? 'slower' : delta < 0 ? 'faster' : 'equal';
-
-  const formattedBaseDuration = (
-    <Tooltip
-      title={baseDescription}
-      showUnderline
-      underlineColor={
-        status === 'faster' ? 'success' : status === 'slower' ? 'danger' : 'muted'
-      }
-    >
-      {getDuration(baseline, 2, true)}
-    </Tooltip>
-  );
-
-  const deltaText =
-    status === 'equal'
-      ? tct('equal to avg [formattedBaseDuration]', {
-          formattedBaseDuration,
-        })
-      : status === 'faster'
-        ? tct('[deltaPct] faster than avg [formattedBaseDuration]', {
-            formattedBaseDuration,
-            deltaPct: `${deltaPct}%`,
-          })
-        : tct('[deltaPct] slower than avg [formattedBaseDuration]', {
-            formattedBaseDuration,
-            deltaPct: `${deltaPct}%`,
-          });
-
-  return {deltaPct, status, deltaText};
-};
-
 type DurationProps = {
   baseline: number | undefined;
   duration: number;
-  node: BaseNode;
   baseDescription?: string;
   precision?: number;
   ratio?: number;
@@ -696,7 +629,7 @@ const HighlightOp = styled('div')`
 
 const HighlightedAttributesWrapper = styled('div')`
   display: grid;
-  grid-template-columns: max-content 1fr;
+  grid-template-columns: max-content minmax(0, 1fr);
   column-gap: ${p => p.theme.space.lg};
   row-gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.md};
@@ -729,10 +662,24 @@ const HighlightsWrapper = styled('div')`
   margin: ${p => p.theme.space.md} 0;
 `;
 
-function IssuesLink({node, children}: {children: React.ReactNode; node: BaseNode}) {
+function IssuesLink({
+  node,
+  children,
+  traceSlug: traceSlugProp,
+}: {
+  children: React.ReactNode;
+  node: BaseNode;
+  /**
+   * Overrides the trace slug used to build the Issues link. The slug is
+   * normally read from the `traceSlug` route param, but surfaces that render
+   * this outside the trace waterfall route (e.g. the conversations span detail)
+   * have no such param and must pass the trace id explicitly.
+   */
+  traceSlug?: string;
+}) {
   const organization = useOrganization();
   const params = useParams<{traceSlug?: string}>();
-  const traceSlug = params.traceSlug?.trim() ?? '';
+  const traceSlug = (traceSlugProp || params.traceSlug || '').trim();
 
   // Adding a buffer of 15mins for errors only traces, where there is no concept of
   // trace duration and start equals end timestamps.
@@ -948,7 +895,6 @@ function NodeActions(props: {
   node: BaseNode;
   onTabScrollToNode: (node: BaseNode) => void;
   organization: Organization;
-  eventSize?: number | undefined;
   profileId?: string;
   profilerId?: string;
   showJSONLink?: boolean;
@@ -1015,6 +961,7 @@ function NodeActions(props: {
             size="zero"
             aria-label={t('Span JSON (Superuser Only)')}
             icon={<IconTerminal />}
+            external
           />
         </Tooltip>
       ) : null}
@@ -1203,40 +1150,50 @@ const CardValueText = styled('span')`
 function MultilineText({
   children,
   renderFormatted,
+  clip = true,
 }: {
   children: string;
+  /**
+   * Clips tall content behind a "Show More" button. Disable when the container
+   * scrolls on its own, so content flows instead of being clipped and hidden.
+   */
+  clip?: boolean;
   renderFormatted?: (text: string) => React.ReactNode;
 }) {
   const [showRaw, setShowRaw] = useState(false);
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
+  const content = (
+    <MultilineTextWrapper {...hoverProps}>
+      <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
+        {isHovered && (
+          <SegmentedControl
+            size="xs"
+            value={showRaw ? 'raw' : 'formatted'}
+            onChange={value => setShowRaw(value === 'raw')}
+          >
+            <SegmentedControl.Item key="formatted">{t('Pretty')}</SegmentedControl.Item>
+            <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
+          </SegmentedControl>
+        )}
+      </Container>
+      {showRaw
+        ? children.trim()
+        : (renderFormatted?.(children) ?? (
+            <MarkedText as={MarkdownContainer} text={children} />
+          ))}
+    </MultilineTextWrapper>
+  );
+
+  if (!clip) {
+    return content;
+  }
+
   return (
-    <Fragment>
-      <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
-        <MultilineTextWrapper {...hoverProps}>
-          <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
-            {isHovered && (
-              <SegmentedControl
-                size="xs"
-                value={showRaw ? 'raw' : 'formatted'}
-                onChange={value => setShowRaw(value === 'raw')}
-              >
-                <SegmentedControl.Item key="formatted">
-                  {t('Pretty')}
-                </SegmentedControl.Item>
-                <SegmentedControl.Item key="raw">{t('Raw')}</SegmentedControl.Item>
-              </SegmentedControl>
-            )}
-          </Container>
-          {showRaw
-            ? children.trim()
-            : (renderFormatted?.(children) ?? (
-                <MarkedText as={MarkdownContainer} text={children} />
-              ))}
-        </MultilineTextWrapper>
-      </StyledClippedBox>
-    </Fragment>
+    <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
+      {content}
+    </StyledClippedBox>
   );
 }
 
@@ -1317,9 +1274,15 @@ function MultilineJSON({
   value,
   maxDefaultDepth = 2,
   autoCollapseLimit,
+  clip = false,
 }: {
   value: any;
   autoCollapseLimit?: number;
+  /**
+   * Clips tall content behind a "Show More" button. Disable when the container
+   * scrolls on its own, so content flows instead of being clipped and hidden.
+   */
+  clip?: boolean;
   maxDefaultDepth?: number;
 }) {
   const [showRaw, setShowRaw] = useState(false);
@@ -1334,7 +1297,7 @@ function MultilineJSON({
     return Array.from(new Set(['$', ...childPaths]));
   }, [maxDefaultDepth, json, autoCollapseLimit]);
 
-  return (
+  const content = (
     <MultilineTextWrapperMonospace {...hoverProps}>
       {isHovered && (
         <Container
@@ -1376,6 +1339,16 @@ function MultilineJSON({
       )}
     </MultilineTextWrapperMonospace>
   );
+
+  if (!clip) {
+    return content;
+  }
+
+  return (
+    <StyledClippedBox clipHeight={150} buttonProps={{variant: 'secondary', size: 'xs'}}>
+      {content}
+    </StyledClippedBox>
+  );
 }
 
 const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
@@ -1383,6 +1356,9 @@ const MultilineTextWrapperMonospace = styled(MultilineTextWrapper)`
   font-size: ${p => p.theme.font.size.sm};
   /* Reserve vertical space for the hoverable Pretty/Raw segmented control (form height + top/bottom spacing) */
   min-height: calc(${p => p.theme.form.xs.height} + (${p => p.theme.space.xs} * 2));
+  /* Reserve horizontal space so the absolutely-positioned Pretty/Raw control doesn't
+   * overlap the content when the object is narrow (e.g. inside a fit-content bubble). */
+  min-width: 210px;
   pre {
     margin: 0;
     padding: 0;

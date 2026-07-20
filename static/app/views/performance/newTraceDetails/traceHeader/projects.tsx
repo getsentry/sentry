@@ -58,7 +58,7 @@ export function Projects({projects, logs, tree}: Props) {
         disableLink
         onProjectClick={onProjectClick}
         projectSlugs={projectSlugs}
-        visibleAvatarSize={24}
+        visibleAvatarSize={20}
         maxVisibleProjects={3}
       />
     </ProjectsRendererWrapper>

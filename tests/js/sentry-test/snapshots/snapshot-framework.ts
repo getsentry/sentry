@@ -25,7 +25,7 @@ interface SnapshotDetails {
   displayName: string;
   fileSlug: string;
   group: string | null;
-  theme: string | undefined;
+  theme?: 'light' | 'dark';
 }
 
 /**
@@ -54,9 +54,14 @@ function parseSnapshotDetails(testName: string, fallbackName: string): SnapshotD
   const group = ancestry.replace(/\s+/g, '/');
   const displayName = parts[1]!.trim();
   const fileSlug = `${group}/${displayName}`.replace(/\s+/g, '').toLowerCase();
-  const themeMatch = ancestry.match(/\b(light|dark)\b/);
+  const themeMatch = ancestry.match(/\b(light|dark)\b/)?.[1];
 
-  return {displayName, fileSlug, group, theme: themeMatch?.[1]};
+  return {
+    displayName,
+    fileSlug,
+    group,
+    theme: themeMatch === 'light' || themeMatch === 'dark' ? themeMatch : undefined,
+  };
 }
 
 function resolveViewport(input: SnapshotViewport): {

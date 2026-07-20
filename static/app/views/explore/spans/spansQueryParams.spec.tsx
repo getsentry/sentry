@@ -5,7 +5,10 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {getReadableQueryParamsFromLocation} from 'sentry/views/explore/spans/spansQueryParams';
+import {
+  getReadableQueryParamsFromLocation,
+  getTargetWithReadableQueryParams,
+} from 'sentry/views/explore/spans/spansQueryParams';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
 function locationFixture(query: Location['query']): Location {
@@ -120,6 +123,22 @@ describe('getReadableQueryParamsFromLocation', () => {
     expect(queryParams).toEqual(
       new ReadableQueryParams(
         readableQueryParamOptions({cursor: '0:0:1', aggregateCursor: '50:0:1'})
+      )
+    );
+  });
+
+  it('decodes breakdown query params correctly', () => {
+    const location = locationFixture({
+      breakdownCursor: 'breakdown-cursor',
+      breakdownQuery: 'duration',
+    });
+    const queryParams = getReadableQueryParamsFromLocation(location);
+    expect(queryParams).toEqual(
+      new ReadableQueryParams(
+        readableQueryParamOptions({
+          breakdownCursor: 'breakdown-cursor',
+          breakdownQuery: 'duration',
+        })
       )
     );
   });
@@ -381,5 +400,20 @@ describe('getReadableQueryParamsFromLocation', () => {
         })
       )
     );
+  });
+});
+
+describe('getTargetWithReadableQueryParams', () => {
+  it('writes breakdown query params', () => {
+    const location = locationFixture({});
+    const target = getTargetWithReadableQueryParams(location, {
+      breakdownCursor: 'breakdown-cursor',
+      breakdownQuery: 'duration',
+    });
+
+    expect(target.query).toEqual({
+      breakdownCursor: 'breakdown-cursor',
+      breakdownQuery: 'duration',
+    });
   });
 });
