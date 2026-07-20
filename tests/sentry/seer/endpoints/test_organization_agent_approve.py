@@ -22,7 +22,15 @@ class OrganizationAgentApproveTest(APITestCase):
     def _url(self, organization=None):
         return f"/api/0/organizations/{(organization or self.org).slug}/agent/approve/"
 
-    def _post(self, *, scopes, session_id="s1", **kwargs):
+    def _post(self, *, scopes, session_id="s1", feature_enabled=True, **kwargs):
+        if feature_enabled:
+            with self.feature(agent_token.FEATURE_FLAG):
+                return self.client.post(
+                    self._url(),
+                    data={"sessionId": session_id, "scopes": list(scopes)},
+                    format="json",
+                    **kwargs,
+                )
         return self.client.post(
             self._url(),
             data={"sessionId": session_id, "scopes": list(scopes)},
@@ -31,6 +39,12 @@ class OrganizationAgentApproveTest(APITestCase):
         )
 
     # ----- happy path -----
+
+    def test_feature_off_is_not_found(self) -> None:
+        self.login_as(self.owner)
+        resp = self._post(scopes=["org:write"], feature_enabled=False)
+        assert resp.status_code == 404
+        assert not SeerAgentWriteGrant.objects.filter(organization_id=self.org.id).exists()
 
     def test_approve_creates_grant(self) -> None:
         self.login_as(self.owner)
@@ -72,14 +86,16 @@ class OrganizationAgentApproveTest(APITestCase):
 
     def test_session_id_required(self) -> None:
         self.login_as(self.owner)
-        resp = self.client.post(self._url(), data={"scopes": ["org:write"]}, format="json")
+        with self.feature(agent_token.FEATURE_FLAG):
+            resp = self.client.post(self._url(), data={"scopes": ["org:write"]}, format="json")
         assert resp.status_code == 400
 
     def test_scopes_must_be_a_list(self) -> None:
         self.login_as(self.owner)
-        resp = self.client.post(
-            self._url(), data={"sessionId": "s1", "scopes": "org:write"}, format="json"
-        )
+        with self.feature(agent_token.FEATURE_FLAG):
+            resp = self.client.post(
+                self._url(), data={"sessionId": "s1", "scopes": "org:write"}, format="json"
+            )
         assert resp.status_code == 400
 
     # ----- escalation cap -----

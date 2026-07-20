@@ -32,7 +32,10 @@ AGENT_TOKEN_KIND = "agent_token"
 
 
 def _signing_key() -> str:
-    return settings.SEER_API_SHARED_SECRET
+    key = settings.SEER_API_SHARED_SECRET
+    if not key:
+        raise ValueError("No agent token signing key configured.")
+    return key
 
 
 def readonly_scopes() -> frozenset[str]:

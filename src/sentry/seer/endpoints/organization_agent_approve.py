@@ -6,10 +6,12 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.models.organization import Organization
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import AGENT_SESSION_ID_MAX_LENGTH
@@ -46,6 +48,9 @@ class OrganizationAgentApproveEndpoint(OrganizationEndpoint):
         the approving user's own scopes, and the grant is bound to that user, so approval
         cannot escalate.
         """
+        if not features.has(agent_token.FEATURE_FLAG, organization, actor=request.user):
+            raise ResourceDoesNotExist
+
         self._require_user_session(request)
 
         session_id = request.data.get("sessionId")

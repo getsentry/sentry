@@ -121,6 +121,15 @@ class AgentTokenAuthAndGateTest(TestCase):
         with pytest.raises(AuthenticationFailed):
             self._auth(token)
 
+    @override_settings(SEER_API_SHARED_SECRET="")
+    def test_empty_signing_secret_rejects_forged_token(self) -> None:
+        token = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(
+            {"aud": agent_token.AGENT_TOKEN_AUDIENCE, "sub": "1", "org": 1, "scopes": []},
+            "attacker-controlled-key",
+        )
+        with pytest.raises(AuthenticationFailed):
+            self._auth(token)
+
     def test_expired_token_is_rejected(self) -> None:
         with pytest.raises(AuthenticationFailed):
             self._agent_request(self.owner, ["org:read"], ttl=timedelta(seconds=-1))
