@@ -2,8 +2,8 @@
 
 A mixin that adds a ``formatted`` field to an endpoint's JSON response when ``?llmFormat`` is
 requested. Endpoints opt in by setting ``formatter_adapter`` (serialized response -> text).
-Gated by the ``issues.standardized-markdown-for-llm`` option: when it's off the mixin is inert
-and the response is untouched.
+Gated by the ``organizations:issue-standardized-markdown-for-llm`` feature: when it's off the
+mixin is inert and the response is untouched.
 """
 
 from __future__ import annotations
@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import options
+from sentry import features
 from sentry.issues.formatting.formatter import Format
 from sentry.issues.formatting.sections import format_issue
 
@@ -29,7 +29,7 @@ else:
 
 logger = logging.getLogger(__name__)
 
-FORMATTER_OPTION = "issues.standardized-markdown-for-llm"
+FORMATTER_FEATURE = "organizations:issue-standardized-markdown-for-llm"
 # not "format": DRF reserves that query param for renderer content-negotiation
 QUERY_PARAM = "llmFormat"
 _VALID_FORMATS: tuple[Format, ...] = ("markdown", "xml")
@@ -46,7 +46,13 @@ class FormattableResponseMixin(_Base):
 
         adapter = self.formatter_adapter
         fmt = request.GET.get(QUERY_PARAM)
-        if adapter is None or fmt not in _VALID_FORMATS or not options.get(FORMATTER_OPTION):
+        organization = getattr(request, "organization", None)
+        if (
+            adapter is None
+            or fmt not in _VALID_FORMATS
+            or organization is None
+            or not features.has(FORMATTER_FEATURE, organization, actor=request.user)
+        ):
             return response
         if response.status_code != 200 or not isinstance(response.data, dict):
             return response
