@@ -89,6 +89,15 @@ repos:
         always_run: true
         pass_filenames: false
         language: system
+      # Case-only renames break macOS (case-insensitive) checkouts when casing
+      # drifts between branches. Existing check-case-conflict only catches two
+      # distinct paths that collide when lowercased, not a single-file rename.
+      - id: prevent-case-only-rename
+        name: prevent case-only renames
+        entry: bash tools/prevent_case_only_rename.sh
+        always_run: true
+        pass_filenames: false
+        language: system
 
       # Javascript linting, formatting.
       # We're using the local node_modules to simplify things, otherwise would
