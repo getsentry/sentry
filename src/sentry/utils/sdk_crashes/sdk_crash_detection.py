@@ -209,10 +209,10 @@ class SDKCrashDetection:
                 set_path(
                     sdk_crash_event_data,
                     "tags",
-                    value={
-                        "top_level_sdk_name": top_level_sdk_name,
-                        "top_level_sdk_version": top_level_sdk_version,
-                    },
+                    value=[
+                        ("top_level_sdk_name", top_level_sdk_name),
+                        ("top_level_sdk_version", top_level_sdk_version),
+                    ],
                 )
 
             # So Sentry can tell how many projects are impacted by this SDK crash

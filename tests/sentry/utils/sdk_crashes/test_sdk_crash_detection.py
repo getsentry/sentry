@@ -210,10 +210,10 @@ def test_flutter_sdk_version_attributed_without_replacing_native_version(
         "name": "sentry.cocoa.flutter",
         "version": "8.2.0",
     }
-    assert reported_event_data["tags"] == {
-        "top_level_sdk_name": "sentry.dart.flutter",
-        "top_level_sdk_version": "9.24.0",
-    }
+    assert reported_event_data["tags"] == [
+        ("top_level_sdk_name", "sentry.dart.flutter"),
+        ("top_level_sdk_version", "9.24.0"),
+    ]
     assert reported_event_data["release"] == "8.2.0"
     metric_tags = {
         "sdk_name": "sentry.cocoa.flutter",
