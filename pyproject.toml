@@ -697,7 +697,6 @@ module = [
     "sentry.constants",
     "sentry.consumers.*",
     "sentry.core.*",
-    "sentry.culprit",
     "sentry.db",
     "sentry.db.analyze",
     "sentry.db.exceptions",
