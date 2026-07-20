@@ -477,7 +477,7 @@ def organization_project_issue_summaries(
     """
     return list(
         Group.objects.filter(
-            project__organization_id=ctx.organization.id,
+            project_id__in=list(ctx.projects_context_map.keys()),
             last_seen__gte=start,
             last_seen__lt=end,
             status=GroupStatus.UNRESOLVED,
