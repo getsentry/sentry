@@ -11,7 +11,9 @@ export type ProjectCreationEventParameters = {
     field: 'threshold' | 'metric' | 'interval';
     variant?: ProjectCreationVariant;
   };
-  'project_creation.back_button_clicked': Record<string, unknown>;
+  'project_creation.back_button_clicked': {
+    variant?: ProjectCreationVariant;
+  };
   // SCM-first project creation wizard steps. SCM vs legacy rides in `variant`
   // (see scmFlowVariantParams); these events are only emitted by the SCM cores
   // today, so `variant` is `scm` in practice, but stays optional so a future
@@ -31,13 +33,17 @@ export type ProjectCreationEventParameters = {
   'project_creation.data_removal_modal_confirm_button_clicked': {
     platform: string;
     project_id: string;
+    variant?: ProjectCreationVariant;
   };
+  // Defined but never fired — back-nav deletes directly with no modal. Left in
+  // the registry so historical dashboards don't lose the key; do not wire.
   'project_creation.data_removal_modal_dismissed': {platform: string; project_id: string};
   'project_creation.data_removal_modal_rendered': {platform: string; project_id: string};
   'project_creation.data_removed': {
     date_created: string;
     platform: string;
     project_id: string;
+    variant?: ProjectCreationVariant;
   };
   // Setup-docs (getting-started) page events, mirroring onboarding.* /
   // onboarding.scm_*. The non-scm_ keys fix a pollution bug where project
