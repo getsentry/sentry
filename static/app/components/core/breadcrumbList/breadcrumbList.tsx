@@ -88,7 +88,7 @@ function BreadCrumbTitle({item}: BreadcrumbListTitleProps) {
  *   BreadcrumbItemMenuBreadcrumbs overflow button; non-link parents (e.g.
  *   'select-projects') just hide.
  */
-function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
+export function BreadcrumbList({items, ...props}: BreadcrumbListProps) {
   const hasParentQueryContainer = useHasContainerQuery();
 
   if (items.length === 0) {
@@ -146,11 +146,4 @@ function BreadcrumbListRoot({items, ...props}: BreadcrumbListProps) {
   );
 }
 
-/**
- * Compound component. The title renderer is attached here so consumers can
- * compose parent breadcrumbs and the page title while the TopBar owns the
- * heading semantics.
- */
-export const BreadcrumbList = Object.assign(BreadcrumbListRoot, {
-  Title: BreadCrumbTitle,
-});
+BreadcrumbList.Title = BreadCrumbTitle;
