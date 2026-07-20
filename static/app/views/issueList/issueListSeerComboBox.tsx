@@ -3,6 +3,7 @@ import {mutationOptions} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
+import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
@@ -104,7 +105,7 @@ export function IssueListSeerComboBox() {
       });
 
       const queryParams = {
-        ...omit(location.query, ['page', 'cursor', 'start', 'end', 'statsPeriod', 'utc']),
+        ...omit(location.query, ['page', 'cursor', ...ALL_DATE_TIME_QUERY_KEYS]),
         ...(expandedProjectIds ? {project: expandedProjectIds.map(String)} : {}),
         referrer: 'issue-list',
         query: queryToUse,
