@@ -55,6 +55,18 @@ const AnalysisToggle = styled(Button)`
 // The most-changed files shown on hover before collapsing into "+N more".
 const MAX_TOOLTIP_FILES = 5;
 
+// Paths have no spaces to wrap on, so a long one would push the +/− counts
+// out of the tooltip's max width. Truncate from the LEFT (rtl trick, like the
+// diff viewer's file header) so the filename end stays visible; overflow
+// hidden also gives the flex item its min-width of 0.
+const TooltipPath = styled(Text)`
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+  text-align: left;
+`;
+
 // Per-file breakdown for the diff pill's tooltip: path left, churn right,
 // biggest files first (fileList is pre-sorted by churn).
 function PatchFilesTooltip({stats}: {stats: PatchStats}) {
@@ -64,9 +76,9 @@ function PatchFilesTooltip({stats}: {stats: PatchStats}) {
     <Stack gap="2xs" align="stretch">
       {shown.map(file => (
         <Flex key={file.path} gap="lg" justify="between" align="baseline">
-          <Text size="xs" monospace align="left">
+          <TooltipPath size="xs" monospace>
             {file.path}
-          </Text>
+          </TooltipPath>
           <Text size="xs" monospace wrap="nowrap">
             <Text size="xs" variant="success">
               +{file.added}
