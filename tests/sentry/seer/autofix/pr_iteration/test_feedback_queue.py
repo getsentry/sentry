@@ -104,6 +104,8 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
             feedback = Feedback(source=source)
 
             assert "autofix_run" not in source.dict()
+            assert "updated_at" not in source.dict()
+            assert source.updated_at == "2024-01-01T00:00:00Z"
             assert source.event.check_suite.updated_at == "2024-01-01T00:00:00Z"
             source.json()
             feedback.json()
@@ -114,6 +116,7 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         assert len(queued) == 1
         assert isinstance(queued[0].feedback.source, CheckSuiteFeedbackSource)
         assert queued[0].feedback.source.event.check_suite.id == 1
+        assert queued[0].feedback.source.updated_at == "2024-01-01T00:00:00Z"
         assert queued[0].feedback.source.event.check_suite.updated_at == "2024-01-01T00:00:00Z"
         assert queued[0].feedback.source.autofix_run is autofix_run
 

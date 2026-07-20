@@ -162,10 +162,11 @@ class CheckSuiteAutofixRun:
 
 
 def resolve_check_suite_autofix_run(event: GithubCheckSuiteEvent) -> CheckSuiteAutofixRun | None:
-    """Find the single Autofix run for this check suite's PR(s).
+    """Find the Autofix run for this check suite's PR(s).
 
     Assumes one Autofix run ↔ PR in Sentry. Tries each PR × candidate org until
-    Seer returns a run with ``repo_pr_states`` and a ``group_id``.
+    Seer returns a run with ``repo_pr_states`` and a ``group_id``. If multiple
+    matches are found, logs a warning and returns the first.
     """
     repos = resolve_check_suite_repositories(event)
     if not repos:
@@ -175,6 +176,7 @@ def resolve_check_suite_autofix_run(event: GithubCheckSuiteEvent) -> CheckSuiteA
     if not pull_requests:
         return None
 
+    matches: list[CheckSuiteAutofixRun] = []
     for pr_id in (pr.id for pr in pull_requests):
         for candidate in repos:
             try:
@@ -202,14 +204,30 @@ def resolve_check_suite_autofix_run(event: GithubCheckSuiteEvent) -> CheckSuiteA
                 )
                 continue
 
-            return CheckSuiteAutofixRun(
-                repository=candidate,
-                run_state=state,
-                pr_id=pr_id,
-                group_id=group_id,
+            matches.append(
+                CheckSuiteAutofixRun(
+                    repository=candidate,
+                    run_state=state,
+                    pr_id=pr_id,
+                    group_id=group_id,
+                )
             )
 
-    return None
+    if not matches:
+        return None
+
+    if len(matches) > 1:
+        logger.warning(
+            "autofix.pr_iteration.check_suite.multiple_autofix_runs",
+            extra={
+                "match_count": len(matches),
+                "pr_ids": [m.pr_id for m in matches],
+                "run_ids": [m.run_state.run_id for m in matches],
+                "organization_ids": [m.repository.organization_id for m in matches],
+            },
+        )
+
+    return matches[0]
 
 
 def _check_suite_iteration_cap_reached(run_state: SeerRunState) -> bool:
@@ -237,20 +255,6 @@ def _check_suite_iteration_cap_reached(run_state: SeerRunState) -> bool:
     return True
 
 
-def check_suite_attempt_key(source: CheckSuiteFeedbackSource) -> tuple[int, str] | int:
-    """Stable attempt key for check-suite consume / batch dedupe.
-
-    Prefer ``(suite_id, updated_at)``: webhook retries share both; Actions
-    re-runs keep the suite id but bump ``updated_at``. Legacy feedback without
-    ``updated_at`` (and any leftover ``check_run_ids``, which we ignore) falls
-    back to suite-id-only.
-    """
-    suite = source.event.check_suite
-    if suite.updated_at:
-        return (suite.id, suite.updated_at)
-    return suite.id
-
-
 def _processed_check_suite_attempts(run_state: SeerRunState) -> set[tuple[int, str] | int]:
     """Attempt keys already turned into feedback on this run (for consume dedupe)."""
     from sentry.seer.autofix.autofix_agent import get_iterations
@@ -260,7 +264,7 @@ def _processed_check_suite_attempts(run_state: SeerRunState) -> set[tuple[int, s
     for iteration in get_iterations(run_state):
         for item in _blocks_feedback(iteration.blocks):
             if isinstance(item.source, CheckSuiteFeedbackSource):
-                keys.add(check_suite_attempt_key(item.source))
+                keys.add(item.source.check_suite_attempt_key())
     return keys
 
 
@@ -271,6 +275,9 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     # ``GithubPrCommentFeedbackSource.comment_feedback``).
     app_name: str = ""
     check_suite_url: str = ""
+    # From ``event.check_suite.updated_at``; excluded so we don't duplicate the
+    # nested event field in Redis / feedback metadata. Recomputed on parse.
+    updated_at: str | None = Field(default=None, exclude=True)
     # Computed once at construct/parse (like app_name / check_suite_url).
     # Excluded so Redis / feedback metadata never JSON-encode Django/Seer objects.
     # Typed as Any so pydantic does not deep-validate the dataclass.
@@ -284,12 +291,24 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         assert isinstance(event, GithubCheckSuiteEvent)
         values["app_name"] = event.check_suite.app.name
         values["check_suite_url"] = get_check_suite_url(event)
+        values["updated_at"] = event.check_suite.updated_at
         # Computed once per construct/parse from event (not caller-supplied).
         autofix_run = resolve_check_suite_autofix_run(event)
         if autofix_run is None:
             raise MissingCheckSuiteAutofixRun
         values["autofix_run"] = autofix_run
         return values
+
+    def check_suite_attempt_key(self) -> tuple[int, str] | int:
+        """Stable attempt key for check-suite consume / batch dedupe.
+
+        Prefer ``(suite_id, updated_at)``: webhook retries share both; Actions
+        re-runs keep the suite id but bump ``updated_at``. Legacy feedback without
+        ``updated_at`` falls back to suite-id-only.
+        """
+        if self.updated_at:
+            return (self.event.check_suite.id, self.updated_at)
+        return self.event.check_suite.id
 
     @property
     def text(self) -> str:
@@ -353,8 +372,7 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
 
     def should_consume(self, run_state: SeerRunState) -> bool:
         head_sha, repo_name, matched = self._matches_current_head(run_state)
-        suite = self.event.check_suite
-        attempt_key = check_suite_attempt_key(self)
+        attempt_key = self.check_suite_attempt_key()
         already_processed = attempt_key in _processed_check_suite_attempts(run_state)
         logger.info(
             "autofix.pr_iteration.check_suite.should_consume.evaluated",
@@ -363,8 +381,8 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
                 "head_sha": head_sha,
                 "repo_name": repo_name,
                 "matched": matched,
-                "check_suite_id": suite.id,
-                "updated_at": suite.updated_at,
+                "check_suite_id": self.event.check_suite.id,
+                "updated_at": self.updated_at,
                 "already_processed": already_processed,
                 "repo_pr_state_count": len(run_state.repo_pr_states),
             },
@@ -461,7 +479,6 @@ __all__ = (
     "GithubCheckSuitePullRequest",
     "GithubCheckSuiteRepository",
     "MissingCheckSuiteAutofixRun",
-    "check_suite_attempt_key",
     "get_check_suite_url",
     "resolve_check_suite_autofix_run",
     "resolve_check_suite_repositories",

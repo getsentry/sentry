@@ -113,7 +113,9 @@ class ParseSerializeFeedbackTest(TestCase):
             "https://github.com/owner/repo/commit/abc/checks?check_suite_id=1"
         )
         assert source.check_suite_url == get_check_suite_url(source.event)
+        assert source.updated_at == "2024-01-01T00:00:00Z"
         assert source.event.check_suite.updated_at == "2024-01-01T00:00:00Z"
+        assert "updated_at" not in source.dict()
         assert "autofix_run" not in source.dict()
 
         del event["check_suite"]["check_runs_url"]

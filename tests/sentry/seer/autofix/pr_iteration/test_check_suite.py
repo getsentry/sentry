@@ -11,6 +11,8 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CHECK_SUITE_ITERATION_HARD_CAP,
     CheckSuiteAutofixRun,
     CheckSuiteFeedbackSource,
+    GithubCheckSuiteEvent,
+    resolve_check_suite_autofix_run,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
@@ -189,6 +191,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert kwargs["referrer"] == AutofixReferrer.GITHUB_CHECK_SUITE
         assert isinstance(kwargs["feedback"], Feedback)
         assert isinstance(kwargs["feedback"].source, CheckSuiteFeedbackSource)
+        assert kwargs["feedback"].source.updated_at == "2024-01-01T00:00:00Z"
         assert kwargs["feedback"].source.event.check_suite.updated_at == "2024-01-01T00:00:00Z"
         autofix = kwargs["feedback"].source.autofix_run
         assert autofix is not None
@@ -249,6 +252,65 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _, kwargs = mock_enqueue.call_args
         assert kwargs["organization_id"] == self.organization.id
         mock_trigger_consume.assert_called_once()
+
+
+class ResolveCheckSuiteAutofixRunTest(TestCase):
+    def _event(self, *, pull_requests: list[dict]) -> GithubCheckSuiteEvent:
+        return GithubCheckSuiteEvent.parse_obj(
+            {
+                "check_suite": {
+                    "id": 1,
+                    "head_sha": "abc",
+                    "check_runs_url": "https://github.com/owner/repo/check-runs",
+                    "app": {"name": "CI"},
+                    "updated_at": "2024-01-01T00:00:00Z",
+                    "pull_requests": pull_requests,
+                },
+                "repository": {"html_url": "https://github.com/owner/repo"},
+            }
+        )
+
+    def _agent_state(self, *, run_id: int) -> SeerRunState:
+        return SeerRunState(
+            run_id=run_id,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
+            metadata={"group_id": 1},
+        )
+
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.logger")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories")
+    def test_warns_and_returns_first_when_multiple_matches(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        repo = MagicMock(organization_id=self.organization.id, id=2)
+        mock_resolve.return_value = [repo]
+        first = self._agent_state(run_id=111)
+        second = self._agent_state(run_id=222)
+        mock_get_state.side_effect = [first, second]
+
+        result = resolve_check_suite_autofix_run(
+            self._event(pull_requests=[{"id": 111}, {"id": 222}])
+        )
+
+        assert result is not None
+        assert result.run_state.run_id == 111
+        assert result.pr_id == 111
+        mock_logger.warning.assert_any_call(
+            "autofix.pr_iteration.check_suite.multiple_autofix_runs",
+            extra={
+                "match_count": 2,
+                "pr_ids": [111, 222],
+                "run_ids": [111, 222],
+                "organization_ids": [self.organization.id, self.organization.id],
+            },
+        )
 
 
 def _run_state(*, blocks: list[MemoryBlock] | None = None) -> SeerRunState:

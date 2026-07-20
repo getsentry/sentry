@@ -33,10 +33,7 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
-from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
-    CheckSuiteFeedbackSource,
-    check_suite_attempt_key,
-)
+from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
@@ -198,7 +195,7 @@ def consume_queued_autofix_feedback(
                         continue
                     seen_comment_keys.add(key)
             elif isinstance(source, CheckSuiteFeedbackSource):
-                suite_key = check_suite_attempt_key(source)
+                suite_key = source.check_suite_attempt_key()
                 if suite_key in seen_check_suite_keys:
                     continue
                 seen_check_suite_keys.add(suite_key)
