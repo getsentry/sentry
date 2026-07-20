@@ -1,11 +1,20 @@
 import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
+type Size = 'xs' | 'sm' | 'md' | 'lg';
+
+const SIZES: Record<Size, number> = {
+  xs: 12,
+  sm: 14,
+  md: 16,
+  lg: 24,
+};
+
 interface SpinnerProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**
-   * Diameter of the spinner in pixels.
+   * Diameter of the spinner. Matches the icon size scale.
    */
-  size?: number;
+  size?: Size;
 }
 
 /**
@@ -18,10 +27,10 @@ interface SpinnerProps extends React.HTMLAttributes<HTMLSpanElement> {
  * Decorative by default (`aria-hidden`). Pass an `aria-label` (and typically
  * `role="status"`) when the spinner is the only signal that work is in progress.
  */
-export function Spinner({size = 12, ...props}: SpinnerProps) {
+export function Spinner({size = 'xs', ...props}: SpinnerProps) {
   return (
     <Ring
-      $size={size}
+      $size={SIZES[size]}
       aria-hidden={!props['aria-label'] && !props.role ? true : undefined}
       {...props}
     />

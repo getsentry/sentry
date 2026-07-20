@@ -33,7 +33,11 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {AddFilter} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {GenericFilterSelector} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
-import {globalFilterKeysAreEqual} from 'sentry/views/dashboards/globalFilter/utils';
+import {
+  globalFilterKeysAreEqual,
+  globalFiltersAreEqual,
+  mergeGlobalFilters,
+} from 'sentry/views/dashboards/globalFilter/utils';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
@@ -227,6 +231,19 @@ export function FiltersBar({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    // this ensures that when the global filters url is updated from external
+    // components, the global filter selector displays the correct filter values
+    const urlFilters = dashboardFiltersFromURL?.[DashboardFilterKeys.GLOBAL_FILTER];
+    if (urlFilters && urlFilters.length > 0) {
+      for (const filter of urlFilters) {
+        if (!activeGlobalFilters.some(f => globalFiltersAreEqual(f, filter))) {
+          setActiveGlobalFilters(mergeGlobalFilters(activeGlobalFilters, urlFilters));
+        }
+      }
+    }
+  }, [activeGlobalFilters, dashboardFiltersFromURL]);
 
   const updateGlobalFilters = (newGlobalFilters: GlobalFilter[]) => {
     setActiveGlobalFilters(newGlobalFilters);

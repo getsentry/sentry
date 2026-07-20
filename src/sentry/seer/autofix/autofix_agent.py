@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Literal, cast
 
+import sentry_sdk
 from pydantic import BaseModel
 from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
@@ -34,7 +35,7 @@ from sentry.seer.autofix.artifact_schemas import (
     SolutionArtifact,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.types import Feedback, serialize_feedback
+from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.prompts import (
     PromptBuilder,
     code_changes_prompt,
@@ -58,9 +59,13 @@ from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import json, metrics
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
+
     from sentry.models.group import Group
     from sentry.models.organization import Organization
     from sentry.seer.agent.client_models import MemoryBlock
+    from sentry.users.models.user import User
+    from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +243,21 @@ def get_iterations(state: SeerRunState) -> list[Iteration]:
             iter_idx = metadata.get("iteration_index")
             assert iter_idx is not None, "PR_ITERATION block missing iteration_index"
 
+            # PR_ITERATION is always started with feedback today (UI + consume
+            # queue). Missing metadata is unexpected; report but keep going.
+            raw_feedback = metadata.get("feedback")
+            if not raw_feedback or (isinstance(raw_feedback, str) and not raw_feedback.strip()):
+                sentry_sdk.capture_message(
+                    "PR_ITERATION block missing feedback metadata",
+                    level="warning",
+                    extras={
+                        "run_id": state.run_id,
+                        "block_index": i,
+                        "iteration_index": iter_idx,
+                        "block_id": block.id,
+                    },
+                )
+
             iterations.append(Iteration(index=int(iter_idx), start_index=i, blocks=[block]))
         elif iterations:
             iterations[-1].blocks.append(block)
@@ -267,6 +287,7 @@ def get_autofix_agent_client(
     enable_coding: bool = False,
     code_review_enabled: bool = False,
     enable_pr_context_tools: bool = False,
+    user: User | RpcUser | AnonymousUser | None = None,
 ) -> SeerAgentClient:
     from sentry.seer.autofix.on_completion_hook import (
         AutofixOnCompletionHook,  # nested to avoid circular import
@@ -276,7 +297,7 @@ def get_autofix_agent_client(
         organization=group.organization,
         project=group.project,
         group=group,
-        user=None,  # No user personalization for autofix
+        user=user,
         category_key="autofix",
         category_value=str(group.id),
         intelligence_level=intelligence_level,
@@ -359,6 +380,7 @@ def trigger_autofix_agent(
     user_context: str | None = None,
     insert_index: int | None = None,
     feedback: Sequence[Feedback] | None = None,
+    user: User | RpcUser | AnonymousUser | None = None,
 ) -> int:
     """
     Start or continue an agent-based autofix run.
@@ -390,6 +412,7 @@ def trigger_autofix_agent(
         group,
         enable_coding=config.enable_coding,
         enable_pr_context_tools=is_iteration_step,
+        user=user,
     )
 
     run_state: SeerRunState | None = None

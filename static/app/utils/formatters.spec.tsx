@@ -22,7 +22,9 @@ describe('formatAbbreviatedNumber()', () => {
     expect(formatAbbreviatedNumber(1000)).toBe('1K');
     expect(formatAbbreviatedNumber(10000000)).toBe('10M');
     expect(formatAbbreviatedNumber(100000000000)).toBe('100B');
-    expect(formatAbbreviatedNumber(1000000000000)).toBe('1000B');
+    expect(formatAbbreviatedNumber(1000000000000)).toBe('1T');
+    expect(formatAbbreviatedNumber(1500000000000)).toBe('1.5T');
+    expect(formatAbbreviatedNumber(1000000000000000)).toBe('1000T');
   });
 
   it('should abbreviate numbers that are strings', () => {
@@ -31,7 +33,7 @@ describe('formatAbbreviatedNumber()', () => {
     expect(formatAbbreviatedNumber('1000')).toBe('1K');
     expect(formatAbbreviatedNumber('10000000')).toBe('10M');
     expect(formatAbbreviatedNumber('100000000000')).toBe('100B');
-    expect(formatAbbreviatedNumber('1000000000000')).toBe('1000B');
+    expect(formatAbbreviatedNumber('1000000000000')).toBe('1T');
   });
 
   it('should round to 1 decimal place', () => {
@@ -49,10 +51,10 @@ describe('formatAbbreviatedNumber()', () => {
     expect(formatAbbreviatedNumber(1500, 3)).toBe('1.5K');
     expect(formatAbbreviatedNumber(1213122, 3)).toBe('1.21M');
     expect(formatAbbreviatedNumber(-1213122, 3)).toBe('-1.21M');
-    expect(formatAbbreviatedNumber(1500000000000, 3)).toBe('1500B');
+    expect(formatAbbreviatedNumber(1500000000000, 3)).toBe('1.5T');
 
     expect(formatAbbreviatedNumber('1249.23421', 3)).toBe('1.25K');
-    expect(formatAbbreviatedNumber('1239567891299', 3)).toBe('1240B');
+    expect(formatAbbreviatedNumber('1239567891299', 3)).toBe('1.24T');
     expect(formatAbbreviatedNumber('158.80421626984128', 3)).toBe('159');
   });
 
@@ -60,7 +62,7 @@ describe('formatAbbreviatedNumber()', () => {
     expect(formatAbbreviatedNumber(-100)).toBe('-100');
     expect(formatAbbreviatedNumber(-1095)).toBe('-1K');
     expect(formatAbbreviatedNumber(-10000000)).toBe('-10M');
-    expect(formatAbbreviatedNumber(-1000000000000)).toBe('-1000B');
+    expect(formatAbbreviatedNumber(-1000000000000)).toBe('-1T');
   });
 });
 
@@ -80,6 +82,7 @@ describe('formatAbbreviatedNumberWithDynamicPrecision()', () => {
     expect(formatAbbreviatedNumberWithDynamicPrecision(1000)).toBe('1K');
     expect(formatAbbreviatedNumberWithDynamicPrecision(10000000)).toBe('10M');
     expect(formatAbbreviatedNumberWithDynamicPrecision(100000000000)).toBe('100B');
+    expect(formatAbbreviatedNumberWithDynamicPrecision(1000000000000)).toBe('1T');
   });
 
   it('should abbreviate numbers that are strings', () => {
@@ -99,7 +102,7 @@ describe('formatAbbreviatedNumberWithDynamicPrecision()', () => {
     expect(formatAbbreviatedNumberWithDynamicPrecision(153789)).toBe('153.79K');
     expect(formatAbbreviatedNumberWithDynamicPrecision(1213122)).toBe('1.21M');
     expect(formatAbbreviatedNumberWithDynamicPrecision('1249.23421')).toBe('1.25K');
-    expect(formatAbbreviatedNumberWithDynamicPrecision('123956789129')).toBe('124B');
+    expect(formatAbbreviatedNumberWithDynamicPrecision('123956789129')).toBe('123.96B');
     expect(formatAbbreviatedNumberWithDynamicPrecision('158.80421626984128')).toBe(
       '158.8'
     );
@@ -227,7 +230,7 @@ describe('formatDollars', () => {
     [1000000, '$1M'],
     [1772313.1, '$1.77M'],
     [1000000000, '$1B'],
-    [1000000000000, '$1,000B'],
+    [1000000000000, '$1T'],
     [-100, '$-100'],
     [-1500, '$-1.5K'],
     [-1000000, '$-1M'],

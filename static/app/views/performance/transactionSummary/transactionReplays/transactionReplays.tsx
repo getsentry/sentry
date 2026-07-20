@@ -30,6 +30,7 @@ import {useTransactionSummaryContext} from 'sentry/views/performance/transaction
 import type {EventSpanData} from './useReplaysFromTransaction';
 import {useReplaysFromTransaction} from './useReplaysFromTransaction';
 import {useReplaysWithTxData} from './useReplaysWithTxData';
+import {generateTransactionReplaysEventView} from './utils';
 
 export function TransactionReplays() {
   return (
@@ -40,13 +41,13 @@ export function TransactionReplays() {
 }
 
 function TransactionReplaysContent() {
-  const {
-    eventView: replayIdsEventView,
-    organization,
-    setError,
-  } = useTransactionSummaryContext();
+  const {organization, transactionName, setError} = useTransactionSummaryContext();
 
   const location = useLocation();
+  const replayIdsEventView = useMemo(
+    () => generateTransactionReplaysEventView({location, transactionName}),
+    [location, transactionName]
+  );
 
   // Hard-code 90d to match the count query. There's no date selector for the replay tab.
   const {data, fetchError, isFetching} = useReplaysFromTransaction({

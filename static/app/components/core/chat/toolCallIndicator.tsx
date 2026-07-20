@@ -1,5 +1,3 @@
-import {Tooltip} from '@sentry/scraps/tooltip';
-
 import {IconCheckmark, IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -24,44 +22,55 @@ export type ToolCallStatus =
 interface ToolCallIndicatorProps {
   status: ToolCallStatus;
   /**
-   * Overrides the default tooltip / accessible label for the status.
+   * Overrides the default accessible label for the status.
    */
-  label?: string;
+  'aria-label'?: string;
 }
 
 /**
  * A compact status indicator for a group of agent tool calls: a spinner while they
  * run and a semantic icon once they settle.
  *
+ * The status is exposed to assistive tech via the glyph's `aria-label`. We
+ * intentionally avoid a tooltip: an icon-only tooltip isn't keyboard-focusable and
+ * gives sighted users no hint that it's hoverable. Surface any hidden detail (e.g.
+ * which calls failed) as visible text in the consumer instead.
+ *
  * Placement and sizing of the surrounding slot are the caller's responsibility.
  */
-export function ToolCallIndicator({status, label}: ToolCallIndicatorProps) {
-  const defaultLabel = getDefaultLabel(status);
-
+export function ToolCallIndicator({
+  status,
+  'aria-label': ariaLabel,
+}: ToolCallIndicatorProps) {
   if (status === 'content') {
     return null;
   }
 
-  const title = label ?? defaultLabel;
-
   return (
-    <Tooltip title={title}>
-      <ToolCallStatusGlyph status={status} label={title} />
-    </Tooltip>
+    <ToolCallStatusGlyph
+      status={status}
+      aria-label={ariaLabel ?? getDefaultAriaLabel(status)}
+    />
   );
 }
 
-function ToolCallStatusGlyph({status, label}: {label: string; status: ToolCallStatus}) {
+function ToolCallStatusGlyph({
+  status,
+  'aria-label': ariaLabel,
+}: {
+  'aria-label': string;
+  status: ToolCallStatus;
+}) {
   switch (status) {
     case 'loading':
     case 'pending':
-      return <Spinner role="status" aria-label={label} />;
+      return <Spinner role="status" aria-label={ariaLabel} />;
     case 'failure':
-      return <IconClose size="xs" variant="danger" aria-label={label} />;
+      return <IconClose size="xs" variant="danger" aria-label={ariaLabel} />;
     case 'mixed':
-      return <IconWarning size="xs" variant="warning" aria-label={label} />;
+      return <IconWarning size="xs" variant="warning" aria-label={ariaLabel} />;
     case 'success':
-      return <IconCheckmark size="xs" variant="success" aria-label={label} />;
+      return <IconCheckmark size="xs" variant="success" aria-label={ariaLabel} />;
     case 'content':
       return null;
     default:
@@ -69,7 +78,7 @@ function ToolCallStatusGlyph({status, label}: {label: string; status: ToolCallSt
   }
 }
 
-function getDefaultLabel(status: ToolCallStatus): string {
+function getDefaultAriaLabel(status: ToolCallStatus): string {
   switch (status) {
     case 'loading':
       return t('Running...');

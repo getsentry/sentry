@@ -51,7 +51,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 op="http",
                 desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceLargeHTTPPayloadGroupType,
-                parent_span_ids=None,
+                parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
                 evidence_data={
@@ -152,7 +152,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 op="http",
                 desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json",
                 type=PerformanceLargeHTTPPayloadGroupType,
-                parent_span_ids=None,
+                parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
                 evidence_data={
@@ -186,7 +186,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 op="http",
                 desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json",
                 type=PerformanceLargeHTTPPayloadGroupType,
-                parent_span_ids=None,
+                parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
                 evidence_data={
@@ -220,7 +220,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 op="http",
                 desc="GET https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.json",
                 type=PerformanceLargeHTTPPayloadGroupType,
-                parent_span_ids=None,
+                parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
                 evidence_data={
@@ -272,7 +272,7 @@ class LargeHTTPPayloadDetectorTest(TestCase):
                 op="http",
                 desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceLargeHTTPPayloadGroupType,
-                parent_span_ids=None,
+                parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
                 evidence_data={

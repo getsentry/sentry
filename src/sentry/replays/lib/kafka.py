@@ -1,6 +1,6 @@
 from functools import partial
 
-from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload
 from arroyo.types import Topic as ArroyoTopic
 from sentry_kafka_schemas.codecs import Codec
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
@@ -47,17 +47,19 @@ def _get_eap_items_producer(name: str = "sentry.replays.lib.kafka.eap_items"):
 
 
 eap_producer = SingletonProducer(_get_eap_items_producer)
-_eap_task_producer_name = "sentry.replays.lib.kafka.eap_items_taskproducer"
-eap_items_taskproducer = get_task_producer(
-    producer_name=_eap_task_producer_name,
+_eap_task_producer_name = "sentry.replays.lib.kafka.eap_items_ftp"
+eap_items_ft_producer = FutureTrackingProducer(
+    name=_eap_task_producer_name,
     producer_factory=partial(_get_eap_items_producer, name=_eap_task_producer_name),
 )
 
 
 def write_trace_items(trace_items: list[TraceItem]) -> None:
     """Publish trace-items to the EAP trace-items topic."""
-    if _in_process_replay_recording_task():
-        producer: SingletonProducer | TaskProducer = eap_items_taskproducer
+    if _in_process_replay_recording_task() or in_random_rollout(
+        "tasks.producer.replays-eap-items.rollout"
+    ):
+        producer: SingletonProducer | FutureTrackingProducer = eap_items_ft_producer
     else:
         producer = eap_producer
     topic = ArroyoTopic(get_topic_definition(Topic.SNUBA_ITEMS)["real_topic_name"])
