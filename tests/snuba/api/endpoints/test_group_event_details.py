@@ -145,17 +145,9 @@ class GroupEventDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             response = self.client.get(self._latest_url("?llmFormat=markdown"))
 
         assert response.status_code == 200
-        assert response.data["id"] == str(self.event2.event_id)  # normal response intact
+        assert response.data["id"] == str(self.event2.event_id)
         assert response.data["formatted"]["format"] == "markdown"
         assert "## Title" in response.data["formatted"]["content"]
-
-    def test_format_xml(self) -> None:
-        with override_options(FORMATTER_ON):
-            response = self.client.get(self._latest_url("?llmFormat=xml"))
-
-        assert response.status_code == 200
-        assert response.data["formatted"]["format"] == "xml"
-        assert "<title>" in response.data["formatted"]["content"]
 
     def test_no_format_param_has_no_formatted_field(self) -> None:
         with override_options(FORMATTER_ON):

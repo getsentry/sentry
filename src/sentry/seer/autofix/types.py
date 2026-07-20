@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, TypedDict, Union
+from typing import Annotated, Any, Literal, NotRequired, TypedDict, Union
 
 from pydantic import BaseModel, Field
+
+from sentry.issues.formatting.formatter import FormattedResponse
 
 
 class GithubAppPermissionsWarning(BaseModel):
@@ -40,3 +42,5 @@ class AutofixStateResponse(TypedDict):
     """Response type for the GET endpoint"""
 
     autofix: dict[str, Any] | None
+    # present only when ``?llmFormat`` is requested and the formatter option is on
+    formatted: NotRequired[FormattedResponse]

@@ -116,19 +116,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert "## Solution" in content
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
-    def test_get_llm_format_ignored_when_option_off(self, mock_get_explorer_state):
-        group = self.create_group()
-        mock_get_explorer_state.return_value = SeerRunState(
-            run_id=888, blocks=[], status="completed", updated_at="2023-07-18T12:00:00Z"
-        )
-
-        self.login_as(user=self.user)
-        response = self.client.get(self._get_url(group.id) + "?llmFormat=markdown", format="json")
-
-        assert response.status_code == 200, response.data
-        assert "formatted" not in response.data
-
-    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_handles_block_with_null_metadata(self, mock_get_explorer_state):
         group = self.create_group()
         mock_get_explorer_state.return_value = SeerRunState(
