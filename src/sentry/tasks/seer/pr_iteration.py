@@ -232,22 +232,6 @@ def consume_queued_autofix_feedback(
             )
             return
 
-        # Hard cap on iterations per run. Bounds the feedback loop when a review bot
-        # re-reviews each new iteration commit (each re-review is genuinely new
-        # feedback, so dedup can't stop it). Checked after draining the queue so the
-        # capped feedback doesn't accumulate.
-        if _max_iterations_reached(state):
-            metrics.incr("autofix.pr_iteration.max_iterations_reached")
-            logger.info(
-                "autofix.pr_iteration.consume_feedback.max_iterations_reached",
-                extra={
-                    "run_id": run_id,
-                    "group_id": group_id,
-                    "max_iterations": options.get("autofix.pr-iteration.max-iterations"),
-                },
-            )
-            return
-
         try:
             trigger_autofix_agent(
                 group=group,
@@ -482,21 +466,6 @@ def trigger_pr_iteration_from_comment(
             github_username=github_username,
             source_type=source.type,
             comment_id=comment.id,
-        )
-        return None
-
-    # Bail before enqueueing or acking: consume enforces the same cap after
-    # draining the queue, so past the cap we'd :eyes:-ack a comment that never
-    # produces an iteration. The commenter would read that as accepted feedback.
-    if _max_iterations_reached(agent_state):
-        metrics.incr("autofix.pr_iteration.comment_trigger.max_iterations_reached")
-        logger.info(
-            "autofix.pr_iteration.comment_trigger.max_iterations_reached",
-            extra={
-                "organization_id": organization_id,
-                "repo_id": repo_id,
-                "max_iterations": options.get("autofix.pr-iteration.max-iterations"),
-            },
         )
         return None
 

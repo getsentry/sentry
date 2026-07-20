@@ -281,7 +281,7 @@ class TriggerPrIterationFromCommentTest(TestCase):
     @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
     @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
     @patch(f"{TASK_PATH}.integration_service.get_integration")
-    def test_skips_when_max_iterations_reached(
+    def test_iterates_past_max_iterations(
         self,
         mock_get_integration: MagicMock,
         mock_get_state: MagicMock,
@@ -291,6 +291,8 @@ class TriggerPrIterationFromCommentTest(TestCase):
         mock_make_scm: MagicMock,
         mock_reaction: MagicMock,
     ) -> None:
+        # The max-iterations cap only bounds automatic (bot/check-suite) loops; a
+        # manual @sentry comment still drives an iteration past the cap.
         mock_get_integration.return_value = self._mock_integration()
         mock_get_state.return_value = self._agent_state(
             blocks=[self._iteration_block(1), self._iteration_block(2)]
@@ -299,10 +301,9 @@ class TriggerPrIterationFromCommentTest(TestCase):
         with self.options({"autofix.pr-iteration.max-iterations": 2}):
             self._call()
 
-        # Nothing enqueued and no :eyes: ack, since consume would drop it anyway.
-        mock_enqueue.assert_not_called()
-        mock_trigger_consume.assert_not_called()
-        mock_reaction.assert_not_called()
+        mock_enqueue.assert_called_once()
+        mock_trigger_consume.assert_called_once()
+        mock_reaction.assert_called_once()
 
 
 class ConsumeQueuedAutofixFeedbackTest(TestCase):
@@ -509,38 +510,18 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_skips_when_max_iterations_reached(
+    def test_consumes_feedback_past_max_iterations(
         self,
         mock_fetch: MagicMock,
         mock_pop: MagicMock,
         mock_trigger: MagicMock,
     ) -> None:
+        # consume no longer enforces the cap; a queued comment past the old limit
+        # still triggers an iteration. Automatic loops are bounded upstream (the
+        # review trigger and the check-suite hard cap), not here.
         mock_fetch.return_value = self._state(
             blocks=[self._iteration_block(1), self._iteration_block(2)]
         )
-        mock_pop.return_value = [
-            self._queued(
-                Feedback(
-                    source=GithubPrCommentFeedbackSource(comment={"id": 1, "body": "@sentry go"})
-                )
-            )
-        ]
-
-        with self.options({"autofix.pr-iteration.max-iterations": 2}):
-            self._call()
-
-        mock_trigger.assert_not_called()
-
-    @patch(f"{TASK_PATH}.trigger_autofix_agent")
-    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
-    @patch(f"{TASK_PATH}.fetch_run_status")
-    def test_iterates_below_max_iterations(
-        self,
-        mock_fetch: MagicMock,
-        mock_pop: MagicMock,
-        mock_trigger: MagicMock,
-    ) -> None:
-        mock_fetch.return_value = self._state(blocks=[self._iteration_block(1)])
         mock_pop.return_value = [
             self._queued(
                 Feedback(
