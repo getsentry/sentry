@@ -93,7 +93,7 @@ class RunCalculationsPerOrgTest(TestCase):
         get_project_volumes.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_continues_with_traffic(self) -> None:
+    def test_run_calculations_per_org_skips_transaction_volumes_at_full_sample_rate(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
@@ -126,23 +126,15 @@ class RunCalculationsPerOrgTest(TestCase):
                 "sentry.dynamic_sampling.per_org.scheduler.compare_rebalanced_projects_with_cache"
             ) as compare_rebalanced_projects,
             patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
-                return_value=[
-                    ProjectTransactionCounts(
-                        org_id=org.id,
-                        project_id=project.id,
-                        transaction_counts=[("checkout", 1.0)],
-                    )
-                ],
+                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes"
             ) as get_transaction_volumes,
             patch(
-                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
-                return_value={},
+                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing"
             ) as transaction_balancing,
         ):
             result = run_calculations_per_org_task(org.id)
 
-        assert result is None
+        assert result == DynamicSamplingStatus.ALL_PROJECTS_AT_FULL_SAMPLE_RATE
         _assert_called_once_with_config(get_volume, org.id)
         get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
         project_config = _assert_called_once_with_config(get_project_volumes, org.id)
@@ -151,10 +143,8 @@ class RunCalculationsPerOrgTest(TestCase):
         compare_rebalanced_projects.assert_called_once_with(
             project_config, rebalanced_projects, cached_sample_rates, project_volumes
         )
-        transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
-        transaction_balancing.assert_called_once_with(
-            transaction_config, project_volumes, get_transaction_volumes.return_value
-        )
+        get_transaction_volumes.assert_not_called()
+        transaction_balancing.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_returns_no_volume_without_project_volumes(self) -> None:
@@ -198,7 +188,7 @@ class RunCalculationsPerOrgTest(TestCase):
         project = self.create_project(organization=org)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         project_volumes = [_project_volume(project.id)]
-        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=1.0)]
+        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
         cached_sample_rates: dict[int, float | None] = {}
 
         with (
@@ -302,7 +292,7 @@ class RunCalculationsPerOrgTest(TestCase):
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         project_volumes = [_project_volume(project.id)]
-        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=1.0)]
+        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
         cached_sample_rates: dict[int, float | None] = {}
 
         with (
@@ -391,7 +381,7 @@ class RunCalculationsPerOrgTest(TestCase):
         project = self.create_project(organization=org)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         project_volumes = [_project_volume(project.id)]
-        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=1.0)]
+        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
         cached_sample_rates: dict[int, float | None] = {}
 
         with (
@@ -445,6 +435,9 @@ class RunCalculationsPerOrgTest(TestCase):
             project_config, rebalanced_projects, cached_sample_rates, project_volumes
         )
         transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
+        assert [p.id for p in get_transaction_volumes.call_args.kwargs["root_projects"]] == [
+            project.id
+        ]
         transaction_balancing.assert_called_once_with(
             transaction_config, project_volumes, get_transaction_volumes.return_value
         )

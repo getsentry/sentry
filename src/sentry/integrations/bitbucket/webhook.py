@@ -26,6 +26,7 @@ from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent, IntegrationWebhookEventType
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
+from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
@@ -268,6 +269,7 @@ class BitbucketWebhookEndpoint(Endpoint):
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
                 provider_key=event_handler.provider,
             ).capture(),
+            action_context_scope(ActionSource.BITBUCKET, GroupActionActor.org(organization.id)),
         ):
             event_handler(event, repo=repo, organization=organization)
 
