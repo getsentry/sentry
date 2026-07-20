@@ -441,7 +441,14 @@ Drag the sizing handle below to see the transition:
 <Storybook.SizingWindow display="block">
   <BreadcrumbListDemo
     items={[
-      {type: 'link', label: 'Settings', to: '/settings/'},
+      {
+        type: 'link',
+        label: 'Settings',
+        to: '/settings/',
+        leadingGraphic: (
+          <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
+        ),
+      },
       {
         type: 'link',
         label: 'javascript',

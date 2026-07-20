@@ -7,6 +7,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface BreadcrumbMenuLinkItem {
+  key: string;
   label: string;
   to: LinkProps['to'];
 }
@@ -23,20 +24,11 @@ interface BreadcrumbItemMenuBreadcrumbsProps {
 export function BreadcrumbItemMenuBreadcrumbs({
   items,
 }: BreadcrumbItemMenuBreadcrumbsProps) {
-  const menuItems = items.map((item, index) => ({
-    // Include the index so two crumbs pointing at the same destination don't
-    // collide on key — DropdownMenu requires unique keys. The list is static and
-    // never reordered, so the index is a stable identifier.
-    key: `${index}-${typeof item.to === 'string' ? item.to : JSON.stringify(item.to)}`,
-    label: item.label,
-    to: item.to,
-  }));
-
   return (
     <Flex as="span" align="center" height="32px" flexShrink={0}>
       <DropdownMenu
         size="sm"
-        items={menuItems}
+        items={items}
         trigger={(triggerProps, isOpen) => (
           <DropdownButton
             {...triggerProps}
