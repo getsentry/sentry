@@ -1,5 +1,7 @@
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
+
+from scm.errors import ResourceNotFound
 
 from sentry.scm.types import PullRequestReviewEvent, SubscriptionEvent
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
@@ -144,12 +146,19 @@ class _ScmStub:
 
     def get_review_comments(self, *args: Any, **kwargs: Any) -> Any: ...
 
-    def list_pull_request_reviews(self, *args: Any, **kwargs: Any) -> Any: ...
+    def get_pull_request_review(self, *args: Any, **kwargs: Any) -> Any: ...
 
     def create_review_comment_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
 
 
 class TriggerPrIterationFromReviewTest(TestCase):
+    mock_get_integration: MagicMock
+    mock_get_state: MagicMock
+    mock_enqueue: MagicMock
+    mock_consume: MagicMock
+    mock_make_scm: MagicMock
+    mock_actions: MagicMock
+
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
@@ -158,6 +167,29 @@ class TriggerPrIterationFromReviewTest(TestCase):
             provider="integrations:github",
             external_id="123",
             name="owner/repo",
+        )
+
+        # Patch every external boundary the task touches once, and wire up the
+        # happy path (a body-only review) so each test only overrides what it
+        # exercises. The mocks are exposed as ``self.mock_*``.
+        for attr, target in (
+            ("mock_get_integration", "integration_service.get_integration"),
+            ("mock_get_state", "get_agent_state_from_pr_id"),
+            ("mock_enqueue", "try_enqueue_autofix_feedback"),
+            ("mock_consume", "consume_queued_autofix_feedback.apply_async"),
+            ("mock_make_scm", "make_scm"),
+            ("mock_actions", "scm_actions"),
+        ):
+            patcher = patch(f"{TASK_PATH}.{target}")
+            setattr(self, attr, patcher.start())
+            self.addCleanup(patcher.stop)
+
+        self.mock_get_integration.return_value = self._mock_integration()
+        self.mock_get_state.return_value = self._agent_state()
+        self.mock_make_scm.return_value = MagicMock(spec=_ScmStub)
+        self.mock_actions.get_review_comments.return_value = self._paginated([])
+        self.mock_actions.get_pull_request_review.return_value = self._review_result(
+            {"id": "500", "html_url": "https://x/500", "body": "overall summary"}
         )
 
     def _agent_state(self) -> SeerRunState:
@@ -207,6 +239,9 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def _paginated(self, data: list[Any]) -> dict[str, Any]:
         return {"data": data, "type": "github", "raw": {}, "meta": {"next_cursor": None}}
 
+    def _review_result(self, review: dict[str, Any]) -> dict[str, Any]:
+        return {"data": review, "type": "github", "raw": {}}
+
     def _run(self) -> None:
         trigger_pr_iteration_from_review(
             organization_id=self.organization.id,
@@ -216,45 +251,27 @@ class TriggerPrIterationFromReviewTest(TestCase):
             review_id=500,
         )
 
-    @patch(f"{TASK_PATH}.scm_actions")
-    @patch(f"{TASK_PATH}.make_scm")
-    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
-    def test_batch_review_with_inline_comments_and_body(
-        self,
-        mock_get_integration: MagicMock,
-        mock_get_state: MagicMock,
-        mock_enqueue: MagicMock,
-        mock_consume: MagicMock,
-        mock_make_scm: MagicMock,
-        mock_actions: MagicMock,
-    ) -> None:
-        mock_get_integration.return_value = self._mock_integration()
-        mock_get_state.return_value = self._agent_state()
-        mock_make_scm.return_value = MagicMock(spec=_ScmStub)
-        mock_actions.get_review_comments.return_value = self._paginated(
+    def test_batch_review_with_inline_comments_and_body(self) -> None:
+        self.mock_actions.get_review_comments.return_value = self._paginated(
             [
                 self._review_comment(comment_id="1", body="fix this"),
                 self._review_comment(comment_id="2", body="and this"),
             ]
         )
-        mock_actions.list_pull_request_reviews.return_value = self._paginated(
-            [{"id": "500", "html_url": "https://x/500", "body": "overall summary"}]
-        )
 
         self._run()
 
         # PR number -> id lookup before run lookup.
-        mock_get_integration.return_value.get_installation.return_value.get_client.return_value.get_pull_request.assert_called_once_with(
+        self.mock_get_integration.return_value.get_installation.return_value.get_client.return_value.get_pull_request.assert_called_once_with(
             "owner/repo", "7"
         )
-        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", 555)
+        self.mock_get_state.assert_called_once_with(
+            self.organization.id, "integrations:github", 555
+        )
 
         # Two inline comments + one review body item.
-        assert mock_enqueue.call_count == 3
-        sources = [c.kwargs["feedback"].source for c in mock_enqueue.call_args_list]
+        assert self.mock_enqueue.call_count == 3
+        sources = [c.kwargs["feedback"].source for c in self.mock_enqueue.call_args_list]
         comment_sources = [s for s in sources if isinstance(s, GithubPrReviewCommentFeedbackSource)]
         body_sources = [s for s in sources if isinstance(s, GithubPrReviewBodyFeedbackSource)]
         assert len(comment_sources) == 2
@@ -268,111 +285,67 @@ class TriggerPrIterationFromReviewTest(TestCase):
         }
         assert all(
             c.kwargs["referrer"] == AutofixReferrer.GITHUB_PR_REVIEW
-            for c in mock_enqueue.call_args_list
+            for c in self.mock_enqueue.call_args_list
         )
-        mock_consume.assert_called_once()
+        self.mock_consume.assert_called_once()
 
         # Each inline comment is acked with :eyes: (the body has no reaction target).
-        assert mock_actions.create_review_comment_reaction.call_count == 2
+        assert self.mock_actions.create_review_comment_reaction.call_count == 2
         reacted_ids = {
-            c.args[2] for c in mock_actions.create_review_comment_reaction.call_args_list
+            c.args[2] for c in self.mock_actions.create_review_comment_reaction.call_args_list
         }
         assert reacted_ids == {"1", "2"}
         assert all(
-            c.args[3] == "eyes" for c in mock_actions.create_review_comment_reaction.call_args_list
+            c.args[3] == "eyes"
+            for c in self.mock_actions.create_review_comment_reaction.call_args_list
         )
 
-    @patch(f"{TASK_PATH}.scm_actions")
-    @patch(f"{TASK_PATH}.make_scm")
-    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
-    def test_paginates_review_comments_and_reviews(
-        self,
-        mock_get_integration: MagicMock,
-        mock_get_state: MagicMock,
-        mock_enqueue: MagicMock,
-        mock_consume: MagicMock,
-        mock_make_scm: MagicMock,
-        mock_actions: MagicMock,
-    ) -> None:
+    def test_paginates_review_comments(self) -> None:
         # A full first page (>= page size) must fetch a second page; every
         # paginated request must carry ``per_page`` (the GitHub provider reads it
         # unconditionally, so omitting it raises ``KeyError: 'per_page'``), and a
-        # short second page terminates the loop.
-        mock_get_integration.return_value = self._mock_integration()
-        mock_get_state.return_value = self._agent_state()
-        mock_make_scm.return_value = MagicMock(spec=_ScmStub)
-
+        # short second page terminates the loop. The review body is fetched
+        # directly by id, so it does not paginate.
         full_page = [
             self._review_comment(comment_id=str(i), body=f"comment {i}")
             for i in range(_REVIEW_PAGE_SIZE)
         ]
         last_page = [self._review_comment(comment_id=str(_REVIEW_PAGE_SIZE), body="last one")]
-        mock_actions.get_review_comments.side_effect = [
+        self.mock_actions.get_review_comments.side_effect = [
             self._paginated(full_page),
             self._paginated(last_page),
-        ]
-        # Target review lands on the second page, forcing the reviews loop to page too.
-        full_reviews = [
-            {"id": str(i), "html_url": f"https://x/{i}"} for i in range(_REVIEW_PAGE_SIZE)
-        ]
-        target_review = [{"id": "500", "html_url": "https://x/500", "body": "on page two"}]
-        mock_actions.list_pull_request_reviews.side_effect = [
-            self._paginated(full_reviews),
-            self._paginated(target_review),
         ]
 
         self._run()
 
-        # Two pages fetched for each resource.
-        assert mock_actions.get_review_comments.call_count == 2
-        assert mock_actions.list_pull_request_reviews.call_count == 2
+        # Two pages fetched for the inline comments; the review is a single fetch.
+        assert self.mock_actions.get_review_comments.call_count == 2
+        self.mock_actions.get_pull_request_review.assert_called_once_with(ANY, "7", "500")
         # per_page present and page number advances on every call.
-        for call in mock_actions.get_review_comments.call_args_list:
+        for call in self.mock_actions.get_review_comments.call_args_list:
             pagination = call.args[3]
             assert pagination["per_page"] == _REVIEW_PAGE_SIZE
         comment_pages = [
-            c.args[3]["cursor"] for c in mock_actions.get_review_comments.call_args_list
+            c.args[3]["cursor"] for c in self.mock_actions.get_review_comments.call_args_list
         ]
         assert comment_pages == ["1", "2"]
 
-        # All inline comments across both pages, plus the paged-to review body.
-        sources = [c.kwargs["feedback"].source for c in mock_enqueue.call_args_list]
+        # All inline comments across both pages, plus the directly-fetched review body.
+        sources = [c.kwargs["feedback"].source for c in self.mock_enqueue.call_args_list]
         comment_sources = [s for s in sources if isinstance(s, GithubPrReviewCommentFeedbackSource)]
         body_sources = [s for s in sources if isinstance(s, GithubPrReviewBodyFeedbackSource)]
         assert len(comment_sources) == _REVIEW_PAGE_SIZE + 1
         assert len(body_sources) == 1
-        assert body_sources[0].body == "on page two"
-        mock_consume.assert_called_once()
+        self.mock_consume.assert_called_once()
 
-    @patch(f"{TASK_PATH}.scm_actions")
-    @patch(f"{TASK_PATH}.make_scm")
-    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
-    def test_inline_comment_produces_file_line_anchor(
-        self,
-        mock_get_integration: MagicMock,
-        mock_get_state: MagicMock,
-        mock_enqueue: MagicMock,
-        mock_consume: MagicMock,
-        mock_make_scm: MagicMock,
-        mock_actions: MagicMock,
-    ) -> None:
-        mock_get_integration.return_value = self._mock_integration()
-        mock_get_state.return_value = self._agent_state()
-        mock_make_scm.return_value = MagicMock(spec=_ScmStub)
-        mock_actions.get_review_comments.return_value = self._paginated(
+    def test_inline_comment_produces_file_line_anchor(self) -> None:
+        self.mock_actions.get_review_comments.return_value = self._paginated(
             [self._review_comment(comment_id="1", body="no @sentry command here")]
         )
-        mock_actions.list_pull_request_reviews.return_value = self._paginated([])
 
         self._run()
 
-        source = mock_enqueue.call_args.kwargs["feedback"].source
+        source = self.mock_enqueue.call_args_list[0].kwargs["feedback"].source
         assert isinstance(source, GithubPrReviewCommentFeedbackSource)
         # Field mapping recovers the anchor from the SCM ReviewComment.
         assert source.file_path == "src/sentry/foo.py"
@@ -383,158 +356,85 @@ class TriggerPrIterationFromReviewTest(TestCase):
         assert "Inline comment on src/sentry/foo.py:40-42:" in source.text
         assert "no @sentry command here" in source.text
 
-    @patch(f"{TASK_PATH}.scm_actions")
-    @patch(f"{TASK_PATH}.make_scm")
-    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
-    def test_body_only_review(
-        self,
-        mock_get_integration: MagicMock,
-        mock_get_state: MagicMock,
-        mock_enqueue: MagicMock,
-        mock_consume: MagicMock,
-        mock_make_scm: MagicMock,
-        mock_actions: MagicMock,
-    ) -> None:
-        mock_get_integration.return_value = self._mock_integration()
-        mock_get_state.return_value = self._agent_state()
-        mock_make_scm.return_value = MagicMock(spec=_ScmStub)
-        mock_actions.get_review_comments.return_value = self._paginated([])
-        mock_actions.list_pull_request_reviews.return_value = self._paginated(
-            [{"id": "500", "html_url": "https://x/500", "body": "please rename this"}]
-        )
-
+    def test_body_only_review(self) -> None:
+        # setUp's default is a body-only review with no inline comments.
         self._run()
 
-        mock_enqueue.assert_called_once()
-        source = mock_enqueue.call_args.kwargs["feedback"].source
+        self.mock_enqueue.assert_called_once()
+        source = self.mock_enqueue.call_args.kwargs["feedback"].source
         assert isinstance(source, GithubPrReviewBodyFeedbackSource)
-        assert source.body == "please rename this"
+        assert source.body == "overall summary"
         assert source.review_id == 500
 
         # A body-only review has no inline comment to react to.
-        mock_actions.create_review_comment_reaction.assert_not_called()
+        self.mock_actions.create_review_comment_reaction.assert_not_called()
 
-    @patch(f"{TASK_PATH}.scm_actions")
-    @patch(f"{TASK_PATH}.make_scm")
-    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
-    def test_single_comment_review(
-        self,
-        mock_get_integration: MagicMock,
-        mock_get_state: MagicMock,
-        mock_enqueue: MagicMock,
-        mock_consume: MagicMock,
-        mock_make_scm: MagicMock,
-        mock_actions: MagicMock,
-    ) -> None:
-        mock_get_integration.return_value = self._mock_integration()
-        mock_get_state.return_value = self._agent_state()
-        mock_make_scm.return_value = MagicMock(spec=_ScmStub)
+    def test_single_comment_review(self) -> None:
         # GitHub's "Add single comment" fires a review with state=commented, one
         # inline comment and no body.
-        mock_actions.get_review_comments.return_value = self._paginated(
+        self.mock_actions.get_review_comments.return_value = self._paginated(
             [self._review_comment(comment_id="1", body="typo")]
         )
-        mock_actions.list_pull_request_reviews.return_value = self._paginated(
-            [{"id": "500", "html_url": "https://x/500", "body": ""}]
+        self.mock_actions.get_pull_request_review.return_value = self._review_result(
+            {"id": "500", "html_url": "https://x/500", "body": ""}
         )
 
         self._run()
 
-        mock_enqueue.assert_called_once()
-        source = mock_enqueue.call_args.kwargs["feedback"].source
+        self.mock_enqueue.assert_called_once()
+        source = self.mock_enqueue.call_args.kwargs["feedback"].source
         assert isinstance(source, GithubPrReviewCommentFeedbackSource)
 
         # The single inline comment is acked with :eyes:.
-        mock_actions.create_review_comment_reaction.assert_called_once()
-        assert mock_actions.create_review_comment_reaction.call_args.args[2] == "1"
-        assert mock_actions.create_review_comment_reaction.call_args.args[3] == "eyes"
+        self.mock_actions.create_review_comment_reaction.assert_called_once()
+        assert self.mock_actions.create_review_comment_reaction.call_args.args[2] == "1"
+        assert self.mock_actions.create_review_comment_reaction.call_args.args[3] == "eyes"
 
-    @patch(f"{TASK_PATH}.scm_actions")
-    @patch(f"{TASK_PATH}.make_scm")
-    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
-    def test_empty_review_is_skipped(
-        self,
-        mock_get_integration: MagicMock,
-        mock_get_state: MagicMock,
-        mock_enqueue: MagicMock,
-        mock_consume: MagicMock,
-        mock_make_scm: MagicMock,
-        mock_actions: MagicMock,
-    ) -> None:
-        mock_get_integration.return_value = self._mock_integration()
-        mock_get_state.return_value = self._agent_state()
-        mock_make_scm.return_value = MagicMock(spec=_ScmStub)
+    def test_empty_review_is_skipped(self) -> None:
         # A bare approve: no body text AND no inline comments.
-        mock_actions.get_review_comments.return_value = self._paginated([])
-        mock_actions.list_pull_request_reviews.return_value = self._paginated(
-            [{"id": "500", "html_url": "https://x/500", "body": ""}]
+        self.mock_actions.get_pull_request_review.return_value = self._review_result(
+            {"id": "500", "html_url": "https://x/500", "body": ""}
         )
 
         self._run()
 
-        mock_enqueue.assert_not_called()
-        mock_consume.assert_not_called()
+        self.mock_enqueue.assert_not_called()
+        self.mock_consume.assert_not_called()
 
-    @patch(f"{TASK_PATH}.scm_actions")
-    @patch(f"{TASK_PATH}.make_scm")
-    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
-    def test_looks_good_review_is_not_skipped(
-        self,
-        mock_get_integration: MagicMock,
-        mock_get_state: MagicMock,
-        mock_enqueue: MagicMock,
-        mock_consume: MagicMock,
-        mock_make_scm: MagicMock,
-        mock_actions: MagicMock,
-    ) -> None:
-        mock_get_integration.return_value = self._mock_integration()
-        mock_get_state.return_value = self._agent_state()
-        mock_make_scm.return_value = MagicMock(spec=_ScmStub)
+    def test_looks_good_review_is_not_skipped(self) -> None:
         # "looks good" has content, so it is passed through to the agent.
-        mock_actions.get_review_comments.return_value = self._paginated([])
-        mock_actions.list_pull_request_reviews.return_value = self._paginated(
-            [{"id": "500", "html_url": "https://x/500", "body": "looks good"}]
+        self.mock_actions.get_pull_request_review.return_value = self._review_result(
+            {"id": "500", "html_url": "https://x/500", "body": "looks good"}
         )
 
         self._run()
 
-        mock_enqueue.assert_called_once()
-        source = mock_enqueue.call_args.kwargs["feedback"].source
+        self.mock_enqueue.assert_called_once()
+        source = self.mock_enqueue.call_args.kwargs["feedback"].source
         assert isinstance(source, GithubPrReviewBodyFeedbackSource)
         assert source.body == "looks good"
 
-    @patch(f"{TASK_PATH}.scm_actions")
-    @patch(f"{TASK_PATH}.make_scm")
-    @patch(f"{TASK_PATH}.consume_queued_autofix_feedback.apply_async")
-    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback")
-    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
-    @patch(f"{TASK_PATH}.integration_service.get_integration")
-    def test_skips_when_no_agent_state(
-        self,
-        mock_get_integration: MagicMock,
-        mock_get_state: MagicMock,
-        mock_enqueue: MagicMock,
-        mock_consume: MagicMock,
-        mock_make_scm: MagicMock,
-        mock_actions: MagicMock,
-    ) -> None:
-        mock_get_integration.return_value = self._mock_integration()
-        mock_get_state.return_value = None
+    def test_review_not_found_still_processes_inline_comments(self) -> None:
+        # If the review is gone (deleted/dismissed between webhook and task) the
+        # direct fetch 404s; we treat it as no body but still act on the inline
+        # comments we fetched.
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+        self.mock_actions.get_pull_request_review.side_effect = ResourceNotFound()
 
         self._run()
 
-        mock_make_scm.assert_not_called()
-        mock_enqueue.assert_not_called()
-        mock_consume.assert_not_called()
+        # Only the inline comment becomes feedback; no body source is emitted.
+        self.mock_enqueue.assert_called_once()
+        source = self.mock_enqueue.call_args.kwargs["feedback"].source
+        assert isinstance(source, GithubPrReviewCommentFeedbackSource)
+
+    def test_skips_when_no_agent_state(self) -> None:
+        self.mock_get_state.return_value = None
+
+        self._run()
+
+        self.mock_make_scm.assert_not_called()
+        self.mock_enqueue.assert_not_called()
+        self.mock_consume.assert_not_called()

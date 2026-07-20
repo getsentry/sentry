@@ -6,14 +6,15 @@ from typing import Any
 
 import sentry_sdk
 from scm import actions as scm_actions
+from scm.errors import ResourceNotFound
 from scm.manager import SourceCodeManager
 from scm.types import (
     CreatePullRequestCommentReactionProtocol,
     CreateReviewCommentReactionProtocol,
     DiffLine,
+    GetPullRequestReviewProtocol,
     GetRepositoryUserPermissionProtocol,
     GetReviewCommentsProtocol,
-    ListPullRequestReviewsProtocol,
     PaginationParams,
     Reaction,
     Review,
@@ -562,23 +563,17 @@ def _fetch_all_review_comments(
 
 
 def _fetch_review_body(
-    scm: ListPullRequestReviewsProtocol,
+    scm: GetPullRequestReviewProtocol,
     *,
     pr_number: int,
     review_id: int,
 ) -> Review | None:
-    """Find the submitted review's summary body by paging the PR's reviews."""
-    page = 1
-    while True:
-        pagination: PaginationParams = {"cursor": str(page), "per_page": _REVIEW_PAGE_SIZE}
-        result = scm_actions.list_pull_request_reviews(scm, str(pr_number), pagination)
-        batch = result["data"]
-        for review in batch:
-            if str(review["id"]) == str(review_id):
-                return review
-        if len(batch) < _REVIEW_PAGE_SIZE:
-            return None
-        page += 1
+    """Fetch the submitted review (for its summary body) directly by id."""
+    try:
+        result = scm_actions.get_pull_request_review(scm, str(pr_number), str(review_id))
+    except ResourceNotFound:
+        return None
+    return result["data"]
 
 
 def _diff_line_number(diff_line: DiffLine | None) -> int | None:
@@ -716,7 +711,7 @@ def trigger_pr_iteration_from_review(
         return None
 
     if not isinstance(scm, GetReviewCommentsProtocol) or not isinstance(
-        scm, ListPullRequestReviewsProtocol
+        scm, GetPullRequestReviewProtocol
     ):
         logger.warning("autofix.pr_iteration.review_trigger.unsupported_provider", extra=log_extra)
         return None
