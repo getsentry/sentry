@@ -564,23 +564,30 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(query=f"project:{project.slug}")
         assert len(response.data) == 1
 
-    def test_auto_resolved(self) -> None:
+    def test_unresolved_includes_groups_pending_auto_resolution(self) -> None:
         project = self.project
         project.update_option("sentry:resolve_age", 1)
-        self.store_event(
-            data={"event_id": "a" * 32, "timestamp": before_now(seconds=1).isoformat()},
+        old_event = self.store_event(
+            data={
+                "fingerprint": ["old-group"],
+                "timestamp": before_now(days=1).isoformat(),
+            },
             project_id=project.id,
         )
-        event2 = self.store_event(
-            data={"event_id": "b" * 32, "timestamp": before_now(seconds=1).isoformat()},
+        recent_event = self.store_event(
+            data={
+                "fingerprint": ["recent-group"],
+                "timestamp": before_now(seconds=1).isoformat(),
+            },
             project_id=project.id,
         )
-        group2 = event2.group
 
         self.login_as(user=self.user)
         response = self.get_success_response()
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(group2.id)
+        assert {row["id"] for row in response.data} == {
+            str(old_event.group.id),
+            str(recent_event.group.id),
+        }
 
     def test_perf_issue(self) -> None:
         event = self.store_event(

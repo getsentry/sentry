@@ -174,17 +174,19 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data) == 0
 
-    def test_auto_resolved(self) -> None:
+    def test_unresolved_includes_groups_pending_auto_resolution(self) -> None:
         project = self.project
         project.update_option("sentry:resolve_age", 1)
-        self.create_group(last_seen=before_now(days=1))
-        group2 = self.create_group(last_seen=timezone.now())
+        old_group = self.create_group(last_seen=before_now(days=1))
+        recent_group = self.create_group(last_seen=timezone.now())
 
         self.login_as(user=self.user)
         response = self.client.get(self.path + "?query=is:unresolved", format="json")
         assert response.status_code == 200
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(group2.id)
+        assert {row["id"] for row in response.data} == {
+            str(old_group.id),
+            str(recent_group.id),
+        }
 
     def test_lookup_by_event_id(self) -> None:
         project = self.project
