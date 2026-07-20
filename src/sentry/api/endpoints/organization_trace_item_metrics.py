@@ -33,6 +33,20 @@ from sentry.snuba.trace_metrics import TraceMetrics
 _COUNT_ALIAS = f"count({METRIC_NAME_ALIAS})"
 _LAST_SEEN_ALIAS = "max(timestamp_precise)"
 
+# Sortable response fields mapped to their underlying query aliases. Keeps the
+# public `sort` param decoupled from the internal aggregate expressions.
+_SORT_FIELDS = {
+    "name": METRIC_NAME_ALIAS,
+    "type": METRIC_TYPE_ALIAS,
+    "unit": METRIC_UNIT_ALIAS,
+    "count": _COUNT_ALIAS,
+    "lastSeen": _LAST_SEEN_ALIAS,
+}
+
+# The full grouping key — appended after any sort so pagination always has a
+# stable total order (a single field like count isn't unique across rows).
+_GROUPING_ORDER = [METRIC_NAME_ALIAS, METRIC_TYPE_ALIAS, METRIC_UNIT_ALIAS]
+
 # Metrics count is small; a generous cap avoids paginating in practice.
 MAX_METRICS_PER_PAGE = 1000
 
@@ -56,6 +70,17 @@ class TraceMetricItem(TypedDict):
 class OrganizationTraceItemMetricsSerializer(serializers.Serializer[Never]):
     query = serializers.CharField(required=False)
     expand = serializers.MultipleChoiceField(choices=["context"], required=False)
+    # A response field to sort by, optionally prefixed with `-` for descending
+    # (e.g. `-count`). Defaults to metric name.
+    sort = serializers.CharField(required=False)
+
+    def validate_sort(self, value: str) -> str:
+        field = value[1:] if value.startswith("-") else value
+        if field not in _SORT_FIELDS:
+            raise serializers.ValidationError(
+                f"Invalid sort field `{field}`. Must be one of: {', '.join(_SORT_FIELDS)}."
+            )
+        return value
 
 
 @cell_silo_endpoint
@@ -93,6 +118,17 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
             "organizations:data-browsing-attribute-context", organization, actor=request.user
         )
 
+        # Resolve the requested sort to a query orderby, always appending the
+        # grouping key so pagination has a stable total order.
+        sort = serialized.get("sort")
+        if sort:
+            descending = sort.startswith("-")
+            sort_alias = _SORT_FIELDS[sort.lstrip("-")]
+            sort_column = ("-" if descending else "") + sort_alias
+            orderby = [sort_column] + [column for column in _GROUPING_ORDER if column != sort_alias]
+        else:
+            orderby = list(_GROUPING_ORDER)
+
         def data_fn(offset: int, limit: int) -> list[TraceMetricItem]:
             with handle_query_errors():
                 results = TraceMetrics.run_table_query(
@@ -105,9 +141,7 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
                         _COUNT_ALIAS,
                         _LAST_SEEN_ALIAS,
                     ],
-                    # Order by the full grouping key so pagination has a stable
-                    # total order (a name alone isn't unique across type/unit).
-                    orderby=[METRIC_NAME_ALIAS, METRIC_TYPE_ALIAS, METRIC_UNIT_ALIAS],
+                    orderby=orderby,
                     offset=offset,
                     limit=limit,
                     referrer=Referrer.API_EXPLORE_TRACEMETRICS_METRICS_LIST.value,
