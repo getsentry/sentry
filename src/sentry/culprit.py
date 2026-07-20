@@ -79,8 +79,8 @@ def get_frame_culprit(frame: Mapping[str, Any], platform: str | None) -> str:
     return "{} in {}".format(fileloc, frame.get("function") or "?")
 
 
-def get_nel_culprit(contexts: Mapping[str, Any]) -> str:
-    ty = contexts.get("nel").get("error_type", "<missing>")
+def get_nel_culprit(contexts: Mapping[str, Any] | None) -> str:
+    ty = get_path(contexts, "nel", "error_type") or "<missing>"
     if ty == "http.error":
-        return NEL_CULPRITS[ty].format(contexts.get("response").get("status_code"))
+        return NEL_CULPRITS[ty].format(get_path(contexts, "response", "status_code"))
     return NEL_CULPRITS.get(ty, ty)
