@@ -445,8 +445,8 @@ importers:
         specifier: ^5.3.2
         version: 5.3.2
       peggy:
-        specifier: 5.0.6
-        version: 5.0.6
+        specifier: 5.1.0
+        version: 5.1.0
       platformicons:
         specifier: ^9.5.0
         version: 9.5.0(react@19.2.3)
@@ -2571,8 +2571,8 @@ packages:
     resolution: {integrity: sha512-C2Xj8FZ0uHWeCXXqX5B4/gVFQmtSkiuOolzAgutjTfseNOHT3pUjljDZsTSxXFGgio54bCzVFqmEOUrIVk8RDA==}
     engines: {node: '>=20.0.0'}
 
-  '@peggyjs/from-mem@3.1.1':
-    resolution: {integrity: sha512-m5OEjgJaePWpyNtQCvRZkpLoV+z44eh6QIO9yEwQuOThdUdkECO3wcKLT3tFA3H8WM5bxU/K/dpmo7r/X16UEw==}
+  '@peggyjs/from-mem@3.1.3':
+    resolution: {integrity: sha512-LLlgtfXIaeYXoOYovOI0spLM8ZXaqkAlmcRRrLzHJzLMqkU6Sw0R4KMoCoHx1PjaP815pSCBlS+BN6aD8t1Jgg==}
     engines: {node: '>=20.8'}
 
   '@pkgjs/parseargs@0.11.0':
@@ -7445,8 +7445,8 @@ packages:
     resolution: {integrity: sha512-gDKb8aZMDeD/tZWs9P6+q0J9Mwkdl6xMV8TjnGP3qJVJ06bdMgkbBlLU8IdfOsIsFz2BW1rNVT3XuNEl8zPAvw==}
     engines: {node: '>=8'}
 
-  peggy@5.0.6:
-    resolution: {integrity: sha512-Sud8Zus0JAgE+U4zwkJv29OOaXhviFI7J90/6cGfy3OoqR8dpnieeF9a46dj0bTtqiFnrFatldA6ltQyOJvNmg==}
+  peggy@5.1.0:
+    resolution: {integrity: sha512-IEo5aYRZ2kXH4Qby06cjtL114PZnwLoTiA41vUmg2vPZgANn+c87m5BUurhuDr5/cu758ZlpgsAfBVx+hhO5+w==}
     engines: {node: '>=20'}
     hasBin: true
 
@@ -8182,8 +8182,8 @@ packages:
   solid-js@1.9.11:
     resolution: {integrity: sha512-WEJtcc5mkh/BnHA6Yrg4whlF8g6QwpmXXRg4P2ztPmcKeHHlH4+djYecBLhSpecZY2RRECXYUwIc/C2r3yzQ4Q==}
 
-  source-map-generator@2.0.2:
-    resolution: {integrity: sha512-unCl5BQhF/us51DiT7SvlSY3QUPhyfAdHJxd8l7FXdwzqxli0UDMV2dEuei2SeGp3Z4rB/AJ9zKi1mGOp2K2ww==}
+  source-map-generator@2.0.6:
+    resolution: {integrity: sha512-IlassDs1Ve8nV6uyQZXF9kdkJpVKnMte2JZQXu13M0A5zwc+vu6+LNHfmxsHBMDtoZE21RHiKI0/xvpecZRCNg==}
     engines: {node: '>=20'}
 
   source-map-js@1.2.1:
@@ -10937,9 +10937,9 @@ snapshots:
       tslib: 2.8.1
       tsyringe: 4.10.0
 
-  '@peggyjs/from-mem@3.1.1':
+  '@peggyjs/from-mem@3.1.3':
     dependencies:
-      semver: 7.7.2
+      semver: 7.7.4
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
@@ -12743,7 +12743,7 @@ snapshots:
       debug: 4.4.3
       globby: 11.1.0
       is-glob: 4.0.3
-      semver: 7.7.4
+      semver: 7.8.5
       tsutils: 3.21.0(@typescript/typescript6@6.0.2)
     optionalDependencies:
       typescript: '@typescript/typescript6@6.0.2'
@@ -15709,7 +15709,7 @@ snapshots:
       jest-message-util: 30.4.1
       jest-util: 30.4.1
       pretty-format: 30.4.1
-      semver: 7.7.4
+      semver: 7.8.5
       synckit: 0.11.8
     transitivePeerDependencies:
       - supports-color
@@ -17007,11 +17007,11 @@ snapshots:
 
   path-type@4.0.0: {}
 
-  peggy@5.0.6:
+  peggy@5.1.0:
     dependencies:
-      '@peggyjs/from-mem': 3.1.1
+      '@peggyjs/from-mem': 3.1.3
       commander: 14.0.3
-      source-map-generator: 2.0.2
+      source-map-generator: 2.0.6
 
   performance-now@2.1.0: {}
 
@@ -17850,7 +17850,7 @@ snapshots:
       seroval: 1.5.0
       seroval-plugins: 1.5.0(seroval@1.5.0)
 
-  source-map-generator@2.0.2: {}
+  source-map-generator@2.0.6: {}
 
   source-map-js@1.2.1: {}
 
