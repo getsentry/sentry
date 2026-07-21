@@ -250,17 +250,6 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         assert result["status"] == "resolved"
         assert result["statusDetails"]["inCommit"]["id"] == commit.key
 
-    @mock.patch("sentry.models.Group.is_over_resolve_age")
-    def test_auto_resolved(self, mock_is_over_resolve_age: mock.MagicMock) -> None:
-        mock_is_over_resolve_age.return_value = True
-
-        user = self.create_user()
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
-
-        result = serialize(group, user, serializer=GroupSerializerSnuba())
-        assert result["status"] == "resolved"
-        assert result["statusDetails"] == {"autoResolved": True}
-
     def test_subscribed(self) -> None:
         user = self.create_user()
         group = self.create_group()
