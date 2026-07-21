@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {motion} from 'framer-motion';
+import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
@@ -9,8 +10,10 @@ import {Select} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {closeModal, openConsoleModal} from 'sentry/actionCreators/modal';
+import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
@@ -36,6 +39,13 @@ import {
 import {ScmSearchControl} from './scmSearchControl';
 import {ScmVirtualizedMenuList} from './scmVirtualizedMenuList';
 import {useScmResolvedPlatform} from './useScmResolvedPlatform';
+
+type PlatformOption = (typeof platformOptions)[number];
+
+const matchesPlatformOption = createFilter({
+  stringify: (option: {data: PlatformOption; label: string; value: string}) =>
+    option.data.textValue ?? `${option.label} ${option.value}`,
+});
 
 const CHANGE_PLATFORM_CLICKED_EVENT = {
   onboarding: 'onboarding.scm_platform_change_platform_clicked',
@@ -81,6 +91,7 @@ export function ScmPlatformFeaturesCore({
   const organization = useOrganization();
 
   const [showManualPicker, setShowManualPicker] = useState(false);
+  const [manualPickerFilter, setManualPickerFilter] = useState('');
   // Guards the auto-detect analytics event below so it fires once per repo.
   const autoDetectionTrackedRef = useRef(false);
 
@@ -340,6 +351,64 @@ export function ScmPlatformFeaturesCore({
     ];
   }, [currentPlatformKey]);
 
+  const manualPickerFilteredOptions = useMemo(
+    () =>
+      manualPickerOptions.filter(option =>
+        matchesPlatformOption(
+          {label: option.label, value: option.value, data: option},
+          manualPickerFilter
+        )
+      ),
+    [manualPickerFilter, manualPickerOptions]
+  );
+
+  const latestSearchValuesRef = useRef({
+    filter: manualPickerFilter,
+    options: manualPickerFilteredOptions,
+    organization,
+    analyticsFlow,
+  });
+
+  useEffect(() => {
+    latestSearchValuesRef.current = {
+      filter: manualPickerFilter,
+      options: manualPickerFilteredOptions,
+      organization,
+      analyticsFlow,
+    };
+  });
+
+  const debounceManualPickerSearch = useRef(
+    debounce(() => {
+      const {
+        filter,
+        options,
+        organization: currentOrganization,
+        analyticsFlow: flow,
+      } = latestSearchValuesRef.current;
+
+      if (!filter || flow !== 'project-creation') {
+        return;
+      }
+
+      trackAnalytics('growth.platformpicker_search', {
+        organization: currentOrganization,
+        search: filter.toLowerCase(),
+        num_results: options.length,
+        source: 'project-creation',
+        variant: 'scm',
+      });
+    }, DEFAULT_DEBOUNCE_DURATION)
+  ).current;
+
+  function handleManualPickerSearch(query: string, {action}: {action: string}) {
+    if (action !== 'input-change') {
+      return;
+    }
+    setManualPickerFilter(query);
+    debounceManualPickerSearch();
+  }
+
   // When the active platform is a manual (non-detected) pick, show the manual
   // picker so the selection stays visible (see showDetectedPlatforms below).
   const hasDetectedPlatforms = resolvedPlatforms.length > 0 || isDetecting;
@@ -449,6 +518,7 @@ export function ScmPlatformFeaturesCore({
           options={manualPickerOptions}
           value={currentPlatformKey ?? null}
           onChange={handleManualPickerChange}
+          onInputChange={handleManualPickerSearch}
           searchable
           components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}
           styles={{container: base => ({...base, width: '100%'})}}
@@ -459,6 +529,7 @@ export function ScmPlatformFeaturesCore({
           options={manualPickerOptions}
           value={currentPlatformKey ?? null}
           onChange={handleManualPickerChange}
+          onInputChange={handleManualPickerSearch}
           clearable
           searchable
           components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}

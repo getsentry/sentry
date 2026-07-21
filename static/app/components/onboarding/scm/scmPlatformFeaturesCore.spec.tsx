@@ -3,12 +3,28 @@ import {DetectedPlatformFixture} from 'sentry-fixture/detectedPlatform';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';
 
 import {ScmPlatformFeaturesCore} from './scmPlatformFeaturesCore';
+
+interface MockDebouncedCallback {
+  callback: () => void;
+  isActive: () => boolean;
+}
+
+const mockDebouncedCallbacks: MockDebouncedCallback[] = [];
+
+jest.mock('lodash/debounce', () => (callback: () => void) => {
+  const debounced = jest.fn();
+  mockDebouncedCallbacks.push({
+    callback,
+    isActive: () => debounced.mock.calls.length > 0,
+  });
+  return debounced;
+});
 
 // Mock the virtualizer so the manual-picker Select renders in JSDOM (no layout
 // engine).
@@ -71,6 +87,10 @@ function defaultProps(overrides: Partial<Record<string, unknown>> = {}) {
 
 describe('ScmPlatformFeaturesCore', () => {
   const organization = OrganizationFixture();
+
+  beforeEach(() => {
+    mockDebouncedCallbacks.length = 0;
+  });
 
   afterEach(() => {
     jest.restoreAllMocks();
@@ -180,6 +200,45 @@ describe('ScmPlatformFeaturesCore', () => {
       'growth.select_platform',
       expect.anything()
     );
+  });
+
+  it('tracks one debounced manual platform search with its result count', async () => {
+    const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    render(
+      <ScmPlatformFeaturesCore
+        {...defaultProps({
+          analyticsFlow: 'project-creation',
+          selectedPlatform: undefined,
+        })}
+      />,
+      {organization}
+    );
+
+    await userEvent.type(screen.getByRole('textbox'), 'java ');
+
+    expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
+      'growth.platformpicker_search',
+      expect.anything()
+    );
+
+    const activeDebouncedCallbacks = mockDebouncedCallbacks.filter(({isActive}) =>
+      isActive()
+    );
+    expect(activeDebouncedCallbacks).toHaveLength(1);
+
+    act(() => {
+      activeDebouncedCallbacks[0]!.callback();
+    });
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledTimes(1);
+
+    expect(trackAnalyticsSpy).toHaveBeenCalledWith('growth.platformpicker_search', {
+      organization,
+      search: 'java ',
+      num_results: 1,
+      source: 'project-creation',
+      variant: 'scm',
+    });
   });
 
   it('clears the selected platform from the manual picker', async () => {
