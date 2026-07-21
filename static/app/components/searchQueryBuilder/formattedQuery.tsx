@@ -207,11 +207,7 @@ type FilterWrapperProps = FlexProps & {
   $wrapTokens?: boolean;
 };
 
-export function FilterWrapper({
-  $wrapTokens = false,
-  style,
-  ...props
-}: FilterWrapperProps) {
+export function FilterWrapper({$wrapTokens = false, ...props}: FilterWrapperProps) {
   return (
     <Flex
       {...props}
@@ -224,9 +220,8 @@ export function FilterWrapper({
       minHeight="24px"
       height={$wrapTokens ? 'auto' : '24px'}
       maxWidth="100%"
-      whiteSpace={$wrapTokens ? 'normal' : 'nowrap'}
+      whiteSpace="nowrap"
       overflow={$wrapTokens ? 'visible' : 'hidden'}
-      style={{...style, overflowWrap: $wrapTokens ? 'anywhere' : undefined}}
     />
   );
 }
