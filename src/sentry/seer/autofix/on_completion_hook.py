@@ -12,6 +12,7 @@ from sentry.analytics.events.autofix_events import (
     AiAutofixIntrospectionEvent,
     AiAutofixPrCreatedCompletedEvent,
 )
+from sentry.integrations.github.utils import is_github_rate_limit_sensitive
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -63,6 +64,7 @@ from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organiza
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.tasks.seer.pr_iteration import (
     _add_comment_reaction,
+    _delete_own_comment_eyes_reaction,
     consume_queued_autofix_feedback,
 )
 from sentry.utils import metrics
@@ -253,6 +255,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if not sources:
             return
 
+        # Rate-limit-sensitive orgs skip the extra reaction-delete API calls.
+        delete_eyes = not is_github_rate_limit_sensitive(organization.slug)
+
         scm_by_repo: dict[str, SourceCodeManager] = {}
         for source in sources:
             comment_id = source.comment.id
@@ -304,6 +309,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 comment_id=comment_id,
                 reaction="hooray",
             )
+            if delete_eyes:
+                _delete_own_comment_eyes_reaction(
+                    scm,
+                    source_type="github-pr-comment",
+                    pr_number=pr_number,
+                    comment_id=comment_id,
+                )
 
     @classmethod
     def find_latest_artifact_for_step(cls, state: SeerRunState, key: str) -> Artifact | None:

@@ -1061,3 +1061,46 @@ class TestMaybeReactToCompletedIteration(TestCase):
 
         mock_make_scm.assert_not_called()
         mock_react.assert_not_called()
+
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=False)
+    @patch(f"{REACT_PATH}._delete_own_comment_eyes_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_deletes_own_eyes_on_top_level_comment(
+        self, mock_react, mock_make_scm, mock_delete_eyes, mock_sensitive
+    ):
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        state = self._state_with([self._top_level_source(111)])
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+
+        assert mock_react.call_args.kwargs["reaction"] == "hooray"
+        assert mock_delete_eyes.call_count == 1
+        assert mock_delete_eyes.call_args.args[0] is scm
+        assert mock_delete_eyes.call_args.kwargs["source_type"] == "github-pr-comment"
+        assert mock_delete_eyes.call_args.kwargs["pr_number"] == 7
+        assert mock_delete_eyes.call_args.kwargs["comment_id"] == 111
+
+    @patch(f"{REACT_PATH}.is_github_rate_limit_sensitive", return_value=True)
+    @patch(f"{REACT_PATH}._delete_own_comment_eyes_reaction")
+    @patch(f"{REACT_PATH}.make_scm")
+    @patch(f"{REACT_PATH}._add_comment_reaction")
+    def test_skips_eyes_delete_for_rate_limit_sensitive_org(
+        self, mock_react, mock_make_scm, mock_delete_eyes, mock_sensitive
+    ):
+        scm = MagicMock()
+        mock_make_scm.return_value = scm
+        state = self._state_with([self._top_level_source(111)])
+
+        with self.feature("organizations:autofix-pr-iteration"):
+            AutofixOnCompletionHook._maybe_react_to_completed_iteration(
+                self.organization, 123, state
+            )
+
+        # :tada: is still added, but the eyes-delete is skipped entirely.
+        assert mock_react.call_args.kwargs["reaction"] == "hooray"
+        mock_delete_eyes.assert_not_called()

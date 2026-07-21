@@ -11,7 +11,10 @@ from scm.manager import SourceCodeManager
 from scm.types import (
     CreatePullRequestCommentReactionProtocol,
     CreateReviewCommentReactionProtocol,
+    DeletePullRequestCommentReactionProtocol,
     DiffLine,
+    GetAuthenticatedActorProtocol,
+    GetPullRequestCommentReactionsProtocol,
     GetPullRequestReviewProtocol,
     GetRepositoryUserPermissionProtocol,
     GetReviewCommentsProtocol,
@@ -294,6 +297,43 @@ def _add_comment_reaction(
             )
     except Exception as e:
         sentry_sdk.capture_exception(e)
+
+
+def _delete_own_comment_eyes_reaction(
+    scm: SourceCodeManager,
+    *,
+    source_type: GithubPrCommentFeedbackType,
+    pr_number: int,
+    comment_id: int,
+) -> None:
+    """Remove the :eyes: we added at trigger time, completing the :eyes:->:tada: swap."""
+    # Only top-level PR comments get the trigger-time :eyes:; review comments are out of scope.
+    if source_type != "github-pr-comment":
+        return
+
+    if not (
+        isinstance(scm, GetAuthenticatedActorProtocol)
+        and isinstance(scm, GetPullRequestCommentReactionsProtocol)
+        and isinstance(scm, DeletePullRequestCommentReactionProtocol)
+    ):
+        logger.warning("autofix.pr_iteration.completion_reaction.unsupported_provider")
+        return
+
+    try:
+        actor = scm_actions.get_authenticated_actor(scm)
+        actor_id = actor["data"]["id"]
+
+        result = scm_actions.get_pull_request_comment_reactions(
+            scm, str(pr_number), str(comment_id)
+        )
+        for reaction in result["data"]:
+            author = reaction.get("author")
+            if reaction["content"] == "eyes" and author is not None and author["id"] == actor_id:
+                scm_actions.delete_pull_request_comment_reaction(
+                    scm, str(pr_number), str(comment_id), str(reaction["id"])
+                )
+    except Exception:
+        logger.exception("autofix.pr_iteration.completion_reaction.delete_eyes_failed")
 
 
 def _comment_pr_iteration_ineligible(
