@@ -379,7 +379,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
             if features.has(
                 "projects:issue-action-log-write-to-db", group.project, actor=request.user
             ):
-                action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 100)
+                action_log = GroupActionLogEntry.objects.get_actions_for_group(group, 99)
                 if action_log:
                     # swap action log data in under the activity name
                     first_seen_entry = cast(dict[str, Any], serialize_first_seen_entry(group))

@@ -221,7 +221,8 @@ class GroupActionLogEntrySerializer(Serializer):
             if key_translations:
                 data = {key_translations.get(key, key): value for key, value in raw_data.items()}
             else:
-                data = raw_data
+                data = dict(raw_data)
+            data.pop("mentions", None)
 
         return {
             "id": str(obj.id),
