@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 
 import sentry_sdk
+from django.db.models import Exists, OuterRef
 from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
@@ -133,8 +134,13 @@ def schedule_per_org_calculations() -> None:
         name="ds_per_org",
         schedule_key="dynamic-sampling-schedule-per-org-calculations",
         queryset=Organization.objects.filter(
+            Exists(
+                Project.objects.filter(
+                    organization_id=OuterRef("pk"),
+                    status=ObjectStatus.ACTIVE,
+                )
+            ),
             status=OrganizationStatus.ACTIVE,
-            id__in=Project.objects.filter(status=ObjectStatus.ACTIVE).values("organization_id"),
         ),
         task=run_calculations_per_org_task_entry,
         cycle_duration=CYCLE_DURATION,
