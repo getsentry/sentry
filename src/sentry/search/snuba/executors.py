@@ -1342,8 +1342,31 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             return self.empty_result
 
         if len(candidate_ids) > max_candidates:
-            # Too many candidates to score in memory. Signal the caller to fall through
-            # to the Snuba chunked path, which can paginate without an in-memory bound.
+            # Too many candidates to score in memory. If the strategy can order natively in
+            # Postgres, invert the Snuba chunked loop: walk GroupDerivedData in score order
+            # (Postgres is the sort authority) and use Snuba only as a membership filter per
+            # chunk. This keeps the correct ranking past the cap even with Snuba-side filters
+            # / env scoping / an upper time bound, instead of degrading to a last_seen sort.
+            if strategy.native_order_by is not None and _has_derived_progress(actor, projects):
+                return self._execute_inverted_chunk_sort(
+                    strategy=strategy,
+                    group_queryset=group_queryset,
+                    projects=projects,
+                    environments=environments,
+                    search_filters=search_filters,
+                    sort_by=sort_by,
+                    limit=limit,
+                    cursor=cursor,
+                    count_hits=count_hits,
+                    paginator_options=paginator_options,
+                    max_hits=max_hits,
+                    actor=actor,
+                    start=start,
+                    end=end,
+                    referrer=referrer,
+                )
+            # Otherwise signal the caller to fall through to the Snuba chunked path, which
+            # can paginate without an in-memory bound.
             return None
 
         # Hit Snuba when the strategy needs an aggregation value or the query has
@@ -1450,6 +1473,217 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         paginator_results = SequencePaginator(
             scored_groups, reverse=True, **paginator_options
         ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+
+        groups = Group.objects.in_bulk(paginator_results.results)
+        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
+        return paginator_results
+
+    def _execute_inverted_chunk_sort(
+        self,
+        *,
+        strategy: PostgresSortStrategy,
+        group_queryset: BaseQuerySet,
+        projects: Sequence[Project],
+        environments: Sequence[Environment] | None,
+        search_filters: Sequence[SearchFilter] | None,
+        sort_by: str,
+        limit: int,
+        cursor: Cursor | None,
+        count_hits: bool,
+        paginator_options: Mapping[str, Any],
+        max_hits: int | None,
+        actor: Any | None,
+        start: datetime,
+        end: datetime,
+        referrer: str,
+    ) -> CursorResult[Group]:
+        """Over-cap progress sort with a Snuba-side filter (and/or environment scoping and/or
+        an explicit upper time bound).
+
+        Inverts the standard chunked path: Postgres/GroupDerivedData is the SORT authority --
+        we ORDER BY the native progress score and walk it in score order -- and Snuba is only
+        a membership FILTER. Each Postgres-ordered chunk of group_ids is sent to snuba_search;
+        we keep the ids it returns, preserving Postgres order. This avoids the in-memory
+        candidate cap without degrading to a recency sort.
+
+        The cursor is a scaled-int progress score, so it is applied in Postgres only; every
+        snuba_search call passes cursor=None (a cursor there becomes a HAVING on last_seen,
+        which our value is not).
+        """
+        assert strategy.native_order_by is not None
+        organization = projects[0].organization
+        if cursor is None:
+            cursor = Cursor(0, 0, False)
+        is_prev = cursor.is_prev
+
+        # Postgres is the sort authority: order the whole candidate set by the native score
+        # and walk it. Snuba only decides membership below.
+        ordered_queryset, order_by = strategy.native_order_by(group_queryset)
+        ordered_queryset = ordered_queryset.using_replica()
+        # order_by is the signed key (e.g. "-progress_sort_score"); the alias it references is
+        # the same name without the direction prefix.
+        sort_key = order_by.lstrip("-")
+
+        # Bound the walk by the cursor in Postgres, reusing the .extra() alias SQL exactly as
+        # BasePaginator.build_queryset does. FLOOR() is required: the score's tiebreak term
+        # (EXTRACT(EPOCH ...) * 1000) is fractional, but the cursor value is the floored int
+        # that SequencePaginator emits, so a raw "<= value" would drop the boundary-tie row.
+        col_sql, col_params = ordered_queryset.query.extra[sort_key]
+        walk_queryset: Any = ordered_queryset
+        if is_prev:
+            walk_queryset = walk_queryset.order_by(sort_key, "id")
+        if cursor.value:
+            operator = ">=" if is_prev else "<="
+            walk_queryset = walk_queryset.extra(
+                where=[f"FLOOR({col_sql}) {operator} %s"],
+                params=list(col_params) + [cursor.value],
+            )
+        walk_queryset = walk_queryset.values_list("id", sort_key)
+
+        # Progress reorders but does not change membership, so total hits equal the recency
+        # query's; estimate them exactly as the too_many_candidates path does.
+        hits = self.calculate_hits(
+            [],
+            True,
+            "last_seen",
+            projects,
+            None,
+            group_queryset,
+            environments,
+            sort_by,
+            limit,
+            cursor,
+            count_hits,
+            paginator_options,
+            search_filters,
+            start,
+            end,
+            actor,
+            referrer=referrer,
+        )
+
+        chunk_growth = options.get("snuba.search.chunk-growth-rate")
+        max_chunk_size = options.get("snuba.search.max-chunk-size")
+        max_time = options.get("snuba.search.max-total-chunk-time-seconds")
+
+        # Accumulate enough passers for the page plus one lookahead row, then fully drain the
+        # boundary score-tie so SequencePaginator sees a complete, contiguous prefix (the walk
+        # visits a floor-tie block contiguously, so crossing the block collects all of it).
+        need = cursor.offset + limit + 1
+        passers: list[tuple[int, int]] = []
+        boundary_score: int | None = None
+        walk_exhausted = False
+        budget_exhausted = False
+
+        project_ids = [p.id for p in projects]
+        environment_ids = [e.id for e in environments] if environments else None
+        pg_offset = 0
+        chunk_size = limit
+        num_chunks = 0
+
+        time_start = time.time()
+        with start_span(
+            op="search.postgres_sort.inverted_chunk",
+            name="search.postgres_sort.inverted_chunk",
+        ) as span:
+            while True:
+                if (time.time() - time_start) >= max_time:
+                    budget_exhausted = True
+                    break
+
+                chunk_size = min(int(chunk_size * chunk_growth), max_chunk_size)
+                num_chunks += 1
+
+                rows = list(walk_queryset[pg_offset : pg_offset + chunk_size])
+                if not rows:
+                    walk_exhausted = True
+                    break
+                pg_offset += len(rows)
+
+                chunk_ids = [row[0] for row in rows]
+                # cursor=None: the cursor is a progress score, applied in Postgres above;
+                # here Snuba is a pure membership filter over this chunk's group_ids.
+                snuba_groups, _ = self.snuba_search(
+                    start=start,
+                    end=end,
+                    project_ids=project_ids,
+                    environment_ids=environment_ids,
+                    organization=organization,
+                    sort_field="last_seen",
+                    cursor=None,
+                    group_ids=chunk_ids,
+                    limit=len(chunk_ids),
+                    offset=0,
+                    search_filters=search_filters,
+                    referrer=referrer,
+                    actor=actor,
+                )
+                passing_ids = {gid for gid, _ in snuba_groups}
+                for gid, raw_score in rows:
+                    if gid in passing_ids:
+                        passers.append((int(floor(raw_score)), gid))
+
+                # A short chunk means the (cursor-bounded) walk is exhausted.
+                if len(rows) < chunk_size:
+                    walk_exhausted = True
+                    break
+
+                if boundary_score is None and len(passers) >= need:
+                    boundary_score = passers[need - 1][0]
+                if boundary_score is not None:
+                    last_floor = int(floor(rows[-1][1]))
+                    crossed = (
+                        last_floor > boundary_score if is_prev else last_floor < boundary_score
+                    )
+                    if crossed:
+                        break
+
+            set_span_data(span, "num_chunks", num_chunks)
+            set_span_data(span, "num_passers", len(passers))
+        metrics.distribution("search.progress_inverted.num_chunks", num_chunks)
+
+        if not passers:
+            # No Snuba matches in the rows we walked. When the walk is exhausted this is
+            # genuinely empty. When we stopped early on the time budget, later rows could still
+            # match -- but our cursor value is a progress score and cannot encode a mid-tie
+            # "resume at raw row N" checkpoint (the score is not unique, and the paginator
+            # offset is defined over passers, not raw scanned rows). Advertising next without an
+            # advancing cursor value (0:0:0) would make the client rescan the same prefix
+            # forever, so we return a terminating empty page instead -- matching the
+            # non-inverted chunked loop's behavior on budget exhaustion. This can under-report
+            # on a highly selective filter over a huge high-progress prefix; the metric tracks
+            # how often we hit it so the Snuba-native path can be prioritized if it is material.
+            if budget_exhausted:
+                metrics.incr("search.progress_inverted_budget_exhausted", skip_internal=False)
+                sentry_sdk.set_tag("search.progress_inverted_budget_exhausted", "true")
+            return self.empty_result
+
+        # SequencePaginator re-sorts by (int_score, group_id) DESC, so accumulation order is
+        # irrelevant; only the set of passers matters.
+        paginator_results = SequencePaginator(
+            passers, reverse=True, **paginator_options
+        ).get_result(limit, cursor, known_hits=hits, max_hits=max_hits)
+
+        # HACK (mirrors the Snuba chunk loop): we are 'lying' to the SequencePaginator -- it
+        # treats `passers` as the whole result set, but if we stopped before exhausting the
+        # Postgres walk there may be more matches it can't see. When the walk is exhausted its
+        # has_results in the walk direction is exact, so we trust it.
+        if is_prev:
+            paginator_results.next.has_results = True
+            if not walk_exhausted:
+                paginator_results.prev.has_results = True
+        else:
+            if not walk_exhausted:
+                paginator_results.next.has_results = True
+            if cursor.value or cursor.offset:
+                paginator_results.prev.has_results = True
+
+        if budget_exhausted:
+            # Never degrade to recency: return the partial, correctly-ordered page and let the
+            # user page forward for the remainder. has_results in the walk direction is already
+            # forced True above (budget exhaustion implies the walk was not exhausted).
+            metrics.incr("search.progress_inverted_budget_exhausted", skip_internal=False)
+            sentry_sdk.set_tag("search.progress_inverted_budget_exhausted", "true")
 
         groups = Group.objects.in_bulk(paginator_results.results)
         paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
