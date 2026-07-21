@@ -2,6 +2,8 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaPopoverProps} from '@react-aria/overlays';
 import type {OverlayTriggerState} from '@react-stately/overlays';
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 
 import {Overlay} from 'sentry/components/overlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -63,8 +65,21 @@ const ListBoxOverlay = styled(Overlay)<{$hasAskSeerUxRework: boolean}>`
   background-color: ${p =>
     p.$hasAskSeerUxRework
       ? p.theme.tokens.background.primary
-      : p.theme.tokens.background.transparent.accent.muted};
+      : compositeColor(
+          p.theme.tokens.background.transparent.accent.muted,
+          p.theme.tokens.background.overlay
+        )};
+  will-change: auto;
 `;
+
+function compositeColor(foregroundColor: string, backgroundColor: string) {
+  const foreground = color(foregroundColor);
+
+  return color(backgroundColor)
+    .mix(foreground.alpha(1), foreground.alpha())
+    .rgb()
+    .string();
+}
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
