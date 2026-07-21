@@ -27,7 +27,7 @@ from sentry.search.eap.constants import (
     METRIC_UNIT_ALIAS,
 )
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.snuba.referrer import Referrer
+from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.trace_metrics import TraceMetrics
 
 _COUNT_ALIAS = f"count({METRIC_NAME_ALIAS})"
@@ -73,6 +73,10 @@ class OrganizationTraceItemMetricsSerializer(serializers.Serializer[Never]):
     # A response field to sort by, optionally prefixed with `-` for descending
     # (e.g. `-count`). Defaults to metric name.
     sort = serializers.CharField(required=False)
+    # Overrides the referrer attached to the underlying query so callers (e.g.
+    # Seer tools) remain distinguishable in query analytics. Falls back to the
+    # endpoint default when absent or not a recognized referrer.
+    referrer = serializers.CharField(required=False)
 
     def validate_sort(self, value: str) -> str:
         field = value[1:] if value.startswith("-") else value
@@ -111,6 +115,12 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
         snuba_params.start = adjusted_start
         snuba_params.end = adjusted_end
 
+        # Allowlist the caller-supplied referrer; fall back to the endpoint
+        # default when absent or unrecognized so query analytics stay clean.
+        referrer = serialized.get("referrer")
+        if not referrer or not is_valid_referrer(referrer):
+            referrer = Referrer.API_EXPLORE_TRACEMETRICS_METRICS_LIST.value
+
         query_string = serialized.get("query", "")
         # Authored context is joined from TraceItemAttributeValueContext, gated
         # behind the feature; conventions don't apply to custom metrics.
@@ -144,7 +154,7 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
                     orderby=orderby,
                     offset=offset,
                     limit=limit,
-                    referrer=Referrer.API_EXPLORE_TRACEMETRICS_METRICS_LIST.value,
+                    referrer=referrer,
                     config=SearchResolverConfig(),
                     sampling_mode=snuba_params.sampling_mode,
                 )

@@ -10,6 +10,7 @@ from sentry.seer.sentry_data_models import (
     MetricMetadataRow,
     MetricMetadataSuccessResponse,
 )
+from sentry.snuba.referrer import Referrer
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +101,7 @@ def get_metric_metadata(
         "per_page": per_page,
         "statsPeriod": stats_period,
         "project": project_ids or [ALL_ACCESS_PROJECT_ID],
+        "referrer": Referrer.SEER_EXPLORER_TOOLS,
     }
 
     try:
