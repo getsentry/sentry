@@ -123,6 +123,66 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         assert response.status_code == 400, response.data
         assert "sort" in response.data
 
+    def test_context_only_filters_to_metrics_with_context(self) -> None:
+        self.store_metric("has.context", "counter")
+        self.store_metric("no.context", "counter")
+        self.create_context("has.context", project=None, brief="Described")
+
+        response = self.do_request(query={"project": self.project.id, "context_only": "1"})
+
+        assert response.status_code == 200, response.data
+        assert [row["name"] for row in response.data] == ["has.context"]
+        assert response.data[0]["context"] == {"brief": "Described"}
+
+    def test_context_only_empty_when_no_context(self) -> None:
+        self.store_metric("no.context", "counter")
+
+        response = self.do_request(query={"project": self.project.id, "context_only": "1"})
+
+        assert response.status_code == 200, response.data
+        assert response.data == []
+
+    def test_context_only_matches_unicode_name(self) -> None:
+        # A unicode metric name must still match the IN filter (regression: json
+        # escaping would emit \uXXXX, which the search grammar doesn't decode).
+        self.store_metric("café.requests", "counter")
+        self.create_context("café.requests", project=None, brief="Café")
+
+        response = self.do_request(query={"project": self.project.id, "context_only": "1"})
+
+        assert response.status_code == 200, response.data
+        assert [row["name"] for row in response.data] == ["café.requests"]
+
+    def test_context_only_drops_type_without_context(self) -> None:
+        # Same name exists as counter and gauge, but only the counter has context.
+        # The name filter returns both; the gauge (no context) must be dropped.
+        self.store_metric("checkout.requests", "counter")
+        self.store_metric("checkout.requests", "gauge")
+        self.create_context(
+            "checkout.requests", metric_type=TraceMetricTypes.COUNTER, project=None, brief="Counter"
+        )
+
+        response = self.do_request(query={"project": self.project.id, "context_only": "1"})
+
+        assert response.status_code == 200, response.data
+        assert [(row["type"], "context" in row) for row in response.data] == [("counter", True)]
+
+    def test_context_only_ignored_without_feature(self) -> None:
+        self.store_metric("has.context", "counter")
+        self.store_metric("no.context", "counter")
+        self.create_context("has.context", project=None, brief="Described")
+
+        response = self.do_request(
+            query={"project": self.project.id, "context_only": "1"},
+            features={
+                "organizations:visibility-explore-view": True,
+                "organizations:tracemetrics-enabled": True,
+            },
+        )
+
+        assert response.status_code == 200, response.data
+        assert {row["name"] for row in response.data} == {"has.context", "no.context"}
+
     def test_expand_context(self) -> None:
         self.store_metric("checkout.requests", "counter")
         self.create_context(
