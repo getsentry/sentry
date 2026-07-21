@@ -49,6 +49,17 @@ class FeedbackSourceBase(BaseModel):
         """Text shown in the UI. ``None`` means fall back to ``text``."""
         return None
 
+    @property
+    def is_automated(self) -> bool:
+        """Whether this feedback came from an automated actor (CI, a bot) rather
+        than a human.
+
+        Consecutive iterations driven only by automated feedback are capped (see
+        ``automated_iteration_cap_reached``); human feedback resets that streak.
+        Defaults to human — subclasses opt in.
+        """
+        return False
+
     def should_queue(self, run_state: SeerRunState) -> bool:
         return True
 

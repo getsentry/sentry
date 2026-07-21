@@ -15,6 +15,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
+    GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
@@ -45,10 +46,10 @@ class TriggerPrIterationFromCommentTest(TestCase):
         self.comment = {"id": 999, "body": "@sentry fix it", "user": {"login": "octocat"}}
         self.feedback = Feedback(source=GithubPrCommentFeedbackSource(comment=self.comment))
 
-    def _agent_state(self) -> SeerRunState:
+    def _agent_state(self, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
         return SeerRunState(
             run_id=67890,
-            blocks=[],
+            blocks=blocks or [],
             status="completed",
             updated_at="2024-01-01T00:00:00Z",
             repo_pr_states={
@@ -57,6 +58,16 @@ class TriggerPrIterationFromCommentTest(TestCase):
                 )
             },
             metadata={"group_id": self.group.id},
+        )
+
+    def _iteration_block(self, idx: int) -> MemoryBlock:
+        return MemoryBlock(
+            id=f"iter{idx}",
+            message=Message(
+                role="assistant",
+                metadata={"step": "pr_iteration", "iteration_index": idx},
+            ),
+            timestamp="2024-01-01T00:00:00Z",
         )
 
     def _mock_integration(self, pr_id: int | None = 555) -> MagicMock:
@@ -321,6 +332,37 @@ class TriggerPrIterationFromCommentTest(TestCase):
             reaction="eyes",
         )
 
+    @patch(f"{TASK_PATH}._add_comment_reaction")
+    @patch(f"{TASK_PATH}.make_scm")
+    @patch(f"{TASK_PATH}._github_commenter_has_repo_write_access", return_value=True)
+    @patch(f"{TASK_PATH}.trigger_consume_pr_iteration_feedback")
+    @patch(f"{TASK_PATH}.try_enqueue_autofix_feedback", return_value=True)
+    @patch(f"{TASK_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{TASK_PATH}.integration_service.get_integration")
+    def test_iterates_past_max_iterations(
+        self,
+        mock_get_integration: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+        mock_has_access: MagicMock,
+        mock_make_scm: MagicMock,
+        mock_reaction: MagicMock,
+    ) -> None:
+        # The max-iterations cap only bounds automatic (bot/check-suite) loops; a
+        # manual @sentry comment still drives an iteration past the cap.
+        mock_get_integration.return_value = self._mock_integration()
+        mock_get_state.return_value = self._agent_state(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_enqueue.assert_called_once()
+        mock_trigger_consume.assert_called_once()
+        mock_reaction.assert_called_once()
+
 
 class ConsumeQueuedAutofixFeedbackTest(TestCase):
     def setUp(self) -> None:
@@ -350,6 +392,16 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             referrer=AutofixReferrer.GITHUB_PR_COMMENT,
         )
 
+    def _iteration_block(self, idx: int) -> MemoryBlock:
+        return MemoryBlock(
+            id=f"iter{idx}",
+            message=Message(
+                role="assistant",
+                metadata={"step": "pr_iteration", "iteration_index": idx},
+            ),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+
     def _review_feedback(
         self,
         comment_id: int,
@@ -361,7 +413,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             source=GithubPrReviewCommentFeedbackSource(
                 comment={
                     "id": comment_id,
-                    "body": "@sentry fix it",
+                    "body": "fix it",
                     "path": "src/sentry/foo.py",
                     "line": line,
                     "start_line": start_line,
@@ -551,6 +603,34 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
     @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_consumes_feedback_past_max_iterations(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # consume no longer enforces the cap; a queued comment past the old limit
+        # still triggers an iteration. Automatic loops are bounded upstream (the
+        # review trigger and the check-suite hard cap), not here.
+        mock_fetch.return_value = self._state(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        mock_pop.return_value = [
+            self._queued(
+                Feedback(
+                    source=GithubPrCommentFeedbackSource(comment={"id": 1, "body": "@sentry go"})
+                )
+            )
+        ]
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._call()
+
+        mock_trigger.assert_called_once()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
     def test_collapses_duplicate_review_comment_ids_in_batch(
         self,
         mock_fetch: MagicMock,
@@ -650,6 +730,50 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_pop.return_value = [
             self._queued(issue_feedback),
             self._queued(self._review_feedback(777)),
+        ]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert len(mock_trigger.call_args.kwargs["feedback"]) == 2
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_collapses_duplicate_review_body_ids_in_batch(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state()
+        body = lambda: Feedback(
+            source=GithubPrReviewBodyFeedbackSource(review_id=500, body="summary")
+        )
+        mock_pop.return_value = [self._queued(body()), self._queued(body())]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert len(mock_trigger.call_args.kwargs["feedback"]) == 1
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_review_body_and_comment_not_collapsed(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # A review body item and an inline comment item both flow through — they
+        # dedupe on separate id namespaces.
+        mock_fetch.return_value = self._state()
+        mock_pop.return_value = [
+            self._queued(
+                Feedback(source=GithubPrReviewBodyFeedbackSource(review_id=1, body="summary"))
+            ),
+            self._queued(self._review_feedback(1)),
         ]
 
         self._call()

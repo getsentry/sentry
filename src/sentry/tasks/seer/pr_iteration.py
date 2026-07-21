@@ -6,15 +6,23 @@ from typing import Any
 
 import sentry_sdk
 from scm import actions as scm_actions
+from scm.errors import ResourceNotFound
 from scm.manager import SourceCodeManager
 from scm.types import (
     CreatePullRequestCommentReactionProtocol,
     CreateReviewCommentReactionProtocol,
+    DiffLine,
+    GetPullRequestReviewProtocol,
     GetRepositoryUserPermissionProtocol,
+    GetReviewCommentsProtocol,
+    PaginationParams,
     Reaction,
+    Review,
+    ReviewComment,
 )
 from taskbroker_client.retry import Retry
 
+from sentry import options
 from sentry.cache import default_cache
 from sentry.integrations.services.integration import integration_service
 from sentry.locks import locks
@@ -31,13 +39,16 @@ from sentry.seer.autofix.autofix_agent import (
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrCommentFeedbackType,
+    GithubPrCommentUser,
+    GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
+    GithubPullRequestReviewComment,
 )
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
@@ -167,8 +178,9 @@ def consume_queued_autofix_feedback(
             return
 
         feedback_items = []
-        # Keyed by (source class, comment id): issue-comment and review-comment
-        # ids come from separate GitHub namespaces, so dedupe within each type.
+        # Keyed by (source class, id): issue-comment, review-comment, and review
+        # (body) ids come from separate GitHub namespaces, so dedupe within each
+        # concrete source type.
         seen_comment_keys: set[tuple[type, int]] = set()
         # Align with CheckSuiteFeedbackSource.should_consume: coalesce by
         # (suite id, updated_at). Legacy feedback without updated_at uses suite id.
@@ -187,15 +199,19 @@ def consume_queued_autofix_feedback(
                 continue
 
             source = item.feedback.source
+            comment_dedupe_id: int | None = None
             if isinstance(
                 source, (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource)
             ):
-                comment_id = source.comment.id
-                if comment_id is not None:
-                    key = (type(source), comment_id)
-                    if key in seen_comment_keys:
-                        continue
-                    seen_comment_keys.add(key)
+                comment_dedupe_id = source.comment.id
+            elif isinstance(source, GithubPrReviewBodyFeedbackSource):
+                comment_dedupe_id = source.review_id
+
+            if comment_dedupe_id is not None:
+                key = (type(source), comment_dedupe_id)
+                if key in seen_comment_keys:
+                    continue
+                seen_comment_keys.add(key)
             elif isinstance(source, CheckSuiteFeedbackSource):
                 suite_key = source.check_suite_attempt_key()
                 if suite_key in seen_check_suite_keys:
@@ -527,5 +543,293 @@ def trigger_pr_iteration_from_comment(
             "repo_id": repo_id,
         },
     )
+
+    return None
+
+
+_REVIEW_PAGE_SIZE = 100
+
+
+def _fetch_all_review_comments(
+    scm: GetReviewCommentsProtocol,
+    *,
+    pr_number: int,
+    review_id: int,
+) -> list[ReviewComment]:
+    """Page through every inline comment attached to a submitted review."""
+    comments: list[ReviewComment] = []
+    page = 1
+    while True:
+        pagination: PaginationParams = {"cursor": str(page), "per_page": _REVIEW_PAGE_SIZE}
+        result = scm_actions.get_review_comments(scm, str(pr_number), str(review_id), pagination)
+        batch = result["data"]
+        comments.extend(batch)
+        if len(batch) < _REVIEW_PAGE_SIZE:
+            return comments
+        page += 1
+
+
+def _fetch_review_body(
+    scm: GetPullRequestReviewProtocol,
+    *,
+    pr_number: int,
+    review_id: int,
+) -> Review | None:
+    """Fetch the submitted review (for its summary body) directly by id."""
+    try:
+        result = scm_actions.get_pull_request_review(scm, str(pr_number), str(review_id))
+    except ResourceNotFound:
+        return None
+    return result["data"]
+
+
+def _diff_line_number(diff_line: DiffLine | None) -> int | None:
+    """Flatten an SCM ``DiffLine`` to a single line number for display.
+
+    A ``DiffLine`` carries the line's position on the head and/or base side of the
+    diff (see ``scm.types.DiffLine``). The anchor is display context only, so
+    prefer the head (post-image) side and fall back to the base side.
+    """
+    if not diff_line:
+        return None
+    return diff_line.get("head") or diff_line.get("base")
+
+
+def _build_review_feedback(
+    inline_comments: list[ReviewComment],
+    review_body: str | None,
+    *,
+    review_id: int,
+    review_html_url: str | None,
+    author_is_bot: bool,
+) -> list[Feedback]:
+    """Normalize a submitted review into feedback items.
+
+    Each inline comment becomes an anchored ``GithubPrReviewCommentFeedbackSource``
+    (command gate relaxed) and the review's summary body, if any, becomes its own
+    non-anchored ``GithubPrReviewBodyFeedbackSource``.
+
+    ``author_is_bot`` marks the resulting feedback as automated so it counts
+    toward the automated-iteration streak cap (see ``automated_iteration_cap_reached``).
+    """
+    feedback: list[Feedback] = []
+
+    for comment in inline_comments:
+        author = comment.get("author")
+        # The SCM-normalized ``ReviewComment`` carries ``file_path`` / ``author``
+        # / ``url`` while the reusable source reads the webhook-shaped ``path`` /
+        # ``user`` / ``html_url``, so map the fields explicitly before constructing
+        # it. ``line`` / ``start_line`` are ``DiffLine`` dicts now, so flatten to a
+        # line number.
+        review_comment = GithubPullRequestReviewComment(
+            id=int(comment["id"]),
+            body=comment.get("body"),
+            html_url=comment.get("url"),
+            path=comment.get("file_path"),
+            line=_diff_line_number(comment.get("line")),
+            start_line=_diff_line_number(comment.get("start_line")),
+            diff_hunk=comment.get("diff_hunk"),
+            user=GithubPrCommentUser(login=author["username"] if author else None),
+        )
+        source = GithubPrReviewCommentFeedbackSource(
+            comment=review_comment, author_is_bot=author_is_bot
+        )
+        feedback.append(Feedback(source=source))
+
+    if review_body:
+        body_source = GithubPrReviewBodyFeedbackSource(
+            review_id=review_id,
+            body=review_body,
+            html_url=review_html_url,
+            author_is_bot=author_is_bot,
+        )
+        feedback.append(Feedback(source=body_source))
+
+    return feedback
+
+
+@instrumented_task(
+    name="sentry.tasks.autofix.trigger_pr_iteration_from_review",
+    namespace=seer_tasks,
+    processing_deadline_duration=65,
+    retry=Retry(times=1),
+)
+def trigger_pr_iteration_from_review(
+    *,
+    organization_id: int,
+    repo_id: int,
+    integration_id: int,
+    pr_number: int,
+    review_id: int,
+    author_username: str | None = None,
+    author_is_bot: bool = False,
+) -> None:
+    """
+    Resolve the Autofix run behind a submitted PR review and kick off an iteration.
+
+    Runs async because it makes external GitHub and Seer calls: it fetches the PR
+    to recover its GitHub id, looks up the agent run keyed on that id, fetches the
+    review's inline comments and summary body, and triggers the iteration with the
+    whole review as feedback. Unlike the comment path there is no ``@sentry``
+    command gate — any submitted review with content is acted on — but the review
+    author must have repo write/admin access, so an untrusted reviewer can't spend
+    Autofix quota or inject feedback that rewrites the PR.
+
+    ``author_is_bot`` reviews (test-coverage bots and the like) count toward the
+    automated-iteration streak cap and are dropped once it's reached; human
+    reviews always drive an iteration and reset that streak.
+    """
+    log_extra = {
+        "organization_id": organization_id,
+        "repo_id": repo_id,
+        "pr_number": pr_number,
+        "review_id": review_id,
+        "author_username": author_username,
+        "author_is_bot": author_is_bot,
+    }
+
+    repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
+    if repo is None:
+        logger.info("autofix.pr_iteration.review_trigger.missing_repo", extra=log_extra)
+        return None
+    if repo.provider is None:
+        logger.warning("autofix.pr_iteration.review_trigger.no_provider", extra=log_extra)
+        return None
+
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if integration is None:
+        logger.warning("autofix.pr_iteration.review_trigger.missing_integration", extra=log_extra)
+        return None
+
+    client = integration.get_installation(organization_id=organization_id).get_client()
+    try:
+        # Async task: the PR may be deleted, made private, or GitHub may return a
+        # transient error between webhook receipt and execution.
+        pull_request = client.get_pull_request(repo.name, str(pr_number))
+    except ApiError:
+        logger.warning(
+            "autofix.pr_iteration.review_trigger.get_pull_request_failed",
+            extra=log_extra,
+            exc_info=True,
+        )
+        return None
+    pr_id = pull_request.get("id")
+    if pr_id is None:
+        return None
+
+    agent_state = get_agent_state_from_pr_id(organization_id, repo.provider, pr_id)
+    if agent_state is None or not agent_state.repo_pr_states:
+        metrics.incr("autofix.pr_iteration.review_trigger.no_run")
+        logger.info(
+            "autofix.pr_iteration.review_trigger.no_run",
+            extra={**log_extra, "pr_id": pr_id},
+        )
+        return None
+
+    # Only bot reviews are capped: once the last N iterations were all automated,
+    # stop letting bots (test-coverage comments and the like) drive further ones —
+    # they'd loop forever without human input. A human review always proceeds and
+    # resets that streak. Bail before enqueueing or acking so we don't :eyes:-ack
+    # inline comments that never produce an iteration.
+    if author_is_bot and automated_iteration_cap_reached(agent_state):
+        metrics.incr("autofix.pr_iteration.review_trigger.max_iterations_reached")
+        logger.info(
+            "autofix.pr_iteration.review_trigger.max_iterations_reached",
+            extra={
+                **log_extra,
+                "max_iterations": options.get("autofix.pr-iteration.max-iterations"),
+            },
+        )
+        return None
+
+    try:
+        scm = make_scm(organization_id, repo_id, referrer="seer")
+    except Exception:
+        logger.warning(
+            "autofix.pr_iteration.review_trigger.scm_init_failed", extra=log_extra, exc_info=True
+        )
+        return None
+
+    if not isinstance(scm, GetReviewCommentsProtocol) or not isinstance(
+        scm, GetPullRequestReviewProtocol
+    ):
+        logger.warning("autofix.pr_iteration.review_trigger.unsupported_provider", extra=log_extra)
+        return None
+
+    # Gate on repo write access before fetching, enqueueing, or acking: a review
+    # from someone without write/admin is silently dropped so an untrusted
+    # reviewer can't spend Autofix quota or inject feedback that rewrites the PR.
+    if not author_username or not _github_commenter_has_repo_write_access(scm, author_username):
+        metrics.incr("autofix.pr_iteration.review_trigger.no_write_access")
+        logger.info("autofix.pr_iteration.review_trigger.no_write_access", extra=log_extra)
+        return None
+
+    inline_comments = _fetch_all_review_comments(scm, pr_number=pr_number, review_id=review_id)
+    review = _fetch_review_body(scm, pr_number=pr_number, review_id=review_id)
+    review_body = (review.get("body") or "").strip() if review else None
+    review_html_url = review.get("html_url") if review else None
+
+    # Skip genuinely empty reviews — no body text AND no inline comments — there
+    # is nothing to act on (e.g. a bare approve with no message). A review with
+    # any content (even "looks good") is passed through to the agent.
+    if not review_body and not inline_comments:
+        logger.info("autofix.pr_iteration.review_trigger.empty_review", extra=log_extra)
+        return None
+
+    feedback_items = _build_review_feedback(
+        inline_comments,
+        review_body,
+        review_id=review_id,
+        review_html_url=review_html_url,
+        author_is_bot=author_is_bot,
+    )
+    if not feedback_items:
+        logger.info("autofix.pr_iteration.review_trigger.no_feedback", extra=log_extra)
+        return None
+
+    group_id = agent_state.metadata.get("group_id") if agent_state.metadata else None
+    if group_id is None:
+        raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
+
+    for feedback_obj in feedback_items:
+        try_enqueue_autofix_feedback(
+            run_id=agent_state.run_id,
+            organization_id=organization_id,
+            group_id=group_id,
+            feedback=feedback_obj,
+            referrer=AutofixReferrer.GITHUB_PR_REVIEW,
+            run_state=agent_state,
+        )
+
+    # A single consume pass drains everything queued above; trigger once using
+    # the first item to decide the countdown (all share the same run).
+    trigger_consume_pr_iteration_feedback(
+        run_id=agent_state.run_id,
+        organization_id=organization_id,
+        feedback=feedback_items[0],
+        run_state=agent_state,
+    )
+
+    # Ack each inline comment with :eyes:, mirroring the single-comment path (the
+    # review body has no reaction target). Gate on should_consume so we don't ack a
+    # comment consume will drop as stale.
+    # TODO: doesn't cover consume's other drop paths (group missing, processing,
+    # cap hit mid-drain) — reconcile with consume's outcome later.
+    for feedback_obj in feedback_items:
+        source = feedback_obj.source
+        if not isinstance(source, GithubPrReviewCommentFeedbackSource):
+            continue
+        if source.comment.id is None or not source.should_consume(agent_state):
+            continue
+        _add_comment_reaction(
+            scm,
+            source_type="github-pr-review-comment",
+            pr_number=pr_number,
+            comment_id=int(source.comment.id),
+            reaction="eyes",
+        )
+
+    metrics.incr("autofix.pr_iteration.review_trigger.success")
+    logger.info("autofix.pr_iteration.review_trigger.success", extra=log_extra)
 
     return None

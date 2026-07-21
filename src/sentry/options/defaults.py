@@ -3838,6 +3838,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Cap on consecutive automated PR iterations (check suites + bot re-reviews);
+# human feedback resets the streak. See ``automated_iteration_cap_reached``.
+register(
+    "autofix.pr-iteration.max-iterations",
+    type=Int,
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics
 register(
     "integrations.slo.integration-id-tag-enabled",

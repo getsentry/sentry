@@ -23,10 +23,6 @@ from sentry.seer.models import SeerApiError
 logger = logging.getLogger(__name__)
 
 _SEER_GITHUB_PROVIDER = "integrations:github"
-# Hard cap on consecutive PR iterations driven solely by automated check-suite
-# feedback. Once the last N iterations were all check-suite-only, stop triggering
-# further check-suite iterations (they'd loop forever without human input).
-CHECK_SUITE_ITERATION_HARD_CAP = 3
 
 
 class MissingCheckSuiteAutofixRun(Exception):
@@ -230,32 +226,6 @@ def resolve_check_suite_autofix_run(event: GithubCheckSuiteEvent) -> CheckSuiteA
     return matches[0]
 
 
-def _check_suite_iteration_cap_reached(run_state: SeerRunState) -> bool:
-    """Whether the last N PR iterations used only automated check-suite feedback."""
-    from sentry.seer.autofix.autofix_agent import get_iterations
-    from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import _blocks_feedback
-
-    cap = CHECK_SUITE_ITERATION_HARD_CAP
-    if cap <= 0:
-        return False
-
-    last_iterations = get_iterations(run_state)[-cap:]
-    if len(last_iterations) < cap:
-        return False
-
-    for iteration in last_iterations:
-        # Failed re-parses are dropped (and warned) inside parse_feedback.
-        feedbacks = _blocks_feedback(iteration.blocks)
-        # Empty after parse (e.g. all check-suite items failed to re-hydrate)
-        # must not count as check-suite-only toward the hard cap.
-        if not feedbacks:
-            return False
-        if any(not isinstance(feedback.source, CheckSuiteFeedbackSource) for feedback in feedbacks):
-            return False
-
-    return True
-
-
 def _processed_check_suite_attempts(run_state: SeerRunState) -> set[tuple[int, str] | int]:
     """Attempt keys already turned into feedback on this run (for consume dedupe)."""
     from sentry.seer.autofix.autofix_agent import get_iterations
@@ -348,6 +318,10 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     def ui_text(self) -> str | None:
         return f"check suite for app {self.app_name} failed"
 
+    @property
+    def is_automated(self) -> bool:
+        return True
+
     def _matches_current_head(self, run_state: SeerRunState) -> tuple[str | None, str | None, bool]:
         """Whether the check suite ran on the PR's *current* head commit.
 
@@ -364,8 +338,10 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         return head_sha, repo_name, matched
 
     def should_queue(self, run_state: SeerRunState) -> bool:
+        from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
+
         head_sha, repo_name, matched = self._matches_current_head(run_state)
-        cap_reached = matched and _check_suite_iteration_cap_reached(run_state)
+        cap_reached = matched and automated_iteration_cap_reached(run_state)
         logger.info(
             "autofix.pr_iteration.check_suite.should_queue.evaluated",
             extra={
@@ -403,7 +379,9 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         return matched and not already_processed
 
     def should_trigger(self, run_state: SeerRunState) -> ConsumeTask | None:
-        if _check_suite_iteration_cap_reached(run_state):
+        from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
+
+        if automated_iteration_cap_reached(run_state):
             logger.info(
                 "autofix.pr_iteration.check_suite.should_trigger.hard_cap_reached",
                 extra={"run_id": run_state.run_id},
