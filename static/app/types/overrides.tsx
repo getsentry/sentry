@@ -1,7 +1,7 @@
 import type {UIMatch} from 'react-router-dom';
 import type {Location} from 'history';
 
-import type {ButtonProps} from '@sentry/scraps/button';
+import type {TrackingProps} from '@sentry/scraps/trackingContext';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
@@ -318,7 +318,7 @@ type ReactHookOverrides = {
     matches: UIMatch[];
   }) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-billing-navigation-config': () => NavigationSection | null;
-  'react-hook:use-button-tracking': () => (props: ButtonProps) => void;
+  'react-hook:use-button-tracking': () => (props: TrackingProps) => void;
   'react-hook:use-dashboard-dataset-retention-limit': (props: {
     dataset: WidgetType;
   }) => number;

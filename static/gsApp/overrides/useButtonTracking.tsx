@@ -1,6 +1,6 @@
 import {useMatches} from 'react-router-dom';
 
-import type {ButtonProps} from '@sentry/scraps/button';
+import type {TrackingProps} from '@sentry/scraps/trackingContext';
 
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -16,7 +16,7 @@ export function useButtonTracking() {
     analyticsEventKey,
     analyticsParams,
     'aria-label': ariaLabel,
-  }: ButtonProps) => {
+  }: TrackingProps) => {
     const considerSendingAnalytics = organization && Boolean(matches);
 
     if (considerSendingAnalytics) {

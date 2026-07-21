@@ -7,6 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
@@ -27,7 +28,7 @@ export function LinkButton({
 }: LinkButtonProps) {
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
-  const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
+  const {hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     disabled,
   });
@@ -58,7 +59,6 @@ export function LinkButton({
                 // We cast it to the correct value to avoid a rightfully raised type error.
                 (undefined as unknown as LocationDescriptor)
         }
-        onClick={handleClick}
       >
         <Flex
           as="span"
@@ -95,6 +95,8 @@ const StyledLinkButton = styled(
     shapeVariant: _shapeVariant,
     ...props
   }: LinkButtonProps & {shapeVariant: 'rectangular' | 'square'}) => {
+    const {handleClick} = useClickTracking(props);
+
     if ('to' in props && props.to) {
       const {openInNewTab, ...linkProps} = props;
       return (
@@ -112,6 +114,7 @@ const StyledLinkButton = styled(
       return (
         <a
           {...rest}
+          onClick={handleClick}
           {...(external ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
           role="button"
         />
@@ -126,7 +129,7 @@ const StyledLinkButton = styled(
       ...rest
       // cast because props cannot be statically determined at this point
     } = props as any;
-    return <a {...rest} role="button" />;
+    return <a {...rest} onClick={handleClick} role="button" />;
   },
   {
     shouldForwardProp: prop =>

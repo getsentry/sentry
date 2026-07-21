@@ -1,10 +1,12 @@
-import type {ButtonProps} from '@sentry/scraps/button';
-import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
+import {
+  TrackingContextProvider,
+  type TrackingProps,
+} from '@sentry/scraps/trackingContext';
 
 import {getOverride} from 'sentry/overrideRegistry';
 
 function useDefaultButtonTracking() {
-  return (props: ButtonProps) => {
+  return (props: TrackingProps) => {
     const hasAnalyticsDebug = window.localStorage?.getItem('DEBUG_ANALYTICS') === '1';
     const hasCustomAnalytics =
       props.analyticsEventName || props.analyticsEventKey || props.analyticsParams;
@@ -13,7 +15,7 @@ function useDefaultButtonTracking() {
       console.log('buttonAnalyticsEvent', {
         eventKey: props.analyticsEventKey,
         eventName: props.analyticsEventName,
-        variant: props.variant,
+        variant: 'variant' in props ? props.variant : undefined,
         href: 'href' in props ? props.href : undefined,
         ...props.analyticsParams,
       });

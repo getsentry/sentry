@@ -4,11 +4,14 @@ import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import {type AnalyticsProps, useClickTracking} from '@sentry/scraps/trackingContext';
+
 import {useLinkBehavior} from './linkBehaviorContext';
 
 export interface LinkProps
   extends
     React.RefAttributes<HTMLAnchorElement>,
+    AnalyticsProps,
     Pick<
       ReactRouterLinkProps,
       'to' | 'replace' | 'preventScrollReset' | 'state' | 'reloadDocument'
@@ -64,6 +67,8 @@ const Anchor = styled('a', {
 
 export const Link = styled((props: LinkProps) => {
   const {Component, behavior} = useLinkBehavior(props);
+  const propsWithBehavior = behavior();
+  const {handleClick} = useClickTracking(propsWithBehavior);
 
   if (props.disabled) {
     // Removing the "to" prop here to prevent the anchor from being rendered with to="
@@ -73,7 +78,7 @@ export const Link = styled((props: LinkProps) => {
     return <Anchor {...restProps} />;
   }
 
-  return <Component {...behavior()} />;
+  return <Component {...propsWithBehavior} onClick={handleClick} />;
 })`
   ${getLinkStyles}
 `;
