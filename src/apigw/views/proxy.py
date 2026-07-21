@@ -9,7 +9,13 @@ from ..dsl import (
     get_cell_for_organization,
     get_cell_from_dsn,
 )
-from ..proxy import ProxyLatencyPipe, ProxyTimeoutPipe, proxy_cell_request, proxy_control_request
+from ..proxy import (
+    ProxyLatencyPipe,
+    ProxyTimeoutPipe,
+    metric_legacy_endpoint,
+    proxy_cell_request,
+    proxy_control_request,
+)
 from ..utils import abort_with_json
 
 proxy = app.module(__name__, "proxy")
@@ -224,6 +230,7 @@ async def proxy_cell_legacy(**kwargs: Any) -> Any:
         cell = get_cell_by_name(app.config.cells.default)
     except CellResolutionError:
         abort_with_json(404, {"error": "apigateway", "detail": "Not found"})
+    metric_legacy_endpoint.labels(route=request.name).inc()
     return await proxy_cell_request(cell, request)
 
 

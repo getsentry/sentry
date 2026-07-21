@@ -75,6 +75,9 @@ metric_cb_overflow = prometheus_client.Counter(
 metric_cb_reject = prometheus_client.Counter(
     "apigw_proxy_circuitbreaker_rejected", "Circuitbreaker rejected", labelnames=["target"]
 )
+metric_legacy_endpoint = prometheus_client.Counter(
+    "apigw_proxy_legacy_endpoint", "Request to legacy endpoint (us only)", labelnames=["route"]
+)
 metric_latency = prometheus_client.Histogram(
     "apigw_proxy_latency",
     "Latency histogram (ms)",
