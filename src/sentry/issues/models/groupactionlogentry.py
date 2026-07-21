@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import functools
+from typing import ClassVar
 
 from django.db import models
 from django.db.models.functions import Now
@@ -13,7 +14,13 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.issues.action_log.types import GroupAction, GroupActionType, GroupActorType
+
+
+class GroupActionLogEntryManager(BaseManager["GroupActionLogEntry"]):
+    def user_visible(self) -> models.QuerySet[GroupActionLogEntry]:
+        return self.filter(type__in=GroupAction.get_user_visible_types())
 
 
 @cell_silo_model
@@ -27,6 +34,8 @@ class GroupActionLogEntry(Model):
     **Do not create or update rows directly.** Use the helpers in
     ``sentry.issues.action_log`` instead.
     """
+
+    objects: ClassVar[GroupActionLogEntryManager] = GroupActionLogEntryManager()
 
     __relocation_scope__ = RelocationScope.Excluded
 
