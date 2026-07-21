@@ -108,6 +108,31 @@ describe('AskSeerPollingComboBox results', () => {
     MockApiClient.clearMockResponses();
   });
 
+  it('preserves the results prompt when the rework is disabled', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 123},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/123/',
+      body: {
+        session: {
+          status: 'completed',
+          current_step: null,
+          completed_steps: [],
+          final_response: {query: 'span.duration:>30s'},
+        },
+      },
+    });
+    renderPollingComboBox(['gen-ai-features']);
+
+    await submitQuery();
+
+    expect(await screen.findByText('Filter')).toBeInTheDocument();
+    expect(screen.getByText('Do any of these look right to you?')).toBeInTheDocument();
+  });
+
   it('regenerates results when feedback is unavailable', async () => {
     const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
     const startRequest = MockApiClient.addMockResponse({
@@ -136,6 +161,10 @@ describe('AskSeerPollingComboBox results', () => {
       name: 'Generate again',
     });
     expect(regenerateButton).toBeEnabled();
+    expect(screen.getByText('Filter')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Do any of these look right to you?')
+    ).not.toBeInTheDocument();
 
     const input = screen.getByRole('combobox', {
       name: 'Ask Seer with Natural Language',

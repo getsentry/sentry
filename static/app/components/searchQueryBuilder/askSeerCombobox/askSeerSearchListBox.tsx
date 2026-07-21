@@ -54,7 +54,10 @@ const StyledUl = styled('ul')`
   outline: none;
   margin: 0;
   padding: 0;
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+
+  &:not(:first-child) {
+    border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  }
 
   & > :not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
