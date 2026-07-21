@@ -205,7 +205,9 @@ export function useTraceLayoutTabs({
     tabSlugFromUrl,
   });
 
-  const [currentTab, setCurrentTab] = useState(initialTab.slug);
+  const [selectedTab, setSelectedTab] = useState(initialTab.slug);
+  const isSelectedTabAvailable = tabOptions.some(tab => tab.slug === selectedTab);
+  const currentTab = isLoading || isSelectedTabAvailable ? selectedTab : initialTab.slug;
   const isCurrentTabRequested = queryParams.tab === currentTab;
 
   const onTabChange = useCallback(
@@ -223,15 +225,16 @@ export function useTraceLayoutTabs({
         },
         {replace: true}
       );
-      setCurrentTab(slug);
+      setSelectedTab(slug);
     },
     [navigate, queryParams, organization]
   );
 
-  // Update the tab when the tabOptions change
+  // Keep the stored selection in sync with URL and availability changes. The
+  // render above falls back synchronously so stale content never mounts first.
   useEffect(() => {
-    setCurrentTab(initialTab.slug);
-  }, [tabOptions, initialTab]);
+    setSelectedTab(initialTab.slug);
+  }, [initialTab.slug]);
 
   return useMemo(
     () => ({

@@ -10,6 +10,7 @@ import {
   TraceLayoutTabKeys,
   useTraceLayoutTabs,
 } from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
+import type {TraceOverviewData} from 'sentry/views/performance/newTraceDetails/useTraceOverviewData';
 
 const sections = {
   hasAiSpans: false,
@@ -172,6 +173,65 @@ describe('useTraceLayoutTabs', () => {
           ? TraceLayoutTabKeys.METRICS
           : TraceLayoutTabKeys.LOGS
       );
+    }
+  );
+
+  it.each([TraceLayoutTabKeys.LOGS, TraceLayoutTabKeys.METRICS])(
+    'switches directly from loading to the resolved %s tab',
+    resolvedTab => {
+      setWindowLocation('http://localhost/organizations/org-slug/traces/trace-id/');
+      const organization = OrganizationFixture();
+      let isLoading = true;
+      let overview: TraceOverviewData = {
+        isRepresentativeLoading: false,
+        isTabLoading: true,
+        logs: {
+          availability: 'loading',
+          count: undefined,
+          representative: undefined,
+        },
+        metrics: {
+          availability: 'loading',
+          count: undefined,
+        },
+      };
+      const renderedTabs: TraceLayoutTabKeys[] = [];
+      const {result, rerender} = renderHookWithProviders(
+        () => {
+          const tabsConfig = useTraceLayoutTabs({
+            isLoading,
+            logsEnabled: true,
+            metricsEnabled: true,
+            overview,
+            tree: TraceTree.Empty(),
+          });
+          renderedTabs.push(tabsConfig.currentTab);
+          return tabsConfig;
+        },
+        {organization}
+      );
+
+      expect(result.current.currentTab).toBe(TraceLayoutTabKeys.WATERFALL);
+
+      renderedTabs.length = 0;
+      isLoading = false;
+      overview = {
+        isRepresentativeLoading: false,
+        isTabLoading: false,
+        logs: {
+          availability: resolvedTab === TraceLayoutTabKeys.LOGS ? 'present' : 'absent',
+          count: resolvedTab === TraceLayoutTabKeys.LOGS ? 1 : 0,
+          representative: undefined,
+        },
+        metrics: {
+          availability: resolvedTab === TraceLayoutTabKeys.METRICS ? 'present' : 'absent',
+          count: resolvedTab === TraceLayoutTabKeys.METRICS ? 1 : 0,
+        },
+      };
+      rerender();
+
+      expect(renderedTabs).not.toContain(TraceLayoutTabKeys.WATERFALL);
+      expect(result.current.currentTab).toBe(resolvedTab);
     }
   );
 });
