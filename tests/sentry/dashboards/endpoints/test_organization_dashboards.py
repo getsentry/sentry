@@ -911,13 +911,27 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         ).exists()
 
     def test_post_with_numeric_string_title_keeps_incrementing(self) -> None:
-        expected_titles = ["12345", "12345 copy", "12345 copy 1", "12345 copy 2"]
-        for expected_title in expected_titles:
-            response = self.do_request("post", self.url, data={"title": "12345"})
-            assert response.status_code == 201
-            assert Dashboard.objects.filter(
-                organization=self.organization, title=expected_title
-            ).exists()
+        response = self.do_request("post", self.url, data={"title": "12345"})
+        assert response.status_code == 201
+        assert Dashboard.objects.filter(organization=self.organization, title="12345").exists()
+
+        response = self.do_request("post", self.url, data={"title": "12345"})
+        assert response.status_code == 201
+        assert Dashboard.objects.filter(
+            organization=self.organization, title="12345 copy"
+        ).exists()
+
+        response = self.do_request("post", self.url, data={"title": "12345"})
+        assert response.status_code == 201
+        assert Dashboard.objects.filter(
+            organization=self.organization, title="12345 copy 1"
+        ).exists()
+
+        response = self.do_request("post", self.url, data={"title": "12345"})
+        assert response.status_code == 201
+        assert Dashboard.objects.filter(
+            organization=self.organization, title="12345 copy 2"
+        ).exists()
 
     def test_post_member_can_create(self) -> None:
         self.create_user_member_role()
