@@ -1,7 +1,6 @@
-import {useState} from 'react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {ActorAvatar, ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
@@ -45,7 +44,9 @@ import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 const TITLE = t('Inbox');
 const ISSUE_LIMIT = 5;
 const SELECTED_ISSUE_QUERY_PARAM = 'preview';
-type AssignmentFilter = 'me' | 'my_teams';
+const ASSIGNMENT_QUERY_PARAM = 'assignment';
+const ASSIGNMENT_FILTERS = ['me', 'my_teams'] as const;
+type AssignmentFilter = (typeof ASSIGNMENT_FILTERS)[number];
 
 interface InboxSectionConfig {
   defaultExpanded: boolean;
@@ -103,7 +104,12 @@ export default function InboxPage() {
 
 function InboxContent() {
   const {selection, isReady} = usePageFilters();
-  const [assignmentFilter, setAssignmentFilter] = useState<AssignmentFilter>('me');
+  const [assignmentFilter, setAssignmentFilter] = useQueryState(
+    ASSIGNMENT_QUERY_PARAM,
+    parseAsStringLiteral(ASSIGNMENT_FILTERS)
+      .withDefault('me')
+      .withOptions({history: 'replace'})
+  );
   const [selectedIssueId, setSelectedIssueId] = useQueryState(
     SELECTED_ISSUE_QUERY_PARAM,
     parseAsString.withOptions({history: 'replace'})

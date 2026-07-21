@@ -285,7 +285,7 @@ describe('InboxPage', () => {
       mockSection('issue.progress:assigned assigned:my_teams', [assignedGroup]),
     ];
 
-    render(<InboxPage />, {organization, initialRouterConfig});
+    const {router} = render(<InboxPage />, {organization, initialRouterConfig});
 
     const meFilter = screen.getByRole('radio', {name: 'Me'});
     const myTeamsFilter = screen.getByRole('radio', {name: 'My Teams'});
@@ -296,6 +296,7 @@ describe('InboxPage', () => {
     await userEvent.click(myTeamsFilter);
 
     expect(myTeamsFilter).toBeChecked();
+    expect(router.location.query.assignment).toBe('my_teams');
     for (const request of myTeamsRequests) {
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
     }
