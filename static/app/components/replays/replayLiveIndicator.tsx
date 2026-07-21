@@ -132,7 +132,41 @@ export function useLiveRefresh({replay}: {replay: ReplayRecord | undefined}) {
   const projectSlug = useReplayProjectSlug({replayRecord: replay})!;
   const {startSummaryRequest} = useReplaySummaryContext();
   const startSummaryRequestRef = useRef(startSummaryRequest);
-  const isReplayExpired = Date.now() > getReplayExpiresAtMs(replay?.started_at ?? null);
+
+  // Track whether the replay's 1-hour polling window has expired.
+  // We use useState + useEffect instead of computing `Date.now()` directly
+  // in the render body because `Date.now()` is non-deterministic (impure),
+  // which violates the pure-render-functions convention required for React
+  // Compiler compatibility.
+  //
+  // The lazy initializer runs only once at mount (not on every render), so
+  // it correctly seeds the initial value without re-evaluating each render.
+  // The effect then schedules a timer to flip the flag exactly when the
+  // expiry threshold is reached, so polling stops in real time.
+  const [isReplayExpired, setIsReplayExpired] = useState(() => {
+    const expiresAtMs = getReplayExpiresAtMs(replay?.started_at ?? null);
+    return expiresAtMs > 0 && Date.now() > expiresAtMs;
+  });
+  useEffect(() => {
+    const expiresAtMs = getReplayExpiresAtMs(replay?.started_at ?? null);
+
+    // No valid start time — nothing to schedule.
+    if (expiresAtMs <= 0) {
+      return undefined;
+    }
+
+    const remainingMs = expiresAtMs - Date.now();
+
+    // Already expired before the effect ran; mark immediately.
+    if (remainingMs <= 0) {
+      setIsReplayExpired(true);
+      return undefined;
+    }
+
+    // Schedule the flag flip for when the expiry window closes.
+    const timer = setTimeout(() => setIsReplayExpired(true), remainingMs);
+    return () => clearTimeout(timer);
+  }, [replay?.started_at]);
   const polledReplayRecord = usePollReplayRecord({
     enabled: !isReplayExpired && Boolean(replayId),
     replayId,
