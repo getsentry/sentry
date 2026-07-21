@@ -875,27 +875,6 @@ def render_template_context(
             "total_substatus_count": total_substatus_count,
         }
 
-    show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
-
-    errors_discover_params: list[tuple[str, str | int]] = [
-        ("field", "title"),
-        ("field", "event.type"),
-        ("field", "project"),
-        ("field", "user.display"),
-        ("field", "timestamp"),
-        ("dataset", "errors"),
-        ("sort", "-timestamp"),
-        ("referrer", "weekly_report"),
-        ("notification_uuid", notification_uuid),
-    ]
-    for pc in user_projects:
-        errors_discover_params.append(("project", pc.project.id))
-    errors_discover_query = urlencode(errors_discover_params)
-
-    view_all_issues_url = _multi_project_substatus_url(user_projects, "is:unresolved")
-
-    user_project_ids = {p.project.id for p in user_projects}
-
     def top_spans():
         user_total_spans_count = sum(
             count for pid, count in ctx.spans_count_by_project.items() if pid in user_project_ids
@@ -941,6 +920,27 @@ def render_template_context(
                 }
             )
         return {"total_spans_count": user_total_spans_count, "top_spans_table": table}
+
+    show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
+
+    errors_discover_params: list[tuple[str, str | int]] = [
+        ("field", "title"),
+        ("field", "event.type"),
+        ("field", "project"),
+        ("field", "user.display"),
+        ("field", "timestamp"),
+        ("dataset", "errors"),
+        ("sort", "-timestamp"),
+        ("referrer", "weekly_report"),
+        ("notification_uuid", notification_uuid),
+    ]
+    for pc in user_projects:
+        errors_discover_params.append(("project", pc.project.id))
+    errors_discover_query = urlencode(errors_discover_params)
+
+    view_all_issues_url = _multi_project_substatus_url(user_projects, "is:unresolved")
+
+    user_project_ids = {p.project.id for p in user_projects}
 
     return {
         "organization": ctx.organization,
