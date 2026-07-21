@@ -2,12 +2,40 @@
 
 import {
   asyncSanitizedMarked,
+  markdownRendersVisibleContent,
   sanitizedMarked,
   singleLineRenderer,
 } from 'sentry/utils/marked/marked';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
 jest.unmock('prismjs');
+
+describe('markdownRendersVisibleContent', () => {
+  it.each([
+    '',
+    '   ',
+    '\n\n',
+    '```',
+    '```\n```',
+    '```js\n```',
+    // Images are stripped by `sanitizeHtml`, so image-only content renders
+    // nothing and must be treated as blank.
+    '![alt](img.png)',
+  ])('returns false for content that renders nothing: %j', text => {
+    expect(markdownRendersVisibleContent(text)).toBe(false);
+  });
+
+  it.each([
+    'hello',
+    '**bold**',
+    '# heading',
+    '```\nconst x = 1;\n```',
+    '- item',
+    '| a |\n|---|\n| 1 |',
+  ])('returns true for content that renders something: %j', text => {
+    expect(markdownRendersVisibleContent(text)).toBe(true);
+  });
+});
 
 function expectMarkdown(test: any) {
   expect(sanitizedMarked(test[0])).toEqual('<p>' + test[1] + '</p>\n');

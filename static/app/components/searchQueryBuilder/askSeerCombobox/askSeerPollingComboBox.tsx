@@ -151,8 +151,15 @@ function AskSeerPollingPopoverContent({
   if (hasResults) {
     return (
       <SeerContent onMouseLeave={onMouseLeave}>
-        <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
-        <AskSeerSearchListBox {...listBoxProps} listBoxRef={listBoxRef} state={state} />
+        {hasAskSeerUxRework ? null : (
+          <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
+        )}
+        <AskSeerSearchListBox
+          {...listBoxProps}
+          hasAskSeerUxRework={hasAskSeerUxRework}
+          listBoxRef={listBoxRef}
+          state={state}
+        />
       </SeerContent>
     );
   }
@@ -299,6 +306,10 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
         key: `${index}-${query.query}`,
       }));
 
+      if (hasAskSeerUxRework) {
+        return results;
+      }
+
       results.push({
         key: 'none-of-these',
         label: t('None of these'),
@@ -308,7 +319,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
     }
 
     return [];
-  }, [queries]);
+  }, [queries, hasAskSeerUxRework]);
 
   const state = useComboBoxState({
     ...props,

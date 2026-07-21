@@ -290,6 +290,7 @@ export function AggregatesTable({
                         <FieldRenderer
                           column={columns[field]}
                           data={row}
+                          disableTraceLinks
                           unit={meta?.units?.[field]}
                           meta={meta}
                         />

@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -10,11 +11,12 @@ import {CustomResolutionModal} from 'sentry/components/customResolutionModal';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 describe('CustomResolutionModal', () => {
+  const project = ProjectFixture({id: '1', slug: 'project-slug'});
   let releasesMock: any;
   beforeEach(() => {
     ConfigStore.init();
     releasesMock = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/releases/',
+      url: '/organizations/org-slug/releases/',
       body: [ReleaseFixture({authors: [UserFixture()]})],
     });
   });
@@ -32,23 +34,52 @@ describe('CustomResolutionModal', () => {
         Header={p => <span>{p.children}</span>}
         Body={wrapper()}
         Footer={wrapper()}
-        projectSlug="project-slug"
+        project={project}
         onSelected={onSelected}
         closeModal={jest.fn()}
         CloseButton={makeCloseButton(() => null)}
       />
     );
-    expect(releasesMock).toHaveBeenCalled();
+    expect(releasesMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({query: {project: '1', query: ''}})
+    );
 
     const trigger = screen.getByRole('button', {name: /version/i});
     await userEvent.click(trigger);
     const option = await screen.findByRole('option', {name: /1\.2\.0/});
     await userEvent.click(option);
 
+    expect(screen.getByRole('link', {name: /view release/i})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/explore/releases/sentry-android-shop%401.2.0/?project=1'
+    );
+
     await userEvent.click(screen.getByText('Resolve'));
     expect(onSelected).toHaveBeenCalledWith({
       inRelease: 'sentry-android-shop@1.2.0',
     });
+  });
+
+  it('queries organization releases without a project', async () => {
+    render(
+      <CustomResolutionModal
+        Header={p => <span>{p.children}</span>}
+        Body={wrapper()}
+        Footer={wrapper()}
+        project={undefined}
+        onSelected={jest.fn()}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(() => null)}
+      />
+    );
+
+    await waitFor(() =>
+      expect(releasesMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: {query: ''}})
+      )
+    );
   });
 
   it('indicates which releases had commits from the user', async () => {
@@ -59,7 +90,7 @@ describe('CustomResolutionModal', () => {
         Header={p => <span>{p.children}</span>}
         Body={wrapper()}
         Footer={wrapper()}
-        projectSlug="project-slug"
+        project={project}
         onSelected={jest.fn()}
         closeModal={jest.fn()}
         CloseButton={makeCloseButton(() => null)}
@@ -74,7 +105,7 @@ describe('CustomResolutionModal', () => {
 
   it('indicates if the release is semver or timestamp', async () => {
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/releases/',
+      url: '/organizations/org-slug/releases/',
       body: [
         // Timestamp release
         ReleaseFixture({
@@ -110,7 +141,7 @@ describe('CustomResolutionModal', () => {
         Header={p => <span>{p.children}</span>}
         Body={wrapper()}
         Footer={wrapper()}
-        projectSlug="project-slug"
+        project={project}
         onSelected={jest.fn()}
         closeModal={jest.fn()}
         CloseButton={makeCloseButton(() => null)}
@@ -125,6 +156,64 @@ describe('CustomResolutionModal', () => {
     expect(screen.getByRole('option', {name: '1.2.3 (semver)'})).toBeInTheDocument();
   });
 
+  it('treats a release without version info as non-semver', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [
+        ReleaseFixture({
+          version: 'legacy-release',
+          versionInfo: null,
+        }),
+      ],
+    });
+
+    render(
+      <CustomResolutionModal
+        Header={p => <span>{p.children}</span>}
+        Body={wrapper()}
+        Footer={wrapper()}
+        project={project}
+        onSelected={jest.fn()}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(() => null)}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: /version/i}));
+
+    expect(
+      await screen.findByRole('option', {name: 'legacy-release (non-semver)'})
+    ).toBeInTheDocument();
+  });
+
+  it('ignores a collection response from an exact release lookup', async () => {
+    const exactReleaseMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/.0/',
+      body: [ReleaseFixture({version: 'unexpected-collection-release'})],
+    });
+
+    render(
+      <CustomResolutionModal
+        Header={p => <span>{p.children}</span>}
+        Body={wrapper()}
+        Footer={wrapper()}
+        project={project}
+        onSelected={jest.fn()}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(() => null)}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: /version/i}));
+    const searchInput = await screen.findByRole('textbox');
+    await userEvent.click(searchInput);
+    await userEvent.paste('.0');
+
+    await waitFor(() => expect(exactReleaseMock).toHaveBeenCalled());
+    expect(await screen.findByRole('option', {name: /1\.2\.0/})).toBeInTheDocument();
+    expect(screen.queryByText('unexpected-collection-release')).not.toBeInTheDocument();
+  });
+
   it('shows an inline error when submitting with no selection', async () => {
     const onSelected = jest.fn();
     render(
@@ -132,7 +221,7 @@ describe('CustomResolutionModal', () => {
         Header={p => <span>{p.children}</span>}
         Body={wrapper()}
         Footer={wrapper()}
-        projectSlug="project-slug"
+        project={project}
         onSelected={onSelected}
         closeModal={jest.fn()}
         CloseButton={makeCloseButton(() => null)}
@@ -167,7 +256,7 @@ describe('CustomResolutionModal', () => {
         Header={p => <span>{p.children}</span>}
         Body={wrapper()}
         Footer={wrapper()}
-        projectSlug="project-slug"
+        project={project}
         onSelected={jest.fn()}
         closeModal={jest.fn()}
         CloseButton={makeCloseButton(() => null)}
@@ -212,7 +301,7 @@ describe('CustomResolutionModal', () => {
         Header={p => <span>{p.children}</span>}
         Body={wrapper()}
         Footer={wrapper()}
-        projectSlug="project-slug"
+        project={project}
         onSelected={jest.fn()}
         closeModal={jest.fn()}
         CloseButton={makeCloseButton(() => null)}

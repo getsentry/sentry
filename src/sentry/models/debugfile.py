@@ -7,6 +7,7 @@ import logging
 import math
 import os
 import os.path
+import random
 import re
 import shutil
 import tempfile
@@ -451,7 +452,8 @@ def _upload_dif_to_objectstore(
             except (RequestError, HTTPError):
                 if attempt == 2:
                     raise
-                time.sleep(2**attempt)
+                delay = 2 ** (attempt + 1)
+                time.sleep(random.uniform(delay, delay * 2))
         raise AssertionError("unreachable")
 
     def read_and_put_part(part_number: int) -> CompletePart | None:

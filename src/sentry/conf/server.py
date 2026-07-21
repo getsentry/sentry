@@ -479,6 +479,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.processing_errors",
     "sentry.uptime",
     "sentry.tempest",
+    "sentry.ai_monitoring",
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
@@ -929,6 +930,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.snapshots.tasks",
     "sentry.preprod.snapshots.zip_tasks",
     "sentry.preprod.tasks",
+    "sentry.preprod.vcs.pr_comments.size_tasks",
     "sentry.preprod.vcs.pr_comments.snapshot_tasks",
     "sentry.preprod.vcs.pr_comments.tasks",
     "sentry.preprod.vcs.status_checks.size.tasks",
@@ -1187,6 +1189,11 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "seer:sentry.tasks.seer.night_shift.schedule_night_shift",
         # Run every 12 hours, at 10:00 and 22:00 UTC
         "schedule": crontab("0", "10,22", "*", "*", "*"),
+    },
+    "pr-metrics-reap-stuck-judge-verdicts": {
+        "task": "seer.code_review:sentry.pr_metrics.tasks.reap_stuck_judge_verdicts",
+        # Run once a day at 04:00 UTC, off-peak.
+        "schedule": crontab("0", "4", "*", "*", "*"),
     },
     "refresh-artifact-bundles-in-use": {
         "task": "attachments:sentry.debug_files.tasks.refresh_artifact_bundles_in_use",
@@ -2274,6 +2281,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
     "sentry.integrations.claude_code.integration.ClaudeCodeAgentIntegrationProvider",
     "sentry.integrations.datadog.integration.DatadogIntegrationProvider",
+    "sentry.integrations.gcp.integration.GcpIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
 )
