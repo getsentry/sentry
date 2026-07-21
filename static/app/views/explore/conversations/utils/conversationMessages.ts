@@ -18,6 +18,21 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const FILTERED = '[Filtered]';
 
+/**
+ * Content that is empty or only whitespace has nothing to render, so we treat
+ * it as absent (`null`). This is the single guard that keeps blank message
+ * bubbles — a small empty "cylinder" in the transcript — out of every consumer
+ * of `extractMessagesFromNodes`. See TET-2670. Note `EMPTY_TEXT_CONTENT`
+ * (`'(no value)'`) is a deliberate placeholder, not blank, so it is preserved.
+ *
+ * Content that is non-blank but renders to nothing as markdown (e.g. a bare
+ * `\`\`\`` fence) is handled downstream by `AIContentRenderer`, which falls
+ * back to the raw text rather than an empty bubble.
+ */
+function blankToNull(content: string | null): string | null {
+  return content && content.trim().length > 0 ? content : null;
+}
+
 export interface ToolCall {
   hasError: boolean;
   name: string;
@@ -132,11 +147,11 @@ export function buildConversationTurns(
       generation: node,
       toolCalls,
       toolSpanNodes: toolCallSpans,
-      userContent: parseUserContent(node),
+      userContent: blankToNull(parseUserContent(node)),
       hasInputHistory: inputStats.totalMessageCount > 1,
       userMessageCount: inputStats.userMessageCount,
-      assistantContent,
-      reasoning,
+      assistantContent: blankToNull(assistantContent),
+      reasoning: blankToNull(reasoning),
       userEmail,
     });
   }
@@ -225,7 +240,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
         !seenAssistantContent.has(turn.assistantContent));
     const hasToolCalls = turn.toolCalls.length > 0;
 
-    if (hasAssistantContent || hasToolCalls) {
+    if (hasAssistantContent || hasToolCalls || turn.reasoning) {
       if (turn.assistantContent) {
         seenAssistantContent.add(turn.assistantContent);
       }
@@ -362,9 +377,10 @@ export function parseAssistantContent(node: AITraceSpanNode): {
         reasoning: extracted.reasoningText,
       };
     }
-    // If tool calls were found but no text, don't fall through to response
-    // attributes — tool calls are rendered separately as badges
-    if (extracted.toolCalls) {
+    // If tool calls or reasoning were found but no text, don't fall through to
+    // response attributes — tool calls are rendered separately as badges and
+    // reasoning is rendered in its own collapsible section.
+    if (extracted.toolCalls || extracted.reasoningText) {
       return {content: null, reasoning: extracted.reasoningText};
     }
   }

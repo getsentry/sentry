@@ -29,6 +29,7 @@ from sentry.constants import StatsPeriod
 from sentry.eventtypes import EventTypeStr
 from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.derived.serialization import GroupDerivedDataResponse
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
@@ -283,6 +284,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     userCount: NotRequired[int]
     firstSeen: NotRequired[datetime | None]
     lastSeen: NotRequired[datetime | None]
+    derivedData: NotRequired[GroupDerivedDataResponse]
 
     # from the serializer itself
     stats: NotRequired[dict[str, Any]]

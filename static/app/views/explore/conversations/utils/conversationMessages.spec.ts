@@ -542,6 +542,23 @@ describe('conversationMessages utilities', () => {
       expect(turns[1]?.toolCalls).toHaveLength(1);
       expect(turns[1]?.toolCalls[0]?.name).toBe('search');
     });
+
+    it('treats whitespace-only content as absent so no blank bubble renders', () => {
+      const requestMessages = JSON.stringify([{role: 'user', content: '   '}]);
+      const genNode = createMockNode({
+        id: 'gen-1',
+        startTimestamp: 1000,
+        attributes: {
+          [SpanFields.GEN_AI_REQUEST_MESSAGES]: requestMessages,
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: '\n\n',
+        },
+      });
+
+      const turns = buildConversationTurns([genNode as any], []);
+
+      expect(turns[0]?.userContent).toBeNull();
+      expect(turns[0]?.assistantContent).toBeNull();
+    });
   });
 
   describe('mergeEmptyTurns', () => {
@@ -971,6 +988,21 @@ describe('conversationMessages utilities', () => {
       const assistant = turnsToMessages(turns).find(m => m.role === 'assistant');
       expect(assistant?.reasoning).toBe('Let me think step by step...');
     });
+
+    it('creates an assistant message for reasoning-only turns without content or tool calls', () => {
+      const turns = [
+        makeTurn({
+          userContent: 'Question',
+          reasoning: 'Thinking only...',
+        }),
+      ];
+
+      const messages = turnsToMessages(turns);
+      const assistant = messages.find(m => m.role === 'assistant');
+      expect(assistant).toBeDefined();
+      expect(assistant?.content).toBe('');
+      expect(assistant?.reasoning).toBe('Thinking only...');
+    });
   });
 
   describe('extractMessagesFromNodes (integration)', () => {
@@ -1247,6 +1279,27 @@ describe('conversationMessages utilities', () => {
         id: 'node-1',
         attributes: {
           [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
+        },
+      });
+      const result = parseAssistantContent(node as any);
+      expect(result.content).toBeNull();
+      expect(result.reasoning).toBe('Thinking only...');
+    });
+
+    it('does not fall through to gen_ai.response.object for reasoning-only output', () => {
+      const messages = JSON.stringify([
+        {role: 'assistant', parts: [{type: 'reasoning', content: 'Thinking only...'}]},
+      ]);
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
+          [SpanFields.GEN_AI_RESPONSE_OBJECT]: JSON.stringify([
+            {
+              role: 'assistant',
+              parts: [{type: 'reasoning', content: 'Thinking only...'}],
+            },
+          ]),
         },
       });
       const result = parseAssistantContent(node as any);

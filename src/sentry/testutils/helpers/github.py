@@ -17,6 +17,7 @@ from sentry import options
 from sentry.integrations.github.webhook import GitHubIntegrationsWebhookEndpoint
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.utils.hostname import instance_hostname
 from sentry.models.organizationcontributors import OrganizationContributors
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.seer.code_review.utils import get_pr_author_id
@@ -80,7 +81,6 @@ class GitHubWebhookTestCase(APITestCase):
         metadata = {
             "access_token": access_token,
             "expires_at": future_expires.isoformat(),
-            "domain_name": "github.com/example",
             **metadata_overrides,
         }
 
@@ -208,7 +208,8 @@ class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
                 integration_id=integration.id,
                 external_identifier=pr_author_external_id,
                 defaults={
-                    "provider": "github",
+                    "provider": integration.provider,
+                    "hostname": instance_hostname(integration),
                     "alias": (
                         self.event_dict.get("sender", {}).get("login")
                         or self.event_dict.get("issue", {}).get("user", {}).get("login")

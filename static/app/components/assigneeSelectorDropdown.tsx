@@ -9,9 +9,10 @@ import {
   type SelectOption,
   type SelectOptionOrSection,
 } from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
@@ -120,7 +121,7 @@ function AssigneeAvatar({
   suggestedActors?: SuggestedAssignee[];
 }) {
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
-    suspectCommit: tct('Based on [commit:commit data]', {
+    suspectCommit: tct('Suggested based on [commit:commit data]', {
       commit: (
         <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
       ),
@@ -138,17 +139,20 @@ function AssigneeAvatar({
         className="avatar"
         size={24}
         tooltip={
-          <TooltipWrapper>
-            {tct('Assigned to [name]', {
-              name: assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name,
-            })}
+          <Stack gap="xs" align="start">
+            <Text as="div" align="left" wrap="nowrap">
+              {tct('Assigned to [name]', {
+                name:
+                  assignedTo.type === 'team' ? `#${assignedTo.name}` : assignedTo.name,
+              })}
+            </Text>
             {assignedToSuggestion &&
               suggestedReasons[assignedToSuggestion.suggestedReason] && (
-                <TooltipSubtext>
+                <Text as="div" align="left" variant="muted">
                   {suggestedReasons[assignedToSuggestion.suggestedReason]}
-                </TooltipSubtext>
+                </Text>
               )}
-          </TooltipWrapper>
+          </Stack>
         }
       />
     );
@@ -162,16 +166,18 @@ function AssigneeAvatar({
         owners={suggestedActors}
         tooltipOptions={{isHoverable: true}}
         tooltip={
-          <TooltipWrapper>
-            <div>
+          <Stack gap="xs" align="start">
+            <Text as="div" align="left" wrap="nowrap">
               {tct('Suggestion: [name]', {
                 name: actor.type === 'team' ? `#${actor.name}` : actor.name,
               })}
               {suggestedActors.length > 1 &&
                 tn(' + %s other', ' + %s others', suggestedActors.length - 1)}
-            </div>
-            <TooltipSubtext>{suggestedReasons[actor.suggestedReason]}</TooltipSubtext>
-          </TooltipWrapper>
+            </Text>
+            <Text as="div" align="left" variant="muted">
+              {suggestedReasons[actor.suggestedReason]}
+            </Text>
+          </Stack>
         }
       />
     );
@@ -182,9 +188,11 @@ function AssigneeAvatar({
       isHoverable
       skipWrapper
       title={
-        <TooltipWrapper>
-          <div>{t('Unassigned')}</div>
-          <TooltipSubtext>
+        <Stack gap="xs" align="start">
+          <Text as="div" align="left">
+            {t('Unassigned')}
+          </Text>
+          <Text as="div" align="left" variant="muted">
             {tct(
               'You can auto-assign issues by adding [issueOwners:Issue Owner rules].',
               {
@@ -193,8 +201,8 @@ function AssigneeAvatar({
                 ),
               }
             )}
-          </TooltipSubtext>
-        </TooltipWrapper>
+          </Text>
+        </Stack>
       }
     >
       <StyledIconUser data-test-id="unassigned" size="md" variant="primary" />
@@ -591,10 +599,6 @@ const StyledIconUser = styled(IconUser)`
   margin-right: 2px;
 `;
 
-const TooltipWrapper = styled('div')`
-  text-align: left;
-`;
-
 const TooltipSubExternalLink = styled(ExternalLink)`
   color: ${p => p.theme.tokens.content.secondary};
   text-decoration: underline;
@@ -602,8 +606,4 @@ const TooltipSubExternalLink = styled(ExternalLink)`
   :hover {
     color: ${p => p.theme.tokens.content.secondary};
   }
-`;
-
-const TooltipSubtext = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
 `;

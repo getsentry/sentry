@@ -234,12 +234,13 @@ export const SnapshotListView = memo(function SnapshotListView({
   }, []);
 
   const groups = useMemo(() => buildGroups(items, contentWidth), [items, contentWidth]);
+  const getItemKey = useCallback((index: number) => groups[index]!.id, [groups]);
 
   const virtualizer = useVirtualizer({
     count: groups.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: i => groups[i]!.estimatedHeight,
-    getItemKey: i => groups[i]!.id,
+    getItemKey,
     overscan: 5,
     scrollPaddingEnd: 8,
   });

@@ -10,6 +10,7 @@ import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Stack} from '@sentry/scraps/layout';
 
 import {
@@ -109,7 +110,9 @@ export const UNSAVED_FILTERS_MESSAGE = t(
   'You have unsaved dashboard filters. You can save or discard them.'
 );
 
-const OverrideHeader = OverrideOrDefault({overrideName: 'component:dashboards-header'});
+const OverrideHeader = OverrideOrDefault({
+  overrideName: 'component:dashboards-header',
+});
 
 const DATA_SET_TO_WIDGET_TYPE = {
   [DataSet.EVENTS]: WidgetType.DISCOVER,
@@ -255,11 +258,21 @@ class DashboardDetail extends Component<Props, State> {
     if (
       prevProps.organization !== this.props.organization ||
       // The only part of `location` used by `WidgetLegendSelectionState` is
-      // `unselectedSeries`. Don't bother comparing anything else. Once this
+      // `unselectedSeries`. However, we also need to make sure all top level dashboard filters are propagated
+      // to the widget legend selection state so it doesn't wipe out previous filters.
+      //  Don't bother comparing anything else besides these top level filters. Once this
       // component is a functional component, we'll move the selection state
       // into a hook, and make sure it doesn't re-render too much.
       prevProps.location.query.unselectedSeries !==
         this.props.location.query.unselectedSeries ||
+      prevProps.location.query.environment !== this.props.location.query.environment ||
+      prevProps.location.query.project !== this.props.location.query.project ||
+      prevProps.location.query.statsPeriod !== this.props.location.query.statsPeriod ||
+      prevProps.location.query.start !== this.props.location.query.start ||
+      prevProps.location.query.end !== this.props.location.query.end ||
+      prevProps.location.query.interval !== this.props.location.query.interval ||
+      prevProps.location.query.release !== this.props.location.query.release ||
+      prevProps.location.query.globalFilter !== this.props.location.query.globalFilter ||
       prevProps.navigate !== this.props.navigate ||
       prevProps.dashboard !== this.props.dashboard
     ) {
@@ -501,7 +514,10 @@ class DashboardDetail extends Component<Props, State> {
           ...modifiedDashboard,
           widgets: modifiedDashboard?.widgets.map(widget => omit(widget, 'layout')),
         },
-        {...dashboard, widgets: dashboard.widgets.map(widget => omit(widget, 'layout'))}
+        {
+          ...dashboard,
+          widgets: dashboard.widgets.map(widget => omit(widget, 'layout')),
+        }
       );
     }
 
@@ -1185,6 +1201,7 @@ class DashboardDetail extends Component<Props, State> {
       hasUnsavedFilterChanges(dashboard, location);
 
     const eventView = generatePerformanceEventView(location, projects, {});
+    const hasNewBreadcrumbs = organization.features.includes('ui-migration-breadcrumbs');
 
     const pageContent = (
       <Stack flex={1}>
@@ -1193,25 +1210,58 @@ class DashboardDetail extends Component<Props, State> {
             <NoProjectMessage organization={organization}>
               {this.isEmbedded ? null : (
                 <Fragment>
-                  <TopBar.Slot name="title">
-                    <Breadcrumbs
-                      crumbs={[
-                        {
-                          label: t('Dashboards'),
-                          to: `/organizations/${organization.slug}/dashboards/`,
-                        },
-                        {
-                          label: (
-                            <DashboardTitle
-                              dashboard={modifiedDashboard ?? dashboard}
-                              onUpdate={this.setModifiedDashboard}
-                              isEditingDashboard={this.isEditingDashboard}
-                            />
-                          ),
-                        },
-                      ]}
-                    />
-                  </TopBar.Slot>
+                  {hasNewBreadcrumbs ? (
+                    <Fragment>
+                      <TopBar.Slot name="breadcrumbs">
+                        <BreadcrumbList
+                          items={[
+                            {
+                              type: 'link',
+                              label: t('Dashboards'),
+                              to: `/organizations/${organization.slug}/dashboards/`,
+                            },
+                          ]}
+                        />
+                      </TopBar.Slot>
+                      <TopBar.Slot name="title">
+                        <BreadcrumbList.Title
+                          item={{
+                            type: 'editable-title',
+                            value: (modifiedDashboard ?? dashboard).title,
+                            onChange: newTitle =>
+                              this.setModifiedDashboard({
+                                ...(modifiedDashboard ?? dashboard),
+                                title: newTitle,
+                              }),
+                            isDisabled: !this.isEditingDashboard,
+                            errorMessage: t('Please set a title for this dashboard'),
+                            autoSelect: true,
+                            'aria-label': t('Edit Dashboard Name'),
+                          }}
+                        />
+                      </TopBar.Slot>
+                    </Fragment>
+                  ) : (
+                    <TopBar.Slot name="title">
+                      <Breadcrumbs
+                        crumbs={[
+                          {
+                            label: t('Dashboards'),
+                            to: `/organizations/${organization.slug}/dashboards/`,
+                          },
+                          {
+                            label: (
+                              <DashboardTitle
+                                dashboard={modifiedDashboard ?? dashboard}
+                                onUpdate={this.setModifiedDashboard}
+                                isEditingDashboard={this.isEditingDashboard}
+                              />
+                            ),
+                          },
+                        ]}
+                      />
+                    </TopBar.Slot>
+                  )}
                   <TopBar.Slot name="actions">
                     <Controls
                       organization={organization}
@@ -1293,7 +1343,9 @@ class DashboardDetail extends Component<Props, State> {
                                     widgets: undefined,
                                   }),
                                 };
-                                this.setState({isSavingDashboardFilters: true});
+                                this.setState({
+                                  isSavingDashboardFilters: true,
+                                });
                                 addLoadingMessage(t('Saving dashboard filters'));
                                 await updateDashboard(
                                   api,
@@ -1341,7 +1393,9 @@ class DashboardDetail extends Component<Props, State> {
                                     }
 
                                     navigateToDashboard();
-                                    this.setState({isSavingDashboardFilters: false});
+                                    this.setState({
+                                      isSavingDashboardFilters: false,
+                                    });
                                   },
                                   // `updateDashboard` does its own error handling
                                   () => {}

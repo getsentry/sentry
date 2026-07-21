@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
 
-import {HighlightComponent} from 'sentry/components/highlight';
+import {MultiHighlight} from 'sentry/components/highlight';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {Panel} from 'sentry/components/panels/panel';
 import {GRID_BODY_ROW_HEIGHT} from 'sentry/components/tables/gridEditable/styles';
@@ -89,7 +89,8 @@ export const LogTableRow = styled(TableRow)<LogTableRowProps>`
       }
     `}
 
-  &[data-row-hover-linked='true']:not(thead > &) {
+  &[data-row-hover-linked='true']:not(thead > &),
+  &[data-row-linked='true']:not(thead > &) {
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.active};
 
@@ -302,7 +303,7 @@ export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
   text-align: ${p => p.align || 'left'};
 `;
 
-export const LogsHighlight = styled(HighlightComponent)`
+export const LogsHighlight = styled(MultiHighlight)`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   background-color: ${p => p.theme.colors.gray200};
   margin-right: 2px;

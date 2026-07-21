@@ -34,7 +34,7 @@ from sentry.lang.native.processing import _merge_image
 from sentry.lang.native.symbolicator import (
     FrameOrder,
     Symbolicator,
-    SymbolicatorPlatform,
+    SymbolicatorFunction,
     SymbolicatorTaskKind,
 )
 from sentry.lang.native.utils import native_images_from_data
@@ -68,7 +68,10 @@ from sentry.search.utils import DEVICE_CLASS
 from sentry.signals import first_profile_received
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import ingest_profiling_passthrough_tasks
+from sentry.taskworker.namespaces import (
+    ingest_profiling_passthrough_tasks,
+    ingest_profiling_raw_tasks,
+)
 from sentry.taskworker.producer import get_task_producer
 from sentry.utils import json, metrics
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
@@ -160,6 +163,18 @@ eap_task_producer = get_task_producer(
 logger = logging.getLogger(__name__)
 
 
+def _process_profile_from_kafka(message_bytes: bytes, headers: dict[str, str]) -> None:
+    if _should_drop(headers):
+        return
+
+    sampled = _is_sampled(headers)
+
+    if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
+        return
+
+    process_profile_task(payload=message_bytes, sampled=sampled)
+
+
 @instrumented_task(
     name="sentry.profiles.task.process_profile_from_kafka",
     namespace=ingest_profiling_passthrough_tasks,
@@ -182,16 +197,43 @@ def process_profile_from_kafka(
 
     As such, the task signature, name and namespace cannot be changed without
     coordination.
+
+    This is a duplicate of `process_profile_from_kafka_raw`, registered under
+    the `ingest.profiling.passthrough` namespace instead of
+    `ingest.profiling.raw` (STREAM-1191). Delete this task once infra no
+    longer routes anything to `ingest.profiling.passthrough`.
     """
-    if _should_drop(headers):
-        return
+    _process_profile_from_kafka(message_bytes, headers)
 
-    sampled = _is_sampled(headers)
 
-    if not sampled and not options.get("profiling.profile_metrics.unsampled_profiles.enabled"):
-        return
+@instrumented_task(
+    name="sentry.profiles.task.process_profile_from_kafka_raw",
+    namespace=ingest_profiling_raw_tasks,
+    processing_deadline_duration=80,
+    retry=Retry(times=2, delay=5),
+    compression_type=CompressionType.ZSTD,
+    silo_mode=SiloMode.CELL,
+    pass_headers=True,
+)
+def process_profile_from_kafka_raw(
+    message_bytes: bytes,
+    headers: dict[str, str],
+) -> None:
+    """Process a profile from raw Kafka message bytes.
 
-    process_profile_task(payload=message_bytes, sampled=sampled)
+    This task is directly spawned from taskbroker in "raw mode". You won't find
+    any application code that calls apply_async or delay directly on it,
+    instead taskbroker itself is configured to consume a topic (in infra
+    templates) and spawns tasks for each message.
+
+    As such, the task signature, name and namespace cannot be changed without
+    coordination.
+
+    This is a duplicate of `process_profile_from_kafka`, registered under the
+    `ingest.profiling.raw` namespace instead of `ingest.profiling.passthrough`
+    (STREAM-1191).
+    """
+    _process_profile_from_kafka(message_bytes, headers)
 
 
 def _is_sampled(headers: dict[str, str]) -> bool:
@@ -796,11 +838,11 @@ def run_symbolicate(
             raise SymbolicationTimeout
 
     if platform in SHOULD_SYMBOLICATE_JS:
-        symbolicator_platform = SymbolicatorPlatform.js
+        symbolicator_function = SymbolicatorFunction.js
     else:
-        symbolicator_platform = SymbolicatorPlatform.native
+        symbolicator_function = SymbolicatorFunction.native
     symbolicator = Symbolicator(
-        task_kind=SymbolicatorTaskKind(platform=symbolicator_platform),
+        task_kind=SymbolicatorTaskKind(function=symbolicator_function),
         on_request=on_symbolicator_request,
         project=project,
         event_id=get_event_id(profile),
@@ -1074,7 +1116,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
             raise SymbolicationTimeout
 
     symbolicator = Symbolicator(
-        task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.jvm),
+        task_kind=SymbolicatorTaskKind(function=SymbolicatorFunction.jvm),
         on_request=on_symbolicator_request,
         project=project,
         event_id=get_event_id(profile),

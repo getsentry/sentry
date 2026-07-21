@@ -16,6 +16,14 @@ class PrCloseMetricsEvent(analytics.Event):
 
     organization_id: int
     repository_id: int
+    # Normalized SCM slug (e.g. "github", "gitlab"), read off Repository.provider
+    # at emit time. Null when the Repository row is gone or its provider is unset.
+    repository_provider: str | None = None
+    # Whether the repo was public at PR-open time. Sourced from the "opened"
+    # webhook payload's repository.private (Repository never persists visibility),
+    # so it's null for PRs opened before this field existed or with activity
+    # tracking off.
+    repository_is_public: bool | None = None
     pull_request_id: int
     # The PR number as stored on ``PullRequest.key`` (e.g. "5131" on GitHub).
     pr_key: str
@@ -85,9 +93,12 @@ class PrCloseMetricsEvent(analytics.Event):
     autofix_referrers: list[str] = field(default_factory=list)
     # The terminal verdict, one of ``PullRequestVerdict``: the deterministic
     # outcome (``merged_unchanged`` / ``closed_unmerged``) on the no-judge path, or
-    # the Seer judge's verdict on the judge path. Claimed before emit on both paths
-    # (the claim gates emission), so every emitted row carries a verdict — the
+    # the Seer judge's verdict on the judge path. Claimed before emit on both
+    # paths (the claim gates emission), so every emitted row carries a verdict — the
     # ``| None`` is only the column's unset default, not an expected emitted value.
+    # (The ``JUDGE_IN_PROGRESS`` reaper's indeterminate rows — no reliable local
+    # signal to settle from — release the claim without emitting at all, rather
+    # than emit a null-verdict row; see ``reap_stuck_judge_verdicts``.)
     verdict: str | None = None
     # Close-reason labels behind the verdict (e.g. out_of_scope_or_unwanted) — the
     # "why", a vocabulary shared across judges, not specific to any one. Mostly

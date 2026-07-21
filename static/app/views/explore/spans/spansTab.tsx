@@ -64,9 +64,9 @@ import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/cross
 import {DroppedFieldsAlert} from 'sentry/views/explore/spans/droppedFieldsAlert';
 import {ExtrapolationEnabledAlert} from 'sentry/views/explore/spans/extrapolationEnabledAlert';
 import {SettingsDropdown} from 'sentry/views/explore/spans/settingsDropdown';
-import {SpansExportSwitch} from 'sentry/views/explore/spans/spansExportSwitch';
 import {SpanTabSearchSection} from 'sentry/views/explore/spans/spansTabSearchSection';
 import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
+import {TracesExportModalButton} from 'sentry/views/explore/spans/tracesExportModalButton';
 import {ExploreTables} from 'sentry/views/explore/tables';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
@@ -316,7 +316,7 @@ function SpanTabContentSectionInner({
           {controlSectionExpanded ? null : t('Advanced')}
         </ChevronButton>
         <Flex gap="xs">
-          <SpansExportSwitch
+          <TracesExportModalButton
             aggregatesTableResult={aggregatesTableResult}
             spansTableResult={spansTableResult}
             rawSpanCounts={rawSpanCounts}

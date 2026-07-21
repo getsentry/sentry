@@ -1,9 +1,10 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -13,6 +14,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {
   OnboardingCopyMarkdownButton,
   useCopySetupInstructionsEnabled,
@@ -40,13 +42,16 @@ import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
+import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ExploreBodySearch,
   ExploreFilterSection,
@@ -61,6 +66,11 @@ type OnboardingProps = {
   organization: Organization;
   project: Project;
 };
+
+const AI_SETUP_PROMPT =
+  'Please instrument Sentry logging. Include some examples following best practices.';
+
+const INSTALL_PLUGIN_COMMAND = `npx @sentry/ai install "${AI_SETUP_PROMPT}"`;
 
 const LOG_DRAIN_PLATFORM_DOCS: Record<string, {name: string; url: string}> = {
   'node-cloudflare-pages': {
@@ -119,6 +129,27 @@ function OnboardingPanel({
   children: React.ReactNode;
   project: Project;
 }) {
+  const organization = useOrganization();
+
+  const doesNotSupportLogging = project.platform
+    ? withoutLoggingSupport.has(project.platform)
+    : false;
+
+  const receivedFirstLog = !!useEventWaiter({
+    eventType: 'log',
+    organization,
+    project,
+    disabled: doesNotSupportLogging,
+  });
+
+  const trackPromptCopied = (source: 'install_command' | 'prompt') => {
+    trackAnalytics('logs.onboarding_ai_prompt_copied', {
+      organization,
+      platform: project.platform ?? 'unknown',
+      source,
+    });
+  };
+
   return (
     <Panel>
       <PanelBody>
@@ -127,19 +158,13 @@ function OnboardingPanel({
             <div>
               <HeaderWrapper>
                 <HeaderText>
-                  <Title>{t('Your Source for Log-ical Data')}</Title>
+                  <Title>{t('Logs in Sentry')}</Title>
                   <SubTitle>
-                    {t(
-                      "It's about time we offered something a bit more robust than breadcrumbs. With logs, you'll be able to have a lot more control and context over all your data."
-                    )}
+                    {t('Search and visualize application logs at scale.')}
                   </SubTitle>
                   <BulletList>
-                    <li>
-                      {t('Access logs in real time and query them by any attribute')}
-                    </li>
-                    <li>
-                      {t('Correlate your logs with errors and traces for full context')}
-                    </li>
+                    <li>{t('View logs in context with errors and traces')}</li>
+                    <li>{t('Query, filter, and group logs by any attribute')}</li>
                     <li>
                       {t('Build alerts and dashboard widgets based on log queries')}
                     </li>
@@ -154,13 +179,57 @@ function OnboardingPanel({
                   <LogDrainsLink project={project} />
                 </Setup>
                 <Preview>
-                  <BodyTitle>{t('Preview a Sentry Log')}</BodyTitle>
-                  <Arcade
-                    src="https://demo.arcade.software/dLjHGrPJITrt7JKpmX5V?embed"
-                    loading="lazy"
-                    allowFullScreen
-                  />
+                  {doesNotSupportLogging ? (
+                    // Platforms without logging support can't run the AI-assisted
+                    // setup (and would never receive a first log), so show the
+                    // product preview instead of the setup prompts.
+                    <Fragment>
+                      <BodyTitle>{t('Preview a Sentry Log')}</BodyTitle>
+                      <Arcade
+                        src="https://demo.arcade.software/dLjHGrPJITrt7JKpmX5V?embed"
+                        loading="lazy"
+                        allowFullScreen
+                      />
+                    </Fragment>
+                  ) : (
+                    <Fragment>
+                      <BodyTitle>
+                        <Flex align="center" gap="sm">
+                          {t('AI-Assisted Setup')}
+                          <FeatureBadge type="experimental" />
+                        </Flex>
+                      </BodyTitle>
+                      <SubTitle>
+                        {t('First, run this command to install the Sentry plugin')}
+                      </SubTitle>
+                      <PromptSnippet>
+                        <OnboardingCodeSnippet
+                          language="bash"
+                          onCopy={() => trackPromptCopied('install_command')}
+                        >
+                          {INSTALL_PLUGIN_COMMAND}
+                        </OnboardingCodeSnippet>
+                      </PromptSnippet>
+                      <SubTitle>{t('Then paste this in your agent of choice')}</SubTitle>
+                      <PromptSnippet>
+                        <OnboardingCodeSnippet
+                          language="text"
+                          onCopy={() => trackPromptCopied('prompt')}
+                        >
+                          {AI_SETUP_PROMPT}
+                        </OnboardingCodeSnippet>
+                      </PromptSnippet>
+                      {receivedFirstLog ? (
+                        <EventReceivedIndicator />
+                      ) : (
+                        <EventWaitingIndicator />
+                      )}
+                    </Fragment>
+                  )}
                 </Preview>
+                {doesNotSupportLogging ? null : (
+                  <OrDivider aria-hidden>{t('OR')}</OrDivider>
+                )}
               </Body>
             </div>
           </TabSelectionScope>
@@ -373,6 +442,42 @@ function Onboarding({organization, project}: OnboardingProps) {
   );
 }
 
+const PulsingIndicator = styled('div')`
+  ${pulsingIndicatorStyles};
+  flex-shrink: 0;
+`;
+
+const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
+  <div {...p}>
+    {t("Waiting for this project's first log")}
+    <PulsingIndicator />
+  </div>
+))`
+  display: flex;
+  align-items: center;
+  position: relative;
+  padding: 0 ${p => p.theme.space.md};
+  z-index: 10;
+  gap: ${p => p.theme.space.md};
+  flex-grow: 1;
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.colors.pink500};
+  padding-right: ${p => p.theme.space['3xl']};
+`;
+
+const EventReceivedIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) => (
+  <div {...p}>
+    {'🎉 '}
+    {t("We've received this project's first log!")}
+  </div>
+))`
+  display: flex;
+  align-items: center;
+  flex-grow: 1;
+  font-size: ${p => p.theme.font.size.md};
+  color: ${p => p.theme.tokens.content.success};
+`;
+
 const SubTitle = styled('div')`
   margin-bottom: ${p => p.theme.space.md};
 `;
@@ -429,6 +534,22 @@ const Preview = styled('div')`
   padding: ${p => p.theme.space['3xl']};
 `;
 
+// Sits on top of the vertical divider (Setup's :after) at the horizontal center
+// of Body, with a panel-colored background to break the line.
+const OrDivider = styled('div')`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  padding: ${p => p.theme.space.sm};
+  background: ${p => p.theme.tokens.background.primary};
+  color: ${p => p.theme.tokens.content.secondary};
+  font-size: ${p => p.theme.font.size.sm};
+  font-weight: ${p => p.theme.font.weight.sans.medium};
+  letter-spacing: 0.05em;
+`;
+
 const Body = styled('div')`
   display: grid;
   position: relative;
@@ -461,16 +582,23 @@ const Divider = styled('hr')`
   margin-bottom: 0;
 `;
 
+// Wrapper keeps the code block sized to its content instead of stretching to
+// fill the (tall) preview column.
+const PromptSnippet = styled('div')`
+  margin-top: ${p => p.theme.space.md};
+  margin-bottom: ${p => p.theme.space['2xl']};
+`;
+
+const OnboardingContainer = styled('div')`
+  margin-top: ${p => p.theme.space.md};
+`;
+
 const Arcade = styled('iframe')`
   width: 750px;
   max-width: 100%;
   margin-top: ${p => p.theme.space['2xl']};
   height: 522px;
   border: 0;
-`;
-
-const OnboardingContainer = styled('div')`
-  margin-top: ${p => p.theme.space.md};
 `;
 
 type LogsTabOnboardingProps = {

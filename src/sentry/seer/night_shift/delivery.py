@@ -157,6 +157,12 @@ def _process_verdicts(
         verdicts.append(v)
         if v.action in (TriageAction.SKIP, TriageAction.ROOT_CAUSE_ONLY):
             mark_skipped(v.group_id)
+            if v.action == TriageAction.SKIP:
+                sentry_sdk.metrics.count(
+                    "night_shift.skip_reason",
+                    1,
+                    attributes={"skip_reason": v.skip_reason or "unknown"},
+                )
         elif v.action == TriageAction.AUTOFIX:
             fixable_groups.append(group)
 
@@ -222,6 +228,8 @@ def _process_verdicts(
         extras: dict[str, Any] = {"action": str(v.action)}
         if v.reason:
             extras["reason"] = v.reason[:REASON_MAX_CHARS]
+        if v.action == TriageAction.SKIP and v.skip_reason:
+            extras["skip_reason"] = v.skip_reason
         seer_run_id: str | None = None
         result_seer_run: SeerRun | None = None
         if v.action == TriageAction.AUTOFIX and not dry_run:

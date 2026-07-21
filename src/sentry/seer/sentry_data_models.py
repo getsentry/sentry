@@ -116,15 +116,6 @@ class OrganizationSlugResponse(BaseModel):
     slug: str
 
 
-class OrganizationProject(BaseModel):
-    id: int
-    slug: str
-
-
-class OrganizationProjectIdsResponse(BaseModel):
-    projects: list[OrganizationProject]
-
-
 class OrganizationProjectDetail(BaseModel):
     id: int
     slug: str
@@ -164,23 +155,9 @@ class SendSeerWebhookErrorResponse(BaseModel):
     error: str
 
 
-class RepositoryIntegrationsStatusResponse(BaseModel):
-    integration_ids: list[int | None]
-
-
 class HasRepoCodeMappingsResponse(BaseModel):
     has_code_mappings: bool
     project_slug_to_id: dict[str, int]
-
-
-class ValidateRepoSuccessResponse(BaseModel):
-    valid: Literal[True] = True
-    integration_id: int | None
-
-
-class ValidateRepoErrorResponse(BaseModel):
-    valid: Literal[False] = False
-    reason: str
 
 
 class GetRepoInstallationIdSuccessResponse(BaseModel):
@@ -401,15 +378,6 @@ class AttributeValuesResponse(BaseModel):
         return id(self)
 
 
-class TraceItemAttributesResponse(BaseModel):
-    """`get_trace_item_attributes` returns `{"attributes": [...]}` for a single trace item.
-
-    Items in `attributes` are the raw attribute dicts from the trace-items API —
-    passed through verbatim to preserve the upstream wire shape."""
-
-    attributes: list[dict[str, Any]]
-
-
 class TraceItemEventsResponse(BaseModel):
     """`get_log_attributes_for_trace` and `get_metric_attributes_for_trace` return
     `{"data": [{"id", "timestamp", "attributes"}, ...]}` — the EAP GetTrace output."""
@@ -583,49 +551,6 @@ class TransactionsForProjectResponse(BaseModel):
     transactions: list[Transaction]
 
 
-class BulkProjectPreferencesResponse(BaseModel):
-    """`bulk_get_project_preferences` returns `{stringified_project_id: pref_dict}`.
-    The inner pref dicts are `SeerProjectPreference.dict()` output, passed through
-    verbatim since `SeerProjectPreference` lives outside `sentry_data_models`."""
-
-    __root__: dict[str, dict[str, Any]]
-
-    def dict(self, **kwargs: Any) -> Any:
-        # Forward kwargs through `super().dict()` (so options like
-        # `exclude_unset` apply to any future nested-model arms) and unwrap
-        # the `__root__` envelope to the bare map seer expects on the wire.
-        return super().dict(**kwargs)["__root__"]
-
-    # Dict-like proxy so callers can treat the response like the bare map it
-    # serializes to.
-    def __iter__(self) -> Any:
-        return iter(self.__root__)
-
-    def __contains__(self, key: object) -> bool:
-        return key in self.__root__
-
-    def __getitem__(self, key: str) -> Any:
-        return self.__root__[key]
-
-    def __len__(self) -> int:
-        return len(self.__root__)
-
-    def __eq__(self, other: object) -> bool:
-        if isinstance(other, dict):
-            return self.dict() == other
-        return super().__eq__(other)
-
-    def __hash__(self) -> int:
-        return id(self)
-
-
-class PrAttributionResponse(BaseModel):
-    """`record_pr_attribution` returns `{"attribution_id": <id or null>}`. None
-    is emitted when the pr-metrics-attribution feature is disabled for the org."""
-
-    attribution_id: int | None
-
-
 class UpdatePrMetricsSuccessResponse(BaseModel):
     """`update_pr_metrics` success: `{"success": true}`. The `success` literal is
     the discriminator against the error shape below."""
@@ -661,25 +586,6 @@ class BaselineTagDistributionResponse(BaseModel):
     `{"baseline_tag_distribution": [{tag_key, tag_value, count}, ...]}`."""
 
     baseline_tag_distribution: list[BaselineTagDistributionEntry]
-
-    def __getitem__(self, key: str) -> Any:
-        return self.dict()[key]
-
-    def __contains__(self, key: object) -> bool:
-        return key in self.dict()
-
-
-class ComparativeAttributeDistributionsResponse(BaseModel):
-    """`get_comparative_attribute_distributions` returns a baseline vs outliers
-    pair of attribute-value distributions. Each distribution is a list of
-    `(attribute_name, label, value)` triples passed through from the spans
-    frequency-stats endpoint (`query_attribute_distributions`)."""
-
-    baseline_distribution: list[tuple[str, str, float]]
-    total_baseline: int
-    outliers_distribution: list[tuple[str, str, float]]
-    total_outliers: int
-    outliers_function_value: float | None
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]
@@ -949,9 +855,11 @@ class ExecuteTimeseriesQueryErrorResponse(BaseModel):
 class MonitoringProviderConnectionData(BaseModel):
     provider_key: str
     url: str
-    encrypted_access_token: str
-    identity_id: int
+    encrypted_auth_headers: dict[str, str] | None = None
+    identity_id: int | None = None
     auth_method: str
+    refreshable: bool = True
+    gcp_project_ids: list[str] | None = None
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]
@@ -959,8 +867,8 @@ class MonitoringProviderConnectionData(BaseModel):
 
 class MonitoringProviderConnectionsResponse(BaseModel):
     """`get_monitoring_provider_connections` success: the caller's connected
-    monitoring provider identities, each carrying a freshly-encrypted access
-    token."""
+    monitoring provider identities, each carrying freshly-encrypted auth
+    headers."""
 
     connections: list[MonitoringProviderConnectionData]
 
@@ -969,11 +877,7 @@ class MonitoringProviderConnectionsResponse(BaseModel):
 
 
 class RefreshMonitoringProviderTokenSuccessResponse(BaseModel):
-    """`refresh_monitoring_provider_token` success: the freshly-encrypted access
-    token plus the Unix-second expiry the OAuth2 base helper stamps onto
-    `identity.data["expires"]` (`int(time()) + int(payload["expires_in"])`)."""
-
-    encrypted_access_token: str
+    encrypted_auth_headers: dict[str, str]
     expires: int | None
 
     def __getitem__(self, key: str) -> Any:
