@@ -462,7 +462,8 @@ class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
                 self.base_url, data={"assignee": "foo@sentry.io"}, format="json"
             )
         assert response.status_code == 201
-        log.assert_logged(CreateExternalIssueAction, group_id=self.group.id, provider="example")
+        # Capitalized to match ExampleIntegrationProvider.name
+        log.assert_logged(CreateExternalIssueAction, group_id=self.group.id, provider="Example")
 
     def test_link_external_issue_emits_action(self) -> None:
         with capture_action_log() as log, self.feature("organizations:integrations-issue-basic"):
