@@ -1,7 +1,7 @@
-import json
 from typing import Any
 
 from sentry.lang.java.view_hierarchies import _serialize_view_hierarchy
+from sentry.utils import json
 
 
 def test_serialize_deep_view_hierarchy() -> None:

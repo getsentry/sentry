@@ -10,6 +10,7 @@ from sentry.attachments import (
 )
 from sentry.ingest.consumer.processors import CACHE_TIMEOUT
 from sentry.models.project import Project
+from sentry.utils import json
 
 
 class ViewHierarchies:
@@ -76,8 +77,8 @@ def _serialize_view_hierarchy(view_hierarchy: Any) -> bytes:
         return orjson.dumps(view_hierarchy)
     except orjson.JSONEncodeError:
         # orjson cannot serialize documents nested beyond 255 levels. View hierarchies
-        # can be deeper, so preserve them with the standard library encoder instead.
-        return json.dumps(view_hierarchy, ensure_ascii=False, separators=(",", ":")).encode()
+        # can be deeper, so preserve them with Sentry's JSON encoder instead.
+        return json.dumps(view_hierarchy).encode()
 
 
 def _deobfuscate_view_hierarchy(view_hierarchy: Any, class_names: dict[str, str]):
