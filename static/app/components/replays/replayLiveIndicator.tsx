@@ -136,17 +136,15 @@ export function useLiveRefresh({replay}: {replay: ReplayRecord | undefined}) {
   const [isReplayExpired, setIsReplayExpired] = useState(() => Date.now() > expiresAtMs);
 
   useEffect(() => {
-    if (isReplayExpired) {
-      return;
-    }
     const remaining = expiresAtMs - Date.now();
     if (remaining <= 0) {
       setIsReplayExpired(true);
       return;
     }
+    setIsReplayExpired(false);
     const timer = setTimeout(() => setIsReplayExpired(true), remaining);
     return () => clearTimeout(timer);
-  }, [expiresAtMs, isReplayExpired]);
+  }, [expiresAtMs]);
 
   const polledReplayRecord = usePollReplayRecord({
     enabled: !isReplayExpired && Boolean(replayId),
