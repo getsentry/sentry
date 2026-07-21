@@ -102,6 +102,27 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         assert response.status_code == 200, response.data
         assert [row["name"] for row in response.data] == ["checkout.requests"]
 
+    def test_sort_by_count(self) -> None:
+        self.store_metric("low.count", "counter")
+        for _ in range(3):
+            self.store_metric("high.count", "counter")
+
+        desc = self.do_request(query={"project": self.project.id, "sort": "-count"})
+        assert desc.status_code == 200, desc.data
+        assert [row["name"] for row in desc.data] == ["high.count", "low.count"]
+
+        asc = self.do_request(query={"project": self.project.id, "sort": "count"})
+        assert asc.status_code == 200, asc.data
+        assert [row["name"] for row in asc.data] == ["low.count", "high.count"]
+
+    def test_rejects_invalid_sort(self) -> None:
+        self.store_metric("checkout.requests", "counter")
+
+        response = self.do_request(query={"project": self.project.id, "sort": "bogus"})
+
+        assert response.status_code == 400, response.data
+        assert "sort" in response.data
+
     def test_expand_context(self) -> None:
         self.store_metric("checkout.requests", "counter")
         self.create_context(
