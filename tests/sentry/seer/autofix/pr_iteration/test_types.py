@@ -14,6 +14,8 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteAutofixRun,
     CheckSuiteFeedbackSource,
+    GithubCheckSuiteEvent,
+    MissingCheckSuiteAutofixRun,
     get_check_suite_url,
     resolve_check_suite_repositories,
 )
@@ -29,14 +31,17 @@ from sentry.utils import json
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 
 
-def _check_suite_event() -> dict:
+def _check_suite_event(*, updated_at: str | None = "2024-01-01T00:00:00Z") -> dict:
+    check_suite: dict = {
+        "id": 1,
+        "head_sha": "abc",
+        "check_runs_url": "https://github.com/owner/repo/check-runs",
+        "app": {"name": "CI"},
+    }
+    if updated_at is not None:
+        check_suite["updated_at"] = updated_at
     return {
-        "check_suite": {
-            "id": 1,
-            "head_sha": "abc",
-            "check_runs_url": "https://github.com/owner/repo/check-runs",
-            "app": {"name": "CI"},
-        },
+        "check_suite": check_suite,
         "repository": {"html_url": "https://github.com/owner/repo"},
     }
 
@@ -49,6 +54,30 @@ def _run_state(*, blocks=None, repo_pr_states=None, status="completed") -> SeerR
         updated_at="2024-01-01T00:00:00Z",
         repo_pr_states=repo_pr_states or {},
     )
+
+
+def _autofix_run(*, repo: MagicMock | None = None) -> CheckSuiteAutofixRun:
+    return CheckSuiteAutofixRun(
+        repository=repo or MagicMock(organization_id=1, id=2),
+        run_state=_run_state(),
+        pr_id=1,
+        group_id=1,
+    )
+
+
+def _check_suite_source(
+    event: dict | None = None,
+    *,
+    autofix_run: CheckSuiteAutofixRun | None = None,
+) -> CheckSuiteFeedbackSource:
+    source = CheckSuiteFeedbackSource(event=event or _check_suite_event())
+    if autofix_run is not None:
+        with patch(
+            f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
+            return_value=autofix_run,
+        ):
+            assert source.autofix_run is autofix_run
+    return source
 
 
 def _feedback_block(*feedbacks: Feedback) -> MemoryBlock:
@@ -81,7 +110,7 @@ class ParseSerializeFeedbackTest(TestCase):
     def test_check_suite_event_requires_expected_fields_and_preserves_extra_fields(self) -> None:
         event = _check_suite_event()
         event["extra"] = "value"
-        source = CheckSuiteFeedbackSource(event=event)
+        source = _check_suite_source(event)
 
         assert source.event.dict()["extra"] == "value"
         assert source.app_name == "CI"
@@ -89,10 +118,40 @@ class ParseSerializeFeedbackTest(TestCase):
             "https://github.com/owner/repo/commit/abc/checks?check_suite_id=1"
         )
         assert source.check_suite_url == get_check_suite_url(source.event)
+        assert source.updated_at == "2024-01-01T00:00:00Z"
+        assert source.event.check_suite.updated_at == "2024-01-01T00:00:00Z"
+        assert "updated_at" not in source.dict()
+        assert "autofix_run" not in source.dict()
 
         del event["check_suite"]["check_runs_url"]
         with pytest.raises(ValidationError):
             CheckSuiteFeedbackSource(event=event)
+
+    def test_construct_does_not_resolve(self) -> None:
+        with patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run") as mock_resolve:
+            source = CheckSuiteFeedbackSource(event=_check_suite_event())
+            mock_resolve.assert_not_called()
+            assert source._autofix_run is None
+
+    def test_autofix_run_resolves_and_caches(self) -> None:
+        run = _autofix_run()
+        source = CheckSuiteFeedbackSource(event=_check_suite_event())
+        with patch(
+            f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
+            return_value=run,
+        ) as mock_resolve:
+            assert source.autofix_run is run
+            assert source.autofix_run is run
+            mock_resolve.assert_called_once()
+
+    def test_autofix_run_raises_when_missing(self) -> None:
+        source = CheckSuiteFeedbackSource(event=_check_suite_event())
+        with patch(
+            f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
+            return_value=None,
+        ):
+            with pytest.raises(MissingCheckSuiteAutofixRun):
+                _ = source.autofix_run
 
     def test_round_trips_all_source_types(self) -> None:
         items = [
@@ -100,12 +159,11 @@ class ParseSerializeFeedbackTest(TestCase):
             Feedback(
                 source=GithubPrCommentFeedbackSource(comment={"id": 99, "body": "@sentry comment"})
             ),
-            Feedback(
-                source=CheckSuiteFeedbackSource(event=_check_suite_event()),
-            ),
+            Feedback(source=_check_suite_source()),
         ]
 
-        parsed = parse_feedback(serialize_feedback(items))
+        with patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run") as mock_resolve:
+            parsed = parse_feedback(serialize_feedback(items))
 
         # text is derived from each source: user-ui echoes the typed feedback,
         # pr-comment parses the comment body, check-suite builds an instruction.
@@ -117,6 +175,9 @@ class ParseSerializeFeedbackTest(TestCase):
         assert isinstance(parsed[2].source, CheckSuiteFeedbackSource)
         assert parsed[0].source.user_id == 7
         assert parsed[1].source.comment.id == 99
+        # Re-parse must not re-hit Seer.
+        mock_resolve.assert_not_called()
+        assert parsed[2].source._autofix_run is None
 
     def test_parses_single_object(self) -> None:
         feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="solo"))
@@ -129,9 +190,7 @@ class ParseSerializeFeedbackTest(TestCase):
     def test_serializes_ui_text(self) -> None:
         items = [
             Feedback(source=UserUIFeedbackSource(user_id=7, user_feedback="ui")),
-            Feedback(
-                source=CheckSuiteFeedbackSource(event=_check_suite_event()),
-            ),
+            Feedback(source=_check_suite_source()),
         ]
 
         serialized = serialize_feedback(items)
@@ -148,6 +207,74 @@ class ParseSerializeFeedbackTest(TestCase):
 
     def test_schema_mismatch_returns_empty(self) -> None:
         assert parse_feedback('{"unexpected": true}') == []
+
+    def test_parses_check_suite_without_resolve(self) -> None:
+        with patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run") as mock_resolve:
+            raw = json.dumps(
+                {
+                    "source": {
+                        "type": "check-suite",
+                        "event": _check_suite_event(),
+                    }
+                }
+            )
+            parsed = parse_feedback(raw)
+
+        assert len(parsed) == 1
+        assert isinstance(parsed[0].source, CheckSuiteFeedbackSource)
+        assert parsed[0].source._autofix_run is None
+        mock_resolve.assert_not_called()
+
+    def test_bad_item_skips_keeps_siblings(self) -> None:
+        # One invalid element must not erase sibling feedback in the same list
+        # (hard-cap / comment / attempt dedupe rely on it).
+        raw = json.dumps(
+            [
+                {
+                    "source": {
+                        "type": "user-ui",
+                        "user_id": 7,
+                        "user_feedback": "keep me",
+                    }
+                },
+                {
+                    "source": {
+                        "type": "check-suite",
+                        "event": {"check_suite": {"id": 1}},
+                    }
+                },
+                {
+                    "source": {
+                        "type": "github-pr-comment",
+                        "comment": {"id": 99, "body": "@sentry also keep"},
+                    }
+                },
+            ]
+        )
+
+        parsed = parse_feedback(raw)
+
+        assert len(parsed) == 2
+        assert isinstance(parsed[0].source, UserUIFeedbackSource)
+        assert parsed[0].text == "keep me"
+        assert isinstance(parsed[1].source, GithubPrCommentFeedbackSource)
+        assert parsed[1].text == "also keep"
+
+    def test_ignores_legacy_check_run_ids_on_parse(self) -> None:
+        raw = json.dumps(
+            {
+                "source": {
+                    "type": "check-suite",
+                    "event": _check_suite_event(),
+                    "check_run_ids": [101],
+                }
+            }
+        )
+
+        parsed = parse_feedback(raw)
+        assert len(parsed) == 1
+        assert isinstance(parsed[0].source, CheckSuiteFeedbackSource)
+        assert "check_run_ids" not in parsed[0].source.dict()
 
 
 class FeedbackBackwardsCompatTest(TestCase):
@@ -325,7 +452,7 @@ class CheckSuiteShouldQueueTest(TestCase):
         }
 
     def test_true_when_matches_repo_pr_state(self) -> None:
-        source = CheckSuiteFeedbackSource(event=self._event())
+        source = _check_suite_source(self._event())
         state = _run_state(
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
         )
@@ -335,7 +462,7 @@ class CheckSuiteShouldQueueTest(TestCase):
     def test_false_when_only_matches_block_commit_sha(self) -> None:
         # A past block's SHA no longer counts: only the PR's current head
         # (repo_pr_states) is valid, so a suite for a superseded commit is dropped.
-        source = CheckSuiteFeedbackSource(event=self._event())
+        source = _check_suite_source(self._event())
         block = MemoryBlock(
             id="b1",
             message=Message(role="assistant"),
@@ -346,7 +473,7 @@ class CheckSuiteShouldQueueTest(TestCase):
         assert source.should_queue(_run_state(blocks=[block])) is False
 
     def test_false_when_no_match(self) -> None:
-        source = CheckSuiteFeedbackSource(event=self._event())
+        source = _check_suite_source(self._event())
         state = _run_state(
             repo_pr_states={
                 "owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="different")
@@ -356,33 +483,61 @@ class CheckSuiteShouldQueueTest(TestCase):
         assert source.should_queue(state) is False
 
     def test_false_when_missing_head_sha(self) -> None:
-        source = CheckSuiteFeedbackSource(event=self._event(head_sha=""))
+        source = _check_suite_source(self._event(head_sha=""))
 
         assert source.should_queue(_run_state()) is False
 
     def test_false_when_missing_repo_name(self) -> None:
-        source = CheckSuiteFeedbackSource(event=self._event(repo_name=""))
+        source = _check_suite_source(self._event(repo_name=""))
 
         assert source.should_queue(_run_state()) is False
 
 
 class CheckSuiteShouldConsumeTest(TestCase):
-    def _event(self, *, head_sha="abc", repo_name="owner/repo") -> dict:
+    def _event(
+        self,
+        *,
+        head_sha="abc",
+        repo_name="owner/repo",
+        updated_at: str | None = "2024-01-01T00:00:00Z",
+        suite_id: int = 1,
+    ) -> dict:
+        check_suite: dict = {
+            "id": suite_id,
+            "head_sha": head_sha,
+            "check_runs_url": "https://github.com/owner/repo/check-runs",
+            "app": {"name": "CI"},
+        }
+        if updated_at is not None:
+            check_suite["updated_at"] = updated_at
         return {
-            "check_suite": {
-                "id": 1,
-                "head_sha": head_sha,
-                "check_runs_url": "https://github.com/owner/repo/check-runs",
-                "app": {"name": "CI"},
-            },
+            "check_suite": check_suite,
             "repository": {
                 "full_name": repo_name,
                 "html_url": "https://github.com/owner/repo",
             },
         }
 
+    def _state_with_prior(self, prior: Feedback) -> SeerRunState:
+        block = MemoryBlock(
+            id="iter-0",
+            message=Message(
+                role="assistant",
+                metadata={
+                    "step": "pr_iteration",
+                    "iteration_index": "0",
+                    "feedback": serialize_feedback([prior]),
+                },
+            ),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        return _run_state(
+            blocks=[block],
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
+        )
+
     def test_true_when_matches_current_head(self) -> None:
-        source = CheckSuiteFeedbackSource(event=self._event())
+        source = _check_suite_source(self._event())
         state = _run_state(
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
         )
@@ -391,7 +546,7 @@ class CheckSuiteShouldConsumeTest(TestCase):
 
     def test_false_when_head_superseded(self) -> None:
         # PR head advanced past the commit the suite ran on -> out of date.
-        source = CheckSuiteFeedbackSource(event=self._event())
+        source = _check_suite_source(self._event())
         state = _run_state(
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="newer")}
         )
@@ -399,61 +554,50 @@ class CheckSuiteShouldConsumeTest(TestCase):
         assert source.should_consume(state) is False
 
     def test_false_when_no_repo_pr_state(self) -> None:
-        source = CheckSuiteFeedbackSource(event=self._event())
+        source = _check_suite_source(self._event())
 
         assert source.should_consume(_run_state()) is False
 
-    def test_false_when_check_suite_already_processed(self) -> None:
-        source = CheckSuiteFeedbackSource(event=self._event())
-        prior = Feedback(source=CheckSuiteFeedbackSource(event=self._event()))
-        block = MemoryBlock(
-            id="iter-0",
-            message=Message(
-                role="assistant",
-                metadata={
-                    "step": "pr_iteration",
-                    "iteration_index": "0",
-                    "feedback": serialize_feedback([prior]),
-                },
-            ),
-            timestamp="2024-01-01T00:00:00Z",
-        )
-        state = _run_state(
-            blocks=[block],
-            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
-        )
+    def test_false_when_same_suite_same_updated_at(self) -> None:
+        """Webhook retry: same suite id + updated_at → already processed."""
+        source = _check_suite_source(self._event(updated_at="2024-01-01T00:00:00Z"))
+        prior = Feedback(source=_check_suite_source(self._event(updated_at="2024-01-01T00:00:00Z")))
 
-        assert source.should_consume(state) is False
+        assert source.should_consume(self._state_with_prior(prior)) is False
+
+    def test_true_when_same_suite_new_updated_at(self) -> None:
+        """GitHub Actions re-run: same suite id, bumped updated_at → consume."""
+        source = _check_suite_source(self._event(updated_at="2024-01-02T00:00:00Z"))
+        prior = Feedback(source=_check_suite_source(self._event(updated_at="2024-01-01T00:00:00Z")))
+
+        assert source.should_consume(self._state_with_prior(prior)) is True
 
     def test_true_when_different_check_suite_id(self) -> None:
-        source = CheckSuiteFeedbackSource(event=self._event())
-        other_event = self._event()
-        other_event["check_suite"] = {**other_event["check_suite"], "id": 99}
-        prior = Feedback(source=CheckSuiteFeedbackSource(event=other_event))
-        block = MemoryBlock(
-            id="iter-0",
-            message=Message(
-                role="assistant",
-                metadata={
-                    "step": "pr_iteration",
-                    "iteration_index": "0",
-                    "feedback": serialize_feedback([prior]),
-                },
-            ),
-            timestamp="2024-01-01T00:00:00Z",
-        )
-        state = _run_state(
-            blocks=[block],
-            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
-        )
+        source = _check_suite_source(self._event(suite_id=1))
+        prior = Feedback(source=_check_suite_source(self._event(suite_id=99)))
 
-        assert source.should_consume(state) is True
+        assert source.should_consume(self._state_with_prior(prior)) is True
+
+    def test_legacy_missing_updated_at_dedupes_by_suite_id(self) -> None:
+        """History without updated_at falls back to suite-id-only dedupe."""
+        legacy_event = self._event(updated_at=None)
+        prior = Feedback(source=_check_suite_source(legacy_event))
+        state = self._state_with_prior(prior)
+
+        assert _check_suite_source(legacy_event).should_consume(state) is False
+        # Re-run with updated_at is a distinct attempt key from suite-id-only legacy.
+        assert (
+            _check_suite_source(self._event(updated_at="2024-01-02T00:00:00Z")).should_consume(
+                state
+            )
+            is True
+        )
 
 
 class CheckSuiteShouldTriggerTest(TestCase):
-    def _source(self, head_sha="abc") -> CheckSuiteFeedbackSource:
-        return CheckSuiteFeedbackSource(
-            event={
+    def _source(self, head_sha="abc", *, repo: MagicMock | None = None) -> CheckSuiteFeedbackSource:
+        return _check_suite_source(
+            {
                 "check_suite": {
                     "id": 1,
                     "head_sha": head_sha,
@@ -461,40 +605,23 @@ class CheckSuiteShouldTriggerTest(TestCase):
                     "app": {"name": "CI"},
                 },
                 "repository": {"html_url": "https://github.com/owner/repo"},
-            }
+            },
+            autofix_run=_autofix_run(repo=repo),
         )
-
-    def _source_with_autofix_run(
-        self, head_sha="abc", *, repo: MagicMock | None = None
-    ) -> CheckSuiteFeedbackSource:
-        source = self._source(head_sha=head_sha)
-        source.__dict__["autofix_run"] = CheckSuiteAutofixRun(
-            repository=repo or MagicMock(organization_id=1, id=2),
-            run_state=_run_state(),
-            pr_id=1,
-            group_id=1,
-        )
-        return source
 
     def test_now_when_no_head_sha(self) -> None:
         assert self._source(head_sha="").should_trigger(_run_state()) == ConsumeTask.Now
 
-    def test_now_when_autofix_run_missing(self) -> None:
-        source = self._source()
-        source.__dict__["autofix_run"] = None
-
-        assert source.should_trigger(_run_state()) == ConsumeTask.Now
-
     @patch("sentry.scm.factory.new", side_effect=Exception("boom"))
     def test_now_when_scm_init_fails(self, _mock_new: MagicMock) -> None:
-        assert self._source_with_autofix_run().should_trigger(_run_state()) == ConsumeTask.Now
+        assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", type("Other", (), {}))
     @patch("sentry.scm.factory.new")
     def test_now_when_unsupported_provider(self, mock_new: MagicMock) -> None:
         mock_new.return_value = MagicMock()
 
-        assert self._source_with_autofix_run().should_trigger(_run_state()) == ConsumeTask.Now
+        assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages")
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
@@ -507,9 +634,7 @@ class CheckSuiteShouldTriggerTest(TestCase):
         mock_new.return_value = MagicMock()
         mock_pages.return_value = [{"data": [{"status": "in_progress"}]}]
 
-        assert self._source_with_autofix_run().should_trigger(_run_state()) == ConsumeTask.Later(
-            timedelta(hours=1)
-        )
+        assert self._source().should_trigger(_run_state()) == ConsumeTask.Later(timedelta(hours=1))
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages")
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
@@ -522,7 +647,7 @@ class CheckSuiteShouldTriggerTest(TestCase):
         mock_new.return_value = MagicMock()
         mock_pages.return_value = [{"data": [{"status": "completed"}]}]
 
-        assert self._source_with_autofix_run().should_trigger(_run_state()) == ConsumeTask.Now
+        assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", side_effect=Exception("boom"))
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
@@ -534,22 +659,18 @@ class CheckSuiteShouldTriggerTest(TestCase):
     ) -> None:
         mock_new.return_value = MagicMock()
 
-        assert self._source_with_autofix_run().should_trigger(_run_state()) == ConsumeTask.Now
+        assert self._source().should_trigger(_run_state()) == ConsumeTask.Now
 
 
 class ResolveCheckSuiteRepositoriesTest(TestCase):
     def test_empty_when_missing_ids(self) -> None:
         assert (
-            resolve_check_suite_repositories(
-                CheckSuiteFeedbackSource(event=_check_suite_event()).event
-            )
+            resolve_check_suite_repositories(GithubCheckSuiteEvent.parse_obj(_check_suite_event()))
             == []
         )
         assert (
             resolve_check_suite_repositories(
-                CheckSuiteFeedbackSource(
-                    event={**_check_suite_event(), "installation": {"id": 1}}
-                ).event
+                GithubCheckSuiteEvent.parse_obj({**_check_suite_event(), "installation": {"id": 1}})
             )
             == []
         )
@@ -559,13 +680,13 @@ class ResolveCheckSuiteRepositoriesTest(TestCase):
         mock_contexts.return_value = MagicMock(integration=None, organization_integrations=[])
 
         result = resolve_check_suite_repositories(
-            CheckSuiteFeedbackSource(
-                event={
+            GithubCheckSuiteEvent.parse_obj(
+                {
                     **_check_suite_event(),
                     "installation": {"id": 1},
                     "repository": {"id": 2, "html_url": "https://github.com/owner/repo"},
                 }
-            ).event
+            )
         )
 
         assert result == []
@@ -584,13 +705,13 @@ class ResolveCheckSuiteRepositoriesTest(TestCase):
         )
 
         result = resolve_check_suite_repositories(
-            CheckSuiteFeedbackSource(
-                event={
+            GithubCheckSuiteEvent.parse_obj(
+                {
                     **_check_suite_event(),
                     "installation": {"id": 1},
                     "repository": {"id": 2, "html_url": "https://github.com/owner/repo"},
                 }
-            ).event
+            )
         )
 
         assert [r.id for r in result] == [repo.id]
@@ -620,13 +741,13 @@ class ResolveCheckSuiteRepositoriesTest(TestCase):
         )
 
         result = resolve_check_suite_repositories(
-            CheckSuiteFeedbackSource(
-                event={
+            GithubCheckSuiteEvent.parse_obj(
+                {
                     **_check_suite_event(),
                     "installation": {"id": 1},
                     "repository": {"id": 2, "html_url": "https://github.com/owner/repo"},
                 }
-            ).event
+            )
         )
 
         assert {repo.id for repo in result} == {repo_a.id, repo_b.id}

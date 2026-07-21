@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Annotated, Any
 
 from django.utils import timezone
-from pydantic import BaseModel, Field, ValidationError, parse_raw_as, root_validator
+from pydantic import BaseModel, Field, ValidationError, root_validator
 
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
@@ -22,6 +22,8 @@ FeedbackSource = Annotated[
     | CheckSuiteFeedbackSource,
     Field(discriminator="type"),
 ]
+
+_PARSE_FEEDBACK_ERRORS = (ValidationError, ValueError)
 
 
 class Feedback(BaseModel):
@@ -42,15 +44,28 @@ class Feedback(BaseModel):
         return values
 
 
+def _parse_feedback_item(data: object) -> Feedback | None:
+    try:
+        return Feedback.parse_obj(data)
+    except _PARSE_FEEDBACK_ERRORS:
+        return None
+
+
 def parse_feedback(raw: str) -> list[Feedback]:
     try:
-        return parse_raw_as(list[Feedback], raw)
-    except (ValidationError, ValueError):
-        pass
-    try:
-        return [parse_raw_as(Feedback, raw)]
-    except (ValidationError, ValueError):
+        data = json.loads(raw)
+    except (TypeError, ValueError):
         return []
+
+    if isinstance(data, list):
+        # Parse item-by-item so one bad element cannot erase sibling
+        # comment/UI feedback in the same metadata blob.
+        return [
+            item for item in (_parse_feedback_item(entry) for entry in data) if item is not None
+        ]
+
+    item = _parse_feedback_item(data)
+    return [item] if item is not None else []
 
 
 def serialize_feedback(items: Sequence[Feedback]) -> str:

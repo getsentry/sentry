@@ -3,11 +3,10 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
-from functools import cached_property
-from typing import Literal
+from typing import Any, Literal
 
 import sentry_sdk
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, PrivateAttr, root_validator
 from scm import actions as scm_actions
 from scm.helpers import iter_all_pages
 from scm.types import ListCheckRunsForRefProtocol
@@ -30,6 +29,14 @@ _SEER_GITHUB_PROVIDER = "integrations:github"
 CHECK_SUITE_ITERATION_HARD_CAP = 3
 
 
+class MissingCheckSuiteAutofixRun(Exception):
+    """No Autofix run for this check suite's PR(s).
+
+    Raised from ``CheckSuiteFeedbackSource.autofix_run`` (not a ``ValueError``)
+    so callers can catch it without colliding with pydantic ``ValidationError``.
+    """
+
+
 class GithubCheckSuiteApp(BaseModel):
     name: str
 
@@ -50,6 +57,9 @@ class GithubCheckSuite(BaseModel):
     check_runs_url: str
     app: GithubCheckSuiteApp
     conclusion: str | None = None
+    # GitHub bumps this on Actions re-runs while keeping the same suite id.
+    # Optional so legacy serialized feedback (pre-updated_at) still parses.
+    updated_at: str | None = None
     pull_requests: list[GithubCheckSuitePullRequest] = Field(default_factory=list)
 
     class Config:
@@ -151,10 +161,79 @@ class CheckSuiteAutofixRun:
     group_id: int
 
 
+def resolve_check_suite_autofix_run(event: GithubCheckSuiteEvent) -> CheckSuiteAutofixRun | None:
+    """Find the Autofix run for this check suite's PR(s).
+
+    Assumes one Autofix run ↔ PR in Sentry. Tries each PR × candidate org until
+    Seer returns a run with ``repo_pr_states`` and a ``group_id``. If multiple
+    matches are found, logs a warning and returns the first.
+    """
+    repos = resolve_check_suite_repositories(event)
+    if not repos:
+        return None
+
+    pull_requests = event.check_suite.pull_requests
+    if not pull_requests:
+        return None
+
+    matches: list[CheckSuiteAutofixRun] = []
+    for pr_id in (pr.id for pr in pull_requests):
+        for candidate in repos:
+            try:
+                state = get_agent_state_from_pr_id(
+                    candidate.organization_id, _SEER_GITHUB_PROVIDER, pr_id
+                )
+            except SeerApiError as e:
+                sentry_sdk.capture_exception(e)
+                continue
+
+            if state is None:
+                continue
+            if not state.repo_pr_states:
+                continue
+
+            group_id = state.metadata.get("group_id") if state.metadata else None
+            if not group_id:
+                logger.warning(
+                    "autofix.pr_iteration.check_suite.missing_group_id",
+                    extra={
+                        "organization_id": candidate.organization_id,
+                        "pr_id": pr_id,
+                        "run_id": state.run_id,
+                    },
+                )
+                continue
+
+            matches.append(
+                CheckSuiteAutofixRun(
+                    repository=candidate,
+                    run_state=state,
+                    pr_id=pr_id,
+                    group_id=group_id,
+                )
+            )
+
+    if not matches:
+        return None
+
+    if len(matches) > 1:
+        logger.warning(
+            "autofix.pr_iteration.check_suite.multiple_autofix_runs",
+            extra={
+                "match_count": len(matches),
+                "pr_ids": [m.pr_id for m in matches],
+                "run_ids": [m.run_state.run_id for m in matches],
+                "organization_ids": [m.repository.organization_id for m in matches],
+            },
+        )
+
+    return matches[0]
+
+
 def _check_suite_iteration_cap_reached(run_state: SeerRunState) -> bool:
     """Whether the last N PR iterations used only automated check-suite feedback."""
     from sentry.seer.autofix.autofix_agent import get_iterations
-    from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
+    from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import _blocks_feedback
 
     cap = CHECK_SUITE_ITERATION_HARD_CAP
     if cap <= 0:
@@ -165,35 +244,44 @@ def _check_suite_iteration_cap_reached(run_state: SeerRunState) -> bool:
         return False
 
     for iteration in last_iterations:
-        feedbacks = [
-            feedback
-            for block in iteration.blocks
-            for feedback in parse_feedback((block.message.metadata or {}).get("feedback", ""))
-        ]
+        # Failed re-parses are dropped (and warned) inside parse_feedback.
+        feedbacks = _blocks_feedback(iteration.blocks)
+        # Empty after parse (e.g. all check-suite items failed to re-hydrate)
+        # must not count as check-suite-only toward the hard cap.
+        if not feedbacks:
+            return False
         if any(not isinstance(feedback.source, CheckSuiteFeedbackSource) for feedback in feedbacks):
             return False
 
     return True
 
 
-def _processed_check_suite_ids(run_state: SeerRunState) -> set[int]:
-    """Check suite ids already turned into feedback on this run (for consume dedupe)."""
+def _processed_check_suite_attempts(run_state: SeerRunState) -> set[tuple[int, str] | int]:
+    """Attempt keys already turned into feedback on this run (for consume dedupe)."""
     from sentry.seer.autofix.autofix_agent import get_iterations
     from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import _blocks_feedback
 
-    ids: set[int] = set()
+    keys: set[tuple[int, str] | int] = set()
     for iteration in get_iterations(run_state):
         for item in _blocks_feedback(iteration.blocks):
             if isinstance(item.source, CheckSuiteFeedbackSource):
-                ids.add(item.source.event.check_suite.id)
-    return ids
+                keys.add(item.source.check_suite_attempt_key())
+    return keys
 
 
 class CheckSuiteFeedbackSource(FeedbackSourceBase):
     type: Literal["check-suite"] = "check-suite"
     event: GithubCheckSuiteEvent
+    # Derived scalars set in ``_populate_event_fields`` (same pattern as
+    # ``GithubPrCommentFeedbackSource.comment_feedback``).
     app_name: str = ""
     check_suite_url: str = ""
+    # From ``event.check_suite.updated_at``; excluded so we don't duplicate the
+    # nested event field in Redis / feedback metadata. Recomputed on parse.
+    updated_at: str | None = Field(default=None, exclude=True)
+    # Transient cache for the Seer/Django resolve result. PrivateAttr so it is
+    # never serialized and cannot be injected from Redis / feedback JSON.
+    _autofix_run: Any = PrivateAttr(default=None)
 
     @root_validator
     def _populate_event_fields(cls, values: dict[str, object]) -> dict[str, object]:
@@ -203,7 +291,35 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         assert isinstance(event, GithubCheckSuiteEvent)
         values["app_name"] = event.check_suite.app.name
         values["check_suite_url"] = get_check_suite_url(event)
+        values["updated_at"] = event.check_suite.updated_at
         return values
+
+    @property
+    def autofix_run(self) -> CheckSuiteAutofixRun:
+        """Cached Autofix run. Lazy-resolves via Seer on first access.
+
+        Not serialized (``_autofix_run`` is a PrivateAttr). Raises
+        ``MissingCheckSuiteAutofixRun`` when no run is found.
+        """
+        if self._autofix_run is not None:
+            return self._autofix_run
+
+        autofix_run = resolve_check_suite_autofix_run(self.event)
+        if autofix_run is None:
+            raise MissingCheckSuiteAutofixRun
+        self._autofix_run = autofix_run
+        return autofix_run
+
+    def check_suite_attempt_key(self) -> tuple[int, str] | int:
+        """Stable attempt key for check-suite consume / batch dedupe.
+
+        Prefer ``(suite_id, updated_at)``: webhook retries share both; Actions
+        re-runs keep the suite id but bump ``updated_at``. Legacy feedback without
+        ``updated_at`` falls back to suite-id-only.
+        """
+        if self.updated_at:
+            return (self.event.check_suite.id, self.updated_at)
+        return self.event.check_suite.id
 
     @property
     def text(self) -> str:
@@ -231,55 +347,6 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     @property
     def ui_text(self) -> str | None:
         return f"check suite for app {self.app_name} failed"
-
-    @cached_property
-    def repositories(self) -> list[Repository]:
-        return resolve_check_suite_repositories(self.event)
-
-    @cached_property
-    def autofix_run(self) -> CheckSuiteAutofixRun | None:
-        """Find the single Autofix run for this check suite's PR(s).
-
-        Assumes one Autofix run ↔ PR in Sentry. Tries each PR × candidate org until
-        Seer returns a run with ``repo_pr_states`` and a ``group_id``.
-        """
-        repos = self.repositories
-        if not repos:
-            return None
-
-        for pr_id in (pr.id for pr in self.event.check_suite.pull_requests):
-            for candidate in repos:
-                try:
-                    state = get_agent_state_from_pr_id(
-                        candidate.organization_id, _SEER_GITHUB_PROVIDER, pr_id
-                    )
-                except SeerApiError as e:
-                    sentry_sdk.capture_exception(e)
-                    continue
-
-                if state is None or not state.repo_pr_states:
-                    continue
-
-                group_id = state.metadata.get("group_id") if state.metadata else None
-                if not group_id:
-                    logger.warning(
-                        "autofix.pr_iteration.check_suite.missing_group_id",
-                        extra={
-                            "organization_id": candidate.organization_id,
-                            "pr_id": pr_id,
-                            "run_id": state.run_id,
-                        },
-                    )
-                    continue
-
-                return CheckSuiteAutofixRun(
-                    repository=candidate,
-                    run_state=state,
-                    pr_id=pr_id,
-                    group_id=group_id,
-                )
-
-        return None
 
     def _matches_current_head(self, run_state: SeerRunState) -> tuple[str | None, str | None, bool]:
         """Whether the check suite ran on the PR's *current* head commit.
@@ -316,8 +383,8 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
 
     def should_consume(self, run_state: SeerRunState) -> bool:
         head_sha, repo_name, matched = self._matches_current_head(run_state)
-        suite_id = self.event.check_suite.id
-        already_processed = suite_id in _processed_check_suite_ids(run_state)
+        attempt_key = self.check_suite_attempt_key()
+        already_processed = attempt_key in _processed_check_suite_attempts(run_state)
         logger.info(
             "autofix.pr_iteration.check_suite.should_consume.evaluated",
             extra={
@@ -325,13 +392,14 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
                 "head_sha": head_sha,
                 "repo_name": repo_name,
                 "matched": matched,
-                "check_suite_id": suite_id,
+                "check_suite_id": self.event.check_suite.id,
+                "updated_at": self.updated_at,
                 "already_processed": already_processed,
                 "repo_pr_state_count": len(run_state.repo_pr_states),
             },
         )
         # Dedupe against prior check-suite feedback so webhook retries of the same
-        # suite can't burn iterations when the PR head is unchanged.
+        # suite attempt can't burn iterations when the PR head is unchanged.
         return matched and not already_processed
 
     def should_trigger(self, run_state: SeerRunState) -> ConsumeTask | None:
@@ -353,18 +421,8 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             )
             return ConsumeTask.Now
 
-        resolved = self.autofix_run
-        if resolved is None:
-            # Listener only calls should_trigger after resolving a run; missing
-            # here means a bug or a test that skipped resolution.
-            logger.error(
-                "autofix.pr_iteration.check_suite.should_trigger.missing_autofix_run",
-                extra={"run_id": run_state.run_id, "head_sha": head_sha},
-            )
-            return ConsumeTask.Now
-
-        organization_id = resolved.repository.organization_id
-        repo_id = resolved.repository.id
+        organization_id = self.autofix_run.repository.organization_id
+        repo_id = self.autofix_run.repository.id
 
         # Importing the SCM factory while feedback models are initialized pulls
         # in integration handlers before Django finishes registering apps.
@@ -431,6 +489,8 @@ __all__ = (
     "GithubCheckSuiteInstallation",
     "GithubCheckSuitePullRequest",
     "GithubCheckSuiteRepository",
+    "MissingCheckSuiteAutofixRun",
     "get_check_suite_url",
+    "resolve_check_suite_autofix_run",
     "resolve_check_suite_repositories",
 )

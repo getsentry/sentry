@@ -11,6 +11,8 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CHECK_SUITE_ITERATION_HARD_CAP,
     CheckSuiteAutofixRun,
     CheckSuiteFeedbackSource,
+    GithubCheckSuiteEvent,
+    resolve_check_suite_autofix_run,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
@@ -58,6 +60,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
                 "head_sha": "abc",
                 "check_runs_url": "https://github.com/owner/repo/check-runs",
                 "app": {"name": "CI"},
+                "updated_at": "2024-01-01T00:00:00Z",
                 "pull_requests": pull_requests or [],
             },
             "repository": {"html_url": "https://github.com/owner/repo"},
@@ -157,7 +160,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
     ) -> None:
-        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         mock_get_state.return_value = self._agent_state()
         raw = self._raw(pull_requests=[{"id": 555}])
 
@@ -176,7 +179,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_enqueue: MagicMock,
         mock_trigger_consume: MagicMock,
     ) -> None:
-        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         mock_get_state.return_value = self._agent_state()
         raw = self._raw(pull_requests=[{"id": 555}])
 
@@ -188,6 +191,13 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         assert kwargs["referrer"] == AutofixReferrer.GITHUB_CHECK_SUITE
         assert isinstance(kwargs["feedback"], Feedback)
         assert isinstance(kwargs["feedback"].source, CheckSuiteFeedbackSource)
+        assert kwargs["feedback"].source.updated_at == "2024-01-01T00:00:00Z"
+        assert kwargs["feedback"].source.event.check_suite.updated_at == "2024-01-01T00:00:00Z"
+        autofix = kwargs["feedback"].source.autofix_run
+        assert autofix is not None
+        assert autofix.repository.organization_id == self.organization.id
+        assert autofix.repository.id == 2
+        assert autofix.run_state is not None
         mock_trigger_consume.assert_called_once()
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.sentry_sdk.capture_exception")
@@ -205,7 +215,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     ) -> None:
         from sentry.seer.models import SeerApiError
 
-        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
         error = SeerApiError("transient", 500)
         mock_get_state.side_effect = [error, self._agent_state()]
         raw = self._raw(pull_requests=[{"id": 111}, {"id": 222}])
@@ -244,21 +254,104 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_trigger_consume.assert_called_once()
 
 
+class ResolveCheckSuiteAutofixRunTest(TestCase):
+    def _event(self, *, pull_requests: list[dict]) -> GithubCheckSuiteEvent:
+        return GithubCheckSuiteEvent.parse_obj(
+            {
+                "check_suite": {
+                    "id": 1,
+                    "head_sha": "abc",
+                    "check_runs_url": "https://github.com/owner/repo/check-runs",
+                    "app": {"name": "CI"},
+                    "updated_at": "2024-01-01T00:00:00Z",
+                    "pull_requests": pull_requests,
+                },
+                "repository": {"html_url": "https://github.com/owner/repo"},
+            }
+        )
+
+    def _agent_state(self, *, run_id: int) -> SeerRunState:
+        return SeerRunState(
+            run_id=run_id,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")},
+            metadata={"group_id": 1},
+        )
+
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.logger")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_repositories")
+    def test_warns_and_returns_first_when_multiple_matches(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        repo = MagicMock(organization_id=self.organization.id, id=2)
+        mock_resolve.return_value = [repo]
+        first = self._agent_state(run_id=111)
+        second = self._agent_state(run_id=222)
+        mock_get_state.side_effect = [first, second]
+
+        result = resolve_check_suite_autofix_run(
+            self._event(pull_requests=[{"id": 111}, {"id": 222}])
+        )
+
+        assert result is not None
+        assert result.run_state.run_id == 111
+        assert result.pr_id == 111
+        mock_logger.warning.assert_any_call(
+            "autofix.pr_iteration.check_suite.multiple_autofix_runs",
+            extra={
+                "match_count": 2,
+                "pr_ids": [111, 222],
+                "run_ids": [111, 222],
+                "organization_ids": [self.organization.id, self.organization.id],
+            },
+        )
+
+
+def _run_state(*, blocks: list[MemoryBlock] | None = None) -> SeerRunState:
+    return SeerRunState(
+        run_id=1,
+        blocks=blocks or [],
+        status="completed",
+        updated_at="2024-01-01T00:00:00Z",
+    )
+
+
+def _autofix_run(*, blocks: list[MemoryBlock] | None = None) -> CheckSuiteAutofixRun:
+    return CheckSuiteAutofixRun(
+        repository=MagicMock(organization_id=1, id=2),
+        run_state=_run_state(blocks=blocks or []),
+        pr_id=1,
+        group_id=1,
+    )
+
+
 def _check_suite_source() -> CheckSuiteFeedbackSource:
-    return CheckSuiteFeedbackSource(
+    source = CheckSuiteFeedbackSource(
         event={
             "check_suite": {
                 "id": 1,
                 "head_sha": "abc",
                 "check_runs_url": "https://github.com/owner/repo/check-runs",
                 "app": {"name": "CI"},
+                "updated_at": "2024-01-01T00:00:00Z",
             },
             "repository": {
                 "html_url": "https://github.com/owner/repo",
                 "full_name": "owner/repo",
             },
-        }
+        },
     )
+    with patch(
+        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
+    ):
+        _ = source.autofix_run
+    return source
 
 
 def _check_suite_feedback() -> Feedback:
@@ -280,25 +373,25 @@ def _iteration_block(index: int, *feedbacks: Feedback) -> MemoryBlock:
     )
 
 
-def _run_state(*, blocks: list[MemoryBlock]) -> SeerRunState:
-    return SeerRunState(
-        run_id=1,
-        blocks=blocks,
-        status="completed",
-        updated_at="2024-01-01T00:00:00Z",
+def _empty_feedback_iteration_block(index: int) -> MemoryBlock:
+    """PR_ITERATION whose feedback metadata parses to no items."""
+    return MemoryBlock(
+        id=f"iter-{index}",
+        message=Message(
+            role="assistant",
+            metadata={
+                "step": "pr_iteration",
+                "iteration_index": str(index),
+                "feedback": "[]",
+            },
+        ),
+        timestamp="2024-01-01T00:00:00Z",
     )
 
 
 class CheckSuiteHardCapTest(TestCase):
     def _source(self) -> CheckSuiteFeedbackSource:
-        source = _check_suite_source()
-        source.__dict__["autofix_run"] = CheckSuiteAutofixRun(
-            repository=MagicMock(organization_id=1, id=2),
-            run_state=_run_state(blocks=[]),
-            pr_id=1,
-            group_id=1,
-        )
-        return source
+        return _check_suite_source()
 
     def _run_state_on_head(self, *, blocks: list[MemoryBlock]) -> SeerRunState:
         state = _run_state(blocks=blocks)
@@ -360,5 +453,20 @@ class CheckSuiteHardCapTest(TestCase):
     def test_cap_disabled_when_zero(self, mock_new: MagicMock, _pages) -> None:
         mock_new.return_value = MagicMock()
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(10)]
+
+        assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
+
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", return_value=[{"data": []}])
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch("sentry.scm.factory.new")
+    def test_not_capped_when_iteration_feedback_empty_after_parse(
+        self, mock_new: MagicMock, _pages
+    ) -> None:
+        mock_new.return_value = MagicMock()
+        cap = CHECK_SUITE_ITERATION_HARD_CAP
+        # Last window looks full, but one iteration parses to [] so it must not
+        # count as check-suite-only toward the hard cap.
+        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap - 1)]
+        blocks.append(_empty_feedback_iteration_block(cap - 1))
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
