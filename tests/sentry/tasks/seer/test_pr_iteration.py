@@ -355,7 +355,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             source=GithubPrReviewCommentFeedbackSource(
                 comment={
                     "id": comment_id,
-                    "body": "@sentry fix it",
+                    "body": "fix it",
                     "path": "src/sentry/foo.py",
                     "line": line,
                     "start_line": start_line,

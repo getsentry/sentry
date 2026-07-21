@@ -70,7 +70,7 @@ def _review_feedback(
         source=GithubPrReviewCommentFeedbackSource(
             comment={
                 "id": 1,
-                "body": "@sentry fix it",
+                "body": "fix it",
                 "path": file_path,
                 "line": line,
                 "start_line": start_line,
@@ -313,29 +313,29 @@ class GithubPrReviewCommentTextTest(TestCase):
 
 
 class GithubPrReviewCommentRequireCommandTest(TestCase):
-    def test_verbatim_body_when_command_not_required(self) -> None:
+    def test_require_command_is_false_on_class(self) -> None:
+        # ``require_command`` is a per-subclass contract, not a per-instance flag:
+        # review comments never gate on the @sentry command.
+        assert GithubPrReviewCommentFeedbackSource.require_command is False
+        assert GithubPrCommentFeedbackSource.require_command is True
+
+    def test_verbatim_body_without_command(self) -> None:
         # The review path opts out of the @sentry command gate, so the raw body
         # is used verbatim even without a command.
         source = GithubPrReviewCommentFeedbackSource(
             comment={"id": 1, "body": "please rename this", "path": "a.py", "line": 5},
-            require_command=False,
         )
         assert source.comment_feedback == "please rename this"
         assert source.text == "Inline comment on a.py:5:\nplease rename this"
 
-    def test_require_command_round_trips(self) -> None:
+    def test_round_trips(self) -> None:
         source = GithubPrReviewCommentFeedbackSource(
             comment={"id": 1, "body": "no command", "path": "a.py", "line": 5},
-            require_command=False,
         )
         parsed = parse_feedback(Feedback(source=source).json())
         assert isinstance(parsed[0].source, GithubPrReviewCommentFeedbackSource)
         assert parsed[0].source.require_command is False
         assert parsed[0].text == "Inline comment on a.py:5:\nno command"
-
-    def test_still_gates_by_default(self) -> None:
-        with pytest.raises(ValidationError):
-            GithubPrReviewCommentFeedbackSource(comment={"id": 1, "body": "not a command"})
 
 
 class GithubPrReviewBodyTest(TestCase):

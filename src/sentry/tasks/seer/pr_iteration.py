@@ -606,7 +606,7 @@ def _build_review_feedback(
             user=GithubPrCommentUser(login=author["username"] if author else None),
         )
         source = GithubPrReviewCommentFeedbackSource(
-            comment=review_comment, require_command=False, author_is_bot=author_is_bot
+            comment=review_comment, author_is_bot=author_is_bot
         )
         feedback.append(Feedback(source=source))
 

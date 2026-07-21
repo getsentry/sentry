@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
 from pydantic import BaseModel, root_validator
 
@@ -73,9 +73,10 @@ def _processed_github_review_ids(run_state: SeerRunState) -> set[int]:
 
 
 class _GithubPrCommentFeedbackSourceBase(FeedbackSourceBase):
+    # Per-subclass contract: must the comment be an ``@sentry`` iterate command?
+    # Top-level PR comments require it; inline review comments don't.
+    require_command: ClassVar[bool]
     comment: GithubIssueComment
-    # We still require command for pr comments
-    require_command: bool = True
     # Derived from `comment` by `_parse_comment` — the single place a comment is
     # turned into feedback. Declared as a field (default "") so it serializes,
     # mirroring `CheckSuiteFeedbackSource.app_name`.
@@ -85,7 +86,7 @@ class _GithubPrCommentFeedbackSourceBase(FeedbackSourceBase):
     def _parse_comment(cls, values: dict[str, Any]) -> dict[str, Any]:
         comment = values.get("comment")
         body = comment.body if isinstance(comment, GithubIssueComment) else None
-        if values.get("require_command", True):
+        if cls.require_command:
             command = sentry_command(body)
             if not isinstance(command, SentryIterateCommand):
                 raise ValueError(
@@ -112,6 +113,7 @@ class _GithubPrCommentFeedbackSourceBase(FeedbackSourceBase):
 class GithubPrCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
     """Feedback submitted as a top-level GitHub PR comment (``@sentry <feedback>``)."""
 
+    require_command: ClassVar[bool] = True
     type: Literal["github-pr-comment"] = "github-pr-comment"
 
 
@@ -122,6 +124,7 @@ class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
     diff location it was left on.
     """
 
+    require_command: ClassVar[bool] = False
     type: Literal["github-pr-review-comment"] = "github-pr-review-comment"
     comment: GithubPullRequestReviewComment
     file_path: str | None = None

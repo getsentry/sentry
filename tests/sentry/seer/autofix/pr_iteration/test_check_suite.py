@@ -277,7 +277,6 @@ def _review_comment_feedback(*, author_is_bot: bool) -> Feedback:
     return Feedback(
         source=GithubPrReviewCommentFeedbackSource(
             comment=GithubPullRequestReviewComment(id=1, body="fix this"),
-            require_command=False,
             author_is_bot=author_is_bot,
         )
     )
