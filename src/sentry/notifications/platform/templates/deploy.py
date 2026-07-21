@@ -56,7 +56,7 @@ class DeployReleaseData(NotificationData):
     repo_name_to_commits: dict[str, list[DeployReleaseCommit]]
     repo_setup_link: str | None = None
     version: str = "unknown"
-    environment_name: str = "Default Environment"
+    environment_name: str = "default"
 
 
 def build_deploy_subject(data: DeployReleaseData) -> list[NotificationTextBlock]:
