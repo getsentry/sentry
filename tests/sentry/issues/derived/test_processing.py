@@ -520,7 +520,12 @@ class PromoteToLiveTest(TestCase):
 
         gen_time = django_timezone.now()
         candidate = GroupDerivedData(
-            group_id=group.id, generated_at=gen_time, cursor_date=EPOCH, cursor_id=0, data={}
+            group_id=group.id,
+            generated_at=gen_time,
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
         )
         processing._drain_log(candidate, PIPELINE, time_limit=timedelta(minutes=5), persist=False)
         assert promote_to_live(candidate) is PromotionResult.PROMOTED
@@ -540,7 +545,12 @@ class PromoteToLiveTest(TestCase):
 
         gen_time = django_timezone.now()
         candidate = GroupDerivedData(
-            group_id=group.id, generated_at=gen_time, cursor_date=EPOCH, cursor_id=0, data={}
+            group_id=group.id,
+            generated_at=gen_time,
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
         )
         processing._drain_log(candidate, PIPELINE, time_limit=timedelta(minutes=5), persist=False)
         assert promote_to_live(candidate) is PromotionResult.PROMOTED
@@ -560,7 +570,12 @@ class PromoteToLiveTest(TestCase):
 
         old_time = newer_time - timedelta(seconds=10)
         candidate = GroupDerivedData(
-            group_id=group.id, generated_at=old_time, cursor_date=EPOCH, cursor_id=0, data={}
+            group_id=group.id,
+            generated_at=old_time,
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
         )
         processing._drain_log(candidate, PIPELINE, time_limit=timedelta(minutes=5), persist=False)
         assert promote_to_live(candidate) is PromotionResult.SUPERSEDED
@@ -584,6 +599,7 @@ class PromoteToLiveTest(TestCase):
             cursor_date=EPOCH,
             cursor_id=0,
             data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
         )
         processing._drain_log(candidate, PIPELINE, time_limit=timedelta(minutes=5), persist=False)
         assert promote_to_live(candidate) is PromotionResult.PROMOTED
@@ -602,8 +618,11 @@ class PromoteToLiveTest(TestCase):
             data={},
         )
 
-        # Create a stale incremental writer with the pre-generation state.
+        # Create a stale incremental writer with the pre-generation state
+        # but the correct row id, so the UPDATE filter matches on id and
+        # the generated_at guard is what actually rejects the write.
         stale = GroupDerivedData(
+            id=derived.id,
             group_id=group.id,
             generated_at=pre_gen_generated_at,
             cursor_date=derived.cursor_date,
