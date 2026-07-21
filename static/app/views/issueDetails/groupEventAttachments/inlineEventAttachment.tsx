@@ -4,8 +4,10 @@ import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewe
 import {JsonViewer} from 'sentry/components/events/attachmentViewers/jsonViewer';
 import {LogFileViewer} from 'sentry/components/events/attachmentViewers/logFileViewer';
 import {
-  getInlineAttachmentRenderer,
   imageMimeTypes,
+  jsonMimeTypes,
+  logFileMimeTypes,
+  nonPreviewableExtensions,
   webmMimeTypes,
 } from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {RRWebJsonViewer} from 'sentry/components/events/attachmentViewers/rrwebJsonViewer';
@@ -28,20 +30,6 @@ interface AttachmentViewerProps {
   projectSlug: string;
 }
 
-const logFileMimeTypes = [
-  'text/css',
-  'text/csv',
-  'text/html',
-  'text/javascript',
-  'text/plain',
-];
-const jsonMimeTypes = [
-  'application/json',
-  'application/ld+json',
-  'text/json',
-  'text/x-json',
-];
-
 function AttachmentViewer({
   attachment,
   orgSlug,
@@ -49,6 +37,10 @@ function AttachmentViewer({
   eventId,
 }: AttachmentViewerProps) {
   const commonProps = {attachment, orgSlug, projectSlug, eventId};
+
+  if (nonPreviewableExtensions.some(ext => attachment.name.endsWith(ext))) {
+    return null;
+  }
 
   if (imageMimeTypes.includes(attachment.mimetype)) {
     return <ImageViewer {...commonProps} />;
@@ -74,10 +66,6 @@ export function InlineEventAttachment({
   eventId,
 }: InlineAttachmentsProps) {
   const organization = useOrganization();
-
-  if (!getInlineAttachmentRenderer(attachment)) {
-    return null;
-  }
 
   return (
     <AttachmentPreviewWrapper>
