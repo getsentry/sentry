@@ -1,5 +1,8 @@
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Sequence, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.activity import _ActivitySentryAppEmbed
@@ -13,6 +16,8 @@ from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.action_log.activity_translator import (
@@ -93,7 +98,12 @@ def serialize_first_seen_entry(group: "Group") -> GroupActionLogEntrySerializerR
 
 @register(GroupActionLogEntry)
 class GroupActionLogEntrySerializer(Serializer):
-    def get_attrs(self, item_list: Sequence[GroupActionLogEntry], user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[GroupActionLogEntry],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[GroupActionLogEntry, Any]:
         user_ids = [
             i.actor_id for i in item_list if i.actor_id and i.actor_type == GroupActorType.USER
         ]
@@ -192,7 +202,11 @@ class GroupActionLogEntrySerializer(Serializer):
         }
 
     def serialize(
-        self, obj: GroupActionLogEntry, attrs, user, **kwargs
+        self,
+        obj: GroupActionLogEntry,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> GroupActionLogEntrySerializerResponse:
         activity_type = _GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE.get(obj.type)
         type_display = (
