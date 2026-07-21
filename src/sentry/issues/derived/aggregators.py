@@ -19,6 +19,7 @@ from sentry.issues.action_log.types import (
     SeerRCAStartedAction,
     SeerSolutionCompletedAction,
     SeerSolutionStartedAction,
+    SetEscalatingAction,
     SetRegressedAction,
     SetResolvedByAgeAction,
     SetResolvedInCommitAction,
@@ -65,6 +66,7 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
         SetResolvedInCommitAction,
         ArchiveAction,
         UnresolveAction,
+        SetEscalatingAction,
         SetRegressedAction,
         ReconcileStatusAction,
     ),
@@ -85,7 +87,9 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
             | ArchiveAction()
         ) if current == IssueStatus.OPEN:
             return emit(STATUS.value(IssueStatus.CLOSED))
-        case UnresolveAction() | SetRegressedAction() if current == IssueStatus.CLOSED:
+        case UnresolveAction() | SetRegressedAction() | SetEscalatingAction() if (
+            current == IssueStatus.CLOSED
+        ):
             return emit(STATUS.value(IssueStatus.OPEN))
 
     return None
