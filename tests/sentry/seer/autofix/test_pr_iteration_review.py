@@ -10,13 +10,13 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewBodyFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
 )
-from sentry.seer.autofix.pr_iteration.review import (
+from sentry.seer.autofix.pr_iteration.listeners.review import (
     handle_pull_request_review_for_autofix_iteration,
 )
 from sentry.tasks.seer.pr_iteration import _REVIEW_PAGE_SIZE, trigger_pr_iteration_from_review
 from sentry.testutils.cases import TestCase
 
-REVIEW_PATH = "sentry.seer.autofix.pr_iteration.review"
+REVIEW_PATH = "sentry.seer.autofix.pr_iteration.listeners.review"
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
 
 

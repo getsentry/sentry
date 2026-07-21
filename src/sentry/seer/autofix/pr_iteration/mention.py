@@ -8,7 +8,8 @@ repository so that random GitHub users can't drive Autofix runs (which cost
 quota and rewrite the PR).
 
 This covers only top-level PR comments (``issue_comment``). Inline review
-comments arrive via the ``pull_request_review`` SCM listener (see ``review.py``),
+comments arrive via the ``pull_request_review`` SCM listener (see
+``listeners/review.py``),
 which acts on the whole submitted review without requiring an ``@sentry`` command
 but still gates on the review author's repo write access.
 """
