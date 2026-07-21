@@ -332,6 +332,7 @@ from sentry.issues.endpoints import (
     ShortIdLookupEndpoint,
     TeamGroupsOldEndpoint,
 )
+from sentry.issues.endpoints.debug_group_derived_data import DebugGroupDerivedDataEndpoint
 from sentry.issues.endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from sentry.issues.endpoints.event_owners import EventOwnersEndpoint
 from sentry.issues.endpoints.event_reprocessable import EventReprocessableEndpoint
@@ -1313,6 +1314,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/",
         include(create_group_urls("sentry-api-0-organization-group")),
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/issues/(?P<issue_id>[^/]+)/derived-data/debug/$",
+        DebugGroupDerivedDataEndpoint.as_view(),
+        name="sentry-api-0-organization-group-derived-data-debug",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?:issues|groups)/(?P<issue_id>[^/]+)/pull-requests/$",
