@@ -52,6 +52,7 @@ export type ProjectCreationEventParameters = {
   // event name (see docsFlowAnalytics.ts / docsFlowVariantParams).
   'project_creation.dsn_copied': {
     platform: string;
+    project_id: string;
     variant?: ProjectCreationVariant;
   };
   'project_creation.js_loader_npm_docs_shown': {

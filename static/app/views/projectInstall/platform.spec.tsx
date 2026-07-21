@@ -313,7 +313,7 @@ describe('ProjectInstallPlatform', () => {
         'project_creation.data_removal_modal_confirm_button_clicked',
         expect.objectContaining({
           organization,
-          platform: project.slug,
+          platform: 'other',
           project_id: project.id,
           variant,
         })
@@ -324,7 +324,7 @@ describe('ProjectInstallPlatform', () => {
           expect.objectContaining({
             organization,
             date_created: project.dateCreated,
-            platform: project.slug,
+            platform: 'other',
             project_id: project.id,
             variant,
           })
@@ -357,7 +357,7 @@ describe('ProjectInstallPlatform', () => {
       'project_creation.data_removal_modal_confirm_button_clicked',
       expect.objectContaining({
         organization,
-        platform: project.slug,
+        platform: 'other',
         project_id: project.id,
       })
     );
@@ -371,7 +371,7 @@ describe('ProjectInstallPlatform', () => {
         expect.objectContaining({
           organization,
           date_created: project.dateCreated,
-          platform: project.slug,
+          platform: 'other',
           project_id: project.id,
         })
       );

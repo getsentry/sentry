@@ -9,6 +9,7 @@ import {ListItem} from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {
   docsFlowMarkdownParams,
+  docsFlowProjectIdParams,
   docsFlowVariantParams,
   DSN_COPIED_EVENT,
   NEXT_STEP_CLICKED_EVENT,
@@ -141,6 +142,7 @@ export function OnboardingLayout({
             trackAnalytics(resolveDocsFlowEvent(DSN_COPIED_EVENT, docsFlow), {
               organization,
               platform: platformKey,
+              ...docsFlowProjectIdParams(docsFlow, project.id),
               ...docsFlowVariantParams(docsFlow),
             });
           },
