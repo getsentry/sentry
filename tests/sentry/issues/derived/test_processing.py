@@ -560,6 +560,30 @@ class PromoteToLiveTest(TestCase):
         assert live.view_count == 2
         assert live.generated_at == gen_time
 
+    def test_promote_rejected_if_cursor_behind_despite_newer_generation(self) -> None:
+        group = self.create_group()
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+        _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
+
+        # Incremental processing advances the cursor past the first entry.
+        process_group_log(group.id)
+
+        # A newer generation only processed the first entry (cursor behind).
+        gen_time = django_timezone.now()
+        candidate = GroupDerivedData(
+            group_id=group.id,
+            generated_at=gen_time,
+            cursor_date=EPOCH,
+            cursor_id=0,
+            data={},
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+        processing._process_batch(PIPELINE, candidate, batch_size=1, persist=False)
+
+        # Despite having a newer generated_at, the cursor is behind —
+        # promote must not regress the cursor.
+        assert promote_to_live(candidate) is PromotionResult.CURSOR_BEHIND
+
     def test_promote_superseded_by_newer_generation(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))

@@ -295,24 +295,14 @@ def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
     generated_at = candidate.generated_at
     values = {f: getattr(candidate, f) for f in _STATE_FIELDS}
 
-    updated = (
-        GroupDerivedData.objects.filter(
-            group_id=candidate.group_id,
-        )
-        .filter(
-            Q(generated_at__lt=generated_at)
-            | Q(
-                generated_at=generated_at,
-                cursor_date__lt=candidate.cursor_date,
-            )
-            | Q(
-                generated_at=generated_at,
-                cursor_date=candidate.cursor_date,
-                cursor_id__lte=candidate.cursor_id,
-            )
-        )
-        .update(**values)
+    cursor_ahead = Q(cursor_date__lt=candidate.cursor_date) | Q(
+        cursor_date=candidate.cursor_date, cursor_id__lte=candidate.cursor_id
     )
+    updated = GroupDerivedData.objects.filter(
+        cursor_ahead,
+        group_id=candidate.group_id,
+        generated_at__lte=generated_at,
+    ).update(**values)
 
     if updated:
         return PromotionResult.PROMOTED
