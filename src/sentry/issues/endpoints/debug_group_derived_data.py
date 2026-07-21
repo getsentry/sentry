@@ -50,7 +50,7 @@ class DebugGroupDerivedDataEndpoint(GroupEndpoint):
         except GroupDerivedData.DoesNotExist:
             stored = None
 
-        # --- Live-recomputed state ---
+        # --- Computed state ---
         entries = list(
             GroupActionLogEntry.objects.filter(group_id=group.id).order_by("date_added", "id")[
                 : limit + 1
@@ -58,12 +58,12 @@ class DebugGroupDerivedDataEndpoint(GroupEndpoint):
         )
 
         if len(entries) > limit:
-            recomputed = None
+            computed = None
             entry_count = None
             truncated = True
         else:
             state = PIPELINE.run(entries)
-            recomputed = _state_to_dict(PIPELINE, state)
+            computed = _state_to_dict(PIPELINE, state)
             entry_count = len(entries)
             truncated = False
 
@@ -72,7 +72,7 @@ class DebugGroupDerivedDataEndpoint(GroupEndpoint):
                 "groupId": str(group.id),
                 "pipelineHash": PIPELINE.pipeline_hash,
                 "stored": stored,
-                "recomputed": recomputed,
+                "computed": computed,
                 "entryCount": entry_count,
                 "truncated": truncated,
                 "limit": limit,

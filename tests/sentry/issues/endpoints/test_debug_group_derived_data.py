@@ -39,11 +39,11 @@ class DebugGroupDerivedDataEndpointTest(APITestCase):
         response = self.get_success_response(self.organization.slug, self.group.id, status_code=200)
         assert response.data["groupId"] == str(self.group.id)
         assert response.data["stored"] is None
-        assert response.data["recomputed"] is not None
+        assert response.data["computed"] is not None
         assert response.data["entryCount"] == 0
         assert response.data["truncated"] is False
 
-    def test_with_stored_and_recomputed(self) -> None:
+    def test_with_stored_and_computed(self) -> None:
         _publish(group=self.group, action=ViewAction())
         _publish(group=self.group, action=ViewAction())
         _publish(group=self.group, action=ResolveAction())
@@ -53,9 +53,9 @@ class DebugGroupDerivedDataEndpointTest(APITestCase):
         assert response.data["stored"] is not None
         assert response.data["stored"]["state"]["view_count"] == 2
         assert response.data["stored"]["state"]["status"] == "closed"
-        assert response.data["recomputed"] is not None
-        assert response.data["recomputed"]["view_count"] == 2
-        assert response.data["recomputed"]["status"] == "closed"
+        assert response.data["computed"] is not None
+        assert response.data["computed"]["view_count"] == 2
+        assert response.data["computed"]["status"] == "closed"
         assert response.data["entryCount"] == 3
         assert response.data["pipelineHash"] == PIPELINE.pipeline_hash
 
@@ -67,7 +67,7 @@ class DebugGroupDerivedDataEndpointTest(APITestCase):
             self.organization.slug, self.group.id, qs_params={"limit": "2"}, status_code=200
         )
         assert response.data["truncated"] is True
-        assert response.data["recomputed"] is None
+        assert response.data["computed"] is None
         assert response.data["entryCount"] is None
         assert response.data["limit"] == 2
 
