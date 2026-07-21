@@ -1,14 +1,13 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -19,7 +18,6 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconFix, IconMerge, IconPullRequest, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -73,8 +71,6 @@ const ATTENTION_FILTER_OPTIONS: Array<{
   label: ATTENTION_META[value].label,
 }));
 
-type QuickFilterValue = 'review_pr' | 'awaiting_input' | 'code_changes_ready' | 'merged';
-
 type SortValue = 'triage' | 'activity' | 'events';
 
 const SORT_OPTIONS: Array<{label: string; value: SortValue}> = [
@@ -106,7 +102,6 @@ export default function AutofixOverview() {
   // TODO(seer): trigger filter disabled — see TRIGGER_FILTER_OPTIONS above.
   // const triggerFilter = decodeList(location.query.trigger) as AutofixTrigger[];
   const attentionFilter = decodeList(location.query.attention) as AttentionReason[];
-  const quickFilter = decodeScalar(location.query.quick) as QuickFilterValue | undefined;
   const period = decodeScalar(location.query.period);
   const sort = (decodeScalar(location.query.sort) as SortValue | undefined) ?? 'triage';
 
@@ -134,10 +129,6 @@ export default function AutofixOverview() {
     );
   };
 
-  const toggleQuickFilter = (value: QuickFilterValue) => {
-    updateQuery({quick: quickFilter === value ? undefined : value});
-  };
-
   const periodCutoffMs = useMemo(() => {
     const days = PERIOD_TO_DAYS[period ?? ''];
     return days === undefined ? null : Date.now() - days * 24 * 60 * 60 * 1000;
@@ -162,13 +153,6 @@ export default function AutofixOverview() {
       if (!attention || !attentionFilter.includes(attention)) {
         return false;
       }
-    }
-    if (quickFilter === 'merged') {
-      if (!row.prMerged) {
-        return false;
-      }
-    } else if (quickFilter && attention !== quickFilter) {
-      return false;
     }
     if (periodCutoffMs !== null && Date.parse(row.lastActivityAt) < periodCutoffMs) {
       return false;
@@ -197,38 +181,15 @@ export default function AutofixOverview() {
     );
   });
 
-  const stats = {
-    reviewPr: 0,
-    awaitingInput: 0,
-    codeChangesReady: 0,
-    merged: 0,
-  };
-  for (const {row, attention} of filteredRows) {
-    if (row.prMerged) {
-      stats.merged++;
-    }
-    if (attention === 'review_pr') {
-      stats.reviewPr++;
-    }
-    if (attention === 'awaiting_input') {
-      stats.awaitingInput++;
-    }
-    if (attention === 'code_changes_ready') {
-      stats.codeChangesReady++;
-    }
-  }
-
   const hasActiveFilters =
     outcomeFilter.length > 0 ||
     attentionFilter.length > 0 ||
-    quickFilter !== undefined ||
     (period !== undefined && period !== '');
 
   const clearAllFilters = () => {
     updateQuery({
       outcome: undefined,
       attention: undefined,
-      quick: undefined,
       period: undefined,
     });
   };
@@ -357,41 +318,6 @@ export default function AutofixOverview() {
               ) : null}
             </Flex>
 
-            <Grid columns={{xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)'}} gap="md">
-              <StatCard
-                Icon={IconUser}
-                iconVariant="primary"
-                label={t('Awaiting your input')}
-                value={stats.awaitingInput}
-                isActive={quickFilter === 'awaiting_input'}
-                onClick={() => toggleQuickFilter('awaiting_input')}
-              />
-              <StatCard
-                Icon={IconFix}
-                iconVariant="secondary"
-                label={t('Code changes ready')}
-                value={stats.codeChangesReady}
-                isActive={quickFilter === 'code_changes_ready'}
-                onClick={() => toggleQuickFilter('code_changes_ready')}
-              />
-              <StatCard
-                Icon={IconPullRequest}
-                iconVariant="warning"
-                label={t('Awaiting your review')}
-                value={stats.reviewPr}
-                isActive={quickFilter === 'review_pr'}
-                onClick={() => toggleQuickFilter('review_pr')}
-              />
-              <StatCard
-                Icon={IconMerge}
-                iconVariant="success"
-                label={t('Merged PRs')}
-                value={stats.merged}
-                isActive={quickFilter === 'merged'}
-                onClick={() => toggleQuickFilter('merged')}
-              />
-            </Grid>
-
             {isError ? (
               <LoadingError onRetry={refetch} />
             ) : isPending ? (
@@ -429,70 +355,5 @@ function NoAccess() {
         </Alert>
       </Alert.Container>
     </Stack>
-  );
-}
-
-type StatIconVariant = 'success' | 'warning' | 'primary' | 'secondary';
-
-const StatCardButton = styled('button')<{isActive: boolean}>`
-  cursor: ${p => (p.disabled ? 'default' : 'pointer')};
-  background: ${p =>
-    p.isActive ? p.theme.tokens.background.secondary : p.theme.tokens.background.primary};
-  border: 1px solid
-    ${p => (p.isActive ? p.theme.tokens.border.accent : p.theme.tokens.border.primary)};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
-  text-align: left;
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
-  &:hover {
-    border-color: ${p =>
-      p.disabled ? p.theme.tokens.border.primary : p.theme.tokens.border.accent};
-  }
-  &:focus-visible {
-    outline: 2px solid ${p => p.theme.tokens.focus.default};
-    outline-offset: 1px;
-  }
-`;
-
-function StatCard({
-  Icon,
-  iconVariant,
-  label,
-  value,
-  isActive,
-  onClick,
-  extra,
-}: {
-  Icon: typeof IconUser;
-  iconVariant: StatIconVariant;
-  isActive: boolean;
-  label: string;
-  value: number | string;
-  extra?: React.ReactNode;
-  onClick?: () => void;
-}) {
-  return (
-    <StatCardButton
-      type="button"
-      isActive={isActive}
-      aria-pressed={isActive}
-      onClick={onClick}
-      disabled={!onClick}
-    >
-      <Stack gap="xs">
-        <Flex gap="xs" align="center">
-          <Icon size="xs" variant={iconVariant} aria-hidden />
-          <Text size="xs" variant="muted" uppercase>
-            {label}
-          </Text>
-          {extra}
-        </Flex>
-        <Heading as="h2" size="2xl">
-          {value}
-        </Heading>
-      </Stack>
-    </StatCardButton>
   );
 }

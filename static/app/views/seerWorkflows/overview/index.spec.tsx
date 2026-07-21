@@ -319,25 +319,6 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('Review checklist')).not.toBeInTheDocument();
   });
 
-  it('toggles quick filters from the stat cards via the URL', async () => {
-    const {router} = renderPage();
-
-    // Wait for the card to load so the stat counts reflect the row.
-    expect(await screen.findByRole('button', {name: 'Review PR'})).toBeInTheDocument();
-
-    // The PR-opened row counts toward "Awaiting your review".
-    const statCard = screen.getByRole('button', {
-      name: /Awaiting your review/,
-    });
-    expect(statCard).toHaveTextContent('1');
-
-    await userEvent.click(statCard);
-    expect(router.location.query.quick).toBe('review_pr');
-
-    await userEvent.click(statCard);
-    expect(router.location.query.quick).toBeUndefined();
-  });
-
   it('applies the outcome filter with AND semantics', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/2/autofix/`,
@@ -414,7 +395,7 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows merged state and enables the Merged PRs card when the API returns PR state', async () => {
+  it('shows merged state when the API returns PR state', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/runs/`,
       body: [
@@ -431,7 +412,7 @@ describe('AutofixOverview', () => {
       ],
     });
 
-    const {router} = renderPage();
+    renderPage();
 
     // The merged run wears a Merged tag instead of a Review PR action.
     expect(await screen.findByText('Merged')).toBeInTheDocument();
@@ -445,14 +426,6 @@ describe('AutofixOverview', () => {
     expect(indicator).not.toHaveTextContent(/\d/);
     await userEvent.hover(indicator);
     expect(await screen.findByText('Issue fixed')).toBeInTheDocument();
-
-    // The Merged PRs stat card is live and counts the row.
-    const mergedCard = screen.getByRole('button', {name: /Merged PRs/});
-    expect(mergedCard).toBeEnabled();
-    expect(mergedCard).toHaveTextContent('1');
-
-    await userEvent.click(mergedCard);
-    expect(router.location.query.quick).toBe('merged');
   });
 
   it('orders cards as a triage queue: actionable, then working, then merged', async () => {
@@ -505,14 +478,6 @@ describe('AutofixOverview', () => {
       .map(link => link.textContent)
       .filter(text => text === 'Issue A' || text === 'Issue B' || text === 'Issue C');
     expect(titles).toEqual(['Issue B', 'Issue C', 'Issue A']);
-  });
-
-  it('always enables the Merged PRs card, showing 0 when nothing is merged', async () => {
-    renderPage();
-
-    const mergedCard = await screen.findByRole('button', {name: /Merged PRs/});
-    expect(mergedCard).toBeEnabled();
-    expect(mergedCard).toHaveTextContent('0');
   });
 
   it('surfaces the blocking question when a run awaits user input', async () => {
