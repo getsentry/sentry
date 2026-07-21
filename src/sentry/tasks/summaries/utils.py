@@ -739,7 +739,6 @@ def organization_top_spans(
                 "project.id",
                 "sum(span.duration)",
                 "p95(span.duration)",
-                "count()",
             ],
             orderby=["-sum(span.duration)"],
             offset=0,
