@@ -208,17 +208,18 @@ def assign_user_for_exhausted_cap(
     already_assigned = github_login.lower() in {login.lower() for login in existing_assignees}
 
     # A suite completes once per app/workflow, so several failing events can
-    # race for the same head; the lock plus a marker re-check makes sure only
-    # one of them pings the human. Scoped per repo — markers are per-repo and
-    # written atomically, so on a multi-repo run one repo's handoff must not
-    # make another's bail with UnableToAcquireLock.
+    # race for the same head. Wait for the lock holder rather than dropping:
+    # after the wait the marker re-check settles it — holder succeeded means we
+    # skip, holder's handoff failed (marker unset) means this event retries.
+    # Scoped per repo — markers are per-repo and written atomically, so on a
+    # multi-repo run one repo's handoff must not stall another's.
     lock = locks.get(
         f"autofix:pr_iteration:cap_exhausted:{seer_run.id}:{head_match.repo_name}",
         duration=30,
         name="autofix_pr_cap_exhausted",
     )
     try:
-        with lock.acquire():
+        with lock.blocking_acquire(initial_delay=0.5, timeout=10):
             seer_run.refresh_from_db()
             if _already_handed_off(seer_run, head_match.repo_name, head_match.head_sha):
                 _skip("already_handed_off", log_extra)
@@ -262,6 +263,11 @@ def assign_user_for_exhausted_cap(
                 commented=commented,
                 preexisting=already_assigned,
             )
+    except SeerRun.DoesNotExist:
+        # The run was deleted between our lookup and the marker write (e.g.
+        # cleanup); nothing is left to mark or dedupe against.
+        _skip("run_deleted", log_extra)
+        return
     except UnableToAcquireLock:
         _skip("locked", log_extra)
         return

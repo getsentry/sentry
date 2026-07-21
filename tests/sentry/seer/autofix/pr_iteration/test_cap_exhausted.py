@@ -9,6 +9,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     CheckSuiteAutofixRun,
     GithubCheckSuiteEvent,
 )
+from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import TestCase
 
 CAP_EXHAUSTED_PATH = "sentry.seer.autofix.pr_iteration.cap_exhausted"
@@ -425,3 +426,27 @@ class AssignUserForExhaustedCapTest(TestCase):
 
         # Nothing reached the human, so the next failing suite must retry.
         assert self._marker() is None
+
+    @patch(f"{CAP_EXHAUSTED_PATH}.scm_actions")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{CAP_EXHAUSTED_PATH}.get_github_username_for_user", return_value="octocat")
+    @patch(f"{CAP_EXHAUSTED_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{CAP_EXHAUSTED_PATH}.UpdateIssueProtocol", object)
+    @patch(f"{CAP_EXHAUSTED_PATH}.CreatePullRequestCommentProtocol", object)
+    def test_skips_when_run_deleted_before_marker_write(
+        self,
+        _mock_username: MagicMock,
+        _mock_scm: MagicMock,
+        mock_actions: MagicMock,
+        _mock_cap: MagicMock,
+    ) -> None:
+        mock_actions.get_pull_request.return_value = _pull_request_result()
+
+        with (
+            self.feature(FLAG),
+            patch.object(SeerRun, "refresh_from_db", side_effect=SeerRun.DoesNotExist),
+        ):
+            assign_user_for_exhausted_cap(_event(), self._resolved())
+
+        mock_actions.update_issue.assert_not_called()
+        mock_actions.create_pull_request_comment.assert_not_called()
