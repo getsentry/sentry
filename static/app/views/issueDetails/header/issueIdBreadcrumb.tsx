@@ -50,6 +50,7 @@ export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProp
     label: group.shortId,
     leadingGraphic: (
       <ProjectBadge
+        disableLink
         project={project}
         avatarSize={16}
         hideName
