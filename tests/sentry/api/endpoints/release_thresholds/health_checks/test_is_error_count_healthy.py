@@ -77,7 +77,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # current threshold within series
         current_threshold_healthy: EnrichedThreshold = {
             "id": "1",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": None,
@@ -87,7 +87,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,  # error counts _not_ be over threshold value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -101,7 +101,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # threshold equal to count
         threshold_at_limit_healthy: EnrichedThreshold = {
             "id": "2",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": None,
@@ -111,7 +111,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,  # error counts equal to threshold limit value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -125,7 +125,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # past healthy threshold within series
         past_threshold_healthy: EnrichedThreshold = {
             "id": "3",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=2),
             "end": now - timedelta(minutes=1),
             "environment": None,
@@ -135,7 +135,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.OVER_STR,
             "value": 2,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -149,7 +149,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # threshold within series but trigger is under
         threshold_under_unhealthy: EnrichedThreshold = {
             "id": "4",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": None,
@@ -159,7 +159,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.UNDER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -173,7 +173,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # threshold within series but end is in future
         threshold_unfinished: EnrichedThreshold = {
             "id": "5",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now + timedelta(minutes=5),
             "environment": None,
@@ -183,7 +183,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -258,7 +258,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # base threshold within series
         threshold_healthy: EnrichedThreshold = {
             "id": "1",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": None,
@@ -268,7 +268,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -282,7 +282,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # threshold within series but separate unhealthy release
         threshold_unhealthy: EnrichedThreshold = {
             "id": "2",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": None,
@@ -292,7 +292,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release2.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -368,7 +368,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # unhealthy means error count OVER 4 over 1m window
         threshold_healthy: EnrichedThreshold = {
             "id": "1",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": None,
@@ -378,7 +378,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -392,7 +392,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # threshold within series but separate unhealthy project
         threshold_unhealthy: EnrichedThreshold = {
             "id": "2",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": None,
@@ -402,7 +402,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project2.id,
             "project_slug": self.project2.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -477,7 +477,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # base threshold within series
         threshold_healthy: EnrichedThreshold = {
             "id": "1",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": None,
@@ -487,7 +487,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.OVER_STR,
             "value": 2,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -501,7 +501,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # threshold within series but separate unhealthy environment
         threshold_unhealthy: EnrichedThreshold = {
             "id": "2",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": serialize(self.canary_environment),
@@ -511,7 +511,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -566,7 +566,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # current threshold within series
         current_threshold_healthy: EnrichedThreshold = {
             "id": "1",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": None,
@@ -576,7 +576,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,  # error counts _not_ be over threshold value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -590,7 +590,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # threshold equal to count
         threshold_at_limit_healthy: EnrichedThreshold = {
             "id": "2",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": None,
@@ -600,7 +600,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.OVER_STR,
             "value": 1,  # error counts equal to threshold limit value
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -614,7 +614,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # past healthy threshold within series
         past_threshold_healthy: EnrichedThreshold = {
             "id": "3",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=2),
             "end": now - timedelta(minutes=1),
             "environment": None,
@@ -624,7 +624,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.OVER_STR,
             "value": 2,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -638,7 +638,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # threshold within series but trigger is under
         threshold_under_unhealthy: EnrichedThreshold = {
             "id": "4",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now,
             "environment": None,
@@ -648,7 +648,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.UNDER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method
@@ -662,7 +662,7 @@ class ErrorCountThresholdCheckTest(TestCase):
         # threshold within series but end is in future
         threshold_unfinished: EnrichedThreshold = {
             "id": "5",
-            "date": now,
+            "date_added": now,
             "start": now - timedelta(minutes=1),
             "end": now + timedelta(minutes=5),
             "environment": None,
@@ -672,7 +672,7 @@ class ErrorCountThresholdCheckTest(TestCase):
             "project_id": self.project1.id,
             "project_slug": self.project1.slug,
             "release": self.release1.version,
-            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT,
+            "threshold_type": ReleaseThresholdType.TOTAL_ERROR_COUNT_STR,
             "trigger_type": TriggerType.OVER_STR,
             "value": 4,
             "window_in_seconds": 60,  # NOTE: window_in_seconds only used to determine start/end. Not utilized in validation method

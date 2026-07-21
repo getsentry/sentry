@@ -68,14 +68,9 @@ def _entries_after_cursor(
     )
 
 
-def _cursor_lte(cursor_date: datetime, cursor_id: int) -> Q:
-    return Q(cursor_date__lt=cursor_date) | Q(cursor_date=cursor_date, cursor_id__lte=cursor_id)
-
-
 def _process_batch(
     p: Pipeline[GroupActionLogEntry],
     derived: GroupDerivedData,
-    group_id: int,
     batch_size: int,
 ) -> bool:
     """
@@ -87,7 +82,7 @@ def _process_batch(
 
     1. The action log is append-only and the pipeline is deterministic, so
        any caller processing the same entries produces the same result.
-    2. The UPDATE uses a cursor guard (_cursor_lte) that only succeeds if no
+    2. The UPDATE uses a cursor guard that only succeeds if no
        other caller has already advanced the cursor past our batch. If it
        fails (updated == 0), a concurrent caller already wrote a superset
        of our work, so we refresh and check if more remains.
@@ -96,6 +91,7 @@ def _process_batch(
     last-writer-wins semantics are safe because all writers compute the
     same deterministic result for overlapping entry ranges.
     """
+    group_id = derived.group_id
     entries = _entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, batch_size)
 
     if not entries:
@@ -109,8 +105,8 @@ def _process_batch(
     state_update = GroupDerivedDataStore.build_update(p, result)
 
     updated = GroupDerivedData.objects.filter(
-        Q(group_id=group_id)
-        & _cursor_lte(last_date, last_id)
+        Q(id=derived.id, generated_at=derived.generated_at)
+        & (Q(cursor_date__lt=last_date) | Q(cursor_date=last_date, cursor_id__lte=last_id))
         & Q(pipeline_hash=derived.pipeline_hash)
     ).update(cursor_date=last_date, cursor_id=last_id, **state_update)
 
@@ -170,7 +166,7 @@ def _drain_log(
     so a single slow batch can exceed it.
     """
     deadline = time.monotonic() + time_limit.total_seconds()
-    while _process_batch(pipeline, derived, derived.group_id, batch_size):
+    while _process_batch(pipeline, derived, batch_size):
         if time.monotonic() >= deadline:
             return False
     return True
@@ -199,7 +195,7 @@ def process_group_log(
             raise GroupLogTimeout(group_id)
     else:
         # No timeout — drain to completion.
-        while _process_batch(p, derived, derived.group_id, batch_size):
+        while _process_batch(p, derived, batch_size):
             pass
 
     return derived
@@ -237,7 +233,7 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
         except ObjectDoesNotExist:
             return
 
-        has_more = _process_batch(pipeline, derived, group_id, INLINE_BATCH_SIZE)
+        has_more = _process_batch(pipeline, derived, INLINE_BATCH_SIZE)
     if has_more:
         # Derived data will be stale for any code running between now and
         # when the task completes.
