@@ -26,6 +26,7 @@ from sentry.search.eap.constants import (
     METRIC_TYPE_ALIAS,
     METRIC_UNIT_ALIAS,
 )
+from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.snuba.referrer import Referrer, is_valid_referrer
 from sentry.snuba.trace_metrics import TraceMetrics
@@ -77,6 +78,9 @@ class OrganizationTraceItemMetricsSerializer(serializers.Serializer[Never]):
     # Seer tools) remain distinguishable in query analytics. Falls back to the
     # endpoint default when absent or not a recognized referrer.
     referrer = serializers.CharField(required=False)
+    # Restrict results to metrics that have authored context. Gated behind the
+    # data-browsing-attribute-context feature (a no-op without it).
+    context_only = serializers.BooleanField(required=False, default=False)
 
     def validate_sort(self, value: str) -> str:
         field = value[1:] if value.startswith("-") else value
@@ -122,11 +126,33 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
             referrer = Referrer.API_EXPLORE_TRACEMETRICS_METRICS_LIST.value
 
         query_string = serialized.get("query", "")
-        # Authored context is joined from TraceItemAttributeValueContext, gated
+        # Authored context lives in TraceItemAttributeValueContext and is gated
         # behind the feature; conventions don't apply to custom metrics.
-        include_context = "context" in serialized.get("expand", set()) and features.has(
+        has_context_feature = features.has(
             "organizations:data-browsing-attribute-context", organization, actor=request.user
         )
+        # context_only restricts results to metrics that have authored context.
+        context_only = serialized.get("context_only", False) and has_context_feature
+        include_context = has_context_feature and (
+            "context" in serialized.get("expand", set()) or context_only
+        )
+
+        if context_only:
+            context_names = list(
+                TraceItemAttributeValueContext.objects.filter(
+                    organization=organization,
+                    item_type=TraceItemTypes.TRACEMETRICS,
+                    attribute_name=METRIC_NAME_ALIAS,
+                )
+                .values_list("attribute_value", flat=True)
+                .distinct()
+            )
+            if not context_names:
+                return self.paginate(request=request, paginator=ChainPaginator([]))
+            # Restrict the metrics query to names that have context, so count,
+            # sort, and pagination all operate on the filtered set.
+            name_filter = build_escaped_term_filter(METRIC_NAME_ALIAS, context_names)
+            query_string = f"{query_string} {name_filter}".strip()
 
         # Resolve the requested sort to a query orderby, always appending the
         # grouping key so pagination has a stable total order.
@@ -170,6 +196,10 @@ class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpoi
             ]
             if include_context:
                 self._attach_context(metrics, organization)
+            if context_only:
+                # The query filters by name only, but context is keyed by
+                # (name, type) — drop rows whose specific type has no context.
+                metrics = [metric for metric in metrics if "context" in metric]
             return metrics
 
         return self.paginate(
