@@ -88,7 +88,6 @@ function useImageSrc(definition?: ImageDefinition): {
   const {data: avatarHash} = useQuery({
     queryKey: ['gravatar', trimmedGravatarId],
     queryFn: () => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!trimmedGravatarId || window.crypto?.subtle?.digest === undefined) {
         return null;
       }
