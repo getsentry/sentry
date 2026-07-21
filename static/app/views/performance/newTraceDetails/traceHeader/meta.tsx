@@ -6,10 +6,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
-import {
-  OurLogKnownFieldKey,
-  type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
+import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
   getTraceMetaLogsCount,
   getTraceMetaMetricsCount,
@@ -53,10 +50,8 @@ const SectionBody = styled('div')<{alignment?: boolean}>`
 `;
 
 interface MetaProps {
-  logs: OurLogsResponseItem[] | undefined;
   logsEnabled: boolean;
   meta: TraceMetaQueryResults['data'];
-  metrics: {count: number} | undefined;
   metricsEnabled: boolean;
   representativeEvent: TraceTree.RepresentativeTraceEvent | null;
   tree: TraceTree;
@@ -104,9 +99,9 @@ export function Meta(props: MetaProps) {
 
   const hasDifferentSpansCount = loadedSpansCount !== 0 && totalSpansCount !== 0;
   const hasSpans = spansCount > 0 || loadedSpansCount > 0 || totalSpansCount > 0;
-  const logsCount = getTraceMetaLogsCount(props.meta) ?? props.logs?.length ?? 0;
+  const logsCount = getTraceMetaLogsCount(props.meta) ?? 0;
   const hasLogs = props.logsEnabled && logsCount > 0;
-  const metricsCount = getTraceMetaMetricsCount(props.meta) ?? props.metrics?.count ?? 0;
+  const metricsCount = getTraceMetaMetricsCount(props.meta) ?? 0;
   const hasMetrics = props.metricsEnabled && metricsCount > 0;
 
   const repEvent = props.representativeEvent?.event;

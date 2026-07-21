@@ -23,20 +23,42 @@ import {adjustLogTraceID, getLogsUrl} from 'sentry/views/explore/logs/utils';
 type UseTraceViewLogsDataProps = {
   children: React.ReactNode;
   traceSlug: string;
+  disabled?: boolean;
 };
 
-export function TraceViewLogsDataProvider({
+export function TraceViewLogsQueryParamsProvider({
   traceSlug,
   children,
-}: UseTraceViewLogsDataProps) {
+}: Omit<UseTraceViewLogsDataProps, 'disabled'>) {
   return (
     <LogsQueryParamsProvider
       analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
       source="location"
       freeze={{traceId: traceSlug}}
     >
-      <LogsPageDataProvider>{children}</LogsPageDataProvider>
+      {children}
     </LogsQueryParamsProvider>
+  );
+}
+
+export function TraceViewLogsPageDataProvider({
+  children,
+  disabled,
+}: Omit<UseTraceViewLogsDataProps, 'traceSlug'>) {
+  return <LogsPageDataProvider disabled={disabled}>{children}</LogsPageDataProvider>;
+}
+
+export function TraceViewLogsDataProvider({
+  traceSlug,
+  children,
+  disabled,
+}: UseTraceViewLogsDataProps) {
+  return (
+    <TraceViewLogsQueryParamsProvider traceSlug={traceSlug}>
+      <TraceViewLogsPageDataProvider disabled={disabled}>
+        {children}
+      </TraceViewLogsPageDataProvider>
+    </TraceViewLogsQueryParamsProvider>
   );
 }
 

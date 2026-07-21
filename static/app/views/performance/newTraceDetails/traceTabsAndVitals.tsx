@@ -100,10 +100,6 @@ export function TraceTabsAndVitals({
     return <Placeholder />;
   }
 
-  if (rootEventResults.error || tree.type === 'error') {
-    return <Placeholder />;
-  }
-
   return (
     <Flex ref={setRef} justify="between" minHeight={`${CONTAINER_MIN_HEIGHT}px`}>
       <Tabs value={currentTab} onChange={onTabChange}>

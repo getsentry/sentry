@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useRef} from 'react';
+import {Fragment, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {Stack, type FlexProps} from '@sentry/scraps/layout';
@@ -9,9 +9,7 @@ import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
-import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {canUseMetricsUI} from 'sentry/views/explore/metrics/metricsFlags';
 import {TraceAiTab} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceAiTab';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
@@ -20,7 +18,8 @@ import {
   TraceViewMetricsSection,
 } from 'sentry/views/performance/newTraceDetails/traceMetrics';
 import {
-  TraceViewLogsDataProvider,
+  TraceViewLogsPageDataProvider,
+  TraceViewLogsQueryParamsProvider,
   TraceViewLogsSection,
 } from 'sentry/views/performance/newTraceDetails/traceOurlogs';
 import {TraceTabsAndVitals} from 'sentry/views/performance/newTraceDetails/traceTabsAndVitals';
@@ -36,7 +35,6 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 import {useTrace} from './traceApi/useTrace';
 import {
   getTraceMetaErrorCount,
-  getTraceMetaMetricsCount,
   getTraceMetaPerformanceIssueCount,
   getTraceMetaSpanCount,
   useTraceMeta,
@@ -48,10 +46,9 @@ import {
   getInitialTracePreferences,
   TRACE_WATERFALL_TIME_COMPRESSION_FEATURE,
 } from './traceState/tracePreferences';
-import {TraceStateProvider} from './traceState/traceStateProvider';
+import {useTraceState, TraceStateProvider} from './traceState/traceStateProvider';
 import {ErrorsOnlyWarnings} from './traceTypeWarnings/errorsOnlyWarnings';
 import {TraceMetaDataHeader} from './traceHeader';
-import {useInitialTraceMetricData} from './useInitialTraceMetricData';
 import {useTraceEventView} from './useTraceEventView';
 import {useTraceQueryParams} from './useTraceQueryParams';
 import {useTraceStateAnalytics} from './useTraceStateAnalytics';
@@ -91,51 +88,25 @@ export default function TraceView() {
   );
 
   return (
-    <TraceViewLogsDataProvider traceSlug={traceSlug}>
+    <TraceViewLogsQueryParamsProvider traceSlug={traceSlug}>
       <TraceStateProvider
         initialPreferences={preferences}
         preferencesStorageKey={TRACE_VIEW_PREFERENCES_KEY}
       >
         <TraceViewImpl traceSlug={traceSlug} />
       </TraceStateProvider>
-    </TraceViewLogsDataProvider>
+    </TraceViewLogsQueryParamsProvider>
   );
-}
-
-// At this level, we only need the initial logs data once, to populate the header for
-// logs only trace views, using the first log event. We read off the same context used
-// by the trace logs table, which changes the data based on search filters. We want to decouple
-// the trace view state from the logs table state, after initial load.
-function useInitialLogsData(): OurLogsResponseItem[] | undefined {
-  const logsData = useLogsPageDataQueryResult().data;
-  const initialDataRef = useRef<OurLogsResponseItem[] | undefined>(undefined);
-
-  useEffect(() => {
-    if (logsData?.length && initialDataRef.current === undefined) {
-      initialDataRef.current = logsData;
-    }
-  }, [logsData]);
-
-  return initialDataRef.current;
 }
 
 function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const organization = useOrganization();
+  const traceState = useTraceState();
   const logsEnabled = isLogsEnabled(organization);
   const metricsEnabled = canUseMetricsUI(organization);
   const queryParams = useTraceQueryParams();
   const traceEventView = useTraceEventView(traceSlug, queryParams);
-  const logsData = useInitialLogsData();
   const meta = useTraceMeta({traceSlug, timestamp: queryParams.timestamp});
-  const metaMetricsCount = getTraceMetaMetricsCount(meta.data);
-  const {metricsData} = useInitialTraceMetricData({
-    traceId: traceSlug,
-    queryParams,
-    enabled: meta.status !== 'pending' && metaMetricsCount === undefined,
-  });
-  const traceMetricsData =
-    metaMetricsCount === undefined ? metricsData : {count: metaMetricsCount};
-  const hideTraceWaterfallIfEmpty = (logsData?.length ?? 0) > 0;
 
   const trace = useTrace({
     traceSlug,
@@ -160,7 +131,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
 
   const rootEventResults = useTraceRootEvent({
     tree,
-    logs: logsData,
+    logs: undefined,
     timestamp: queryParams.timestamp,
     traceId: traceSlug,
   });
@@ -168,9 +139,7 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
   const {tabOptions, currentTab, onTabChange} = useTraceLayoutTabs({
     isLoading: meta.status === 'pending' || tree.type === 'loading',
     tree,
-    logs: logsData,
     meta: meta.data,
-    metrics: traceMetricsData,
     logsEnabled,
     metricsEnabled,
   });
@@ -199,23 +168,27 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
     })),
   });
 
-  return (
-    <SentryDocumentTitle
-      title={`${t('Trace Details')} - ${traceSlug}`}
-      orgSlug={organization.slug}
-    >
-      <NoProjectMessage organization={organization}>
-        <ViewportConstrainedPage>
-          <TraceMetaDataHeader
-            rootEventResults={rootEventResults}
-            tree={tree}
-            metaResults={meta}
-            organization={organization}
-            traceSlug={traceSlug}
-            logs={logsData}
-            metrics={traceMetricsData}
-          />
-          <TraceInnerLayout>
+  const content = (
+    <ViewportConstrainedPage>
+      <TraceMetaDataHeader
+        rootEventResults={rootEventResults}
+        tree={tree}
+        metaResults={meta}
+        organization={organization}
+        traceSlug={traceSlug}
+      />
+      <TraceInnerLayout>
+        <TraceTabsAndVitals
+          tabsConfig={{
+            tabOptions,
+            currentTab,
+            onTabChange,
+          }}
+          rootEventResults={rootEventResults}
+          tree={tree}
+        />
+        {currentTab === TraceLayoutTabKeys.WATERFALL ? (
+          <Fragment>
             <ErrorsOnlyWarnings
               tree={tree}
               traceSlug={traceSlug}
@@ -223,19 +196,12 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
             />
             <PartialTraceDataWarning
               timestamp={queryParams.timestamp}
-              logs={logsData}
+              logs={undefined}
               tree={tree}
             />
-            <TraceTabsAndVitals
-              tabsConfig={{
-                tabOptions,
-                currentTab,
-                onTabChange,
-              }}
-              rootEventResults={rootEventResults}
-              tree={tree}
-            />
-            {currentTab === TraceLayoutTabKeys.WATERFALL ? (
+            <TraceViewLogsPageDataProvider
+              disabled={traceState.tabs.current_tab === null}
+            >
               <TraceWaterfall
                 tree={tree}
                 trace={trace}
@@ -246,24 +212,37 @@ function TraceViewImplInner({traceSlug}: {traceSlug: string}) {
                 traceSlug={traceSlug}
                 traceEventView={traceEventView}
                 organization={organization}
-                hideIfNoData={hideTraceWaterfallIfEmpty}
+                hideIfNoData={false}
               />
-            ) : null}
-            {currentTab === TraceLayoutTabKeys.PROFILES ? (
-              <TraceProfiles tree={tree} />
-            ) : null}
-            {currentTab === TraceLayoutTabKeys.LOGS ? <TraceViewLogsSection /> : null}
-            {currentTab === TraceLayoutTabKeys.METRICS ? (
-              <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
-                <TraceViewMetricsSection />
-              </TraceViewMetricsProviderWrapper>
-            ) : null}
-            {currentTab === TraceLayoutTabKeys.AI_SPANS ? (
-              <TraceAiTab traceSlug={traceSlug} />
-            ) : null}
-          </TraceInnerLayout>
-        </ViewportConstrainedPage>
-      </NoProjectMessage>
+            </TraceViewLogsPageDataProvider>
+          </Fragment>
+        ) : null}
+        {currentTab === TraceLayoutTabKeys.PROFILES ? (
+          <TraceProfiles tree={tree} />
+        ) : null}
+        {currentTab === TraceLayoutTabKeys.LOGS ? (
+          <TraceViewLogsPageDataProvider>
+            <TraceViewLogsSection />
+          </TraceViewLogsPageDataProvider>
+        ) : null}
+        {currentTab === TraceLayoutTabKeys.METRICS ? (
+          <TraceViewMetricsProviderWrapper traceSlug={traceSlug}>
+            <TraceViewMetricsSection />
+          </TraceViewMetricsProviderWrapper>
+        ) : null}
+        {currentTab === TraceLayoutTabKeys.AI_SPANS ? (
+          <TraceAiTab traceSlug={traceSlug} />
+        ) : null}
+      </TraceInnerLayout>
+    </ViewportConstrainedPage>
+  );
+
+  return (
+    <SentryDocumentTitle
+      title={`${t('Trace Details')} - ${traceSlug}`}
+      orgSlug={organization.slug}
+    >
+      <NoProjectMessage organization={organization}>{content}</NoProjectMessage>
     </SentryDocumentTitle>
   );
 }
