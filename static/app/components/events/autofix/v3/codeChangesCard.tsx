@@ -288,8 +288,6 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
   }, [patchesByRepo]);
 
-  const isProcessing = section.status === 'processing';
-
   const showPrIterationForm = hasPRs && prIterationEnabled;
   const prIterationForm = (
     <PrIterationFeedbackForm
@@ -313,7 +311,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   }
 
   let content: React.ReactNode;
-  if (isProcessing) {
+  if (section.status === 'processing') {
     content = (
       <Fragment>
         {/* PR iteration feedback is queued while a run is in progress, so keep
@@ -327,7 +325,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
         />
       </Fragment>
     );
-  } else if (artifact && patchesByRepo.size) {
+  } else if (section.status === 'completed' && artifact && patchesByRepo.size) {
     let resetSection: React.ReactNode = null;
     if (shouldShowReset) {
       if (showPrIterationForm) {

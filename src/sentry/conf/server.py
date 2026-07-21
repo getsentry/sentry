@@ -929,6 +929,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.preprod.snapshots.tasks",
     "sentry.preprod.snapshots.zip_tasks",
     "sentry.preprod.tasks",
+    "sentry.preprod.vcs.pr_comments.size_tasks",
     "sentry.preprod.vcs.pr_comments.snapshot_tasks",
     "sentry.preprod.vcs.pr_comments.tasks",
     "sentry.preprod.vcs.status_checks.size.tasks",
@@ -2279,6 +2280,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
     "sentry.integrations.claude_code.integration.ClaudeCodeAgentIntegrationProvider",
     "sentry.integrations.datadog.integration.DatadogIntegrationProvider",
+    "sentry.integrations.gcp.integration.GcpIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
 )

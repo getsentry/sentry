@@ -130,6 +130,56 @@ describe('projectGeneralSettings', () => {
     );
   });
 
+  it('hides the release auto-creation toggle without the feature flag', async () => {
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
+      organization,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByRole('textbox', {name: 'Slug'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('checkbox', {
+        name: 'Enable release auto-creation from telemetry',
+      })
+    ).not.toBeInTheDocument();
+  });
+
+  it('confirms before disabling release auto-creation', async () => {
+    const orgWithFeature = OrganizationFixture({features: ['auto-release-creation']});
+    putMock = MockApiClient.addMockResponse({
+      url: `/projects/${orgWithFeature.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {...project, enableAutoReleaseCreation: false},
+    });
+
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
+      organization: orgWithFeature,
+      initialRouterConfig,
+    });
+
+    const toggle = await screen.findByRole('checkbox', {
+      name: 'Enable release auto-creation from telemetry',
+    });
+    expect(toggle).toBeChecked();
+
+    await userEvent.click(toggle);
+
+    // A confirmation modal must appear before the change is persisted.
+    renderGlobalModal();
+    expect(putMock).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByTestId('confirm-button'));
+
+    await waitFor(() =>
+      expect(putMock).toHaveBeenCalledWith(
+        `/projects/${orgWithFeature.slug}/${project.slug}/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {enableAutoReleaseCreation: false},
+        })
+      )
+    );
+  });
+
   it('disables scrapeJavaScript when equivalent org setting is false', async () => {
     const orgWithoutScrapeJavaScript = OrganizationFixture({
       scrapeJavaScript: false,

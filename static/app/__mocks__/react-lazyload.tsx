@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 /**
  * Auto-mock of the react-lazyload library for jest
  *

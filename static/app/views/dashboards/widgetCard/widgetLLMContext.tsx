@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
