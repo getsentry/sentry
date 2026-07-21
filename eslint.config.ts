@@ -253,6 +253,7 @@ export default typescript.config([
   // https://eslint.org/docs/latest/use/configure/configuration-files#globally-ignoring-files-with-ignores
   globalIgnores([
     '.devenv/**/*',
+    '.agents/**/*',
     '.github/**/*',
     '.sentry-refactor-tasks/**/*',
     '.mypy_cache/**/*',
