@@ -119,6 +119,7 @@ class GroupOwner(Model):
             (GroupOwnerType.SUSPECT_COMMIT, "Suspect Commit"),
             (GroupOwnerType.OWNERSHIP_RULE, "Ownership Rule"),
             (GroupOwnerType.CODEOWNERS, "Codeowners"),
+            (GroupOwnerType.SEER_SUGGESTED, "Seer Suggested"),
         )
     )
     context = LegacyTextJSONField(null=True)
