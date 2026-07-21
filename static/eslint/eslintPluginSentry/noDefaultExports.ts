@@ -4,14 +4,11 @@ import ts from 'typescript';
 
 import {lazy} from './utils/lazy';
 
-// Match an import call with any valid trivia between the keyword and opening paren.
-// This is only a fast prefilter; the AST traversal below still determines whether
-// the import is one of the lazy-loading patterns this rule supports.
-const dynamicImportPattern =
-  /\bimport(?:\s|\/\*[\s\S]*?\*\/|\/\/[^\n\r\u2028\u2029]*(?:\r\n|[\n\r\u2028\u2029]))*\(/;
+// Comment-separated static imports are harmless false positives.
+const possibleDynamicImportPattern = /\bimport\s*(?:\(|\/[/*])/u;
 
 export function mayContainDynamicImport(source: string): boolean {
-  return dynamicImportPattern.test(source);
+  return possibleDynamicImportPattern.test(source);
 }
 
 function unwrapParenthesized(node: ts.Node): ts.Node {
