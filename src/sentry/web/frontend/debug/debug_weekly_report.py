@@ -221,12 +221,13 @@ class DebugWeeklyReportView(MailPreviewView):
                 "name": name,
                 "p95": random.uniform(50, 500),
                 "sum": random.uniform(10000, 100000),
-                "count": random.randint(100000, 1500000),
             }
             for name in span_names
         ]
         ctx.top_spans_projects = {name: next(iter(all_project_ids)) for name in span_names}
-        ctx.total_spans_count = sum(span.get("count", 0) for span in ctx.top_spans)
+        ctx.spans_count_by_project = {
+            pid: random.randint(100000, 1500000) for pid in all_project_ids
+        }
         intervals = 28
         for name in span_names:
             ctx.top_spans_timeseries[name] = {
@@ -242,7 +243,7 @@ class DebugWeeklyReportView(MailPreviewView):
                 request.GET.get("show_week_over_week_metric", "1") != "0"
             )
             context["show_past_issues"] = True
-            context["total_spans_count"] = ctx.total_spans_count
+            context["total_spans_count"] = sum(ctx.spans_count_by_project.values())
             project_by_id = {pid: pctx.project for pid, pctx in ctx.projects_context_map.items()}
             context["top_spans_table"] = [
                 {

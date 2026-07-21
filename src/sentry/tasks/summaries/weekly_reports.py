@@ -894,21 +894,22 @@ def render_template_context(
 
     view_all_issues_url = _multi_project_substatus_url(user_projects, "is:unresolved")
 
+    user_project_ids = {p.project.id for p in user_projects}
+    user_total_spans_count = sum(
+        count for pid, count in ctx.spans_count_by_project.items() if pid in user_project_ids
+    )
     show_spans = (
         features.has("organizations:weekly-report-spans-chart", ctx.organization)
         and not ctx.organization.flags.enhanced_privacy
-        and ctx.total_spans_count > 0
+        and user_total_spans_count > 0
     )
     top_spans_table: list[dict[str, Any]] = []
-    user_total_spans_count = 0
     if show_spans:
-        user_project_ids = {p.project.id for p in user_projects}
         project_by_id = {p.project.id: p.project for p in user_projects}
         for span in ctx.top_spans:
             span_project_id = ctx.top_spans_projects.get(span["name"])
             if span_project_id not in user_project_ids:
                 continue
-            user_total_spans_count += span.get("count", 0)
             project = project_by_id.get(span_project_id)
             span_query = urlencode(
                 {

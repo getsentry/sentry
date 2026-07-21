@@ -64,7 +64,7 @@ class OrganizationReportContext:
         self.top_spans: list[dict[str, Any]] = []  # [{name, p95, sum}, ...]
         self.top_spans_timeseries: dict[str, dict[int, float]] = {}  # {span_name: {timestamp: p95}}
         self.top_spans_projects: dict[str, int] = {}  # {span_name: project_id}
-        self.total_spans_count: int = 0
+        self.spans_count_by_project: dict[int, int] = {}  # {project_id: count}
 
     def __repr__(self) -> str:
         return self.projects_context_map.__repr__()
@@ -706,13 +706,17 @@ def organization_top_spans(
     ctx: OrganizationReportContext,
     referrer: str,
 ) -> None:
-    """Fetch top spans by total duration for the org and populate ctx fields.
+    """Fetch top spans by total duration and per-project span counts.
 
-    Runs a single EAP query grouped by (span.name, project.id). Each span is
-    assigned to the project with the highest sum(span.duration). Spans typically
-    appear in one project, so per-project aggregates match org-wide values.
+    Runs two EAP queries:
+    1. Top spans grouped by (span.name, project.id), ordered by sum(span.duration).
+       Each span is assigned to the project with the highest sum. Populates
+       ctx.top_spans (top 5) and ctx.top_spans_projects.
+    2. Per-project count() to populate ctx.spans_count_by_project, used to
+       compute per-user total spans in the weekly report.
 
-    The timeseries (6-hour granularity p95) is fetched separately via run_top_events_timeseries_query.
+    The timeseries (6-hour granularity p95) is fetched separately via
+    organization_top_spans_timeseries.
     """
     projects = _get_transaction_projects(ctx)
     if not projects:
@@ -745,7 +749,27 @@ def organization_top_spans(
             sampling_mode=None,
         )
 
-    span_counts: dict[str, int] = {}
+    with start_span(
+        op="weekly_reports.spans_count_by_project",
+        name="weekly_reports.spans_count_by_project",
+    ):
+        count_by_project_result = Spans.run_table_query(
+            params=snuba_params,
+            query_string="is_transaction:1",
+            selected_columns=["project.id", "count()"],
+            orderby=None,
+            offset=0,
+            limit=len(projects),
+            referrer=referrer,
+            config=config,
+            sampling_mode=None,
+        )
+
+    for row in count_by_project_result.get("data", []):
+        project_id = row.get("project.id")
+        if project_id:
+            ctx.spans_count_by_project[int(project_id)] = row.get("count()", 0)
+
     for row in result.get("data", []):
         span_name = row.get("span.name", "")
         project_id = row.get("project.id")
@@ -753,7 +777,7 @@ def organization_top_spans(
             continue
         if span_name not in ctx.top_spans_projects:
             if len(ctx.top_spans) >= TOP_SPANS_LIMIT:
-                break
+                continue
             ctx.top_spans_projects[span_name] = int(project_id)
             ctx.top_spans.append(
                 {
@@ -762,12 +786,6 @@ def organization_top_spans(
                     "sum": row.get("sum(span.duration)", 0),
                 }
             )
-        if span_name in ctx.top_spans_projects:
-            span_counts[span_name] = span_counts.get(span_name, 0) + row.get("count()", 0)
-
-    for span in ctx.top_spans:
-        span["count"] = span_counts.get(span["name"], 0)
-    ctx.total_spans_count = sum(span_counts.values())
 
 
 def organization_top_spans_timeseries(
