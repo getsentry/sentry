@@ -1,3 +1,5 @@
+from collections.abc import Callable
+from typing import Any
 from unittest import mock
 
 from django.db.models import F
@@ -20,14 +22,17 @@ from sentry.tasks.summaries.utils import (
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.utils.dates import floor_to_utc_day
+from sentry.utils.snuba import SnubaTSResult
 
 
-def _make_top_spans_mock(top_spans_data, count_data):
+def _make_top_spans_mock(
+    top_spans_data: dict[str, Any], count_data: dict[str, Any]
+) -> Callable[..., dict[str, Any]]:
     """Return a side_effect for Spans.run_table_query that returns
     top_spans_data on the first call and count_data on the second."""
     call_count = 0
 
-    def side_effect(**kwargs):
+    def side_effect(**kwargs: Any) -> dict[str, Any]:
         nonlocal call_count
         call_count += 1
         if call_count == 1:
@@ -158,8 +163,6 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
         assert ctx.top_spans[4]["name"] == "/api/endpoint-4"
 
     def test_timeseries_scoped_to_assigned_project(self) -> None:
-        from sentry.utils.snuba import SnubaTSResult
-
         project_a = self.create_project(organization=self.organization, teams=[self.team])
         project_b = self.create_project(organization=self.organization, teams=[self.team])
         project_a.update(flags=F("flags").bitor(Project.flags.has_transactions))
@@ -178,8 +181,8 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
         ts1 = int(ctx.start.timestamp())
         ts2 = ts1 + SIX_HOURS
 
-        def mock_timeseries(**kwargs):
-            params = kwargs.get("params")
+        def mock_timeseries(**kwargs: Any) -> dict[str, SnubaTSResult]:
+            params = kwargs["params"]
             project_ids = [p.id for p in params.projects]
             if project_ids == [project_a.id]:
                 return {
