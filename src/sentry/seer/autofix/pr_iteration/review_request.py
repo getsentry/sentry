@@ -71,6 +71,33 @@ def _review_request_marker(seer_run: SeerRun, repo_name: str) -> dict[str, Any] 
     return ((seer_run.extras or {}).get(REVIEW_REQUESTS_EXTRA) or {}).get(repo_name)
 
 
+def _record_review_request_marker(
+    seer_run: SeerRun,
+    repo_name: str,
+    *,
+    head_sha: str,
+    reviewers: list[str],
+    preexisting: bool = False,
+) -> None:
+    """Write the per-repo marker; caller must hold the run's review-request lock.
+
+    ``preexisting`` records that the reviewers were already requested by someone
+    else (e.g. a CODEOWNERS auto-request) rather than by us.
+    """
+    marker: dict[str, Any] = {
+        "requested_at": timezone.now().isoformat(),
+        "head_sha": head_sha,
+        "reviewers": reviewers,
+    }
+    if preexisting:
+        marker["preexisting"] = True
+    extras = dict(seer_run.extras or {})
+    markers = dict(extras.get(REVIEW_REQUESTS_EXTRA) or {})
+    markers[repo_name] = marker
+    extras[REVIEW_REQUESTS_EXTRA] = markers
+    seer_run.update(extras=extras)
+
+
 def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> None:
     """Entry point from the check-suite listener for green suite conclusions."""
     try:
@@ -193,17 +220,12 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
         _skip("pr_not_open", log_extra)
         return
 
-    # Drop anyone already on the hook — e.g. a CODEOWNERS auto-request.
     raw_pr = pull_request["raw"]["data"] or {}
     requested_logins = {
         reviewer["login"].lower()
         for reviewer in (raw_pr.get("requested_reviewers") or [])
         if isinstance(reviewer, dict) and reviewer.get("login")
     }
-    scm_users = [scm_user for scm_user in scm_users if scm_user.lower() not in requested_logins]
-    if not scm_users:
-        _skip("already_a_reviewer", log_extra)
-        return
 
     # A suite completes once per app/workflow, so several green events can race
     # for the same head; the lock plus a marker re-check makes sure only one of
@@ -220,6 +242,24 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
                 _skip("already_requested", log_extra)
                 return
 
+            # Drop anyone already on the hook — e.g. a CODEOWNERS auto-request.
+            scm_users = [
+                scm_user for scm_user in scm_users if scm_user.lower() not in requested_logins
+            ]
+            if not scm_users:
+                # Record the existing request as the marker so later green
+                # events short-circuit on the marker pre-check instead of
+                # re-fetching check runs and the PR from the provider.
+                _record_review_request_marker(
+                    seer_run,
+                    head_match.repo_name,
+                    head_sha=head_match.head_sha,
+                    reviewers=sorted(requested_logins),
+                    preexisting=True,
+                )
+                _skip("already_a_reviewer", log_extra)
+                return
+
             try:
                 scm_actions.request_review(scm, str(pr_number), scm_users)
             except Exception:
@@ -227,15 +267,12 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
                 _failed("request_review_failed", {**log_extra, "pr_number": pr_number})
                 return
 
-            extras = dict(seer_run.extras or {})
-            markers = dict(extras.get(REVIEW_REQUESTS_EXTRA) or {})
-            markers[head_match.repo_name] = {
-                "requested_at": timezone.now().isoformat(),
-                "head_sha": head_match.head_sha,
-                "reviewers": scm_users,
-            }
-            extras[REVIEW_REQUESTS_EXTRA] = markers
-            seer_run.update(extras=extras)
+            _record_review_request_marker(
+                seer_run,
+                head_match.repo_name,
+                head_sha=head_match.head_sha,
+                reviewers=scm_users,
+            )
     except UnableToAcquireLock:
         _skip("locked", log_extra)
         return

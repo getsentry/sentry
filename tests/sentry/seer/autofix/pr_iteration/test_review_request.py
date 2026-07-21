@@ -234,6 +234,8 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         with self.feature(FLAG):
             request_review_for_green_check_suite(_green_event())
 
+        # The marker pre-check must short-circuit before any SCM work.
+        mock_actions.get_pull_request.assert_not_called()
         mock_actions.request_review.assert_not_called()
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
@@ -373,7 +375,12 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
             request_review_for_green_check_suite(_green_event())
 
         mock_actions.request_review.assert_not_called()
-        assert self._marker() is None
+        # The existing request is recorded as a preexisting marker so later
+        # green events short-circuit before any SCM calls.
+        marker = self._marker()
+        assert marker is not None
+        assert marker["reviewers"] == ["octocat"]
+        assert marker["preexisting"] is True
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
