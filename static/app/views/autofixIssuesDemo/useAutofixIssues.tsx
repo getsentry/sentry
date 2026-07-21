@@ -139,6 +139,10 @@ interface UseAutofixIssuesParams {
   // Gates the issues request; pass page-filters readiness so the initial
   // fetch waits for the restored project selection. Defaults to true.
   enabled?: boolean;
+  // Fetch exactly these group ids instead of searching the stream. The
+  // endpoint ignores every other query component in this mode, so a
+  // deep-linked issue resolves even outside the list's filters/pagination.
+  groupIds?: string[];
   // Project ids to scope the issue stream to (page-filters selection: [] is
   // "My Projects", [-1] is all). Defaults to all accessible projects.
   projects?: number[];
@@ -168,6 +172,7 @@ export function useAutofixIssues({
   query,
   cursor,
   enabled = true,
+  groupIds: pinnedGroupIds,
   projects,
   questions = DEMO_QUESTIONS,
   runsQuery: runsQueryFilter = RUNS_QUERY,
@@ -181,7 +186,10 @@ export function useAutofixIssues({
       query: {
         query: withRequiredFilter(query ?? ''),
         cursor,
-        project: projects ?? -1,
+        group: pinnedGroupIds,
+        // In group-id mode the page-filters project selection must not hide
+        // the deep-linked issue — the backend still enforces access.
+        project: pinnedGroupIds ? -1 : (projects ?? -1),
         statsPeriod: '90d',
         // Explicit endpoint default: last-seen desc selects the issues still
         // actively occurring as the candidate pool; callers order the loaded

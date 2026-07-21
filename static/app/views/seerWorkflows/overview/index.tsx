@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -18,6 +18,7 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -98,6 +99,10 @@ export default function AutofixOverview() {
   const navigate = useNavigate();
 
   const cursor = decodeScalar(location.query.cursor);
+  // Deep-link focus mode: ?id=<issueId> renders exactly that issue's card,
+  // fully expanded, fetched by group id so it resolves even outside the
+  // list's filters and pagination.
+  const selectedId = decodeScalar(location.query.id);
   const outcomeFilter = decodeList(location.query.outcome) as AutofixOutcome[];
   // TODO(seer): trigger filter disabled — see TRIGGER_FILTER_OPTIONS above.
   // const triggerFilter = decodeList(location.query.trigger) as AutofixTrigger[];
@@ -114,6 +119,7 @@ export default function AutofixOverview() {
     query: '',
     cursor,
     enabled: pageFiltersReady,
+    groupIds: selectedId ? [selectedId] : undefined,
     projects: selection.projects,
     runsQuery: OVERVIEW_RUNS_QUERY,
     questions: RUN_QUESTION_PROMPTS,
@@ -181,6 +187,10 @@ export default function AutofixOverview() {
     );
   });
 
+  // Focus mode shows the fetched issue as-is — client-side filters and sort
+  // don't apply to a single deep-linked card.
+  const visibleRows = selectedId ? rowsWithAttention : sortedRows;
+
   const hasActiveFilters =
     outcomeFilter.length > 0 ||
     attentionFilter.length > 0 ||
@@ -215,31 +225,48 @@ export default function AutofixOverview() {
             />
           </Layout.Title>
           <Stack gap="lg" padding="lg xl">
-            {/* Filters first, unboxed, matching the issue stream's layout:
-                server-side scope, then the client-side filters */}
-            <Flex justify="between" align="center" gap="md" wrap="wrap">
-              <Flex gap="md" align="center" wrap="wrap">
-                <PageFilterBar condensed>
-                  <ProjectPageFilter resetParamsOnChange={['cursor']} />
-                </PageFilterBar>
-                <CompactSelect
-                  multiple
-                  value={outcomeFilter}
-                  options={OUTCOME_FILTER_OPTIONS}
-                  onChange={selected =>
-                    updateQuery({
-                      outcome: selected.map(o => String(o.value)),
-                    })
-                  }
-                  trigger={triggerProps => (
-                    <OverlayTrigger.Button
-                      {...triggerProps}
-                      size="sm"
-                      prefix={t('Outcome')}
-                    />
-                  )}
-                />
-                {/* TODO(seer): "Triggered by" filter disabled until the runs
+            {/* Focus mode swaps the filter toolbar for a way back to the
+                list; every other param (project, sort, ...) is preserved. */}
+            {selectedId ? (
+              <Flex>
+                <LinkButton
+                  size="xs"
+                  variant="transparent"
+                  icon={<IconArrow direction="left" size="xs" />}
+                  to={{
+                    pathname: location.pathname,
+                    query: {...location.query, id: undefined},
+                  }}
+                >
+                  {t('All issues')}
+                </LinkButton>
+              </Flex>
+            ) : (
+              // Filters first, unboxed, matching the issue stream's layout:
+              // server-side scope, then the client-side filters
+              <Flex justify="between" align="center" gap="md" wrap="wrap">
+                <Flex gap="md" align="center" wrap="wrap">
+                  <PageFilterBar condensed>
+                    <ProjectPageFilter resetParamsOnChange={['cursor']} />
+                  </PageFilterBar>
+                  <CompactSelect
+                    multiple
+                    value={outcomeFilter}
+                    options={OUTCOME_FILTER_OPTIONS}
+                    onChange={selected =>
+                      updateQuery({
+                        outcome: selected.map(o => String(o.value)),
+                      })
+                    }
+                    trigger={triggerProps => (
+                      <OverlayTrigger.Button
+                        {...triggerProps}
+                        size="sm"
+                        prefix={t('Outcome')}
+                      />
+                    )}
+                  />
+                  {/* TODO(seer): "Triggered by" filter disabled until the runs
                       API exposes the autofix trigger (referrer/auto_run_source);
                       see TRIGGER_FILTER_OPTIONS above.
                   <CompactSelect
@@ -259,86 +286,99 @@ export default function AutofixOverview() {
                       />
                     )}
                   /> */}
-                <CompactSelect
-                  multiple
-                  value={attentionFilter}
-                  options={ATTENTION_FILTER_OPTIONS}
-                  onChange={selected =>
-                    updateQuery({
-                      attention: selected.map(o => String(o.value)),
-                    })
-                  }
-                  trigger={triggerProps => (
-                    <OverlayTrigger.Button
-                      {...triggerProps}
-                      size="sm"
-                      prefix={t('Needs attention')}
-                    />
-                  )}
-                />
-                <CompactSelect
-                  value={period ?? ''}
-                  options={PERIOD_FILTER_OPTIONS}
-                  onChange={selected =>
-                    updateQuery({
-                      period: selected.value === '' ? undefined : String(selected.value),
-                    })
-                  }
-                  trigger={triggerProps => (
-                    <OverlayTrigger.Button
-                      {...triggerProps}
-                      size="sm"
-                      prefix={t('Activity')}
-                    />
-                  )}
-                />
-                <CompactSelect
-                  value={sort}
-                  options={SORT_OPTIONS}
-                  onChange={selected =>
-                    updateQuery({
-                      // Default sort keeps the URL clean.
-                      sort:
-                        selected.value === 'triage' ? undefined : String(selected.value),
-                    })
-                  }
-                  trigger={triggerProps => (
-                    <OverlayTrigger.Button
-                      {...triggerProps}
-                      size="sm"
-                      prefix={t('Sort')}
-                    />
-                  )}
-                />
+                  <CompactSelect
+                    multiple
+                    value={attentionFilter}
+                    options={ATTENTION_FILTER_OPTIONS}
+                    onChange={selected =>
+                      updateQuery({
+                        attention: selected.map(o => String(o.value)),
+                      })
+                    }
+                    trigger={triggerProps => (
+                      <OverlayTrigger.Button
+                        {...triggerProps}
+                        size="sm"
+                        prefix={t('Needs attention')}
+                      />
+                    )}
+                  />
+                  <CompactSelect
+                    value={period ?? ''}
+                    options={PERIOD_FILTER_OPTIONS}
+                    onChange={selected =>
+                      updateQuery({
+                        period:
+                          selected.value === '' ? undefined : String(selected.value),
+                      })
+                    }
+                    trigger={triggerProps => (
+                      <OverlayTrigger.Button
+                        {...triggerProps}
+                        size="sm"
+                        prefix={t('Activity')}
+                      />
+                    )}
+                  />
+                  <CompactSelect
+                    value={sort}
+                    options={SORT_OPTIONS}
+                    onChange={selected =>
+                      updateQuery({
+                        // Default sort keeps the URL clean.
+                        sort:
+                          selected.value === 'triage'
+                            ? undefined
+                            : String(selected.value),
+                      })
+                    }
+                    trigger={triggerProps => (
+                      <OverlayTrigger.Button
+                        {...triggerProps}
+                        size="sm"
+                        prefix={t('Sort')}
+                      />
+                    )}
+                  />
+                </Flex>
+                {hasActiveFilters ? (
+                  <Button size="xs" variant="link" onClick={clearAllFilters}>
+                    {t('Clear all')}
+                  </Button>
+                ) : null}
               </Flex>
-              {hasActiveFilters ? (
-                <Button size="xs" variant="link" onClick={clearAllFilters}>
-                  {t('Clear all')}
-                </Button>
-              ) : null}
-            </Flex>
+            )}
 
             {isError ? (
               <LoadingError onRetry={refetch} />
             ) : isPending ? (
               <LoadingIndicator />
-            ) : sortedRows.length === 0 ? (
+            ) : visibleRows.length === 0 ? (
               <Container border="primary" radius="md" padding="xl">
                 <Text as="p" variant="muted" align="center">
-                  {hasActiveFilters
-                    ? t('No issues match your filters.')
-                    : t('No completed autofix runs yet.')}
+                  {selectedId
+                    ? t('Issue not found.')
+                    : hasActiveFilters
+                      ? t('No issues match your filters.')
+                      : t('No completed autofix runs yet.')}
                 </Text>
               </Container>
             ) : (
               <Stack gap="md">
-                {sortedRows.map(({row}) => (
-                  <IssueCard key={row.id} row={row} orgSlug={organization.slug} />
+                {visibleRows.map(({row}) => (
+                  <IssueCard
+                    key={row.id}
+                    row={row}
+                    orgSlug={organization.slug}
+                    defaultExpanded={Boolean(selectedId)}
+                  />
                 ))}
               </Stack>
             )}
 
-            {!isPending && !isError && <Pagination pageLinks={pageLinks} />}
+            {!selectedId && !isPending && !isError && (
+              <Pagination pageLinks={pageLinks} />
+            )}
           </Stack>
         </SentryDocumentTitle>
       </PageFiltersContainer>

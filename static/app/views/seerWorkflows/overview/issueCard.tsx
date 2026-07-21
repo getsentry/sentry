@@ -114,7 +114,17 @@ function FixabilityTag({score}: {score: number}) {
   );
 }
 
-export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
+export function IssueCard({
+  orgSlug,
+  row,
+  defaultExpanded = false,
+}: {
+  orgSlug: string;
+  row: OverviewRow;
+  // Open every collapsible (Full analysis, inline diffs) on mount — the
+  // overview's ?id= focus mode wants the whole card readable at once.
+  defaultExpanded?: boolean;
+}) {
   const issueUrl = `/organizations/${orgSlug}/issues/${row.id}/`;
   // Deep-link into the issue page with the Seer drawer already open, so the
   // run itself is one click away (matches the issue details ?seerDrawer param).
@@ -128,7 +138,7 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
   const bodyEntry = proposedFix ?? summary;
   const isFixBody = bodyEntry?.key === 'fix_summary';
   const detailEntries = row.analysis.filter(entry => entry.placement === 'details');
-  const [analysisExpanded, setAnalysisExpanded] = useState(false);
+  const [analysisExpanded, setAnalysisExpanded] = useState(defaultExpanded);
   const analysisId = useId();
 
   const eventCountLabel =
@@ -344,6 +354,7 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
                 patch={patch}
                 repoName={repoName}
                 collapsible
+                defaultExpanded={defaultExpanded}
                 showBorder
               />
             ))}

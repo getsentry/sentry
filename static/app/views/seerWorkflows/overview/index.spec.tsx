@@ -711,6 +711,84 @@ describe('AutofixOverview', () => {
     expect(screen.getByText(/@@ -10,3 \+10,4 @@/)).toBeInTheDocument();
   });
 
+  it('focuses a single fully-expanded card when id is present', async () => {
+    // The focus fetch pins the exact group id (and the endpoint ignores the
+    // list's filters in that mode).
+    const groupRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [issue],
+      match: [MockApiClient.matchQuery({group: ['2']})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/2/autofix/`,
+      body: {
+        autofix: {
+          run_id: 1,
+          status: 'completed',
+          updated_at: '2026-07-14T10:00:00Z',
+          blocks: [
+            {
+              id: 'b1',
+              timestamp: '2026-07-14T09:00:00Z',
+              message: {
+                role: 'assistant',
+                content: 'code',
+                metadata: {step: 'code_changes'},
+              },
+              merged_file_patches: [
+                {
+                  repo_name: 'getsentry/sentry',
+                  diff: '--- a/src/cart.py\n+++ b/src/cart.py',
+                  patch: {
+                    path: 'src/cart.py',
+                    source_file: 'src/cart.py',
+                    target_file: 'src/cart.py',
+                    type: 'M',
+                    added: 1,
+                    removed: 0,
+                    hunks: [
+                      {
+                        section_header: '',
+                        source_start: 5,
+                        source_length: 1,
+                        target_start: 5,
+                        target_length: 2,
+                        lines: [
+                          {
+                            value: '    return total',
+                            line_type: '+',
+                            source_line_no: null,
+                            target_line_no: 5,
+                            diff_line_no: 1,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    renderPage({id: '2'});
+
+    // The full analysis renders expanded without any interaction…
+    expect(await screen.findByText('Root cause')).toBeVisible();
+    expect(screen.getByText('PROJ-1')).toBeVisible();
+    // …and so does the inline diff.
+    expect(screen.getByText(/@@ -5,1 \+5,2 @@/)).toBeInTheDocument();
+    expect(groupRequest).toHaveBeenCalled();
+
+    // Focus mode hides the list chrome and offers the way back, keeping the
+    // other params.
+    expect(screen.queryByRole('button', {name: /Outcome/})).not.toBeInTheDocument();
+    const backLink = screen.getByRole('button', {name: 'All issues'});
+    expect(backLink).toHaveAttribute('href', expect.not.stringContaining('id=2'));
+  });
+
   it('normalizes space-less • bullets into a markdown list', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/runs/`,
