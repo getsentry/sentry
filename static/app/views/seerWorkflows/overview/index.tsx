@@ -22,7 +22,7 @@ import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPa
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {Sticky} from 'sentry/components/sticky';
-import {IconArrow} from 'sentry/icons';
+import {IconArrow, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -379,6 +379,13 @@ export default function AutofixOverview() {
                     <Button
                       size="xs"
                       variant="link"
+                      icon={
+                        <IconChevron
+                          isDouble
+                          direction={allGroupsCollapsed ? 'down' : 'up'}
+                          size="xs"
+                        />
+                      }
                       onClick={() =>
                         setCollapsedGroups(
                           allGroupsCollapsed
