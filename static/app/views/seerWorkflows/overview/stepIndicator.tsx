@@ -157,17 +157,18 @@ export function StepIndicator({row}: {row: OverviewRow}) {
 
   const stepLabel = currentStep ? STEP_LABELS[currentStep] : undefined;
 
-  // Stage hue: heat builds as the fix gets closer, because so does the
-  // urgency of the human's move — quiet gray while Seer is still diagnosing,
-  // warming through amber as a plan and code land, hottest at PR-opened
-  // (review and merge is the one step left), then the green checkmark once
-  // merged puts the fire out.
+  // Stage hue: the accent purple deepens as the run advances — quiet gray at
+  // root cause, then light-to-dark blurple through plan, code, and PR. Arc
+  // length and intensity say "how far" twice, and staying out of the alarm
+  // palette keeps red/amber meaning "something needs you" on the action
+  // buttons rather than "something is wrong" on every card. Success green
+  // stays reserved for the merged checkmark.
   const stageRingColors = [
     undefined,
-    theme.colors.gray400, // root cause — nothing to act on yet
-    theme.colors.yellow300, // plan in hand
-    theme.colors.yellow500, // code drafted — worth a look
-    theme.colors.red400, // PR opened — your move, one step from fixed
+    theme.colors.gray400, // root cause — just getting started
+    theme.colors.blue300, // plan in hand
+    theme.colors.blue400, // code drafted
+    theme.colors.blue500, // PR opened — deepest, one step from fixed
   ];
   const ringColor = stageRingColors[fill] ?? theme.tokens.content.secondary;
 
