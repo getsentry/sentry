@@ -875,6 +875,52 @@ def render_template_context(
             "total_substatus_count": total_substatus_count,
         }
 
+    def top_spans():
+        user_total_spans_count = sum(
+            count for pid, count in ctx.spans_count_by_project.items() if pid in user_project_ids
+        )
+        if (
+            not features.has("organizations:weekly-report-spans-chart", ctx.organization)
+            or ctx.organization.flags.enhanced_privacy
+            or user_total_spans_count == 0
+        ):
+            return {"total_spans_count": 0, "top_spans_table": []}
+
+        project_by_id = {p.project.id: p.project for p in user_projects}
+        table: list[dict[str, Any]] = []
+        for span in ctx.top_spans:
+            span_project_id = ctx.top_spans_projects.get(span["name"])
+            if span_project_id not in user_project_ids:
+                continue
+            project = project_by_id.get(span_project_id)
+            span_query = urlencode(
+                {
+                    "query": 'span.name:"{}"'.format(
+                        span["name"].replace("\\", "\\\\").replace('"', '\\"')
+                    ),
+                    "project": span_project_id,
+                    "visualize": json.dumps(
+                        {"yAxes": ["p95(span.duration)", "sum(span.duration)"]}
+                    ),
+                    "referrer": "weekly_report",
+                    "notification_uuid": notification_uuid,
+                }
+            )
+            span_url = ctx.organization.absolute_url(
+                f"/organizations/{ctx.organization.slug}/explore/traces/",
+                query=span_query,
+            )
+            table.append(
+                {
+                    "name": span["name"],
+                    "p95": span["p95"],
+                    "sum": span["sum"],
+                    "project_slugs": project.slug if project else "",
+                    "url": span_url,
+                }
+            )
+        return {"total_spans_count": user_total_spans_count, "top_spans_table": table}
+
     show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
 
     errors_discover_params: list[tuple[str, str | int]] = [
@@ -894,6 +940,8 @@ def render_template_context(
 
     view_all_issues_url = _multi_project_substatus_url(user_projects, "is:unresolved")
 
+    user_project_ids = {p.project.id for p in user_projects}
+
     return {
         "organization": ctx.organization,
         "start": date_format(local_start),
@@ -912,6 +960,7 @@ def render_template_context(
             "organizations:weekly-report-week-over-week-metric", ctx.organization
         ),
         "notification_settings_link": "/settings/account/notifications/reports/",
+        **top_spans(),
     }
 
 
