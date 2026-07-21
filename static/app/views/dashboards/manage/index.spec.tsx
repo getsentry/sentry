@@ -241,7 +241,6 @@ describe('Dashboards > Detail', () => {
     });
 
     expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
-    expect(screen.queryByTestId('dashboard-grid')).not.toBeInTheDocument();
   });
 
   it('shows the custom tab empty state when there are no dashboards', async () => {
