@@ -131,33 +131,33 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
     if not flagged_repos:
         return
 
-    resolved = resolve_check_suite_autofix_run(event, flagged_repos)
+    autofix_run = resolve_check_suite_autofix_run(event, flagged_repos)
     # Sizes the funnel: of green events in flagged orgs, how many are Seer PRs.
     metrics.incr(
         "autofix.pr_iteration.review_request.run_resolved",
-        tags={"found": str(resolved is not None).lower()},
+        tags={"found": str(autofix_run is not None).lower()},
     )
-    if resolved is None:
+    if autofix_run is None:
         # Expected: webhooks fan out to every region, so a missing run usually
         # just means this region doesn't own the Autofix session.
         return
-    organization = organizations[resolved.repository.organization_id]
+    organization = organizations[autofix_run.repository.organization_id]
 
     log_extra: dict[str, Any] = {
-        "organization_id": resolved.repository.organization_id,
-        "repo_id": resolved.repository.id,
-        "run_id": resolved.run_state.run_id,
-        "pr_id": resolved.pr_id,
+        "organization_id": autofix_run.repository.organization_id,
+        "repo_id": autofix_run.repository.id,
+        "run_id": autofix_run.run_state.run_id,
+        "pr_id": autofix_run.pr_id,
     }
 
-    head_match = check_suite_head_match(event, resolved.run_state)
+    head_match = check_suite_head_match(event, autofix_run.run_state)
     if not head_match.matched or not head_match.head_sha or not head_match.repo_name:
         # A green result for an older commit says nothing about the current head.
         _skip("stale_head", {**log_extra, "head_sha": head_match.head_sha})
         return
 
     seer_run = SeerRun.objects.filter(
-        seer_run_state_id=resolved.run_state.run_id, organization=organization
+        seer_run_state_id=autofix_run.run_state.run_id, organization=organization
     ).first()
     if seer_run is None:
         # Legacy runs predating SeerRun mirroring have no row to hold the marker.
@@ -167,7 +167,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
         _skip("already_requested", log_extra)
         return
 
-    pr_state = resolved.run_state.repo_pr_states.get(head_match.repo_name)
+    pr_state = autofix_run.run_state.repo_pr_states.get(head_match.repo_name)
     pr_number = pr_state.pr_number if pr_state else None
     if pr_number is None:
         _skip("no_pr_number", log_extra)
@@ -178,7 +178,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
     from sentry.scm.factory import new as make_scm
 
     try:
-        scm = make_scm(organization.id, resolved.repository.id, referrer="seer")
+        scm = make_scm(organization.id, autofix_run.repository.id, referrer="seer")
     except Exception:
         _failed("scm_init_failed", log_extra)
         return
@@ -234,8 +234,9 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
         return
 
     # A suite completes once per app/workflow, so several green events can race
-    # for the same head; the lock plus a marker re-check makes sure only one of
-    # them pings the human.
+    # for the same head. Wait for the lock holder rather than dropping: after
+    # the wait the marker re-check settles it — holder succeeded means we skip,
+    # holder's request failed (marker unset) means this event retries.
     lock = locks.get(
         f"autofix:pr_iteration:review_request:{seer_run.id}",
         duration=30,
@@ -243,7 +244,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
     )
     requested_candidate: ReviewerCandidate | None = None
     try:
-        with lock.acquire():
+        with lock.blocking_acquire(initial_delay=0.5, timeout=10):
             seer_run.refresh_from_db()
             if _review_request_marker(seer_run, head_match.repo_name):
                 _skip("already_requested", log_extra)
@@ -296,6 +297,11 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
                 head_sha=head_match.head_sha,
                 reviewers=[requested_candidate.login],
             )
+    except SeerRun.DoesNotExist:
+        # The run was deleted between our lookup and the marker write (e.g.
+        # cleanup); nothing is left to mark or dedupe against.
+        _skip("run_deleted", log_extra)
+        return
     except UnableToAcquireLock:
         _skip("locked", log_extra)
         return

@@ -15,6 +15,7 @@ from sentry.seer.autofix.pr_iteration.reviewer_candidates import (
     SOURCE_TRIGGERING_USER,
     ReviewerCandidate,
 )
+from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import TestCase
 
 REVIEW_REQUEST_PATH = "sentry.seer.autofix.pr_iteration.review_request"
@@ -433,6 +434,32 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         mock_metrics.incr.assert_any_call(
             "autofix.pr_iteration.review_request.failed", tags={"reason": "request_review_failed"}
         )
+
+    @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
+    @patch("sentry.scm.factory.new", return_value=MagicMock())
+    @patch(f"{REVIEW_REQUEST_PATH}.sweep_check_runs", return_value=GREEN_SWEEP)
+    @patch(f"{CANDIDATES_PATH}.get_github_username_for_user", return_value="octocat")
+    @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
+    @patch(f"{REVIEW_REQUEST_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{REVIEW_REQUEST_PATH}.RequestReviewProtocol", object)
+    def test_skips_when_run_deleted_before_marker_write(
+        self,
+        mock_resolve: MagicMock,
+        _mock_username: MagicMock,
+        _mock_sweep: MagicMock,
+        _mock_scm: MagicMock,
+        mock_actions: MagicMock,
+    ) -> None:
+        mock_resolve.return_value = self._resolved()
+        mock_actions.get_pull_request.return_value = _pull_request_result()
+
+        with (
+            self.feature(FLAG),
+            patch.object(SeerRun, "refresh_from_db", side_effect=SeerRun.DoesNotExist),
+        ):
+            request_review_for_green_check_suite(_green_event())
+
+        mock_actions.request_review.assert_not_called()
 
 
 # Provenance is opaque to the request flow — the wiring must work for any
