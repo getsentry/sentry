@@ -13,8 +13,8 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from sentry.api.authentication import AgentTokenAuthentication, UserAuthTokenAuthentication
-from sentry.api.bases.organization import OrganizationPermission
-from sentry.auth.access import Access
+from sentry.api.bases.organization import OrganizationPermission, OrganizationReleasesBaseEndpoint
+from sentry.auth.access import Access, from_auth
 from sentry.models.organizationmember import OrganizationMember
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
@@ -237,6 +237,18 @@ class AgentTokenAuthAndGateTest(TestCase):
 
         assert access.has_project_access(member_project)
         assert not access.has_project_access(other_project)
+
+        release_projects = OrganizationReleasesBaseEndpoint().get_projects(request, self.org)
+        assert release_projects == [member_project]
+
+    def test_from_auth_preserves_member_and_token_scope_caps(self) -> None:
+        request = self._agent_request(self.member, ["org:read", "org:write"], method="GET")
+        assert request.auth is not None
+
+        resolved_access = from_auth(request.auth, self.org)
+
+        assert resolved_access.has_scope("org:read")
+        assert not resolved_access.has_scope("org:write")
 
     def test_agent_denied_after_member_is_removed(self) -> None:
         # Ephemeral tokens re-derive authority from live membership on each request, so

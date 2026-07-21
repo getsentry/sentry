@@ -812,8 +812,17 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             is_api_token_auth(request.auth) and request.access.has_scope("project:releases")
         )
 
+        from sentry.seer.agent_token import is_agent_auth
+
+        agent_auth = request.auth if is_agent_auth(request.auth) else None
+        has_valid_agent_auth = (
+            agent_auth is not None and agent_auth.organization_id == organization.id
+        )
+
         if not (
-            has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)
+            has_valid_api_key
+            or has_valid_agent_auth
+            or (getattr(request, "user", None) and request.user.is_authenticated)
         ):
             return []
 
