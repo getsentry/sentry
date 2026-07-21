@@ -1,13 +1,9 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
+import {AssistantActions, AssistantMessage} from '@sentry/scraps/chat';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {IconThumb} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
@@ -32,9 +28,9 @@ export function AssistantBlock({
   if (block.loading) {
     if (isStreamingEnabled && hasValidContent(content)) {
       return (
-        <Container padding="xl" minWidth={0} overflow="hidden">
+        <AssistantMessage>
           <SeerMarkdown raw={content} variant="streaming" />
-        </Container>
+        </AssistantMessage>
       );
     }
     return <MessagePlaceholder content={isStreamingEnabled ? undefined : content} />;
@@ -43,9 +39,9 @@ export function AssistantBlock({
   return (
     <Fragment>
       {hasValidContent(content) && (
-        <Container padding="xl" minWidth={0} overflow="hidden">
+        <AssistantMessage>
           <SeerMarkdown raw={content} />
-        </Container>
+        </AssistantMessage>
       )}
       <BlockActionBar
         block={block}
@@ -104,75 +100,23 @@ function BlockActionBar({
   }
 
   return (
-    <ButtonBar
-      size="xs"
+    <AssistantActions
       position="absolute"
       bottom="2px"
       right="8px"
       visibility="hidden"
+      onFeedback={trackFeedback}
+      feedbackDisabled={feedbackSubmitted}
+      copyText={showCopy ? (block.message.content ?? '') : undefined}
+      onCopy={() => {
+        trackAnalytics('seer.explorer.block_copied', {organization});
+      }}
       css={css`
         ${BLOCK_WRAPPER_SELECTOR}:hover &,
         ${BLOCK_WRAPPER_SELECTOR}:focus-within & {
           visibility: visible;
         }
       `}
-    >
-      <FeedbackButton
-        type="positive"
-        disabled={feedbackSubmitted}
-        onClick={trackFeedback}
-      />
-      <FeedbackButton
-        type="negative"
-        disabled={feedbackSubmitted}
-        onClick={trackFeedback}
-      />
-      {showCopy && (
-        <CopyToClipboardButton
-          aria-label={t('Copy block content')}
-          text={block.message.content ?? ''}
-          tooltipProps={{title: t('Copy to clipboard')}}
-          onCopy={() => {
-            trackAnalytics('seer.explorer.block_copied', {organization});
-          }}
-          onClick={e => {
-            e.stopPropagation();
-          }}
-        />
-      )}
-    </ButtonBar>
-  );
-}
-
-function FeedbackButton({
-  type,
-  disabled,
-  onClick,
-}: {
-  disabled: boolean;
-  onClick: (type: 'positive' | 'negative') => void;
-  type: 'positive' | 'negative';
-}) {
-  return (
-    <Button
-      aria-label={
-        type === 'positive' ? t('Feedback Thumbs Up') : t('Feedback Thumbs Down')
-      }
-      icon={<IconThumb direction={type === 'positive' ? 'up' : 'down'} />}
-      disabled={disabled}
-      tooltipProps={{
-        title: disabled
-          ? t('Feedback submitted')
-          : type === 'positive'
-            ? t('I like this response')
-            : t("I don't like this response"),
-      }}
-      onClick={e => {
-        e.stopPropagation();
-        onClick(type);
-      }}
-    >
-      {undefined}
-    </Button>
+    />
   );
 }
