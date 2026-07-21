@@ -208,7 +208,8 @@ describe('InboxPage', () => {
     expect(await screen.findByText('Diagnosed issue')).toBeInTheDocument();
     const assignedIssue = await screen.findByText('Assigned issue');
     expect(assignedIssue).not.toBeVisible();
-    expect(screen.getByRole('heading', {name: 'Issues'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Inbox', level: 1})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Issues', level: 2})).toBeInTheDocument();
 
     for (const [index, query] of [
       'issue.progress:fix_proposed assigned:me',
@@ -238,6 +239,12 @@ describe('InboxPage', () => {
     const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
     const diagnosedSection = screen.getByRole('region', {name: 'Diagnosed'});
     const assignedSection = screen.getByRole('region', {name: 'Assigned'});
+    expect(
+      within(fixSection).getByRole('heading', {name: 'Fix Proposed', level: 3})
+    ).toBeInTheDocument();
+    expect(
+      within(fixSection).getByRole('heading', {name: 'Fix proposed issue', level: 4})
+    ).toBeInTheDocument();
     expect(within(fixSection).getByText('2')).toBeInTheDocument();
     expect(within(diagnosedSection).getByText('2')).toBeInTheDocument();
     expect(within(assignedSection).getByText('12')).toBeInTheDocument();

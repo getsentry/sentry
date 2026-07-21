@@ -263,7 +263,7 @@ function InboxSection({
           <Disclosure.Title trailingItems={<Badge variant="muted">{count}</Badge>}>
             <Flex align="center" gap="sm">
               {getProgressIcon(section.progress)}
-              <Heading as="h2" size="md">
+              <Heading as="h3" size="md">
                 {section.label}
               </Heading>
             </Flex>
@@ -362,7 +362,7 @@ function InboxIssueCard({
           )}
         </Flex>
         <Stack minWidth={0} gap="xs">
-          <Heading as="h3" size="md" ellipsis>
+          <Heading as="h4" size="md" ellipsis>
             {title}
           </Heading>
           <EventMessage level={group.level} message={message} type={group.type} />
