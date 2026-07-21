@@ -292,7 +292,7 @@ function SearchQueryBuilderUI({
   onChange,
 }: SearchQueryBuilderProps) {
   const {parsedQuery, query, dispatch} = useSearchQueryBuilderState();
-  const {wrapperRef, actionBarRef, size} = useSearchQueryBuilderLayout();
+  const {wrapperRef, actionBarRef} = useSearchQueryBuilderLayout();
 
   useOnChange({onChange});
   useLayoutEffect(() => {
@@ -324,9 +324,7 @@ function SearchQueryBuilderUI({
             actionBarWidth={actionBarWidth}
           />
         )}
-        {size !== 'small' && (
-          <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
-        )}
+        <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
       </PanelProvider>
     </Wrapper>
   );
