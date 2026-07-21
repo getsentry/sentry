@@ -270,6 +270,11 @@ class ProjectDetailsTest(APITestCase):
         assert resp.data["options"]["filters:log_messages"] == "Updated*\n*.sentry.io"
         assert resp.data["options"]["filters:trace_metric_names"] == "counter.*\n*.duration"
 
+    def test_preprod_size_pr_comments_defaults(self) -> None:
+        resp = self.get_success_response(self.project.organization.slug, self.project.slug)
+        assert resp.data["options"]["sentry:preprod_size_pr_comments_enabled"] is False
+        assert resp.data["options"]["sentry:preprod_size_pr_comments_rules"] is None
+
 
 class ProjectUpdateTestTokenAuthenticated(APITestCase):
     endpoint = "sentry-api-0-project-details"
@@ -819,6 +824,26 @@ class ProjectUpdateTest(APITestCase):
         )
         project = Project.objects.get(id=self.project.id)
         assert project.get_option("sentry:preprod_snapshot_pr_comments_post_on_renamed") is True
+
+    def test_preprod_size_pr_comments_enabled_option(self) -> None:
+        self.get_success_response(self.org_slug, self.proj_slug, preprodSizePrCommentsEnabled=True)
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_size_pr_comments_enabled") is True
+
+    def test_preprod_size_pr_comments_rules_option(self) -> None:
+        rules = [
+            {
+                "id": "r1",
+                "metric": "install_size",
+                "measurement": "absolute",
+                "value": 1000000,
+                "artifactType": "main_artifact",
+                "filterQuery": "",
+            }
+        ]
+        self.get_success_response(self.org_slug, self.proj_slug, preprodSizePrCommentsRules=rules)
+        project = Project.objects.get(id=self.project.id)
+        assert project.get_option("sentry:preprod_size_pr_comments_rules") == rules
 
     def test_bookmarks(self) -> None:
         self.get_success_response(self.org_slug, self.proj_slug, isBookmarked="false")

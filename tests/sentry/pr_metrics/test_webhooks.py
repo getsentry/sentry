@@ -974,6 +974,24 @@ class HandleWebhookForPrMetricsActivityTest(TestCase):
         assert activity.payload["changed_files"] == 4
         assert activity.payload["commits"] == 3
 
+    def test_opened_payload_captures_repo_visibility(self) -> None:
+        self._call(action="opened", extra_event={"repository": {"private": True}})
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["is_private"] is True
+
+    def test_opened_payload_captures_public_repo_visibility(self) -> None:
+        self._call(action="opened", extra_event={"repository": {"private": False}})
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["is_private"] is False
+
+    def test_opened_payload_visibility_null_when_repository_key_absent(self) -> None:
+        self._call(action="opened")
+
+        activity = PullRequestActivity.objects.get(pull_request=self.pr)
+        assert activity.payload["is_private"] is None
+
     def test_synchronize_writes_synchronized_activity(self) -> None:
         self._call(action="synchronize", before="old-sha", after="new-sha")
 

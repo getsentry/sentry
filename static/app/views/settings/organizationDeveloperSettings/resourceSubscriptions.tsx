@@ -25,26 +25,14 @@ type Props = {
   events: WebhookSubscription[];
   onChange: (events: WebhookSubscription[]) => void;
   permissions: Permissions;
-  webhookDisabled?: boolean;
 };
 
-export function Subscriptions({
-  events,
-  onChange,
-  permissions,
-  webhookDisabled = false,
-}: Props) {
+export function Subscriptions({events, onChange, permissions}: Props) {
   const organization = useOrganization();
   const granular = organization.features.includes('sentry-apps-granular-events');
 
-  // Keep the subscription consistent with the rest of the form: webhooks
-  // disabled means no events, and every event needs its backing permission.
+  // Every event needs its backing permission.
   useEffect(() => {
-    if (webhookDisabled && events.length) {
-      onChange([]);
-      return;
-    }
-
     const permitted = new Set<string>(
       EVENT_CHOICES.filter(
         resource => permissions[PERMISSIONS_MAP[resource]] !== 'no-access'
@@ -55,7 +43,7 @@ export function Subscriptions({
     if (JSON.stringify(events) !== JSON.stringify(permittedEvents)) {
       onChange(permittedEvents);
     }
-  }, [webhookDisabled, permissions, events, onChange]);
+  }, [permissions, events, onChange]);
 
   const handleResourceChange = (resource: Resource, checked: boolean) => {
     const owned = new Set<string>([resource, ...RESOURCE_EVENTS[resource]]);
@@ -98,7 +86,6 @@ export function Subscriptions({
       <SubscriptionBox
         key={choice}
         disabledFromPermissions={disabledFromPermissions}
-        webhookDisabled={webhookDisabled}
         checked={checked}
         selectedEvents={selectedEvents}
         resource={choice}

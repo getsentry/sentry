@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -50,11 +50,9 @@ export function ConversationToolCallsBreakdown({
             // Cap long tool names; the inner Text truncates with an ellipsis.
             style={{justifySelf: 'start', maxWidth: 200, minWidth: 0}}
           >
-            <Tooltip title={tool.toolName} showOnlyOnOverflow skipWrapper>
-              <Text ellipsis variant="inherit">
-                {tool.toolName}
-              </Text>
-            </Tooltip>
+            <InfoText title={tool.toolName} mode="overflowOnly" variant="inherit">
+              {tool.toolName}
+            </InfoText>
           </Tag>
           <Text size="sm" tabular>
             <Count value={tool.calls} /> {tn('call', 'calls', tool.calls)}

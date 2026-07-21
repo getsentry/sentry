@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {Fragment} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';

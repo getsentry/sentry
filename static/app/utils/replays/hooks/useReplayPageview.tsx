@@ -9,9 +9,10 @@ export function useReplayPageview(
 ) {
   const user = useUser();
   const organization = useOrganization();
-  const startTimeRef = useRef(Date.now());
+  const startTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
+    startTimeRef.current = Date.now();
     const startTime = startTimeRef.current;
 
     return () => {

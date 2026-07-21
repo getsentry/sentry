@@ -18,7 +18,7 @@ import {SIZES} from './__stories__/consts';
 
 export function ContainerBreakpointLabel() {
   const breakpoint = useContainerBreakpoint();
-  const isCompact = breakpoint === '2xs';
+  const isCompact = breakpoint === 'zero';
   return (
     <span>
       Active container breakpoint: <Text bold>{breakpoint}</Text> —{' '}
@@ -200,37 +200,44 @@ Set positioning for absolute/relative layouts:
 </Container>
 ```
 
-### 2xs breakpoint
-
-The `2xs` breakpoint is a breakpoint that applies from 0 to the smallest defined breakpoint size.
-
-<Storybook.Demo>
-  <Container display={{'screen:2xs': 'none', 'screen:sm': 'block'}}>
-    This content is hidden below the sm breakpoint
-  </Container>
-</Storybook.Demo>
-```jsx
-<Container display={{'screen:2xs': 'none', 'screen:sm': 'block'}}>
-  This content is hidden below the sm breakpoint
-</Container>
-```
-
 ### Container Queries
 
-Responsive props come in two flavors, keyed by breakpoint:
+Responsive props take a single value (`padding="md"`) or an object keyed by
+breakpoint (`padding={{md: 'sm', lg: 'xl'}}`), where each value applies from that
+breakpoint up. Keys come in two kinds:
 
-- **bare keys** (`{xs: …}`) resolve against the nearest **query container** —
-  the available space a component sits in. Container queries are the default, so
-  they need no prefix.
-- **`screen:`-prefixed keys** (`{'screen:xs': …}`) resolve against the
-  **viewport** (`@media`).
+- **bare keys** follow the **container** — the room a component has where it sits.
+- **`screen:` keys** follow the **viewport** — the browser window.
 
-This matters because a panel in a narrow sidebar and the same panel full-width
-have the same viewport but very different available widths. An element can never
-query its own size, so declare a parent as a container with
-`containerType="inline-size"`, then use bare breakpoint keys on its descendants:
+Each kind has its own scale, and both can be mixed on one prop.
 
-For background on the underlying CSS, see MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries">container queries guide</a>, <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/container-type">container-type</a>, and the <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/@container">@container</a> at-rule.
+> [!NOTE]
+> **Prefer container keys.** A component should respond to the room it has, not
+> the size of the window. Reach for `screen:` only when the layout truly depends
+> on the viewport.
+
+#### Container tokens
+
+Resolve against the nearest query container (`@container`, `theme.container`).
+`zero` is the always-applied base.
+
+| Token  | Min width    |
+| ------ | ------------ |
+| `zero` | `0px` (base) |
+| `3xs`  | `320px`      |
+| `2xs`  | `384px`      |
+| `xs`   | `448px`      |
+| `sm`   | `512px`      |
+| `md`   | `576px`      |
+| `lg`   | `640px`      |
+| `xl`   | `768px`      |
+| `2xl`  | `896px`      |
+| `3xl`  | `1024px`     |
+| `4xl`  | `1152px`     |
+| `5xl`  | `1280px`     |
+
+An element can't query its own size — mark a parent with
+`containerType="inline-size"`, then use bare keys on its descendants:
 
 <Storybook.SizingWindow display="block">
   <Container
@@ -240,36 +247,56 @@ For background on the underlying CSS, see MDN's <a href="https://developer.mozil
     radius="md"
     border="primary"
   >
-    <Flex direction={{'2xs': 'column', xs: 'row'}} gap="md">
+    <Flex direction={{zero: 'column', sm: 'row'}} gap="md">
       <Container padding="sm" background="primary" border="primary" radius="md">
-        In the 2xs range (container narrower than 500px) these stack...
+        Stacked below `sm` (container narrower than 512px)...
       </Container>
       <Container padding="sm" background="primary" border="primary" radius="md">
-        ...and switch to a row at xs and up (500px+). Drag the box narrower (handle at the
-        bottom-right) to flip it — independent of the viewport width.
+        ...and side by side from `sm` up (512px+). Drag the handle at the bottom-right to
+        flip it — the viewport never changes.
       </Container>
     </Flex>
   </Container>
 </Storybook.SizingWindow>
 ```jsx
-{/* The parent declares itself a query container... */}
 <Container containerType="inline-size">
-  {/* ...and bare breakpoint keys on descendants resolve against it. */}
-  <Flex direction={{'2xs': 'column', xs: 'row'}}>
+  {/* Bare keys on descendants resolve against the container's width. */}
+  <Flex direction={{zero: 'column', sm: 'row'}}>
     <div>Reflows based on the container's width, not the viewport's.</div>
     <div>Resize the container above to see it switch.</div>
   </Flex>
 </Container>
 ```
 
-The two can be combined on one prop — e.g. `direction={{xs: 'column', 'screen:lg': 'row'}}`
-is a column until its container reaches `xs`, then a row once the viewport reaches `lg`.
-
 > [!TIP]
-> Prefer `containerType="inline-size"` — it only contains the inline
-> (width) axis, so height still flows from content. `size` also contains the
-> block axis, so the element then needs an explicit height or its content
-> collapses; only use it when you need height-based container queries.
+> Prefer `containerType="inline-size"`. It contains only the inline (width) axis,
+> so height still flows from content. `size` also contains the block axis, which
+> forces you to give the element an explicit height or its content collapses —
+> only use it for height-based container queries.
+
+For the underlying CSS, see MDN's <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_containment/Container_queries">container queries guide</a>, <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/container-type">container-type</a>, and the <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/@container">@container</a> at-rule.
+
+#### Screen tokens
+
+Resolve against the viewport (`@media`, `theme.breakpoints`). `2xs` is the
+always-applied base.
+
+| Token | Min width    |
+| ----- | ------------ |
+| `2xs` | `0px` (base) |
+| `xs`  | `500px`      |
+| `sm`  | `800px`      |
+| `md`  | `992px`      |
+| `lg`  | `1200px`     |
+| `xl`  | `1440px`     |
+| `2xl` | `2560px`     |
+
+#### Mixing the two
+
+Both kinds of key can live on the same prop. For example,
+`direction={{zero: 'column', md: 'row', 'screen:lg': 'column'}}` starts as a
+column, becomes a row once the **container** reaches `md`, then returns to a
+column once the **viewport** reaches `lg`.
 
 ### Reading the breakpoint in JS
 
@@ -277,9 +304,10 @@ When you need the resolved breakpoint in JS rather than just CSS, use
 `useContainerBreakpoint()` — the JS equivalent of a CSS container query and the
 container-scoped replacement for width-based `useMedia`. Call it from a
 descendant of a query container (a `Container`/`Flex`/… with `containerType`) and
-it returns the container's active breakpoint, updating as the container crosses a
-breakpoint. Drag the box below across the `xs` breakpoint (500px) to see the
-label swap — independent of the viewport width.
+it returns the container's active breakpoint (on the container scale — `zero`
+through `5xl`), updating as the container crosses a breakpoint. Drag the box below
+across the `3xs` breakpoint (320px) to see the label swap — independent of the
+viewport width.
 
 <Storybook.SizingWindow display="block">
   <ContainerBreakpointExample />
@@ -289,7 +317,7 @@ label swap — independent of the viewport width.
 // <Container containerType="inline-size">…</Container>
 function PanelLabel() {
   const breakpoint = useContainerBreakpoint();
-  const isCompact = breakpoint === '2xs';
+  const isCompact = breakpoint === 'zero';
   return isCompact ? 'Compact label' : 'Full, descriptive label';
 }
 ```
