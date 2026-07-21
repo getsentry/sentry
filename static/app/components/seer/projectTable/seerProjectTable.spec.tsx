@@ -191,7 +191,7 @@ describe('SeerProjectTable', () => {
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
-  it('shows a loading indicator instead of an empty select while agent options are still loading', async () => {
+  it('disables the agent select while agent options are still loading', async () => {
     // Overrides the beforeEach mock with one that never resolves within the
     // test, keeping the agentSelectOptions query pending indefinitely.
     mockBaseEndpoints({codingAgentsAsyncDelay: 100_000});
@@ -199,18 +199,20 @@ describe('SeerProjectTable', () => {
     renderTable();
 
     // The project row itself has loaded (its own query is unaffected), but the
-    // agent cell must show a loading indicator rather than a select with an
+    // agent select must stay disabled rather than showing a select with an
     // empty/mismatched value.
     await screen.findByText('project-slug');
-    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
-    expect(screen.queryByText('Seer')).not.toBeInTheDocument();
+    const select = await screen.findByRole('textbox', {name: 'Agent'});
+    await waitFor(() => expect(select).toBeDisabled());
   });
 
-  it('shows the real agent value once options finish loading', async () => {
+  it('enables the agent select once options finish loading', async () => {
     mockBaseEndpoints({codingAgentsAsyncDelay: 10});
 
     renderTable();
 
+    const select = await screen.findByRole('textbox', {name: 'Agent'});
+    await waitFor(() => expect(select).toBeEnabled());
     expect(await screen.findByText('Seer')).toBeInTheDocument();
   });
 });

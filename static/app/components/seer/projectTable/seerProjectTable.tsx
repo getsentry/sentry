@@ -337,18 +337,6 @@ function AgentSelectCell({
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  // The select's value comes from the row data, but its options come from
-  // agentSelectOptions. Rendering before the options load leaves the select
-  // with a value that matches nothing, so it briefly shows blank before the
-  // option pops in. Show a loading indicator instead until options settle.
-  if (optionsPending) {
-    return (
-      <Flex align="center" justify="center">
-        <LoadingIndicator size={20} />
-      </Flex>
-    );
-  }
-
   return (
     <AutoSaveForm
       name="agentOption"
@@ -363,7 +351,8 @@ function AgentSelectCell({
     >
       {field => (
         <field.Select
-          disabled={disabled}
+          aria-label={t('Agent')}
+          disabled={disabled || optionsPending}
           menuPortalTarget={document.body}
           multiple={false}
           onMenuOpen={() => {
@@ -398,7 +387,16 @@ function AgentSelectCell({
             }
             field.handleChange(newValue);
           }}
-          options={agentSelectOptions}
+          // The select's value comes from the row data, but its options come
+          // from agentSelectOptions. Before that query resolves there are no
+          // options to match the value against, so the select would render
+          // blank. Fall back to a single placeholder option (kept in sync
+          // with the current value) so it renders normally while disabled.
+          options={
+            optionsPending
+              ? [{value: field.state.value, label: t('Loading…')}]
+              : agentSelectOptions
+          }
           // @ts-expect-error: Select component does not have a size prop defined
           size="xs"
           value={field.state.value}
