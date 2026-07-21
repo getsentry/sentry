@@ -27,7 +27,7 @@ class OrgMonitoringProvider(abc.ABC):
     @abc.abstractmethod
     def build_connection(
         self, organization: Organization
-    ) -> MonitoringProviderConnectionData | list[MonitoringProviderConnectionData] | None:
+    ) -> list[MonitoringProviderConnectionData] | None:
         """
         Build Seer connection(s) for this org's integration, or None if unconfigured.
 
@@ -79,10 +79,7 @@ def get_org_monitoring_connections(
             )
             continue
         if result is not None:
-            if isinstance(result, list):
-                connections.extend(result)
-            else:
-                connections.append(result)
+            connections.extend(result)
     return connections
 
 
