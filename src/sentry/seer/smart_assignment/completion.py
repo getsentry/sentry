@@ -20,27 +20,16 @@ AUTO_ASSIGN_FEATURE_FLAG = "organizations:seer-smart-assignment-assign"
 
 
 def process_smart_assignment_completion(group: Group, activity: Activity) -> None:
-    """Score and act on the delivered prediction.
-
-    Reads the ranked, org-resolved candidate user ids (best-first, `None` for a rank we
-    couldn't map to an org user) that delivery stashed on the activity. Scoring is
-    internal bookkeeping and always runs (it no-ops until ground truth lands); acting on
-    the verdict is a single user-facing step gated behind the feature flag.
-    """
     data = activity.data or {}
     predicted_assignee_user_ids: list[int | None] = data.get("predicted_assignee_user_ids") or []
 
-    # Mirror the ranked predictions onto the run the completion activity points at (always
-    # set by delivery); scores immediately if ground truth already landed (assignment
-    # before Seer finished), otherwise waits for it. This is not user-facing, so it runs
-    # regardless of the feature flag.
-    # `run_id` here is the SeerRun PK (the identifier delivery and ground truth share),
-    # not the SeerAgentRun row id, so match on the run FK.
     seer_run_id = data.get("run_id")
     run = (
         SeerAgentRun.objects.filter(run_id=seer_run_id).first() if seer_run_id is not None else None
     )
     if run is not None:
+        # Save the prediction to the run so it can be scored, either now (if ground truth
+        # already landed) or later (if ground truth hasn't landed yet).
         record_prediction(run, predicted_assignee_user_ids)
 
     _apply_prediction(group, predicted_assignee_user_ids, run_uuid=data.get("run_uuid"))
@@ -51,11 +40,6 @@ def _apply_prediction(
     predicted_assignee_user_ids: list[int | None],
     run_uuid: str | None,
 ) -> None:
-    """Record the top pick as a suggested owner and let the project decide if it assigns.
-    No-op when the org isn't flagged in, the agent abstained, or the top pick doesn't
-    resolve to an org user. Runs synchronously during activity creation, so the owner
-    (and any assignment) exists before any workflow notification fires off this completion.
-    """
     if not features.has(AUTO_ASSIGN_FEATURE_FLAG, group.organization):
         return
 
@@ -66,6 +50,7 @@ def _apply_prediction(
         return
 
     if user_service.get_user(user_id=top_user_id) is None:
+        # The top pick doesn't resolve to an org user.
         metrics.incr("smart_assignment.apply_prediction", tags={"outcome": "user_missing"})
         return
 
