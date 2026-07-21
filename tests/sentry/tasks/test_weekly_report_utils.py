@@ -1,3 +1,4 @@
+from datetime import timedelta
 from unittest import mock
 from uuid import uuid4
 
@@ -42,7 +43,7 @@ class OrganizationTopSpansTest(BaseSpansTestCase, TestCase):
                 transaction_id=uuid4().hex,
                 span_id=uuid4().hex[:16],
                 organization_id=project.organization.id,
-                timestamp=self.now - timezone.timedelta(days=1),
+                timestamp=self.now - timedelta(days=1),
                 duration=duration,
                 transaction=transaction,
             )
