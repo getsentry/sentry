@@ -295,3 +295,24 @@ class OrganizationTraceItemMetricContextEndpointTest(
 
         assert response.status_code == 400, response.data
         assert "brief" in response.data
+
+    def test_member_role_can_write_context(self) -> None:
+        # Authoring metric context is scoped to `event:write`, which the base
+        # member role has, rather than `org:write` (Manager/Owner only).
+        self.store_metric("checkout.requests")
+
+        member = self.create_user(is_superuser=False)
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(member)
+
+        response = self.do_request(
+            "checkout.requests",
+            {
+                "metricType": "counter",
+                "brief": "Checkout requests",
+            },
+        )
+
+        assert response.status_code == 201, response.data
