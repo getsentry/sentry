@@ -406,6 +406,10 @@ describe('getReadableQueryParamsFromLocation', () => {
 describe('getTargetWithReadableQueryParams', () => {
   it('removes the aggregate cursor when it is reset', () => {
     const location = locationFixture({aggregateCursor: '0:50:0'});
+
+    const initialTarget = getTargetWithReadableQueryParams(location, {});
+    expect(initialTarget.query).toEqual({aggregateCursor: '0:50:0'});
+
     const target = getTargetWithReadableQueryParams(location, {
       aggregateCursor: null,
       query: 'span.name:checkout',
