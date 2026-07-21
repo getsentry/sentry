@@ -18,6 +18,21 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 const FILTERED = '[Filtered]';
 
+/**
+ * Content that is empty or only whitespace has nothing to render, so we treat
+ * it as absent (`null`). This is the single guard that keeps blank message
+ * bubbles — a small empty "cylinder" in the transcript — out of every consumer
+ * of `extractMessagesFromNodes`. See TET-2670. Note `EMPTY_TEXT_CONTENT`
+ * (`'(no value)'`) is a deliberate placeholder, not blank, so it is preserved.
+ *
+ * Content that is non-blank but renders to nothing as markdown (e.g. a bare
+ * `\`\`\`` fence) is handled downstream by `AIContentRenderer`, which falls
+ * back to the raw text rather than an empty bubble.
+ */
+function blankToNull(content: string | null): string | null {
+  return content && content.trim().length > 0 ? content : null;
+}
+
 export interface ToolCall {
   hasError: boolean;
   name: string;
@@ -132,11 +147,11 @@ export function buildConversationTurns(
       generation: node,
       toolCalls,
       toolSpanNodes: toolCallSpans,
-      userContent: parseUserContent(node),
+      userContent: blankToNull(parseUserContent(node)),
       hasInputHistory: inputStats.totalMessageCount > 1,
       userMessageCount: inputStats.userMessageCount,
-      assistantContent,
-      reasoning,
+      assistantContent: blankToNull(assistantContent),
+      reasoning: blankToNull(reasoning),
       userEmail,
     });
   }

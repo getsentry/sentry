@@ -7,7 +7,7 @@ from sentry.notifications.platform.templates.activity.base import (
     get_issue_description,
 )
 from sentry.notifications.platform.templates.activity.status_change.base import (
-    get_resolution_subject,
+    get_status_change_subject,
 )
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -38,7 +38,7 @@ class SetResolvedByAgeActivityTemplate(NotificationTemplate[ActivityNotification
             resolution_text = f"was resolved automatically after {duration} of inactivity."
 
         return NotificationRenderedTemplate(
-            subject=get_resolution_subject(data),
+            subject=get_status_change_subject(data),
             body=[
                 ParagraphSection(
                     blocks=[

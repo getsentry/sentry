@@ -1,6 +1,8 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
 
+import type {ContainerProps} from '@sentry/scraps/layout';
+
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import type {Client} from 'sentry/api';
@@ -16,6 +18,7 @@ import {DiscoverBreadcrumb} from 'sentry/views/discover/breadcrumb';
 import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
 import {DatasetSelectorTabs} from 'sentry/views/discover/savedQuery/datasetSelectorTabs';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 type Props = {
@@ -103,7 +106,7 @@ function ResultsHeaderBase({
 
   const title = (
     <Fragment>
-      {t('Discover')}
+      {getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')}
       <PageHeadingQuestionTooltip
         docsUrl="https://docs.sentry.io/product/discover-queries/"
         title={t('Create queries to get insights into the health of your system.')}
@@ -121,8 +124,26 @@ function ResultsHeaderBase({
     />
   );
 
+  // there's some styling that gets messed up when choosing to not render the
+  // dataset selector tabs so i'm injecting some styles fix it. This should be removed
+  // when the dataset selector tabs are removed.
+  const deprecationHeaderStyles: ContainerProps<'header'> = {
+    padding: {
+      'screen:sm': '0',
+      'screen:md': '0',
+    },
+    borderBottom: {
+      '2xs': 'none',
+      xs: 'none',
+      sm: 'none',
+      md: 'none',
+    },
+  };
+
   return (
-    <Layout.Header>
+    <Layout.Header
+      {...(getDiscoverDeprecation(organization) ? deprecationHeaderStyles : {})}
+    >
       <TopBar.Slot name="title">
         {isHomepage ? (
           <GuideAnchor target="discover_landing_header">{title}</GuideAnchor>
@@ -133,12 +154,14 @@ function ResultsHeaderBase({
         )}
       </TopBar.Slot>
       <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
-      <DatasetSelectorTabs
-        eventView={eventView}
-        isHomepage={isHomepage}
-        savedQuery={savedQuery}
-        splitDecision={splitDecision}
-      />
+      {!getDiscoverDeprecation(organization) && (
+        <DatasetSelectorTabs
+          eventView={eventView}
+          isHomepage={isHomepage}
+          savedQuery={savedQuery}
+          splitDecision={splitDecision}
+        />
+      )}
     </Layout.Header>
   );
 }

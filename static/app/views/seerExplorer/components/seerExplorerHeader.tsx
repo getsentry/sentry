@@ -144,7 +144,7 @@ export function SeerExplorerHeader({
         <OverflowActions>
           <SeerExplorerHeaderActionsMenu {...actionsProps} />
         </OverflowActions>
-        <Container display={{'2xs': 'none', xs: 'contents'}}>
+        <Container display={{zero: 'none', sm: 'contents'}}>
           <Button
             icon={<IconAdd />}
             onClick={onNewChatClick}
@@ -156,7 +156,7 @@ export function SeerExplorerHeader({
             {t('New chat')}
           </Button>
         </Container>
-        <Container display={{'2xs': 'contents', xs: 'none'}}>
+        <Container display={{zero: 'contents', sm: 'none'}}>
           <Button
             icon={<IconAdd />}
             onClick={onNewChatClick}

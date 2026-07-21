@@ -26,6 +26,7 @@ from sentry.preprod.size_analysis.grouptype import (
 from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.utils import build_size_metrics_map, can_compare_size_metrics
 from sentry.preprod.size_analysis.webhooks import send_size_analysis_webhook
+from sentry.preprod.vcs.pr_comments.size_tasks import create_preprod_size_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -254,6 +255,12 @@ def compare_preprod_artifact_size_analysis(
                 for artifact_id in preprod_artifact_status_check_updates:
                     # Update all artifact's status check with the new comparison
                     create_preprod_status_check_task.apply_async(
+                        kwargs={
+                            "preprod_artifact_id": artifact_id,
+                            "caller": "compare_completion",
+                        }
+                    )
+                    create_preprod_size_pr_comment_task.apply_async(
                         kwargs={
                             "preprod_artifact_id": artifact_id,
                             "caller": "compare_completion",

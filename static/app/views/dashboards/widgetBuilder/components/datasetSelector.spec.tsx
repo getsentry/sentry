@@ -60,6 +60,24 @@ describe('DatasetSelector', () => {
     expect(screen.getByText('is_transaction:true')).toBeInTheDocument();
   });
 
+  it('does not show transactions dataset when deprecate-discover feature is enabled', async () => {
+    const organizationWithDeprecation = OrganizationFixture({
+      features: ['deprecate-discover', 'discover-saved-queries-deprecation'],
+    });
+
+    render(
+      <WidgetBuilderProvider>
+        <DatasetSelector />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithDeprecation,
+      }
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Errors'}));
+    expect(screen.queryByRole('option', {name: 'Transactions'})).not.toBeInTheDocument();
+  });
+
   it('allows selection of transactions dataset when discover-saved-queries-deprecation feature is disabled', async () => {
     const mockNavigate = jest.fn();
     mockUseNavigate.mockReturnValue(mockNavigate);

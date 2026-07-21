@@ -16,6 +16,14 @@ class PrCloseMetricsEvent(analytics.Event):
 
     organization_id: int
     repository_id: int
+    # Normalized SCM slug (e.g. "github", "gitlab"), read off Repository.provider
+    # at emit time. Null when the Repository row is gone or its provider is unset.
+    repository_provider: str | None = None
+    # Whether the repo was public at PR-open time. Sourced from the "opened"
+    # webhook payload's repository.private (Repository never persists visibility),
+    # so it's null for PRs opened before this field existed or with activity
+    # tracking off.
+    repository_is_public: bool | None = None
     pull_request_id: int
     # The PR number as stored on ``PullRequest.key`` (e.g. "5131" on GitHub).
     pr_key: str

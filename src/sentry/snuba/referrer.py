@@ -788,6 +788,7 @@ class Referrer(StrEnum):
     REPORTS_PAST_RESOLVED_ISSUES = "reports.past_resolved_issues"
     REPORTS_OUTCOME_SERIES = "reports.outcome_series"
     REPORTS_OUTCOMES = "reports.outcomes"
+    REPORTS_TOP_SPANS = "reports.top_spans"
     REPROCESSING2_REPROCESS_GROUP = "reprocessing2.reprocess_group"
     REPROCESSING2_START_GROUP_REPROCESSING = "reprocessing2.start_group_reprocessing"
     SEARCH_SAMPLE = "search_sample"

@@ -53,11 +53,13 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
+import {markdownRendersVisibleContent} from 'sentry/utils/marked/marked';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
+import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -947,7 +949,11 @@ function NodeActions(props: {
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/events/${transactionId}/json/`}
+            href={
+              getDiscoverDeprecation(props.organization) && isEAPSpanNode(props.node)
+                ? `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`
+                : `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/events/${transactionId}/json/`
+            }
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
@@ -1164,6 +1170,14 @@ function MultilineText({
   const {hoverProps, isHovered} = useHover({});
   const theme = useTheme();
 
+  // Without a custom formatter we render `children` as markdown, but some
+  // markdown (e.g. a bare/empty ``` fence) renders to nothing — leaving the
+  // "Pretty" view blank. Fall back to the raw text in that case. See TET-2670.
+  const defaultFormattingIsBlank = useMemo(
+    () => !renderFormatted && !markdownRendersVisibleContent(children),
+    [renderFormatted, children]
+  );
+
   const content = (
     <MultilineTextWrapper {...hoverProps}>
       <Container position="absolute" top={theme.space.xs} right={theme.space.xs}>
@@ -1178,7 +1192,7 @@ function MultilineText({
           </SegmentedControl>
         )}
       </Container>
-      {showRaw
+      {showRaw || defaultFormattingIsBlank
         ? children.trim()
         : (renderFormatted?.(children) ?? (
             <MarkedText as={MarkdownContainer} text={children} />

@@ -304,15 +304,7 @@ describe('useTraceMeta', () => {
     await waitFor(() => expect(result.current.status === 'pending').toBe(false));
 
     expect(result.current).toEqual({
-      data: {
-        errors: 0,
-        performance_issues: 0,
-        projects: 0,
-        transactions: 0,
-        transaction_child_count_map: {},
-        span_count: 0,
-        span_count_map: {},
-      },
+      data: undefined,
       errors: [expect.any(Error), expect.any(Error), expect.any(Error)],
       isLoading: false,
       status: 'error',
@@ -321,6 +313,33 @@ describe('useTraceMeta', () => {
     expect(mockRequest1).toHaveBeenCalled();
     expect(mockRequest2).toHaveBeenCalled();
     expect(mockRequest3).toHaveBeenCalled();
+  });
+
+  it('EAP - does not return zero-filled metadata when the request fails', async () => {
+    const org = OrganizationFixture({features: ['trace-spans-format']});
+    const trace = {traceSlug: 'slug1', timestamp: 1};
+
+    jest.mocked(useSyncedLocalStorageState).mockReturnValue(['eap', jest.fn()]);
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/trace-meta/slug1/',
+      statusCode: 408,
+    });
+
+    const {result} = renderHookWithProviders(useTraceMeta, {
+      organization: org,
+      initialProps: trace,
+    });
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+
+    expect(result.current).toEqual({
+      data: undefined,
+      errors: [expect.any(Error)],
+      isLoading: false,
+      status: 'error',
+    });
   });
 
   it('Retries with 90d when initial 14d response has no data', async () => {
