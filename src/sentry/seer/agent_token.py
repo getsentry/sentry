@@ -24,6 +24,7 @@ FEATURE_FLAG = "organizations:seer-agent-token-flow"
 # Distinct audience so the token can't be replayed against another audience that shares the
 # signing secret (e.g. X-Viewer-Context JWTs).
 AGENT_TOKEN_AUDIENCE = "sentry-agent-api"
+AGENT_TOKEN_TYPE = "sentry-agent+jwt"
 
 # TTL is the only bound on a leaked token, so keep it short.
 DEFAULT_TOKEN_TTL = timedelta(minutes=5)
@@ -95,17 +96,40 @@ def encode_agent_token(
         "iat": int(now.timestamp()),
         "exp": int(expires_at.timestamp()),
     }
-    token = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(payload, _signing_key(), algorithm="HS256")
+    token = jwt.encode(
+        payload,
+        _signing_key(),
+        algorithm="HS256",
+        headers={"typ": AGENT_TOKEN_TYPE},
+    )
     return token, expires_at
+
+
+def is_agent_token_string(token_str: str) -> bool:
+    """Whether a bearer value should be routed to agent-token authentication.
+
+    The header is only a routing hint here. ``decode_agent_token`` still verifies the signature,
+    audience, expiry, algorithm, and protected ``typ`` before the credential is trusted.
+    """
+    if token_str.startswith(SENTRY_AGENT_TOKEN_PREFIX):
+        return True
+    if token_str.count(".") != 2:
+        return False
+    try:
+        return jwt.peek_header(token_str).get("typ") == AGENT_TOKEN_TYPE
+    except Exception:
+        return False
 
 
 def decode_agent_token(token_str: str) -> dict[str, Any]:
     """Verify signature, ``exp`` and ``aud``; return the claims. Raises a pyjwt error on any
     invalid token."""
-    if not token_str.startswith(SENTRY_AGENT_TOKEN_PREFIX):
+    is_legacy = token_str.startswith(SENTRY_AGENT_TOKEN_PREFIX)
+    encoded_token = token_str.removeprefix(SENTRY_AGENT_TOKEN_PREFIX) if is_legacy else token_str
+    if not is_legacy and not is_agent_token_string(encoded_token):
         raise jwt.DecodeError("not an agent token")
     return jwt.decode(
-        token_str.removeprefix(SENTRY_AGENT_TOKEN_PREFIX),
+        encoded_token,
         _signing_key(),
         audience=AGENT_TOKEN_AUDIENCE,
         algorithms=["HS256"],

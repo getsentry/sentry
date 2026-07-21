@@ -12,7 +12,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
-from sentry.api.authentication import AgentTokenAuthentication
+from sentry.api.authentication import AgentTokenAuthentication, UserAuthTokenAuthentication
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.auth.access import Access
 from sentry.models.organizationmember import OrganizationMember
@@ -100,32 +100,84 @@ class AgentTokenAuthAndGateTest(TestCase):
         request.META["HTTP_AUTHORIZATION"] = f"Bearer {bearer}"
         return AgentTokenAuthentication().authenticate(drf_request_from_request(request))
 
+    def _typed_token(self, payload: dict[str, Any], *, key: str = SECRET) -> str:
+        return jwt.encode(
+            payload,
+            key,
+            headers={"typ": agent_token.AGENT_TOKEN_TYPE},
+        )
+
+    def test_minted_token_is_raw_typed_jwt(self) -> None:
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.owner.id,
+            organization_id=self.org.id,
+            scopes=["org:read"],
+            session_id="s1",
+        )
+
+        assert not token.startswith(SENTRY_AGENT_TOKEN_PREFIX)
+        assert jwt.peek_header(token)["typ"] == agent_token.AGENT_TOKEN_TYPE
+
     def test_non_agent_bearer_is_deferred(self) -> None:
-        # No agent prefix -> accepts_auth is False -> defer to the rest of the chain.
+        # An ordinary database-backed token stays with the existing authenticator.
         assert self._auth("sntryu_deadbeef") is None
 
-    def test_wrong_audience_is_rejected(self) -> None:
-        # Prefixed (so we claim it), but the signed audience is wrong -> hard reject.
-        token = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(
-            {"aud": "something-else", "sub": "1", "org": 1, "scopes": []}, SECRET
+    def test_raw_jwt_without_agent_type_is_deferred(self) -> None:
+        token = jwt.encode(
+            {"aud": agent_token.AGENT_TOKEN_AUDIENCE, "sub": "1", "org": 1, "scopes": []},
+            SECRET,
         )
+        assert self._auth(token) is None
+
+    def test_user_authenticator_defers_typed_agent_jwt(self) -> None:
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.owner.id,
+            organization_id=self.org.id,
+            scopes=["org:read"],
+            session_id="s1",
+        )
+        request = RequestFactory().get("/api/0/organizations/")
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
+        assert UserAuthTokenAuthentication().authenticate(drf_request_from_request(request)) is None
+
+    def test_legacy_prefixed_token_still_authenticates(self) -> None:
+        now = timezone.now()
+        token = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(
+            {
+                "aud": agent_token.AGENT_TOKEN_AUDIENCE,
+                "sub": str(self.owner.id),
+                "org": self.org.id,
+                "scopes": ["org:read"],
+                "sid": "legacy",
+                "iat": int(now.timestamp()),
+                "exp": int((now + timedelta(minutes=5)).timestamp()),
+            },
+            SECRET,
+        )
+
+        result = self._auth(token)
+        assert result is not None
+        assert result[1].kind == agent_token.AGENT_TOKEN_KIND
+
+    def test_wrong_audience_is_rejected(self) -> None:
+        token = self._typed_token({"aud": "something-else", "sub": "1", "org": 1, "scopes": []})
         with pytest.raises(AuthenticationFailed):
             self._auth(token)
 
     def test_forged_token_is_rejected(self) -> None:
-        # Prefixed, right audience, wrong signing key -> hard reject.
-        token = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(
+        token = self._typed_token(
             {"aud": agent_token.AGENT_TOKEN_AUDIENCE, "sub": "1", "org": 1, "scopes": []},
-            "wrong-secret",
+            key="wrong-secret",
         )
         with pytest.raises(AuthenticationFailed):
             self._auth(token)
 
     @override_settings(SEER_API_SHARED_SECRET="")
     def test_empty_signing_secret_rejects_forged_token(self) -> None:
-        token = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(
+        token = self._typed_token(
             {"aud": agent_token.AGENT_TOKEN_AUDIENCE, "sub": "1", "org": 1, "scopes": []},
-            "attacker-controlled-key",
+            key="attacker-controlled-key",
         )
         with pytest.raises(AuthenticationFailed):
             self._auth(token)
@@ -136,21 +188,20 @@ class AgentTokenAuthAndGateTest(TestCase):
 
     def test_signed_but_malformed_claims_are_rejected(self) -> None:
         # Right key and audience but broken claims -> clean auth failure, not a 500.
-        null_sub = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(
+        null_sub = self._typed_token(
             {"aud": agent_token.AGENT_TOKEN_AUDIENCE, "sub": None, "org": 1, "scopes": []},
-            SECRET,
         )
         with pytest.raises(AuthenticationFailed):
             self._auth(null_sub)
 
-        missing_org = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(
-            {"aud": agent_token.AGENT_TOKEN_AUDIENCE, "sub": "1", "scopes": []}, SECRET
+        missing_org = self._typed_token(
+            {"aud": agent_token.AGENT_TOKEN_AUDIENCE, "sub": "1", "scopes": []}
         )
         with pytest.raises(AuthenticationFailed):
             self._auth(missing_org)
 
-        non_list_scopes = SENTRY_AGENT_TOKEN_PREFIX + jwt.encode(
-            {"aud": agent_token.AGENT_TOKEN_AUDIENCE, "sub": "1", "org": 1, "scopes": 5}, SECRET
+        non_list_scopes = self._typed_token(
+            {"aud": agent_token.AGENT_TOKEN_AUDIENCE, "sub": "1", "org": 1, "scopes": 5}
         )
         with pytest.raises(AuthenticationFailed):
             self._auth(non_list_scopes)

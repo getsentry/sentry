@@ -46,7 +46,6 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.types.token import SENTRY_AGENT_TOKEN_PREFIX
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -522,7 +521,12 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             return True
 
         token_str = force_str(auth[1])
-        return not token_str.startswith((SENTRY_ORG_AUTH_TOKEN_PREFIX, SENTRY_AGENT_TOKEN_PREFIX))
+        if token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX):
+            return False
+
+        from sentry.seer import agent_token
+
+        return not agent_token.is_agent_token_string(token_str)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         user: AnonymousUser | User | RpcUser | None = AnonymousUser()
@@ -609,8 +613,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
 
 @AuthenticationSiloLimit(SiloMode.CELL, SiloMode.CONTROL)
 class AgentTokenAuthentication(StandardAuthentication):
-    """Authenticates the Seer agent's ``sntryag_`` capability token (a Sentry-signed JWT,
-    see ``sentry.seer.agent_token``).
+    """Authenticates the Seer agent's typed capability JWT.
 
     Authenticates as a non-user actor -- the request stays anonymous -- so user-only web
     views fail closed; API access is derived from the delegating member in
@@ -621,7 +624,9 @@ class AgentTokenAuthentication(StandardAuthentication):
     def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth) or len(auth) != 2:
             return False
-        return force_str(auth[1]).startswith(SENTRY_AGENT_TOKEN_PREFIX)
+        from sentry.seer import agent_token
+
+        return agent_token.is_agent_token_string(force_str(auth[1]))
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         from sentry.seer import agent_token

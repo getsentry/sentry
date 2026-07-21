@@ -1,7 +1,7 @@
 import enum
 
-# Seer agent capability token (a signed JWT, not a stored ApiToken). Standalone constant so
-# the auth chain routes it by prefix like the other token types.
+# Legacy Seer agent capability-token prefix. New tokens are raw JWTs identified by their
+# protected ``typ`` header; keep accepting this prefix for already-issued five-minute tokens.
 SENTRY_AGENT_TOKEN_PREFIX = "sntryag_"
 
 
