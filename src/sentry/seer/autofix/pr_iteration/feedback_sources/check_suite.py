@@ -246,6 +246,10 @@ def _check_suite_iteration_cap_reached(run_state: SeerRunState) -> bool:
     for iteration in last_iterations:
         # Failed re-parses are dropped (and warned) inside parse_feedback.
         feedbacks = _blocks_feedback(iteration.blocks)
+        # Empty after parse (e.g. all check-suite items failed to re-hydrate)
+        # must not count as check-suite-only toward the hard cap.
+        if not feedbacks:
+            return False
         if any(not isinstance(feedback.source, CheckSuiteFeedbackSource) for feedback in feedbacks):
             return False
 

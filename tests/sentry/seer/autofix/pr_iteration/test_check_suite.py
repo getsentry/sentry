@@ -371,6 +371,22 @@ def _iteration_block(index: int, *feedbacks: Feedback) -> MemoryBlock:
     )
 
 
+def _empty_feedback_iteration_block(index: int) -> MemoryBlock:
+    """PR_ITERATION whose feedback metadata parses to no items."""
+    return MemoryBlock(
+        id=f"iter-{index}",
+        message=Message(
+            role="assistant",
+            metadata={
+                "step": "pr_iteration",
+                "iteration_index": str(index),
+                "feedback": "[]",
+            },
+        ),
+        timestamp="2024-01-01T00:00:00Z",
+    )
+
+
 class CheckSuiteHardCapTest(TestCase):
     def _source(self) -> CheckSuiteFeedbackSource:
         return _check_suite_source()
@@ -457,5 +473,23 @@ class CheckSuiteHardCapTest(TestCase):
     ) -> None:
         mock_new.return_value = MagicMock()
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(10)]
+
+        assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
+
+    @patch(
+        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
+    )
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", return_value=[{"data": []}])
+    @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
+    @patch("sentry.scm.factory.new")
+    def test_not_capped_when_iteration_feedback_empty_after_parse(
+        self, mock_new: MagicMock, _pages, _mock_resolve: MagicMock
+    ) -> None:
+        mock_new.return_value = MagicMock()
+        cap = CHECK_SUITE_ITERATION_HARD_CAP
+        # Last window looks full, but one iteration parses to [] so it must not
+        # count as check-suite-only toward the hard cap.
+        blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap - 1)]
+        blocks.append(_empty_feedback_iteration_block(cap - 1))
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
