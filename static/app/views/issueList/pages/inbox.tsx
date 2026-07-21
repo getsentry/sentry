@@ -26,7 +26,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconChevron} from 'sentry/icons';
-import {t, tn, tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {ProgressState, type Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
