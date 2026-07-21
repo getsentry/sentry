@@ -10,7 +10,7 @@ import {
 } from './avatar';
 
 interface OrganizationAvatarProps extends AvatarProps {
-  organization: {avatar: AvatarType; slug: string; name?: string};
+  organization: {slug: string; avatar?: AvatarType; name?: string};
 }
 
 export function OrganizationAvatar({organization, ...props}: OrganizationAvatarProps) {
@@ -28,9 +28,9 @@ function getOrganizationAvatarProps(
   organization: OrganizationAvatarProps['organization']
 ): LetterBaseAvatarProps | UploadBaseAvatarProps | GravatarBaseAvatarProps {
   const identifier = organization.slug;
-  const name = organization.name || organization.slug;
+  const name = organization.name || organization.slug || '';
 
-  switch (organization.avatar.avatarType) {
+  switch (organization.avatar?.avatarType) {
     case 'letter_avatar':
       return {
         type: 'letter_avatar',
