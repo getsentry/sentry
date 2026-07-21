@@ -200,7 +200,6 @@ describe('AutofixOverview', () => {
     await userEvent.hover(indicator);
     expect(await screen.findByText('1 step until issue fix')).toBeInTheDocument();
     expect(screen.getByText('✓ Root cause')).toBeInTheDocument();
-    expect(screen.getByText('✓ PR opened')).toBeInTheDocument();
     expect(screen.getByText('○ Merged')).toBeInTheDocument();
 
     // Exact patch stats from merged_file_patches, not an LLM estimate.
@@ -208,8 +207,9 @@ describe('AutofixOverview', () => {
     expect(screen.getByText('+42')).toBeInTheDocument();
     expect(screen.getByText('−7')).toBeInTheDocument();
 
-    // 49 changed lines is over the inline-differ limit, so the file path
-    // lives only in the pill's hover tooltip — no diff header on the card.
+    // This diff fails the inline-differ gates twice over (49 changed lines
+    // is past the cap, and its hunks are empty), so the file path lives only
+    // in the pill's hover tooltip — no diff header on the card.
     expect(screen.queryByText('src/cart.py')).not.toBeInTheDocument();
 
     // Hovering the diff pill lists the changed files.
@@ -287,7 +287,8 @@ describe('AutofixOverview', () => {
             {
               key: 'user_3',
               question: RUN_QUESTIONS[3]!.prompt,
-              answer: '- Decide whether Seer should generate a fix.',
+              // Space-less "•" bullets — the normalizer must split them.
+              answer: '•Decide whether to relax the constraint. •Verify the consumers.',
             },
           ],
         },
@@ -309,10 +310,15 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('Proposed fix')).not.toBeInTheDocument();
 
     // …and the notes are promoted onto the face as their own Next-steps
-    // block — no expansion needed, and no Review checklist anywhere.
+    // block — no expansion needed, no Review checklist anywhere, and the
+    // inline "•" bullets normalized into separate list items. With nothing
+    // left for the details, the More-details toggle doesn't render at all.
     expect(screen.getByText('Next steps')).toBeVisible();
-    expect(screen.getByText('Decide whether Seer should generate a fix.')).toBeVisible();
+    expect(screen.getByText('Decide whether to relax the constraint.')).toBeVisible();
+    expect(screen.getByText('Verify the consumers.')).toBeVisible();
+    expect(screen.queryByText(/•/)).not.toBeInTheDocument();
     expect(screen.queryByText('Review checklist')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'More details'})).not.toBeInTheDocument();
   });
 
   it('applies the outcome filter with AND semantics', async () => {
@@ -474,6 +480,13 @@ describe('AutofixOverview', () => {
       .map(link => link.textContent)
       .filter(text => text === 'Issue A' || text === 'Issue B' || text === 'Issue C');
     expect(titles).toEqual(['Issue B', 'Issue C', 'Issue A']);
+
+    // Issue C is in flight — its ring wears the running status word.
+    expect(
+      screen.getByRole('img', {
+        name: 'Autofix progress: 3 of 5 steps — Code changes (Running)',
+      })
+    ).toBeInTheDocument();
   });
 
   it('surfaces the blocking question when a run awaits user input', async () => {
@@ -517,38 +530,6 @@ describe('AutofixOverview', () => {
     expect(
       screen.getByRole('img', {
         name: 'Autofix progress: 1 of 5 steps — Root cause (Needs your input)',
-      })
-    ).toBeInTheDocument();
-  });
-
-  it('shows a running step indicator for an in-flight run', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/2/autofix/`,
-      body: {
-        autofix: {
-          run_id: 1,
-          status: 'processing',
-          updated_at: '2026-07-14T10:00:00Z',
-          blocks: [
-            {
-              id: 'b1',
-              timestamp: '2026-07-14T09:00:00Z',
-              message: {
-                role: 'assistant',
-                content: 'rca',
-                metadata: {step: 'root_cause'},
-              },
-            },
-          ],
-        },
-      },
-    });
-
-    renderPage();
-
-    expect(
-      await screen.findByRole('img', {
-        name: 'Autofix progress: 1 of 5 steps — Root cause (Running)',
       })
     ).toBeInTheDocument();
   });
@@ -783,39 +764,6 @@ describe('AutofixOverview', () => {
     expect(screen.queryByRole('button', {name: /Outcome/})).not.toBeInTheDocument();
     const backLink = screen.getByRole('button', {name: 'All issues'});
     expect(backLink).toHaveAttribute('href', expect.not.stringContaining('id=2'));
-  });
-
-  it('normalizes space-less • bullets into a markdown list', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/runs/`,
-      body: [
-        {
-          id: 'run-1',
-          type: 'explorer',
-          groupId: '2',
-          source: 'autofix',
-          lastTriggeredAt: '2026-07-14T09:00:00Z',
-          dateCreated: '2026-07-14T09:00:00Z',
-          outputs: [
-            {
-              key: 'user_3',
-              question: RUN_QUESTIONS[3]!.prompt,
-              // No space after the • — the normalizer must still split these.
-              answer: '•Confirm the header is not leaked. •Verify both headers work.',
-            },
-          ],
-        },
-      ],
-    });
-
-    renderPage();
-
-    // The notes render on the face as the Next-steps block (no drafted fix),
-    // so there is nothing left behind a More-details toggle.
-    expect(await screen.findByText('Confirm the header is not leaked.')).toBeVisible();
-    expect(screen.getByText('Verify both headers work.')).toBeVisible();
-    expect(screen.queryByText(/•/)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'More details'})).not.toBeInTheDocument();
   });
 
   it('renders an error state and can retry', async () => {

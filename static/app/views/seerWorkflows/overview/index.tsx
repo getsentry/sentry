@@ -129,7 +129,10 @@ export default function AutofixOverview() {
     navigate(
       {
         pathname: location.pathname,
-        query: {...location.query, ...patch},
+        // Every caller changes a filter or the sort, where a stale cursor
+        // from a previous page makes no sense — reset it (the project filter
+        // already does the same via resetParamsOnChange).
+        query: {...location.query, cursor: undefined, ...patch},
       },
       {replace: true}
     );
