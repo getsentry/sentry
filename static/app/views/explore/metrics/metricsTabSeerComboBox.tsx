@@ -270,8 +270,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
 
       const spliceResult = spliceEquationQueries(
         newEncodedMetrics,
-        seerEquationMetricQueries,
-        metricQueries
+        seerEquationMetricQueries
       );
 
       const selection = {

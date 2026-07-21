@@ -9,6 +9,7 @@ import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {
   DurationUnit,
+  EQUATION_PREFIX,
   RateUnit,
   SizeUnit,
   stripEquationPrefix,
@@ -404,26 +405,20 @@ type SpliceResult = 'applied' | 'requires_clear' | 'noop';
  */
 export function spliceEquationQueries(
   encodedMetrics: string[],
-  equationMetricQueries: BaseMetricQuery[],
-  existingMetricQueries: BaseMetricQuery[]
+  equationMetricQueries: BaseMetricQuery[]
 ): SpliceResult {
   if (equationMetricQueries.length === 0) {
     return 'noop';
   }
 
-  // -1 because the interacted row will update in-place
-  const slotsAvailable = MAX_METRICS_ALLOWED - encodedMetrics.length - 1;
-
+  const slotsAvailable = MAX_METRICS_ALLOWED - encodedMetrics.length;
   if (equationMetricQueries.length > slotsAvailable) {
     return 'requires_clear';
   }
 
-  const equationStartIndex = encodedMetrics.findIndex((encoded: string) => {
-    const decoded = existingMetricQueries.find(
-      mq => encodeMetricQueryParams(mq) === encoded
-    );
-    return decoded && _isEquationQuery(decoded);
-  });
+  const equationStartIndex = encodedMetrics.findIndex(encoded =>
+    encoded.includes(EQUATION_PREFIX)
+  );
 
   const aggregateRows = equationMetricQueries.filter(mq => !_isEquationQuery(mq));
   const equationRows = equationMetricQueries.filter(_isEquationQuery);

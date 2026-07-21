@@ -18,7 +18,9 @@ import {
   getVisualizeLabel,
 } from 'sentry/views/explore/toolbar/toolbarVisualize';
 
-export const EQUATION_LABEL = getVisualizeLabel(1, true);
+export function getEquationLabel(): string {
+  return getVisualizeLabel(1, true);
+}
 
 interface ParsedAggregateExpression {
   /**
@@ -99,7 +101,7 @@ function makeEquationRow(prefixedEquation: string, query?: string): BaseMetricQu
       aggregateFields: [new VisualizeEquation(prefixedEquation)],
       query: query ?? '',
     }),
-    label: EQUATION_LABEL,
+    label: getEquationLabel(),
   };
 }
 
