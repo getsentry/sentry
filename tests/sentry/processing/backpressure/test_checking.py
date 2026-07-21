@@ -72,6 +72,7 @@ def process_one_message(payload: str) -> None:
     processing_strategy = IngestStrategyFactory(
         consumer_type=ConsumerType.Events,
         reprocess_only_stuck_events=False,
+        reprocess_only_events_not_in_nodestore=False,
         stop_at_timestamp=None,
         num_processes=1,
         max_batch_size=10,
