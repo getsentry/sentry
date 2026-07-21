@@ -1,6 +1,11 @@
 from unittest.mock import MagicMock, patch
 
 from sentry.api.client import ApiError
+from sentry.explore.models import (
+    TraceItemAttributeValueContext,
+    TraceItemTypes,
+    TraceMetricTypes,
+)
 from sentry.seer.assisted_query.metrics_tools import (
     _build_or_query,
     get_metric_metadata,
@@ -72,26 +77,97 @@ class TestGetMetricMetadata(TestCase):
         assert dist.type == "distribution"
         assert dist.unit == "millisecond"
         assert dist.count == 1200
+        assert dist.context is None
 
-        # Assert we hit the metrics endpoint with the expected params.
+        # Assert we call the metrics endpoint with the expected params.
         _args, kwargs = mock_client.get.call_args
         assert kwargs["path"] == f"/organizations/{self.org.slug}/trace-items/metrics/"
         params = kwargs["params"]
-        assert params["sort"] == "-count"
         assert params["query"] == '(metric.name:"*http*" OR metric.name:"*api*")'
-        # over-fetch by 1 to detect has_more
+        assert params["statsPeriod"] == "7d"
+        # Sort by count descending; over-fetch by 1 to detect has_more.
+        assert params["sort"] == "-count"
         assert params["per_page"] == 11
-        # No events-layer params leak through.
-        assert "dataset" not in params
-        assert "field" not in params
+        # Context is only requested when include_context=True.
+        assert "expand" not in params
 
     @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
-    def test_empty_substrings_short_circuits(self, mock_client_cls: MagicMock) -> None:
+    def test_include_context_requests_and_attaches_context(
+        self, mock_client_cls: MagicMock
+    ) -> None:
         mock_client = mock_client_cls.return_value
+        response = MagicMock()
+        response.data = [
+            {
+                "name": "http.request.duration",
+                "type": "distribution",
+                "unit": "millisecond",
+                "count": 10,
+                "context": {"brief": "Request duration", "additionalContext": "p95 latency"},
+            }
+        ]
+        mock_client.get.return_value = response
+
+        result = get_metric_metadata(
+            org_id=self.org.id,
+            project_ids=[self.project.id],
+            name_substrings=["http"],
+            include_context=True,
+        )
+
+        _args, kwargs = mock_client.get.call_args
+        assert kwargs["params"]["expand"] == "context"
+        assert result.candidates[0].context == {
+            "brief": "Request duration",
+            "additionalContext": "p95 latency",
+        }
+
+    @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
+    def test_forwards_context_only(self, mock_client_cls: MagicMock) -> None:
+        mock_client = mock_client_cls.return_value
+        response = MagicMock()
+        response.data = []
+        mock_client.get.return_value = response
+
+        get_metric_metadata(
+            org_id=self.org.id,
+            project_ids=[self.project.id],
+            name_substrings=["http"],
+            context_only=True,
+        )
+
+        _args, kwargs = mock_client.get.call_args
+        assert kwargs["params"]["context_only"] is True
+
+    @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
+    def test_no_substrings_returns_all_metrics(self, mock_client_cls: MagicMock) -> None:
+        mock_client = mock_client_cls.return_value
+        response = MagicMock()
+        response.data = [
+            {"name": "api.request.count", "type": "counter", "unit": "none", "count": 800},
+        ]
+        mock_client.get.return_value = response
+
         result = get_metric_metadata(
             org_id=self.org.id,
             project_ids=[self.project.id],
             name_substrings=[],
+        )
+
+        # With no substrings we still query, just without a name filter.
+        assert len(result.candidates) == 1
+        assert result.candidates[0].name == "api.request.count"
+        _args, kwargs = mock_client.get.call_args
+        assert "query" not in kwargs["params"]
+
+    @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
+    def test_rejected_substrings_return_empty(self, mock_client_cls: MagicMock) -> None:
+        mock_client = mock_client_cls.return_value
+        # Substrings were provided but all unusable → no matches (not "all metrics").
+        result = get_metric_metadata(
+            org_id=self.org.id,
+            project_ids=[self.project.id],
+            name_substrings=['"'],
         )
         assert result.dict() == {"candidates": [], "has_more": False}
         mock_client.get.assert_not_called()
@@ -99,10 +175,15 @@ class TestGetMetricMetadata(TestCase):
     @patch("sentry.seer.assisted_query.metrics_tools.ApiClient")
     def test_has_more_when_result_exceeds_limit(self, mock_client_cls: MagicMock) -> None:
         mock_client = mock_client_cls.return_value
-        # Asking for limit=2 means we over-fetch 3. If we actually see 3, has_more=True.
+        # Asking for limit=2 while the endpoint returns 3 means has_more=True.
         response = MagicMock()
         response.data = [
-            {"name": f"m.{i}", "type": "counter", "unit": "none", "count": 100 - i}
+            {
+                "name": f"m.{i}",
+                "type": "counter",
+                "unit": "none",
+                "count": 100 - i,
+            }
             for i in range(3)
         ]
         mock_client.get.return_value = response
@@ -121,17 +202,16 @@ class TestGetMetricMetadata(TestCase):
         self, mock_client_cls: MagicMock
     ) -> None:
         mock_client = mock_client_cls.return_value
-        """Regression: has_more must be computed from what Sentry returned, not
-        from what survived our local parse filter. We over-fetch by 1 specifically
-        to detect \"Sentry has more matches than you asked for\"; filtering a
-        malformed row shouldn't hide that signal from the caller."""
-        # limit=2, per_page=3. Return 3 rows where one is malformed.
+        """Regression: has_more must be computed from what the endpoint returned,
+        not from what survived our local parse filter. Filtering a malformed row
+        shouldn't hide that there are further matches."""
+        # limit=2. Return 3 rows where one is malformed.
         # Post-filter: 2 candidates (== limit). Pre-filter: 3 rows (> limit).
         response = MagicMock()
         response.data = [
             {"name": "a", "type": "counter", "unit": "none", "count": 30},
             # Malformed — will be filtered out locally.
-            {"name": None, "type": "counter", "unit": "none"},
+            {"name": None, "type": "counter", "unit": "none", "count": 25},
             {"name": "b", "type": "counter", "unit": "none", "count": 20},
         ]
         mock_client.get.return_value = response
@@ -152,8 +232,8 @@ class TestGetMetricMetadata(TestCase):
         response = MagicMock()
         response.data = [
             {"name": "good", "type": "counter", "unit": "none", "count": 10},
-            {"name": "", "type": "counter", "unit": "none"},
-            {"name": "no-type", "type": None, "unit": "none"},
+            {"name": "", "type": "counter", "unit": "none", "count": 5},
+            {"name": "no-type", "type": None, "unit": "none", "count": 5},
         ]
         mock_client.get.return_value = response
 
@@ -169,7 +249,9 @@ class TestGetMetricMetadata(TestCase):
     def test_missing_unit_defaults_to_none(self, mock_client_cls: MagicMock) -> None:
         mock_client = mock_client_cls.return_value
         response = MagicMock()
-        response.data = [{"name": "foo", "type": "counter", "unit": None, "count": 5}]
+        response.data = [
+            {"name": "foo", "type": "counter", "unit": None, "count": 5},
+        ]
         mock_client.get.return_value = response
 
         result = get_metric_metadata(
@@ -236,13 +318,13 @@ class TestGetMetricMetadata(TestCase):
 
 
 class TestGetMetricMetadataIntegration(APITransactionTestCase, SnubaTestCase, TraceMetricsTestCase):
-    """End-to-end test against the real trace-items metrics endpoint.
+    """End-to-end test against the real trace-items metrics endpoint."""
 
-    The mock-based tests above never exercise the metrics endpoint's query
-    parser. This class persists real TraceItems and lets the handler's
-    in-process client.get call hit the actual endpoint, so a regression in the
-    query/aggregate shape surfaces here.
-    """
+    feature_flags = {
+        "organizations:visibility-explore-view": True,
+        "organizations:tracemetrics-enabled": True,
+        "organizations:data-browsing-attribute-context": True,
+    }
 
     def setUp(self) -> None:
         super().setUp()
@@ -273,12 +355,7 @@ class TestGetMetricMetadataIntegration(APITransactionTestCase, SnubaTestCase, Tr
         )
 
     def test_returns_candidates_matching_substring(self) -> None:
-        with self.feature(
-            {
-                "organizations:visibility-explore-view": True,
-                "organizations:tracemetrics-enabled": True,
-            }
-        ):
+        with self.feature(self.feature_flags):
             result = get_metric_metadata(
                 org_id=self.organization.id,
                 project_ids=[self.project.id],
@@ -286,7 +363,6 @@ class TestGetMetricMetadataIntegration(APITransactionTestCase, SnubaTestCase, Tr
                 stats_period="1h",
             )
 
-        # A broken query would short-circuit into metrics_query_failed.
         assert isinstance(result, MetricMetadataSuccessResponse), result
         names = {c.name for c in result.candidates}
         assert "http.request.duration" in names
@@ -296,3 +372,29 @@ class TestGetMetricMetadataIntegration(APITransactionTestCase, SnubaTestCase, Tr
         assert http_row.type == "distribution"
         assert http_row.unit == "millisecond"
         assert http_row.count == 2
+        assert http_row.context is None
+
+    def test_includes_context_when_requested(self) -> None:
+        TraceItemAttributeValueContext.objects.create(
+            organization=self.organization,
+            project=None,
+            attribute_name="metric.name",
+            attribute_value="http.request.duration",
+            attribute_type=TraceMetricTypes.DISTRIBUTION,
+            item_type=TraceItemTypes.TRACEMETRICS,
+            brief="Request duration",
+            created_by_id=self.user.id,
+        )
+
+        with self.feature(self.feature_flags):
+            result = get_metric_metadata(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                name_substrings=["http"],
+                stats_period="1h",
+                include_context=True,
+            )
+
+        assert isinstance(result, MetricMetadataSuccessResponse), result
+        http_row = next(c for c in result.candidates if c.name == "http.request.duration")
+        assert http_row.context == {"brief": "Request duration"}
