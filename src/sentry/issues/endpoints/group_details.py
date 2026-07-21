@@ -384,7 +384,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     # swap action log data in under the activity name
                     first_seen_entry = cast(dict[str, Any], serialize_first_seen_entry(group))
                     data.update(
-                        {"activity": [first_seen_entry, *serialize(action_log, request.user)]}
+                        {"activity": [*serialize(action_log, request.user), first_seen_entry]}
                     )
                 else:
                     logger.info(

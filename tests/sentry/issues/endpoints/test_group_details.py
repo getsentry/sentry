@@ -123,7 +123,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
 
         activity = response.data["activity"]
-        assert len(activity) == 1
+        assert len(activity) == 2  # first seen + assigned
         entry = activity[0]
         assert entry["type"] == "assigned"
         assert entry["user"]["id"] == str(self.user.id)
