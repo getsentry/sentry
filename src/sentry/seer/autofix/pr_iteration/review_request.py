@@ -30,6 +30,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     resolve_check_suite_repositories,
     sweep_check_runs,
 )
+from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
 from sentry.seer.models.run import SeerRun
 from sentry.seer.utils import get_github_username_for_user
 from sentry.users.services.user.service import user_service
@@ -68,7 +69,7 @@ def _failed(reason: str, log_extra: dict[str, Any]) -> None:
 
 
 def _review_request_marker(seer_run: SeerRun, repo_name: str) -> dict[str, Any] | None:
-    return ((seer_run.extras or {}).get(REVIEW_REQUESTS_EXTRA) or {}).get(repo_name)
+    return get_run_marker(seer_run, REVIEW_REQUESTS_EXTRA, repo_name)
 
 
 def _record_review_request_marker(
@@ -91,11 +92,7 @@ def _record_review_request_marker(
     }
     if preexisting:
         marker["preexisting"] = True
-    extras = dict(seer_run.extras or {})
-    markers = dict(extras.get(REVIEW_REQUESTS_EXTRA) or {})
-    markers[repo_name] = marker
-    extras[REVIEW_REQUESTS_EXTRA] = markers
-    seer_run.update(extras=extras)
+    record_run_marker(seer_run, REVIEW_REQUESTS_EXTRA, repo_name, marker)
 
 
 def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> None:
