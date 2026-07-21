@@ -413,6 +413,20 @@ def clean_redundant_difs(project: Project, debug_id: str) -> None:
                 all_features.update(dif.features)
 
 
+def detect_dif_from_file(
+    path: str,
+    name: str | None = None,
+    debug_id: str | None = None,
+) -> DifMeta:
+    """Validates a DIF file and returns its single debug information object."""
+    result = detect_dif_from_path(path, name=name, debug_id=debug_id)
+
+    if len(result) != 1:
+        raise BadDif("Object contains %s architectures (1 expected)" % len(result))
+
+    return result[0]
+
+
 def create_dif_from_file(
     project: Project,
     file: File,
@@ -421,12 +435,8 @@ def create_dif_from_file(
     debug_id: str | None = None,
 ) -> tuple[ProjectDebugFile, bool]:
     """Validates an existing DIF file and ensures its ProjectDebugFile exists."""
-    result = detect_dif_from_path(path, name=name, debug_id=debug_id)
-
-    if len(result) != 1:
-        raise BadDif("Object contains %s architectures (1 expected)" % len(result))
-
-    return create_dif_from_id(project, result[0], file=file)
+    meta = detect_dif_from_file(path, name=name, debug_id=debug_id)
+    return create_dif_from_id(project, meta, file=file)
 
 
 def _upload_dif_to_objectstore(
@@ -481,6 +491,99 @@ def _upload_dif_to_objectstore(
         raise
 
 
+def _get_dif_object_name(meta: DifMeta) -> str:
+    if meta.file_format == "proguard":
+        return "proguard-mapping"
+    if meta.file_format in (
+        "macho",
+        "elf",
+        "pdb",
+        "pe",
+        "portablepdb",
+        "wasm",
+        "sourcebundle",
+        "bcsymbolmap",
+        "uuidmap",
+        "il2cpp",
+        "dartsymbolmap",
+    ):
+        return meta.name
+    if meta.file_format == "breakpad":
+        return meta.name[:-4] if meta.name.endswith(".sym") else meta.name
+    raise TypeError(f"unknown dif type {meta.file_format!r}")
+
+
+def _find_existing_dif(project: Project, meta: DifMeta, checksum: str) -> ProjectDebugFile | None:
+    return (
+        ProjectDebugFile.objects.select_related("file")
+        .filter(
+            project_id=project.id, debug_id=meta.debug_id, checksum=checksum, data__isnull=False
+        )
+        .order_by("-id")
+        .first()
+    )
+
+
+def _get_dif_objectstore_filename(meta: DifMeta) -> str:
+    file_type = (meta.data or {}).get("type")
+    return f"{os.path.basename(meta.debug_id)}{_dif_file_extension(meta.file_format, file_type)}"
+
+
+def create_objectstore_dif_from_id(
+    project: Project,
+    meta: DifMeta,
+    fileobj: BinaryIO,
+    checksum: str,
+    file_size: int,
+) -> tuple[ProjectDebugFile, bool]:
+    """Creates an Objectstore-only ProjectDebugFile from an already validated stream."""
+    dif = _find_existing_dif(project, meta, checksum)
+    if dif is not None:
+        return dif, False
+
+    content_type = DIF_MIMETYPES[meta.file_format]
+    session = get_debug_files_session(project.organization_id, project.id)
+    storage_path = _upload_dif_to_objectstore(
+        session,
+        fileobj,
+        content_type,
+        file_size,
+        _get_dif_objectstore_filename(meta),
+    )
+
+    metrics.distribution(
+        "storage.put.size",
+        file_size,
+        tags={"usecase": "debug-files", "compression": "none"},
+        unit="byte",
+    )
+
+    try:
+        dif = ProjectDebugFile.objects.create(
+            file=None,
+            checksum=checksum,
+            debug_id=meta.debug_id,
+            code_id=meta.code_id,
+            cpu_name=meta.arch,
+            object_name=_get_dif_object_name(meta),
+            project_id=project.id,
+            data=meta.data,
+            storage_path=storage_path,
+            content_type=content_type,
+            file_size=file_size,
+            date_created=timezone.now(),
+        )
+    except Exception:
+        try:
+            session.delete(storage_path)
+        except Exception:
+            logger.exception("Failed to clean up Objectstore debug file after database error")
+        raise
+
+    clean_redundant_difs(project, meta.debug_id)
+    return dif, True
+
+
 def create_dif_from_id(
     project: Project,
     meta: DifMeta,
@@ -502,26 +605,7 @@ def create_dif_from_id(
     Returns a tuple of `(dif, created)` where `dif` is the `ProjectDebugFile` instance and
     `created` is a bool.
     """
-    if meta.file_format == "proguard":
-        object_name = "proguard-mapping"
-    elif meta.file_format in (
-        "macho",
-        "elf",
-        "pdb",
-        "pe",
-        "portablepdb",
-        "wasm",
-        "sourcebundle",
-        "bcsymbolmap",
-        "uuidmap",
-        "il2cpp",
-        "dartsymbolmap",
-    ):
-        object_name = meta.name
-    elif meta.file_format == "breakpad":
-        object_name = meta.name[:-4] if meta.name.endswith(".sym") else meta.name
-    else:
-        raise TypeError(f"unknown dif type {meta.file_format!r}")
+    object_name = _get_dif_object_name(meta)
 
     if file is not None:
         file_size = file.size
@@ -540,14 +624,7 @@ def create_dif_from_id(
     else:
         raise RuntimeError("missing file object")
 
-    dif = (
-        ProjectDebugFile.objects.select_related("file")
-        .filter(
-            project_id=project.id, debug_id=meta.debug_id, checksum=checksum, data__isnull=False
-        )
-        .order_by("-id")
-        .first()
-    )
+    dif = _find_existing_dif(project, meta, checksum)
 
     if dif is not None:
         return dif, False
@@ -576,10 +653,7 @@ def create_dif_from_id(
     objectstore_metadata: dict[str, Any] = {}
     if features.has("organizations:objectstore-debugfiles-write", project.organization):
         session = get_debug_files_session(project.organization_id, project.id)
-        file_type = (meta.data or {}).get("type")
-        filename = (
-            f"{os.path.basename(meta.debug_id)}{_dif_file_extension(meta.file_format, file_type)}"
-        )
+        filename = _get_dif_objectstore_filename(meta)
         try:
             with file.getfile() as source:
                 storage_path = _upload_dif_to_objectstore(
