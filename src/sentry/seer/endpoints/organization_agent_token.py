@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -24,12 +24,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.models.organization import Organization
 from sentry.seer import agent_token
-from sentry.seer.models.agent_write_grant import AGENT_SESSION_ID_MAX_LENGTH
-
-
-class AgentTokenRequestSerializer(serializers.Serializer):
-    sessionId = serializers.CharField(max_length=AGENT_SESSION_ID_MAX_LENGTH)
-    requestedScopes = serializers.ListField(child=serializers.CharField(), required=False)
+from sentry.seer.endpoints.agent_request import AgentTokenRequestData, AgentTokenRequestSerializer
 
 
 class AgentTokenResponseSerializer(serializers.Serializer):
@@ -87,21 +82,12 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
         if not isinstance(data, Mapping):
             return Response({"detail": "Request body must be an object."}, status=400)
 
-        session_id = data.get("sessionId")
-        if not session_id or not isinstance(session_id, str):
-            return Response({"detail": "sessionId is required."}, status=400)
-        if len(session_id) > AGENT_SESSION_ID_MAX_LENGTH:
-            return Response(
-                {"detail": f"sessionId must be {AGENT_SESSION_ID_MAX_LENGTH} characters or fewer."},
-                status=400,
-            )
-
-        requested_scopes = data.get("requestedScopes")
-        if requested_scopes is not None and (
-            not isinstance(requested_scopes, list)
-            or not all(isinstance(s, str) for s in requested_scopes)
-        ):
-            return Response({"detail": "requestedScopes must be a list of strings."}, status=400)
+        serializer = AgentTokenRequestSerializer(data=data)
+        if not serializer.is_valid():
+            return Response({"detail": serializer.errors}, status=400)
+        validated_data = cast(AgentTokenRequestData, serializer.validated_data)
+        session_id = validated_data["sessionId"]
+        requested_scopes = validated_data.get("requestedScopes")
 
         user_id = request.user.id
         assert user_id is not None  # guaranteed by the user-session requirement above

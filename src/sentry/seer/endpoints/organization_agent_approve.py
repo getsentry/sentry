@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -26,15 +26,13 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.models.organization import Organization
 from sentry.seer import agent_token
-from sentry.seer.models.agent_write_grant import AGENT_SESSION_ID_MAX_LENGTH
+from sentry.seer.endpoints.agent_request import (
+    AgentApprovalRequestData,
+    AgentApprovalRequestSerializer,
+)
 from sentry.utils.auth import is_user_from_viewer_context
 
 logger = logging.getLogger(__name__)
-
-
-class AgentApprovalRequestSerializer(serializers.Serializer):
-    sessionId = serializers.CharField(max_length=AGENT_SESSION_ID_MAX_LENGTH)
-    scopes = serializers.ListField(child=serializers.CharField())
 
 
 class AgentApprovalResponseSerializer(serializers.Serializer):
@@ -95,18 +93,12 @@ class OrganizationAgentApproveEndpoint(OrganizationEndpoint):
         if not isinstance(data, Mapping):
             return Response({"detail": "Request body must be an object."}, status=400)
 
-        session_id = data.get("sessionId")
-        if not session_id or not isinstance(session_id, str):
-            return Response({"detail": "sessionId is required."}, status=400)
-        if len(session_id) > AGENT_SESSION_ID_MAX_LENGTH:
-            return Response(
-                {"detail": f"sessionId must be {AGENT_SESSION_ID_MAX_LENGTH} characters or fewer."},
-                status=400,
-            )
-
-        requested = data.get("scopes")
-        if not isinstance(requested, list) or not all(isinstance(s, str) for s in requested):
-            return Response({"detail": "scopes must be a list of strings."}, status=400)
+        serializer = AgentApprovalRequestSerializer(data=data)
+        if not serializer.is_valid():
+            return Response({"detail": serializer.errors}, status=400)
+        validated_data = cast(AgentApprovalRequestData, serializer.validated_data)
+        session_id = validated_data["sessionId"]
+        requested = validated_data["scopes"]
 
         grantable = sorted(set(requested) & set(request.access.scopes))
         if not grantable:

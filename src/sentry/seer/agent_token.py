@@ -101,7 +101,7 @@ def encode_agent_token(
     """Mint a signed agent token. Returns the JWT and its expiry. No DB write."""
     now = timezone.now()
     expires_at = now + ttl
-    payload = {
+    payload: AgentTokenClaims = {
         "aud": AGENT_TOKEN_AUDIENCE,
         "sub": str(user_id),
         "org": organization_id,
@@ -125,8 +125,6 @@ def is_agent_token_string(token_str: str) -> bool:
     The header is only a routing hint here. ``decode_agent_token`` still verifies the signature,
     audience, expiry, algorithm, and protected ``typ`` before the credential is trusted.
     """
-    if token_str.count(".") != 2:
-        return False
     try:
         return jwt.peek_header(token_str).get("typ") == AGENT_TOKEN_TYPE
     except PyJWTError:
@@ -214,7 +212,6 @@ def create_write_grant(
             agent_session_id=session_id,
             defaults={
                 "scope_list": sorted(scopes),
-                "expires_at": now + DEFAULT_EXPIRATION,
             },
         )
         if not created:

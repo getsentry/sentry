@@ -141,12 +141,15 @@ class ScopedPermission(BasePermission):
             # scopes so permission_denied can advertise them via RFC 6750 insufficient_scope;
             # has_permission itself stays a plain bool. (Skipped when no scope could satisfy
             # the method, e.g. an unset scope_map entry, to avoid an empty challenge.)
-            required_scopes: set[str] = allowed_scopes
+            unsatisfied_scopes = allowed_scopes
             if agent_token.is_agent_auth(request.auth):
                 required_scope = _least_privileged_scope(allowed_scopes)
-                required_scopes = {required_scope} if required_scope is not None else set()
-            if required_scopes:
-                setattr(request, INSUFFICIENT_SCOPE_ATTR, required_scopes)
+                if required_scope is None:
+                    unsatisfied_scopes = set()
+                else:
+                    unsatisfied_scopes = {required_scope}
+            if unsatisfied_scopes:
+                setattr(request, INSUFFICIENT_SCOPE_ATTR, unsatisfied_scopes)
         return False
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
