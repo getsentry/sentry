@@ -308,9 +308,8 @@ describe('AutofixOverview', () => {
     ).toBeVisible();
     expect(screen.queryByText('Proposed fix')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Full analysis'}));
-
-    // …and the notes section is Next steps rather than a review checklist.
+    // …and the notes are promoted onto the face as their own Next-steps
+    // block — no expansion needed, and no Review checklist anywhere.
     expect(screen.getByText('Next steps')).toBeVisible();
     expect(screen.getByText('Decide whether Seer should generate a fix.')).toBeVisible();
     expect(screen.queryByText('Review checklist')).not.toBeInTheDocument();
@@ -811,11 +810,12 @@ describe('AutofixOverview', () => {
 
     renderPage();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Full analysis'}));
-
-    expect(screen.getByText('Confirm the header is not leaked.')).toBeVisible();
+    // The notes render on the face as the Next-steps block (no drafted fix),
+    // so there is nothing left behind a Full analysis toggle.
+    expect(await screen.findByText('Confirm the header is not leaked.')).toBeVisible();
     expect(screen.getByText('Verify both headers work.')).toBeVisible();
     expect(screen.queryByText(/•/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Full analysis'})).not.toBeInTheDocument();
   });
 
   it('renders an error state and can retry', async () => {
