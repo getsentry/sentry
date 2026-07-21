@@ -711,7 +711,9 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             if retry >= MAX_RETRIES:
                 return Response("Dashboard title already taken", status=409)
 
-            request.data["title"] = Dashboard.incremental_title(organization, request.data["title"])
+            request.data["title"] = Dashboard.incremental_title(
+                organization, serializer.validated_data["title"]
+            )
 
             return self.post(request, organization, retry=retry + 1)
         except UnableToAcquireLock:
