@@ -401,7 +401,7 @@ class StatefulDetectorHandler(
             "data_packet_source_id": str(data_packet.source_id),
             "conditions": [
                 condition_evaluation.condition.get_snapshot()
-                for condition_evaluation in group_evaluation.result
+                for condition_evaluation in group_evaluation.data["condition_evaluations"]
                 if condition_evaluation.outcome.triggered
             ],
             "config": self.detector.config,
@@ -684,7 +684,7 @@ class StatefulDetectorHandler(
             """
             validated_condition_results: list[DetectorPriorityLevel] = [
                 condition_evaluation.result
-                for condition_evaluation in group_evaluation.result
+                for condition_evaluation in group_evaluation.data["condition_evaluations"]
                 if condition_evaluation.outcome.triggered
                 and isinstance(condition_evaluation.result, DetectorPriorityLevel)
             ]

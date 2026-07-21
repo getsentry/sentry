@@ -1006,7 +1006,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
     def test_fire_actions_for_groups__workflow_fire_history(self, mock_process: MagicMock) -> None:
         mock_process.return_value = (
-            DataConditionGroupEvaluation(result=[]),
+            DataConditionGroupEvaluation(
+                result=False,
+                data={"condition_evaluations": [], "logic_type": DataConditionGroup.Type.ANY},
+            ),
             [],
         )
 
@@ -1040,7 +1043,10 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
     ) -> None:
         """Verify notification_uuid from WorkflowFireHistory is passed to triggered actions."""
         mock_process.return_value = (
-            DataConditionGroupEvaluation(result=[]),
+            DataConditionGroupEvaluation(
+                result=False,
+                data={"condition_evaluations": [], "logic_type": DataConditionGroup.Type.ANY},
+            ),
             [],
         )
 

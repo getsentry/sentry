@@ -230,6 +230,8 @@ class DataCondition(DefaultFieldsModel):
         return result
 
     def evaluate_value(self, value: T) -> DataConditionEvaluation:
+        error: ConditionError | None = None
+
         try:
             condition_type = Condition(self.type)
 
@@ -242,10 +244,6 @@ class DataCondition(DefaultFieldsModel):
             # handling of DataConditionEvaluationExceptions.
             raise DataConditionEvaluationException("Unable to evaluate condition") from ve
 
-        metrics.incr("workflow_engine.data_condition.evaluation", tags={"type": self.type})
-
-        error: ConditionError | None = None
-
         if isinstance(result, bool):
             result = self.get_condition_result() if result else None
 
@@ -253,11 +251,14 @@ class DataCondition(DefaultFieldsModel):
             error = result
             result = None
 
+        metrics.incr("workflow_engine.data_condition.evaluation", tags={"type": self.type})
+
         return DataConditionEvaluation(
             condition=self,
+            triggered=(result is not None),
             error=error,
             result=result,
-            value=value,
+            data=value,
         )
 
 

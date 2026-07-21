@@ -534,7 +534,15 @@ def _evaluate_group_result_for_dcg(
             sample_rate=1.0,
         )
         logger.warning("workflow_engine.delayed_workflow.missing_query_result", exc_info=True)
-        return DataConditionGroupEvaluation(error=ConditionError(msg="Missing query result"))
+        return DataConditionGroupEvaluation(
+            result=False,
+            triggered=False,
+            data={
+                "condition_evaluations": [],
+                "logic_type": dcg.logic_type,
+            },
+            error=ConditionError(msg="Missing query result"),
+        )
 
 
 def _group_result_for_dcg(
@@ -686,7 +694,7 @@ def get_groups_to_fire(
                 if if_result.triggered:
                     groups_to_fire[group_id].add(dcg)
                     if_dcg_passed[workflow_id][group_id][dcg.id] = [
-                        pc.condition.id for pc in if_group.result
+                        pc.condition.id for pc in if_group.data["condition_evaluations"]
                     ]
                 else:
                     if_dcg_failed[workflow_id][group_id].append(dcg.id)
