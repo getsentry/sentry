@@ -15,7 +15,7 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconChevron, IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/group';
-import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+import {GroupStatus} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -59,7 +59,6 @@ interface ResolveActionsProps {
   disableDropdown?: boolean;
   disableResolveInRelease?: boolean;
   disabled?: boolean;
-  isResolved?: boolean;
   latestRelease?: Project['latestRelease'];
   multipleProjectsSelected?: boolean;
   priority?: 'primary';
@@ -70,7 +69,6 @@ interface ResolveActionsProps {
 
 export function ResolveActions({
   size = 'xs',
-  isResolved = false,
   confirmLabel = t('Resolve'),
   project,
   hasRelease,
@@ -163,30 +161,7 @@ export function ResolveActions({
     });
   }
 
-  function renderResolved() {
-    return (
-      <Tooltip title={t('Unresolve')}>
-        <Button
-          variant="primary"
-          size="xs"
-          aria-label={t('Unresolve')}
-          onClick={() =>
-            onUpdate({
-              status: GroupStatus.UNRESOLVED,
-              statusDetails: {},
-              substatus: GroupSubstatus.ONGOING,
-            })
-          }
-        />
-      </Tooltip>
-    );
-  }
-
   function renderDropdownMenu() {
-    if (isResolved) {
-      return renderResolved();
-    }
-
     const shouldDisplayCta = !hasRelease && !multipleProjectsSelected;
     const actionTitle = shouldDisplayCta
       ? t('Set up release tracking in order to use this feature.')
@@ -332,10 +307,6 @@ export function ResolveActions({
         project={project}
       />
     ));
-  }
-
-  if (isResolved) {
-    return renderResolved();
   }
 
   return (

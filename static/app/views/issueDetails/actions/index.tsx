@@ -524,7 +524,6 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
                 hasSemverReleaseFeature={hasSemverReleaseFeature}
                 onUpdate={onUpdate}
                 project={project}
-                isResolved={isResolved}
                 size="sm"
                 priority="primary"
               />
