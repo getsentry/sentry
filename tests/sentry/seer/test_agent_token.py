@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 from django.contrib.sessions.backends.base import SessionBase
+from django.core.cache import cache
 from django.test import RequestFactory, override_settings
 from django.utils import timezone
 from rest_framework.exceptions import AuthenticationFailed
@@ -249,6 +250,23 @@ class AgentTokenAuthAndGateTest(TestCase):
 
         assert resolved_access.has_scope("org:read")
         assert not resolved_access.has_scope("org:write")
+
+    def test_release_permission_cache_is_isolated_by_delegating_user(self) -> None:
+        cache.clear()
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+        self.create_project(organization=self.org)
+        endpoint = OrganizationReleasesBaseEndpoint()
+
+        owner_request = self._agent_request(self.owner, ["org:read", "project:read"], method="GET")
+        self._access_for(owner_request)
+        assert endpoint.has_release_permission(owner_request, self.org)
+
+        member_request = self._agent_request(
+            self.member, ["org:read", "project:read"], method="GET"
+        )
+        self._access_for(member_request)
+        assert not endpoint.has_release_permission(member_request, self.org)
 
     def test_agent_denied_after_member_is_removed(self) -> None:
         # Ephemeral tokens re-derive authority from live membership on each request, so

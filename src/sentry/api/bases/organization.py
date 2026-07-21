@@ -858,12 +858,19 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         Results are cached for 60s per actor/org/release/effective-project-scope/mode.
         """
         actor_id = None
+        actor_scopes: list[str] = []
         has_perms = None
         key = None
         if request.user.is_authenticated:
             actor_id = "user:%s" % request.user.id
         elif request.auth is not None:
-            actor_id = "apikey:%s" % request.auth.entity_id
+            from sentry.seer.agent_token import is_agent_auth
+
+            if is_agent_auth(request.auth) and request.auth.user_id is not None:
+                actor_id = "agent:%s" % request.auth.user_id
+                actor_scopes = [f"scope:{scope}" for scope in sorted(request.auth.get_scopes())]
+            else:
+                actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:
             if project_ids:
                 requested_projects = ParsedProjectIdOrSlugParams(ids=project_ids, slugs=set())
@@ -876,6 +883,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
                     release.id if release is not None else 0,
                     int(require_all_projects),
                 ]
+                + actor_scopes
                 + sorted(requested_projects.ids)
                 + sorted(requested_projects.slugs)
             )
