@@ -607,9 +607,8 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             status_code=200,
         )
 
-    @with_feature("organizations:sentry-apps-granular-events")
     @override_options({"staff.ga-rollout": True})
-    def test_can_add_granular_events_with_flag(self) -> None:
+    def test_can_add_granular_events(self) -> None:
         app = self.create_sentry_app(name="SampleApp", organization=self.organization)
         self.get_success_response(
             app.slug,
