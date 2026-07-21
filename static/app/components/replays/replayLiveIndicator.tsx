@@ -152,7 +152,7 @@ export function useLiveRefresh({replay}: {replay: ReplayRecord | undefined}) {
 
     // No valid start time — nothing to schedule.
     if (expiresAtMs <= 0) {
-      return undefined;
+      return;
     }
 
     const remainingMs = expiresAtMs - Date.now();
@@ -160,7 +160,7 @@ export function useLiveRefresh({replay}: {replay: ReplayRecord | undefined}) {
     // Already expired before the effect ran; mark immediately.
     if (remainingMs <= 0) {
       setIsReplayExpired(true);
-      return undefined;
+      return;
     }
 
     // Schedule the flag flip for when the expiry window closes.
