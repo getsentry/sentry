@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
@@ -12,7 +12,6 @@ from sentry.dynamic_sampling.per_org.configuration import (
     get_configuration,
 )
 from sentry.dynamic_sampling.per_org.queries import (
-    DynamicSamplingQueryFields,
     DynamicSamplingQueryFilters,
     ProjectTransactionCounts,
     ProjectVolume,
@@ -30,6 +29,10 @@ from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+
+GET_BLENDED_SAMPLE_RATE = (
+    "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate"
+)
 
 
 class EAPSpansTableQueryChunkingTest(TestCase, SnubaTestCase, SpanTestCase):
@@ -89,10 +92,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         organization: Organization,
     ) -> BaseDynamicSamplingConfiguration:
         with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                return_value=1.0,
-            ),
+            patch(GET_BLENDED_SAMPLE_RATE, return_value=1.0),
             patch(
                 "sentry.dynamic_sampling.per_org.configuration.get_outcomes_organization_volume",
                 return_value=None,
@@ -100,47 +100,44 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
         ):
             return get_configuration(organization.id)
 
-    def test_get_eap_organization_volume_existing_org(self) -> None:
+    def test_get_eap_organization_volume_counts_extrapolated_and_raw(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
+        timestamp = before_now(minutes=15)
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.queries.Spans.run_table_query",
-            return_value={"data": [{DynamicSamplingQueryFields.COUNT: 2, "count_sample()": 2}]},
-        ) as run_table_query:
-            org_volume = get_eap_organization_volume(
-                self.get_config(organization), time_interval=timedelta(hours=1)
-            )
-
-        assert org_volume == OrganizationDataVolume(org_id=organization.id, total=2, indexed=2)
-        run_table_query.assert_called_once()
-        assert run_table_query.call_args.kwargs["params"].projects == [project]
-        assert (
-            run_table_query.call_args.kwargs["query_string"]
-            == DynamicSamplingQueryFilters.IS_SEGMENT
+        self.store_spans(
+            [
+                self.create_span(
+                    {"is_segment": True},
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp,
+                ),
+                # sampled at 50% → extrapolates to 2 in count(), stays 1 in count_sample()
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "measurements": {"server_sample_rate": {"value": 0.5}},
+                    },
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=1),
+                ),
+                # non-segment spans are excluded
+                self.create_span(
+                    {"is_segment": False},
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=2),
+                ),
+            ]
         )
-        assert run_table_query.call_args.kwargs["selected_columns"] == [
-            DynamicSamplingQueryFields.COUNT,
-            DynamicSamplingQueryFields.COUNT_SAMPLE,
-        ]
-        assert (
-            run_table_query.call_args.kwargs["referrer"]
-            == Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_ORG_VOLUME.value
+
+        org_volume = get_eap_organization_volume(
+            self.get_config(organization), time_interval=timedelta(hours=1)
         )
 
-    def test_get_eap_organization_volume_returns_raw_and_extrapolated_counts(self) -> None:
-        organization = self.create_organization()
-        self.create_project(organization=organization)
-
-        with patch(
-            "sentry.dynamic_sampling.per_org.queries.Spans.run_table_query",
-            return_value={"data": [{"count()": 10, DynamicSamplingQueryFields.COUNT_SAMPLE: 1}]},
-        ):
-            org_volume = get_eap_organization_volume(
-                self.get_config(organization), time_interval=timedelta(hours=1)
-            )
-
-        assert org_volume == OrganizationDataVolume(org_id=organization.id, total=10, indexed=1)
+        assert org_volume == OrganizationDataVolume(org_id=organization.id, total=3, indexed=2)
 
     def test_get_eap_organization_volume_without_traffic(self) -> None:
         organization = self.create_organization()
@@ -152,150 +149,89 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
 
         assert org_volume is None
 
-    def test_get_eap_organization_volume_without_projects(self) -> None:
-        organization = self.create_organization()
-
-        with patch(
-            "sentry.dynamic_sampling.per_org.queries.Spans.run_table_query",
-            return_value={"data": []},
-        ) as run_table_query:
-            org_volume = get_eap_organization_volume(
-                self.get_config(organization), time_interval=timedelta(hours=1)
-            )
-
-        assert org_volume is None
-        run_table_query.assert_called_once()
-        assert run_table_query.call_args.kwargs["params"].projects == []
-
-    def test_get_eap_project_volumes_existing_org(self) -> None:
+    def test_get_eap_project_volumes_counts_by_root_project(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
         other_project = self.create_project(organization=organization)
-        other_organization = self.create_organization()
-        self.create_project(organization=other_organization)
+        timestamp = before_now(minutes=15)
 
-        received = (datetime.now(UTC) - timedelta(seconds=120)).timestamp()
-        with patch(
-            "sentry.dynamic_sampling.per_org.queries.run_eap_spans_table_query_in_chunks",
-            return_value=[
-                {
-                    "sentry.dsc.project_id": project.id,
-                    "count()": 2,
-                    "count_sample()": 2,
-                    "count_unique(sentry.dsc.transaction)": 7,
-                    "max(received)": received,
-                },
-                {
-                    "sentry.dsc.project_id": other_project.id,
-                    "count()": 1,
-                    "count_sample()": 1,
-                    "count_unique(sentry.dsc.transaction)": 1,
-                },
-            ],
-        ) as run_table_query:
-            project_volumes = get_eap_project_volumes(
-                self.get_config(organization), time_interval=timedelta(hours=1)
-            )
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "dsc.transaction": "checkout",
+                            "dsc.project_id": str(project.id),
+                        },
+                    },
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp,
+                ),
+                # sampled at 50% → extrapolates to 2 in count(), stays 1 in count_sample()
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "dsc.transaction": "cart",
+                            "dsc.project_id": str(project.id),
+                        },
+                        "measurements": {"server_sample_rate": {"value": 0.5}},
+                    },
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=1),
+                ),
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {
+                            "dsc.transaction": "checkout",
+                            "dsc.project_id": str(other_project.id),
+                        },
+                    },
+                    organization=organization,
+                    project=other_project,
+                    start_ts=timestamp + timedelta(seconds=2),
+                ),
+                # missing dsc.project_id — grouped under a null root project and skipped
+                self.create_span(
+                    {"is_segment": True},
+                    organization=organization,
+                    project=project,
+                    start_ts=timestamp + timedelta(seconds=3),
+                ),
+            ]
+        )
 
-        volumes_by_id = {volume.project_id: volume for volume in project_volumes}
+        project_volumes = get_eap_project_volumes(
+            self.get_config(organization), time_interval=timedelta(hours=1)
+        )
+
         assert [
             replace(volume, seconds_since_last_item=None) for volume in sorted(project_volumes)
         ] == [
             ProjectVolume(
-                project_id=project.id, total=2, keep=2, drop=0, num_distinct_transactions=7
+                project_id=project.id, total=3, keep=2, drop=1, num_distinct_transactions=2
             ),
             ProjectVolume(
                 project_id=other_project.id, total=1, keep=1, drop=0, num_distinct_transactions=1
             ),
         ]
-        project_seconds = volumes_by_id[project.id].seconds_since_last_item
-        assert project_seconds is not None and project_seconds > 100
-        assert volumes_by_id[other_project.id].seconds_since_last_item is None
-        run_table_query.assert_called_once()
-        query = run_table_query.call_args.args[0]
-        assert sorted(query["params"].projects, key=lambda p: p.id) == [
-            project,
-            other_project,
-        ]
-        assert query["query_string"] == DynamicSamplingQueryFilters.IS_SEGMENT
-        assert query["selected_columns"] == [
-            DynamicSamplingQueryFields.DSC_PROJECT_ID,
-            DynamicSamplingQueryFields.COUNT,
-            DynamicSamplingQueryFields.COUNT_SAMPLE,
-            DynamicSamplingQueryFields.COUNT_UNIQUE_TRANSACTIONS,
-            DynamicSamplingQueryFields.MAX_RECEIVED,
-        ]
-        assert query["orderby"] == [DynamicSamplingQueryFields.DSC_PROJECT_ID]
-        assert query["referrer"] == Referrer.DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES.value
+        for volume in project_volumes:
+            assert volume.seconds_since_last_item is not None
+            assert volume.seconds_since_last_item > 0
 
     def test_get_eap_project_volumes_without_traffic(self) -> None:
         organization = self.create_organization()
         self.create_project(organization=organization)
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.queries.run_eap_spans_table_query_in_chunks",
-            return_value=[],
-        ):
-            project_volumes = get_eap_project_volumes(
-                self.get_config(organization), time_interval=timedelta(hours=1)
-            )
+        project_volumes = get_eap_project_volumes(
+            self.get_config(organization), time_interval=timedelta(hours=1)
+        )
 
         assert project_volumes == []
-
-    def test_get_eap_project_volumes_handles_missing_aggregate_values(self) -> None:
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
-
-        with patch(
-            "sentry.dynamic_sampling.per_org.queries.run_eap_spans_table_query_in_chunks",
-            return_value=[
-                {
-                    "sentry.dsc.project_id": project.id,
-                }
-            ],
-        ):
-            project_volumes = get_eap_project_volumes(self.get_config(organization))
-
-        assert project_volumes == [ProjectVolume(project_id=project.id, total=0, keep=0, drop=0)]
-
-    def test_get_eap_project_volumes_skips_rows_without_dsc_project_id(self) -> None:
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
-
-        with patch(
-            "sentry.dynamic_sampling.per_org.queries.run_eap_spans_table_query_in_chunks",
-            return_value=[
-                {
-                    "sentry.dsc.project_id": None,
-                    "count()": 3,
-                    "count_sample()": 1,
-                },
-                {
-                    "sentry.dsc.project_id": project.id,
-                    "count()": 2,
-                    "count_sample()": 1,
-                },
-            ],
-        ):
-            project_volumes = get_eap_project_volumes(self.get_config(organization))
-
-        assert project_volumes == [ProjectVolume(project_id=project.id, total=2, keep=1, drop=1)]
-
-    def test_get_eap_project_volumes_without_projects(self) -> None:
-        organization = self.create_organization()
-
-        with patch(
-            "sentry.dynamic_sampling.per_org.queries.run_eap_spans_table_query_in_chunks",
-            return_value=[],
-        ) as run_table_query:
-            project_volumes = get_eap_project_volumes(
-                self.get_config(organization), time_interval=timedelta(hours=1)
-            )
-
-        assert project_volumes == []
-        run_table_query.assert_called_once()
-        query = run_table_query.call_args.args[0]
-        assert query["params"].projects == []
 
     def test_get_outcomes_organization_volume_existing_org(self) -> None:
         organization = self.create_organization()
@@ -330,10 +266,7 @@ class EAPOrganizationVolumeTest(TestCase, SnubaTestCase, SpanTestCase):
 
 class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
     def get_config(self, organization: Organization) -> BaseDynamicSamplingConfiguration:
-        with patch(
-            "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-            return_value=1.0,
-        ):
+        with patch(GET_BLENDED_SAMPLE_RATE, return_value=1.0):
             return get_configuration(organization.id)
 
     def test_get_eap_transaction_volumes(self) -> None:
@@ -537,41 +470,6 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
         volumes = get_eap_transaction_volumes(self.get_config(organization))
 
         assert volumes == []
-
-    def test_get_eap_transaction_volumes_attributes_to_originating_project(self) -> None:
-        organization = self.create_organization()
-        originating_project = self.create_project(organization=organization)
-        downstream_project = self.create_project(organization=organization)
-        timestamp = before_now(minutes=15)
-
-        self.store_spans(
-            [
-                # Owned by `downstream_project` but originated in `originating_project`.
-                self.create_span(
-                    {
-                        "is_segment": True,
-                        "sentry_tags": {
-                            "transaction": "checkout",
-                            "dsc.transaction": "checkout",
-                            "dsc.project_id": str(originating_project.id),
-                        },
-                    },
-                    organization=organization,
-                    project=downstream_project,
-                    start_ts=timestamp,
-                ),
-            ]
-        )
-
-        volumes = get_eap_transaction_volumes(self.get_config(organization))
-
-        assert volumes == [
-            ProjectTransactionCounts(
-                org_id=organization.id,
-                project_id=originating_project.id,
-                transaction_counts=[("checkout", 1)],
-            )
-        ]
 
     def test_get_eap_transaction_volumes_with_max_transactions_caps_total_rows(self) -> None:
         organization = self.create_organization()

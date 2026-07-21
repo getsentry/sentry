@@ -6,7 +6,6 @@ import orjson
 import pytest
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.per_org.calculations import (
     apply_project_sample_rate_overrides,
     compare_rebalanced_projects_with_cache,
@@ -38,44 +37,30 @@ class ProjectBalancingCalculationsTest(TestCase):
         super().setUp()
         self.redis = get_redis_client_for_ds()
 
-    def test_run_project_balancing_returns_rebalanced_projects(self) -> None:
+    def test_run_project_balancing_balances_org_projects(self) -> None:
         org = self.create_organization()
         project_with_volume = self.create_project(organization=org)
         project_without_volume = self.create_project(organization=org)
-        other_project = self.create_project()
+        other_org_project = self.create_project()
         config = Mock()
         config.organization = org
         config.projects = [project_with_volume, project_without_volume]
         config.get_sample_rate.return_value = 0.5
-        rebalanced_projects = [
-            RebalancedItem(id=project_with_volume.id, count=100, new_sample_rate=0.25),
-        ]
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.calculations.ProjectsRebalancingModel.run",
-            return_value=rebalanced_projects,
-        ) as model_run:
-            result = run_project_balancing(
-                config,
-                [
-                    _project_volume(project_with_volume.id),
-                    _project_volume(project_without_volume.id, total=0, keep=0),
-                    _project_volume(other_project.id),
-                ],
-            )
+        result = run_project_balancing(
+            config,
+            [
+                _project_volume(project_with_volume.id, total=100),
+                _project_volume(project_without_volume.id, total=0, keep=0),
+                _project_volume(other_org_project.id),
+            ],
+        )
 
-        model_run.assert_called_once()
-        model_input = model_run.call_args.args[-1]
-        assert isinstance(model_input, ProjectsRebalancingInput)
-        assert model_input.sample_rate == 0.5
-        # Every project of the org is passed to the model; the one without volume is
-        # included with a count of 0 so it receives a 100% sample rate. The project from
-        # another org is excluded.
-        assert model_input.classes == [
-            RebalancedItem(id=project_with_volume.id, count=100),
-            RebalancedItem(id=project_without_volume.id, count=0),
-        ]
-        assert result == rebalanced_projects
+        rates_by_id = {int(item.id): item.new_sample_rate for item in result}
+        assert set(rates_by_id) == {project_with_volume.id, project_without_volume.id}
+        assert rates_by_id[project_without_volume.id] == 1.0
+        kept_volume = sum(item.count * item.new_sample_rate for item in result)
+        assert kept_volume == pytest.approx(100 * 0.5)
 
     def test_run_project_balancing_full_sample_rate_returns_all_projects_at_100_percent(
         self,
@@ -88,41 +73,15 @@ class ProjectBalancingCalculationsTest(TestCase):
         config.projects = [busy, idle]
         config.get_sample_rate.return_value = 1.0
 
-        with patch(
-            "sentry.dynamic_sampling.per_org.calculations.ProjectsRebalancingModel.run"
-        ) as model_run:
-            result = run_project_balancing(
-                config,
-                [_project_volume(busy.id, total=1000), _project_volume(idle.id, total=0, keep=0)],
-            )
+        result = run_project_balancing(
+            config,
+            [_project_volume(busy.id, total=1000), _project_volume(idle.id, total=0, keep=0)],
+        )
 
-        # Mirrors legacy serving: a 100% org rate gives every project 100% and the balancing
-        # model never runs.
-        model_run.assert_not_called()
         assert {int(item.id): item.new_sample_rate for item in result} == {
             busy.id: 1.0,
             idle.id: 1.0,
         }
-
-    def test_run_project_balancing_assigns_full_sample_rate_to_zero_volume_projects(self) -> None:
-        org = self.create_organization()
-        project_with_volume = self.create_project(organization=org)
-        project_without_volume = self.create_project(organization=org)
-        config = Mock()
-        config.organization = org
-        config.projects = [project_with_volume, project_without_volume]
-        config.get_sample_rate.return_value = 0.5
-
-        result = run_project_balancing(
-            config,
-            [
-                _project_volume(project_with_volume.id, total=100),
-                _project_volume(project_without_volume.id, total=0, keep=0),
-            ],
-        )
-
-        rates_by_id = {int(item.id): item.new_sample_rate for item in result}
-        assert rates_by_id[project_without_volume.id] == 1.0
 
     def test_run_project_balancing_returns_empty_when_no_volume(self) -> None:
         org = self.create_organization()

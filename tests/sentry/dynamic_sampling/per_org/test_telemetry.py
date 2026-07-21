@@ -30,10 +30,18 @@ def _capture_timer_tags() -> tuple[object, dict[str, str]]:
     return timer, tags
 
 
+@pytest.mark.parametrize(
+    ("error", "expected_status"),
+    [
+        (ValueError("nope"), DynamicSamplingStatus.FAILED),
+        (SnubaRPCTimeout("timed out"), DynamicSamplingStatus.SNUBA_TIMEOUT),
+        (SnubaRPCError("snuba failed"), DynamicSamplingStatus.SNUBA_ERROR),
+    ],
+)
 @override_options(_GATE_OPTIONS)
-def test_records_duration_and_reraises_with_failed_status_on_exception() -> None:
-    error = ValueError("nope")
-
+def test_reraises_and_emits_error_status(
+    error: Exception, expected_status: DynamicSamplingStatus
+) -> None:
     @track_dynamic_sampling
     def boom() -> None:
         raise error
@@ -43,59 +51,13 @@ def test_records_duration_and_reraises_with_failed_status_on_exception() -> None
     with (
         patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
         patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
-        pytest.raises(ValueError),
+        pytest.raises(type(error)),
     ):
         mock_metrics.timer.side_effect = timer
         boom()
 
     assert timer_tags["status"] == DynamicSamplingStatus.FAILED.value
-    emit.assert_called_once_with("dynamic_sampling.boom.status", DynamicSamplingStatus.FAILED)
-
-
-@override_options(_GATE_OPTIONS)
-def test_reraises_snuba_timeout_and_emits_timeout_status() -> None:
-    error = SnubaRPCTimeout("timed out")
-
-    @track_dynamic_sampling
-    def boom() -> None:
-        raise error
-
-    timer, timer_tags = _capture_timer_tags()
-
-    with (
-        patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
-        patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
-        pytest.raises(SnubaRPCTimeout),
-    ):
-        mock_metrics.timer.side_effect = timer
-        boom()
-
-    assert timer_tags["status"] == DynamicSamplingStatus.FAILED.value
-    emit.assert_called_once_with(
-        "dynamic_sampling.boom.status", DynamicSamplingStatus.SNUBA_TIMEOUT
-    )
-
-
-@override_options(_GATE_OPTIONS)
-def test_reraises_snuba_error_and_emits_snuba_error_status() -> None:
-    error = SnubaRPCError("snuba failed")
-
-    @track_dynamic_sampling
-    def boom() -> None:
-        raise error
-
-    timer, timer_tags = _capture_timer_tags()
-
-    with (
-        patch("sentry.dynamic_sampling.per_org.telemetry.metrics") as mock_metrics,
-        patch("sentry.dynamic_sampling.per_org.telemetry.emit_status") as emit,
-        pytest.raises(SnubaRPCError),
-    ):
-        mock_metrics.timer.side_effect = timer
-        boom()
-
-    assert timer_tags["status"] == DynamicSamplingStatus.FAILED.value
-    emit.assert_called_once_with("dynamic_sampling.boom.status", DynamicSamplingStatus.SNUBA_ERROR)
+    emit.assert_called_once_with("dynamic_sampling.boom.status", expected_status)
 
 
 @override_options(_GATE_OPTIONS)

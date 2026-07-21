@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -7,7 +10,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
-from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
 from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
 from sentry.dynamic_sampling.per_org.scheduler import (
     run_calculations_per_org_task,
@@ -16,8 +18,14 @@ from sentry.dynamic_sampling.per_org.scheduler import (
 from sentry.dynamic_sampling.per_org.telemetry import DynamicSamplingStatus
 from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.dynamic_sampling.types import DynamicSamplingMode
+from sentry.models.organization import OrganizationStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+
+SCHEDULER = "sentry.dynamic_sampling.per_org.scheduler"
+GET_BLENDED_SAMPLE_RATE = (
+    "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate"
+)
 
 
 def _assert_called_once_with_config(
@@ -35,6 +43,44 @@ def _project_volume(project_id: int, total: int = 100, keep: int = 25) -> Projec
     return ProjectVolume(project_id=project_id, total=total, keep=keep, drop=max(total - keep, 0))
 
 
+@contextmanager
+def _mock_pipeline(
+    blended_sample_rate: float | None = None,
+    org_volume: OrganizationDataVolume | None = None,
+    project_volumes: list[ProjectVolume] | None = None,
+    rebalanced_projects: list[RebalancedItem] | None = None,
+    transaction_volumes: list[ProjectTransactionCounts] | None = None,
+) -> Iterator[SimpleNamespace]:
+    with (
+        patch(GET_BLENDED_SAMPLE_RATE, return_value=blended_sample_rate) as get_blended_sample_rate,
+        patch(f"{SCHEDULER}.get_eap_organization_volume", return_value=org_volume) as get_volume,
+        patch(
+            f"{SCHEDULER}.get_eap_project_volumes", return_value=project_volumes or []
+        ) as get_project_volumes,
+        patch(
+            f"{SCHEDULER}.run_project_balancing", return_value=rebalanced_projects or []
+        ) as project_balancing,
+        patch(
+            f"{SCHEDULER}.get_cached_rebalanced_project_sample_rates", return_value={}
+        ) as get_cached_sample_rates,
+        patch(f"{SCHEDULER}.compare_rebalanced_projects_with_cache") as compare_rebalanced_projects,
+        patch(
+            f"{SCHEDULER}.get_eap_transaction_volumes", return_value=transaction_volumes or []
+        ) as get_transaction_volumes,
+        patch(f"{SCHEDULER}.run_transaction_balancing", return_value={}) as transaction_balancing,
+    ):
+        yield SimpleNamespace(
+            get_blended_sample_rate=get_blended_sample_rate,
+            get_volume=get_volume,
+            get_project_volumes=get_project_volumes,
+            project_balancing=project_balancing,
+            get_cached_sample_rates=get_cached_sample_rates,
+            compare_rebalanced_projects=compare_rebalanced_projects,
+            get_transaction_volumes=get_transaction_volumes,
+            transaction_balancing=transaction_balancing,
+        )
+
+
 class SchedulePerOrgCalculationsTest(TestCase):
     """Tests for the scheduling wrapper: rollout gating and active-org filtering."""
 
@@ -44,10 +90,10 @@ class SchedulePerOrgCalculationsTest(TestCase):
         self.create_project(organization=active)
         pending_deletion = self.create_organization()
         self.create_project(organization=pending_deletion)
-        pending_deletion.status = 1  # PENDING_DELETION
+        pending_deletion.status = OrganizationStatus.PENDING_DELETION
         pending_deletion.save()
 
-        with patch("sentry.dynamic_sampling.per_org.scheduler.CursoredScheduler") as MockScheduler:
+        with patch(f"{SCHEDULER}.CursoredScheduler") as MockScheduler:
             mock_instance = MockScheduler.return_value
             mock_instance.tick.return_value = False
             schedule_per_org_calculations()
@@ -68,7 +114,7 @@ class SchedulePerOrgCalculationsTest(TestCase):
         inactive_project.status = ObjectStatus.PENDING_DELETION
         inactive_project.save()
 
-        with patch("sentry.dynamic_sampling.per_org.scheduler.CursoredScheduler") as MockScheduler:
+        with patch(f"{SCHEDULER}.CursoredScheduler") as MockScheduler:
             mock_instance = MockScheduler.return_value
             mock_instance.tick.return_value = False
             schedule_per_org_calculations()
@@ -81,441 +127,245 @@ class SchedulePerOrgCalculationsTest(TestCase):
         assert org_with_inactive_project.id not in org_ids
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_org_in_rollout_is_dispatched(self) -> None:
+    def test_rollout_gate_filters_orgs(self) -> None:
         org = self.create_organization()
-        assert is_org_in_rollout(org.id) is True
+        self.create_project(organization=org)
 
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 0.0})
-    def test_org_not_in_rollout_is_skipped(self) -> None:
-        org = self.create_organization()
-        assert is_org_in_rollout(org.id) is False
+        with patch(f"{SCHEDULER}.CursoredScheduler") as MockScheduler:
+            MockScheduler.return_value.tick.return_value = False
+            schedule_per_org_calculations()
+            validate_item = MockScheduler.call_args.kwargs["validate_item"]
+
+        assert validate_item(org.id) is True
+        with override_options({"dynamic-sampling.per_org.rollout-rate": 0.0}):
+            assert validate_item(org.id) is False
 
 
 class RunCalculationsPerOrgTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_returns_no_volume_without_traffic(self) -> None:
-        org = self.create_organization()
-        self.create_project(organization=org)
-
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                return_value=1.0,
-            ) as get_blended_sample_rate,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
-                return_value=None,
-            ) as get_volume,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes"
-            ) as get_project_volumes,
-        ):
-            result = run_calculations_per_org_task(org.id)
-
-        assert result == DynamicSamplingStatus.NO_ORG_VOLUME
-        _assert_called_once_with_config(get_volume, org.id)
-        get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
-        get_project_volumes.assert_not_called()
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_skips_transaction_volumes_at_full_sample_rate(self) -> None:
+    def test_am2_happy_path_runs_full_pipeline(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         project_volumes = [_project_volume(project.id)]
-        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=1.0)]
-        cached_sample_rates: dict[int, float | None] = {}
+        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
+        transaction_volumes = [
+            ProjectTransactionCounts(
+                org_id=org.id,
+                project_id=project.id,
+                transaction_counts=[("checkout", 1.0)],
+            )
+        ]
 
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                return_value=1.0,
-            ) as get_blended_sample_rate,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
-                return_value=org_volume,
-            ) as get_volume,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
-                return_value=project_volumes,
-            ) as get_project_volumes,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.run_project_balancing",
-                return_value=rebalanced_projects,
-            ) as project_balancing,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_cached_rebalanced_project_sample_rates",
-                return_value=cached_sample_rates,
-            ) as get_cached_sample_rates,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.compare_rebalanced_projects_with_cache"
-            ) as compare_rebalanced_projects,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes"
-            ) as get_transaction_volumes,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing"
-            ) as transaction_balancing,
-        ):
+        with _mock_pipeline(
+            blended_sample_rate=1.0,
+            org_volume=OrganizationDataVolume(org_id=org.id, total=100, indexed=25),
+            project_volumes=project_volumes,
+            rebalanced_projects=rebalanced_projects,
+            transaction_volumes=transaction_volumes,
+        ) as pipeline:
+            result = run_calculations_per_org_task(org.id)
+
+        assert result is None
+        pipeline.get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
+        _assert_called_once_with_config(pipeline.get_volume, org.id)
+        project_config = _assert_called_once_with_config(pipeline.get_project_volumes, org.id)
+        pipeline.project_balancing.assert_called_once_with(project_config, project_volumes)
+        pipeline.get_cached_sample_rates.assert_called_once_with(org.id)
+        pipeline.compare_rebalanced_projects.assert_called_once_with(
+            project_config, rebalanced_projects, {}, project_volumes
+        )
+        transaction_config = _assert_called_once_with_config(
+            pipeline.get_transaction_volumes, org.id
+        )
+        assert [
+            p.id for p in pipeline.get_transaction_volumes.call_args.kwargs["root_projects"]
+        ] == [project.id]
+        pipeline.transaction_balancing.assert_called_once_with(
+            transaction_config, project_volumes, transaction_volumes
+        )
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_all_projects_at_full_sample_rate_skips_transaction_step(self) -> None:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+
+        with _mock_pipeline(
+            blended_sample_rate=1.0,
+            org_volume=OrganizationDataVolume(org_id=org.id, total=100, indexed=25),
+            project_volumes=[_project_volume(project.id)],
+            rebalanced_projects=[RebalancedItem(id=project.id, count=100, new_sample_rate=1.0)],
+        ) as pipeline:
             result = run_calculations_per_org_task(org.id)
 
         assert result == DynamicSamplingStatus.ALL_PROJECTS_AT_FULL_SAMPLE_RATE
-        _assert_called_once_with_config(get_volume, org.id)
-        get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
-        project_config = _assert_called_once_with_config(get_project_volumes, org.id)
-        project_balancing.assert_called_once_with(project_config, project_volumes)
-        get_cached_sample_rates.assert_called_once_with(org.id)
-        compare_rebalanced_projects.assert_called_once_with(
-            project_config, rebalanced_projects, cached_sample_rates, project_volumes
-        )
-        get_transaction_volumes.assert_not_called()
-        transaction_balancing.assert_not_called()
+        pipeline.project_balancing.assert_called_once()
+        pipeline.get_transaction_volumes.assert_not_called()
+        pipeline.transaction_balancing.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_returns_no_volume_without_project_volumes(self) -> None:
+    def test_no_org_volume_short_circuits(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
 
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                return_value=1.0,
-            ) as get_blended_sample_rate,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
-                return_value=org_volume,
-            ) as get_volume,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
-                return_value=[],
-            ) as get_project_volumes,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes"
-            ) as get_transaction_volumes,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.run_project_balancing",
-                return_value=None,
-            ) as project_balancing,
-        ):
+        with _mock_pipeline(blended_sample_rate=1.0, org_volume=None) as pipeline:
+            result = run_calculations_per_org_task(org.id)
+
+        assert result == DynamicSamplingStatus.NO_ORG_VOLUME
+        _assert_called_once_with_config(pipeline.get_volume, org.id)
+        pipeline.get_project_volumes.assert_not_called()
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_no_project_volumes_short_circuits(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org)
+
+        with _mock_pipeline(
+            blended_sample_rate=1.0,
+            org_volume=OrganizationDataVolume(org_id=org.id, total=100, indexed=25),
+            project_volumes=[],
+        ) as pipeline:
             result = run_calculations_per_org_task(org.id)
 
         assert result == DynamicSamplingStatus.NO_PROJECT_VOLUMES
-        get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
-        _assert_called_once_with_config(get_volume, org.id)
-        _assert_called_once_with_config(get_project_volumes, org.id)
-        project_balancing.assert_not_called()
-        get_transaction_volumes.assert_not_called()
+        _assert_called_once_with_config(pipeline.get_project_volumes, org.id)
+        pipeline.project_balancing.assert_not_called()
+        pipeline.get_transaction_volumes.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_returns_no_volume_without_transaction_volumes(self) -> None:
+    def test_no_transaction_volumes_short_circuits(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         project_volumes = [_project_volume(project.id)]
         rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
-        cached_sample_rates: dict[int, float | None] = {}
 
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                return_value=1.0,
-            ) as get_blended_sample_rate,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
-                return_value=org_volume,
-            ) as get_volume,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
-                return_value=project_volumes,
-            ) as get_project_volumes,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.run_project_balancing",
-                return_value=rebalanced_projects,
-            ) as project_balancing,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_cached_rebalanced_project_sample_rates",
-                return_value=cached_sample_rates,
-            ) as get_cached_sample_rates,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.compare_rebalanced_projects_with_cache"
-            ) as compare_rebalanced_projects,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
-                return_value=[],
-            ) as get_transaction_volumes,
-        ):
+        with _mock_pipeline(
+            blended_sample_rate=1.0,
+            org_volume=OrganizationDataVolume(org_id=org.id, total=100, indexed=25),
+            project_volumes=project_volumes,
+            rebalanced_projects=rebalanced_projects,
+            transaction_volumes=[],
+        ) as pipeline:
             result = run_calculations_per_org_task(org.id)
 
         assert result == DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
-        get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
-        _assert_called_once_with_config(get_volume, org.id)
-        project_config = _assert_called_once_with_config(get_project_volumes, org.id)
-        project_balancing.assert_called_once_with(project_config, project_volumes)
-        get_cached_sample_rates.assert_called_once_with(org.id)
-        compare_rebalanced_projects.assert_called_once_with(
-            project_config, rebalanced_projects, cached_sample_rates, project_volumes
+        project_config = _assert_called_once_with_config(pipeline.get_project_volumes, org.id)
+        pipeline.project_balancing.assert_called_once_with(project_config, project_volumes)
+        pipeline.compare_rebalanced_projects.assert_called_once_with(
+            project_config, rebalanced_projects, {}, project_volumes
         )
-        _assert_called_once_with_config(get_transaction_volumes, org.id)
+        _assert_called_once_with_config(pipeline.get_transaction_volumes, org.id)
+        pipeline.transaction_balancing.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_skips_project_balancing_for_project_mode(self) -> None:
+    def test_project_mode_skips_project_balancing(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
         project.update_option("sentry:target_sample_rate", 0.2)
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         project_volumes = [_project_volume(project.id)]
+        transaction_volumes = [
+            ProjectTransactionCounts(
+                org_id=org.id,
+                project_id=project.id,
+                transaction_counts=[("checkout", 1.0)],
+            )
+        ]
 
         with (
             self.feature("organizations:dynamic-sampling-custom"),
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate"
-            ) as get_blended_sample_rate,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
-                return_value=org_volume,
-            ) as get_volume,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
-                return_value=project_volumes,
-            ) as get_project_volumes,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.run_project_balancing",
-            ) as project_balancing,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
-                return_value=[
-                    ProjectTransactionCounts(
-                        org_id=org.id,
-                        project_id=project.id,
-                        transaction_counts=[("checkout", 1.0)],
-                    )
-                ],
-            ) as get_transaction_volumes,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
-                return_value={},
-            ) as transaction_balancing,
+            _mock_pipeline(
+                org_volume=OrganizationDataVolume(org_id=org.id, total=100, indexed=25),
+                project_volumes=project_volumes,
+                transaction_volumes=transaction_volumes,
+            ) as pipeline,
         ):
             result = run_calculations_per_org_task(org.id)
 
         assert result is None
-        get_blended_sample_rate.assert_not_called()
-        _assert_called_once_with_config(get_volume, org.id)
-        _assert_called_once_with_config(get_project_volumes, org.id)
-        project_balancing.assert_not_called()
-        transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
-        transaction_balancing.assert_called_once_with(
-            transaction_config, project_volumes, get_transaction_volumes.return_value
+        pipeline.get_blended_sample_rate.assert_not_called()
+        pipeline.project_balancing.assert_not_called()
+        pipeline.compare_rebalanced_projects.assert_not_called()
+        transaction_config = _assert_called_once_with_config(
+            pipeline.get_transaction_volumes, org.id
+        )
+        pipeline.transaction_balancing.assert_called_once_with(
+            transaction_config, project_volumes, transaction_volumes
         )
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_queries_projects_for_am3_org_mode(self) -> None:
+    def test_am3_org_mode_balances_projects(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         project_volumes = [_project_volume(project.id)]
-        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
-        cached_sample_rates: dict[int, float | None] = {}
 
         with (
             self.feature("organizations:dynamic-sampling-custom"),
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate"
-            ) as get_blended_sample_rate,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
-                return_value=org_volume,
-            ) as get_volume,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
-                return_value=project_volumes,
-            ) as get_project_volumes,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.run_project_balancing",
-                return_value=rebalanced_projects,
-            ) as project_balancing,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_cached_rebalanced_project_sample_rates",
-                return_value=cached_sample_rates,
-            ) as get_cached_sample_rates,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.compare_rebalanced_projects_with_cache"
-            ) as compare_rebalanced_projects,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
-                return_value=[
+            _mock_pipeline(
+                org_volume=OrganizationDataVolume(org_id=org.id, total=100, indexed=25),
+                project_volumes=project_volumes,
+                rebalanced_projects=[RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)],
+                transaction_volumes=[
                     ProjectTransactionCounts(
                         org_id=org.id,
                         project_id=project.id,
                         transaction_counts=[("checkout", 1.0)],
                     )
                 ],
-            ) as get_transaction_volumes,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
-                return_value={},
-            ) as transaction_balancing,
+            ) as pipeline,
         ):
             result = run_calculations_per_org_task(org.id)
 
         assert result is None
-        get_blended_sample_rate.assert_not_called()
-        _assert_called_once_with_config(get_volume, org.id)
-        project_config = _assert_called_once_with_config(get_project_volumes, org.id)
-        project_balancing.assert_called_once_with(project_config, project_volumes)
-        get_cached_sample_rates.assert_called_once_with(org.id)
-        compare_rebalanced_projects.assert_called_once_with(
-            project_config, rebalanced_projects, cached_sample_rates, project_volumes
-        )
-        transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
-        transaction_balancing.assert_called_once_with(
-            transaction_config, project_volumes, get_transaction_volumes.return_value
-        )
+        pipeline.get_blended_sample_rate.assert_not_called()
+        project_config = _assert_called_once_with_config(pipeline.get_project_volumes, org.id)
+        pipeline.project_balancing.assert_called_once_with(project_config, project_volumes)
+        pipeline.transaction_balancing.assert_called_once()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_skips_project_mode_without_project_rates(self) -> None:
+    def test_project_mode_without_project_rates_is_skipped(self) -> None:
         org = self.create_organization()
         self.create_project(organization=org)
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT)
 
         with (
             self.feature("organizations:dynamic-sampling-custom"),
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate"
-            ) as get_blended_sample_rate,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume"
-            ) as get_volume,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes"
-            ) as get_project_volumes,
+            _mock_pipeline() as pipeline,
         ):
             result = run_calculations_per_org_task(org.id)
 
         assert result == DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
-        get_blended_sample_rate.assert_not_called()
-        get_volume.assert_not_called()
-        get_project_volumes.assert_not_called()
+        pipeline.get_blended_sample_rate.assert_not_called()
+        pipeline.get_volume.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_queries_projects_for_am2(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
-        project_volumes = [_project_volume(project.id)]
-        rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
-        cached_sample_rates: dict[int, float | None] = {}
-
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                return_value=1.0,
-            ) as get_blended_sample_rate,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume",
-                return_value=org_volume,
-            ) as get_volume,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_project_volumes",
-                return_value=project_volumes,
-            ) as get_project_volumes,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.run_project_balancing",
-                return_value=rebalanced_projects,
-            ) as project_balancing,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_cached_rebalanced_project_sample_rates",
-                return_value=cached_sample_rates,
-            ) as get_cached_sample_rates,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.compare_rebalanced_projects_with_cache"
-            ) as compare_rebalanced_projects,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_transaction_volumes",
-                return_value=[
-                    ProjectTransactionCounts(
-                        org_id=org.id,
-                        project_id=project.id,
-                        transaction_counts=[("checkout", 1.0)],
-                    )
-                ],
-            ) as get_transaction_volumes,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.run_transaction_balancing",
-                return_value={},
-            ) as transaction_balancing,
-        ):
-            result = run_calculations_per_org_task(org.id)
-
-        assert result is None
-        get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
-        _assert_called_once_with_config(get_volume, org.id)
-        project_config = _assert_called_once_with_config(get_project_volumes, org.id)
-        project_balancing.assert_called_once_with(project_config, project_volumes)
-        get_cached_sample_rates.assert_called_once_with(org.id)
-        compare_rebalanced_projects.assert_called_once_with(
-            project_config, rebalanced_projects, cached_sample_rates, project_volumes
-        )
-        transaction_config = _assert_called_once_with_config(get_transaction_volumes, org.id)
-        assert [p.id for p in get_transaction_volumes.call_args.kwargs["root_projects"]] == [
-            project.id
-        ]
-        transaction_balancing.assert_called_once_with(
-            transaction_config, project_volumes, get_transaction_volumes.return_value
-        )
-
-    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_skips_org_without_transaction_sample_rate(self) -> None:
+    def test_org_without_sample_rate_is_skipped(self) -> None:
         org = self.create_organization()
 
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                return_value=None,
-            ) as get_blended_sample_rate,
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume"
-            ) as get_volume,
-        ):
+        with _mock_pipeline(blended_sample_rate=None) as pipeline:
             result = run_calculations_per_org_task(org.id)
 
         assert result == DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
-        get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
-        get_volume.assert_not_called()
+        pipeline.get_blended_sample_rate.assert_called_once_with(organization_id=org.id)
+        pipeline.get_volume.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_skips_org_without_projects(self) -> None:
+    def test_org_without_projects_is_skipped(self) -> None:
         org = self.create_organization()
 
-        with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                return_value=1.0,
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume"
-            ) as get_volume,
-        ):
+        with _mock_pipeline(blended_sample_rate=1.0) as pipeline:
             result = run_calculations_per_org_task(org.id)
 
         assert result == DynamicSamplingStatus.ORG_HAS_NO_PROJECTS
-        get_volume.assert_not_called()
+        pipeline.get_volume.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_skips_org_without_subscription(self) -> None:
+    def test_org_without_subscription_is_skipped(self) -> None:
         org = self.create_organization()
 
         with (
-            patch(
-                "sentry.dynamic_sampling.per_org.configuration.quotas.backend.get_blended_sample_rate",
-                side_effect=ObjectDoesNotExist,
-            ),
-            patch(
-                "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume"
-            ) as get_volume,
+            patch(GET_BLENDED_SAMPLE_RATE, side_effect=ObjectDoesNotExist),
+            patch(f"{SCHEDULER}.get_eap_organization_volume") as get_volume,
         ):
             result = run_calculations_per_org_task(org.id)
 
@@ -523,11 +373,9 @@ class RunCalculationsPerOrgTest(TestCase):
         get_volume.assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
-    def test_run_calculations_per_org_skips_missing_org(self) -> None:
-        with patch(
-            "sentry.dynamic_sampling.per_org.scheduler.get_eap_organization_volume"
-        ) as get_volume:
+    def test_missing_org_is_skipped(self) -> None:
+        with _mock_pipeline() as pipeline:
             result = run_calculations_per_org_task(99999999)
 
         assert result == DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING
-        get_volume.assert_not_called()
+        pipeline.get_volume.assert_not_called()
