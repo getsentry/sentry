@@ -6,7 +6,7 @@ interface BreadcrumbLeadingSlotProps {
 
 /**
  * The fixed 16×16 leading slot shared by every breadcrumb item. Owns the sizing
- * and centering so items can accept any decorative node (a `ProjectsSavedBadge`,
+ * and centering so items can accept any decorative node (a `ProjectsBadge`,
  * a project/user avatar, a Sentry icon) without each caller re-wrapping it.
  *
  * Renders `aria-hidden`: the graphic is decorative and its meaning is carried by
