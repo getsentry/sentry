@@ -88,7 +88,11 @@ def _apply(run_id: int, updates: dict[str, Any]) -> bool:
     run mirror, then score if the ground truth already landed. Returns whether the updates were
     persisted -- ``False`` when the row is already a terminal snapshot."""
     with transaction.atomic(using=router.db_for_write(SeerAgentRun)):
-        run = SeerAgentRun.objects.select_for_update().select_related("run").get(id=run_id)
+        run = (
+            SeerAgentRun.objects.select_for_update().select_related("run").filter(id=run_id).first()
+        )
+        if run is None:
+            return False
         extras = dict(run.extras or {})
         if extras.get("result"):
             # The row is a terminal snapshot once scored. Applying later prediction or
