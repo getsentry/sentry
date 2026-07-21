@@ -415,8 +415,7 @@ class Dashboard(Model):
 
         base_name = re.sub(r" ?copy ?(\d+)?$", "", name)
         matching_dashboards = cls.objects.filter(
-            organization=organization,
-            title__regex=rf"^{re.escape(base_name)} ?(copy)? ?(\d+)?$",
+            organization=organization, title__regex=rf"^{re.escape(base_name)} ?(copy)? ?(\d+)?$"
         ).values("title")
 
         if not matching_dashboards:
