@@ -17,12 +17,16 @@ from sentry.issues.action_log.types import (
     ResolveAction,
     ResolvedInPullRequestAction,
     RootCauseIdentifiedAction,
+    SeerCodingCompletedAction,
     UnresolveAction,
     ViewAction,
 )
 from sentry.issues.derived import processing
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
+    BLOCKER,
+    HAS_OPEN_FIX_PR,
+    LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
     PROGRESS,
     STATUS,
@@ -56,6 +60,7 @@ from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
+from sentry.types.group import IssueAutofixStep, IssueBlocker
 from sentry.utils import json
 
 SOURCE = ActionSource.API
@@ -394,6 +399,39 @@ class ProcessGroupLogTest(TestCase):
         assert second.last_progressed_at == first_last_progressed_at
         assert second.progress == IssueProgressState.DIAGNOSED.value
 
+    def test_blocker_serializes_and_replays(self) -> None:
+        group = self.create_group()
+        actor = GroupActionActor.user(self.user.id)
+
+        _publish(group=group, action=SeerCodingCompletedAction(), actor=actor)
+        derived = process_group_log(group.id)
+        assert derived.data["blocker"] == IssueBlocker.APPROVE_CODE_CHANGES.value
+        assert derived.data["last_completed_autofix_step"] == IssueAutofixStep.CODE_CHANGES.value
+        assert derived.data["has_open_fix_pr"] is False
+
+        _publish(group=group, action=ResolvedInPullRequestAction(pull_request=101), actor=actor)
+        derived = process_group_log(group.id)
+        assert derived.data["blocker"] == IssueBlocker.MERGE_PR.value
+        assert derived.data["has_open_fix_pr"] is True
+
+        _publish(
+            group=group,
+            action=PullRequestClosedAction(pull_request=101, has_other_open_prs=False),
+            actor=actor,
+        )
+        first = process_group_log(group.id)
+        first_data = first.data.copy()
+        assert first.data["blocker"] == IssueBlocker.APPROVE_CODE_CHANGES.value
+
+        invalidate_group_derived_data(group.id)
+        second = process_group_log(group.id)
+        state = GroupDerivedDataStore.load(PIPELINE, second)
+
+        assert second.data == first_data
+        assert state[BLOCKER] == IssueBlocker.APPROVE_CODE_CHANGES
+        assert state[LAST_COMPLETED_AUTOFIX_STEP] == IssueAutofixStep.CODE_CHANGES
+        assert state[HAS_OPEN_FIX_PR] is False
+
     def test_pipeline_hash_set_on_create(self) -> None:
         group = self.create_group()
         _publish(group=group, action=ViewAction(), actor=GroupActionActor.user(self.user.id))
@@ -617,13 +655,22 @@ class GroupDerivedDataStoreTest(TestCase):
             group=group,
             view_count=3,
             progress="diagnosed",
-            data={"status": "closed"},
+            data={
+                "status": "closed",
+                "blocker": "approve_plan",
+                "last_completed_autofix_step": "solution",
+                "has_open_fix_pr": False,
+            },
         )
         state = GroupDerivedDataStore.load(PIPELINE, derived)
         assert state[VIEW_COUNT] == 3
         assert state[PROGRESS] == IssueProgressState.DIAGNOSED
         assert isinstance(state[PROGRESS], IssueProgressState)
         assert state[STATUS] == IssueStatus.CLOSED
+        assert state[BLOCKER] == IssueBlocker.APPROVE_PLAN
+        assert isinstance(state[BLOCKER], IssueBlocker)
+        assert state[LAST_COMPLETED_AUTOFIX_STEP] == IssueAutofixStep.SOLUTION
+        assert state[HAS_OPEN_FIX_PR] is False
 
     def test_load_null_progress(self) -> None:
         group = self.create_group()

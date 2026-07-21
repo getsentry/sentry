@@ -647,16 +647,6 @@ register(
     default=3600,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Cutover switch for the reduced per-PR activity document. When on, PR activity is
-# folded into a single PullRequestActivityLog JSON document at webhook time instead
-# of one PullRequestActivity row per event; routing is per-PR (a PR stays on
-# whichever store it started on). Flip this ON only AFTER the code is fully
-# deployed, so a mixed fleet never splits one PR's writes across both stores.
-register(
-    "pr_metrics.activity_document.enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # GitHub Integration
 register("github-app.id", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -681,11 +671,6 @@ register(
     "github-app.fetch-commits.max-compare-commits",
     type=Int,
     default=500,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "github.webhook.mailbox-bucketing.enabled",
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -912,6 +897,36 @@ register(
 register(
     "snuba.search.recommended.newness-halflife-hours",
     default=24.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Agentic triage sort: purpose-built for night shift candidate ranking.
+# Each factor weight defaults to 0.25 (equal weighting across 4 factors).
+# Set a weight to 0 to skip that factor's aggregation entirely.
+register(
+    "snuba.search.agentic-triage.recency-weight",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.agentic-triage.severity-weight",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.agentic-triage.user-impact-weight",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "snuba.search.agentic-triage.event-volume-weight",
+    default=0.25,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Lookback window in seconds for Snuba aggregation (default: 2 days).
+register(
+    "snuba.search.agentic-triage.lookback-seconds",
+    default=172800,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2168,6 +2183,18 @@ register(
     "dynamic-sampling.boost_low_volume_transactions.emit_smallest_transaction_factor_metric",
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Lower bound on the per-transaction sample rate produced by transaction rebalancing. When a project
+# has many low-volume transaction classes, the per-class ideal collapses to a near-zero rate and the
+# highest-volume transactions are pushed to a huge extrapolation factor (1 / rate), making their
+# extrapolated volume spiky and the sampling distribution non-ergodic. Flooring the explicit rates at
+# this value caps that factor at 1 / min_sample_rate and reclaims the cost from the implicit (tail)
+# rate. The floor is clamped to the project's overall rate, so it never raises a class above it.
+# 0.0 disables the floor (default), preserving the previous behaviour until rolled out via automator.
+register(
+    "dynamic-sampling.prioritise_transactions.min_sample_rate",
+    default=0.0,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Stops dynamic sampling rules from being emitted in relay config.

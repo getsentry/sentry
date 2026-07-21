@@ -1,0 +1,483 @@
+---
+title: BreadcrumbList
+description: A typed, accessible breadcrumb trail that collapses parent links into an overflow menu in narrow containers.
+category: navigation
+source: '@sentry/scraps/breadcrumbList'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/breadcrumbList/breadcrumbList.tsx
+  figma: https://www.figma.com/design/a638AEl7pFxj29zMODCiOB/Specs--Page-Frame-v1?node-id=1198-17420
+---
+
+import {ProjectsSavedBadge} from '@sentry/scraps/projectsSavedBadge';
+
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {IconEllipsis, IconGlobe} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+
+import {BreadcrumbListDemo} from './__stories__/breadcrumbListDemo';
+
+export const documentation = import('!!type-loader!@sentry/scraps/breadcrumbList');
+
+`BreadcrumbList` renders the parent portion of a horizontal breadcrumb trail. It
+does not render a navigation landmark or a page heading. Render the current page
+with `BreadcrumbList.Title` in the `TopBar` title slot; `TopBar` supplies the
+page's single `<h1>`.
+
+## Usage
+
+```tsx
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {TopBar} from 'sentry/views/navigation/topBar';
+```
+
+Pass parent crumbs in a typed `items` array. Each entry is a discriminated union:
+a `type` key plus that type's own props, flattened onto the same object. The
+current page is a separate `BreadcrumbList.Title` item.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[
+      {type: 'link', label: 'Organization', to: '/organizations/org-slug/'},
+      {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
+      {
+        type: 'link',
+        label: 'javascript',
+        to: '/settings/org-slug/projects/javascript/',
+      },
+    ]}
+    title={
+      <BreadcrumbList.Title item={{type: 'page-title', label: 'General Settings'}} />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {type: 'link', label: 'Organization', to: '/organizations/org-slug/'},
+      {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
+      {
+        type: 'link',
+        label: 'javascript',
+        to: '/settings/org-slug/projects/javascript/',
+      },
+    ]}
+  />
+</TopBar.Slot>
+<TopBar.Slot name="title">
+  <BreadcrumbList.Title item={{type: 'page-title', label: 'General Settings'}} />
+</TopBar.Slot>
+```
+
+## TopBar composition
+
+Use two `TopBar.Slot`s when the breadcrumb trail belongs in the page header. The
+`breadcrumbs` slot is placed to the left of the `title` slot. Keep the title item
+out of `BreadcrumbList.items`, and do not change the title slot's element: it is
+always the page's `<h1>`.
+
+```tsx
+import {TopBar} from 'sentry/views/navigation/topBar';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
+  />
+</TopBar.Slot>
+<TopBar.Slot name="title">
+  <BreadcrumbList.Title item={{type: 'page-title', label: 'Current Issue'}} />
+</TopBar.Slot>
+```
+
+`BreadcrumbList.Title` renders title content without a heading, so this
+composition produces one heading even when the title includes pagination,
+leading graphics, trailing actions, or an editable control.
+
+## Item types
+
+### `'link'` — parent page
+
+A clickable, muted-weight crumb that navigates to a parent page. Set
+`preservePageFilters` to carry project, environment, and date filters across the
+navigation.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[
+      {
+        type: 'link',
+        label: 'A very long project name that will be truncated',
+        to: '/organizations/org-slug/projects/',
+      },
+      {
+        type: 'link',
+        label: 'Issues',
+        to: '/organizations/org-slug/issues/',
+        preservePageFilters: true,
+      },
+    ]}
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
+      {type: 'link', label: 'Issues', to: '/issues/', preservePageFilters: true},
+    ]}
+  />
+</TopBar.Slot>
+```
+
+### `'select-projects'` — project picker
+
+A `CompactSelect` trigger used in settings pages where the user can switch
+between projects inline. It accepts standard `options`, `value`, and `onChange`
+props.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[
+      {type: 'link', label: 'Settings', to: '/settings/'},
+      {
+        type: 'select-projects',
+        value: 'javascript',
+        options: [
+          {value: 'javascript', label: 'javascript'},
+          {value: 'python', label: 'python'},
+          {value: 'ruby', label: 'ruby'},
+        ],
+        onChange: () => {},
+      },
+    ]}
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {type: 'link', label: 'Settings', to: '/settings/'},
+      {
+        type: 'select-projects',
+        value: 'javascript',
+        options: [
+          {value: 'javascript', label: 'javascript'},
+          {value: 'python', label: 'python'},
+        ],
+        onChange: option => navigate(`/settings/${org.slug}/projects/${option.value}/`),
+      },
+    ]}
+  />
+</TopBar.Slot>
+```
+
+## Page titles
+
+The `page-title` item is rendered with `BreadcrumbList.Title`, not in the
+`BreadcrumbList.items` array. It is bold, non-interactive, and renders as inline
+content. The surrounding `TopBar.Slot name="title"` provides the `<h1>`; the
+demo below mirrors that heading and flex layout.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Issue details',
+        }}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
+  />
+</TopBar.Slot>
+<TopBar.Slot name="title">
+  <BreadcrumbList.Title
+    item={{
+      type: 'page-title',
+      label: 'Issue details',
+    }}
+  />
+</TopBar.Slot>
+```
+
+## Leading graphics
+
+All parent and title items that display text accept an optional `leadingGraphic`
+typed as `React.ReactNode` — for example, a `ProjectsSavedBadge`, avatar, or
+Sentry icon. It is rendered as decorative content in a fixed 16×16 slot, so the
+label carries the meaning.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[
+      {
+        type: 'link',
+        label: 'My Projects',
+        to: '/settings/org-slug/projects/',
+        leadingGraphic: (
+          <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
+        ),
+      },
+    ]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Client Keys (DSN)',
+          leadingGraphic: (
+            <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
+          ),
+        }}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {
+        type: 'link',
+        label: 'My Projects',
+        to: '/settings/org-slug/projects/',
+        leadingGraphic: (
+          <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
+        ),
+      },
+    ]}
+  />
+</TopBar.Slot>
+<TopBar.Slot name="title">
+  <BreadcrumbList.Title
+    item={{
+      type: 'page-title',
+      label: 'Client Keys (DSN)',
+      leadingGraphic: <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />,
+    }}
+  />
+</TopBar.Slot>
+```
+
+## Editable titles
+
+The `editable-title` item renders the current page as a click-to-edit field for
+pages that let users rename in place. Pass the editable field props directly on
+the `editable-title` item passed to `BreadcrumbList.Title`. Unlike
+`page-title`, it has no `trailingActions` slot; `EditableText` provides its own
+edit affordance.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[
+      {
+        type: 'link',
+        label: 'Dashboards',
+        to: '/organizations/org-slug/dashboards/',
+      },
+    ]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'editable-title',
+          value: 'Frontend Overview',
+          onChange: () => null,
+          'aria-label': 'Edit dashboard name',
+        }}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {type: 'link', label: 'Dashboards', to: '/organizations/org-slug/dashboards/'},
+    ]}
+  />
+</TopBar.Slot>
+<TopBar.Slot name="title">
+  <BreadcrumbList.Title
+    item={{
+      type: 'editable-title',
+      value: dashboard.title,
+      onChange: handleRename,
+      'aria-label': 'Edit dashboard name',
+    }}
+  />
+</TopBar.Slot>
+```
+
+## Pagination
+
+The `page-title` item accepts an optional `pagination` prop for pages where the
+user can step through a list of items, such as issues, replays, or traces. Each
+direction has an `ariaLabel`, an optional `to` URL, an optional `disabled` flag,
+and an optional rich `tooltip`. When `to` is omitted, that chevron is disabled.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Issue details',
+          pagination: {
+            previous: {ariaLabel: 'Previous issue', to: '/issues/122/'},
+            next: {ariaLabel: 'Next issue', to: '/issues/124/', disabled: true},
+          },
+        }}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
+  />
+</TopBar.Slot>
+<TopBar.Slot name="title">
+  <BreadcrumbList.Title
+    item={{
+      type: 'page-title',
+      label: group.shortId,
+      pagination: {
+        previous: {ariaLabel: 'Previous issue', to: previousIssueUrl},
+        next: {ariaLabel: 'Next issue', to: nextIssueUrl},
+      },
+    }}
+  />
+</TopBar.Slot>
+```
+
+## Trailing actions
+
+The `page-title` item accepts a `trailingActions` slot rendered after the label,
+for example a copy action or page-level menu. The slot is bounded to
+typed `copy`, `menu`, or `button` objects. Falsy entries are dropped so
+consumers can inline conditionals. Actions are always visible and keyboard
+accessible.
+
+<Storybook.Demo>
+  <BreadcrumbListDemo
+    items={[{type: 'link', label: 'Issues', to: '/organizations/org-slug/issues/'}]}
+    title={
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'JAVASCRIPT-2X9',
+          trailingActions: [
+            {
+              type: 'copy',
+              text: 'JAVASCRIPT-2X9',
+              label: 'Copy Short-ID',
+            },
+            {
+              type: 'menu',
+              triggerLabel: 'More actions',
+              triggerIcon: <IconEllipsis />,
+              items: [{key: 'share', label: 'Share', leadingItems: <IconGlobe />}],
+            },
+          ],
+        }}
+      />
+    }
+  />
+</Storybook.Demo>
+```tsx
+<TopBar.Slot name="title">
+  <BreadcrumbList.Title
+    item={{
+      type: 'page-title',
+      label: group.shortId,
+      trailingActions: [
+        {
+          type: 'copy',
+          text: group.shortId,
+          label: 'Copy Short-ID',
+          onCopy: handleCopy,
+        },
+        isPublic && shareUrl
+          ? {
+              type: 'button',
+              element: (
+                <Button
+                  size="zero"
+                  variant="transparent"
+                  icon={<IconGlobe />}
+                  aria-label="Share"
+                  onClick={openShareModal}
+                />
+              ),
+            }
+          : null,
+      ],
+    }}
+  />
+</TopBar.Slot>
+```
+
+## Overflow (container query)
+
+`BreadcrumbList` uses the nearest inline-size query container. Standalone lists
+establish their own container; lists rendered in the TopBar `breadcrumbs` slot
+reuse the TopBar's flexible content region so the slot remains content-sized.
+Below 500px, parent items hide and link parents collapse into a single `…`
+overflow button. Other parent types, such as `select-projects`, simply collapse
+out of view. The page title is rendered separately in the title slot and remains
+visible there.
+
+Drag the sizing handle below to see the transition:
+
+<Storybook.SizingWindow display="block">
+  <BreadcrumbListDemo
+    items={[
+      {
+        type: 'link',
+        label: 'Settings',
+        to: '/settings/',
+        leadingGraphic: (
+          <ProjectsSavedBadge projectPlatforms={['python', 'javascript']} />
+        ),
+      },
+      {
+        type: 'link',
+        label: 'javascript',
+        to: '/settings/org-slug/projects/javascript/',
+      },
+      {
+        type: 'link',
+        label: 'Client Keys (DSN)',
+        to: '/settings/org-slug/projects/javascript/keys/',
+      },
+    ]}
+  />
+</Storybook.SizingWindow>
+```tsx
+<TopBar.Slot name="breadcrumbs">
+  <BreadcrumbList
+    items={[
+      {type: 'link', label: 'Settings', to: '/settings/'},
+      {
+        type: 'link',
+        label: 'javascript',
+        to: '/settings/org-slug/projects/javascript/',
+      },
+      {
+        type: 'link',
+        label: 'Client Keys (DSN)',
+        to: '/settings/org-slug/projects/javascript/keys/',
+      },
+    ]}
+  />
+</TopBar.Slot>
+```

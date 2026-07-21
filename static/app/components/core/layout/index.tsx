@@ -16,5 +16,6 @@ export {
   rc,
   type Responsive,
   useContainerBreakpoint,
+  useHasContainerQuery,
 } from './styles';
 export {getBorder, getMargin, getRadius, getSpacing} from './styles';
