@@ -689,9 +689,9 @@ TOP_SPANS_LIMIT = 5
 TOP_SPANS_QUERY_LIMIT = 50
 
 
-def _build_span_name_filter(names: list[str]) -> str:
+def _build_span_description_filter(names: list[str]) -> str:
     escaped = [name.replace("\\", "\\\\").replace('"', '\\"') for name in names]
-    return "span.name:[{}]".format(", ".join(f'"{n}"' for n in escaped))
+    return "span.description:[{}]".format(", ".join(f'"{n}"' for n in escaped))
 
 
 def _get_transaction_projects(ctx: OrganizationReportContext) -> list[Project]:
@@ -733,9 +733,9 @@ def organization_top_spans(
     with start_span(op="weekly_reports.top_spans_table", name="weekly_reports.top_spans_table"):
         result = Spans.run_table_query(
             params=snuba_params,
-            query_string="is_transaction:1 has:span.name",
+            query_string="is_transaction:1 has:span.description",
             selected_columns=[
-                "span.name",
+                "span.description",
                 "project.id",
                 "sum(span.duration)",
                 "p95(span.duration)",
@@ -770,7 +770,7 @@ def organization_top_spans(
             ctx.spans_count_by_project[int(project_id)] = row.get("count()", 0)
 
     for row in result.get("data", []):
-        span_name = row.get("span.name", "")
+        span_name = row.get("span.description", "")
         project_id = row.get("project.id")
         if not span_name or not project_id:
             continue
@@ -805,7 +805,7 @@ def organization_top_spans_timeseries(
     )
     config = SearchResolverConfig(auto_fields=True)
 
-    span_name_filter = _build_span_name_filter([s["name"] for s in ctx.top_spans])
+    span_name_filter = _build_span_description_filter([s["name"] for s in ctx.top_spans])
     with start_span(
         op="weekly_reports.top_spans_timeseries", name="weekly_reports.top_spans_timeseries"
     ):
@@ -813,7 +813,7 @@ def organization_top_spans_timeseries(
             params=snuba_params,
             query_string=f"is_transaction:1 ({span_name_filter})",
             y_axes=["p95(span.duration)", "sum(span.duration)"],
-            raw_groupby=["span.name"],
+            raw_groupby=["span.description"],
             orderby=["-sum(span.duration)"],
             limit=TOP_SPANS_LIMIT,
             include_other=False,
