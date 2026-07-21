@@ -67,7 +67,7 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
 
   // Memoize the JSON parsing because downstream hooks depend on
   // referential equality of objects in the data
-  const hierarchy = useMemo<ViewHierarchyData>(() => {
+  const hierarchy = useMemo<ViewHierarchyData | null>(() => {
     if (!data) {
       return null;
     }

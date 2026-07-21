@@ -87,7 +87,7 @@ type ViewHierarchyProps = {
   emptyMessage: string;
   nodeField: ViewHierarchyNodeField;
   showWireframe: boolean;
-  viewHierarchy: ViewHierarchyData;
+  viewHierarchy: ViewHierarchyData | null;
   platform?: string;
 };
 
@@ -102,11 +102,11 @@ function ViewHierarchy({
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
-  const [selectedNode, setSelectedNode] = useState(viewHierarchy.windows?.[0]);
+  const [selectedNode, setSelectedNode] = useState(viewHierarchy?.windows?.[0]);
   const [userHasSelected, setUserHasSelected] = useState(false);
   const hierarchy = useMemo(() => {
-    return viewHierarchy.windows ?? [];
-  }, [viewHierarchy.windows]);
+    return viewHierarchy?.windows ?? [];
+  }, [viewHierarchy?.windows]);
 
   const renderRow: UseVirtualizedTreeProps<ViewHierarchyWindow>['renderRow'] = (
     r,
@@ -205,7 +205,7 @@ function ViewHierarchy({
 
   const viewHierarchyContent = (
     <Fragment>
-      <RenderingSystem platform={platform} system={viewHierarchy.rendering_system} />
+      <RenderingSystem platform={platform} system={viewHierarchy?.rendering_system} />
       <Flex gap="md" height="700px">
         <Left hasRight={showWireframe}>
           <TreeContainer>
@@ -233,7 +233,7 @@ function ViewHierarchy({
               selectedNode={userHasSelected ? selectedNode : undefined}
               onNodeSelect={onWireframeNodeSelect}
               platform={platform}
-              positioning={viewHierarchy.positioning}
+              positioning={viewHierarchy?.positioning}
             />
           </Right>
         )}
