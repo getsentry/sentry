@@ -43,6 +43,7 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOverlay} from 'sentry/utils/useOverlay';
 import {useProjects} from 'sentry/utils/useProjects';
+
 // The menu size can change from things like loading states, long options,
 // or custom menus like a date picker. This hook ensures that the overlay
 // is updated in response to these changes.
@@ -143,6 +144,7 @@ function AskSeerPollingPopoverContent({
       <SeerContent>
         <AskSeerSearchHeader
           title={t('Seer failed to process your search. Please try again.')}
+          isError={hasAskSeerUxRework}
         />
       </SeerContent>
     );
@@ -584,6 +586,10 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
   const showLoading = isSessionPending || isPolling;
   const hasResults = queries.length > 0;
   const isDisplayingResults = !showLoading && !isSessionError && hasResults;
+  const showLeftFooterAction = hasAskSeerUxRework;
+  const showFooter = hasAskSeerUxRework
+    ? isDisplayingResults || isSessionError
+    : Boolean(openForm);
 
   return (
     <Wrapper ref={containerRef} isDropdownOpen={state.isOpen}>
@@ -639,18 +645,18 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
             state={state}
             onMouseLeave={onMouseLeave}
           />
-          {(hasAskSeerUxRework ? isDisplayingResults : openForm) ? (
+          {showFooter ? (
             <Flex
-              justify={hasAskSeerUxRework ? 'between' : 'end'}
+              justify={showLeftFooterAction ? 'between' : 'end'}
               borderTop="primary"
               paddingTop="sm"
               paddingBottom="sm"
               paddingLeft="md"
               paddingRight="md"
-              background={hasAskSeerUxRework ? 'secondary' : 'primary'}
+              background={showLeftFooterAction ? 'secondary' : 'primary'}
               onMouseDown={e => e.preventDefault()}
             >
-              {hasAskSeerUxRework ? (
+              {showLeftFooterAction ? (
                 <Button
                   icon={<IconSync />}
                   size="zero"
@@ -669,12 +675,12 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
                     submitQuery(query);
                   }}
                 >
-                  {t('Generate again')}
+                  {isSessionError ? t('Try again') : t('Generate again')}
                 </Button>
               ) : null}
               {openForm ? (
                 <Button
-                  size={hasAskSeerUxRework ? 'zero' : 'xs'}
+                  size={showLeftFooterAction ? 'zero' : 'xs'}
                   icon={<IconMegaphone />}
                   onClick={() =>
                     openForm({
