@@ -1,9 +1,8 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -125,22 +124,9 @@ function AcceptProjectTransferForm({
             </field.Layout.Stack>
           )}
         </form.AppField>
-        <Container borderTop="secondary" paddingTop="xl" paddingBottom="xl">
-          <Flex justify="end">
-            <form.Subscribe selector={state => state.isSubmitting}>
-              {isSubmitting => (
-                <Button
-                  variant="danger"
-                  type="submit"
-                  busy={isSubmitting}
-                  disabled={isSubmitting}
-                >
-                  {t('Transfer Project')}
-                </Button>
-              )}
-            </form.Subscribe>
-          </Flex>
-        </Container>
+        <Flex justify="end" borderTop="secondary" paddingTop="xl" paddingBottom="xl">
+          <form.SubmitButton>{t('Transfer Project')}</form.SubmitButton>
+        </Flex>
       </Stack>
     </form.AppForm>
   );
@@ -196,25 +182,21 @@ function AcceptProjectTransfer() {
               }
             )}
           </Text>
-          {transferDetails && (
-            <Text as="p">
-              {tct(
-                'Please select which [organization] you want for the project [project].',
-                {
-                  organization: <strong>{t('Organization')}</strong>,
-                  project: transferDetails.project.slug,
-                }
-              )}
-            </Text>
-          )}
+          <Text as="p">
+            {tct(
+              'Please select which [organization] you want for the project [project].',
+              {
+                organization: <strong>{t('Organization')}</strong>,
+                project: transferDetails.project.slug,
+              }
+            )}
+          </Text>
         </Stack>
-        {transferDetails && (
-          <AcceptProjectTransferForm
-            transferDetails={transferDetails}
-            transferData={location.query.data}
-            regionHost={getRegionHost()}
-          />
-        )}
+        <AcceptProjectTransferForm
+          transferDetails={transferDetails}
+          transferData={location.query.data}
+          regionHost={getRegionHost()}
+        />
       </Stack>
     </NarrowLayout>
   );
