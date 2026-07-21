@@ -510,6 +510,12 @@ describe('AutofixOverview', () => {
     await userEvent.click(mergedHeader);
     expect(screen.queryByRole('link', {name: 'Issue A'})).not.toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Issue B'})).toBeInTheDocument();
+
+    // The bulk toggle folds everything, then flips to Expand all.
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse all'}));
+    expect(screen.queryByRole('link', {name: 'Issue B'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Expand all'}));
+    expect(screen.getByRole('link', {name: 'Issue A'})).toBeInTheDocument();
   });
 
   it('surfaces the blocking question when a run awaits user input', async () => {

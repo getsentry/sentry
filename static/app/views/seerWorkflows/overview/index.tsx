@@ -215,6 +215,9 @@ export default function AutofixOverview() {
         : [...previous.filter(key => key !== groupKey), groupKey]
     );
   };
+  const allGroupsCollapsed =
+    groupedRows.length > 0 &&
+    groupedRows.every(([groupKey]) => collapsedGroups.includes(groupKey));
 
   const hasActiveFilters =
     outcomeFilter.length > 0 ||
@@ -366,11 +369,28 @@ export default function AutofixOverview() {
                     )}
                   />
                 </Flex>
-                {hasActiveFilters ? (
-                  <Button size="xs" variant="link" onClick={clearAllFilters}>
-                    {t('Clear all')}
-                  </Button>
-                ) : null}
+                <Flex gap="sm" align="center">
+                  {hasActiveFilters ? (
+                    <Button size="xs" variant="link" onClick={clearAllFilters}>
+                      {t('Clear all')}
+                    </Button>
+                  ) : null}
+                  {groupedRows.length > 0 && (
+                    <Button
+                      size="xs"
+                      variant="link"
+                      onClick={() =>
+                        setCollapsedGroups(
+                          allGroupsCollapsed
+                            ? []
+                            : groupedRows.map(([groupKey]) => groupKey)
+                        )
+                      }
+                    >
+                      {allGroupsCollapsed ? t('Expand all') : t('Collapse all')}
+                    </Button>
+                  )}
+                </Flex>
               </Flex>
             )}
 
