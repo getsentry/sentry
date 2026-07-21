@@ -1,6 +1,24 @@
 import {RuleTester} from '@typescript-eslint/rule-tester';
 
-import {noDefaultExports} from './noDefaultExports';
+import {mayContainDynamicImport, noDefaultExports} from './noDefaultExports';
+
+describe.each([
+  ['direct call', "import('component')"],
+  ['whitespace', "import \n ('component')"],
+  ['block comment', "import /* webpackChunkName: 'component' */ ('component')"],
+  ['line comment', "import // component\n ('component')"],
+  ['carriage return line comment', "import // component\r ('component')"],
+  ['unicode line comment', "import // component\u2028 ('component')"],
+  ['multiple comments', "import /* one */ // two\n /* three */ ('component')"],
+])('mayContainDynamicImport - %s', (_description, source) => {
+  it('detects the import call', () => {
+    expect(mayContainDynamicImport(source)).toBe(true);
+  });
+});
+
+it('does not treat a static import as a dynamic import', () => {
+  expect(mayContainDynamicImport("import Component from 'component'")).toBe(false);
+});
 
 const ruleTester = new RuleTester({
   languageOptions: {
