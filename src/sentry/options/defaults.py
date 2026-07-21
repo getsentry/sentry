@@ -3811,12 +3811,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Hard cap on how many PR iterations a single Autofix run will perform. Bounds the
-# feedback loop when a review bot re-reviews each new iteration commit.
+# Cap on consecutive automated PR iterations (check suites + bot re-reviews);
+# human feedback resets the streak. See ``automated_iteration_cap_reached``.
 register(
     "autofix.pr-iteration.max-iterations",
     type=Int,
-    default=20,
+    default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

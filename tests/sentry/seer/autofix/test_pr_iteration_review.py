@@ -91,6 +91,9 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         assert kwargs["review_id"] == 500
         # Author is threaded to the task, which gates on its repo write access.
         assert kwargs["author_username"] == "reviewer"
+        # Human authorship is threaded through so the task can apply the
+        # automated-only streak cap.
+        assert kwargs["author_is_bot"] is False
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
     @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
@@ -115,6 +118,8 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
                 self._event(author_id="333333", is_bot=True)
             )
         mock_delay.assert_called_once()
+        # Bot authorship is threaded through so the task can apply the streak cap.
+        assert mock_delay.call_args.kwargs["author_is_bot"] is True
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
     @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
@@ -261,7 +266,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def _review_result(self, review: dict[str, Any]) -> dict[str, Any]:
         return {"data": review, "type": "github", "raw": {}}
 
-    def _run(self, author_username: str | None = "reviewer") -> None:
+    def _run(self, author_username: str | None = "reviewer", author_is_bot: bool = False) -> None:
         trigger_pr_iteration_from_review(
             organization_id=self.organization.id,
             repo_id=self.repo.id,
@@ -269,6 +274,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
             pr_number=7,
             review_id=500,
             author_username=author_username,
+            author_is_bot=author_is_bot,
         )
 
     def test_batch_review_with_inline_comments_and_body(self) -> None:
@@ -459,10 +465,11 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
 
-    def test_skips_when_max_iterations_reached(self) -> None:
-        # Past the cap, consume would drop the feedback anyway, so bail before
+    def test_skips_bot_review_when_automated_streak_capped(self) -> None:
+        # A bot review past the automated-iteration streak cap is dropped before
         # enqueueing or :eyes:-acking any inline comment — otherwise reviewers see
-        # an ack for feedback that never produces an iteration.
+        # an ack for feedback that never produces an iteration. (Iterations with no
+        # human feedback count as automated, so two bare iterations trip a cap of 2.)
         self.mock_get_state.return_value = self._agent_state(
             blocks=[self._iteration_block(1), self._iteration_block(2)]
         )
@@ -471,12 +478,28 @@ class TriggerPrIterationFromReviewTest(TestCase):
         )
 
         with self.options({"autofix.pr-iteration.max-iterations": 2}):
-            self._run()
+            self._run(author_is_bot=True)
 
         self.mock_make_scm.assert_not_called()
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
         self.mock_actions.create_review_comment_reaction.assert_not_called()
+
+    def test_human_review_proceeds_when_automated_streak_capped(self) -> None:
+        # The streak cap only bounds automated (bot) reviews; a human review always
+        # drives an iteration and resets the streak, even past the cap.
+        self.mock_get_state.return_value = self._agent_state(
+            blocks=[self._iteration_block(1), self._iteration_block(2)]
+        )
+        self.mock_actions.get_review_comments.return_value = self._paginated(
+            [self._review_comment(comment_id="1", body="fix this")]
+        )
+
+        with self.options({"autofix.pr-iteration.max-iterations": 2}):
+            self._run(author_is_bot=False)
+
+        self.mock_enqueue.assert_called()
+        self.mock_consume.assert_called_once()
 
     def test_skips_review_without_repo_write_access(self) -> None:
         # A reviewer lacking write/admin can't drive an iteration: drop before

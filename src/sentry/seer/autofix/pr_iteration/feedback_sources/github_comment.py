@@ -128,6 +128,13 @@ class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
     line: int | None = None
     start_line: int | None = None
     diff_hunk: str | None = None
+    # Whether the review author is a bot (e.g. a test-coverage bot). Bot reviews
+    # count toward the automated-iteration streak cap; human reviews reset it.
+    author_is_bot: bool = False
+
+    @property
+    def is_automated(self) -> bool:
+        return self.author_is_bot
 
     @root_validator
     def _populate_location(cls, values: dict[str, Any]) -> dict[str, Any]:
@@ -195,10 +202,17 @@ class GithubPrReviewBodyFeedbackSource(FeedbackSourceBase):
     review_id: int | None = None
     body: str = ""
     html_url: str | None = None
+    # Whether the review author is a bot (e.g. a test-coverage bot). Bot reviews
+    # count toward the automated-iteration streak cap; human reviews reset it.
+    author_is_bot: bool = False
 
     @property
     def text(self) -> str:
         return self.body
+
+    @property
+    def is_automated(self) -> bool:
+        return self.author_is_bot
 
     def should_consume(self, run_state: SeerRunState) -> bool:
         if self.review_id is None:

@@ -36,11 +36,10 @@ from sentry.seer.autofix.autofix_agent import (
     AutofixStep,
     PrIterationNoPullRequestException,
     PrIterationNotEnabledException,
-    get_latest_iteration_index,
     trigger_autofix_agent,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.pr_iteration.feedback import Feedback
+from sentry.seer.autofix.pr_iteration.feedback import Feedback, automated_iteration_cap_reached
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
@@ -91,18 +90,6 @@ def _get_feedback_referrer(items: list[QueuedAutofixFeedback]) -> AutofixReferre
     if len(referrers) == 1:
         return referrers.pop()
     return AutofixReferrer.UNKNOWN
-
-
-def _max_iterations_reached(state: SeerRunState) -> bool:
-    """True once the run has performed the capped number of PR iterations.
-
-    ``get_latest_iteration_index`` == the count of iterations already performed
-    (the next would be +1), so ``>=`` stops the next one. Checked both when
-    triggering (to avoid acking feedback we won't act on) and when consuming
-    (the authoritative gate, after draining the queue).
-    """
-    max_iterations = options.get("autofix.pr-iteration.max-iterations")
-    return get_latest_iteration_index(state) >= max_iterations
 
 
 def trigger_consume_pr_iteration_feedback(
@@ -588,12 +575,16 @@ def _build_review_feedback(
     *,
     review_id: int,
     review_html_url: str | None,
+    author_is_bot: bool,
 ) -> list[Feedback]:
     """Normalize a submitted review into feedback items.
 
     Each inline comment becomes an anchored ``GithubPrReviewCommentFeedbackSource``
     (command gate relaxed) and the review's summary body, if any, becomes its own
     non-anchored ``GithubPrReviewBodyFeedbackSource``.
+
+    ``author_is_bot`` marks the resulting feedback as automated so it counts
+    toward the automated-iteration streak cap (see ``automated_iteration_cap_reached``).
     """
     feedback: list[Feedback] = []
 
@@ -614,7 +605,9 @@ def _build_review_feedback(
             diff_hunk=comment.get("diff_hunk"),
             user=GithubPrCommentUser(login=author["username"] if author else None),
         )
-        source = GithubPrReviewCommentFeedbackSource(comment=review_comment, require_command=False)
+        source = GithubPrReviewCommentFeedbackSource(
+            comment=review_comment, require_command=False, author_is_bot=author_is_bot
+        )
         feedback.append(Feedback(source=source))
 
     if review_body:
@@ -622,6 +615,7 @@ def _build_review_feedback(
             review_id=review_id,
             body=review_body,
             html_url=review_html_url,
+            author_is_bot=author_is_bot,
         )
         feedback.append(Feedback(source=body_source))
 
@@ -642,6 +636,7 @@ def trigger_pr_iteration_from_review(
     pr_number: int,
     review_id: int,
     author_username: str | None = None,
+    author_is_bot: bool = False,
 ) -> None:
     """
     Resolve the Autofix run behind a submitted PR review and kick off an iteration.
@@ -653,6 +648,10 @@ def trigger_pr_iteration_from_review(
     command gate — any submitted review with content is acted on — but the review
     author must have repo write/admin access, so an untrusted reviewer can't spend
     Autofix quota or inject feedback that rewrites the PR.
+
+    ``author_is_bot`` reviews (test-coverage bots and the like) count toward the
+    automated-iteration streak cap and are dropped once it's reached; human
+    reviews always drive an iteration and reset that streak.
     """
     log_extra = {
         "organization_id": organization_id,
@@ -660,6 +659,7 @@ def trigger_pr_iteration_from_review(
         "pr_number": pr_number,
         "review_id": review_id,
         "author_username": author_username,
+        "author_is_bot": author_is_bot,
     }
 
     repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
@@ -700,10 +700,12 @@ def trigger_pr_iteration_from_review(
         )
         return None
 
-    # Bail before enqueueing or acking: consume enforces the same cap after
-    # draining the queue, so past the cap we'd :eyes:-ack inline comments that
-    # never produce an iteration. Reviewers would read that as accepted feedback.
-    if _max_iterations_reached(agent_state):
+    # Only bot reviews are capped: once the last N iterations were all automated,
+    # stop letting bots (test-coverage comments and the like) drive further ones —
+    # they'd loop forever without human input. A human review always proceeds and
+    # resets that streak. Bail before enqueueing or acking so we don't :eyes:-ack
+    # inline comments that never produce an iteration.
+    if author_is_bot and automated_iteration_cap_reached(agent_state):
         metrics.incr("autofix.pr_iteration.review_trigger.max_iterations_reached")
         logger.info(
             "autofix.pr_iteration.review_trigger.max_iterations_reached",
@@ -753,6 +755,7 @@ def trigger_pr_iteration_from_review(
         review_body,
         review_id=review_id,
         review_html_url=review_html_url,
+        author_is_bot=author_is_bot,
     )
     if not feedback_items:
         logger.info("autofix.pr_iteration.review_trigger.no_feedback", extra=log_extra)
