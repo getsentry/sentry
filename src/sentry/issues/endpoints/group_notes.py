@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from django.utils import timezone
@@ -7,6 +8,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
@@ -17,14 +19,18 @@ from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.action_log import action_context_scope, resolve_action_source
-from sentry.issues.action_log.types import GroupActionActor
+from sentry.issues.action_log.types import GroupActionActor, GroupActionType
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_created
 from sentry.types.activity import ActivityType
+from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
+
+logger = logging.getLogger(__name__)
 
 
 @cell_silo_endpoint
@@ -47,6 +53,18 @@ class GroupNotesEndpoint(GroupEndpoint):
         url_names=["sentry-api-0-group-notes"],
     )
     def get(self, request: Request, group: Group) -> Response:
+        if features.has("projects:issue-action-log-write-to-db", group.project, actor=request.user):
+            entries = GroupActionLogEntry.objects.filter(
+                group_id=group.id, type=GroupActionType.COMMENT.value
+            )
+            return self.paginate(
+                request=request,
+                queryset=entries,
+                paginator_cls=DateTimePaginator,
+                order_by="-date_added",
+                on_results=lambda x: serialize(x, request.user),
+            )
+
         notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
 
         return self.paginate(
@@ -128,4 +146,14 @@ class GroupNotesEndpoint(GroupEndpoint):
             data=webhook_data,
             sender="post",
         )
+
+        if features.has("projects:issue-action-log-write-to-db", group.project, actor=request.user):
+            entry = GroupActionLogEntry.objects.filter(
+                group_id=group.id,
+                idempotency_key=activity_action_idempotency_key(activity),
+            ).first()
+            if entry:
+                return Response(serialize(entry, request.user), status=201)
+            logger.info("group_notes.groupactionlogentry.not_found", extra={"group_id": group.id})
+
         return Response(serialize(activity, request.user), status=201)

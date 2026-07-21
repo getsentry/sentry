@@ -1,9 +1,12 @@
+import logging
+
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -22,12 +25,16 @@ from sentry.issues.action_log import (
 )
 from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_deleted, comment_updated
 from sentry.types.activity import ActivityType
+from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
+
+logger = logging.getLogger(__name__)
 
 
 @cell_silo_endpoint
@@ -160,6 +167,24 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
                 data=webhook_data,
                 sender="put",
             )
+
+            if features.has(
+                "projects:issue-action-log-write-to-db", group.project, actor=request.user
+            ):
+                entry = GroupActionLogEntry.objects.filter(
+                    group_id=group.id,
+                    idempotency_key=activity_action_idempotency_key(note),
+                ).first()
+                if entry:
+                    # Editing a note doesn't update its COMMENT entry (an edit only
+                    # appends a separate COMMENT_EDIT entry), so re-derive the fresh
+                    # text from the activity we just saved.
+                    entry.data = {**entry.data, "text": note.data.get("text")}
+                    return Response(serialize(entry, request.user), status=200)
+                logger.info(
+                    "group_notes.groupactionlogentry.not_found", extra={"group_id": group.id}
+                )
+
             return Response(serialize(note, request.user), status=200)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

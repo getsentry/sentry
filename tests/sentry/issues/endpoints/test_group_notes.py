@@ -1,6 +1,8 @@
 import datetime
 
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -9,6 +11,7 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo.base import SiloMode
 from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -102,6 +105,30 @@ class GroupNoteTest(APITestCase):
         assert response.data[3]["id"] == str(note3.id)
         assert response.data[3]["data"]["text"] == note3.data["text"]
 
+    @with_feature("projects:issue-action-log-write-to-db")
+    def test_reads_from_gale(self) -> None:
+        group = self.group
+
+        entry = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.COMMENT,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            data={"comment_id": 123, "text": "hello world"},
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{group.id}/comments/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(entry.id)
+        assert response.data[0]["type"] == "note"
+        assert response.data[0]["user"]["id"] == str(self.user.id)
+        assert response.data[0]["data"]["text"] == "hello world"
+        assert response.data[0]["data"]["comment_id"] == 123
+
 
 class GroupNoteCreateTest(APITestCase):
     def test_simple(self) -> None:
@@ -124,6 +151,29 @@ class GroupNoteCreateTest(APITestCase):
 
         response = self.client.post(url, format="json", data={"text": "hello world"})
         assert response.status_code == 400, response.content
+
+    @with_feature("projects:issue-action-log-write-to-db")
+    def test_returns_gale(self) -> None:
+        group = self.group
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{group.id}/comments/"
+        response = self.client.post(url, format="json", data={"text": "hello world"})
+        assert response.status_code == 201, response.content
+
+        activity = Activity.objects.get(
+            group=group, type=ActivityType.NOTE.value, user_id=self.user.id
+        )
+        entry = GroupActionLogEntry.objects.get(
+            group_id=group.id, type=GroupActionType.COMMENT.value
+        )
+
+        assert response.data["id"] == str(entry.id)
+        assert response.data["type"] == "note"
+        assert response.data["user"]["id"] == str(self.user.id)
+        assert response.data["data"]["text"] == "hello world"
+        assert response.data["data"]["comment_id"] == activity.id
 
     def test_with_mentions(self) -> None:
         user_not_on_team = self.create_user(email="hello@meow.com")

@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, patch
 import responses
 
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log.types import GroupActionType
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -11,6 +13,7 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 
@@ -189,6 +192,33 @@ class GroupNotesDetailsTest(APITestCase):
             "external_id": "123",
             "text": f"hi **@{self.user.username}**",
         }
+
+    @with_feature("projects:issue-action-log-write-to-db")
+    def test_put_returns_gale(self) -> None:
+        self.login_as(user=self.user)
+        group = self.group
+
+        # create a comment that dual writes to GALE
+        post_url = f"/api/0/issues/{group.id}/comments/"
+        response = self.client.post(post_url, format="json", data={"text": "original"})
+        assert response.status_code == 201, response.content
+        activity_id = response.data["data"]["comment_id"]
+
+        put_url = f"/api/0/issues/{group.id}/comments/{activity_id}/"
+        response = self.client.put(put_url, format="json", data={"text": "updated text"})
+        assert response.status_code == 200, response.content
+
+        entry = GroupActionLogEntry.objects.get(
+            group_id=group.id,
+            type=GroupActionType.COMMENT.value,
+            data__comment_id=activity_id,
+        )
+        assert response.data["id"] == str(entry.id)
+        assert response.data["type"] == "note"
+        assert response.data["user"]["id"] == str(self.user.id)
+        # the fresh text is re-derived from the edited activity, not the stale GALE entry
+        assert response.data["data"]["text"] == "updated text"
+        assert response.data["data"]["comment_id"] == activity_id
 
     @patch("sentry.integrations.mixins.issues.IssueBasicIntegration.update_comment")
     def test_put_no_external_id(self, mock_update_comment: MagicMock) -> None:
