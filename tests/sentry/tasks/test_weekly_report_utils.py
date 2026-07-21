@@ -17,7 +17,6 @@ from sentry.tasks.summaries.utils import (
     organization_top_spans_timeseries,
     user_project_ownership,
 )
-from sentry.templatetags.sentry_helpers import format_duration_ms
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.utils.dates import floor_to_utc_day
@@ -451,30 +450,3 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
         assert ctx.top_spans == []
         assert ctx.top_spans_projects == {}
         assert ctx.spans_count_by_project == {}
-
-
-class FormatDurationMsTest(TestCase):
-    def test_milliseconds(self) -> None:
-        assert format_duration_ms(50) == "50ms"
-        assert format_duration_ms(999) == "999ms"
-
-    def test_seconds(self) -> None:
-        assert format_duration_ms(1000) == "1.0s"
-        assert format_duration_ms(5500) == "5.5s"
-        assert format_duration_ms(59999) == "60.0s"
-
-    def test_minutes(self) -> None:
-        assert format_duration_ms(60000) == "1.0min"
-        assert format_duration_ms(150000) == "2.5min"
-
-    def test_hours(self) -> None:
-        assert format_duration_ms(3600000) == "1.0hr"
-        assert format_duration_ms(7200000) == "2.0hr"
-
-    def test_sub_millisecond(self) -> None:
-        assert format_duration_ms(0.5) == "0ms"
-        assert format_duration_ms(0) == "0ms"
-
-    def test_invalid_input(self) -> None:
-        assert format_duration_ms(None) == "0ms"
-        assert format_duration_ms("not a number") == "0ms"

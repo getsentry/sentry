@@ -177,3 +177,27 @@ def test_sanitize_periods_breaks_url_scheme() -> None:
     result = engines["django"].from_string(input).render().strip()
     assert "://" not in result
     assert "\u2060." in result
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    (
+        (50, "50ms"),
+        (999, "999ms"),
+        (1000, "1.0s"),
+        (5500, "5.5s"),
+        (59999, "60.0s"),
+        (60000, "1.0min"),
+        (150000, "2.5min"),
+        (3600000, "1.0hr"),
+        (7200000, "2.0hr"),
+        (0.5, "0ms"),
+        (0, "0ms"),
+        (None, "0ms"),
+        ("not a number", "0ms"),
+    ),
+)
+def test_format_duration_ms(value: object, expected: str) -> None:
+    from sentry.templatetags.sentry_helpers import format_duration_ms
+
+    assert format_duration_ms(value) == expected
