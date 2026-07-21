@@ -119,7 +119,13 @@ describe('Sentry Application Details', () => {
           'event:admin',
           'org:ci',
         ]),
-        events: ['issue'],
+        events: [
+          'issue.created',
+          'issue.resolved',
+          'issue.assigned',
+          'issue.ignored',
+          'issue.unresolved',
+        ],
         isInternal: false,
         verifyInstall: true,
         isAlertable: true,
@@ -551,6 +557,13 @@ describe('Sentry Application Details', () => {
     beforeEach(() => {
       sentryApp = SentryAppFixture();
       sentryApp.events = ['issue'];
+      sentryApp.webhookEvents = [
+        'issue.created',
+        'issue.resolved',
+        'issue.assigned',
+        'issue.ignored',
+        'issue.unresolved',
+      ];
       sentryApp.scopes = ['project:read', 'event:read'];
 
       editAppRequest = MockApiClient.addMockResponse({
@@ -651,9 +664,6 @@ describe('Sentry Application Details', () => {
   });
 
   describe('Editing granular event subscriptions', () => {
-    const organization = OrganizationFixture({
-      features: ['sentry-apps-granular-events'],
-    });
     const initialRouterConfig: RouterConfig = {
       location: {
         pathname: '/sentry-apps/sample-app/',
@@ -661,7 +671,7 @@ describe('Sentry Application Details', () => {
       route: '/sentry-apps/:appSlug/',
     };
     function renderComponent() {
-      return render(<SentryApplicationDetails />, {initialRouterConfig, organization});
+      return render(<SentryApplicationDetails />, {initialRouterConfig});
     }
 
     beforeEach(() => {
