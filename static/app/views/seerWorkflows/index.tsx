@@ -4,13 +4,12 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {inlineCodeStyles} from '@sentry/scraps/code';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Heading, Prose, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
@@ -777,9 +776,9 @@ function IssueRow({
           </Stack>
         </Flex>
         {issue.reason ? (
-          // Reasons use single newlines between labeled lines; double them so
-          // markdown treats each line as its own paragraph.
-          <ReasonMarkedText text={issue.reason.replaceAll('\n', '\n\n')} />
+          <Text size="sm" variant="muted" wordBreak="break-word" as="div">
+            <MarkedText as={Prose} text={issue.reason} />
+          </Text>
         ) : null}
       </Stack>
     </Container>
@@ -923,20 +922,6 @@ function TriageIssuesDebugAddendum({
 
 const RunsTable = styled(SimpleTable)`
   grid-template-columns: min-content max-content 1fr 2fr min-content;
-`;
-
-const ReasonMarkedText = styled(MarkedText)`
-  font-size: ${p => p.theme.font.size.sm};
-  color: ${p => p.theme.tokens.content.secondary};
-  word-wrap: break-word;
-
-  p {
-    margin: 0;
-  }
-
-  code:not(pre code) {
-    ${p => inlineCodeStyles(p.theme)};
-  }
 `;
 
 function toWorkflowRow(run: SeerNightShiftRun): WorkflowRow {
