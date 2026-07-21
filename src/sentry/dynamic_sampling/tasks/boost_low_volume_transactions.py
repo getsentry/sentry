@@ -385,9 +385,14 @@ class FetchProjectTransactionTotals:
             )["data"]
 
             metric_type = self.measure.value
+            volume_type = "large" if self.large_transactions else "small"
             metrics.incr(
                 "dynamic_sampling.boost_low_volume_transactions.query",
-                tags={"query_type": "totals", "metric_type": metric_type},
+                tags={
+                    "query_type": "totals",
+                    "metric_type": metric_type,
+                    "volume_type": volume_type,
+                },
                 sample_rate=1,
             )
 
