@@ -23,6 +23,14 @@ PIPELINE: Pipeline[GroupActionLogEntry] = Pipeline(AGGREGATORS)
 DEFAULT_BATCH_SIZE = 1000
 INLINE_BATCH_SIZE = 100
 
+# Fields that constitute the derived state, written by promote_to_live.
+# Derived by excluding identity, control, and auto-managed fields from the
+# model — new columns are automatically included unless explicitly excluded.
+_EXCLUDED_FIELDS = frozenset({"id", "group_id", "date_added", "date_updated"})
+_STATE_FIELDS = tuple(
+    f.attname for f in GroupDerivedData._meta.concrete_fields if f.attname not in _EXCLUDED_FIELDS
+)
+
 
 class ProcessingStrategy(enum.Enum):
     SYNC = "sync"  # process all pending actions now
@@ -72,6 +80,8 @@ def _process_batch(
     p: Pipeline[GroupActionLogEntry],
     derived: GroupDerivedData,
     batch_size: int,
+    *,
+    persist: bool = True,
 ) -> bool:
     """
     Process up to `batch_size` entries for a group. Updates derived in place.
@@ -90,6 +100,9 @@ def _process_batch(
     This is an optimistic concurrency scheme — no locks are held, and the
     last-writer-wins semantics are safe because all writers compute the
     same deterministic result for overlapping entry ranges.
+
+    When *persist* is False, only the in-memory object is updated — the
+    caller is responsible for persisting the result.
     """
     group_id = derived.group_id
     entries = _entries_after_cursor(group_id, derived.cursor_date, derived.cursor_id, batch_size)
@@ -103,6 +116,12 @@ def _process_batch(
     last_date = last.date_added
     last_id = last.id
     state_update = GroupDerivedDataStore.build_update(p, result)
+
+    if not persist:
+        derived.cursor_date = last_date
+        derived.cursor_id = last_id
+        GroupDerivedDataStore.apply_to_instance(derived, state_update)
+        return len(entries) == batch_size
 
     updated = GroupDerivedData.objects.filter(
         Q(id=derived.id, generated_at=derived.generated_at)
@@ -158,18 +177,26 @@ def _drain_log(
     batch_size: int = DEFAULT_BATCH_SIZE,
     *,
     time_limit: timedelta,
+    persist: bool = True,
 ) -> bool:
     """Process pending log entries into *derived*, batching as needed.
 
     Returns True if all entries were processed, False if the time limit was
     reached and more entries remain. The limit is checked between batches,
     so a single slow batch can exceed it.
+
+    When *persist* is False, batches update only the in-memory object.
     """
     deadline = time.monotonic() + time_limit.total_seconds()
-    while _process_batch(pipeline, derived, batch_size):
+    while _process_batch(pipeline, derived, batch_size, persist=persist):
         if time.monotonic() >= deadline:
             return False
     return True
+
+
+# ---------------------------------------------------------------------------
+# Incremental processing (on event arrival)
+# ---------------------------------------------------------------------------
 
 
 def process_group_log(
@@ -239,6 +266,79 @@ def trigger_group_log_processing(group_id: int, *, strategy: ProcessingStrategy)
         # when the task completes.
         metrics.incr("issues.derived.inline_fallback_to_async")
         process_group_log_task.delay(group_id)
+
+
+# ---------------------------------------------------------------------------
+# Generation: upsert derived data from a full log replay
+# ---------------------------------------------------------------------------
+
+
+class PromotionResult(enum.Enum):
+    PROMOTED = "promoted"
+    SUPERSEDED = "superseded"  # a newer generation already promoted
+    CURSOR_BEHIND = "cursor_behind"  # same generation, but cursor is more advanced
+
+
+def promote_to_live(candidate: GroupDerivedData) -> PromotionResult:
+    """Upsert the candidate's state into the row for its group.
+
+    The UPDATE guard requires that ``candidate.generated_at`` is >= the
+    row's (newer generation wins) and the cursor is at or ahead.  On
+    success, all state fields (including ``generated_at``) are stamped.
+
+    Returns SUPERSEDED if the row has a newer ``generated_at``.
+    Returns CURSOR_BEHIND if the cursor guard failed.
+
+    The candidate object itself is not persisted — it may be an unsaved
+    in-memory instance used only to carry the computed state.
+    """
+    generated_at = candidate.generated_at
+    values = {f: getattr(candidate, f) for f in _STATE_FIELDS}
+
+    cursor_ahead = Q(cursor_date__lt=candidate.cursor_date) | Q(
+        cursor_date=candidate.cursor_date, cursor_id__lte=candidate.cursor_id
+    )
+    updated = GroupDerivedData.objects.filter(
+        cursor_ahead,
+        group_id=candidate.group_id,
+        generated_at__lte=generated_at,
+    ).update(**values)
+
+    if updated:
+        return PromotionResult.PROMOTED
+
+    # Check why we failed: row missing or newer generation?
+    row = (
+        GroupDerivedData.objects.filter(group_id=candidate.group_id)
+        .values_list("id", "generated_at")
+        .first()
+    )
+
+    if row is None:
+        # Row doesn't exist — try to create it.
+        try:
+            with transaction.atomic(using=router.db_for_write(GroupDerivedData)):
+                GroupDerivedData.objects.create(
+                    group_id=candidate.group_id,
+                    **values,
+                )
+        except IntegrityError:
+            # A concurrent writer created the row first. This could be
+            # SUPERSEDED (if their generated_at is newer) but we'd need
+            # another query to distinguish. CURSOR_BEHIND triggers a
+            # retry which will resolve it on the UPDATE path.
+            return PromotionResult.CURSOR_BEHIND
+        return PromotionResult.PROMOTED
+
+    _row_id, current_generated_at = row
+    if current_generated_at > generated_at:
+        return PromotionResult.SUPERSEDED
+    return PromotionResult.CURSOR_BEHIND
+
+
+# ---------------------------------------------------------------------------
+# Invalidation
+# ---------------------------------------------------------------------------
 
 
 def invalidate_group_derived_data(
