@@ -155,7 +155,8 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
                   When Seer produced a plain-language headline it replaces the
                   raw issue title, which stays reachable via the tooltip and
                   the expanded details. */}
-              <Text bold ellipsis>
+              {/* lg matches the issues feed's row titles */}
+              <Text bold ellipsis size="lg">
                 {row.headline ? (
                   <Tooltip
                     maxWidth={480}
@@ -195,15 +196,15 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
                         )
                   }
                 >
-                  <Text size="xs" variant="muted">
+                  <Text size="sm" variant="muted">
                     {eventCountLabel}
                     {row.userCount > 0 && ` · ${userCountLabel}`}
                   </Text>
                 </Tooltip>
-                <Text size="xs" variant="muted" aria-hidden>
+                <Text size="sm" variant="muted" aria-hidden>
                   {'·'}
                 </Text>
-                <Text size="xs" variant="muted" wrap="nowrap">
+                <Text size="sm" variant="muted" wrap="nowrap">
                   <TimeSince
                     date={row.lastActivityAt}
                     prefix={t('updated')}
@@ -303,7 +304,7 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
 
         {/* The question autofix is blocked on, surfaced right on the card */}
         {row.pendingQuestion && (
-          <Text size="sm" variant="accent">
+          <Text size="md" variant="accent">
             {t('Seer asked: %s', row.pendingQuestion)}
           </Text>
         )}
@@ -325,7 +326,7 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
                   {isFixBody ? t('Proposed fix') : t('Diagnosis')}
                 </Text>
               </Flex>
-              <Text size="sm" density="comfortable" as="div">
+              <Text size="md" density="comfortable" as="div">
                 <SeerMarkdown raw={bodyEntry.answer} />
               </Text>
             </Stack>
@@ -435,7 +436,7 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
                         {section.label}
                       </Text>
                     </Flex>
-                    <Text size="sm" density="comfortable" as="div">
+                    <Text size="md" density="comfortable" as="div">
                       <SeerMarkdown raw={entry.answer} />
                     </Text>
                   </Stack>
