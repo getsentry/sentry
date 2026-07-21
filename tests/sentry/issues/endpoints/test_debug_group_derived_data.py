@@ -25,21 +25,18 @@ def _publish(*, group: Group, action: GroupAction, actor: GroupActionActor = SYS
         )
 
 
-def _url(organization_slug: str, group_id: int) -> str:
-    return f"/api/0/organizations/{organization_slug}/issues/{group_id}/derived-data/debug/"
-
-
 @with_feature("projects:issue-action-log-write-to-db")
 class DebugGroupDerivedDataEndpointTest(APITestCase):
+    endpoint = "sentry-api-0-organization-group-derived-data-debug"
+    method = "get"
+
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.group = self.create_group(project=self.project)
 
     def test_no_derived_data(self) -> None:
-        url = _url(self.organization.slug, self.group.id)
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200
+        response = self.get_success_response(self.organization.slug, self.group.id, status_code=200)
         assert response.data["groupId"] == str(self.group.id)
         assert response.data["stored"] is None
         assert response.data["recomputed"] is not None
@@ -52,9 +49,7 @@ class DebugGroupDerivedDataEndpointTest(APITestCase):
         _publish(group=self.group, action=ResolveAction())
         process_group_log(self.group.id)
 
-        url = _url(self.organization.slug, self.group.id)
-        response = self.client.get(url, format="json")
-        assert response.status_code == 200
+        response = self.get_success_response(self.organization.slug, self.group.id, status_code=200)
         assert response.data["stored"] is not None
         assert response.data["stored"]["state"]["view_count"] == 2
         assert response.data["stored"]["state"]["status"] == "closed"
@@ -68,26 +63,25 @@ class DebugGroupDerivedDataEndpointTest(APITestCase):
         for _ in range(3):
             _publish(group=self.group, action=ViewAction())
 
-        url = _url(self.organization.slug, self.group.id)
-        response = self.client.get(url, data={"limit": "2"}, format="json")
-        assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug, self.group.id, qs_params={"limit": "2"}, status_code=200
+        )
         assert response.data["truncated"] is True
         assert response.data["recomputed"] is None
         assert response.data["entryCount"] is None
         assert response.data["limit"] == 2
 
     def test_invalid_limit(self) -> None:
-        url = _url(self.organization.slug, self.group.id)
-        response = self.client.get(url, data={"limit": "abc"}, format="json")
-        assert response.status_code == 400
-        assert "Invalid limit" in response.data["detail"]
+        self.get_error_response(
+            self.organization.slug, self.group.id, qs_params={"limit": "abc"}, status_code=400
+        )
 
     def test_zero_limit(self) -> None:
-        url = _url(self.organization.slug, self.group.id)
-        response = self.client.get(url, data={"limit": "0"}, format="json")
-        assert response.status_code == 400
+        self.get_error_response(
+            self.organization.slug, self.group.id, qs_params={"limit": "0"}, status_code=400
+        )
 
     def test_negative_limit(self) -> None:
-        url = _url(self.organization.slug, self.group.id)
-        response = self.client.get(url, data={"limit": "-1"}, format="json")
-        assert response.status_code == 400
+        self.get_error_response(
+            self.organization.slug, self.group.id, qs_params={"limit": "-1"}, status_code=400
+        )
