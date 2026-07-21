@@ -23,7 +23,9 @@ from sentry.models.pullrequest import (
     PullRequestAttribution,
     PullRequestMetrics,
     PullRequestVerdict,
+    normalize_scm_provider,
 )
+from sentry.models.repository import Repository
 from sentry.pr_metrics import activity_doc
 from sentry.pr_metrics.attribution import SIGNAL_TYPE_CONFIDENCE
 from sentry.pr_metrics.contracts import (
@@ -350,6 +352,49 @@ def _conversation_analysis_fields(
     }
 
 
+def _repo_is_public(pull_request: PullRequest) -> bool | None:
+    """Whether the repo was public at PR-open time, or ``None`` if unknown.
+
+    Repository never persists visibility, so this is read back from the
+    "opened" activity payload's ``is_private`` (set at webhook-ingestion time
+    from the GitHub payload's ``repository.private``). A PR's activity can live
+    in either store depending on its ``_use_activity_document`` routing (see
+    ``pr_metrics.webhooks``), so the document is checked first and the legacy
+    row is a fallback for PRs still on the old store.
+    """
+    # Use the standard helper that correctly handles empty documents and orphaned rows
+    doc = load_activity_document(pull_request)
+    if doc:
+        opened_entry = next(
+            (e for e in doc.get("events", []) if e["event_type"] == PullRequestActivityType.OPENED),
+            None,
+        )
+        if opened_entry is not None:
+            is_private = opened_entry["payload"].get("is_private")
+            return None if is_private is None else not is_private
+
+    # Fallback to legacy store when no document exists
+    is_private = (
+        PullRequestActivity.objects.filter(
+            pull_request=pull_request, event_type=PullRequestActivityType.OPENED
+        )
+        .values_list("payload__is_private", flat=True)
+        .first()
+    )
+    return None if is_private is None else not is_private
+
+
+def _repo_provider(pull_request: PullRequest) -> str | None:
+    """Normalized SCM slug for the PR's repo (e.g. "github"), or ``None`` if the
+    ``Repository`` row is gone or its provider is unset."""
+    provider = (
+        Repository.objects.filter(id=pull_request.repository_id)
+        .values_list("provider", flat=True)
+        .first()
+    )
+    return normalize_scm_provider(provider)
+
+
 def build_pr_metrics_row(
     *,
     pull_request: PullRequest,
@@ -390,6 +435,8 @@ def build_pr_metrics_row(
     return PrCloseMetricsEvent(
         organization_id=pull_request.organization_id,
         repository_id=pull_request.repository_id,
+        repository_provider=_repo_provider(pull_request),
+        repository_is_public=_repo_is_public(pull_request),
         pull_request_id=pull_request.id,
         pr_key=pull_request.key,
         group_ids=group_ids,

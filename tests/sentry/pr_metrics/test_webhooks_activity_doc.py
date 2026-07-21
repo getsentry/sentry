@@ -278,6 +278,12 @@ class ActivityDocumentWritePathTest(TestCase):
         assert doc is not None
         assert [e["event_type"] for e in doc["events"]] == [PullRequestActivityType.OPENED]
 
+    def test_opened_captures_repo_visibility_in_document(self) -> None:
+        with self.feature(DOC_FLAG):
+            self._activity(action="opened", repository={"private": True})
+        opened_entry = self._doc()["events"][0]
+        assert opened_entry["payload"]["is_private"] is True
+
     def test_flag_on_existing_legacy_rows_stay_on_legacy(self) -> None:
         # A PR that already has legacy rows keeps writing them (self-drains later).
         PullRequestActivity.objects.create(

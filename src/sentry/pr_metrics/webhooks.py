@@ -1555,6 +1555,7 @@ def _build_activity_payload(
 
     match action:
         case "opened":
+            repository_payload = event.get("repository") or {}
             return asdict(
                 OpenedPayload(
                     **sender_kw,
@@ -1564,6 +1565,7 @@ def _build_activity_payload(
                     deletions=pull_request.get("deletions", 0),
                     changed_files=pull_request.get("changed_files", 0),
                     commits=pull_request.get("commits", 0),
+                    is_private=repository_payload.get("private"),
                 )
             )
         case "synchronize":
