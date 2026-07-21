@@ -57,6 +57,16 @@ def _skip(reason: str, log_extra: dict[str, Any]) -> None:
     )
 
 
+def _error(reason: str, log_extra: dict[str, Any]) -> None:
+    """Record an unexpected failure (vs. a `_skip`, which is an expected condition)."""
+    metrics.incr("autofix.pr_iteration.review_request.error", tags={"reason": reason})
+    logger.warning(
+        "autofix.pr_iteration.review_request.error",
+        extra={**log_extra, "reason": reason},
+        exc_info=True,
+    )
+
+
 def _review_request_marker(seer_run: SeerRun, repo_name: str) -> dict[str, Any] | None:
     return ((seer_run.extras or {}).get(REVIEW_REQUESTS_EXTRA) or {}).get(repo_name)
 
@@ -89,6 +99,11 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
         return
 
     resolved = resolve_check_suite_autofix_run(event, flagged_repos)
+    # Sizes the funnel: of green events in flagged orgs, how many are Seer PRs.
+    metrics.incr(
+        "autofix.pr_iteration.review_request.run_resolved",
+        tags={"found": str(resolved is not None).lower()},
+    )
     if resolved is None:
         # Expected: webhooks fan out to every region, so a missing run usually
         # just means this region doesn't own the Autofix session.
@@ -133,7 +148,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
     if user is None:
         _skip("user_not_found", log_extra)
         return
-    github_login = get_github_username_for_user(user, organization.id)
+    github_login = get_github_username_for_user(user, organization.id, referrer="pr_review_request")
     if not github_login:
         _skip("no_github_login", log_extra)
         return
@@ -145,11 +160,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
     try:
         scm = make_scm(organization.id, resolved.repository.id, referrer="seer")
     except Exception:
-        logger.warning(
-            "autofix.pr_iteration.review_request.scm_init_failed",
-            extra=log_extra,
-            exc_info=True,
-        )
+        _error("scm_init_failed", log_extra)
         return
 
     sweep = sweep_check_runs(scm, head_match.head_sha, log_extra=log_extra)
@@ -171,11 +182,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
     try:
         pull_request = scm_actions.get_pull_request(scm, str(pr_number))
     except Exception:
-        logger.warning(
-            "autofix.pr_iteration.review_request.get_pull_request_failed",
-            extra={**log_extra, "pr_number": pr_number},
-            exc_info=True,
-        )
+        _error("get_pull_request_failed", {**log_extra, "pr_number": pr_number})
         return
 
     if pull_request["data"]["state"] != "open" or pull_request["data"]["merged"]:
@@ -212,11 +219,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
                 scm_actions.request_review(scm, str(pr_number), [github_login])
             except Exception:
                 # Leave the marker unset so the next green event can retry.
-                logger.warning(
-                    "autofix.pr_iteration.review_request.request_failed",
-                    extra={**log_extra, "pr_number": pr_number},
-                    exc_info=True,
-                )
+                _error("request_review_failed", {**log_extra, "pr_number": pr_number})
                 return
 
             extras = dict(seer_run.extras or {})

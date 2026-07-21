@@ -151,15 +151,19 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         mock_actions.request_review.assert_not_called()
         assert self._marker() is None
 
+    @patch(f"{REVIEW_REQUEST_PATH}.metrics")
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run", return_value=None)
     def test_noop_when_no_run_resolved(
-        self, _mock_resolve: MagicMock, mock_actions: MagicMock
+        self, _mock_resolve: MagicMock, mock_actions: MagicMock, mock_metrics: MagicMock
     ) -> None:
         with self.feature(FLAG):
             request_review_for_green_check_suite(_green_event())
 
         mock_actions.request_review.assert_not_called()
+        mock_metrics.incr.assert_called_once_with(
+            "autofix.pr_iteration.review_request.run_resolved", tags={"found": "false"}
+        )
 
     @patch(f"{REVIEW_REQUEST_PATH}.sentry_sdk.capture_exception")
     @patch(f"{REVIEW_REQUEST_PATH}.resolve_check_suite_autofix_run")
@@ -390,7 +394,10 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
         mock_actions.get_pull_request.return_value = _pull_request_result()
         mock_actions.request_review.side_effect = Exception("boom")
 
-        with self.feature(FLAG):
+        with self.feature(FLAG), patch(f"{REVIEW_REQUEST_PATH}.metrics") as mock_metrics:
             request_review_for_green_check_suite(_green_event())
 
         assert self._marker() is None
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.review_request.error", tags={"reason": "request_review_failed"}
+        )
