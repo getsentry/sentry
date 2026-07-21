@@ -247,9 +247,9 @@ def make_match_coding_agent_pr_request(
 class DelegatedAgentMatch(BaseModel):
     """A match resolved synchronously by ``/v1/pr-metrics/delegated-agent-match``.
 
-    Returned as a ``200`` body instead of the async ``202`` + ``record_pr_attribution``
-    RPC callback. ``match_path`` isn't consumed on the Sentry side today; it's kept
-    here to mirror the full wire contract.
+    Returned as a ``200`` body when a match is found. Seer returns ``202`` when
+    a match is not found. ``match_path`` isn't consumed on the Sentry side today;
+    it's kept here to mirror the full wire contract.
     """
 
     run_id: int

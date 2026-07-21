@@ -1254,9 +1254,8 @@ def _detect_delegated_agent(
     Filter PRs that could have been delegated by Autofix to external coding agents,
     and fire the matching request to Seer if it's a candidate.
 
-    Seer resolves the match either synchronously (a ``200`` with the match body,
-    recorded in-process here) or asynchronously (a ``202``, followed later by the
-    "record_pr_attribution" RPC callback writing the attribution row).
+    Seer returns ``200`` when a match is found (with the match body recorded
+    in-process here) or ``202`` when a match is not found.
     """
     group_ids = resolved_group_ids(pr)
     if not group_ids:
@@ -1331,8 +1330,7 @@ def _send_seer_delegated_agent_match(
         return
 
     if response.status != 200:
-        # 202: Seer enqueued the match asynchronously and will call back via the
-        # record_pr_attribution RPC once it resolves.
+        # 202: Seer did not find a match.
         _record_delegated_candidate(provider_hint, "sent")
         return
 
