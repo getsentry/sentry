@@ -38,7 +38,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage, writeStorageValue} from 'sentry/utils/useSessionStorage';
-import {resolveProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
+import {useProjectCreationPageOrigin} from 'sentry/views/projectInstall/projectCreationOrigin';
 import {
   WIZARD_STORAGE_KEY,
   type WizardState,
@@ -58,7 +58,6 @@ const INITIAL_STATE: WizardState = {
 };
 
 export function ScmCreateProject() {
-  const organization = useOrganization();
   const location = useLocation();
   const referrer = decodeScalar(location.query.referrer);
   const projectId = decodeScalar(location.query.project);
@@ -77,13 +76,7 @@ export function ScmCreateProject() {
   // ?projectCreationOrigin=org_creation from org-create). Orthogonal to
   // `variant` and to `referrer=getting-started` autofill — back-from-docs
   // must not reclassify an org-activation visit as existing_org.
-  useRouteAnalyticsParams({
-    variant: 'scm',
-    origin: resolveProjectCreationPageOrigin({
-      orgSlug: organization.slug,
-      queryValue: decodeScalar(location.query.projectCreationOrigin),
-    }),
-  });
+  useRouteAnalyticsParams({variant: 'scm', origin: useProjectCreationPageOrigin()});
 
   // Snapshot of the last completed wizard session, written when a project is
   // created (see handleComplete in the wizard). Restored when this mount is a

@@ -1,4 +1,9 @@
+import {useEffect} from 'react';
+
+import {decodeScalar} from 'sentry/utils/queryString';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
  * Top-of-funnel attribution for /projects/new/: how the *journey* started,
@@ -21,8 +26,10 @@ export const PROJECT_CREATION_ORIGIN_QUERY_KEY = 'projectCreationOrigin';
 export const PROJECT_CREATION_ORIGIN_ORG_CREATION = 'org_creation';
 
 /**
- * Resolve journey origin for project-creation page-view analytics.
- * Side effect: when the URL seed is present, stickies it into sessionStorage.
+ * Pure read: resolve journey origin from the seed query value, falling back to
+ * the sticky sessionStorage value, then `existing_org`. No side effects — the
+ * sticky write lives in {@link useProjectCreationPageOrigin} so render stays
+ * pure. Safe to call during render.
  */
 export function resolveProjectCreationPageOrigin({
   orgSlug,
@@ -31,19 +38,13 @@ export function resolveProjectCreationPageOrigin({
   orgSlug: string;
   queryValue: string | undefined;
 }): ProjectCreationPageOrigin {
-  const key = `project-creation-origin:${orgSlug}`;
-
   if (queryValue === PROJECT_CREATION_ORIGIN_ORG_CREATION) {
-    try {
-      sessionStorageWrapper.setItem(key, PROJECT_CREATION_ORIGIN_ORG_CREATION);
-    } catch {
-      // Best-effort sticky; still report org_creation for this paint.
-    }
     return 'org_creation';
   }
 
   try {
-    if (sessionStorageWrapper.getItem(key) === PROJECT_CREATION_ORIGIN_ORG_CREATION) {
+    const sticky = sessionStorageWrapper.getItem(`project-creation-origin:${orgSlug}`);
+    if (sticky === PROJECT_CREATION_ORIGIN_ORG_CREATION) {
       return 'org_creation';
     }
   } catch {
@@ -51,4 +52,34 @@ export function resolveProjectCreationPageOrigin({
   }
 
   return 'existing_org';
+}
+
+/**
+ * Resolve the sticky project-creation journey origin for page-view analytics.
+ * Reads the org-create seed, stickies it into tab sessionStorage in an effect
+ * (keeping render pure and avoiding a StrictMode double-write), and resolves
+ * seed → storage → `existing_org`. A back-from-getting-started visit that only
+ * carries `referrer=getting-started` therefore keeps the org-activation origin.
+ */
+export function useProjectCreationPageOrigin(): ProjectCreationPageOrigin {
+  const organization = useOrganization();
+  const location = useLocation();
+  const orgSlug = organization.slug;
+  const queryValue = decodeScalar(location.query[PROJECT_CREATION_ORIGIN_QUERY_KEY]);
+
+  useEffect(() => {
+    if (queryValue !== PROJECT_CREATION_ORIGIN_ORG_CREATION) {
+      return;
+    }
+    try {
+      sessionStorageWrapper.setItem(
+        `project-creation-origin:${orgSlug}`,
+        PROJECT_CREATION_ORIGIN_ORG_CREATION
+      );
+    } catch {
+      // Best-effort sticky; this paint still reports org_creation from the seed.
+    }
+  }, [orgSlug, queryValue]);
+
+  return resolveProjectCreationPageOrigin({orgSlug, queryValue});
 }
