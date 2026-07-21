@@ -2,8 +2,6 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaPopoverProps} from '@react-aria/overlays';
 import type {OverlayTriggerState} from '@react-stately/overlays';
-// eslint-disable-next-line no-restricted-imports
-import color from 'color';
 
 import {Overlay} from 'sentry/components/overlay';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -29,7 +27,6 @@ export function AskSeerSearchPopover(props: PopoverProps) {
   return (
     <StyledPositionWrapper {...overlayProps} visible={state.isOpen}>
       <ListBoxOverlay
-        $hasAskSeerUxRework={hasAskSeerUxRework}
         ref={element => {
           popoverRef.current = element;
           if (!element || !props.containerRef.current) {
@@ -50,36 +47,29 @@ export function AskSeerSearchPopover(props: PopoverProps) {
           };
         }}
       >
-        {children}
+        <BackgroundColorWrapper $hasAskSeerUxRework={hasAskSeerUxRework}>
+          {children}
+        </BackgroundColorWrapper>
       </ListBoxOverlay>
     </StyledPositionWrapper>
   );
 }
 
-const ListBoxOverlay = styled(Overlay)<{$hasAskSeerUxRework: boolean}>`
+const ListBoxOverlay = styled(Overlay)`
   max-height: 400px;
   min-width: 200px;
   overflow-y: auto;
   border-top-left-radius: 0;
   border-top-right-radius: 0;
-  background-color: ${p =>
-    p.$hasAskSeerUxRework
-      ? p.theme.tokens.background.primary
-      : compositeColor(
-          p.theme.tokens.background.transparent.accent.muted,
-          p.theme.tokens.background.overlay
-        )};
   will-change: auto;
 `;
 
-function compositeColor(foregroundColor: string, backgroundColor: string) {
-  const foreground = color(foregroundColor);
-
-  return color(backgroundColor)
-    .mix(foreground.alpha(1), foreground.alpha())
-    .rgb()
-    .string();
-}
+const BackgroundColorWrapper = styled('div')<{$hasAskSeerUxRework: boolean}>`
+  background-color: ${p =>
+    p.$hasAskSeerUxRework
+      ? p.theme.tokens.background.primary
+      : p.theme.tokens.background.transparent.accent.muted};
+`;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
