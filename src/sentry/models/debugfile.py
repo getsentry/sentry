@@ -624,6 +624,7 @@ def create_dif_from_id(
     else:
         raise RuntimeError("missing file object")
 
+    assert checksum is not None
     dif = _find_existing_dif(project, meta, checksum)
 
     if dif is not None:
