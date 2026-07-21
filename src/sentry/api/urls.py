@@ -332,6 +332,7 @@ from sentry.issues.endpoints import (
     ShortIdLookupEndpoint,
     TeamGroupsOldEndpoint,
 )
+from sentry.issues.endpoints.debug_group_derived_data import DebugGroupDerivedDataEndpoint
 from sentry.issues.endpoints.event_grouping_info import EventGroupingInfoEndpoint
 from sentry.issues.endpoints.event_owners import EventOwnersEndpoint
 from sentry.issues.endpoints.event_reprocessable import EventReprocessableEndpoint
@@ -922,6 +923,11 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^/]+)/reprocessing/$",
             GroupReprocessingEndpoint.as_view(),
             name=f"{name_prefix}-group-reprocessing",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^/]+)/derived-data/debug/$",
+            DebugGroupDerivedDataEndpoint.as_view(),
+            name=f"{name_prefix}-group-derived-data-debug",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/stats/$",
