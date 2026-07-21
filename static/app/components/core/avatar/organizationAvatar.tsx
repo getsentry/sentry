@@ -1,4 +1,4 @@
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Avatar as AvatarType} from 'sentry/types/core';
 import {explodeSlug} from 'sentry/utils';
 
 import {
@@ -10,7 +10,7 @@ import {
 } from './avatar';
 
 interface OrganizationAvatarProps extends AvatarProps {
-  organization: OrganizationSummary;
+  organization: {avatar: AvatarType; slug: string; name?: string};
 }
 
 export function OrganizationAvatar({organization, ...props}: OrganizationAvatarProps) {
@@ -25,7 +25,7 @@ export function OrganizationAvatar({organization, ...props}: OrganizationAvatarP
 }
 
 function getOrganizationAvatarProps(
-  organization: OrganizationSummary
+  organization: OrganizationAvatarProps['organization']
 ): LetterBaseAvatarProps | UploadBaseAvatarProps | GravatarBaseAvatarProps {
   const identifier = organization.slug;
   const name = organization.name || organization.slug;
