@@ -102,7 +102,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             project={project}
             organization={props.organization}
           />
-          <Flex align="center" gap="md">
+          <Flex align="center" gap="md" marginLeft="auto">
             <Projects tree={props.tree} />
           </Flex>
         </TraceHeaderComponents.HeaderRow>
