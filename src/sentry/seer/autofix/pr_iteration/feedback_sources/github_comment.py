@@ -174,9 +174,9 @@ class GithubPrReviewCommentFeedbackSource(_GithubPrCommentFeedbackSourceBase):
         # library so ``line`` is populated and this fallback can be dropped.
         """
         anchor = self.anchor()
-        if self.line:
+        if self.line and anchor:
             return f"Inline comment on {anchor}:\n{self.comment_feedback}"
-        if self.diff_hunk:
+        if self.file_path and self.diff_hunk:
             return (
                 f"Inline comment on {self.file_path} at diff hunk:\n"
                 f"{self.diff_hunk}\n{self.comment_feedback}"

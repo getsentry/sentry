@@ -311,6 +311,20 @@ class GithubPrReviewCommentTextTest(TestCase):
         assert feedback.text == "fix it"
         assert feedback.ui_text == "fix it"
 
+    def test_text_line_without_file_path_passes_through(self) -> None:
+        # A line without a file_path can't be anchored (anchor() -> None), so it
+        # must not render "Inline comment on None:"; fall through to plain text.
+        feedback = _review_feedback(file_path=None, line=42)
+        assert feedback.text == "fix it"
+        assert feedback.ui_text == "fix it"
+
+    def test_text_line_without_file_path_falls_back_to_diff_hunk(self) -> None:
+        # Same, but a diff hunk is present: use it rather than the bogus anchor.
+        hunk = "@@ -1 +1 @@"
+        feedback = _review_feedback(file_path=None, line=42, diff_hunk=hunk)
+        assert feedback.text == "fix it"
+        assert feedback.ui_text == "fix it"
+
 
 class GithubPrReviewCommentRequireCommandTest(TestCase):
     def test_require_command_is_false_on_class(self) -> None:
