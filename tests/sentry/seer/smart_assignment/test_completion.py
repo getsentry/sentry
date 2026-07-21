@@ -38,7 +38,7 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
             group=self.group,
             type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value,
             data={
-                "run_id": self.mirror.id,
+                "run_id": self.seer_run.id,
                 "run_uuid": str(self.seer_run.uuid),
                 "predicted_assignee_user_ids": predicted_assignee_user_ids,
             },
@@ -80,7 +80,7 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
             project_id=self.group.project_id,
             group=self.group,
             type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value,
-            data={"run_id": self.mirror.id},
+            data={"run_id": self.seer_run.id},
         )
         process_smart_assignment_completion(self.group, activity)
         assert self._extras()["predicted_assignee_user_ids"] == []

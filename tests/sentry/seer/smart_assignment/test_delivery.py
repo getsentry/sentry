@@ -234,6 +234,45 @@ class DeliverSmartAssignmentResultTest(TestCase):
         assert "predicted_assignee_user_ids" not in (newer_mirror.extras or {})
 
     @patch(METRICS_PATH)
+    def test_prediction_lands_when_seer_run_and_mirror_ids_diverge(
+        self, mock_metrics: MagicMock
+    ) -> None:
+        # The completion activity carries the SeerRun PK as `run_id`, which equals the
+        # SeerAgentRun row id only when their sequences happen to line up. Create extra
+        # SeerRuns with no mirror so the two ids diverge, then assert the resolved picks
+        # still land on the right mirror (the completion handler must match on the run FK).
+        for _ in range(3):
+            SeerRun.objects.create(
+                organization=self.organization,
+                type=SeerRunType.FEATURE_RUN,
+                last_triggered_at=timezone.now(),
+            )
+        seer_run = SeerRun.objects.create(
+            organization=self.organization,
+            type=SeerRunType.FEATURE_RUN,
+            last_triggered_at=timezone.now(),
+        )
+        mirror = SeerAgentRun.objects.create(
+            run=seer_run,
+            source=SEER_FEATURE_ID,
+            group=self.group,
+            extras={"trigger": ActivityType.SEER_RCA_STARTED.name},
+        )
+        assert seer_run.id != mirror.id
+        alice = self.create_user(username="alice")
+        self.create_member(user=alice, organization=self.organization)
+        deliver_smart_assignment_result(
+            self.organization.id,
+            str(seer_run.uuid),
+            "completed",
+            {"candidates": [{"identifier": "alice", "identifier_kind": "username"}]},
+            None,
+        )
+
+        mirror.refresh_from_db()
+        assert mirror.extras["predicted_assignee_user_ids"] == [alice.id]
+
+    @patch(METRICS_PATH)
     def test_untied_run_is_missing_group(self, mock_metrics: MagicMock) -> None:
         # Run mirror was never tied to a group (group_id is NULL): there's nothing to
         # record the prediction against, so it must not count as a delivery success.

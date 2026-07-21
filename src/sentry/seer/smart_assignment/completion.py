@@ -34,8 +34,12 @@ def process_smart_assignment_completion(group: Group, activity: Activity) -> Non
     # set by delivery); scores immediately if ground truth already landed (assignment
     # before Seer finished), otherwise waits for it. This is not user-facing, so it runs
     # regardless of the feature flag.
-    run_id = data.get("run_id")
-    run = SeerAgentRun.objects.filter(id=run_id).first() if run_id is not None else None
+    # `run_id` here is the SeerRun PK (the identifier delivery and ground truth share),
+    # not the SeerAgentRun row id, so match on the run FK.
+    seer_run_id = data.get("run_id")
+    run = (
+        SeerAgentRun.objects.filter(run_id=seer_run_id).first() if seer_run_id is not None else None
+    )
     if run is not None:
         record_prediction(run, predicted_assignee_user_ids)
 
