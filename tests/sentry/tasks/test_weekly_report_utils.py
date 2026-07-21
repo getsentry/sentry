@@ -60,9 +60,11 @@ class OrganizationTopSpansTest(BaseSpansTestCase, TestCase):
 
         assert len(ctx.top_spans) == 2
         assert ctx.top_spans[0]["name"] == "/api/users"
-        assert ctx.top_spans[0]["p95"] > 0
-        assert ctx.top_spans[0]["sum"] > 0
+        assert ctx.top_spans[0]["p95"] == 200
+        assert ctx.top_spans[0]["sum"] == 600
         assert ctx.top_spans[1]["name"] == "/api/orders"
+        assert ctx.top_spans[1]["p95"] == 100
+        assert ctx.top_spans[1]["sum"] == 200
 
         assert ctx.top_spans_projects["/api/users"] == self.project.id
         assert ctx.top_spans_projects["/api/orders"] == self.project.id
@@ -117,7 +119,7 @@ class OrganizationTopSpansTest(BaseSpansTestCase, TestCase):
         organization_top_spans_timeseries(ctx, referrer=Referrer.REPORTS_TOP_SPANS.value)
 
         assert "/api/users" in ctx.top_spans_timeseries
-        assert len(ctx.top_spans_timeseries["/api/users"]) > 0
+        assert len(ctx.top_spans_timeseries["/api/users"]) == 28
 
     def test_timeseries_skips_without_top_spans(self) -> None:
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
