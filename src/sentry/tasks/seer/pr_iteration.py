@@ -599,7 +599,6 @@ def _build_review_feedback(
     inline_comments: list[ReviewComment],
     review_body: str | None,
     *,
-    repo_name: str,
     review_id: int,
     review_html_url: str | None,
     author_is_bot: bool,
@@ -633,7 +632,7 @@ def _build_review_feedback(
             user=GithubPrCommentUser(login=author["username"] if author else None),
         )
         source = GithubPrReviewCommentFeedbackSource(
-            comment=review_comment, author_is_bot=author_is_bot, repo_name=repo_name
+            comment=review_comment, author_is_bot=author_is_bot
         )
         feedback.append(Feedback(source=source))
 
@@ -780,7 +779,6 @@ def trigger_pr_iteration_from_review(
     feedback_items = _build_review_feedback(
         inline_comments,
         review_body,
-        repo_name=repo.name,
         review_id=review_id,
         review_html_url=review_html_url,
         author_is_bot=author_is_bot,
