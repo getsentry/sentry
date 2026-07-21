@@ -70,7 +70,7 @@ class DeliverSmartAssignmentResultTest(TestCase):
         )
 
         data = self._completion_activity().data
-        assert data["run_id"] == self.mirror.id
+        assert data["run_id"] == self.seer_run.id
         assert data["run_uuid"] == str(self.seer_run.uuid)
         assert data["predicted_assignee_user_ids"] == [alice.id]
 

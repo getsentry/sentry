@@ -132,7 +132,7 @@ def deliver_smart_assignment_result(
     # this run. Activity carries no unique constraint, so this is a best-effort pre-check;
     # it covers sequential redelivery but not a concurrent-redelivery race.
     already_recorded = any(
-        (activity.data or {}).get("run_id") == agent_run.id
+        (activity.data or {}).get("run_id") == agent_run.run_id
         for activity in Activity.objects.filter(
             group=group, type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value
         )
@@ -150,7 +150,7 @@ def deliver_smart_assignment_result(
         group,
         ActivityType.SMART_ASSIGNMENT_COMPLETED,
         data={
-            "run_id": agent_run.id,
+            "run_id": agent_run.run_id,
             "run_uuid": run_uuid,
             "predicted_assignee_user_ids": predicted_assignee_user_ids,
         },
