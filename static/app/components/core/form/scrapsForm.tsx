@@ -84,8 +84,8 @@ function SubmitButton(props: ButtonProps) {
     <form.Subscribe selector={state => state.isSubmitting}>
       {isSubmitting => (
         <Button
-          {...props}
           variant="primary"
+          {...props}
           type="submit"
           form={isInsideForm ? undefined : form.formId}
           busy={isSubmitting || props.busy}
