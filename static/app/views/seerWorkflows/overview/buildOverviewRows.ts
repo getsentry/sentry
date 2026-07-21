@@ -69,14 +69,24 @@ function deriveRunStatus(state: ExplorerAutofixState | null): AutofixRunStatus {
   }
 }
 
-function extractPatchStats(state: ExplorerAutofixState | null): PatchStats | undefined {
+// A diff qualifies for the on-card differ only when it is genuinely small:
+// few files, few changed lines, and bounded hunk context so a fix with huge
+// surrounding context can't blow the card up.
+const INLINE_DIFF_MAX_FILES = 2;
+const INLINE_DIFF_MAX_CHANGED_LINES = 25;
+const INLINE_DIFF_MAX_RENDERED_LINES = 60;
+
+function extractPatchInfo(state: ExplorerAutofixState | null): {
+  inlinePatches?: OverviewRow['inlinePatches'];
+  patchStats?: PatchStats;
+} {
   const section = getOrderedAutofixSections(state).find(isCodeChangesSection);
   if (!section) {
-    return undefined;
+    return {};
   }
   const artifact = getAutofixArtifactFromSection(section);
   if (!isCodeChangesArtifact(artifact)) {
-    return undefined;
+    return {};
   }
   // Disambiguate paths with the repo name only when the diff spans repos.
   const multiRepo = new Set(artifact.map(filePatch => filePatch.repo_name)).size > 1;
@@ -90,11 +100,26 @@ function extractPatchStats(state: ExplorerAutofixState | null): PatchStats | und
     }))
     // Most-changed files first, so a capped tooltip shows what matters.
     .sort((a, b) => b.added + b.removed - (a.added + a.removed));
+  const added = artifact.reduce((sum, filePatch) => sum + filePatch.patch.added, 0);
+  const removed = artifact.reduce((sum, filePatch) => sum + filePatch.patch.removed, 0);
+  const renderedLines = artifact.reduce(
+    (sum, filePatch) =>
+      sum + filePatch.patch.hunks.reduce((lines, hunk) => lines + hunk.lines.length, 0),
+    0
+  );
+  const inlineEligible =
+    artifact.length <= INLINE_DIFF_MAX_FILES &&
+    added + removed <= INLINE_DIFF_MAX_CHANGED_LINES &&
+    renderedLines > 0 &&
+    renderedLines <= INLINE_DIFF_MAX_RENDERED_LINES;
   return {
-    fileList,
-    files: artifact.length,
-    added: artifact.reduce((sum, filePatch) => sum + filePatch.patch.added, 0),
-    removed: artifact.reduce((sum, filePatch) => sum + filePatch.patch.removed, 0),
+    patchStats: {fileList, files: artifact.length, added, removed},
+    inlinePatches: inlineEligible
+      ? artifact.map(filePatch => ({
+          patch: filePatch.patch,
+          repoName: multiRepo ? filePatch.repo_name : undefined,
+        }))
+      : undefined,
   };
 }
 
@@ -223,7 +248,6 @@ function buildOverviewRow(issue: AutofixIssue): OverviewRow {
     eventCount: Number.isFinite(eventCount) ? eventCount : 0,
     userCount: issue.userCount,
     lastSeen: issue.lastSeen,
-    fixabilityScore: issue.seerFixabilityScore,
     lastActivityAt:
       state?.updated_at ??
       issue.run?.lastTriggeredAt ??
@@ -237,7 +261,7 @@ function buildOverviewRow(issue: AutofixIssue): OverviewRow {
     trigger: mapRunSourceToTrigger(issue.run?.source ?? null),
     rawSource: issue.run?.source ?? null,
     analysis,
-    patchStats: extractPatchStats(state),
+    ...extractPatchInfo(state),
     pendingQuestion: extractPendingQuestion(state),
     ...extractPr(state),
   };

@@ -1,19 +1,24 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {InfoTip} from '@sentry/scraps/info';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
-import {Heading, Text} from '@sentry/scraps/text';
+import {Text} from '@sentry/scraps/text';
 
 import Feature from 'sentry/components/acl/feature';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
+import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {IconFilter, IconFix, IconMerge, IconPullRequest, IconUser} from 'sentry/icons';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -67,8 +72,6 @@ const ATTENTION_FILTER_OPTIONS: Array<{
   label: ATTENTION_META[value].label,
 }));
 
-type QuickFilterValue = 'review_pr' | 'awaiting_input' | 'code_changes_ready' | 'merged';
-
 type SortValue = 'triage' | 'activity' | 'events';
 
 const SORT_OPTIONS: Array<{label: string; value: SortValue}> = [
@@ -96,17 +99,28 @@ export default function AutofixOverview() {
   const navigate = useNavigate();
 
   const cursor = decodeScalar(location.query.cursor);
+  // Deep-link focus mode: ?id=<issueId> renders exactly that issue's card,
+  // fully expanded, fetched by group id so it resolves even outside the
+  // list's filters and pagination.
+  const selectedId = decodeScalar(location.query.id);
   const outcomeFilter = decodeList(location.query.outcome) as AutofixOutcome[];
   // TODO(seer): trigger filter disabled — see TRIGGER_FILTER_OPTIONS above.
   // const triggerFilter = decodeList(location.query.trigger) as AutofixTrigger[];
   const attentionFilter = decodeList(location.query.attention) as AttentionReason[];
-  const quickFilter = decodeScalar(location.query.quick) as QuickFilterValue | undefined;
   const period = decodeScalar(location.query.period);
   const sort = (decodeScalar(location.query.sort) as SortValue | undefined) ?? 'triage';
+
+  // Project scoping comes from the canonical page-filters selection; the
+  // issues request is gated until the persisted selection is restored so the
+  // first fetch doesn't race it with an all-projects query.
+  const {selection, isReady: pageFiltersReady} = usePageFilters();
 
   const {issues, isPending, isError, refetch, pageLinks} = useAutofixIssues({
     query: '',
     cursor,
+    enabled: pageFiltersReady,
+    groupIds: selectedId ? [selectedId] : undefined,
+    projects: selection.projects,
     runsQuery: OVERVIEW_RUNS_QUERY,
     questions: RUN_QUESTION_PROMPTS,
   });
@@ -115,14 +129,13 @@ export default function AutofixOverview() {
     navigate(
       {
         pathname: location.pathname,
-        query: {...location.query, ...patch},
+        // Every caller changes a filter or the sort, where a stale cursor
+        // from a previous page makes no sense — reset it (the project filter
+        // already does the same via resetParamsOnChange).
+        query: {...location.query, cursor: undefined, ...patch},
       },
       {replace: true}
     );
-  };
-
-  const toggleQuickFilter = (value: QuickFilterValue) => {
-    updateQuery({quick: quickFilter === value ? undefined : value});
   };
 
   const periodCutoffMs = useMemo(() => {
@@ -149,13 +162,6 @@ export default function AutofixOverview() {
       if (!attention || !attentionFilter.includes(attention)) {
         return false;
       }
-    }
-    if (quickFilter === 'merged') {
-      if (!row.prMerged) {
-        return false;
-      }
-    } else if (quickFilter && attention !== quickFilter) {
-      return false;
     }
     if (periodCutoffMs !== null && Date.parse(row.lastActivityAt) < periodCutoffMs) {
       return false;
@@ -184,38 +190,19 @@ export default function AutofixOverview() {
     );
   });
 
-  const stats = {
-    reviewPr: 0,
-    awaitingInput: 0,
-    codeChangesReady: 0,
-    merged: 0,
-  };
-  for (const {row, attention} of filteredRows) {
-    if (row.prMerged) {
-      stats.merged++;
-    }
-    if (attention === 'review_pr') {
-      stats.reviewPr++;
-    }
-    if (attention === 'awaiting_input') {
-      stats.awaitingInput++;
-    }
-    if (attention === 'code_changes_ready') {
-      stats.codeChangesReady++;
-    }
-  }
+  // Focus mode shows the fetched issue as-is — client-side filters and sort
+  // don't apply to a single deep-linked card.
+  const visibleRows = selectedId ? rowsWithAttention : sortedRows;
 
   const hasActiveFilters =
     outcomeFilter.length > 0 ||
     attentionFilter.length > 0 ||
-    quickFilter !== undefined ||
     (period !== undefined && period !== '');
 
   const clearAllFilters = () => {
     updateQuery({
       outcome: undefined,
       attention: undefined,
-      quick: undefined,
       period: undefined,
     });
   };
@@ -226,76 +213,45 @@ export default function AutofixOverview() {
       features="seer-night-shift-ui"
       renderDisabled={() => <NoAccess />}
     >
-      <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
-        <Stack gap="lg" padding="xl">
-          <Flex justify="between" align="start" gap="md">
-            <Stack gap="2xs">
-              <Heading as="h1">{t('Autofix Overview')}</Heading>
-              <Text as="p" variant="muted">
-                {t(
-                  'Issues where Autofix has produced a root cause, solution, code changes, or pull request.'
-                )}
-              </Text>
-            </Stack>
-            <Flex gap="sm" align="center">
-              <LinkButton to={`/organizations/${organization.slug}/issues/autofix/`}>
-                {t('Workflow runs')}
-              </LinkButton>
-              <LinkButton to={`/organizations/${organization.slug}/issues/autofix/runs/`}>
-                {t('Runs demo')}
-              </LinkButton>
-            </Flex>
-          </Flex>
-
-          <Container width={{md: '100%', lg: '85%'}}>
-            <Grid
-              columns={{xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)'}}
-              gap="md"
-              marginBottom="md"
-            >
-              <StatCard
-                Icon={IconUser}
-                iconVariant="primary"
-                label={t('Awaiting your input')}
-                value={stats.awaitingInput}
-                isActive={quickFilter === 'awaiting_input'}
-                onClick={() => toggleQuickFilter('awaiting_input')}
-              />
-              <StatCard
-                Icon={IconFix}
-                iconVariant="secondary"
-                label={t('Code changes ready')}
-                value={stats.codeChangesReady}
-                isActive={quickFilter === 'code_changes_ready'}
-                onClick={() => toggleQuickFilter('code_changes_ready')}
-              />
-              <StatCard
-                Icon={IconPullRequest}
-                iconVariant="warning"
-                label={t('Awaiting your review')}
-                value={stats.reviewPr}
-                isActive={quickFilter === 'review_pr'}
-                onClick={() => toggleQuickFilter('review_pr')}
-              />
-              <StatCard
-                Icon={IconMerge}
-                iconVariant="success"
-                label={t('Merged PRs')}
-                value={stats.merged}
-                isActive={quickFilter === 'merged'}
-                onClick={() => toggleQuickFilter('merged')}
-              />
-            </Grid>
-            <Container
-              background="secondary"
-              border="muted"
-              radius="md"
-              padding="sm md"
-              marginBottom="md"
-            >
+      <PageFiltersContainer>
+        <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
+          {/* The title lives in the app's slim top bar (Layout.Title fills the
+              TopBar slot); the description rides along as its info tip. */}
+          <Layout.Title>
+            {t('Autofix Overview')}
+            <InfoTip
+              position="right"
+              size="sm"
+              title={t(
+                'Issues where Autofix has produced a root cause, solution, code changes, or pull request.'
+              )}
+            />
+          </Layout.Title>
+          <Stack gap="lg" padding="lg xl">
+            {/* Focus mode swaps the filter toolbar for a way back to the
+                list; every other param (project, sort, ...) is preserved. */}
+            {selectedId ? (
+              <Flex>
+                <LinkButton
+                  size="xs"
+                  variant="transparent"
+                  icon={<IconArrow direction="left" size="xs" />}
+                  to={{
+                    pathname: location.pathname,
+                    query: {...location.query, id: undefined},
+                  }}
+                >
+                  {t('All issues')}
+                </LinkButton>
+              </Flex>
+            ) : (
+              // Filters first, unboxed, matching the issue stream's layout:
+              // server-side scope, then the client-side filters
               <Flex justify="between" align="center" gap="md" wrap="wrap">
                 <Flex gap="md" align="center" wrap="wrap">
-                  <IconFilter size="sm" variant="muted" aria-hidden />
+                  <PageFilterBar condensed>
+                    <ProjectPageFilter resetParamsOnChange={['cursor']} />
+                  </PageFilterBar>
                   <CompactSelect
                     multiple
                     value={outcomeFilter}
@@ -394,32 +350,41 @@ export default function AutofixOverview() {
                   </Button>
                 ) : null}
               </Flex>
-            </Container>
+            )}
 
             {isError ? (
               <LoadingError onRetry={refetch} />
             ) : isPending ? (
               <LoadingIndicator />
-            ) : sortedRows.length === 0 ? (
+            ) : visibleRows.length === 0 ? (
               <Container border="primary" radius="md" padding="xl">
                 <Text as="p" variant="muted" align="center">
-                  {hasActiveFilters
-                    ? t('No issues match your filters.')
-                    : t('No completed autofix runs yet.')}
+                  {selectedId
+                    ? t('Issue not found.')
+                    : hasActiveFilters
+                      ? t('No issues match your filters.')
+                      : t('No completed autofix runs yet.')}
                 </Text>
               </Container>
             ) : (
               <Stack gap="md">
-                {sortedRows.map(({row}) => (
-                  <IssueCard key={row.id} row={row} orgSlug={organization.slug} />
+                {visibleRows.map(({row}) => (
+                  <IssueCard
+                    key={row.id}
+                    row={row}
+                    orgSlug={organization.slug}
+                    defaultExpanded={Boolean(selectedId)}
+                  />
                 ))}
               </Stack>
             )}
 
-            {!isPending && !isError && <Pagination pageLinks={pageLinks} />}
-          </Container>
-        </Stack>
-      </SentryDocumentTitle>
+            {!selectedId && !isPending && !isError && (
+              <Pagination pageLinks={pageLinks} />
+            )}
+          </Stack>
+        </SentryDocumentTitle>
+      </PageFiltersContainer>
     </Feature>
   );
 }
@@ -433,70 +398,5 @@ function NoAccess() {
         </Alert>
       </Alert.Container>
     </Stack>
-  );
-}
-
-type StatIconVariant = 'success' | 'warning' | 'primary' | 'secondary';
-
-const StatCardButton = styled('button')<{isActive: boolean}>`
-  cursor: ${p => (p.disabled ? 'default' : 'pointer')};
-  background: ${p =>
-    p.isActive ? p.theme.tokens.background.secondary : p.theme.tokens.background.primary};
-  border: 1px solid
-    ${p => (p.isActive ? p.theme.tokens.border.accent : p.theme.tokens.border.primary)};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => `${p.theme.space.md} ${p.theme.space.lg}`};
-  text-align: left;
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
-  &:hover {
-    border-color: ${p =>
-      p.disabled ? p.theme.tokens.border.primary : p.theme.tokens.border.accent};
-  }
-  &:focus-visible {
-    outline: 2px solid ${p => p.theme.tokens.focus.default};
-    outline-offset: 1px;
-  }
-`;
-
-function StatCard({
-  Icon,
-  iconVariant,
-  label,
-  value,
-  isActive,
-  onClick,
-  extra,
-}: {
-  Icon: typeof IconUser;
-  iconVariant: StatIconVariant;
-  isActive: boolean;
-  label: string;
-  value: number | string;
-  extra?: React.ReactNode;
-  onClick?: () => void;
-}) {
-  return (
-    <StatCardButton
-      type="button"
-      isActive={isActive}
-      aria-pressed={isActive}
-      onClick={onClick}
-      disabled={!onClick}
-    >
-      <Stack gap="xs">
-        <Flex gap="xs" align="center">
-          <Icon size="xs" variant={iconVariant} aria-hidden />
-          <Text size="xs" variant="muted" uppercase>
-            {label}
-          </Text>
-          {extra}
-        </Flex>
-        <Heading as="h2" size="2xl">
-          {value}
-        </Heading>
-      </Stack>
-    </StatCardButton>
   );
 }

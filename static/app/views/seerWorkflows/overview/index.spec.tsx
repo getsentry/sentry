@@ -1,8 +1,12 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutofixOverview from 'sentry/views/seerWorkflows/overview';
 import {RUN_QUESTIONS} from 'sentry/views/seerWorkflows/overview/runQuestions';
 
@@ -18,7 +22,6 @@ describe('AutofixOverview', () => {
     title: 'TypeError in checkout cart',
     count: '100',
     userCount: 5,
-    seerFixabilityScore: 0.75,
   });
 
   // A run that reached every stage and opened a PR.
@@ -87,6 +90,16 @@ describe('AutofixOverview', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+
+    // The project page filter needs seeded page-filter + project stores, or
+    // PageFiltersContainer never reports ready and the issues query stays
+    // gated off.
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+    ProjectsStore.loadInitialData([ProjectFixture()]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [ProjectFixture()],
+    });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/`,
@@ -175,10 +188,29 @@ describe('AutofixOverview', () => {
       'https://github.com/getsentry/sentry/pull/123'
     );
 
+    // The step indicator reads the full Seer pipeline with the PR-opened
+    // glyph — merge is the outstanding final step. Hovering reveals the
+    // checklist.
+    const indicator = screen.getByRole('img', {
+      name: 'Autofix progress: 4 of 5 steps — PR opened',
+    });
+    // The ring carries the steps-remaining count…
+    expect(indicator).toHaveTextContent('1');
+    // …and its tooltip spells the count out above the checklist.
+    await userEvent.hover(indicator);
+    expect(await screen.findByText('1 step until issue fix')).toBeInTheDocument();
+    expect(screen.getByText('✓ Root cause')).toBeInTheDocument();
+    expect(screen.getByText('○ Merged')).toBeInTheDocument();
+
     // Exact patch stats from merged_file_patches, not an LLM estimate.
     expect(screen.getByText('1 file')).toBeInTheDocument();
     expect(screen.getByText('+42')).toBeInTheDocument();
     expect(screen.getByText('−7')).toBeInTheDocument();
+
+    // This diff fails the inline-differ gates twice over (49 changed lines
+    // is past the cap, and its hunks are empty), so the file path lives only
+    // in the pill's hover tooltip — no diff header on the card.
+    expect(screen.queryByText('src/cart.py')).not.toBeInTheDocument();
 
     // Hovering the diff pill lists the changed files.
     await userEvent.hover(screen.getByText('1 file'));
@@ -206,12 +238,13 @@ describe('AutofixOverview', () => {
     // The timestamp is labeled as run activity.
     expect(screen.getByText(/^updated/)).toBeInTheDocument();
 
-    // Root cause, notes, and the short id stay behind the disclosure.
-    const disclosure = screen.getByRole('button', {name: 'Full analysis'});
+    // Root cause, notes, and the short id stay behind the analysis toggle,
+    // which renders its block only when expanded.
+    const disclosure = screen.getByRole('button', {name: 'More details'});
     expect(
-      screen.getByText('Commit c5bb895 stopped sending the Authorization header.')
-    ).not.toBeVisible();
-    expect(screen.getByText('PROJ-1')).not.toBeVisible();
+      screen.queryByText('Commit c5bb895 stopped sending the Authorization header.')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('PROJ-1')).not.toBeInTheDocument();
 
     await userEvent.click(disclosure);
 
@@ -229,8 +262,9 @@ describe('AutofixOverview', () => {
     ).toBeVisible();
     expect(screen.getByText('Verify the proxy accepts both headers.')).toBeVisible();
     expect(screen.queryByText(/•/)).not.toBeInTheDocument();
-    // Fixability lives in the expanded state as a bucketed tag (0.75 > 0.7).
-    expect(screen.getByText('High fixability')).toBeVisible();
+    // The issue level moved off the header into the identity strip — exactly
+    // one occurrence (ErrorLevel's visually-hidden label).
+    expect(screen.getAllByText('Level: Warning')).toHaveLength(1);
   });
 
   it('shows Diagnosis and Next steps when no code was drafted', async () => {
@@ -253,7 +287,8 @@ describe('AutofixOverview', () => {
             {
               key: 'user_3',
               question: RUN_QUESTIONS[3]!.prompt,
-              answer: '- Decide whether Seer should generate a fix.',
+              // Space-less "•" bullets — the normalizer must split them.
+              answer: '•Decide whether to relax the constraint. •Verify the consumers.',
             },
           ],
         },
@@ -274,31 +309,16 @@ describe('AutofixOverview', () => {
     ).toBeVisible();
     expect(screen.queryByText('Proposed fix')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Full analysis'}));
-
-    // …and the notes section is Next steps rather than a review checklist.
+    // …and the notes are promoted onto the face as their own Next-steps
+    // block — no expansion needed, no Review checklist anywhere, and the
+    // inline "•" bullets normalized into separate list items. With nothing
+    // left for the details, the More-details toggle doesn't render at all.
     expect(screen.getByText('Next steps')).toBeVisible();
-    expect(screen.getByText('Decide whether Seer should generate a fix.')).toBeVisible();
+    expect(screen.getByText('Decide whether to relax the constraint.')).toBeVisible();
+    expect(screen.getByText('Verify the consumers.')).toBeVisible();
+    expect(screen.queryByText(/•/)).not.toBeInTheDocument();
     expect(screen.queryByText('Review checklist')).not.toBeInTheDocument();
-  });
-
-  it('toggles quick filters from the stat cards via the URL', async () => {
-    const {router} = renderPage();
-
-    // Wait for the card to load so the stat counts reflect the row.
-    expect(await screen.findByRole('button', {name: 'Review PR'})).toBeInTheDocument();
-
-    // The PR-opened row counts toward "Awaiting your review".
-    const statCard = screen.getByRole('button', {
-      name: /Awaiting your review/,
-    });
-    expect(statCard).toHaveTextContent('1');
-
-    await userEvent.click(statCard);
-    expect(router.location.query.quick).toBe('review_pr');
-
-    await userEvent.click(statCard);
-    expect(router.location.query.quick).toBeUndefined();
+    expect(screen.queryByRole('button', {name: 'More details'})).not.toBeInTheDocument();
   });
 
   it('applies the outcome filter with AND semantics', async () => {
@@ -370,9 +390,14 @@ describe('AutofixOverview', () => {
       'href',
       `/organizations/${organization.slug}/issues/2/?seerDrawer=true`
     );
+
+    // A settled run gets no status word — just how far it got.
+    expect(
+      screen.getByRole('img', {name: 'Autofix progress: 1 of 5 steps — Root cause'})
+    ).toBeInTheDocument();
   });
 
-  it('shows merged state and enables the Merged PRs card when the API returns PR state', async () => {
+  it('shows merged state when the API returns PR state', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/runs/`,
       body: [
@@ -389,19 +414,20 @@ describe('AutofixOverview', () => {
       ],
     });
 
-    const {router} = renderPage();
+    renderPage();
 
     // The merged run wears a Merged tag instead of a Review PR action.
     expect(await screen.findByText('Merged')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Review PR'})).not.toBeInTheDocument();
 
-    // The Merged PRs stat card is live and counts the row.
-    const mergedCard = screen.getByRole('button', {name: /Merged PRs/});
-    expect(mergedCard).toBeEnabled();
-    expect(mergedCard).toHaveTextContent('1');
-
-    await userEvent.click(mergedCard);
-    expect(router.location.query.quick).toBe('merged');
+    // The step indicator renders its terminal all-success state: checkmark
+    // only, no steps-remaining digit, and the tooltip leads with the verdict.
+    const indicator = screen.getByRole('img', {
+      name: 'Autofix progress: 5 of 5 steps — PR merged',
+    });
+    expect(indicator).not.toHaveTextContent(/\d/);
+    await userEvent.hover(indicator);
+    expect(await screen.findByText('Issue fixed')).toBeInTheDocument();
   });
 
   it('orders cards as a triage queue: actionable, then working, then merged', async () => {
@@ -454,14 +480,13 @@ describe('AutofixOverview', () => {
       .map(link => link.textContent)
       .filter(text => text === 'Issue A' || text === 'Issue B' || text === 'Issue C');
     expect(titles).toEqual(['Issue B', 'Issue C', 'Issue A']);
-  });
 
-  it('always enables the Merged PRs card, showing 0 when nothing is merged', async () => {
-    renderPage();
-
-    const mergedCard = await screen.findByRole('button', {name: /Merged PRs/});
-    expect(mergedCard).toBeEnabled();
-    expect(mergedCard).toHaveTextContent('0');
+    // Issue C is in flight — its ring wears the running status word.
+    expect(
+      screen.getByRole('img', {
+        name: 'Autofix progress: 3 of 5 steps — Code changes (Running)',
+      })
+    ).toBeInTheDocument();
   });
 
   it('surfaces the blocking question when a run awaits user input', async () => {
@@ -501,38 +526,244 @@ describe('AutofixOverview', () => {
     expect(
       await screen.findByText('Seer asked: Which environment should I target?')
     ).toBeInTheDocument();
+    // The indicator's current step wears the paused status.
+    expect(
+      screen.getByRole('img', {
+        name: 'Autofix progress: 1 of 5 steps — Root cause (Needs your input)',
+      })
+    ).toBeInTheDocument();
   });
 
-  it('normalizes space-less • bullets into a markdown list', async () => {
+  it('shows an errored step indicator at the step the run died on', async () => {
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/runs/`,
-      body: [
-        {
-          id: 'run-1',
-          type: 'explorer',
-          groupId: '2',
-          source: 'autofix',
-          lastTriggeredAt: '2026-07-14T09:00:00Z',
-          dateCreated: '2026-07-14T09:00:00Z',
-          outputs: [
+      url: `/organizations/${organization.slug}/issues/2/autofix/`,
+      body: {
+        autofix: {
+          run_id: 1,
+          status: 'error',
+          updated_at: '2026-07-14T10:00:00Z',
+          blocks: [
             {
-              key: 'user_3',
-              question: RUN_QUESTIONS[3]!.prompt,
-              // No space after the • — the normalizer must still split these.
-              answer: '•Confirm the header is not leaked. •Verify both headers work.',
+              id: 'b1',
+              timestamp: '2026-07-14T09:00:00Z',
+              message: {
+                role: 'assistant',
+                content: 'rca',
+                metadata: {step: 'root_cause'},
+              },
+            },
+            {
+              id: 'b2',
+              timestamp: '2026-07-14T09:10:00Z',
+              message: {
+                role: 'assistant',
+                content: 'plan',
+                metadata: {step: 'solution'},
+              },
             },
           ],
         },
-      ],
+      },
     });
 
     renderPage();
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Full analysis'}));
+    const indicator = await screen.findByRole('img', {
+      name: 'Autofix progress: 2 of 5 steps — Plan (Errored)',
+    });
+    expect(indicator).toHaveTextContent('3');
+  });
 
-    expect(screen.getByText('Confirm the header is not leaked.')).toBeVisible();
-    expect(screen.getByText('Verify both headers work.')).toBeVisible();
-    expect(screen.queryByText(/•/)).not.toBeInTheDocument();
+  it('scopes the issue stream to the selected projects', async () => {
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [2]}));
+    const issuesRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [issue],
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByRole('link', {
+        name: 'Proxy requests fail without Authorization header',
+      })
+    ).toBeInTheDocument();
+    // The selector's trigger reflects the selection (the card's project badge
+    // is a link, so the button role isolates the filter)…
+    expect(screen.getByRole('button', {name: 'project-slug'})).toBeInTheDocument();
+    // …and the issues request carries it.
+    expect(issuesRequest).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/issues/`,
+      expect.objectContaining({
+        query: expect.objectContaining({project: [2]}),
+      })
+    );
+  });
+
+  it('renders an inline differ for small diffs, collapsed to a file header', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/2/autofix/`,
+      body: {
+        autofix: {
+          run_id: 1,
+          status: 'completed',
+          updated_at: '2026-07-14T10:00:00Z',
+          blocks: [
+            {
+              id: 'b1',
+              timestamp: '2026-07-14T09:00:00Z',
+              message: {
+                role: 'assistant',
+                content: 'code',
+                metadata: {step: 'code_changes'},
+              },
+              merged_file_patches: [
+                {
+                  repo_name: 'getsentry/sentry',
+                  diff: '--- a/src/cart.py\n+++ b/src/cart.py',
+                  patch: {
+                    path: 'src/cart.py',
+                    source_file: 'src/cart.py',
+                    target_file: 'src/cart.py',
+                    type: 'M',
+                    added: 2,
+                    removed: 1,
+                    hunks: [
+                      {
+                        section_header: 'def add_to_cart',
+                        source_start: 10,
+                        source_length: 3,
+                        target_start: 10,
+                        target_length: 4,
+                        lines: [
+                          {
+                            value: 'def add_to_cart(item):',
+                            line_type: ' ',
+                            source_line_no: 10,
+                            target_line_no: 10,
+                            diff_line_no: 1,
+                          },
+                          {
+                            value: '    total = None',
+                            line_type: '-',
+                            source_line_no: 11,
+                            target_line_no: null,
+                            diff_line_no: 2,
+                          },
+                          {
+                            value: '    total = 0',
+                            line_type: '+',
+                            source_line_no: null,
+                            target_line_no: 11,
+                            diff_line_no: 3,
+                          },
+                          {
+                            value: '    return total',
+                            line_type: '+',
+                            source_line_no: null,
+                            target_line_no: 12,
+                            diff_line_no: 4,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    renderPage();
+
+    // The differ's file header shows on the card without any interaction…
+    const fileHeader = await screen.findByText('src/cart.py');
+    // …but the diff body starts collapsed.
+    expect(screen.queryByText(/@@ -10,3 \+10,4 @@/)).not.toBeInTheDocument();
+
+    await userEvent.click(fileHeader);
+
+    expect(screen.getByText(/@@ -10,3 \+10,4 @@/)).toBeInTheDocument();
+  });
+
+  it('focuses a single fully-expanded card when id is present', async () => {
+    // The focus fetch pins the exact group id (and the endpoint ignores the
+    // list's filters in that mode).
+    const groupRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [issue],
+      match: [MockApiClient.matchQuery({group: ['2']})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/2/autofix/`,
+      body: {
+        autofix: {
+          run_id: 1,
+          status: 'completed',
+          updated_at: '2026-07-14T10:00:00Z',
+          blocks: [
+            {
+              id: 'b1',
+              timestamp: '2026-07-14T09:00:00Z',
+              message: {
+                role: 'assistant',
+                content: 'code',
+                metadata: {step: 'code_changes'},
+              },
+              merged_file_patches: [
+                {
+                  repo_name: 'getsentry/sentry',
+                  diff: '--- a/src/cart.py\n+++ b/src/cart.py',
+                  patch: {
+                    path: 'src/cart.py',
+                    source_file: 'src/cart.py',
+                    target_file: 'src/cart.py',
+                    type: 'M',
+                    added: 1,
+                    removed: 0,
+                    hunks: [
+                      {
+                        section_header: '',
+                        source_start: 5,
+                        source_length: 1,
+                        target_start: 5,
+                        target_length: 2,
+                        lines: [
+                          {
+                            value: '    return total',
+                            line_type: '+',
+                            source_line_no: null,
+                            target_line_no: 5,
+                            diff_line_no: 1,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    });
+
+    renderPage({id: '2'});
+
+    // The full analysis renders expanded without any interaction…
+    expect(await screen.findByText('Root cause')).toBeVisible();
+    expect(screen.getByText('PROJ-1')).toBeVisible();
+    // …and so does the inline diff.
+    expect(screen.getByText(/@@ -5,1 \+5,2 @@/)).toBeInTheDocument();
+    expect(groupRequest).toHaveBeenCalled();
+
+    // Focus mode hides the list chrome and offers the way back, keeping the
+    // other params.
+    expect(screen.queryByRole('button', {name: /Outcome/})).not.toBeInTheDocument();
+    const backLink = screen.getByRole('button', {name: 'All issues'});
+    expect(backLink).toHaveAttribute('href', expect.not.stringContaining('id=2'));
   });
 
   it('renders an error state and can retry', async () => {

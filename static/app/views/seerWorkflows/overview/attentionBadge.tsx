@@ -163,7 +163,7 @@ export function AttentionBadge({
   if (reason === 'code_changes_ready') {
     return (
       <Tooltip title={meta.description} skipWrapper>
-        <AccentLinkButton size="zero" icon={<meta.Icon />} to={to}>
+        <AccentLinkButton size="sm" icon={<meta.Icon />} to={to}>
           {meta.label}
         </AccentLinkButton>
       </Tooltip>
@@ -172,7 +172,7 @@ export function AttentionBadge({
   if (reason === 'solution_ready') {
     return (
       <Tooltip title={meta.description} skipWrapper>
-        <SuccessLinkButton size="zero" icon={<meta.Icon />} to={to}>
+        <SuccessLinkButton size="sm" icon={<meta.Icon />} to={to}>
           {meta.label}
         </SuccessLinkButton>
       </Tooltip>
@@ -181,7 +181,7 @@ export function AttentionBadge({
   if (reason === 'errored') {
     return (
       <Tooltip title={meta.description} skipWrapper>
-        <MutedLinkButton size="zero" icon={<meta.Icon />} to={to}>
+        <MutedLinkButton size="sm" icon={<meta.Icon />} to={to}>
           {meta.label}
         </MutedLinkButton>
       </Tooltip>
@@ -190,7 +190,7 @@ export function AttentionBadge({
 
   return (
     <Tooltip title={meta.description} skipWrapper>
-      <LinkButton size="zero" variant={meta.variant} icon={<meta.Icon />} to={to}>
+      <LinkButton size="sm" variant={meta.variant} icon={<meta.Icon />} to={to}>
         {meta.label}
       </LinkButton>
     </Tooltip>
