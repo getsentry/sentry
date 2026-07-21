@@ -76,11 +76,15 @@ export const RUN_QUESTIONS: RunQuestionConfig[] = [
       'assumption, or untested path and why it matters (at most 25 words per ' +
       'bullet). If the run produced no code: next steps instead — two to four ' +
       'markdown bullets on how an engineer should take this forward (what to ' +
-      'confirm in the codebase, what decision to make, whether to have Seer ' +
-      'generate code), concrete and specific to this issue, never generic ' +
-      'advice. Every bullet must start on its own line with "- " (hyphen, ' +
-      'space) — never use the "•" character or run bullets together in one ' +
-      'paragraph. No first person; inline code allowed; no markdown headers.',
+      'confirm in the codebase, what decision to make, what to investigate), ' +
+      'concrete and specific to this issue, never generic advice. Never ' +
+      'include a step telling the reader to have Seer or an AI generate the ' +
+      'fix — the product already offers that as a button next to these notes; ' +
+      'if generating code is the obvious next move, state what the fix should ' +
+      'do instead, or omit that step. Every bullet must start on its own line ' +
+      'with "- " (hyphen, space) — never use the "•" character or run bullets ' +
+      'together in one paragraph. No first person; inline code allowed; no ' +
+      'markdown headers.',
   },
 ];
 
