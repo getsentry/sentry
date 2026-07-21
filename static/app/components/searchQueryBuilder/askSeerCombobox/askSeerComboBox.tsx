@@ -490,6 +490,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
               )}
               <AskSeerSearchListBox
                 {...listBoxProps}
+                hasAskSeerUxRework={hasAskSeerUxRework}
                 listBoxRef={listBoxRef}
                 state={state}
               />
