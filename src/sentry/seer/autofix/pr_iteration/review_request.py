@@ -4,9 +4,11 @@ A review request from Seer must always mean "CI is green, ready to judge" so
 that its requests stay trustworthy. We therefore only request a review after
 every check run on the PR's current head has completed without failures.
 
-We ask the best reviewer candidate (see ``reviewer_candidates``) — today
-the user who triggered the run, the person most invested in the fix
-landing.
+We ask the best reviewer candidate (see ``reviewer_candidates``): the user
+who triggered the run — the person most invested in the fix landing — or,
+for runs without a resolvable triggering user (e.g. Night Shift), the best
+of the fallback sources (suspect-commit author, code owners, recent
+committers), which is what makes those PRs routable at all.
 """
 
 from __future__ import annotations
@@ -221,7 +223,11 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
     pr_author = (raw_pr.get("user") or {}).get("login")
     candidates = collect_reviewer_candidates(
         organization=organization,
+        repository=autofix_run.repository,
         seer_run=seer_run,
+        group_id=autofix_run.group_id,
+        scm=scm,
+        pr_number=pr_number,
         exclude_logins={pr_author} if pr_author else (),
         log_extra=log_extra,
     )
