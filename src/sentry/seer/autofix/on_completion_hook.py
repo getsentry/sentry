@@ -47,8 +47,6 @@ from sentry.seer.autofix.introspection import (
 from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
-    GithubPrCommentFeedbackType,
-    GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -205,7 +203,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     def _repo_name_for_feedback(
         cls,
         state: SeerRunState,
-        source: GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource,
+        source: GithubPrCommentFeedbackSource,
     ) -> str | None:
         if source.repo_name is not None:
             return source.repo_name
@@ -220,7 +218,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         run_id: int,
         state: SeerRunState,
     ) -> None:
-        """React :tada: on the comment(s) that triggered a completed PR iteration."""
+        """React :tada: on the top-level PR comment(s) that triggered a completed iteration.
+
+        Only top-level ``@sentry`` PR comments are acked. Inline review comments are
+        resolvable threads handled separately (CW-1688), so they are left untouched.
+        """
         if not features.has("organizations:autofix-pr-iteration", organization=organization):
             return
 
@@ -244,12 +246,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if not raw:
             return
 
-        sources: list[GithubPrCommentFeedbackSource | GithubPrReviewCommentFeedbackSource] = []
+        sources: list[GithubPrCommentFeedbackSource] = []
         for feedback in parse_feedback(raw):
-            if isinstance(
-                feedback.source,
-                (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource),
-            ):
+            if isinstance(feedback.source, GithubPrCommentFeedbackSource):
                 sources.append(feedback.source)
         if not sources:
             return
@@ -288,16 +287,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     continue
                 scm_by_repo[repo_name] = scm
 
-            source_type: GithubPrCommentFeedbackType = (
-                "github-pr-review-comment"
-                if isinstance(source, GithubPrReviewCommentFeedbackSource)
-                else "github-pr-comment"
-            )
             pr_state = state.repo_pr_states.get(repo_name)
             pr_number = pr_state.pr_number if pr_state and pr_state.pr_number else 0
             _add_comment_reaction(
                 scm,
-                source_type=source_type,
+                source_type="github-pr-comment",
                 pr_number=pr_number,
                 comment_id=comment_id,
                 reaction="hooray",

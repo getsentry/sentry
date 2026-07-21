@@ -302,8 +302,6 @@ class TriggerPrIterationFromReviewTest(TestCase):
         body_sources = [s for s in sources if isinstance(s, GithubPrReviewBodyFeedbackSource)]
         assert len(comment_sources) == 2
         assert len(body_sources) == 1
-        # Review-comment sources carry the repo they live on for completion-time reactions.
-        assert all(s.repo_name == self.repo.name for s in comment_sources)
         assert body_sources[0].body == "overall summary"
         # The SCM ``url`` maps onto the source's ``html_url``; the UI drops
         # comments without it, so this is what surfaces the feedback.

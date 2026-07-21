@@ -899,7 +899,6 @@ class TestMaybeReactToCompletedIteration(TestCase):
     def _review_source(self, comment_id: int = 222) -> GithubPrReviewCommentFeedbackSource:
         return GithubPrReviewCommentFeedbackSource(
             comment=GithubPullRequestReviewComment(id=comment_id, body="inline feedback"),
-            repo_name="owner/repo",
         )
 
     def _state_with(
@@ -925,7 +924,9 @@ class TestMaybeReactToCompletedIteration(TestCase):
 
     @patch(f"{REACT_PATH}.make_scm")
     @patch(f"{REACT_PATH}._add_comment_reaction")
-    def test_reacts_hooray_on_both_comment_types(self, mock_react, mock_make_scm):
+    def test_reacts_hooray_on_top_level_comment_only(self, mock_react, mock_make_scm):
+        # A review comment is present alongside the top-level comment; only the
+        # top-level one is acked (review comments are handled by CW-1688).
         scm = MagicMock()
         mock_make_scm.return_value = scm
         state = self._state_with([self._top_level_source(111), self._review_source(222)])
@@ -935,16 +936,12 @@ class TestMaybeReactToCompletedIteration(TestCase):
                 self.organization, 123, state
             )
 
-        assert mock_react.call_count == 2
-        calls = {
-            (c.kwargs["source_type"], c.kwargs["comment_id"]): c for c in mock_react.call_args_list
-        }
-        assert ("github-pr-comment", 111) in calls
-        assert ("github-pr-review-comment", 222) in calls
-        for c in calls.values():
-            assert c.args[0] is scm
-            assert c.kwargs["reaction"] == "hooray"
-            assert c.kwargs["pr_number"] == 7
+        assert mock_react.call_count == 1
+        assert mock_react.call_args.args[0] is scm
+        assert mock_react.call_args.kwargs["source_type"] == "github-pr-comment"
+        assert mock_react.call_args.kwargs["comment_id"] == 111
+        assert mock_react.call_args.kwargs["reaction"] == "hooray"
+        assert mock_react.call_args.kwargs["pr_number"] == 7
 
     @patch(f"{REACT_PATH}.make_scm")
     @patch(f"{REACT_PATH}._add_comment_reaction")
@@ -1000,7 +997,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
         )
         assert legacy_source.repo_name is None
         state = run_state(
-            blocks=[self._synced_pr_iteration_block([legacy_source, self._review_source(222)])]
+            blocks=[self._synced_pr_iteration_block([legacy_source, self._top_level_source(333)])]
         )
         state.repo_pr_states = {
             "owner/repo": RepoPRState(repo_name="owner/repo", pr_number=7, commit_sha="synced-sha"),
@@ -1014,7 +1011,8 @@ class TestMaybeReactToCompletedIteration(TestCase):
                 self.organization, 123, state
             )
 
-        # Only the review source (which carries repo_name) is reacted on.
+        # Only the source that carries repo_name is reacted on; the legacy one is
+        # skipped rather than reacted on the wrong repo.
         assert mock_react.call_count == 1
-        assert mock_react.call_args.kwargs["comment_id"] == 222
-        assert mock_react.call_args.kwargs["source_type"] == "github-pr-review-comment"
+        assert mock_react.call_args.kwargs["comment_id"] == 333
+        assert mock_react.call_args.kwargs["source_type"] == "github-pr-comment"
