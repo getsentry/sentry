@@ -243,7 +243,7 @@ export function ScmPlatformFeaturesCore({
               closeModal();
             }}
             newOrg={isOnboarding}
-            hasScmOnboarding
+            isScmFlow
             analyticsFlow={analyticsFlow}
           />
         ),

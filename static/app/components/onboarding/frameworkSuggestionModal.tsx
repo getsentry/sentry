@@ -138,11 +138,11 @@ interface FrameworkSuggestionModalProps extends ModalRenderProps {
   organization: Organization;
   selectedPlatform: OnboardingSelectedSDK;
   /**
-   * Which SCM flow opened the modal. Routes the `hasScmOnboarding` analytics
-   * events between onboarding and project creation. Defaults to onboarding.
+   * Whether the modal was opened from a shared SCM flow. `analyticsFlow`
+   * distinguishes new-org onboarding from SCM-first project creation.
    */
   analyticsFlow?: ScmAnalyticsFlow;
-  hasScmOnboarding?: boolean;
+  isScmFlow?: boolean;
   newOrg?: boolean;
 }
 
@@ -156,7 +156,7 @@ export function FrameworkSuggestionModal({
   CloseButton,
   organization,
   newOrg,
-  hasScmOnboarding,
+  isScmFlow,
   analyticsFlow = 'onboarding',
 }: FrameworkSuggestionModalProps) {
   const isCreatingProjectAndRules = useIsCreatingProjectAndRules();
@@ -213,7 +213,7 @@ export function FrameworkSuggestionModal({
   });
 
   useEffect(() => {
-    if (hasScmOnboarding) {
+    if (isScmFlow) {
       trackAnalytics(SCM_FRAMEWORK_MODAL_RENDERED_EVENT[analyticsFlow], {
         platform: selectedPlatform.key,
         organization,
@@ -235,14 +235,14 @@ export function FrameworkSuggestionModal({
         variant: 'legacy',
       });
     }
-  }, [selectedPlatform.key, organization, newOrg, hasScmOnboarding, analyticsFlow]);
+  }, [selectedPlatform.key, organization, newOrg, isScmFlow, analyticsFlow]);
 
   const handleConfigure = useCallback(() => {
     if (!selectedFramework) {
       return;
     }
 
-    if (hasScmOnboarding) {
+    if (isScmFlow) {
       trackScmPlatformSelected(
         analyticsFlow,
         organization,
@@ -274,12 +274,12 @@ export function FrameworkSuggestionModal({
     organization,
     onConfigure,
     newOrg,
-    hasScmOnboarding,
+    isScmFlow,
     analyticsFlow,
   ]);
 
   const handleSkip = useCallback(() => {
-    if (hasScmOnboarding) {
+    if (isScmFlow) {
       trackScmPlatformSelected(
         analyticsFlow,
         organization,
@@ -299,7 +299,7 @@ export function FrameworkSuggestionModal({
       });
     }
     onSkip();
-  }, [selectedPlatform, organization, onSkip, newOrg, hasScmOnboarding, analyticsFlow]);
+  }, [selectedPlatform, organization, onSkip, newOrg, isScmFlow, analyticsFlow]);
 
   const handleClick = useCallback(() => {
     if (selectedFramework?.key === selectedPlatform.key) {
