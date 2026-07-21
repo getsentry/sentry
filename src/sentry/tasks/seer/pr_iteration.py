@@ -178,10 +178,13 @@ def consume_queued_autofix_feedback(
             return
 
         feedback_items = []
-        # Keyed by (source class, id): comment ids, review-comment ids, review
-        # ids, and check-suite ids come from separate namespaces, so dedupe within
-        # each concrete source type.
-        seen_keys: set[tuple[type, int]] = set()
+        # Keyed by (source class, id): issue-comment, review-comment, and review
+        # (body) ids come from separate GitHub namespaces, so dedupe within each
+        # concrete source type.
+        seen_comment_keys: set[tuple[type, int]] = set()
+        # Align with CheckSuiteFeedbackSource.should_consume: coalesce by
+        # (suite id, updated_at). Legacy feedback without updated_at uses suite id.
+        seen_check_suite_keys: set[tuple[int, str] | int] = set()
         for item in queued_items:
             if not item.feedback.source.should_consume(state):
                 logger.info(
@@ -196,21 +199,24 @@ def consume_queued_autofix_feedback(
                 continue
 
             source = item.feedback.source
-            dedupe_id: int | None = None
+            comment_dedupe_id: int | None = None
             if isinstance(
                 source, (GithubPrCommentFeedbackSource, GithubPrReviewCommentFeedbackSource)
             ):
-                dedupe_id = source.comment.id
+                comment_dedupe_id = source.comment.id
             elif isinstance(source, GithubPrReviewBodyFeedbackSource):
-                dedupe_id = source.review_id
-            elif isinstance(source, CheckSuiteFeedbackSource):
-                dedupe_id = source.event.check_suite.id
+                comment_dedupe_id = source.review_id
 
-            if dedupe_id is not None:
-                key = (type(source), dedupe_id)
-                if key in seen_keys:
+            if comment_dedupe_id is not None:
+                key = (type(source), comment_dedupe_id)
+                if key in seen_comment_keys:
                     continue
-                seen_keys.add(key)
+                seen_comment_keys.add(key)
+            elif isinstance(source, CheckSuiteFeedbackSource):
+                suite_key = source.check_suite_attempt_key()
+                if suite_key in seen_check_suite_keys:
+                    continue
+                seen_check_suite_keys.add(suite_key)
 
             feedback_items.append(item.feedback)
 
