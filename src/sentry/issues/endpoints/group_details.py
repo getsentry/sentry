@@ -46,7 +46,7 @@ from sentry.issues.action_log import (
     resolve_action_actor,
     resolve_action_source,
 )
-from sentry.issues.action_log.types import ReconcileStatusAction, ViewAction
+from sentry.issues.action_log.types import ViewAction
 from sentry.issues.constants import (
     ISSUE_VIEW_CACHE_KEY_TTL,
     cache_key_for_issue_view,
@@ -159,15 +159,17 @@ class GroupDetailsEndpoint(GroupEndpoint):
                 "expected_status": expected_status.value,
             },
         )
-        publish_action(
-            ReconcileStatusAction(
-                status=expected_status.value,
-                reason=f"derived status {derived_status.value} does not match expected status {expected_status.value}",
-            ),
-            source=resolve_action_source(request),
-            group_id=group.id,
-            project=group.project,
-            actor=resolve_action_actor(request),
+        # Status reconciliation is disabled for now; log divergences so we can
+        # find and investigate these cases automatically instead of publishing a
+        # ReconcileStatusAction.
+        logger.info(
+            "issues.status_reconciliation.diverged",
+            extra={
+                "group_id": group.id,
+                "project_id": group.project_id,
+                "derived_status": derived_status.value,
+                "expected_status": expected_status.value,
+            },
         )
 
     @staticmethod

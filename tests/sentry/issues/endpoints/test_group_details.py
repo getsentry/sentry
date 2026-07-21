@@ -347,24 +347,44 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
 
     @with_feature("projects:issue-status-reconciliation")
-    def test_diverged_closed_emits_reconcile_action(self) -> None:
+    @mock.patch("sentry.issues.endpoints.group_details.logger")
+    def test_diverged_closed_logs_and_skips_action(self, mock_logger: mock.MagicMock) -> None:
         group = self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
         GroupDerivedData.objects.create(group=group, data={"status": "open"})
 
         with capture_action_log() as log:
             self._get(group)
 
-        log.assert_logged(ReconcileStatusAction, group_id=group.id, status="closed")
+        log.assert_not_logged(ReconcileStatusAction)
+        mock_logger.info.assert_called_once_with(
+            "issues.status_reconciliation.diverged",
+            extra={
+                "group_id": group.id,
+                "project_id": group.project_id,
+                "derived_status": "open",
+                "expected_status": "closed",
+            },
+        )
 
     @with_feature("projects:issue-status-reconciliation")
-    def test_diverged_open_emits_reconcile_action(self) -> None:
+    @mock.patch("sentry.issues.endpoints.group_details.logger")
+    def test_diverged_open_logs_and_skips_action(self, mock_logger: mock.MagicMock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
         GroupDerivedData.objects.create(group=group, data={"status": "closed"})
 
         with capture_action_log() as log:
             self._get(group)
 
-        log.assert_logged(ReconcileStatusAction, group_id=group.id, status="open")
+        log.assert_not_logged(ReconcileStatusAction)
+        mock_logger.info.assert_called_once_with(
+            "issues.status_reconciliation.diverged",
+            extra={
+                "group_id": group.id,
+                "project_id": group.project_id,
+                "derived_status": "closed",
+                "expected_status": "open",
+            },
+        )
 
     @with_feature("projects:issue-status-reconciliation")
     def test_aligned_status_skips(self) -> None:
