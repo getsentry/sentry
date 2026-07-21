@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 import orjson
@@ -60,7 +61,7 @@ class ViewHierarchies:
                     type=attachment.type,
                     name=attachment.name,
                     content_type=attachment.content_type,
-                    data=orjson.dumps(view_hierarchy),
+                    data=_serialize_view_hierarchy(view_hierarchy),
                     chunks=None,
                     stored_id=attachment.stored_id,
                 )
@@ -68,6 +69,15 @@ class ViewHierarchies:
 
         attachments = self._other_attachments + new_attachments
         store_attachments_for_event(self._project, self._event, attachments, timeout=CACHE_TIMEOUT)
+
+
+def _serialize_view_hierarchy(view_hierarchy: Any) -> bytes:
+    try:
+        return orjson.dumps(view_hierarchy)
+    except orjson.JSONEncodeError:
+        # orjson cannot serialize documents nested beyond 255 levels. View hierarchies
+        # can be deeper, so preserve them with the standard library encoder instead.
+        return json.dumps(view_hierarchy, ensure_ascii=False, separators=(",", ":")).encode()
 
 
 def _deobfuscate_view_hierarchy(view_hierarchy: Any, class_names: dict[str, str]):
