@@ -1,3 +1,4 @@
+import {ProjectFixture} from 'sentry-fixture/project';
 import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {
@@ -11,6 +12,8 @@ import {
 import {ResolveActions} from 'sentry/components/actions/resolve';
 
 describe('ResolveActions', () => {
+  const project = ProjectFixture({id: '1', slug: 'proj-1'});
+  const releaseProject = ProjectFixture({id: '2', slug: 'project-slug'});
   const spy = jest.fn();
   afterEach(() => {
     spy.mockClear();
@@ -25,7 +28,7 @@ describe('ResolveActions', () => {
           onUpdate={spy}
           disabled
           hasRelease={false}
-          projectSlug="proj-1"
+          project={project}
         />
       );
       const button = screen.getByRole('button', {name: 'Resolve'});
@@ -43,7 +46,7 @@ describe('ResolveActions', () => {
           onUpdate={spy}
           disableDropdown
           hasRelease={false}
-          projectSlug="proj-1"
+          project={project}
         />
       );
 
@@ -65,7 +68,7 @@ describe('ResolveActions', () => {
           onUpdate={spy}
           disabled
           hasRelease={false}
-          projectSlug="proj-1"
+          project={project}
           isResolved
         />
       );
@@ -91,7 +94,7 @@ describe('ResolveActions', () => {
           onUpdate={spy}
           disabled
           hasRelease={false}
-          projectSlug="proj-1"
+          project={project}
           isResolved
           isAutoResolved
         />
@@ -109,7 +112,7 @@ describe('ResolveActions', () => {
           hasSemverReleaseFeature={false}
           onUpdate={spy}
           hasRelease={false}
-          projectSlug="proj-1"
+          project={project}
         />
       );
       await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
@@ -129,7 +132,7 @@ describe('ResolveActions', () => {
           hasSemverReleaseFeature={false}
           onUpdate={spy}
           hasRelease={false}
-          projectSlug="proj-1"
+          project={project}
           shouldConfirm
           confirmMessage="Are you sure???"
         />
@@ -152,14 +155,14 @@ describe('ResolveActions', () => {
   it('can resolve in "another version"', async () => {
     const onUpdate = jest.fn();
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/releases/',
+      url: '/organizations/org-slug/releases/',
       body: [ReleaseFixture()],
     });
     render(
       <ResolveActions
         hasSemverReleaseFeature={false}
         hasRelease
-        projectSlug="project-slug"
+        project={releaseProject}
         onUpdate={onUpdate}
       />
     );
@@ -190,7 +193,7 @@ describe('ResolveActions', () => {
         hasSemverReleaseFeature={false}
         onUpdate={spy}
         hasRelease
-        projectSlug="proj-1"
+        project={project}
         latestRelease={{version: 'frontend@1.2.3'}}
       />
     );
@@ -212,7 +215,7 @@ describe('ResolveActions', () => {
         hasSemverReleaseFeature
         onUpdate={spy}
         hasRelease
-        projectSlug="proj-1"
+        project={project}
       />
     );
 
@@ -233,7 +236,7 @@ describe('ResolveActions', () => {
         hasSemverReleaseFeature
         onUpdate={spy}
         hasRelease
-        projectSlug="proj-1"
+        project={project}
         latestRelease={{version: 'frontend@abc123def'}}
       />
     );
@@ -251,7 +254,7 @@ describe('ResolveActions', () => {
         hasSemverReleaseFeature={false}
         onUpdate={spy}
         hasRelease={false}
-        projectSlug="proj-1"
+        project={project}
       />
     );
 
@@ -265,7 +268,7 @@ describe('ResolveActions', () => {
         hasSemverReleaseFeature={false}
         onUpdate={spy}
         hasRelease={false}
-        projectSlug="proj-1"
+        project={project}
         multipleProjectsSelected
       />
     );
@@ -285,7 +288,7 @@ describe('ResolveActions', () => {
         hasSemverReleaseFeature={false}
         onUpdate={spy}
         hasRelease={false}
-        projectSlug="proj-1"
+        project={project}
         disableResolveInRelease={false}
       />
     );
@@ -298,7 +301,7 @@ describe('ResolveActions', () => {
         hasSemverReleaseFeature={false}
         onUpdate={spy}
         hasRelease={false}
-        projectSlug="proj-1"
+        project={project}
         disableResolveInRelease
       />
     );
@@ -308,14 +311,14 @@ describe('ResolveActions', () => {
   it('does render next release option with subtitle', async () => {
     const onUpdate = jest.fn();
     MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/releases/',
+      url: '/organizations/org-slug/releases/',
       body: [ReleaseFixture()],
     });
     render(
       <ResolveActions
         hasSemverReleaseFeature={false}
         hasRelease
-        projectSlug="project-slug"
+        project={releaseProject}
         onUpdate={onUpdate}
       />
     );

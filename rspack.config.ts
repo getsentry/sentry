@@ -22,6 +22,8 @@ import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 // @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
+// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
+import {StoryManifestPlugin} from './build-utils/story-manifest.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
@@ -270,10 +272,10 @@ const appConfig: Configuration = {
      *
      * The order here matters for `getsentry`
      */
-    app: ['sentry/utils/statics-setup', 'sentry'],
+    app: ['sentry/utils/setupStatics', 'sentry'],
 
     // admin interface
-    gsAdmin: ['sentry/utils/statics-setup', path.join(staticPrefix, 'gsAdmin')],
+    gsAdmin: ['sentry/utils/setupStatics', path.join(staticPrefix, 'gsAdmin')],
 
     /**
      * Legacy CSS Webpack appConfig for Django-powered views.
@@ -284,6 +286,11 @@ const appConfig: Configuration = {
   },
   context: staticPrefix,
   incremental: DEV_MODE,
+  watchOptions: {
+    // StoryManifestPlugin owns these watches so it can update the virtual
+    // manifest before invalidating changed and removed story dependencies.
+    ignored: ['**/*.stories.tsx', '**/*.mdx'],
+  },
   experiments: {
     futureDefaults: true,
     // https://rspack.rs/config/experiments#experimentsnativewatcher
@@ -310,18 +317,6 @@ const appConfig: Configuration = {
      * Please remember to test it.
      */
     rules: [
-      {
-        test: /stories[/\\]storyFrontmatterIndex\.ts$/,
-        enforce: 'pre',
-        use: [
-          {
-            loader: path.resolve(
-              import.meta.dirname,
-              './build-utils/frontmatter-index-loader.ts'
-            ),
-          },
-        ],
-      },
       {
         test: /\.(?:tsx?|jsx?)$/,
         // core-js: Avoids recompiling core-js based on usage imports
@@ -350,13 +345,8 @@ const appConfig: Configuration = {
       },
       {
         test: /\.po$/,
-        use: {
-          loader: 'po-catalog-loader',
-          options: {
-            referenceExtensions: ['.js', '.jsx', '.tsx'],
-            domain: 'sentry',
-          },
-        },
+        loader: path.resolve(import.meta.dirname, './build-utils/po-catalog-loader.ts'),
+        type: 'javascript/dynamic',
       },
       {
         test: /\.pegjs$/,
@@ -452,6 +442,8 @@ const appConfig: Configuration = {
         ]
       : []),
 
+    new StoryManifestPlugin(),
+
     ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorRspackPlugin({})] : []),
 
     /**
@@ -484,7 +476,7 @@ const appConfig: Configuration = {
     alias: {
       'type-loader': path.resolve(
         import.meta.dirname,
-        'static/app/stories/type-loader.ts'
+        'static/app/stories/typeLoader.ts'
       ),
     },
   },

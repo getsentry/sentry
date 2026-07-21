@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -465,9 +466,8 @@ export function SpanIdRenderer({
     }
 
     return (
-      <Tooltip
-        showUnderline
-        isHoverable
+      <InfoText
+        variant="muted"
         title={
           <Text>
             {tct('Span is older than 30 days. [similarSpans] in the past 24 hours.', {
@@ -491,8 +491,8 @@ export function SpanIdRenderer({
           </Text>
         }
       >
-        <Text variant="muted">{shortSpanId}</Text>
-      </Tooltip>
+        {shortSpanId}
+      </InfoText>
     );
   }
 

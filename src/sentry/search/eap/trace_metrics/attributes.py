@@ -58,17 +58,17 @@ TRACE_METRICS_ATTRIBUTE_DEFINITIONS = {
         # Trace Metric specific fields
         simple_sentry_field("value", search_type="number"),
         ResolvedAttribute(
-            public_alias="metric.name",
+            public_alias=constants.METRIC_NAME_ALIAS,
             internal_name="sentry.metric_name",
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="metric.type",
+            public_alias=constants.METRIC_TYPE_ALIAS,
             internal_name="sentry.metric_type",
             search_type="string",
         ),
         ResolvedAttribute(
-            public_alias="metric.unit",
+            public_alias=constants.METRIC_UNIT_ALIAS,
             internal_name="sentry.metric_unit",
             search_type="string",
         ),

@@ -39,6 +39,7 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.receivers.features import record_generic_event_processed
 from sentry.receivers.onboarding import record_release_received
+from sentry.releases.auto_creation import should_auto_create_releases
 from sentry.signals import first_insight_span_received, first_transaction_received
 from sentry.spans.consumers.process_segments.enrichment import TreeEnricher, compute_breakdowns
 from sentry.spans.consumers.process_segments.shim import build_shim_event_data, make_compatible
@@ -79,6 +80,9 @@ def _process_segment(
     unprocessed_spans: list[SpanEvent], skip_produce: bool, skip_enrichment: bool
 ) -> list[CompatibleSpan]:
     _verify_compatibility(unprocessed_spans)
+
+    if any(attribute_value(s, ATTRIBUTE_NAMES.GEN_AI_CONVERSATION_ID) for s in unprocessed_spans):
+        metrics.incr("spans.consumers.process_segments.gen_ai_conversation")
 
     if skip_enrichment:
         return [make_compatible(span) for span in unprocessed_spans]
@@ -266,13 +270,22 @@ def _create_models(
         return
 
     try:
-        release = Release.get_or_create(project=project, version=release_name, date_added=date)
+        release = Release.get_or_create(
+            project=project,
+            version=release_name,
+            date_added=date,
+            create=should_auto_create_releases(project),
+        )
     except ValidationError:
         # Avoid catching a stacktrace here, the codepath is very hot
         logger.warning(
             "Failed creating Release due to ValidationError",
             extra={"project": project, "version": release_name},
         )
+        return
+
+    if release is None:
+        metrics.incr("spans.consumers.process_segments.release_autocreation_skipped")
         return
 
     if dist_name:
@@ -459,8 +472,17 @@ def _bump_release_last_seen(
     environment = Environment.get_or_create(project=project, name=environment_name)
 
     try:
-        release = Release.get_or_create(project=project, version=release_name, date_added=date)
+        release = Release.get_or_create(
+            project=project,
+            version=release_name,
+            date_added=date,
+            create=should_auto_create_releases(project),
+        )
     except ValidationError:
+        return
+
+    if release is None:
+        metrics.incr("spans.consumers.process_segments.release_autocreation_skipped")
         return
 
     # Bumps release-environment last-seen.

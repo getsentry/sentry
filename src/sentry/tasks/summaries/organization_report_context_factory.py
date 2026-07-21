@@ -1,7 +1,6 @@
 import sentry_sdk
 
 from sentry import features
-from sentry.constants import DataCategory
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import TeamStatus
@@ -9,11 +8,13 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.summaries.utils import (
     OrganizationReportContext,
     ProjectContext,
-    fetch_key_error_groups,
-    fetch_key_performance_issue_groups,
+    fetch_key_error_issues,
+    fetch_key_performance_issues,
     fetch_past_resolved_issue_links,
-    org_key_errors,
+    org_key_error_issues,
     organization_project_issue_summaries,
+    organization_top_spans,
+    organization_top_spans_timeseries,
     project_event_counts_for_organization,
     project_key_performance_issues,
     project_past_resolved_issues,
@@ -21,7 +22,6 @@ from sentry.tasks.summaries.utils import (
 from sentry.tasks.summaries.weekly_report_cache import read_project_metrics
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
-from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
 from sentry.utils.tracing import start_span
 
@@ -125,13 +125,10 @@ class OrganizationReportContextFactory:
                     project_id = data["project_id"]
                     if project_id not in ctx.projects_context_map:
                         continue
-                    project_ctx = ctx.projects_context_map[project_id]
-                    total = data["total"]
-                    if data["outcome"] != Outcome.ACCEPTED:
+                    if project_id not in error_missed_project_ids:
                         continue
-                    if data["category"] in DataCategory.error_categories():
-                        if project_id in error_missed_project_ids:
-                            project_ctx.prev_week_accepted_error_count += total
+                    project_ctx = ctx.projects_context_map[project_id]
+                    project_ctx.prev_week_accepted_error_count += data["total"]
 
             if issue_missed_project_ids:
                 issue_data = organization_project_issue_summaries(
@@ -176,8 +173,8 @@ class OrganizationReportContextFactory:
                     project_ctx.issue_count_by_day.get(timestamp, 0) + total
                 )
 
-    @metrics.wraps("weekly_report.create_context.project_key_errors")
-    def _append_project_key_errors(self, ctx: OrganizationReportContext) -> None:
+    @metrics.wraps("weekly_report.create_context.project_key_issues")
+    def _append_project_key_issues(self, ctx: OrganizationReportContext) -> None:
         with start_span(op="weekly_reports.project_passes", name="weekly_reports.project_passes"):
             organization = ctx.organization
 
@@ -187,22 +184,22 @@ class OrganizationReportContextFactory:
 
             eligible_project_ids = [p.id for p in projects if p.first_event]
             try:
-                key_errors_by_project = org_key_errors(
+                key_error_issues_by_project = org_key_error_issues(
                     ctx,
                     project_ids=eligible_project_ids,
-                    referrer=Referrer.REPORTS_KEY_ERRORS_BATCHED.value,
+                    referrer=Referrer.REPORTS_KEY_ERROR_ISSUES_BATCHED.value,
                 )
             except Exception:
                 sentry_sdk.capture_exception()
-                key_errors_by_project = {}
+                key_error_issues_by_project = {}
 
-            for project_id, key_errors in key_errors_by_project.items():
+            for project_id, key_error_issues in key_error_issues_by_project.items():
                 project_ctx = ctx.projects_context_map[project_id]
                 assert isinstance(project_ctx, ProjectContext), (
                     f"Expected a ProjectContext, received {type(project_ctx)}"
                 )
-                project_ctx.key_errors_by_id = [
-                    (e["events.group_id"], e["count()"]) for e in key_errors
+                project_ctx.key_error_issues_by_id = [
+                    (e["events.group_id"], e["count()"]) for e in key_error_issues
                 ]
 
             for project in projects:
@@ -219,20 +216,21 @@ class OrganizationReportContextFactory:
                         project.id
                     ].key_performance_issues = key_performance_issues
 
-    @metrics.wraps("weekly_report.create_context.hydrate_key_error_groups")
-    def _hydrate_key_error_groups(self, ctx: OrganizationReportContext) -> None:
+    @metrics.wraps("weekly_report.create_context.hydrate_key_error_issues")
+    def _hydrate_key_error_issues(self, ctx: OrganizationReportContext) -> None:
         with start_span(
-            op="weekly_reports.fetch_key_error_groups", name="weekly_reports.fetch_key_error_groups"
+            op="weekly_reports.fetch_key_error_issues",
+            name="weekly_reports.fetch_key_error_issues",
         ):
-            fetch_key_error_groups(ctx)
+            fetch_key_error_issues(ctx)
 
     @metrics.wraps("weekly_report.create_context.hydrate_key_performance_issues")
-    def _hydrate_key_performance_issue_groups(self, ctx: OrganizationReportContext) -> None:
+    def _hydrate_key_performance_issues(self, ctx: OrganizationReportContext) -> None:
         with start_span(
-            op="weekly_reports.fetch_key_performance_issue_groups",
-            name="weekly_reports.fetch_key_performance_issue_groups",
+            op="weekly_reports.fetch_key_performance_issues",
+            name="weekly_reports.fetch_key_performance_issues",
         ):
-            fetch_key_performance_issue_groups(ctx)
+            fetch_key_performance_issues(ctx)
 
     @metrics.wraps("weekly_report.create_context.project_past_resolved_issues")
     def _append_project_past_resolved_issues(self, ctx: OrganizationReportContext) -> None:
@@ -252,6 +250,26 @@ class OrganizationReportContextFactory:
 
             fetch_past_resolved_issue_links(ctx)
 
+    @metrics.wraps("weekly_report.create_context.top_spans")
+    def _append_organization_top_spans(self, ctx: OrganizationReportContext) -> None:
+        with start_span(
+            op="weekly_reports.organization_top_spans",
+            name="weekly_reports.organization_top_spans",
+        ):
+            referrer = Referrer.REPORTS_TOP_SPANS.value
+            try:
+                organization_top_spans(ctx, referrer=referrer)
+            except Exception:
+                sentry_sdk.capture_exception()
+                ctx.top_spans = []
+                ctx.top_spans_projects = {}
+                return
+            try:
+                organization_top_spans_timeseries(ctx, referrer=referrer)
+            except Exception:
+                sentry_sdk.capture_exception()
+                ctx.top_spans_timeseries = {}
+
     def create_context(self) -> OrganizationReportContext:
         ctx = OrganizationReportContext(self.timestamp, self.duration, self.organization)
 
@@ -269,10 +287,12 @@ class OrganizationReportContextFactory:
 
             # Enhanced privacy flag hides issue titles, transaction names, and source details
             if not self.organization.flags.enhanced_privacy:
-                self._append_project_key_errors(ctx)
-                self._hydrate_key_error_groups(ctx)
-                self._hydrate_key_performance_issue_groups(ctx)
+                self._append_project_key_issues(ctx)
+                self._hydrate_key_error_issues(ctx)
+                self._hydrate_key_performance_issues(ctx)
                 if features.has("organizations:weekly-report-past-issues", self.organization):
                     self._append_project_past_resolved_issues(ctx)
+                if features.has("organizations:weekly-report-spans-chart", self.organization):
+                    self._append_organization_top_spans(ctx)
 
         return ctx

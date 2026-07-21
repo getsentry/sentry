@@ -1,8 +1,10 @@
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 describe('Tooltip', () => {
+  let originalResizeObserver: typeof window.ResizeObserver;
+
   function mockOverflow(width: number, containerWidth: number) {
     Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
       configurable: true,
@@ -15,6 +17,7 @@ describe('Tooltip', () => {
   }
 
   afterEach(() => {
+    window.ResizeObserver = originalResizeObserver;
     // @ts-expect-error cleanup previously mocked properties
     delete HTMLElement.prototype.scrollWidth;
     // @ts-expect-error cleanup previously mocked properties
@@ -23,6 +26,7 @@ describe('Tooltip', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    originalResizeObserver = window.ResizeObserver;
   });
 
   it('renders', async () => {
@@ -135,6 +139,38 @@ describe('Tooltip', () => {
     expect(screen.getByText('test')).toBeInTheDocument();
 
     await userEvent.unhover(screen.getByText('This text overflows'));
+  });
+
+  it('hides an open tooltip when the content stops overflowing', async () => {
+    let resizeCallback: ResizeObserverCallback | undefined;
+    window.ResizeObserver = class {
+      constructor(callback: ResizeObserverCallback) {
+        resizeCallback = callback;
+      }
+      observe() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+
+    mockOverflow(100, 50);
+    render(
+      <Tooltip title="test" showOnlyOnOverflow>
+        <div>This text changes size</div>
+      </Tooltip>
+    );
+
+    const trigger = screen.getByText('This text changes size');
+    await userEvent.hover(trigger);
+    expect(screen.getByText('test')).toBeInTheDocument();
+
+    mockOverflow(50, 100);
+    act(() => {
+      resizeCallback?.([], {} as ResizeObserver);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText('test')).not.toBeInTheDocument();
+    });
+    expect(trigger).not.toHaveAttribute('aria-describedby');
   });
 
   it('does not display a tooltip if the content does not overflow with showOnlyOnOverflow', async () => {

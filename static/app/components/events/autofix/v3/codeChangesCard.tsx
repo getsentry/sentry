@@ -66,17 +66,26 @@ interface UserUiFeedback extends ParsedBaseFeedback {
 
 interface GithubPrCommentFeedback extends ParsedBaseFeedback {
   commentUrl: string;
-  sourceType: 'github-pr-comment';
+  sourceType: 'github-pr-comment' | 'github-pr-review-comment';
   githubUsername?: string;
 }
 
+interface CheckSuiteFeedback extends ParsedBaseFeedback {
+  appName: string;
+  checkSuiteUrl: string;
+  sourceType: 'check-suite';
+}
 interface OtherFeedback extends ParsedBaseFeedback {
   source: string;
   sourceType: 'other';
 }
 
 // What `parseFeedback` can produce from the stored JSON alone.
-type ParsedFeedback = UserUiFeedback | GithubPrCommentFeedback | OtherFeedback;
+type ParsedFeedback =
+  | UserUiFeedback
+  | GithubPrCommentFeedback
+  | CheckSuiteFeedback
+  | OtherFeedback;
 
 // A parsed feedback enriched with the iteration context the caller supplies.
 type IterationFeedback = ParsedFeedback & {
@@ -95,16 +104,29 @@ function parseFeedbackItem(parsed: RawFeedback): ParsedFeedback | null {
   switch (source?.type) {
     case 'user-ui':
       return {...base, sourceType: 'user-ui', user: source.user};
-    case 'github-pr-comment': {
+    case 'github-pr-comment':
+    case 'github-pr-review-comment': {
       const commentUrl = source.comment?.html_url;
       if (!commentUrl) {
         return null;
       }
       return {
         ...base,
-        sourceType: 'github-pr-comment',
+        sourceType: source.type,
         githubUsername: source.comment?.user?.login,
         commentUrl,
+      };
+    }
+    case 'check-suite': {
+      const appName = source.app_name;
+      const {head_sha: headSha, id: checkSuiteId} = source.event.check_suite;
+      const repoUrl = source.event.repository.html_url;
+      return {
+        ...base,
+        text: t('%s check suite failed', appName),
+        sourceType: 'check-suite',
+        appName,
+        checkSuiteUrl: `${repoUrl}/commit/${headSha}/checks?check_suite_id=${checkSuiteId}`,
       };
     }
     default:
@@ -287,8 +309,6 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     return t('%s files changed in %s repos', filesChanged.size, reposChanged);
   }, [patchesByRepo]);
 
-  const isProcessing = section.status === 'processing';
-
   const showPrIterationForm = hasPRs && prIterationEnabled;
   const prIterationForm = (
     <PrIterationFeedbackForm
@@ -312,7 +332,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   }
 
   let content: React.ReactNode;
-  if (isProcessing) {
+  if (section.status === 'processing') {
     content = (
       <Fragment>
         {/* PR iteration feedback is queued while a run is in progress, so keep
@@ -326,7 +346,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
         />
       </Fragment>
     );
-  } else if (artifact && patchesByRepo.size) {
+  } else if (section.status === 'completed' && artifact && patchesByRepo.size) {
     let resetSection: React.ReactNode = null;
     if (shouldShowReset) {
       if (showPrIterationForm) {
@@ -452,7 +472,10 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 function feedbackLinkUrl(item: IterationFeedback): string | undefined {
   switch (item.sourceType) {
     case 'github-pr-comment':
+    case 'github-pr-review-comment':
       return item.commentUrl;
+    case 'check-suite':
+      return item.checkSuiteUrl;
     default:
       return undefined;
   }
@@ -461,15 +484,28 @@ function feedbackLinkUrl(item: IterationFeedback): string | undefined {
 function FeedbackAttribution({item}: {item: IterationFeedback}) {
   switch (item.sourceType) {
     case 'github-pr-comment':
+    case 'github-pr-review-comment':
       return (
         <Tooltip title={item.githubUsername ?? t('GitHub PR comment')} skipWrapper>
           <ExternalLink href={item.commentUrl}>
             <Flex align="center">
-              <IconGithub size="md" />
+              <IconGithub size="md" data-test-id="icon-github" />
             </Flex>
           </ExternalLink>
         </Tooltip>
       );
+    case 'check-suite': {
+      const icon = (
+        <Flex align="center">
+          <IconGithub size="md" />
+        </Flex>
+      );
+      return (
+        <Tooltip title={t('%s check suite', item.appName)} skipWrapper>
+          <ExternalLink href={item.checkSuiteUrl}>{icon}</ExternalLink>
+        </Tooltip>
+      );
+    }
     case 'user-ui':
       return item.user ? <UserAvatar size={16} user={item.user} hasTooltip /> : null;
     default:

@@ -9,6 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
+from sentry.api.bases.organization import OrganizationEventPermission
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpointBase,
     adjust_start_end_window,
@@ -25,16 +26,11 @@ from sentry.explore.models import (
     TraceMetricTypes,
 )
 from sentry.models.organization import Organization
+from sentry.search.eap.constants import METRIC_NAME_ALIAS, METRIC_TYPE_ALIAS
 from sentry.search.eap.trace_metrics.config import ALLOWED_METRIC_TYPES
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.trace_metrics import TraceMetrics
-
-# Metrics are trace items keyed by the value of the `metric.name` attribute, so
-# metric context is stored as context for that attribute value. A metric name
-# can carry more than one type (e.g. both a counter and a gauge named "foo").
-METRIC_NAME_ALIAS = "metric.name"
-METRIC_TYPE_ALIAS = "metric.type"
 
 
 class OrganizationTraceItemMetricContextPutSerializer(serializers.Serializer[Never]):
@@ -84,6 +80,7 @@ class OrganizationTraceItemMetricContextEndpoint(OrganizationTraceItemAttributes
         "PUT": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.DATA_BROWSING
+    permission_classes = (OrganizationEventPermission,)
 
     def put(self, request: Request, organization: Organization, metric: str) -> Response:
         """Create or update the authored context for a trace metric."""
