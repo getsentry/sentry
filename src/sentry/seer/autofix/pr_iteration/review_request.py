@@ -57,11 +57,11 @@ def _skip(reason: str, log_extra: dict[str, Any]) -> None:
     )
 
 
-def _error(reason: str, log_extra: dict[str, Any]) -> None:
+def _failed(reason: str, log_extra: dict[str, Any]) -> None:
     """Record an unexpected failure (vs. a `_skip`, which is an expected condition)."""
-    metrics.incr("autofix.pr_iteration.review_request.error", tags={"reason": reason})
+    metrics.incr("autofix.pr_iteration.review_request.failed", tags={"reason": reason})
     logger.warning(
-        "autofix.pr_iteration.review_request.error",
+        "autofix.pr_iteration.review_request.failed",
         extra={**log_extra, "reason": reason},
         exc_info=True,
     )
@@ -160,7 +160,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
     try:
         scm = make_scm(organization.id, resolved.repository.id, referrer="seer")
     except Exception:
-        _error("scm_init_failed", log_extra)
+        _failed("scm_init_failed", log_extra)
         return
 
     sweep = sweep_check_runs(scm, head_match.head_sha, log_extra=log_extra)
@@ -182,7 +182,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
     try:
         pull_request = scm_actions.get_pull_request(scm, str(pr_number))
     except Exception:
-        _error("get_pull_request_failed", {**log_extra, "pr_number": pr_number})
+        _failed("get_pull_request_failed", {**log_extra, "pr_number": pr_number})
         return
 
     if pull_request["data"]["state"] != "open" or pull_request["data"]["merged"]:
@@ -219,7 +219,7 @@ def request_review_for_green_check_suite(check_suite_event: CheckSuiteEvent) -> 
                 scm_actions.request_review(scm, str(pr_number), [github_login])
             except Exception:
                 # Leave the marker unset so the next green event can retry.
-                _error("request_review_failed", {**log_extra, "pr_number": pr_number})
+                _failed("request_review_failed", {**log_extra, "pr_number": pr_number})
                 return
 
             extras = dict(seer_run.extras or {})

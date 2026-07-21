@@ -399,5 +399,5 @@ class RequestReviewForGreenCheckSuiteTest(TestCase):
 
         assert self._marker() is None
         mock_metrics.incr.assert_any_call(
-            "autofix.pr_iteration.review_request.error", tags={"reason": "request_review_failed"}
+            "autofix.pr_iteration.review_request.failed", tags={"reason": "request_review_failed"}
         )
