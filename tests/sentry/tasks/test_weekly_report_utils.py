@@ -17,9 +17,25 @@ from sentry.tasks.summaries.utils import (
     organization_top_spans_timeseries,
     user_project_ownership,
 )
+from sentry.templatetags.sentry_helpers import format_duration_ms
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.utils.dates import floor_to_utc_day
+
+
+def _make_top_spans_mock(top_spans_data, count_data):
+    """Return a side_effect for Spans.run_table_query that returns
+    top_spans_data on the first call and count_data on the second."""
+    call_count = 0
+
+    def side_effect(**kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return top_spans_data
+        return count_data
+
+    return side_effect
 
 
 class OrganizationTopSpansTest(TestCase, SnubaTestCase):
@@ -33,7 +49,7 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
 
         ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
 
-        mock_data = {
+        top_spans_data = {
             "data": [
                 {
                     "span.name": "/api/users",
@@ -49,10 +65,15 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
                 },
             ]
         }
+        count_data = {
+            "data": [
+                {"project.id": self.project.id, "count()": 5000},
+            ]
+        }
 
         with mock.patch(
             "sentry.tasks.summaries.utils.Spans.run_table_query",
-            return_value=mock_data,
+            side_effect=_make_top_spans_mock(top_spans_data, count_data),
         ):
             organization_top_spans(ctx, referrer=Referrer.REPORTS_TOP_SPANS.value)
 
@@ -65,6 +86,40 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
         assert ctx.top_spans_projects["/api/users"] == self.project.id
         assert ctx.top_spans_projects["/api/orders"] == self.project.id
 
+    def test_populates_spans_count_by_project(self) -> None:
+        project_a = self.create_project(organization=self.organization, teams=[self.team])
+        project_b = self.create_project(organization=self.organization, teams=[self.team])
+        project_a.update(flags=F("flags").bitor(Project.flags.has_transactions))
+        project_b.update(flags=F("flags").bitor(Project.flags.has_transactions))
+
+        ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
+
+        top_spans_data = {
+            "data": [
+                {
+                    "span.name": "/api/users",
+                    "project.id": project_a.id,
+                    "p95(span.duration)": 100.0,
+                    "sum(span.duration)": 40000.0,
+                },
+            ]
+        }
+        count_data = {
+            "data": [
+                {"project.id": project_a.id, "count()": 12000},
+                {"project.id": project_b.id, "count()": 8000},
+            ]
+        }
+
+        with mock.patch(
+            "sentry.tasks.summaries.utils.Spans.run_table_query",
+            side_effect=_make_top_spans_mock(top_spans_data, count_data),
+        ):
+            organization_top_spans(ctx, referrer=Referrer.REPORTS_TOP_SPANS.value)
+
+        assert ctx.spans_count_by_project[project_a.id] == 12000
+        assert ctx.spans_count_by_project[project_b.id] == 8000
+
     def test_skips_without_transactions(self) -> None:
         ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
 
@@ -73,41 +128,100 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
             mock_query.assert_not_called()
 
         assert len(ctx.top_spans) == 0
+        assert ctx.spans_count_by_project == {}
 
-    def test_timeseries_populates_context(self) -> None:
-        from sentry.utils.snuba import SnubaTSResult
-
+    def test_limits_to_top_5_spans(self) -> None:
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
         ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
-        ctx.top_spans = [{"name": "/api/users", "p95": 120.5, "sum": 50000.0}]
+
+        top_spans_data = {
+            "data": [
+                {
+                    "span.name": f"/api/endpoint-{i}",
+                    "project.id": self.project.id,
+                    "p95(span.duration)": 100.0 + i,
+                    "sum(span.duration)": 50000.0 - (i * 1000),
+                }
+                for i in range(8)
+            ]
+        }
+        count_data = {"data": [{"project.id": self.project.id, "count()": 50000}]}
+
+        with mock.patch(
+            "sentry.tasks.summaries.utils.Spans.run_table_query",
+            side_effect=_make_top_spans_mock(top_spans_data, count_data),
+        ):
+            organization_top_spans(ctx, referrer=Referrer.REPORTS_TOP_SPANS.value)
+
+        assert len(ctx.top_spans) == 5
+        assert ctx.top_spans[0]["name"] == "/api/endpoint-0"
+        assert ctx.top_spans[4]["name"] == "/api/endpoint-4"
+
+    def test_timeseries_scoped_to_assigned_project(self) -> None:
+        from sentry.utils.snuba import SnubaTSResult
+
+        project_a = self.create_project(organization=self.organization, teams=[self.team])
+        project_b = self.create_project(organization=self.organization, teams=[self.team])
+        project_a.update(flags=F("flags").bitor(Project.flags.has_transactions))
+        project_b.update(flags=F("flags").bitor(Project.flags.has_transactions))
+
+        ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
+        ctx.top_spans = [
+            {"name": "/api/users", "p95": 120.5, "sum": 50000.0},
+            {"name": "/api/orders", "p95": 95.3, "sum": 30000.0},
+        ]
+        ctx.top_spans_projects = {
+            "/api/users": project_a.id,
+            "/api/orders": project_b.id,
+        }
 
         ts1 = int(ctx.start.timestamp())
         ts2 = ts1 + SIX_HOURS
 
-        mock_ts_result = {
-            "/api/users": SnubaTSResult(
-                data={
-                    "data": [
-                        {"time": ts1, "p95(span.duration)": 100.0},
-                        {"time": ts2, "p95(span.duration)": 150.0},
-                    ]
-                },
-                start=ctx.start,
-                end=ctx.end,
-                rollup=SIX_HOURS,
-            )
-        }
+        def mock_timeseries(**kwargs):
+            params = kwargs.get("params")
+            project_ids = [p.id for p in params.projects]
+            if project_ids == [project_a.id]:
+                return {
+                    "/api/users": SnubaTSResult(
+                        data={
+                            "data": [
+                                {"time": ts1, "p95(span.duration)": 100.0},
+                                {"time": ts2, "p95(span.duration)": 150.0},
+                            ]
+                        },
+                        start=ctx.start,
+                        end=ctx.end,
+                        rollup=SIX_HOURS,
+                    )
+                }
+            elif project_ids == [project_b.id]:
+                return {
+                    "/api/orders": SnubaTSResult(
+                        data={
+                            "data": [
+                                {"time": ts1, "p95(span.duration)": 80.0},
+                                {"time": ts2, "p95(span.duration)": 90.0},
+                            ]
+                        },
+                        start=ctx.start,
+                        end=ctx.end,
+                        rollup=SIX_HOURS,
+                    )
+                }
+            return {}
 
         with mock.patch(
             "sentry.tasks.summaries.utils.Spans.run_top_events_timeseries_query",
-            return_value=mock_ts_result,
+            side_effect=mock_timeseries,
         ):
             organization_top_spans_timeseries(ctx, referrer=Referrer.REPORTS_TOP_SPANS.value)
 
-        assert "/api/users" in ctx.top_spans_timeseries
         assert ctx.top_spans_timeseries["/api/users"][ts1] == 100.0
         assert ctx.top_spans_timeseries["/api/users"][ts2] == 150.0
+        assert ctx.top_spans_timeseries["/api/orders"][ts1] == 80.0
+        assert ctx.top_spans_timeseries["/api/orders"][ts2] == 90.0
 
     def test_timeseries_skips_without_top_spans(self) -> None:
         self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
@@ -177,7 +291,7 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
         ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
         user_project_ownership(ctx)
 
-        mock_data = {
+        top_spans_data = {
             "data": [
                 {
                     "span.name": "/api/shared",
@@ -199,10 +313,16 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
                 },
             ]
         }
+        count_data = {
+            "data": [
+                {"project.id": project_a.id, "count()": 3000},
+                {"project.id": project_b.id, "count()": 7000},
+            ]
+        }
 
         with mock.patch(
             "sentry.tasks.summaries.utils.Spans.run_table_query",
-            return_value=mock_data,
+            side_effect=_make_top_spans_mock(top_spans_data, count_data),
         ):
             organization_top_spans(ctx, referrer=Referrer.REPORTS_TOP_SPANS.value)
 
@@ -225,6 +345,46 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
         assert len(user_b_visible) == 1
         assert user_b_visible[0]["name"] == "/api/only-b"
 
+    def test_per_user_total_spans_from_project_counts(self) -> None:
+        project_a = self.create_project(
+            organization=self.organization,
+            teams=[self.team],
+        )
+        team_b = self.create_team(organization=self.organization)
+        project_b = self.create_project(
+            organization=self.organization,
+            teams=[team_b],
+        )
+        project_a.update(flags=F("flags").bitor(Project.flags.has_transactions))
+        project_b.update(flags=F("flags").bitor(Project.flags.has_transactions))
+
+        user_a = self.create_user()
+        self.create_member(teams=[self.team], user=user_a, organization=self.organization)
+
+        user_b = self.create_user()
+        self.create_member(teams=[team_b], user=user_b, organization=self.organization)
+
+        ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
+        user_project_ownership(ctx)
+
+        ctx.spans_count_by_project = {
+            project_a.id: 12000,
+            project_b.id: 8000,
+        }
+
+        user_a_project_ids = ctx.project_ownership[user_a.id]
+        user_a_total = sum(
+            count for pid, count in ctx.spans_count_by_project.items() if pid in user_a_project_ids
+        )
+
+        user_b_project_ids = ctx.project_ownership[user_b.id]
+        user_b_total = sum(
+            count for pid, count in ctx.spans_count_by_project.items() if pid in user_b_project_ids
+        )
+
+        assert user_a_total == 12000
+        assert user_b_total == 8000
+
     def test_assigns_span_to_highest_sum_project(self) -> None:
         project_a = self.create_project(
             organization=self.organization,
@@ -239,7 +399,7 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
 
         ctx = OrganizationReportContext(self.timestamp, ONE_DAY * 7, self.organization)
 
-        mock_data = {
+        top_spans_data = {
             "data": [
                 {
                     "span.name": "/api/checkout",
@@ -255,13 +415,66 @@ class OrganizationTopSpansTest(TestCase, SnubaTestCase):
                 },
             ]
         }
+        count_data = {
+            "data": [
+                {"project.id": project_a.id, "count()": 1000},
+                {"project.id": project_b.id, "count()": 2000},
+            ]
+        }
 
         with mock.patch(
             "sentry.tasks.summaries.utils.Spans.run_table_query",
-            return_value=mock_data,
+            side_effect=_make_top_spans_mock(top_spans_data, count_data),
         ):
             organization_top_spans(ctx, referrer=Referrer.REPORTS_TOP_SPANS.value)
 
         assert len(ctx.top_spans) == 1
         assert ctx.top_spans[0]["name"] == "/api/checkout"
         assert ctx.top_spans_projects["/api/checkout"] == project_b.id
+
+    @with_feature("organizations:weekly-report-spans-chart")
+    def test_factory_exception_resets_spans_count(self) -> None:
+        self.project.update(flags=F("flags").bitor(Project.flags.has_transactions))
+
+        factory = OrganizationReportContextFactory(
+            timestamp=self.timestamp,
+            duration=ONE_DAY * 7,
+            organization=self.organization,
+        )
+
+        with mock.patch(
+            "sentry.tasks.summaries.utils.organization_top_spans",
+            side_effect=Exception("query failed"),
+        ):
+            ctx = factory.create_context()
+
+        assert ctx.top_spans == []
+        assert ctx.top_spans_projects == {}
+        assert ctx.spans_count_by_project == {}
+
+
+class FormatDurationMsTest(TestCase):
+    def test_milliseconds(self) -> None:
+        assert format_duration_ms(50) == "50ms"
+        assert format_duration_ms(999) == "999ms"
+
+    def test_seconds(self) -> None:
+        assert format_duration_ms(1000) == "1.0s"
+        assert format_duration_ms(5500) == "5.5s"
+        assert format_duration_ms(59999) == "60.0s"
+
+    def test_minutes(self) -> None:
+        assert format_duration_ms(60000) == "1.0min"
+        assert format_duration_ms(150000) == "2.5min"
+
+    def test_hours(self) -> None:
+        assert format_duration_ms(3600000) == "1.0hr"
+        assert format_duration_ms(7200000) == "2.0hr"
+
+    def test_sub_millisecond(self) -> None:
+        assert format_duration_ms(0.5) == "0ms"
+        assert format_duration_ms(0) == "0ms"
+
+    def test_invalid_input(self) -> None:
+        assert format_duration_ms(None) == "0ms"
+        assert format_duration_ms("not a number") == "0ms"
