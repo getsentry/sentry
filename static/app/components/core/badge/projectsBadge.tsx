@@ -5,7 +5,7 @@ import {Container, Stack} from '@sentry/scraps/layout';
 
 import {IconAllProjects, IconMyProjects} from 'sentry/icons';
 
-export interface ProjectsSavedBadgeProps {
+export interface ProjectsBadgeProps {
   /**
    * Platform slugs for the project(s) to display.
    * - 0 entries: renders an all-projects or my-projects icon
@@ -23,10 +23,7 @@ export interface ProjectsSavedBadgeProps {
  * logic so every call site (secondary navigation, breadcrumbs) shares one
  * component.
  */
-export function ProjectsSavedBadge({
-  projectPlatforms,
-  allProjects,
-}: ProjectsSavedBadgeProps) {
+export function ProjectsBadge({projectPlatforms, allProjects}: ProjectsBadgeProps) {
   let icons: React.ReactNode;
 
   switch (projectPlatforms.length) {

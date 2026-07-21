@@ -97,7 +97,7 @@ export interface BreadcrumbItemPageTitleProps {
    */
   labelTooltip?: React.ReactNode;
   /**
-   * Decorative 16×16 leading graphic — a `ProjectsSavedBadge`, avatar, or icon.
+   * Decorative 16×16 leading graphic — a `ProjectsBadge`, avatar, or icon.
    * Rendered aria-hidden inside a fixed-size slot; the label carries the meaning.
    */
   leadingGraphic?: React.ReactNode;

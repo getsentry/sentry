@@ -31,10 +31,10 @@ import styled from '@emotion/styled';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {ProjectsBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
-import {ProjectsSavedBadge} from '@sentry/scraps/projectsSavedBadge';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
@@ -500,7 +500,7 @@ interface SecondaryNavigationProjectIconProps {
 
 function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconProps) {
   return (
-    // Keep the 18×18 nav-specific outer Stack; ProjectsSavedBadge renders at 16×16 inside it.
+    // Keep the 18×18 nav-specific outer Stack; ProjectsBadge renders at 16×16 inside it.
     <Stack
       flexShrink={0}
       justify="center"
@@ -511,7 +511,7 @@ function SecondaryNavigationProjectIcon(props: SecondaryNavigationProjectIconPro
       data-project-icon
       aria-hidden="true"
     >
-      <ProjectsSavedBadge
+      <ProjectsBadge
         projectPlatforms={props.projectPlatforms}
         allProjects={props.allProjects}
       />
