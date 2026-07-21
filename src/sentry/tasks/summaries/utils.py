@@ -769,7 +769,6 @@ def organization_top_spans(
         if project_id:
             ctx.spans_count_by_project[int(project_id)] = row.get("count()", 0)
 
-
     for row in result.get("data", []):
         span_name = row.get("span.name", "")
         project_id = row.get("project.id")
@@ -792,48 +791,59 @@ def organization_top_spans_timeseries(
     ctx: OrganizationReportContext,
     referrer: str,
 ) -> None:
-    """Fetch p95(span.duration) timeseries for top spans with 6 hour granularity."""
-    projects = _get_transaction_projects(ctx)
-    if not projects or not ctx.top_spans:
+    """Fetch p95(span.duration) timeseries for top spans with 6 hour granularity.
+
+    Each span's timeseries is scoped to its assigned project (from
+    ctx.top_spans_projects) so the chart matches the table metrics.
+    """
+    if not ctx.top_spans:
         return
 
-    snuba_params = SnubaParams(
-        start=ctx.start,
-        end=ctx.end,
-        projects=projects,
-        organization=ctx.organization,
-        granularity_secs=SIX_HOURS,
-    )
+    project_by_id = {pctx.project.id: pctx.project for pctx in ctx.projects_context_map.values()}
     config = SearchResolverConfig(auto_fields=True)
 
-    span_name_filter = _build_span_name_filter([s["name"] for s in ctx.top_spans])
-    with start_span(
-        op="weekly_reports.top_spans_timeseries", name="weekly_reports.top_spans_timeseries"
-    ):
-        ts_result = Spans.run_top_events_timeseries_query(
-            params=snuba_params,
-            query_string=f"is_transaction:1 ({span_name_filter})",
-            y_axes=["p95(span.duration)", "sum(span.duration)"],
-            raw_groupby=["span.name"],
-            orderby=["-sum(span.duration)"],
-            limit=TOP_SPANS_LIMIT,
-            include_other=False,
-            referrer=referrer,
-            config=config,
-            sampling_mode=None,
-        )
+    for span in ctx.top_spans:
+        span_name = span["name"]
+        project_id = ctx.top_spans_projects.get(span_name)
+        project = project_by_id.get(project_id) if project_id else None
+        if not project:
+            continue
 
-    for span_key, ts_data in ts_result.items():
-        span_name = span_key
-        interval_p95: dict[int, float] = {}
-        for point in ts_data.data.get("data", []):
-            timestamp = point.get("time")
-            p95_value = point.get("p95(span.duration)", 0)
-            if timestamp:
-                ts_int = (
-                    int(timestamp.timestamp())
-                    if isinstance(timestamp, datetime)
-                    else int(timestamp)
-                )
-                interval_p95[ts_int] = p95_value or 0
-        ctx.top_spans_timeseries[span_name] = interval_p95
+        snuba_params = SnubaParams(
+            start=ctx.start,
+            end=ctx.end,
+            projects=[project],
+            organization=ctx.organization,
+            granularity_secs=SIX_HOURS,
+        )
+        span_name_filter = _build_span_name_filter([span_name])
+        with start_span(
+            op="weekly_reports.top_spans_timeseries",
+            name="weekly_reports.top_spans_timeseries",
+        ):
+            ts_result = Spans.run_top_events_timeseries_query(
+                params=snuba_params,
+                query_string=f"is_transaction:1 ({span_name_filter})",
+                y_axes=["p95(span.duration)", "sum(span.duration)"],
+                raw_groupby=["span.name"],
+                orderby=["-sum(span.duration)"],
+                limit=1,
+                include_other=False,
+                referrer=referrer,
+                config=config,
+                sampling_mode=None,
+            )
+
+        for span_key, ts_data in ts_result.items():
+            interval_p95: dict[int, float] = {}
+            for point in ts_data.data.get("data", []):
+                timestamp = point.get("time")
+                p95_value = point.get("p95(span.duration)", 0)
+                if timestamp:
+                    ts_int = (
+                        int(timestamp.timestamp())
+                        if isinstance(timestamp, datetime)
+                        else int(timestamp)
+                    )
+                    interval_p95[ts_int] = p95_value or 0
+            ctx.top_spans_timeseries[span_name] = interval_p95
