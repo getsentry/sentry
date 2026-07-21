@@ -1,8 +1,8 @@
 import {PlatformIcon} from 'platformicons';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getPlatformKind, type PlatformKind} from 'sentry/data/platformKinds';
 import {t} from 'sentry/locale';
@@ -41,11 +41,9 @@ export function ScmPlatformCard({
             <PlatformIcon platform={platform} size={28} />
           </Flex>
           <Stack maxWidth="100%" flexShrink={1} flexGrow={1} overflow="hidden">
-            <Tooltip title={name} showOnlyOnOverflow skipWrapper>
-              <Text bold textWrap="nowrap" ellipsis>
-                {name}
-              </Text>
-            </Tooltip>
+            <InfoText title={name} mode="overflowOnly" bold textWrap="nowrap">
+              {name}
+            </InfoText>
             <Text variant="muted" size="sm" textWrap="nowrap" ellipsis>
               {KIND_LABELS[getPlatformKind(platform, type)]}
             </Text>

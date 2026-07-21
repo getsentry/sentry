@@ -4,10 +4,10 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
-import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -410,14 +410,9 @@ const BodyCell = memo(function BodyCell({
         <AgentTags agents={dataRow.agents} />
       ) : (
         <Container paddingLeft="xs">
-          <Tooltip
-            title={dataRow.transaction}
-            maxWidth={500}
-            showOnlyOnOverflow
-            skipWrapper
-          >
-            <Text ellipsis>{dataRow.transaction}</Text>
-          </Tooltip>
+          <InfoText title={dataRow.transaction} maxWidth={500} mode="overflowOnly">
+            {dataRow.transaction}
+          </InfoText>
         </Container>
       );
     case 'duration':

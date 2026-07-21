@@ -126,11 +126,14 @@ export function ConversationSummaryNew({
               <Flex align="center" gap="xs" minWidth={0}>
                 <IconUser size="md" />
                 {userDisplayName ? (
-                  <Tooltip title={userDisplayName} showOnlyOnOverflow skipWrapper>
-                    <Text size="sm" variant="muted" ellipsis>
-                      {userDisplayName}
-                    </Text>
-                  </Tooltip>
+                  <InfoText
+                    title={userDisplayName}
+                    mode="overflowOnly"
+                    size="sm"
+                    variant="muted"
+                  >
+                    {userDisplayName}
+                  </InfoText>
                 ) : (
                   <InfoText
                     size="sm"

@@ -1,6 +1,5 @@
+import {InfoText} from '@sentry/scraps/info';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
@@ -83,13 +82,13 @@ function ConversationCrumb({
           avatarProps={{hasTooltip: true, tooltip: project.slug}}
         />
       )}
-      <Tooltip
+      <InfoText
         title={conversationId}
-        showOnlyOnOverflow={!isUUID(conversationId)}
-        skipWrapper
+        mode={isUUID(conversationId) ? undefined : 'overflowOnly'}
+        variant="inherit"
       >
-        <Text>{displayId}</Text>
-      </Tooltip>
+        {displayId}
+      </InfoText>
       <RevealOnHover.Action>
         <CopyToClipboardButton
           size="zero"

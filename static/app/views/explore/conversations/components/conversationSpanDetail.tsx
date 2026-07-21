@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose} from 'sentry/icons';
@@ -136,11 +136,9 @@ export function ConversationSpanDetail({
       <Flex align="center" gap="lg" flexShrink={0}>
         <Flex flex="1" minWidth="0" align="center" gap="md">
           <AiSpanStatusIcon node={node} />
-          <Tooltip title={title} showOnlyOnOverflow skipWrapper>
-            <Text size="lg" bold ellipsis>
-              {title}
-            </Text>
-          </Tooltip>
+          <InfoText title={title} mode="overflowOnly" size="lg" bold>
+            {title}
+          </InfoText>
         </Flex>
         {onClose ? (
           <Button

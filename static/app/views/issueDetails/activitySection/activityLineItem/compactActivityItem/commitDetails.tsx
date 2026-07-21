@@ -1,8 +1,8 @@
 import moment from 'moment-timezone';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t, tct, tn} from 'sentry/locale';
 import type {GroupActivity} from 'sentry/types/group';
@@ -23,9 +23,11 @@ function ReleaseOverflow({releases}: {releases: BaseRelease[]}) {
   const hiddenCount = count - visibleReleases.length;
 
   return (
-    <Tooltip
-      skipWrapper
+    <InfoText
       maxWidth={320}
+      as="span"
+      density="comfortable"
+      variant="muted"
       title={
         <Stack gap="xs">
           {visibleReleases.map(release => (
@@ -41,10 +43,8 @@ function ReleaseOverflow({releases}: {releases: BaseRelease[]}) {
         </Stack>
       }
     >
-      <Text as="span" density="comfortable" variant="muted">
-        {tn('%s other', '%s others', count)}
-      </Text>
-    </Tooltip>
+      {tn('%s other', '%s others', count)}
+    </InfoText>
   );
 }
 

@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -353,7 +354,7 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
               <TriggerBadge trigger={row.trigger} rawSource={row.rawSource} />
             )}
             <Flex gap="xs" align="center">
-              <Tooltip
+              <InfoText
                 title={
                   row.userCount > 0
                     ? t(
@@ -363,12 +364,12 @@ export function IssueCard({orgSlug, row}: {orgSlug: string; row: OverviewRow}) {
                       )
                     : t('%s events in the last 90 days', row.eventCount.toLocaleString())
                 }
+                size="xs"
+                variant="muted"
               >
-                <Text size="xs" variant="muted">
-                  {eventCountLabel}
-                  {row.userCount > 0 && ` · ${userCountLabel}`}
-                </Text>
-              </Tooltip>
+                {eventCountLabel}
+                {row.userCount > 0 && ` · ${userCountLabel}`}
+              </InfoText>
               <Text size="xs" variant="muted" aria-hidden>
                 {'·'}
               </Text>
