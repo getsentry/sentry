@@ -894,6 +894,48 @@ def render_template_context(
 
     view_all_issues_url = _multi_project_substatus_url(user_projects, "is:unresolved")
 
+    user_project_ids = {p.project.id for p in user_projects}
+    user_total_spans_count = sum(
+        count for pid, count in ctx.spans_count_by_project.items() if pid in user_project_ids
+    )
+    show_spans = (
+        features.has("organizations:weekly-report-spans-chart", ctx.organization)
+        and not ctx.organization.flags.enhanced_privacy
+        and user_total_spans_count > 0
+    )
+    top_spans_table: list[dict[str, Any]] = []
+    if show_spans:
+        project_by_id = {p.project.id: p.project for p in user_projects}
+        for span in ctx.top_spans:
+            span_project_id = ctx.top_spans_projects.get(span["name"])
+            if span_project_id not in user_project_ids:
+                continue
+            project = project_by_id.get(span_project_id)
+            span_query = urlencode(
+                {
+                    "query": f'span.description:"{span["name"]}"',
+                    "project": span_project_id,
+                    "visualize": json.dumps(
+                        {"yAxes": ["p95(span.duration)", "sum(span.duration)"]}
+                    ),
+                    "referrer": "weekly_report",
+                    "notification_uuid": notification_uuid,
+                }
+            )
+            span_url = ctx.organization.absolute_url(
+                f"/organizations/{ctx.organization.slug}/explore/traces/",
+                query=span_query,
+            )
+            top_spans_table.append(
+                {
+                    "name": span["name"],
+                    "p95": span["p95"],
+                    "sum": span["sum"],
+                    "project_slugs": project.slug if project else "",
+                    "url": span_url,
+                }
+            )
+
     return {
         "organization": ctx.organization,
         "start": date_format(local_start),
@@ -912,6 +954,8 @@ def render_template_context(
             "organizations:weekly-report-week-over-week-metric", ctx.organization
         ),
         "notification_settings_link": "/settings/account/notifications/reports/",
+        "total_spans_count": user_total_spans_count,
+        "top_spans_table": top_spans_table,
     }
 
 
