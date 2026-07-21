@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {Count} from 'sentry/components/count';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 

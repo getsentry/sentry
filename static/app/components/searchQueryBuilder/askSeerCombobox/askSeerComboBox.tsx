@@ -178,6 +178,10 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
         key: `${index}-${query.query}`,
       }));
 
+      if (hasAskSeerUxRework) {
+        return results;
+      }
+
       results.push({
         key: 'none-of-these',
         label: t('None of these'),
@@ -187,7 +191,7 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
     }
 
     return [];
-  }, [data?.queries]);
+  }, [data?.queries, hasAskSeerUxRework]);
 
   const state = useComboBoxState({
     ...props,
@@ -481,9 +485,12 @@ export function AskSeerComboBox<T extends QueryTokensProps>({
             </Stack>
           ) : data?.queries && (data?.queries?.length ?? 0) > 0 ? (
             <Stack flex="1" onMouseLeave={onMouseLeave}>
-              <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
+              {hasAskSeerUxRework ? null : (
+                <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
+              )}
               <AskSeerSearchListBox
                 {...listBoxProps}
+                hasAskSeerUxRework={hasAskSeerUxRework}
                 listBoxRef={listBoxRef}
                 state={state}
               />

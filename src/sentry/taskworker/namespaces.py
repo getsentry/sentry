@@ -82,8 +82,15 @@ hybridcloud_control_tasks = app.taskregistry.create_namespace(
     app_feature="hybrid_cloud",
 )
 
+# TODO(STREAM-1191): remove once infra has fully migrated to
+# ingest_profiling_raw_tasks below.
 ingest_profiling_passthrough_tasks = app.taskregistry.create_namespace(
     "ingest.profiling.passthrough",
+    app_feature="profiles",
+)
+
+ingest_profiling_raw_tasks = app.taskregistry.create_namespace(
+    "ingest.profiling.raw",
     app_feature="profiles",
 )
 
@@ -102,8 +109,8 @@ ingest_attachments_tasks = app.taskregistry.create_namespace(
     app_feature="attachments",
 )
 
-ingest_events_passthrough_tasks = app.taskregistry.create_namespace(
-    "ingest.events.passthrough",
+ingest_events_raw_tasks = app.taskregistry.create_namespace(
+    "ingest.events.raw",
     app_feature="errors",
 )
 

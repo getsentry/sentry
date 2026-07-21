@@ -7,7 +7,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {tct} from 'sentry/locale';
 import type {Permissions} from 'sentry/types/integrations';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   WebhookGranularEvent,
   WebhookSubscription,
@@ -25,26 +24,11 @@ type Props = {
   events: WebhookSubscription[];
   onChange: (events: WebhookSubscription[]) => void;
   permissions: Permissions;
-  webhookDisabled?: boolean;
 };
 
-export function Subscriptions({
-  events,
-  onChange,
-  permissions,
-  webhookDisabled = false,
-}: Props) {
-  const organization = useOrganization();
-  const granular = organization.features.includes('sentry-apps-granular-events');
-
-  // Keep the subscription consistent with the rest of the form: webhooks
-  // disabled means no events, and every event needs its backing permission.
+export function Subscriptions({events, onChange, permissions}: Props) {
+  // Every event needs its backing permission.
   useEffect(() => {
-    if (webhookDisabled && events.length) {
-      onChange([]);
-      return;
-    }
-
     const permitted = new Set<string>(
       EVENT_CHOICES.filter(
         resource => permissions[PERMISSIONS_MAP[resource]] !== 'no-access'
@@ -55,7 +39,7 @@ export function Subscriptions({
     if (JSON.stringify(events) !== JSON.stringify(permittedEvents)) {
       onChange(permittedEvents);
     }
-  }, [webhookDisabled, permissions, events, onChange]);
+  }, [permissions, events, onChange]);
 
   const handleResourceChange = (resource: Resource, checked: boolean) => {
     const owned = new Set<string>([resource, ...RESOURCE_EVENTS[resource]]);
@@ -64,7 +48,7 @@ export function Subscriptions({
       onChange(others);
       return;
     }
-    onChange([...others, ...(granular ? RESOURCE_EVENTS[resource] : [resource])]);
+    onChange([...others, ...RESOURCE_EVENTS[resource]]);
   };
 
   const handleEventChange = (event: WebhookGranularEvent, checked: boolean) => {
@@ -85,9 +69,7 @@ export function Subscriptions({
 
     let checked: boolean | 'indeterminate' = false;
     if (!disabledFromPermissions) {
-      if (!granular) {
-        checked = events.includes(choice);
-      } else if (selectedEvents.length === RESOURCE_EVENTS[choice].length) {
+      if (selectedEvents.length === RESOURCE_EVENTS[choice].length) {
         checked = true;
       } else if (selectedEvents.length > 0) {
         checked = 'indeterminate';
@@ -98,7 +80,6 @@ export function Subscriptions({
       <SubscriptionBox
         key={choice}
         disabledFromPermissions={disabledFromPermissions}
-        webhookDisabled={webhookDisabled}
         checked={checked}
         selectedEvents={selectedEvents}
         resource={choice}
@@ -108,10 +89,6 @@ export function Subscriptions({
       />
     );
   });
-
-  if (!granular) {
-    return <SubscriptionGrid>{boxes}</SubscriptionGrid>;
-  }
 
   return (
     <SubscriptionList>
@@ -131,14 +108,6 @@ export function Subscriptions({
     </SubscriptionList>
   );
 }
-
-const SubscriptionGrid = styled('div')`
-  display: grid;
-  grid-template: auto / 1fr 1fr 1fr;
-  @media (max-width: ${props => props.theme.breakpoints.lg}) {
-    grid-template: 1fr 1fr 1fr / auto;
-  }
-`;
 
 const SubscriptionList = styled('div')`
   display: flex;

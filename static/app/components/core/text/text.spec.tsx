@@ -168,7 +168,7 @@ describe('Text', () => {
       // ...and the explicit value overrides it from md up.
       expect(getEmotionRules(element)).toContainEqual(
         expect.stringMatching(
-          new RegExp(`@container \\(min-width: ${theme.breakpoints.md}\\).*display: none`)
+          new RegExp(`@container \\(min-width: ${theme.container.md}\\).*display: none`)
         )
       );
     });
@@ -186,7 +186,7 @@ describe('Text', () => {
       // ...and the explicit value overrides it from md up.
       expect(getEmotionRules(element)).toContainEqual(
         expect.stringMatching(
-          new RegExp(`@container \\(min-width: ${theme.breakpoints.md}\\).*display: none`)
+          new RegExp(`@container \\(min-width: ${theme.container.md}\\).*display: none`)
         )
       );
     });
@@ -200,7 +200,7 @@ describe('Text', () => {
 
     it('does not seed when the base breakpoint is explicitly set', () => {
       render(
-        <Text as="div" display={{'2xs': 'none', md: 'block'}}>
+        <Text as="div" display={{zero: 'none', md: 'block'}}>
           Hello World
         </Text>
       );
