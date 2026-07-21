@@ -39,6 +39,7 @@ if TYPE_CHECKING:
 
 
 def _least_privileged_scope(allowed_scopes: set[str]) -> str | None:
+    """Choose the weakest user-grantable scope; break unrelated ties deterministically."""
     grantable_scopes = allowed_scopes - settings.SENTRY_TOKEN_ONLY_SCOPES
     for scope in sorted(grantable_scopes):
         implied = set(settings.SENTRY_SCOPE_HIERARCHY_MAPPING.get(scope, ()))

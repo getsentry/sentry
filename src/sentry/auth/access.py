@@ -29,6 +29,7 @@ from sentry.organizations.services.organization import RpcTeamMember, RpcUserOrg
 from sentry.organizations.services.organization.serial import summarize_member
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
+from sentry.seer.agent_token import is_agent_auth
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -1194,8 +1195,6 @@ def from_rpc_member(
 def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
     if is_system_auth(auth):
         return SystemAccess()
-    from sentry.seer.agent_token import is_agent_auth
-
     if is_agent_auth(auth):
         if auth.user_id is None or auth.organization_id != organization.id:
             return DEFAULT
@@ -1218,8 +1217,6 @@ def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
 def from_rpc_auth(
     auth: AuthenticatedToken, rpc_user_org_context: RpcUserOrganizationContext
 ) -> Access:
-    from sentry.seer.agent_token import is_agent_auth
-
     if is_system_auth(auth):
         return SystemAccess()
     if is_agent_auth(auth):

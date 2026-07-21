@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,9 +12,27 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
 from sentry.models.organization import Organization
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import AGENT_SESSION_ID_MAX_LENGTH
+
+
+class AgentTokenRequestSerializer(serializers.Serializer):
+    sessionId = serializers.CharField(max_length=AGENT_SESSION_ID_MAX_LENGTH)
+    requestedScopes = serializers.ListField(child=serializers.CharField(), required=False)
+
+
+class AgentTokenResponseSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    expiresAt = serializers.DateTimeField()
+    scopes = serializers.ListField(child=serializers.CharField())
 
 
 class AgentTokenPermission(OrganizationPermission):
@@ -32,6 +52,18 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
     permission_classes = (AgentTokenPermission,)
 
+    @extend_schema(
+        operation_id="Mint a Seer agent capability token",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=AgentTokenRequestSerializer,
+        responses={
+            200: AgentTokenResponseSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def post(self, request: Request, organization: Organization) -> Response:
         """Mint a short-lived, scope-bound capability token for the Seer agent.
 

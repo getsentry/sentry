@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from django.test import override_settings
 
-from sentry.models.apitoken import ApiToken
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.silo.base import SiloMode
@@ -28,10 +27,10 @@ class OrganizationAgentTokenTest(APITestCase):
         )
 
     def _grant(self, *, organization=None, session_id="s1", scopes=("org:write",)):
-        return SeerAgentWriteGrant.objects.create(
-            organization_id=(organization or self.org).id,
-            user_id=self.owner.id,
-            agent_session_id=session_id,
+        return self.create_seer_agent_write_grant(
+            organization=organization or self.org,
+            user=self.owner,
+            session_id=session_id,
             scope_list=list(scopes),
         )
 
@@ -90,7 +89,7 @@ class OrganizationAgentTokenTest(APITestCase):
         # token used to mint only carries org:read -> the minted token cannot exceed it.
         self._grant(session_id="s1", scopes=["org:write"])
         with assume_test_silo_mode(SiloMode.CONTROL):
-            token = ApiToken.objects.create(user=self.owner, scope_list=["org:read"])
+            token = self.create_user_auth_token(user=self.owner, scope_list=["org:read"])
         with self.feature(FLAG):
             resp = self.client.post(
                 f"/api/0/organizations/{self.org.slug}/agent/token/",
@@ -119,11 +118,16 @@ class OrganizationAgentTokenTest(APITestCase):
         assert resp.status_code == 403, resp.content
 
     def test_end_to_end_approved_write_succeeds(self) -> None:
-        # The core happy path: an approved grant produces a token whose write passes
-        # end-to-end against a real org endpoint.
-        self._grant(session_id="s1", scopes=["org:write"])
+        # The core happy path: browser approval persists the grant, reminting folds it into
+        # the token, and the token passes a real organization write endpoint.
         self.login_as(self.owner)
         with self.feature(FLAG):
+            approval = self.client.post(
+                f"/api/0/organizations/{self.org.slug}/agent/approve/",
+                data={"sessionId": "s1", "scopes": ["org:write"]},
+                format="json",
+            )
+            assert approval.status_code == 200, approval.content
             token = self._mint(sessionId="s1").data["token"]
 
         write = self.client.put(

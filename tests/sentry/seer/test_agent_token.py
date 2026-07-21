@@ -71,15 +71,15 @@ class AgentTokenAuthAndGateTest(TestCase):
         scopes: Iterable[str] = ("org:write",),
         expires_at: datetime | None = None,
     ) -> SeerAgentWriteGrant:
-        values: dict[str, Any] = {
-            "organization_id": self.org.id,
-            "user_id": self.owner.id,
-            "agent_session_id": session_id,
-            "scope_list": list(scopes),
-        }
+        values: dict[str, Any] = {"scope_list": list(scopes)}
         if expires_at is not None:
             values["expires_at"] = expires_at
-        return SeerAgentWriteGrant.objects.create(**values)
+        return self.create_seer_agent_write_grant(
+            organization=self.org,
+            user=self.owner,
+            session_id=session_id,
+            **values,
+        )
 
     def _has_object_perm(self, drf_request: Request) -> bool:
         return OrganizationPermission().has_object_permission(drf_request, APIView(), self.org)
@@ -207,6 +207,36 @@ class AgentTokenAuthAndGateTest(TestCase):
         with pytest.raises(AuthenticationFailed):
             self._auth(non_list_scopes)
 
+        mapping_scopes = self._typed_token(
+            {
+                "aud": agent_token.AGENT_TOKEN_AUDIENCE,
+                "sub": "1",
+                "org": 1,
+                "scopes": {"org:admin": False},
+                "sid": "s1",
+                "iat": 1,
+                "exp": 2,
+            }
+        )
+        with pytest.raises(AuthenticationFailed):
+            self._auth(mapping_scopes)
+
+    def test_missing_lifetime_or_session_claims_are_rejected(self) -> None:
+        now = int(timezone.now().timestamp())
+        base_claims = {
+            "aud": agent_token.AGENT_TOKEN_AUDIENCE,
+            "sub": "1",
+            "org": 1,
+            "scopes": ["org:read"],
+            "sid": "s1",
+            "iat": now,
+            "exp": now + 300,
+        }
+        for missing in ("sid", "iat", "exp"):
+            claims = {key: value for key, value in base_claims.items() if key != missing}
+            with pytest.raises(AuthenticationFailed):
+                self._auth(self._typed_token(claims))
+
     # ----- enforcement via the ordinary scope path -----
     # (Read-allowed and write-allowed happy paths are proven end-to-end over HTTP in
     # tests/sentry/seer/endpoints/test_organization_agent_token.py.)
@@ -251,17 +281,22 @@ class AgentTokenAuthAndGateTest(TestCase):
         assert resolved_access.has_scope("org:read")
         assert not resolved_access.has_scope("org:write")
 
-    def test_release_permission_cache_is_isolated_by_delegating_user(self) -> None:
+    def test_release_permission_rechecks_live_agent_membership(self) -> None:
         cache.clear()
         self.org.flags.allow_joinleave = False
         self.org.save()
-        self.create_project(organization=self.org)
+        team = self.create_team(organization=self.org)
+        membership = self.create_team_membership(user=self.member, team=team)
+        self.create_project(organization=self.org, teams=[team])
         endpoint = OrganizationReleasesBaseEndpoint()
 
-        owner_request = self._agent_request(self.owner, ["org:read", "project:read"], method="GET")
-        self._access_for(owner_request)
-        assert endpoint.has_release_permission(owner_request, self.org)
+        member_request = self._agent_request(
+            self.member, ["org:read", "project:read"], method="GET"
+        )
+        self._access_for(member_request)
+        assert endpoint.has_release_permission(member_request, self.org)
 
+        membership.delete()
         member_request = self._agent_request(
             self.member, ["org:read", "project:read"], method="GET"
         )

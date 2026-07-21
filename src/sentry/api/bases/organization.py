@@ -40,6 +40,7 @@ from sentry.organizations.services.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.seer.agent_token import is_agent_auth
 from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
@@ -812,8 +813,6 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             is_api_token_auth(request.auth) and request.access.has_scope("project:releases")
         )
 
-        from sentry.seer.agent_token import is_agent_auth
-
         agent_auth = request.auth if is_agent_auth(request.auth) else None
         has_valid_agent_auth = (
             agent_auth is not None and agent_auth.organization_id == organization.id
@@ -856,20 +855,15 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         via has_global_access.
 
         Results are cached for 60s per actor/org/release/effective-project-scope/mode.
+        Agent requests bypass the cache so every call rechecks live project membership.
         """
         actor_id = None
-        actor_scopes: list[str] = []
         has_perms = None
         key = None
         if request.user.is_authenticated:
             actor_id = "user:%s" % request.user.id
         elif request.auth is not None:
-            from sentry.seer.agent_token import is_agent_auth
-
-            if is_agent_auth(request.auth) and request.auth.user_id is not None:
-                actor_id = "agent:%s" % request.auth.user_id
-                actor_scopes = [f"scope:{scope}" for scope in sorted(request.auth.get_scopes())]
-            else:
+            if not is_agent_auth(request.auth):
                 actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:
             if project_ids:
@@ -883,7 +877,6 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
                     release.id if release is not None else 0,
                     int(require_all_projects),
                 ]
-                + actor_scopes
                 + sorted(requested_projects.ids)
                 + sorted(requested_projects.slugs)
             )

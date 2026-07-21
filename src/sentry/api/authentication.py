@@ -42,6 +42,7 @@ from sentry.models.projectkey import ProjectKey
 from sentry.models.relay import Relay
 from sentry.organizations.services.organization import organization_service
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
+from sentry.seer import agent_token
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import GrantTypes
@@ -524,8 +525,6 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX):
             return False
 
-        from sentry.seer import agent_token
-
         return not agent_token.is_agent_token_string(token_str)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
@@ -624,13 +623,9 @@ class AgentTokenAuthentication(StandardAuthentication):
     def accepts_auth(self, auth: list[bytes]) -> bool:
         if not super().accepts_auth(auth) or len(auth) != 2:
             return False
-        from sentry.seer import agent_token
-
         return agent_token.is_agent_token_string(force_str(auth[1]))
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
-        from sentry.seer import agent_token
-
         try:
             claims = agent_token.decode_agent_token(token_str)
             user_id = int(claims["sub"])

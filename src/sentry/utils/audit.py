@@ -19,9 +19,11 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.organizations.services.organization.model import RpcAuditLogEntryActor
+from sentry.seer.agent_token import is_agent_auth
 from sentry.silo.base import cell_silo_function
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 
 def create_audit_entry(
@@ -36,9 +38,6 @@ def create_audit_entry(
     if user is None:
         # An agent token acts on behalf of a member but authenticates as a non-user actor,
         # so attribute the audit entry to the delegating user.
-        from sentry.seer.agent_token import is_agent_auth
-        from sentry.users.services.user.service import user_service
-
         auth = getattr(request, "auth", None)
         if auth is not None and is_agent_auth(auth) and auth.user_id is not None:
             user = user_service.get_user(user_id=auth.user_id)

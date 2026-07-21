@@ -8,14 +8,19 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, TypedDict
 
 from django.conf import settings
 from django.db import router, transaction
 from django.utils import timezone
+from jwt import PyJWTError
 
 from sentry.auth.services.auth import AuthenticatedToken
-from sentry.seer.models.agent_write_grant import DEFAULT_EXPIRATION, SeerAgentWriteGrant
+from sentry.seer.models.agent_write_grant import (
+    AGENT_SESSION_ID_MAX_LENGTH,
+    DEFAULT_EXPIRATION,
+    SeerAgentWriteGrant,
+)
 from sentry.types.token import SENTRY_AGENT_TOKEN_PREFIX
 from sentry.utils import jwt
 
@@ -30,6 +35,16 @@ AGENT_TOKEN_TYPE = "sentry-agent+jwt"
 DEFAULT_TOKEN_TTL = timedelta(minutes=5)
 
 AGENT_TOKEN_KIND = "agent_token"
+
+
+class AgentTokenClaims(TypedDict):
+    aud: str
+    sub: str
+    org: int
+    scopes: list[str]
+    sid: str
+    iat: int
+    exp: int
 
 
 def _signing_key() -> str:
@@ -117,23 +132,61 @@ def is_agent_token_string(token_str: str) -> bool:
         return False
     try:
         return jwt.peek_header(token_str).get("typ") == AGENT_TOKEN_TYPE
-    except Exception:
+    except PyJWTError:
         return False
 
 
-def decode_agent_token(token_str: str) -> dict[str, Any]:
+def _validate_claims(claims: dict[str, Any]) -> AgentTokenClaims:
+    required = ("aud", "sub", "org", "scopes", "sid", "iat", "exp")
+    if any(name not in claims for name in required):
+        raise jwt.DecodeError("missing agent token claim")
+    if claims["aud"] != AGENT_TOKEN_AUDIENCE:
+        raise jwt.DecodeError("invalid agent token audience")
+    if not isinstance(claims["sub"], str) or not claims["sub"].isdigit():
+        raise jwt.DecodeError("invalid agent token subject")
+    if not isinstance(claims["org"], int) or isinstance(claims["org"], bool):
+        raise jwt.DecodeError("invalid agent token organization")
+    scopes = claims["scopes"]
+    if not isinstance(scopes, list) or not all(isinstance(scope, str) for scope in scopes):
+        raise jwt.DecodeError("invalid agent token scopes")
+    session_id = claims["sid"]
+    if (
+        not isinstance(session_id, str)
+        or not session_id
+        or len(session_id) > AGENT_SESSION_ID_MAX_LENGTH
+    ):
+        raise jwt.DecodeError("invalid agent token session")
+    for claim_name in ("iat", "exp"):
+        value = claims[claim_name]
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise jwt.DecodeError(f"invalid agent token {claim_name}")
+    if claims["exp"] <= claims["iat"]:
+        raise jwt.DecodeError("invalid agent token lifetime")
+    return {
+        "aud": claims["aud"],
+        "sub": claims["sub"],
+        "org": claims["org"],
+        "scopes": scopes,
+        "sid": session_id,
+        "iat": claims["iat"],
+        "exp": claims["exp"],
+    }
+
+
+def decode_agent_token(token_str: str) -> AgentTokenClaims:
     """Verify signature, ``exp`` and ``aud``; return the claims. Raises a pyjwt error on any
     invalid token."""
     is_legacy = token_str.startswith(SENTRY_AGENT_TOKEN_PREFIX)
     encoded_token = token_str.removeprefix(SENTRY_AGENT_TOKEN_PREFIX) if is_legacy else token_str
     if not is_legacy and not is_agent_token_string(encoded_token):
         raise jwt.DecodeError("not an agent token")
-    return jwt.decode(
+    claims = jwt.decode(
         encoded_token,
         _signing_key(),
         audience=AGENT_TOKEN_AUDIENCE,
         algorithms=["HS256"],
     )
+    return _validate_claims(claims)
 
 
 def is_agent_auth(auth: Any) -> bool:
@@ -141,14 +194,13 @@ def is_agent_auth(auth: Any) -> bool:
     return getattr(auth, "kind", None) == AGENT_TOKEN_KIND
 
 
-def build_authenticated_token(claims: dict[str, Any]) -> AuthenticatedToken:
-    # A first-class non-user actor: user_id records who the agent acts on behalf of;
-    # access is derived from that member (access.from_agent_auth), capped by these scopes.
+def build_authenticated_token(claims: AgentTokenClaims) -> AuthenticatedToken:
+    """Build a delegated-user credential from claims verified by ``decode_agent_token``."""
     return AuthenticatedToken(
         kind=AGENT_TOKEN_KIND,
-        scopes=list(claims.get("scopes", [])),
+        scopes=claims["scopes"],
         user_id=int(claims["sub"]),
-        organization_id=int(claims["org"]),
+        organization_id=claims["org"],
     )
 
 

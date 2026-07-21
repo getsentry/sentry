@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,15 +11,34 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
 from sentry.models.organization import Organization
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import AGENT_SESSION_ID_MAX_LENGTH
 from sentry.utils.auth import is_user_from_viewer_context
 
 logger = logging.getLogger(__name__)
+
+
+class AgentApprovalRequestSerializer(serializers.Serializer):
+    sessionId = serializers.CharField(max_length=AGENT_SESSION_ID_MAX_LENGTH)
+    scopes = serializers.ListField(child=serializers.CharField())
+
+
+class AgentApprovalResponseSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=["approved"])
+    scopes = serializers.ListField(child=serializers.CharField())
+    expiresAt = serializers.DateTimeField()
 
 
 class AgentApprovalPermission(OrganizationPermission):
@@ -32,15 +53,26 @@ class OrganizationAgentApproveEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ML_AI
+    authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (AgentApprovalPermission,)
 
     def _require_user_session(self, request: Request) -> None:
-        # Approval must come from a genuine first-party session, or the agent could approve
-        # its own writes. Any token credential (agent tokens included) sets request.auth;
-        # a viewer-context service call is caught separately.
-        if request.auth is not None or is_user_from_viewer_context(request):
+        # Viewer context is a service assertion, not interactive user consent.
+        if is_user_from_viewer_context(request):
             raise PermissionDenied("Approval must be performed from a user session.")
 
+    @extend_schema(
+        operation_id="Approve Seer agent write scopes",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=AgentApprovalRequestSerializer,
+        responses={
+            200: AgentApprovalResponseSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def post(self, request: Request, organization: Organization) -> Response:
         """Approve write scopes for the agent in a given session.
 
