@@ -915,20 +915,20 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         response = self.do_request("post", self.url, data={"title": "12345"})
         assert response.status_code == 201
+        assert Dashboard.objects.filter(organization=self.organization, title="12345 copy").exists()
+
+        response = self.do_request("post", self.url, data={"title": "12345"})
+        assert response.status_code == 201
         assert Dashboard.objects.filter(
-            organization=self.organization, title="12345 copy"
+            organization=self.organization,
+            title="12345 copy 1",
         ).exists()
 
         response = self.do_request("post", self.url, data={"title": "12345"})
         assert response.status_code == 201
         assert Dashboard.objects.filter(
-            organization=self.organization, title="12345 copy 1"
-        ).exists()
-
-        response = self.do_request("post", self.url, data={"title": "12345"})
-        assert response.status_code == 201
-        assert Dashboard.objects.filter(
-            organization=self.organization, title="12345 copy 2"
+            organization=self.organization,
+            title="12345 copy 2",
         ).exists()
 
     def test_post_member_can_create(self) -> None:
