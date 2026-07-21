@@ -240,7 +240,7 @@ describe('AutofixOverview', () => {
 
     // Root cause, notes, and the short id stay behind the analysis toggle,
     // which renders its block only when expanded.
-    const disclosure = screen.getByRole('button', {name: 'Full analysis'});
+    const disclosure = screen.getByRole('button', {name: 'More details'});
     expect(
       screen.queryByText('Commit c5bb895 stopped sending the Authorization header.')
     ).not.toBeInTheDocument();
@@ -811,11 +811,11 @@ describe('AutofixOverview', () => {
     renderPage();
 
     // The notes render on the face as the Next-steps block (no drafted fix),
-    // so there is nothing left behind a Full analysis toggle.
+    // so there is nothing left behind a More-details toggle.
     expect(await screen.findByText('Confirm the header is not leaked.')).toBeVisible();
     expect(screen.getByText('Verify both headers work.')).toBeVisible();
     expect(screen.queryByText(/•/)).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Full analysis'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'More details'})).not.toBeInTheDocument();
   });
 
   it('renders an error state and can retry', async () => {

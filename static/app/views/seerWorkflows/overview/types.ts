@@ -26,7 +26,7 @@ export type AttentionReason =
   | 'errored';
 
 // Where an answered run question renders on the card: on the face (always
-// visible) or inside the collapsed "Full analysis" disclosure.
+// visible) or inside the collapsed "More details" disclosure.
 export type AnswerPlacement = 'face' | 'details';
 
 // One answered run question joined to its question config

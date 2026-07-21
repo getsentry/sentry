@@ -40,7 +40,7 @@ const TitleLink = styled(Link)`
   }
 `;
 
-// The "Full analysis" trigger stretches across its row so the whole tail of
+// The "More details" trigger stretches across its row so the whole tail of
 // the card is a click target (label pinned left), shedding the Button's
 // horizontal padding to sit flush with the rows above. (Not core Disclosure:
 // the trigger anchors the bottom row while the analysis expands as a
@@ -105,7 +105,7 @@ export function IssueCard({
 }: {
   orgSlug: string;
   row: OverviewRow;
-  // Open every collapsible (Full analysis, inline diffs) on mount — the
+  // Open every collapsible (More details, inline diffs) on mount — the
   // overview's ?id= focus mode wants the whole card readable at once.
   defaultExpanded?: boolean;
 }) {
@@ -391,7 +391,7 @@ export function IssueCard({
                 aria-controls={analysisId}
                 onClick={() => setAnalysisExpanded(expanded => !expanded)}
               >
-                {t('Full analysis')}
+                {t('More details')}
               </AnalysisToggle>
             )}
           </Container>
