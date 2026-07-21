@@ -40,31 +40,6 @@ const TitleLink = styled(Link)`
   }
 `;
 
-// Next-steps answers are markdown action lists; restyle the bullets into an
-// accent to-do rail. List markers aren't reachable through the design
-// system's primitives, hence the styled wrapper — the content itself still
-// renders through SeerMarkdown so inline code and links keep working.
-const NextStepsList = styled('div')`
-  ul {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: ${p => p.theme.space.xs};
-  }
-  li {
-    position: relative;
-    padding-left: ${p => p.theme.space.xl};
-  }
-  li::before {
-    content: '→';
-    position: absolute;
-    left: 0;
-    color: ${p => p.theme.tokens.content.accent};
-  }
-`;
-
 // The "Full analysis" trigger stretches across its row so the whole tail of
 // the card is a click target (label pinned left), shedding the Button's
 // horizontal padding to sit flush with the rows above. (Not core Disclosure:
@@ -362,29 +337,19 @@ export function IssueCard({
         )}
 
         {/* The human's to-do, promoted onto the face when no code was
-            drafted: same block anatomy as the diagnosis, accent voice and
-            edge because this is the one block asking the reader to act, and
-            the bullets restyled into a to-do rail. */}
+            drafted — same quiet anatomy as the diagnosis block above it. */}
         {nextSteps && (
-          <Container
-            background="secondary"
-            border="muted"
-            borderLeft="accent"
-            radius="md"
-            padding="sm md"
-          >
+          <Container background="secondary" border="muted" radius="md" padding="sm md">
             <Stack gap="xs">
               <Flex gap="xs" align="center">
-                <IconArrow direction="right" size="xs" variant="accent" aria-hidden />
-                <Text size="xs" bold uppercase variant="accent">
+                <IconArrow direction="right" size="xs" variant="muted" aria-hidden />
+                <Text size="xs" bold uppercase variant="muted">
                   {t('Next steps')}
                 </Text>
               </Flex>
-              <NextStepsList>
-                <Text size="md" density="comfortable" as="div">
-                  <SeerMarkdown raw={nextSteps.answer} />
-                </Text>
-              </NextStepsList>
+              <Text size="md" density="comfortable" as="div">
+                <SeerMarkdown raw={nextSteps.answer} />
+              </Text>
             </Stack>
           </Container>
         )}
