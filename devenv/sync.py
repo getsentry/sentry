@@ -1,17 +1,141 @@
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import shlex
 import shutil
 import subprocess
+import sys
 import tempfile
 import urllib.request
 import zipfile
+from collections.abc import Sequence
 
 from devenv.lib import brew, colima, config, fs, limactl, proc
 
 from devenv import constants
+
+# Hook types prek installs by default (see .pre-commit-config.yaml
+# default_install_hook_types). Cursor's agent-hooks dispatcher only invokes
+# hook names that exist as shims in its hooksPath dir.
+_CLOUD_PREK_HOOK_TYPES = ("pre-commit", "pre-push")
+
+
+def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+    """Parse repo-local sync flags.
+
+    The installed `devenv sync` entrypoint does not forward argv into this
+    module, so we also accept flags from ``sys.argv`` (e.g. ``devenv sync --cloud``).
+    """
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        "--cloud",
+        action="store_true",
+        help=(
+            "Install prek git hooks alongside Cursor Cloud agent-hooks "
+            "(core.hooksPath). Use this when plain `prek install` refuses "
+            "because core.hooksPath is set."
+        ),
+    )
+    args, _ = parser.parse_known_args(list(argv) if argv is not None else sys.argv[1:])
+    return args
+
+
+def _absolute_git_dir(reporoot: str) -> str:
+    return subprocess.check_output(
+        ("git", "-C", reporoot, "rev-parse", "--absolute-git-dir"),
+        text=True,
+    ).strip()
+
+
+def _find_cursor_agent_hooks_dir() -> str | None:
+    """Return Cursor Cloud's agent-hooks dispatcher directory, if present."""
+    agent_hooks_root = os.path.join(constants.home, ".cursor", "agent-hooks")
+    if not os.path.isdir(agent_hooks_root):
+        return None
+
+    for entry in sorted(os.listdir(agent_hooks_root)):
+        candidate = os.path.join(agent_hooks_root, entry)
+        if os.path.isfile(os.path.join(candidate, ".dispatcher")):
+            return candidate
+    return None
+
+
+def ensure_cloud_prek_hooks(reporoot: str, venv_dir: str) -> bool:
+    """Install prek hooks so they run under Cursor Cloud's hooksPath.
+
+    Cursor Cloud sets ``core.hooksPath`` to ``~/.cursor/agent-hooks/<id>/`` and
+    chains to the path in ``.cursor-original-hooks-path``. ``prek install``
+    refuses when ``core.hooksPath`` is set, so we:
+
+    1. Install prek shims into the real git hooks dir via ``--git-dir``
+    2. Point Cursor's original-hooks path at that dir
+    3. Ensure Cursor has dispatcher shims for the hook types we care about
+    """
+    print("⏳ prek dependencies (cloud)")
+    git_dir = _absolute_git_dir(reporoot)
+    git_hooks_dir = os.path.join(git_dir, "hooks")
+    prek = os.path.join(venv_dir, "bin", "prek")
+
+    install_cmd = (
+        prek,
+        "install",
+        "--prepare-hooks",
+        "-f",
+        "--git-dir",
+        git_dir,
+    )
+    try:
+        subprocess.check_call(install_cmd, cwd=reporoot)
+    except (OSError, subprocess.CalledProcessError) as e:
+        print(
+            f"❌ prek dependencies (cloud)\n\nfailed command:\n    {shlex.join(install_cmd)}\n\n{e}\n"
+        )
+        return False
+
+    agent_hooks_dir = _find_cursor_agent_hooks_dir()
+    if agent_hooks_dir is None:
+        print(
+            "⚠️  Cursor agent-hooks not found; installed prek into "
+            f"{git_hooks_dir} but could not wire Cursor's dispatcher. "
+            "Git hooks will only run if core.hooksPath points at that directory."
+        )
+        print("✅ prek dependencies (cloud)")
+        return True
+
+    current_hooks_path = subprocess.run(
+        ("git", "-C", reporoot, "config", "--get", "core.hooksPath"),
+        check=False,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    if current_hooks_path != agent_hooks_dir:
+        subprocess.check_call(("git", "-C", reporoot, "config", "core.hooksPath", agent_hooks_dir))
+        print(f"   restored core.hooksPath -> {agent_hooks_dir}")
+
+    orig_path_file = os.path.join(agent_hooks_dir, ".cursor-original-hooks-path")
+    try:
+        with open(orig_path_file) as f:
+            current_orig = f.read().strip()
+    except OSError:
+        current_orig = ""
+    if current_orig != git_hooks_dir:
+        with open(orig_path_file, "w") as f:
+            f.write(git_hooks_dir)
+        print(f"   set .cursor-original-hooks-path -> {git_hooks_dir}")
+
+    for hook_type in _CLOUD_PREK_HOOK_TYPES:
+        target = os.path.join(agent_hooks_dir, hook_type)
+        if os.path.islink(target) and os.readlink(target) == ".dispatcher":
+            continue
+        if os.path.exists(target) or os.path.islink(target):
+            os.remove(target)
+        os.symlink(".dispatcher", target)
+        print(f"   linked {hook_type} -> .dispatcher")
+
+    print("✅ prek dependencies (cloud)")
+    return True
 
 
 # TODO: need to replace this with a nicer process executor in devenv.lib
@@ -176,10 +300,11 @@ exec {binroot}/node-env/bin/pnpm "$@"
     )
 
 
-def main(context: dict[str, str]) -> int:
+def main(context: dict[str, str], argv: Sequence[str] | None = None) -> int:
     repo = context["repo"]
     reporoot = context["reporoot"]
     cfg = config.get_repo(reporoot)
+    args = _parse_args(argv)
 
     # TODO: context["verbose"]
     verbose = os.environ.get("SENTRY_DEVENV_VERBOSE") is not None
@@ -187,6 +312,7 @@ def main(context: dict[str, str]) -> int:
     FRONTEND_ONLY = os.environ.get("SENTRY_DEVENV_FRONTEND_ONLY") is not None
     SKIP_FRONTEND = os.environ.get("SENTRY_DEVENV_SKIP_FRONTEND") is not None
     IN_GIT_WORKTREE = os.path.isfile(f"{reporoot}/.git")
+    CLOUD = args.cloud or os.environ.get("SENTRY_DEVENV_CLOUD") is not None
 
     if constants.DARWIN:
         brew.install()
@@ -293,7 +419,18 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
-    if not run_procs(
+    if CLOUD:
+        if not ensure_cloud_prek_hooks(reporoot, venv_dir):
+            return 1
+        if not run_procs(
+            repo,
+            reporoot,
+            venv_dir,
+            (("fast editable", ("python3", "-m", "tools.fast_editable", "--path", "."), {}),),
+            verbose,
+        ):
+            return 1
+    elif not run_procs(
         repo,
         reporoot,
         venv_dir,

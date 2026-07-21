@@ -39,6 +39,11 @@ cd /path/to/sentry && source .venv/bin/activate && pytest tests/...
 # SENTRY_DEVENV_FRONTEND_ONLY=1 skips over migrations which is not needed for pytest. HIGHLY RECOMMENDED.
 SENTRY_DEVENV_FRONTEND_ONLY=1 devenv sync
 
+# Cursor Cloud / cloud agents: also pass --cloud (or SENTRY_DEVENV_CLOUD=1) so prek
+# git hooks install alongside Cursor's core.hooksPath agent-hooks dispatcher.
+# Plain `prek install` refuses when core.hooksPath is set.
+SENTRY_DEVENV_FRONTEND_ONLY=1 devenv sync --cloud
+
 # refresh dependencies, apply migrations
 # Only relevant if you want a working development server.
 devenv sync
