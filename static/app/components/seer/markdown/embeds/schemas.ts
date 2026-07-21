@@ -26,6 +26,14 @@ export const SEER_EMBED_SCHEMAS = {
     level: ['inline'],
     schema: z.object({href: z.string(), title: z.string()}),
   },
+  issue: {
+    description:
+      'Reference a Sentry issue by its group id. Inline renders a compact ' +
+      'link labeled with the issue short id; block renders the full issue ' +
+      'feed row. The title MUST be the issue short id (e.g. "JAVASCRIPT-2X4").',
+    level: ['inline', 'block'],
+    schema: z.object({groupId: z.string(), title: z.string()}),
+  },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
 export type SeerEmbedName = keyof typeof SEER_EMBED_SCHEMAS;
