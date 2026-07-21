@@ -96,7 +96,7 @@ export function TraceTabsAndVitals({
     };
   }, []);
 
-  if (isLoading || rootEventResults.isLoading || tree.type === 'loading') {
+  if (isLoading || tree.type === 'loading') {
     return <Placeholder />;
   }
 

@@ -54,6 +54,7 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
     return <PlaceHolder organization={props.organization} traceSlug={props.traceSlug} />;
   }
 
+  const isRepresentativeLoading = props.overview.isRepresentativeLoading;
   const representativeLogs = props.overview.logs.representative
     ? [props.overview.logs.representative]
     : undefined;
@@ -92,7 +93,11 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
         </TopBar.Slot>
 
         <TraceHeaderComponents.HeaderRow>
-          <Title representativeEvent={rep} rootEventResults={props.rootEventResults} />
+          <Title
+            isLoading={isRepresentativeLoading}
+            representativeEvent={rep}
+            rootEventResults={props.rootEventResults}
+          />
           <Meta
             tree={props.tree}
             meta={props.metaResults.data}
@@ -109,14 +114,18 @@ export function TraceMetaDataHeader(props: TraceMetadataHeaderProps) {
             organization={props.organization}
           />
           <Flex align="center" gap="md" marginLeft="auto">
-            <Projects
-              projectSlugs={Array.from(
-                new Set([
-                  ...Array.from(props.tree.projects.values()).map(p => p.slug),
-                  ...(project ? [project.slug] : []),
-                ])
-              )}
-            />
+            {isRepresentativeLoading ? (
+              <TraceHeaderComponents.StyledPlaceholder _width={50} _height={28} />
+            ) : (
+              <Projects
+                projectSlugs={Array.from(
+                  new Set([
+                    ...Array.from(props.tree.projects.values()).map(p => p.slug),
+                    ...(project ? [project.slug] : []),
+                  ])
+                )}
+              />
+            )}
           </Flex>
         </TraceHeaderComponents.HeaderRow>
       </TraceHeaderComponents.HeaderContent>

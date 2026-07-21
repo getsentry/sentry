@@ -279,6 +279,61 @@ describe('TraceMetaDataHeader', () => {
   });
 
   describe('meta', () => {
+    it('renders the core header while optional overview data is loading', () => {
+      useLocationMock.mockReturnValue(
+        LocationFixture({
+          pathname: '/organizations/org-slug/traces/trace/trace-slug',
+        })
+      );
+      const overviewOrganization = OrganizationFixture({
+        features: ['ourlogs-enabled', 'tracemetrics-enabled'],
+      });
+      const props = {
+        ...baseProps,
+        overview: {
+          isRepresentativeLoading: false,
+          isTabLoading: true,
+          logs: {
+            availability: 'loading',
+            count: undefined,
+            representative: undefined,
+          },
+          metrics: {
+            availability: 'loading',
+            count: undefined,
+          },
+        },
+      } as TraceMetadataHeaderProps;
+
+      render(<TraceMetaDataHeader {...props} organization={overviewOrganization} />);
+
+      expect(screen.getByText('Issues')).toBeInTheDocument();
+      expect(screen.getByText('Logs')).toBeInTheDocument();
+      expect(screen.getByText('Metrics')).toBeInTheDocument();
+    });
+
+    it('renders the core header when root event details fail', () => {
+      useLocationMock.mockReturnValue(
+        LocationFixture({
+          pathname: '/organizations/org-slug/traces/trace/trace-slug',
+        })
+      );
+      const props = {
+        ...baseProps,
+        rootEventResults: {
+          data: undefined,
+          error: new Error('Trace item not found'),
+          isLoading: false,
+          status: 'error',
+        },
+      } as TraceMetadataHeaderProps;
+
+      render(<TraceMetaDataHeader {...props} organization={organization} />);
+
+      expect(screen.getByText('Issues')).toBeInTheDocument();
+      expect(screen.getByText('Spans')).toBeInTheDocument();
+    });
+
     it('renders representative information for a log-only trace', () => {
       useLocationMock.mockReturnValue(
         LocationFixture({
