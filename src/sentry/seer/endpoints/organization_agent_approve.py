@@ -63,6 +63,10 @@ class OrganizationAgentApproveEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Approve Seer agent write scopes",
+        description=(
+            "Requires a first-party browser session. Bearer credentials and "
+            "X-Viewer-Context service assertions cannot approve agent writes."
+        ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=AgentApprovalRequestSerializer,
         responses={
