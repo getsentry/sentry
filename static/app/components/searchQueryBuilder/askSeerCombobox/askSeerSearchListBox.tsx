@@ -71,18 +71,23 @@ const StyledOption = styled('li')<{isFocused: boolean}>`
   transition: background-color 0.2s ease;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   background-color: ${p =>
-    p.isFocused ? p.theme.tokens.background.transparent.accent.muted : 'transparent'};
+    p.isFocused
+      ? p.theme.tokens.interactive.transparent.neutral.background.hover
+      : 'transparent'};
 
   &:hover {
-    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   &:focus {
-    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
   }
 
   &[data-is-none-of-these],
