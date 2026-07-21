@@ -1193,6 +1193,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:preprod_size_status_checks_rules": options.get(
                 "sentry:preprod_size_status_checks_rules"
             ),
+            "sentry:preprod_size_pr_comments_enabled": options.get(
+                "sentry:preprod_size_pr_comments_enabled", False
+            ),
+            "sentry:preprod_size_pr_comments_rules": options.get(
+                "sentry:preprod_size_pr_comments_rules"
+            ),
             "sentry:preprod_snapshot_status_checks_enabled": options.get(
                 "sentry:preprod_snapshot_status_checks_enabled", True
             ),
