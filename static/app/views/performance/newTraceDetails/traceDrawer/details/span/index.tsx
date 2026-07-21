@@ -512,13 +512,17 @@ function EAPSpanNodeDetailsContent({
     }
   }, [genAiOperationType, organization, hideNodeActions]);
 
-  const isSdkSentV2Span =
-    // The presence of this attribute indicates that the EAP span was sent as a v2 span
-    // from SDKs rather than an SDK-sent transaction converted to EAP spans during ingestion.
-    attributesMap.observed_timestamp_nanos &&
-    // Furthermore, to distinguish between v2 and v1 web vital spans, we can check that the old
-    // report_event only sent on v1 spans attribute is undefined
-    !attributesMap.report_event;
+  const isSdkSentStreamedSpan =
+    // Sent by span-streaming-configured SDKs to explicitly indicate a streamed span:
+    attributesMap.trace_lifecycle === 'stream' ||
+    // If the attribute is not set, we fall back to infer the original span type from other attributes:
+    (!attributesMap.trace_lifecycle &&
+      // The presence of this attribute indicates that the EAP span was sent as a v2 span
+      // from SDKs rather than an SDK-sent transaction converted to EAP spans during ingestion.
+      attributesMap.observed_timestamp_nanos &&
+      // Furthermore, to distinguish between v2 and v1 web vital spans, we can check that the old
+      // report_event only sent on v1 spans attribute is undefined
+      !attributesMap.report_event);
 
   return (
     <TraceDrawerComponents.DetailContainer>
@@ -527,7 +531,7 @@ function EAPSpanNodeDetailsContent({
           <TraceDrawerComponents.LegacyTitleText>
             <TraceDrawerComponents.TitleText>
               {t('Span')}
-              {isSdkSentV2Span && (
+              {isSdkSentStreamedSpan && (
                 <Fragment>
                   {' '}
                   <Tooltip title={t('Streamed Span')}>
