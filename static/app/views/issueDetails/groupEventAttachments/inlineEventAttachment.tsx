@@ -4,6 +4,7 @@ import {ImageViewer} from 'sentry/components/events/attachmentViewers/imageViewe
 import {JsonViewer} from 'sentry/components/events/attachmentViewers/jsonViewer';
 import {LogFileViewer} from 'sentry/components/events/attachmentViewers/logFileViewer';
 import {
+  hasInlineAttachmentRenderer,
   imageMimeTypes,
   jsonMimeTypes,
   logFileMimeTypes,
@@ -66,6 +67,10 @@ export function InlineEventAttachment({
   eventId,
 }: InlineAttachmentsProps) {
   const organization = useOrganization();
+
+  if (!hasInlineAttachmentRenderer(attachment)) {
+    return null;
+  }
 
   return (
     <AttachmentPreviewWrapper>
