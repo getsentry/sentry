@@ -368,7 +368,8 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
                             )
                             if produce_to_process_segment_task:
                                 task_produce_future = process_segment_task.apply_async_with_future(
-                                    args=[kafka_payload.value]
+                                    args=[kafka_payload.value],
+                                    headers={"sentry-propagate-traces": False},
                                 )
                                 if task_produce_future is not None:
                                     producer_futures.append(
