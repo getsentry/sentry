@@ -631,7 +631,8 @@ class PromoteToLiveTest(TestCase):
         derived.refresh_from_db()
         assert derived.generated_at == new_gen_time
 
-        # A new entry arrives.
+        # Insert a log entry directly (not via _publish) to avoid inline
+        # processing, which would advance the cursor and mask the test.
         GroupActionLogEntry.objects.create(
             group_id=group.id,
             project_id=group.project_id,
@@ -642,9 +643,9 @@ class PromoteToLiveTest(TestCase):
             data={},
         )
 
-        # Create a stale incremental writer with the pre-generation state
-        # but the correct row id, so the UPDATE filter matches on id and
-        # the generated_at guard is what actually rejects the write.
+        # Simulate an incremental writer that read the row before the
+        # generation promoted. We construct the GDD manually so we can
+        # control the observed generated_at (pre-generation).
         stale = GroupDerivedData(
             id=derived.id,
             group_id=group.id,
@@ -654,7 +655,7 @@ class PromoteToLiveTest(TestCase):
             data=derived.data.copy(),
             pipeline_hash=derived.pipeline_hash,
         )
-        # The stale writer processes the new entry.
+        # _process_batch with persist=True attempts the guarded UPDATE.
         processing._process_batch(PIPELINE, stale, batch_size=1)
 
         # The write should have been rejected because generated_at changed.
