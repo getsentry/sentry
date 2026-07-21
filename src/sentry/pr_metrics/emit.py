@@ -19,7 +19,6 @@ from sentry.models.organization import Organization
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
-    PullRequestActivityLog,
     PullRequestActivityType,
     PullRequestAttribution,
     PullRequestMetrics,
@@ -363,11 +362,8 @@ def _repo_is_public(pull_request: PullRequest) -> bool | None:
     ``pr_metrics.webhooks``), so the document is checked first and the legacy
     row is a fallback for PRs still on the old store.
     """
-    doc = (
-        PullRequestActivityLog.objects.filter(pull_request=pull_request)
-        .values_list("data", flat=True)
-        .first()
-    )
+    # Use the standard helper that correctly handles empty documents and orphaned rows
+    doc = load_activity_document(pull_request)
     if doc:
         opened_entry = next(
             (e for e in doc.get("events", []) if e["event_type"] == PullRequestActivityType.OPENED),
@@ -377,6 +373,7 @@ def _repo_is_public(pull_request: PullRequest) -> bool | None:
             is_private = opened_entry["payload"].get("is_private")
             return None if is_private is None else not is_private
 
+    # Fallback to legacy store when no document exists
     is_private = (
         PullRequestActivity.objects.filter(
             pull_request=pull_request, event_type=PullRequestActivityType.OPENED

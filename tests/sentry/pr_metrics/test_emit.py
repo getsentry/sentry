@@ -415,6 +415,50 @@ class PrMetricsEmissionTest(TestCase):
         )
         assert row.repository_is_public is True
 
+    def test_build_row_repository_is_public_empty_document_fallback_to_legacy(self) -> None:
+        # Edge case: PullRequestActivityLog exists but has empty data {}
+        # Should fall back to legacy store instead of treating as document
+        PullRequestActivityLog.objects.create(
+            pull_request=self.pull_request,
+            data={},  # Empty document - no version field
+        )
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="opened-1",
+            event_type=PullRequestActivityType.OPENED,
+            payload={"is_private": False},
+        )
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        # Should read from legacy store, not fail due to empty document
+        assert row.repository_is_public is True
+
+    def test_build_row_repository_is_public_no_version_document_fallback_to_legacy(self) -> None:
+        # Edge case: PullRequestActivityLog exists but has no version field
+        # Should fall back to legacy store (orphaned document from failed fold)
+        PullRequestActivityLog.objects.create(
+            pull_request=self.pull_request,
+            data={"events": []},  # Document without version - treated as orphaned
+        )
+        PullRequestActivity.objects.create(
+            pull_request=self.pull_request,
+            webhook_id="opened-1",
+            event_type=PullRequestActivityType.OPENED,
+            payload={"is_private": False},
+        )
+        row = build_pr_metrics_row(
+            pull_request=self.pull_request,
+            close_action="merged",
+            attributions=[],
+            group_ids=[],
+        )
+        # Should read from legacy store, not fail due to versionless document
+        assert row.repository_is_public is True
+
     def test_build_row_counters_default_to_zero_when_metrics_row_absent(self) -> None:
         # A PR Sentry never saw active has no PullRequestMetrics row; emit
         # coalesces every counter to its zero/false default.
