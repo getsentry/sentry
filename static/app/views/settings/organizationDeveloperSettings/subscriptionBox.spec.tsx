@@ -78,19 +78,6 @@ describe('SubscriptionBox', () => {
     });
   });
 
-  it('disables checkbox when webhookDisabled=true', async () => {
-    renderComponent({resource: 'error', webhookDisabled: true});
-
-    expect(screen.getByRole('checkbox')).toBeDisabled();
-
-    await userEvent.hover(screen.getByRole('checkbox'));
-    expect(
-      await screen.findByText(
-        'Cannot enable webhook subscription without specifying a webhook url'
-      )
-    ).toBeInTheDocument();
-  });
-
   describe('granular event subscriptions', () => {
     const organization = OrganizationFixture({
       features: ['sentry-apps-granular-events'],

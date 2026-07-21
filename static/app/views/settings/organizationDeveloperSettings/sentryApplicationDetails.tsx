@@ -128,12 +128,21 @@ const sentryAppFormSchema = z
       });
     }
 
-    if (!data.isInternal && !data.webhookUrl.trim()) {
-      ctx.addIssue({
-        code: 'custom',
-        message: t('This field is required'),
-        path: ['webhookUrl'],
-      });
+    if (!data.webhookUrl.trim()) {
+      if (!data.isInternal) {
+        ctx.addIssue({
+          code: 'custom',
+          message: t('This field is required'),
+          path: ['webhookUrl'],
+        });
+      } else if (data.events.length > 0) {
+        // Mirrors the backend's events-require-a-webhook-URL rule.
+        ctx.addIssue({
+          code: 'custom',
+          message: t('This field is required when webhook events are enabled'),
+          path: ['webhookUrl'],
+        });
+      }
     }
 
     if (data.schema.trim()) {
@@ -868,21 +877,16 @@ function SentryApplicationForm({
       {getAvatarChooser(true)}
       {getAvatarChooser(false)}
 
-      <form.Subscribe selector={state => isInternal && !state.values.webhookUrl}>
-        {webhookDisabled => (
-          <PermissionsObserver
-            webhookDisabled={webhookDisabled}
-            appPublished={app ? app.status === 'published' : false}
-            scopes={app ? [...app.scopes] : []}
-            events={initialEvents}
-            newApp={!app}
-            permissionErrors={scopeErrors.permissions}
-            continuousIntegrationError={scopeErrors.continuousIntegration}
-            onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
-            onEventsChange={events => form.setFieldValue('events', events)}
-          />
-        )}
-      </form.Subscribe>
+      <PermissionsObserver
+        appPublished={app ? app.status === 'published' : false}
+        scopes={app ? [...app.scopes] : []}
+        events={initialEvents}
+        newApp={!app}
+        permissionErrors={scopeErrors.permissions}
+        continuousIntegrationError={scopeErrors.continuousIntegration}
+        onScopesChange={scopes => form.setFieldValue('scopes', scopes)}
+        onEventsChange={events => form.setFieldValue('events', events)}
+      />
 
       {app?.status === 'internal' && (
         <PanelTable
