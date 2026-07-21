@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 
 from django.core.exceptions import ObjectDoesNotExist
 
+from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
@@ -40,7 +41,9 @@ class SchedulePerOrgCalculationsTest(TestCase):
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_dispatches_only_active_orgs(self) -> None:
         active = self.create_organization()
+        self.create_project(organization=active)
         pending_deletion = self.create_organization()
+        self.create_project(organization=pending_deletion)
         pending_deletion.status = 1  # PENDING_DELETION
         pending_deletion.save()
 
@@ -54,6 +57,28 @@ class SchedulePerOrgCalculationsTest(TestCase):
 
         assert active.id in org_ids
         assert pending_deletion.id not in org_ids
+
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_dispatches_only_orgs_with_active_projects(self) -> None:
+        org_with_project = self.create_organization()
+        self.create_project(organization=org_with_project)
+        org_without_projects = self.create_organization()
+        org_with_inactive_project = self.create_organization()
+        inactive_project = self.create_project(organization=org_with_inactive_project)
+        inactive_project.status = ObjectStatus.PENDING_DELETION
+        inactive_project.save()
+
+        with patch("sentry.dynamic_sampling.per_org.scheduler.CursoredScheduler") as MockScheduler:
+            mock_instance = MockScheduler.return_value
+            mock_instance.tick.return_value = False
+            schedule_per_org_calculations()
+
+            queryset = MockScheduler.call_args.kwargs["queryset"]
+            org_ids = set(queryset.values_list("id", flat=True))
+
+        assert org_with_project.id in org_ids
+        assert org_without_projects.id not in org_ids
+        assert org_with_inactive_project.id not in org_ids
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_org_in_rollout_is_dispatched(self) -> None:
