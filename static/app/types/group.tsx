@@ -1101,7 +1101,6 @@ export interface IgnoredStatusDetails {
 }
 export interface ResolvedStatusDetails {
   actor?: AvatarUser;
-  autoResolved?: boolean;
   inCommit?: {
     commit?: string;
     dateCreated?: string;
