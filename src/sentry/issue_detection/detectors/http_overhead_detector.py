@@ -13,6 +13,7 @@ from sentry.issue_detection.detectors.utils import (
     get_span_evidence_value,
     get_url_from_span,
     is_filtered_url,
+    log_invalid_span_data,
 )
 from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -76,20 +77,27 @@ class HTTPOverheadDetector(PerformanceDetector):
 
         if isinstance(request_start, str):
             try:
+                # Calling `float` on NaN won't actually raise an error, so we have to fake it, since
+                # even if it's technically a valid float, it's not valid for our purposes
+                if request_start == "NaN":
+                    # We log a custom error below, so all we need is something to get us into the
+                    # `except` block
+                    raise ValueError()
+
                 request_start = float(request_start)
-            except (ValueError, OverflowError):
+            except (ValueError, OverflowError) as err:
+                # Smooth over the difference between real errors and the faked NaN case above by
+                # setting a custom error message for both
+                err.args = (
+                    f"could not convert string to `request_start` value: '{request_start}'",
+                )
                 # Track instances of this happening so we know if it's a widespread problem
-                logger.warning(
-                    "issue_detectors.invalid_data",
-                    extra={
-                        "detector": "http_overhead",
-                        "span_id": span.get("span_id"),
-                        "trace_id": span.get("trace_id"),
-                        "project_id": span.get("project_id"),
-                        "org_id": span.get("organization_id"),
-                        "key": "request_start",
-                        "value": request_start,
-                    },
+                log_invalid_span_data(
+                    span,
+                    detector="http_overhead",
+                    key="http.request.request_start",
+                    value=request_start,
+                    error=err,
                 )
                 return
 
