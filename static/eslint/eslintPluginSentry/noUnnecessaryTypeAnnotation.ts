@@ -70,8 +70,10 @@ export const noUnnecessaryTypeAnnotation = ESLintUtils.RuleCreator.withoutDocs({
 
     /**
      * Returns true if the AST node contains an arrow/function expression
-     * with untyped parameters at any nesting level. Use visitor keys so that
-     * nested functions in bodies and other expression forms are included.
+     * with untyped parameters at any relevant nesting level. Use visitor keys
+     * so that nested functions in expression forms are included. Block-bodied
+     * functions are not traversed because their local functions are not
+     * contextually typed by the enclosing variable annotation.
      */
     function containsUntypedFunction(node: TSESTree.Node): boolean {
       if (node.type === 'ArrowFunctionExpression' || node.type === 'FunctionExpression') {
@@ -79,6 +81,9 @@ export const noUnnecessaryTypeAnnotation = ESLintUtils.RuleCreator.withoutDocs({
           node.params.some(param => !('typeAnnotation' in param) || !param.typeAnnotation)
         ) {
           return true;
+        }
+        if (node.body.type === 'BlockStatement') {
+          return false;
         }
       }
 

@@ -242,5 +242,22 @@ ruleTester.run('no-unnecessary-type-annotation', noUnnecessaryTypeAnnotation, {
       errors: [{messageId: 'unnecessary' as const}],
       filename: 'invalid.ts',
     },
+    {
+      name: 'unnecessary annotation despite unrelated untyped helper in function body',
+      code: `
+        const fn: (x: number) => number = (x: number) => {
+          const helper = y => y;
+          return x;
+        };
+      `,
+      output: `
+        const fn = (x: number) => {
+          const helper = y => y;
+          return x;
+        };
+      `,
+      errors: [{messageId: 'unnecessary' as const}],
+      filename: 'invalid.ts',
+    },
   ],
 });
