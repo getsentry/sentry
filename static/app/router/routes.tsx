@@ -2599,6 +2599,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'users/',
+      name: t('Users'),
       children: [
         {
           index: true,
@@ -2606,6 +2607,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: ':id',
+          name: t('Details'),
           component: make(() => import('sentry/views/admin/adminUserEdit')),
         },
       ],
