@@ -247,7 +247,6 @@ function OurlogsSectionContent({
             <LinkButton
               analyticsEventKey="issue_details.logs_open_in_explore_action_button_clicked"
               analyticsEventName="Issue Details: Logs Open in Explore Action Button Clicked"
-              openInNewTab
               size="xs"
               to={logsUrl}
             >
