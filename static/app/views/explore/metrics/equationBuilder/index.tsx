@@ -44,6 +44,8 @@ export function EquationBuilder({
     onReferenceLabelsChange?.(labels);
   });
 
+  // Report which labels this equation references after unresolving.
+  // Cleans up on unmount so deleted equations don't block metric deletion.
   useEffect(() => {
     const expr = new Expression(internalExpression, references);
     onLabelsChange(extractReferenceLabels(expr));
