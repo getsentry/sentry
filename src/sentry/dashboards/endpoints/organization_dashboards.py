@@ -49,7 +49,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
 from sentry.locks import locks
-from sentry.models.dashboard import Dashboard, DashboardFavoriteUser
+from sentry.models.dashboard import Dashboard, DashboardFavoriteUser, DashboardLastVisited
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
@@ -525,6 +525,21 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if should_filter_by_prebuilt_ids:
             dashboards = dashboards.filter(prebuilt_id__in=prebuilt_ids)
 
+        # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
+        use_user_last_visited = features.has(
+            "organizations:dashboards-user-last-visited", organization, actor=request.user
+        )
+        if use_user_last_visited:
+            dashboards = dashboards.annotate(
+                user_last_visited=Subquery(
+                    DashboardLastVisited.objects.filter(
+                        organization=organization,
+                        user_id=request.user.id,
+                        dashboard_id=OuterRef("id"),
+                    ).values("last_visited")[:1]
+                )
+            )
+
         sort_by = request.query_params.get("sort")
         if sort_by and sort_by.startswith("-"):
             sort_by, desc = sort_by[1:], True
@@ -548,7 +563,17 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            order_by = ["last_visited" if desc else "-last_visited"]
+            # TODO: Once `dashboards-user-last-visited` is fully rolled out,
+            # keep only the per-user `user_last_visited` branch and drop the
+            # org-level `last_visited` fallback.
+            if use_user_last_visited:
+                order_by = [
+                    F("user_last_visited").asc(nulls_last=True)
+                    if desc
+                    else F("user_last_visited").desc(nulls_last=True)
+                ]
+            else:
+                order_by = ["last_visited" if desc else "-last_visited"]
 
         elif sort_by == "mydashboards":
             user_name_dict = {
@@ -584,9 +609,14 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "myDashboardsAndRecentlyViewed":
+            # TODO: Once `dashboards-user-last-visited` is fully rolled out,
+            # keep only the per-user `user_last_visited` ordering and drop the
+            # org-level `last_visited` fallback.
             order_by = [
                 Case(When(created_by_id=request.user.id, then=-1), default=1),
-                "-last_visited",
+                F("user_last_visited").desc(nulls_last=True)
+                if use_user_last_visited
+                else "-last_visited",
             ]
         elif "onlyFavorites" in filters and has_dashboards_starred:
             favorite_dashboards = DashboardFavoriteUser.objects.get_favorite_dashboards(

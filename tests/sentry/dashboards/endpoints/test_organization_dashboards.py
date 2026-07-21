@@ -13,6 +13,7 @@ from sentry.dashboards.endpoints.organization_dashboards import (
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
+    DashboardLastVisited,
 )
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -894,6 +895,94 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         visited_at = [row.get("lastVisited") for row in response.data]
         assert visited_at == [now, one_hour_ago]
+
+    def test_recently_viewed_sort_is_per_user_with_flag(self) -> None:
+        # Clean up existing dashboards setup for this test.
+        Dashboard.objects.all().delete()
+
+        now = before_now(minutes=0)
+        one_hour_ago = before_now(hours=1)
+
+        # Org-level `last_visited` is deliberately the INVERSE of this user's
+        # per-user visits, so the ordering can only be correct if it is driven
+        # by the per-user DashboardLastVisited rows and not the org column.
+        dashboard_a = Dashboard.objects.create(
+            title="Dashboard A",
+            organization=self.organization,
+            created_by_id=self.user.id,
+            last_visited=now,
+        )
+        dashboard_b = Dashboard.objects.create(
+            title="Dashboard B",
+            organization=self.organization,
+            created_by_id=self.user.id,
+            last_visited=one_hour_ago,
+        )
+
+        DashboardLastVisited.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard=dashboard_a,
+            last_visited=one_hour_ago,
+        )
+        DashboardLastVisited.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard=dashboard_b,
+            last_visited=now,
+        )
+
+        with self.feature("organizations:dashboards-user-last-visited"):
+            response = self.client.get(self.url, data={"sort": "recentlyViewed"})
+
+        assert response.status_code == 200, response.content
+        titles = [row["title"] for row in response.data]
+        # Per-user order (B most recent), NOT the org-level order (A most recent).
+        assert titles == ["Dashboard B", "Dashboard A"]
+
+        visited_at = [row.get("lastVisited") for row in response.data]
+        assert visited_at == [now, one_hour_ago]
+
+    def test_recently_viewed_sort_unvisited_dashboards_sort_last_with_flag(self) -> None:
+        # Clean up existing dashboards setup for this test.
+        Dashboard.objects.all().delete()
+
+        now = before_now(minutes=0)
+
+        visited = Dashboard.objects.create(
+            title="Visited by me",
+            organization=self.organization,
+            created_by_id=self.user.id,
+            last_visited=before_now(hours=1),
+        )
+        # This user has never visited this dashboard, so it has no per-user row
+        # even though the org-level `last_visited` is the most recent.
+        never_visited = Dashboard.objects.create(
+            title="Never visited by me",
+            organization=self.organization,
+            created_by_id=self.user.id,
+            last_visited=now,
+        )
+
+        DashboardLastVisited.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            dashboard=visited,
+            last_visited=now,
+        )
+
+        with self.feature("organizations:dashboards-user-last-visited"):
+            response = self.client.get(self.url, data={"sort": "recentlyViewed"})
+
+        assert response.status_code == 200, response.content
+        titles = [row["title"] for row in response.data]
+        # Never-visited (null per-user last_visited) sorts last, not first.
+        assert titles == ["Visited by me", "Never visited by me"]
+
+        assert response.data[0]["title"] == visited.title
+        assert response.data[0].get("lastVisited") == now
+        assert response.data[1]["title"] == never_visited.title
+        assert response.data[1].get("lastVisited") is None
 
     def test_post(self) -> None:
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})

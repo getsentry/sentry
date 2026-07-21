@@ -314,6 +314,26 @@ class DashboardFavoriteUser(DefaultFieldsModel):
 
 
 @cell_silo_model
+class DashboardLastVisited(DefaultFieldsModel):
+    __relocation_scope__ = RelocationScope.Organization
+
+    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    organization = FlexibleForeignKey("sentry.Organization")
+    dashboard = FlexibleForeignKey("sentry.Dashboard", on_delete=models.CASCADE)
+    last_visited = models.DateTimeField(null=False, default=timezone.now)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_dashboardlastvisited"
+        constraints = [
+            UniqueConstraint(
+                fields=["user_id", "organization_id", "dashboard_id"],
+                name="sentry_dashboardlastvisited_unique_per_org_user_dashboard",
+            )
+        ]
+
+
+@cell_silo_model
 class Dashboard(Model):
     """
     A dashboard.
