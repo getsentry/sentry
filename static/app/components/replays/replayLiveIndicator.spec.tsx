@@ -291,13 +291,10 @@ describe('useLiveRefresh', () => {
       body: {data: newReplay},
     });
 
-    const {result, rerender} = renderHook(
-      ({replay}) => useLiveRefresh({replay}),
-      {
-        wrapper: createWrapper(),
-        initialProps: {replay: expiredReplay},
-      }
-    );
+    const {result, rerender} = renderHook(({replay}) => useLiveRefresh({replay}), {
+      wrapper: createWrapper(),
+      initialProps: {replay: expiredReplay},
+    });
 
     // Expired replay should not be polling
     const expiredEndpoint = MockApiClient.addMockResponse({
@@ -334,13 +331,10 @@ describe('useLiveRefresh', () => {
       count_segments: 5,
     });
 
-    const {result, rerender} = renderHook(
-      ({replay}) => useLiveRefresh({replay}),
-      {
-        wrapper: createWrapper(),
-        initialProps: {replay: undefined},
-      }
-    );
+    const {result, rerender} = renderHook(({replay}) => useLiveRefresh({replay}), {
+      wrapper: createWrapper(),
+      initialProps: {replay: undefined},
+    });
 
     // Initially undefined - no polling should happen
     const initialEndpoint = MockApiClient.addMockResponse({
