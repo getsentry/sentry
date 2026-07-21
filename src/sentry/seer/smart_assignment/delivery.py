@@ -116,7 +116,11 @@ def deliver_smart_assignment_result(
     ]
 
     # Do nothing if the group was deleted before delivery, or if the run isn't tied to a group.
-    group = Group.objects.filter(id=group_id).first() if group_id is not None else None
+    group = (
+        Group.objects.filter(id=group_id, project__organization_id=organization_id).first()
+        if group_id is not None
+        else None
+    )
     if group is None:
         metrics.incr("smart_assignment.delivery", tags={"outcome": "missing_group"})
         logger.warning("smart_assignment.delivery.missing_group", extra=log_extra)
