@@ -233,7 +233,7 @@ def resolve_check_suite_autofix_run(event: GithubCheckSuiteEvent) -> CheckSuiteA
 def _check_suite_iteration_cap_reached(run_state: SeerRunState) -> bool:
     """Whether the last N PR iterations used only automated check-suite feedback."""
     from sentry.seer.autofix.autofix_agent import get_iterations
-    from sentry.seer.autofix.pr_iteration.feedback import parse_feedback
+    from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import _blocks_feedback
 
     cap = CHECK_SUITE_ITERATION_HARD_CAP
     if cap <= 0:
@@ -244,11 +244,8 @@ def _check_suite_iteration_cap_reached(run_state: SeerRunState) -> bool:
         return False
 
     for iteration in last_iterations:
-        feedbacks = [
-            feedback
-            for block in iteration.blocks
-            for feedback in parse_feedback((block.message.metadata or {}).get("feedback", ""))
-        ]
+        # Failed re-parses are dropped (and warned) inside parse_feedback.
+        feedbacks = _blocks_feedback(iteration.blocks)
         if any(not isinstance(feedback.source, CheckSuiteFeedbackSource) for feedback in feedbacks):
             return False
 

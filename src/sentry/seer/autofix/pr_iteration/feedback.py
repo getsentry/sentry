@@ -55,8 +55,12 @@ def _parse_feedback_item(data: object) -> Feedback | None:
     try:
         return Feedback.parse_obj(data)
     except MissingCheckSuiteAutofixRun as e:
-        # History / stored feedback that no longer resolves — drop loudly.
-        logger.exception("autofix.pr_iteration.parse_feedback.missing_autofix_run")
+        # Re-parse of a stored check-suite item failed (e.g. Autofix run gone).
+        # Warn, drop this item, pretend it was never in the list.
+        logger.warning(
+            "autofix.pr_iteration.parse_feedback.missing_autofix_run",
+            exc_info=True,
+        )
         sentry_sdk.capture_exception(e)
         return None
     except _PARSE_FEEDBACK_ERRORS:

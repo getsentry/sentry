@@ -69,14 +69,15 @@ def _parse_queued_item(raw_item: str) -> QueuedAutofixFeedback | None:
     try:
         return QueuedAutofixFeedback.parse_raw(raw_item)
     except MissingCheckSuiteAutofixRun as e:
-        # Previously enqueued; resolve failure on deserialize is unexpected — drop loudly.
-        logger.exception("autofix.feedback_queue.skipped_unresolvable_item")
+        # Re-parse of previously enqueued check-suite feedback failed — warn and drop.
+        logger.warning(
+            "autofix.feedback_queue.skipped_unresolvable_item",
+            exc_info=True,
+        )
         sentry_sdk.capture_exception(e)
         return None
-    except (ValidationError, ValueError) as e:
-        # Previously enqueued; corrupt/unparseable payload is unexpected — drop loudly.
-        logger.exception("autofix.feedback_queue.skipped_unparseable_item")
-        sentry_sdk.capture_exception(e)
+    except (ValidationError, ValueError):
+        logger.warning("autofix.feedback_queue.skipped_unparseable_item")
         return None
 
 

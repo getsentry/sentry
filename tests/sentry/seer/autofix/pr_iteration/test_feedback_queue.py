@@ -130,7 +130,7 @@ class ParseQueuedItemTest(TestCase):
     def test_missing_autofix_run_on_deserialize_is_loud(
         self, _mock_resolve: MagicMock, mock_capture: MagicMock
     ) -> None:
-        # Legacy Redis payload omitted autofix_run; resolve failure drops loudly.
+        # Re-parse resolve failure: warn, drop item.
         raw = json.dumps(
             {
                 "organization_id": self.organization.id,

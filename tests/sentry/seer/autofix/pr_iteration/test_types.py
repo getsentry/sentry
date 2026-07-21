@@ -191,7 +191,7 @@ class ParseSerializeFeedbackTest(TestCase):
     def test_missing_autofix_run_on_parse_is_loud(
         self, _mock_resolve: MagicMock, mock_capture: MagicMock
     ) -> None:
-        # Legacy history omitted autofix_run; resolve failure drops loudly.
+        # Re-parse resolve failure: warn, drop item, keep going.
         raw = json.dumps(
             {
                 "source": {
