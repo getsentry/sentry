@@ -48,11 +48,13 @@ function IssueBlock({groupId}: {groupId: string}) {
 
 export const Issue = defineSeerEmbed({
   name: 'issue',
-  render({groupId, title}, level) {
+  render({groupId, shortId}, level) {
     if (level === 'block') {
       return <IssueBlock groupId={groupId} />;
     }
-    return <ResourceLink icon={IconIssues} href={`/issues/${groupId}/`} title={title} />;
+    return (
+      <ResourceLink icon={IconIssues} href={`/issues/${groupId}/`} title={shortId} />
+    );
   },
 });
 

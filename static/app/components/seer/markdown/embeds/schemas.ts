@@ -74,11 +74,11 @@ export const SEER_EMBED_SCHEMAS = {
   },
   issue: {
     description:
-      'Reference a Sentry issue by its group id. Inline renders a compact ' +
-      'link labeled with the issue short id; block renders the full issue ' +
-      'feed row. The title MUST be the issue short id (e.g. "JAVASCRIPT-2X4").',
+      'Reference a Sentry issue. Inline renders a compact link labeled with ' +
+      'the issue short id; block renders the full issue feed row. Provide the ' +
+      'numeric groupId and the human-readable shortId (e.g. "JAVASCRIPT-2X4").',
     level: ['inline', 'block'],
-    schema: z.object({groupId: z.string(), title: z.string()}),
+    schema: z.object({groupId: z.string(), shortId: z.string()}),
   },
 } as const satisfies Record<string, SeerEmbedSchema>;
 
