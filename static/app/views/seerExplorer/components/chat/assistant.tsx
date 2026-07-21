@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
-import {AssistantActions, AssistantMessage} from '@sentry/scraps/chat';
+import {AssistantActions, AssistantMessage, MessageRow} from '@sentry/scraps/chat';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -28,9 +28,11 @@ export function AssistantBlock({
   if (block.loading) {
     if (isStreamingEnabled && hasValidContent(content)) {
       return (
-        <AssistantMessage>
-          <SeerMarkdown raw={content} variant="streaming" />
-        </AssistantMessage>
+        <MessageRow from="assistant">
+          <AssistantMessage>
+            <SeerMarkdown raw={content} variant="streaming" />
+          </AssistantMessage>
+        </MessageRow>
       );
     }
     return <MessagePlaceholder content={isStreamingEnabled ? undefined : content} />;
@@ -39,9 +41,11 @@ export function AssistantBlock({
   return (
     <Fragment>
       {hasValidContent(content) && (
-        <AssistantMessage>
-          <SeerMarkdown raw={content} />
-        </AssistantMessage>
+        <MessageRow from="assistant">
+          <AssistantMessage>
+            <SeerMarkdown raw={content} />
+          </AssistantMessage>
+        </MessageRow>
       )}
       <BlockActionBar
         block={block}

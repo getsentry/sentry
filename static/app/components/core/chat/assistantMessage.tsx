@@ -9,13 +9,12 @@ interface AssistantMessageProps extends React.HTMLAttributes<HTMLDivElement> {
  *
  * Unlike the sender's messages (see `UserBubble`), an agent response is not
  * bubbled — it renders as full-width left-aligned content so rich output
- * (markdown, tables, code) reads naturally. This is presentation only: it owns
- * the turn's gutter and keeps wide content from forcing the row wider; the
- * rendered content is the caller's responsibility.
+ * (markdown, tables, code) reads naturally. It keeps wide content from forcing
+ * the row wider; the turn's gutter is owned by the wrapping `MessageRow`.
  */
 export function AssistantMessage({children, ...props}: AssistantMessageProps) {
   return (
-    <Container padding="xl" minWidth={0} overflow="hidden" {...props}>
+    <Container minWidth={0} overflow="hidden" {...props}>
       {children}
     </Container>
   );
