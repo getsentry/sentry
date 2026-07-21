@@ -170,7 +170,9 @@ def consume_queued_autofix_feedback(
         # Keyed by (source class, comment id): issue-comment and review-comment
         # ids come from separate GitHub namespaces, so dedupe within each type.
         seen_comment_keys: set[tuple[type, int]] = set()
-        seen_check_suite_ids: set[int] = set()
+        # Align with CheckSuiteFeedbackSource.should_consume: coalesce by
+        # (suite id, updated_at). Legacy feedback without updated_at uses suite id.
+        seen_check_suite_keys: set[tuple[int, str] | int] = set()
         for item in queued_items:
             if not item.feedback.source.should_consume(state):
                 logger.info(
@@ -195,10 +197,10 @@ def consume_queued_autofix_feedback(
                         continue
                     seen_comment_keys.add(key)
             elif isinstance(source, CheckSuiteFeedbackSource):
-                suite_id = source.event.check_suite.id
-                if suite_id in seen_check_suite_ids:
+                suite_key = source.check_suite_attempt_key()
+                if suite_key in seen_check_suite_keys:
                     continue
-                seen_check_suite_ids.add(suite_id)
+                seen_check_suite_keys.add(suite_key)
 
             feedback_items.append(item.feedback)
 

@@ -9,6 +9,10 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback, serialize_feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTask
+from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
+    CheckSuiteAutofixRun,
+    CheckSuiteFeedbackSource,
+)
 from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrCommentFeedbackSource,
     GithubPrReviewCommentFeedbackSource,
@@ -25,6 +29,7 @@ from sentry.tasks.seer.pr_iteration import (
 from sentry.testutils.cases import TestCase
 
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
+CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 
 
 class TriggerPrIterationFromCommentTest(TestCase):
@@ -364,6 +369,41 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             )
         )
 
+    def _check_suite_feedback(self, *, updated_at: str | None = "2024-01-01T00:00:00Z") -> Feedback:
+        check_suite: dict[str, Any] = {
+            "id": 1,
+            "head_sha": "abc",
+            "check_runs_url": "https://github.com/owner/repo/check-runs",
+            "app": {"name": "CI"},
+        }
+        if updated_at is not None:
+            check_suite["updated_at"] = updated_at
+        event = {
+            "check_suite": check_suite,
+            "repository": {
+                "html_url": "https://github.com/owner/repo",
+                "full_name": "owner/repo",
+            },
+        }
+        source = CheckSuiteFeedbackSource(event=event)
+        autofix_run = CheckSuiteAutofixRun(
+            repository=MagicMock(organization_id=self.organization.id, id=2),
+            run_state=self._state(),
+            pr_id=99,
+            group_id=self.group.id,
+        )
+        with patch(
+            "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite.resolve_check_suite_autofix_run",
+            return_value=autofix_run,
+        ):
+            assert source.autofix_run is autofix_run
+        return Feedback(source=source)
+
+    def _state_on_head(self, **kwargs: Any) -> SeerRunState:
+        state = self._state(**kwargs)
+        state.repo_pr_states = {"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
+        return state
+
     def _call(self) -> None:
         consume_queued_autofix_feedback(run_id=67890, organization_id=self.organization.id)
 
@@ -521,6 +561,72 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_pop.return_value = [
             self._queued(self._review_feedback(666)),
             self._queued(self._review_feedback(666)),
+        ]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert len(mock_trigger.call_args.kwargs["feedback"]) == 1
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_keeps_same_suite_different_updated_at_in_batch(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        """Re-run in the same drain batch must not be dropped by suite-id coalesce."""
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [
+            self._queued(self._check_suite_feedback(updated_at="2024-01-01T00:00:00Z")),
+            self._queued(self._check_suite_feedback(updated_at="2024-01-02T00:00:00Z")),
+        ]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        feedback = mock_trigger.call_args.kwargs["feedback"]
+        assert len(feedback) == 2
+        assert [f.source.event.check_suite.updated_at for f in feedback] == [
+            "2024-01-01T00:00:00Z",
+            "2024-01-02T00:00:00Z",
+        ]
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_collapses_duplicate_attempt_key_in_batch(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [
+            self._queued(self._check_suite_feedback(updated_at="2024-01-01T00:00:00Z")),
+            self._queued(self._check_suite_feedback(updated_at="2024-01-01T00:00:00Z")),
+        ]
+
+        self._call()
+
+        mock_trigger.assert_called_once()
+        assert len(mock_trigger.call_args.kwargs["feedback"]) == 1
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_collapses_legacy_missing_updated_at_by_suite_id(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [
+            self._queued(self._check_suite_feedback(updated_at=None)),
+            self._queued(self._check_suite_feedback(updated_at=None)),
         ]
 
         self._call()

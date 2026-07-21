@@ -8,7 +8,10 @@ from sentry.scm.private.event_stream import scm_event_stream
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
-from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
+from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
+    CheckSuiteFeedbackSource,
+    MissingCheckSuiteAutofixRun,
+)
 from sentry.seer.autofix.pr_iteration.queue import try_enqueue_autofix_feedback
 
 logger = logging.getLogger(__name__)
@@ -28,18 +31,20 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
     try:
         raw = orjson.loads(check_suite_event.subscription_event["event"])
         source = CheckSuiteFeedbackSource(event=raw)
+        # Expensive: Seer RPCs (cached on source for should_trigger). PrivateAttr
+        # so Django/Seer objects never hit Redis / history JSON.
+        resolved = source.autofix_run
+    except MissingCheckSuiteAutofixRun:
+        # Expected for check suites on PRs without an Autofix run.
+        return None
     except (orjson.JSONDecodeError, ValidationError, TypeError, ValueError) as e:
         # Malformed webhook payload — report and drop; do not fail the listener task.
         sentry_sdk.capture_exception(e)
         return None
 
-    resolved = source.autofix_run
-    if resolved is None:
-        return None
-
     repo = resolved.repository
-    agent_state = resolved.run_state
     organization_id = repo.organization_id
+    agent_state = resolved.run_state
     feedback = Feedback(source=source)
 
     enqueued = try_enqueue_autofix_feedback(

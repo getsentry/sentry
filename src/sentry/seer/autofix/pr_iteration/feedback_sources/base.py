@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
-from functools import cached_property
 from typing import ClassVar
 
 from pydantic import BaseModel
@@ -39,7 +38,6 @@ ConsumeTask.Later = _ConsumeLater
 class FeedbackSourceBase(BaseModel):
     class Config:
         extra = "ignore"
-        keep_untouched = (cached_property,)
 
     @property
     def text(self) -> str:
