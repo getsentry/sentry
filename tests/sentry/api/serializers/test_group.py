@@ -25,6 +25,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.types.group import IssueAutofixStep, IssueBlocker
 from sentry.users.models.user_option import UserOption
 
 pytestmark = [requires_snuba]
@@ -503,18 +504,22 @@ class GroupSerializerDerivedDataTest(TestCase):
                 "is_assigned": True,
                 "has_root_cause": True,
                 "has_open_fix_pr": False,
+                "blocker": IssueBlocker.APPROVE_PLAN.value,
+                "last_completed_autofix_step": IssueAutofixStep.SOLUTION.value,
             },
         )
 
         result = serialize(group, self.user, GroupSerializer(expand=["derivedData"]))
 
         assert result["derivedData"] == {
+            "blocker": IssueBlocker.APPROVE_PLAN.value,
             "progress": "diagnosed",
             "status": "open",
             "viewCount": 7,
             "hasOpenFixPr": False,
             "isAssigned": True,
             "hasRootCause": True,
+            "lastCompletedAutofixStep": IssueAutofixStep.SOLUTION.value,
             "lastProgressedAt": last_progressed_at,
         }
 
