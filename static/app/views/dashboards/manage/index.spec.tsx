@@ -243,4 +243,22 @@ describe('Dashboards > Detail', () => {
     expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
     expect(screen.queryByTestId('dashboard-grid')).not.toBeInTheDocument();
   });
+
+  it('shows the custom tab empty state when there are no dashboards', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
+
+    render(<ManageDashboards />, {
+      organization: mockAuthorizedOrg,
+    });
+
+    expect(
+      await screen.findByText("You haven't created any dashboards.")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Check out Sentry Built dashboards'})
+    ).toBeInTheDocument();
+  });
 });

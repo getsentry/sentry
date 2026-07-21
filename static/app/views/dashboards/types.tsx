@@ -183,7 +183,7 @@ export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {
   minH: number;
 };
 
-export type WidgetPreview = {
+type WidgetPreview = {
   displayType: DisplayType;
   layout: WidgetLayout | null;
 };

@@ -6,7 +6,7 @@ import pick from 'lodash/pick';
 
 import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -15,6 +15,7 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -335,6 +336,32 @@ function ManageDashboards() {
   }
 
   function renderDashboards() {
+    if (
+      dashboardsTab === DashboardsTab.CUSTOM &&
+      hasPrebuiltDashboards &&
+      !isLoading &&
+      !dashboards?.length &&
+      !getQuery()
+    ) {
+      return (
+        <EmptyMessage
+          title={t("You haven't created any dashboards.")}
+          action={
+            <LinkButton
+              to={`${location.pathname}?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`}
+              variant="primary"
+            >
+              {t('Check out Sentry Built dashboards')}
+            </LinkButton>
+          }
+        >
+          {t(
+            'Check out Sentry Built dashboards for common use cases and examples that you can clone to get started.'
+          )}
+        </EmptyMessage>
+      );
+    }
+
     return (
       <DashboardTable
         api={api}
