@@ -272,7 +272,7 @@ export function IssueCard({
                 skipWrapper
               >
                 <LinkButton
-                  size="zero"
+                  size="sm"
                   variant="warning"
                   icon={<IconPullRequest />}
                   href={row.prUrl}
@@ -285,14 +285,14 @@ export function IssueCard({
               <AttentionBadge reason={attention} to={runUrl} />
             ) : (
               <Tooltip title={t('Open the Seer run for this issue.')} skipWrapper>
-                <LinkButton size="zero" variant="secondary" to={runUrl}>
+                <LinkButton size="sm" variant="secondary" to={runUrl}>
                   {t('View run')}
                 </LinkButton>
               </Tooltip>
             )}
             {row.prUrl && attention !== 'review_pr' && (
               <LinkButton
-                size="zero"
+                size="sm"
                 variant="link"
                 icon={<IconPullRequest />}
                 href={row.prUrl}
