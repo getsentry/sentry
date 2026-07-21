@@ -7,13 +7,10 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import ManageDashboards, {LAYOUT_KEY} from 'sentry/views/dashboards/manage';
+import ManageDashboards from 'sentry/views/dashboards/manage';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
-
-jest.mock('sentry/utils/localStorage');
 
 const FEATURES = [
   'dashboards-basic',
@@ -63,7 +60,6 @@ describe('Dashboards > Detail', () => {
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    localStorageWrapper.clear();
   });
 
   it('renders', async () => {
@@ -233,35 +229,7 @@ describe('Dashboards > Detail', () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('toggles between grid and list view', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
-      headers: {Link: getPaginationPageLink({numRows: 15, pageSize: 9, offset: 0})},
-    });
-
-    render(<ManageDashboards />, {
-      organization: {
-        ...mockAuthorizedOrg,
-      },
-    });
-
-    expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
-
-    expect(await screen.findByTestId('grid')).toBeInTheDocument();
-    await userEvent.click(await screen.findByTestId('grid'));
-
-    expect(localStorageWrapper.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"grid"');
-    expect(await screen.findByTestId('dashboard-grid')).toBeInTheDocument();
-
-    expect(await screen.findByTestId('table')).toBeInTheDocument();
-    await userEvent.click(await screen.findByTestId('table'));
-
-    expect(localStorageWrapper.setItem).toHaveBeenCalledWith(LAYOUT_KEY, '"table"');
-    expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
-  });
-
-  it('defaults to table view when no layout preference is stored', async () => {
+  it('renders the table view', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/',
       body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
@@ -273,21 +241,5 @@ describe('Dashboards > Detail', () => {
     });
 
     expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
-  });
-
-  it('respects stored grid layout preference', async () => {
-    localStorageWrapper.setItem(LAYOUT_KEY, '"grid"');
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [DashboardListItemFixture({title: 'Test Dashboard 1'})],
-      headers: {Link: getPaginationPageLink({numRows: 15, pageSize: 9, offset: 0})},
-    });
-
-    render(<ManageDashboards />, {
-      organization: mockAuthorizedOrg,
-    });
-
-    expect(await screen.findByTestId('dashboard-grid')).toBeInTheDocument();
   });
 });
