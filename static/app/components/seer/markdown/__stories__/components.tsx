@@ -133,7 +133,7 @@ export function EmbedRegistry() {
   return (
     <Stack gap="xl">
       {entries.map(([name, schema]) => {
-        const examples = schema.examples
+        const examples = schema.examples;
         const md = examples ? buildEmbedMarkdown(name, schema.level, examples) : null;
         return (
           <Stack key={name} gap="md">
