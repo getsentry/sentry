@@ -384,7 +384,6 @@ class SeerAgentClient:
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
         request: Request | None = None,
-        override_bash_mode_enabled: bool = False,
         override_ce_enable: bool = True,
         ui_tools: str | None = None,
     ) -> SeerRun:
