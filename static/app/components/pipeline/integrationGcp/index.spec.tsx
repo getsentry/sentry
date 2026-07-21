@@ -81,7 +81,7 @@ describe('GcpCustomerConfigStep', () => {
     expect(screen.getAllByPlaceholderText('my-gcp-project')).toHaveLength(2);
     expect(screen.getAllByRole('button', {name: 'Remove project'})).toHaveLength(2);
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'Remove project'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove project'})[0]!);
     expect(screen.getAllByPlaceholderText('my-gcp-project')).toHaveLength(1);
   });
 
@@ -97,11 +97,11 @@ describe('GcpCustomerConfigStep', () => {
     );
 
     const projectInputs = screen.getAllByPlaceholderText('my-gcp-project');
-    await userEvent.type(projectInputs[0], 'my-project-prod');
+    await userEvent.type(projectInputs[0]!, 'my-project-prod');
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Project'}));
     const updatedInputs = screen.getAllByPlaceholderText('my-gcp-project');
-    await userEvent.type(updatedInputs[1], 'my-project-staging');
+    await userEvent.type(updatedInputs[1]!, 'my-project-staging');
 
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
