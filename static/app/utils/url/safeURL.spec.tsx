@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 import {safeURL} from './safeURL';
 
 describe('safeURL', () => {

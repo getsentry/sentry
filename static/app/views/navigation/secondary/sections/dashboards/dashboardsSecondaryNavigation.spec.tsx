@@ -54,4 +54,29 @@ describe('DashboardsSecondaryNavigation', () => {
       'Dashboard 1',
     ]);
   });
+
+  it('renders a reorderable starred list when dashboards-starred is enabled', async () => {
+    const starredOrganization = OrganizationFixture({
+      features: ['dashboards-prebuilt-insights-dashboards', 'dashboards-starred'],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${starredOrganization.slug}/dashboards/starred/`,
+      body: [
+        DashboardListItemFixture({id: '9999', title: 'Dashboard 9999'}),
+        DashboardListItemFixture({id: '1', title: 'Dashboard 1'}),
+      ],
+    });
+
+    render(
+      <SecondaryNavigationContextProvider>
+        <DashboardsSecondaryNavigation />
+      </SecondaryNavigationContextProvider>,
+      {organization: starredOrganization}
+    );
+
+    expect(await screen.findByText('Dashboard 9999')).toBeInTheDocument();
+    expect(screen.getByText('Dashboard 1')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', {name: 'Drag to reorder'})).toHaveLength(2);
+  });
 });

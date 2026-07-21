@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/filename-case */
 // Window/localStorage shims for SSR — must run before any component imports.
 //
 // IMPORTANT: Do NOT define globalThis.document here. Emotion's SSR style

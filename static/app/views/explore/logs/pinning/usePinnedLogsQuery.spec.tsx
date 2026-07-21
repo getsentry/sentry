@@ -14,7 +14,7 @@ import {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLog
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 const organization = OrganizationFixture({
-  features: ['ourlogs-enabled', 'ourlogs-pinning'],
+  features: ['ourlogs-enabled'],
 });
 const project = ProjectFixture();
 
