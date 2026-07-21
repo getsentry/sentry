@@ -88,6 +88,7 @@ function useImageSrc(definition?: ImageDefinition): {
   const {data: avatarHash} = useQuery({
     queryKey: ['gravatar', trimmedGravatarId],
     queryFn: () => {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (!trimmedGravatarId || window.crypto?.subtle?.digest === undefined) {
         return null;
       }
@@ -157,7 +158,7 @@ async function hashGravatarId(gravatarId: string): Promise<string> {
  * Also see avatar.py. Anything changed in this file (how colors are selected,
  * the svg, etc) will also need to be changed there.
  */
-function getInitials(name: string | undefined): Tagged<string, '__avatar'> {
+function getInitials(name: string | null | undefined): Tagged<string, '__avatar'> {
   const sanitizedName =
     name === null || name === undefined ? undefined : String(name).trim();
 

@@ -18,8 +18,8 @@ export function OrganizationAvatar({organization, ...props}: OrganizationAvatarP
     <Avatar
       {...props}
       {...getOrganizationAvatarProps(organization)}
-      tooltip={organization.slug ?? ''}
-      title={explodeSlug(organization.slug ?? '')}
+      tooltip={organization.slug}
+      title={explodeSlug(organization.slug)}
     />
   );
 }
@@ -30,16 +30,7 @@ function getOrganizationAvatarProps(
   const identifier = organization.slug;
   const name = organization.name || organization.slug;
 
-  if (!organization.avatar?.avatarType) {
-    return {
-      type: 'letter_avatar',
-      identifier,
-      name,
-      title: name,
-    };
-  }
-
-  switch (organization.avatar?.avatarType) {
+  switch (organization.avatar.avatarType) {
     case 'letter_avatar':
       return {
         type: 'letter_avatar',
