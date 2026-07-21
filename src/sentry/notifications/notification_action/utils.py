@@ -23,21 +23,10 @@ from sentry.notifications.platform.templates.issue import (
 )
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
-from sentry.options.rollout import in_random_rollout
-from sentry.types.activity import ActivityType
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
-
-RESOLUTION_ACTIVITY_TYPES = frozenset(
-    {
-        ActivityType.SET_RESOLVED,
-        ActivityType.SET_RESOLVED_IN_RELEASE,
-        ActivityType.SET_RESOLVED_BY_AGE,
-        ActivityType.SET_RESOLVED_IN_COMMIT,
-    }
-)
 
 
 def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
@@ -245,10 +234,6 @@ def execute_via_activity_type_registry(invocation: ActionInvocation) -> None:
     except (Exception, ActivityHandlerValidationError):
         logger.exception("Error validating activity for activity handler", extra=logging_ctx)
         raise
-
-    if ActivityType(activity.type) in RESOLUTION_ACTIVITY_TYPES:
-        if not in_random_rollout("notifications.platform.resolution-notifications.rollout-rate"):
-            return
 
     try:
         handler.invoke_action(invocation=invocation, activity=activity)
