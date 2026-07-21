@@ -31,6 +31,9 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
     try:
         raw = orjson.loads(check_suite_event.subscription_event["event"])
         source = CheckSuiteFeedbackSource(event=raw)
+        # Expensive: Seer RPCs (cached on source for should_trigger). PrivateAttr
+        # so Django/Seer objects never hit Redis / history JSON.
+        resolved = source.autofix_run
     except MissingCheckSuiteAutofixRun:
         # Expected for check suites on PRs without an Autofix run.
         return None
@@ -39,10 +42,9 @@ def pr_iteration_from_check_suite_listener(check_suite_event: CheckSuiteEvent):
         sentry_sdk.capture_exception(e)
         return None
 
-    resolved = source.autofix_run
     repo = resolved.repository
-    agent_state = resolved.run_state
     organization_id = repo.organization_id
+    agent_state = resolved.run_state
     feedback = Feedback(source=source)
 
     enqueued = try_enqueue_autofix_feedback(

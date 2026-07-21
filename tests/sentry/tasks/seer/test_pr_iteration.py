@@ -332,6 +332,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
                 "full_name": "owner/repo",
             },
         }
+        source = CheckSuiteFeedbackSource(event=event)
         autofix_run = CheckSuiteAutofixRun(
             repository=MagicMock(organization_id=self.organization.id, id=2),
             run_state=self._state(),
@@ -342,7 +343,8 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
             "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite.resolve_check_suite_autofix_run",
             return_value=autofix_run,
         ):
-            return Feedback(source=CheckSuiteFeedbackSource(event=event))
+            assert source.autofix_run is autofix_run
+        return Feedback(source=source)
 
     def _state_on_head(self, **kwargs: Any) -> SeerRunState:
         state = self._state(**kwargs)

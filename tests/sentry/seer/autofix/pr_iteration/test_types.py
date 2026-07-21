@@ -70,9 +70,14 @@ def _check_suite_source(
     *,
     autofix_run: CheckSuiteAutofixRun | None = None,
 ) -> CheckSuiteFeedbackSource:
-    run = autofix_run or _autofix_run()
-    with patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=run):
-        return CheckSuiteFeedbackSource(event=event or _check_suite_event())
+    source = CheckSuiteFeedbackSource(event=event or _check_suite_event())
+    if autofix_run is not None:
+        with patch(
+            f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
+            return_value=autofix_run,
+        ):
+            assert source.autofix_run is autofix_run
+    return source
 
 
 def _feedback_block(*feedbacks: Feedback) -> MemoryBlock:
@@ -120,16 +125,35 @@ class ParseSerializeFeedbackTest(TestCase):
 
         del event["check_suite"]["check_runs_url"]
         with pytest.raises(ValidationError):
-            _check_suite_source(event)
+            CheckSuiteFeedbackSource(event=event)
 
-    def test_check_suite_requires_autofix_run(self) -> None:
-        with pytest.raises(MissingCheckSuiteAutofixRun):
-            CheckSuiteFeedbackSource(event=_check_suite_event())
+    def test_construct_does_not_resolve(self) -> None:
+        with patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run") as mock_resolve:
+            source = CheckSuiteFeedbackSource(event=_check_suite_event())
+            mock_resolve.assert_not_called()
+            assert source._autofix_run is None
 
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
-    )
-    def test_round_trips_all_source_types(self, _mock_resolve: MagicMock) -> None:
+    def test_autofix_run_resolves_and_caches(self) -> None:
+        run = _autofix_run()
+        source = CheckSuiteFeedbackSource(event=_check_suite_event())
+        with patch(
+            f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
+            return_value=run,
+        ) as mock_resolve:
+            assert source.autofix_run is run
+            assert source.autofix_run is run
+            mock_resolve.assert_called_once()
+
+    def test_autofix_run_raises_when_missing(self) -> None:
+        source = CheckSuiteFeedbackSource(event=_check_suite_event())
+        with patch(
+            f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
+            return_value=None,
+        ):
+            with pytest.raises(MissingCheckSuiteAutofixRun):
+                _ = source.autofix_run
+
+    def test_round_trips_all_source_types(self) -> None:
         items = [
             Feedback(source=UserUIFeedbackSource(user_id=7, user_feedback="ui")),
             Feedback(
@@ -138,7 +162,8 @@ class ParseSerializeFeedbackTest(TestCase):
             Feedback(source=_check_suite_source()),
         ]
 
-        parsed = parse_feedback(serialize_feedback(items))
+        with patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run") as mock_resolve:
+            parsed = parse_feedback(serialize_feedback(items))
 
         # text is derived from each source: user-ui echoes the typed feedback,
         # pr-comment parses the comment body, check-suite builds an instruction.
@@ -150,6 +175,9 @@ class ParseSerializeFeedbackTest(TestCase):
         assert isinstance(parsed[2].source, CheckSuiteFeedbackSource)
         assert parsed[0].source.user_id == 7
         assert parsed[1].source.comment.id == 99
+        # Re-parse must not re-hit Seer.
+        mock_resolve.assert_not_called()
+        assert parsed[2].source._autofix_run is None
 
     def test_parses_single_object(self) -> None:
         feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="solo"))
@@ -159,10 +187,7 @@ class ParseSerializeFeedbackTest(TestCase):
         assert len(parsed) == 1
         assert parsed[0].text == "solo"
 
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
-    )
-    def test_serializes_ui_text(self, _mock_resolve: MagicMock) -> None:
+    def test_serializes_ui_text(self) -> None:
         items = [
             Feedback(source=UserUIFeedbackSource(user_id=7, user_feedback="ui")),
             Feedback(source=_check_suite_source()),
@@ -183,38 +208,26 @@ class ParseSerializeFeedbackTest(TestCase):
     def test_schema_mismatch_returns_empty(self) -> None:
         assert parse_feedback('{"unexpected": true}') == []
 
-    @patch("sentry.seer.autofix.pr_iteration.feedback.sentry_sdk.capture_exception")
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
-        return_value=None,
-    )
-    def test_missing_autofix_run_on_parse_is_loud(
-        self, _mock_resolve: MagicMock, mock_capture: MagicMock
-    ) -> None:
-        # Re-parse resolve failure: warn, drop item, keep going.
-        raw = json.dumps(
-            {
-                "source": {
-                    "type": "check-suite",
-                    "event": _check_suite_event(),
+    def test_parses_check_suite_without_resolve(self) -> None:
+        with patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run") as mock_resolve:
+            raw = json.dumps(
+                {
+                    "source": {
+                        "type": "check-suite",
+                        "event": _check_suite_event(),
+                    }
                 }
-            }
-        )
+            )
+            parsed = parse_feedback(raw)
 
-        assert parse_feedback(raw) == []
-        mock_capture.assert_called_once()
-        assert isinstance(mock_capture.call_args.args[0], MissingCheckSuiteAutofixRun)
+        assert len(parsed) == 1
+        assert isinstance(parsed[0].source, CheckSuiteFeedbackSource)
+        assert parsed[0].source._autofix_run is None
+        mock_resolve.assert_not_called()
 
-    @patch("sentry.seer.autofix.pr_iteration.feedback.sentry_sdk.capture_exception")
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
-        return_value=None,
-    )
-    def test_missing_autofix_run_skips_item_keeps_siblings(
-        self, _mock_resolve: MagicMock, mock_capture: MagicMock
-    ) -> None:
-        # One unresolvable check-suite must not erase sibling feedback in the
-        # same serialized list (hard-cap / comment / attempt dedupe rely on it).
+    def test_bad_item_skips_keeps_siblings(self) -> None:
+        # One invalid element must not erase sibling feedback in the same list
+        # (hard-cap / comment / attempt dedupe rely on it).
         raw = json.dumps(
             [
                 {
@@ -227,7 +240,7 @@ class ParseSerializeFeedbackTest(TestCase):
                 {
                     "source": {
                         "type": "check-suite",
-                        "event": _check_suite_event(),
+                        "event": {"check_suite": {"id": 1}},
                     }
                 },
                 {
@@ -246,14 +259,8 @@ class ParseSerializeFeedbackTest(TestCase):
         assert parsed[0].text == "keep me"
         assert isinstance(parsed[1].source, GithubPrCommentFeedbackSource)
         assert parsed[1].text == "also keep"
-        mock_capture.assert_called_once()
-        assert isinstance(mock_capture.call_args.args[0], MissingCheckSuiteAutofixRun)
 
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
-        return_value=_autofix_run(),
-    )
-    def test_ignores_legacy_check_run_ids_on_parse(self, _mock_resolve: MagicMock) -> None:
+    def test_ignores_legacy_check_run_ids_on_parse(self) -> None:
         raw = json.dumps(
             {
                 "source": {
@@ -551,39 +558,27 @@ class CheckSuiteShouldConsumeTest(TestCase):
 
         assert source.should_consume(_run_state()) is False
 
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
-    )
-    def test_false_when_same_suite_same_updated_at(self, _mock_resolve: MagicMock) -> None:
+    def test_false_when_same_suite_same_updated_at(self) -> None:
         """Webhook retry: same suite id + updated_at → already processed."""
         source = _check_suite_source(self._event(updated_at="2024-01-01T00:00:00Z"))
         prior = Feedback(source=_check_suite_source(self._event(updated_at="2024-01-01T00:00:00Z")))
 
         assert source.should_consume(self._state_with_prior(prior)) is False
 
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
-    )
-    def test_true_when_same_suite_new_updated_at(self, _mock_resolve: MagicMock) -> None:
+    def test_true_when_same_suite_new_updated_at(self) -> None:
         """GitHub Actions re-run: same suite id, bumped updated_at → consume."""
         source = _check_suite_source(self._event(updated_at="2024-01-02T00:00:00Z"))
         prior = Feedback(source=_check_suite_source(self._event(updated_at="2024-01-01T00:00:00Z")))
 
         assert source.should_consume(self._state_with_prior(prior)) is True
 
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
-    )
-    def test_true_when_different_check_suite_id(self, _mock_resolve: MagicMock) -> None:
+    def test_true_when_different_check_suite_id(self) -> None:
         source = _check_suite_source(self._event(suite_id=1))
         prior = Feedback(source=_check_suite_source(self._event(suite_id=99)))
 
         assert source.should_consume(self._state_with_prior(prior)) is True
 
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
-    )
-    def test_legacy_missing_updated_at_dedupes_by_suite_id(self, _mock_resolve: MagicMock) -> None:
+    def test_legacy_missing_updated_at_dedupes_by_suite_id(self) -> None:
         """History without updated_at falls back to suite-id-only dedupe."""
         legacy_event = self._event(updated_at=None)
         prior = Feedback(source=_check_suite_source(legacy_event))

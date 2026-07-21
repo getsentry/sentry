@@ -6,7 +6,6 @@ from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
     CheckSuiteAutofixRun,
     CheckSuiteFeedbackSource,
-    MissingCheckSuiteAutofixRun,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.queue import (
@@ -18,7 +17,6 @@ from sentry.testutils.cases import TestCase
 from sentry.utils import json
 
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
-QUEUE_PATH = "sentry.seer.autofix.pr_iteration.queue"
 
 
 def _run_state(*, repo_pr_states=None) -> SeerRunState:
@@ -58,6 +56,19 @@ def _autofix_run(*, run_state: SeerRunState | None = None) -> CheckSuiteAutofixR
     )
 
 
+def _resolved_check_suite_source(
+    *, run_state: SeerRunState | None = None
+) -> CheckSuiteFeedbackSource:
+    autofix_run = _autofix_run(run_state=run_state)
+    source = CheckSuiteFeedbackSource(event=_check_suite_event())
+    with patch(
+        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
+        return_value=autofix_run,
+    ):
+        assert source.autofix_run is autofix_run
+    return source
+
+
 class TryEnqueueAutofixFeedbackTest(TestCase):
     def _enqueue(
         self, run_id: int, feedback: Feedback, *, run_state: SeerRunState | None = None
@@ -81,11 +92,7 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         assert queued[0].feedback.text == "fix it"
 
     def test_skips_stale_feedback(self) -> None:
-        with patch(
-            f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
-            return_value=_autofix_run(),
-        ):
-            feedback = Feedback(source=CheckSuiteFeedbackSource(event=_check_suite_event()))
+        feedback = Feedback(source=_resolved_check_suite_source())
 
         assert self._enqueue(run_id=4343, feedback=feedback) is False
         assert peek_queued_autofix_feedback(4343) == []
@@ -95,22 +102,22 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         run_state = _run_state(
             repo_pr_states={"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
         )
-        autofix_run = _autofix_run(run_state=run_state)
-        with patch(
-            f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
-            return_value=autofix_run,
-        ):
-            source = CheckSuiteFeedbackSource(event=_check_suite_event())
-            feedback = Feedback(source=source)
+        source = _resolved_check_suite_source(run_state=run_state)
+        feedback = Feedback(source=source)
+        autofix_run = source.autofix_run
 
-            assert "autofix_run" not in source.dict()
-            assert "updated_at" not in source.dict()
-            assert source.updated_at == "2024-01-01T00:00:00Z"
-            assert source.event.check_suite.updated_at == "2024-01-01T00:00:00Z"
-            source.json()
-            feedback.json()
+        assert "autofix_run" not in source.dict()
+        assert "updated_at" not in source.dict()
+        assert source.updated_at == "2024-01-01T00:00:00Z"
+        assert source.event.check_suite.updated_at == "2024-01-01T00:00:00Z"
+        # Same-request transient (for should_trigger) — not serialized.
+        assert source.autofix_run is autofix_run
+        source.json()
+        feedback.json()
 
-            assert self._enqueue(run_id=4444, feedback=feedback, run_state=run_state) is True
+        assert self._enqueue(run_id=4444, feedback=feedback, run_state=run_state) is True
+
+        with patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run") as mock_resolve:
             queued = peek_queued_autofix_feedback(4444)
 
         assert len(queued) == 1
@@ -118,19 +125,14 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         assert queued[0].feedback.source.event.check_suite.id == 1
         assert queued[0].feedback.source.updated_at == "2024-01-01T00:00:00Z"
         assert queued[0].feedback.source.event.check_suite.updated_at == "2024-01-01T00:00:00Z"
-        assert queued[0].feedback.source.autofix_run is autofix_run
+        # After Redis re-parse: cache unset, no Seer re-resolve during parse.
+        assert queued[0].feedback.source._autofix_run is None
+        assert "autofix_run" not in queued[0].feedback.source.dict()
+        mock_resolve.assert_not_called()
 
 
 class ParseQueuedItemTest(TestCase):
-    @patch(f"{QUEUE_PATH}.sentry_sdk.capture_exception")
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run",
-        return_value=None,
-    )
-    def test_missing_autofix_run_on_deserialize_is_loud(
-        self, _mock_resolve: MagicMock, mock_capture: MagicMock
-    ) -> None:
-        # Re-parse resolve failure: warn, drop item.
+    def test_deserializes_check_suite_without_resolve(self) -> None:
         raw = json.dumps(
             {
                 "organization_id": self.organization.id,
@@ -145,6 +147,13 @@ class ParseQueuedItemTest(TestCase):
             }
         )
 
-        assert _parse_queued_item(raw) is None
-        mock_capture.assert_called_once()
-        assert isinstance(mock_capture.call_args.args[0], MissingCheckSuiteAutofixRun)
+        with patch(f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run") as mock_resolve:
+            item = _parse_queued_item(raw)
+
+        assert item is not None
+        assert isinstance(item.feedback.source, CheckSuiteFeedbackSource)
+        assert item.feedback.source._autofix_run is None
+        mock_resolve.assert_not_called()
+
+    def test_skips_unparseable_item(self) -> None:
+        assert _parse_queued_item("not-json") is None

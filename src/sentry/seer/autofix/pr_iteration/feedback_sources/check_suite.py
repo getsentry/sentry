@@ -6,7 +6,7 @@ from datetime import timedelta
 from typing import Any, Literal
 
 import sentry_sdk
-from pydantic import BaseModel, Field, root_validator
+from pydantic import BaseModel, Field, PrivateAttr, root_validator
 from scm import actions as scm_actions
 from scm.helpers import iter_all_pages
 from scm.types import ListCheckRunsForRefProtocol
@@ -32,8 +32,8 @@ CHECK_SUITE_ITERATION_HARD_CAP = 3
 class MissingCheckSuiteAutofixRun(Exception):
     """No Autofix run for this check suite's PR(s).
 
-    Raised from the feedback-source root validator (not a ``ValueError``) so
-    pydantic does not wrap it into ``ValidationError``.
+    Raised from ``CheckSuiteFeedbackSource.autofix_run`` (not a ``ValueError``)
+    so callers can catch it without colliding with pydantic ``ValidationError``.
     """
 
 
@@ -279,10 +279,9 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     # From ``event.check_suite.updated_at``; excluded so we don't duplicate the
     # nested event field in Redis / feedback metadata. Recomputed on parse.
     updated_at: str | None = Field(default=None, exclude=True)
-    # Computed once at construct/parse (like app_name / check_suite_url).
-    # Excluded so Redis / feedback metadata never JSON-encode Django/Seer objects.
-    # Typed as Any so pydantic does not deep-validate the dataclass.
-    autofix_run: Any = Field(default=None, exclude=True)
+    # Transient cache for the Seer/Django resolve result. PrivateAttr so it is
+    # never serialized and cannot be injected from Redis / feedback JSON.
+    _autofix_run: Any = PrivateAttr(default=None)
 
     @root_validator
     def _populate_event_fields(cls, values: dict[str, object]) -> dict[str, object]:
@@ -293,12 +292,23 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         values["app_name"] = event.check_suite.app.name
         values["check_suite_url"] = get_check_suite_url(event)
         values["updated_at"] = event.check_suite.updated_at
-        # Computed once per construct/parse from event (not caller-supplied).
-        autofix_run = resolve_check_suite_autofix_run(event)
+        return values
+
+    @property
+    def autofix_run(self) -> CheckSuiteAutofixRun:
+        """Cached Autofix run. Lazy-resolves via Seer on first access.
+
+        Not serialized (``_autofix_run`` is a PrivateAttr). Raises
+        ``MissingCheckSuiteAutofixRun`` when no run is found.
+        """
+        if self._autofix_run is not None:
+            return self._autofix_run
+
+        autofix_run = resolve_check_suite_autofix_run(self.event)
         if autofix_run is None:
             raise MissingCheckSuiteAutofixRun
-        values["autofix_run"] = autofix_run
-        return values
+        self._autofix_run = autofix_run
+        return autofix_run
 
     def check_suite_attempt_key(self) -> tuple[int, str] | int:
         """Stable attempt key for check-suite consume / batch dedupe.

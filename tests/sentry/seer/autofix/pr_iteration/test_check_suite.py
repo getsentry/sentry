@@ -332,24 +332,26 @@ def _autofix_run(*, blocks: list[MemoryBlock] | None = None) -> CheckSuiteAutofi
 
 
 def _check_suite_source() -> CheckSuiteFeedbackSource:
+    source = CheckSuiteFeedbackSource(
+        event={
+            "check_suite": {
+                "id": 1,
+                "head_sha": "abc",
+                "check_runs_url": "https://github.com/owner/repo/check-runs",
+                "app": {"name": "CI"},
+                "updated_at": "2024-01-01T00:00:00Z",
+            },
+            "repository": {
+                "html_url": "https://github.com/owner/repo",
+                "full_name": "owner/repo",
+            },
+        },
+    )
     with patch(
         f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
     ):
-        return CheckSuiteFeedbackSource(
-            event={
-                "check_suite": {
-                    "id": 1,
-                    "head_sha": "abc",
-                    "check_runs_url": "https://github.com/owner/repo/check-runs",
-                    "app": {"name": "CI"},
-                    "updated_at": "2024-01-01T00:00:00Z",
-                },
-                "repository": {
-                    "html_url": "https://github.com/owner/repo",
-                    "full_name": "owner/repo",
-                },
-            },
-        )
+        _ = source.autofix_run
+    return source
 
 
 def _check_suite_feedback() -> Feedback:
@@ -396,47 +398,33 @@ class CheckSuiteHardCapTest(TestCase):
         state.repo_pr_states = {"owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")}
         return state
 
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
-    )
-    def test_none_when_cap_reached(self, _mock_resolve: MagicMock) -> None:
+    def test_none_when_cap_reached(self) -> None:
         cap = CHECK_SUITE_ITERATION_HARD_CAP
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap)]
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) is None
 
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
-    )
-    def test_should_queue_false_when_cap_reached(self, _mock_resolve: MagicMock) -> None:
+    def test_should_queue_false_when_cap_reached(self) -> None:
         cap = CHECK_SUITE_ITERATION_HARD_CAP
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap)]
 
         assert not self._source().should_queue(self._run_state_on_head(blocks=blocks))
 
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
-    )
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", return_value=[{"data": []}])
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
     @patch("sentry.scm.factory.new")
-    def test_not_capped_when_fewer_than_cap_iterations(
-        self, mock_new: MagicMock, _pages, _mock_resolve: MagicMock
-    ) -> None:
+    def test_not_capped_when_fewer_than_cap_iterations(self, mock_new: MagicMock, _pages) -> None:
         mock_new.return_value = MagicMock()
         cap = CHECK_SUITE_ITERATION_HARD_CAP
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(cap - 1)]
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
 
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
-    )
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", return_value=[{"data": []}])
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
     @patch("sentry.scm.factory.new")
     def test_not_capped_when_one_iteration_has_non_check_suite_feedback(
-        self, mock_new: MagicMock, _pages, _mock_resolve: MagicMock
+        self, mock_new: MagicMock, _pages
     ) -> None:
         mock_new.return_value = MagicMock()
         cap = CHECK_SUITE_ITERATION_HARD_CAP
@@ -451,10 +439,7 @@ class CheckSuiteHardCapTest(TestCase):
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
 
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
-    )
-    def test_only_last_n_iterations_considered(self, _mock_resolve: MagicMock) -> None:
+    def test_only_last_n_iterations_considered(self) -> None:
         cap = CHECK_SUITE_ITERATION_HARD_CAP
         blocks = [_iteration_block(0, Feedback(source=UserUIFeedbackSource(user_id=1)))]
         blocks += [_iteration_block(i, _check_suite_feedback()) for i in range(1, cap + 1)]
@@ -462,28 +447,20 @@ class CheckSuiteHardCapTest(TestCase):
         assert self._source().should_trigger(_run_state(blocks=blocks)) is None
 
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.CHECK_SUITE_ITERATION_HARD_CAP", 0)
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
-    )
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", return_value=[{"data": []}])
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
     @patch("sentry.scm.factory.new")
-    def test_cap_disabled_when_zero(
-        self, mock_new: MagicMock, _pages, _mock_resolve: MagicMock
-    ) -> None:
+    def test_cap_disabled_when_zero(self, mock_new: MagicMock, _pages) -> None:
         mock_new.return_value = MagicMock()
         blocks = [_iteration_block(i, _check_suite_feedback()) for i in range(10)]
 
         assert self._source().should_trigger(_run_state(blocks=blocks)) == ConsumeTask.Now
 
-    @patch(
-        f"{CHECK_SUITE_SOURCE_PATH}.resolve_check_suite_autofix_run", return_value=_autofix_run()
-    )
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.iter_all_pages", return_value=[{"data": []}])
     @patch(f"{CHECK_SUITE_SOURCE_PATH}.ListCheckRunsForRefProtocol", object)
     @patch("sentry.scm.factory.new")
     def test_not_capped_when_iteration_feedback_empty_after_parse(
-        self, mock_new: MagicMock, _pages, _mock_resolve: MagicMock
+        self, mock_new: MagicMock, _pages
     ) -> None:
         mock_new.return_value = MagicMock()
         cap = CHECK_SUITE_ITERATION_HARD_CAP
