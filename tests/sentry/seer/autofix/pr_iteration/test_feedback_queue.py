@@ -2,9 +2,9 @@ from unittest.mock import MagicMock, patch
 
 from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.pr_iteration.check_suites import CheckSuiteAutofixRun
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import (
-    CheckSuiteAutofixRun,
     CheckSuiteFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
