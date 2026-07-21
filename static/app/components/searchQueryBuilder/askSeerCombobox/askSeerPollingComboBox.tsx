@@ -151,7 +151,9 @@ function AskSeerPollingPopoverContent({
   if (hasResults) {
     return (
       <SeerContent onMouseLeave={onMouseLeave}>
-        <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
+        {hasAskSeerUxRework ? null : (
+          <AskSeerSearchHeader title={t('Do any of these look right to you?')} />
+        )}
         <AskSeerSearchListBox {...listBoxProps} listBoxRef={listBoxRef} state={state} />
       </SeerContent>
     );

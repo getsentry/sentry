@@ -244,7 +244,7 @@ import {InfoText} from '@sentry/scraps/info';
       code: `
         import {Tooltip} from '@sentry/scraps/tooltip';
         import {Text} from '@sentry/scraps/text';
-        const x = <Tooltip title="x"><Text variant="muted" size="sm">label</Text></Tooltip>;
+        const x = <Tooltip title="x" isHoverable showUnderline><Text variant="muted" size="sm">label</Text></Tooltip>;
       `,
       errors: [
         errorWithSuggestion(`
@@ -253,6 +253,38 @@ import {InfoText} from '@sentry/scraps/info';
 import {InfoText} from '@sentry/scraps/info';
 
         const x = <InfoText title="x" variant="muted" size="sm">label</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Text component with property access',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+        const x = (
+          <Tooltip
+            title={dashboard.title}
+            position="top"
+            showOnlyOnOverflow
+            skipWrapper
+          >
+            <Text ellipsis variant="inherit">
+              {dashboard.title}
+            </Text>
+          </Tooltip>
+        );
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = (
+          <InfoText title={dashboard.title} position="top" mode="overflowOnly" variant="inherit">
+              {dashboard.title}
+            </InfoText>
+        );
       `),
       ],
     },
@@ -273,13 +305,90 @@ import {InfoText} from '@sentry/scraps/info';
       ],
     },
     {
-      name: 'Tooltip with extra props still flagged',
+      name: 'isHoverable is stripped in suggestion',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip title="x" isHoverable>Some text here</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x">Some text here</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'isHoverable false has no suggestion',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip title="x" isHoverable={false}>Some text here</Tooltip>;
+      `,
+      errors: [{messageId: 'preferInfoText'}],
+    },
+    {
+      name: 'showOnlyOnOverflow becomes overflowOnly mode in suggestion',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip title="x" showOnlyOnOverflow>Some text here</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x" mode="overflowOnly">Some text here</InfoText>;
+      `),
+      ],
+    },
+    {
+      name: 'Tooltip with unsupported disabled prop',
       code: `
         import {Tooltip} from '@sentry/scraps/tooltip';
         import {t} from 'sentry/locale';
         const x = <Tooltip title="x" showUnderline disabled>{t('label')}</Tooltip>;
       `,
       errors: [{messageId: 'preferInfoText'}],
+    },
+    {
+      name: 'Text component with delay and disabled',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {Text} from '@sentry/scraps/text';
+        const x = (
+          <Tooltip
+            title={meta.volumeTooltip}
+            delay={100}
+            disabled={isDisabled}
+          >
+            <Text
+              variant="muted"
+              underline="dotted"
+              size="sm"
+              density="comfortable"
+            >
+              {meta.volume}
+            </Text>
+          </Tooltip>
+        );
+      `,
+      errors: [{messageId: 'preferInfoText'}],
+    },
+    {
+      name: 'Tooltip with supported delay prop',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const x = <Tooltip title="x" delay={100}>Some text here</Tooltip>;
+      `,
+      errors: [
+        errorWithSuggestion(`
+        import {Tooltip} from '@sentry/scraps/tooltip';
+import {InfoText} from '@sentry/scraps/info';
+
+        const x = <InfoText variant="inherit" title="x" delay={100}>Some text here</InfoText>;
+      `),
+      ],
     },
     {
       name: 'Multiple text-like children',

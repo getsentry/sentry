@@ -2,6 +2,7 @@ import {Fragment, memo, useCallback, useMemo, useState} from 'react';
 import {css, type Theme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
@@ -203,12 +204,39 @@ export function ConversationsTableNew() {
   );
 }
 
+function ConversationLink(props: {
+  children: React.ReactNode;
+  dataRow: Conversation;
+  organization: Organization;
+  projects: number[];
+}) {
+  const location = useLocation();
+  const detailUrl = getConversationDetailUrl(
+    props.organization.slug,
+    props.dataRow,
+    props.projects
+  );
+  return (
+    <Link
+      to={detailUrl}
+      state={getConversationsListLocationState(location.query)}
+      onClick={event => {
+        // Let the link handle navigation; don't also trigger the row click.
+        event.stopPropagation();
+      }}
+    >
+      <Text as="span" ellipsis variant="inherit">
+        {props.children}
+      </Text>
+    </Link>
+  );
+}
+
 const BodyCell = memo(function BodyCell({
   column,
-  dataRow,
-  organization,
-  projects,
   isRowHovered,
+  dataRow,
+  ...props
 }: {
   column: GridColumnOrder<ConversationColumnKey>;
   dataRow: Conversation;
@@ -216,44 +244,32 @@ const BodyCell = memo(function BodyCell({
   organization: Organization;
   projects: number[];
 }) {
-  const location = useLocation();
   switch (column.key) {
     case 'conversationId': {
-      const detailUrl = getConversationDetailUrl(organization.slug, dataRow, projects);
-      return (
-        <Link
-          to={detailUrl}
-          state={getConversationsListLocationState(location.query)}
-          onClick={event => {
-            // Let the link handle navigation; don't also trigger the row click.
-            event.stopPropagation();
-          }}
+      return isUUID(dataRow.conversationId) ? (
+        <ConversationLink dataRow={dataRow} {...props}>
+          {dataRow.conversationId.slice(0, 8)}
+        </ConversationLink>
+      ) : (
+        <Tooltip
+          title={
+            <Flex align="center" gap="xs">
+              <Text wordBreak="break-word">{dataRow.conversationId}</Text>
+              <CopyToClipboardButton
+                aria-label={t('Copy to clipboard')}
+                variant="transparent"
+                size="zero"
+                text={dataRow.conversationId}
+                onClick={event => event.stopPropagation()}
+              />
+            </Flex>
+          }
+          isHoverable
         >
-          {isUUID(dataRow.conversationId) ? (
-            dataRow.conversationId.slice(0, 8)
-          ) : (
-            <Tooltip
-              title={
-                <Flex align="center" gap="xs">
-                  <Text wordBreak="break-word">{dataRow.conversationId}</Text>
-                  <CopyToClipboardButton
-                    aria-label={t('Copy to clipboard')}
-                    variant="transparent"
-                    size="zero"
-                    text={dataRow.conversationId}
-                    onClick={event => event.stopPropagation()}
-                  />
-                </Flex>
-              }
-              isHoverable
-              skipWrapper
-            >
-              <Text as="div" ellipsis variant="inherit">
-                {dataRow.conversationId}
-              </Text>
-            </Tooltip>
-          )}
-        </Link>
+          <ConversationLink dataRow={dataRow} {...props}>
+            {dataRow.conversationId}
+          </ConversationLink>
+        </Tooltip>
       );
     }
     case 'llmCalls':
@@ -278,9 +294,9 @@ const BodyCell = memo(function BodyCell({
         <Flex align="center" gap="xs" minWidth={0}>
           <IconUser size="md" />
           {displayName ? (
-            <Tooltip title={displayName} showOnlyOnOverflow skipWrapper>
-              <Text ellipsis>{displayName}</Text>
-            </Tooltip>
+            <InfoText title={displayName} mode="overflowOnly">
+              {displayName}
+            </InfoText>
           ) : (
             <Text>&mdash;</Text>
           )}
@@ -368,35 +384,30 @@ function ToolCallsCell({
   // number's own box, so the anchor and the hoverable-card handoff are unchanged.
   return (
     <Flex flex="1" align="center" position="relative">
-      <Tooltip
-        isHoverable
-        skipWrapper
+      <InfoText
         position="top"
         maxWidth={400}
         title={<ConversationToolCallsBreakdown conversationId={dataRow.conversationId} />}
+        tabIndex={0}
+        css={(theme: Theme) => css`
+          text-decoration: underline dotted ${theme.tokens.content.secondary};
+          text-decoration-thickness: 0.75px;
+          text-underline-offset: 1.25px;
+          outline: none;
+
+          &::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+          }
+
+          &:focus-visible {
+            ${theme.focusRing()}
+          }
+        `}
       >
-        <Text
-          tabIndex={0}
-          css={(theme: Theme) => css`
-            text-decoration: underline dotted ${theme.tokens.content.secondary};
-            text-decoration-thickness: 0.75px;
-            text-underline-offset: 1.25px;
-            outline: none;
-
-            &::before {
-              content: '';
-              position: absolute;
-              inset: 0;
-            }
-
-            &:focus-visible {
-              ${theme.focusRing()}
-            }
-          `}
-        >
-          {formatAbbreviatedNumber(dataRow.toolCalls)}
-        </Text>
-      </Tooltip>
+        {formatAbbreviatedNumber(dataRow.toolCalls)}
+      </InfoText>
     </Flex>
   );
 }

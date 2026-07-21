@@ -977,6 +977,59 @@ def test_timeline_suite_conclusion_derived_from_runs_when_absent() -> None:
     assert events[0]["payload"]["conclusion"] == "failure"  # derived from the failing run
 
 
+def test_cancelled_rerun_does_not_erase_a_failure() -> None:
+    # A check fails, is rerun, and the rerun is cancelled. The cancellation reports
+    # no verdict, so the failure stands — otherwise the check silently drops out of
+    # failing_check_names while CI never said it passed.
+    doc = new_document()
+    _run(doc, check_name="unit", conclusion="failure", completed_at="2026-07-10T12:00:00Z")
+    _run(doc, check_name="unit", conclusion="cancelled", completed_at="2026-07-10T12:05:00Z")
+
+    assert _group(doc)["runs"]["unit"]["conclusion"] == "failure"
+    assert timeline_events_from_doc(doc)[0]["payload"]["failing_check_names"] == ["unit"]
+
+
+def test_cancelled_rerun_does_not_flip_a_failing_group_to_success() -> None:
+    # The sharper consequence: with no suite event the group conclusion is derived
+    # from the runs, so letting the cancellation win reported a green CI run that
+    # never happened.
+    doc = new_document()
+    _run(doc, check_name="unit", conclusion="failure", completed_at="2026-07-10T12:00:00Z")
+    _run(doc, check_name="unit", conclusion="cancelled", completed_at="2026-07-10T12:05:00Z")
+
+    assert timeline_events_from_doc(doc)[0]["payload"]["conclusion"] == "failure"
+
+
+def test_cancelled_suite_does_not_erase_a_failing_suite_conclusion() -> None:
+    doc = new_document()
+    _suite(doc, conclusion="failure", updated_at="2026-07-10T12:00:00Z")
+    _suite(doc, conclusion="cancelled", updated_at="2026-07-10T12:05:00Z")
+
+    assert _group(doc)["suite_conclusion"] == "failure"
+
+
+def test_a_real_verdict_after_an_abort_still_wins() -> None:
+    # The guard must not freeze the entry: a genuine green after the cancellation
+    # is a verdict and supersedes the failure as usual.
+    doc = new_document()
+    _run(doc, check_name="unit", conclusion="failure", completed_at="2026-07-10T12:00:00Z")
+    _run(doc, check_name="unit", conclusion="cancelled", completed_at="2026-07-10T12:05:00Z")
+    _run(doc, check_name="unit", conclusion="success", completed_at="2026-07-10T12:10:00Z")
+
+    assert _group(doc)["runs"]["unit"]["conclusion"] == "success"
+    assert timeline_events_from_doc(doc)[0]["payload"]["failing_check_names"] == []
+
+
+def test_abort_only_group_still_reads_as_aborted() -> None:
+    # Nothing to erase, so the abort is recorded — a PR closed mid-CI must not
+    # derive a pass out of a suite that only ever cancelled.
+    doc = new_document()
+    _suite(doc, conclusion="cancelled", updated_at="2026-07-10T12:00:00Z")
+
+    assert _group(doc)["suite_conclusion"] == "cancelled"
+    assert timeline_events_from_doc(doc)[0]["payload"]["conclusion"] == "cancelled"
+
+
 def test_timeline_recovered_run_excluded_from_failing_names() -> None:
     doc = new_document()
     _run(doc, check_name="flaky", conclusion="failure", completed_at="2026-07-10T12:00:00Z")
