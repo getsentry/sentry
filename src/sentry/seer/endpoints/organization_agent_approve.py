@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from typing import Any
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -89,7 +91,11 @@ class OrganizationAgentApproveEndpoint(OrganizationEndpoint):
 
         self._require_user_session(request)
 
-        session_id = request.data.get("sessionId")
+        data: Any = request.data
+        if not isinstance(data, Mapping):
+            return Response({"detail": "Request body must be an object."}, status=400)
+
+        session_id = data.get("sessionId")
         if not session_id or not isinstance(session_id, str):
             return Response({"detail": "sessionId is required."}, status=400)
         if len(session_id) > AGENT_SESSION_ID_MAX_LENGTH:
@@ -98,7 +104,7 @@ class OrganizationAgentApproveEndpoint(OrganizationEndpoint):
                 status=400,
             )
 
-        requested = request.data.get("scopes")
+        requested = data.get("scopes")
         if not isinstance(requested, list) or not all(isinstance(s, str) for s in requested):
             return Response({"detail": "scopes must be a list of strings."}, status=400)
 

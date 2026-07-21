@@ -55,6 +55,17 @@ class OrganizationAgentTokenTest(APITestCase):
         with self.feature(FLAG):
             assert self._mint().status_code == 400
 
+    def test_non_object_body_rejected(self) -> None:
+        self.login_as(self.owner)
+        with self.feature(FLAG):
+            response = self.client.post(
+                f"/api/0/organizations/{self.org.slug}/agent/token/",
+                data=["not", "an", "object"],
+                format="json",
+            )
+        assert response.status_code == 400
+        assert response.data == {"detail": "Request body must be an object."}
+
     def test_session_id_too_long_rejected(self) -> None:
         self.login_as(self.owner)
         with self.feature(FLAG):

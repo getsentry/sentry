@@ -90,6 +90,13 @@ class OrganizationAgentApproveTest(APITestCase):
             resp = self.client.post(self._url(), data={"scopes": ["org:write"]}, format="json")
         assert resp.status_code == 400
 
+    def test_non_object_body_rejected(self) -> None:
+        self.login_as(self.owner)
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = self.client.post(self._url(), data=["not", "an", "object"], format="json")
+        assert response.status_code == 400
+        assert response.data == {"detail": "Request body must be an object."}
+
     def test_scopes_must_be_a_list(self) -> None:
         self.login_as(self.owner)
         with self.feature(agent_token.FEATURE_FLAG):

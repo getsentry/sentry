@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import Any
+
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
@@ -80,7 +83,11 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
         if not request.user.is_authenticated:
             raise PermissionDenied("Minting requires a user session.")
 
-        session_id = request.data.get("sessionId")
+        data: Any = request.data
+        if not isinstance(data, Mapping):
+            return Response({"detail": "Request body must be an object."}, status=400)
+
+        session_id = data.get("sessionId")
         if not session_id or not isinstance(session_id, str):
             return Response({"detail": "sessionId is required."}, status=400)
         if len(session_id) > AGENT_SESSION_ID_MAX_LENGTH:
@@ -89,7 +96,7 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
                 status=400,
             )
 
-        requested_scopes = request.data.get("requestedScopes")
+        requested_scopes = data.get("requestedScopes")
         if requested_scopes is not None and (
             not isinstance(requested_scopes, list)
             or not all(isinstance(s, str) for s in requested_scopes)
