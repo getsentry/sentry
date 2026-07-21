@@ -5,7 +5,7 @@ from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
-from typing import Any, Literal, Protocol
+from typing import Any, Protocol
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import ExtrapolationMode
 
@@ -291,7 +291,6 @@ def get_eap_project_volumes(
 def get_eap_transaction_volumes(
     config: OrganizationVolumeConfig,
     time_interval: timedelta = timedelta(hours=1),
-    order_by_volume: Literal["asc", "desc"] = "asc",
     max_transactions: int = 100,
     root_projects: Sequence[Project] | None = None,
 ) -> list[ProjectTransactionCounts]:
@@ -305,13 +304,11 @@ def get_eap_transaction_volumes(
     start_time = end_time - time_interval
     transaction_counts_by_project: defaultdict[int, list[tuple[str, float]]] = defaultdict(list)
 
-    count_order = (
-        DynamicSamplingQueryFields.COUNT
-        if order_by_volume == "asc"
-        else f"-{DynamicSamplingQueryFields.COUNT}"
-    )
+    # Highest-volume transactions become the explicit classes, matching the legacy
+    # pipeline (FetchProjectTransactionVolumes), which only fetches the largest
+    # transactions in production.
     orderby = [
-        count_order,
+        f"-{DynamicSamplingQueryFields.COUNT}",
         DynamicSamplingQueryFields.DSC_PROJECT_ID,
         DynamicSamplingQueryFields.DSC_TRANSACTION,
     ]

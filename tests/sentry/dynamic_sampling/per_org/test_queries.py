@@ -459,10 +459,7 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
             ]
         )
 
-        volumes = get_eap_transaction_volumes(
-            self.get_config(organization),
-            order_by_volume="desc",
-        )
+        volumes = get_eap_transaction_volumes(self.get_config(organization))
 
         assert volumes == [
             ProjectTransactionCounts(
@@ -609,7 +606,6 @@ class EAPTransactionVolumesTest(TestCase, SnubaTestCase, SpanTestCase):
 
         volumes = get_eap_transaction_volumes(
             self.get_config(organization),
-            order_by_volume="desc",
             max_transactions=2,
         )
 
