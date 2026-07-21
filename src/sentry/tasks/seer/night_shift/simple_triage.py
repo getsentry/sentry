@@ -17,6 +17,7 @@ from snuba_sdk.query import Limit, Query
 
 from sentry import features, options, search
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.issues.grouptype import ReplayRageClickType
 from sentry.issues.search import group_types_from
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
@@ -304,7 +305,10 @@ def _fetch_and_score_agentic(
 
     # Step 1: Get eligible group IDs from Postgres with pagination.
     # Mirrors the search.backend.query filters: unresolved, un-triaged, eligible types.
-    type_ids = sorted(group_types_from([]) | {LowValueSpanConfigurationType.type_id})
+    eligible_types = group_types_from([]) | {LowValueSpanConfigurationType.type_id}
+    # Rage clicks can't be autofixed — filter them out.
+    eligible_types.discard(ReplayRageClickType.type_id)
+    type_ids = sorted(eligible_types)
     # Exclude groups Seer ran on within the last 30 days (matching the
     # RecentDateCondition used by the recommended path's search filter).
     seer_recency_cutoff = timezone.now() - timedelta(days=30)
@@ -364,10 +368,11 @@ def _fetch_and_score_agentic(
     scores = _agentic_triage_score([g.id for g in with_data], factors)
     with_data.sort(key=lambda g: scores.get(g.id, 0.0), reverse=True)
 
-    # Step 4: Take the top 10 issues each from the scored and unscored groups and re-rank by fixability.
+    # Step 4: Take the top 2x max_candidates from each pool and re-rank by fixability.
+    pool_size = max_candidates * 2
     eligible = [
         g
-        for g in with_data[:10] + without_data[:10]
+        for g in with_data[:pool_size] + without_data[:pool_size]
         if g.seer_fixability_score is None or g.seer_fixability_score >= FIXABILITY_SCORE_THRESHOLD
     ]
     eligible.sort(
