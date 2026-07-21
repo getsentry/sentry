@@ -191,6 +191,7 @@ export function SeerExplorerContent({
     hasSentInterrupt,
     overrideCtxEngEnable,
     setOverrideCtxEngEnable,
+    setOverrideBashModeEnabled,
     setOverrideCodeModeEnable,
   } = useSeerExplorer();
 
@@ -386,6 +387,9 @@ export function SeerExplorerContent({
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onLangfuse: langfuseUrl ? handleOpenLangfuse : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
+      onBashMode: organization?.features.includes('seer-explorer-allow-bash-mode')
+        ? setOverrideBashModeEnabled
+        : undefined,
       onCodeMode: organization?.features.includes('seer-explorer-code-mode-tools')
         ? setOverrideCodeModeEnable
         : undefined,
