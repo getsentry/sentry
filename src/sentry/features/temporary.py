@@ -330,8 +330,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:sentry-apps-creation-templates", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable delivery of custom webhook headers configured on a SentryApp
     manager.add("organizations:sentry-apps-custom-webhook-headers", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Allow SentryApps to subscribe to individual webhook events instead of whole resources
-    manager.add("organizations:sentry-apps-granular-events", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Disable select orgs from ingesting mobile replay events.
     # Enable double-read from EAP for session health data validation
     manager.add("organizations:session-health-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
