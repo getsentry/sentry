@@ -222,9 +222,10 @@ class ViewerContextMiddlewareTest(TestCase):
             return MagicMock(status_code=200)
 
         request = self.factory.get("/api/0/organizations/", HTTP_AUTHORIZATION=f"Bearer {token}")
-        AuthenticationMiddleware(lambda r: MagicMock(status_code=200)).process_request(
-            cast(Request, request)
-        )
+        with self.feature(agent_token.FEATURE_FLAG):
+            AuthenticationMiddleware(lambda r: MagicMock(status_code=200)).process_request(
+                cast(Request, request)
+            )
         ViewerContextMiddleware(get_response)(request)
 
         assert len(captured) == 1
