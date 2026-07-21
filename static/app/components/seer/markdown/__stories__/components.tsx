@@ -112,20 +112,16 @@ function buildEmbedMarkdown(
   levels: readonly string[],
   examples: SeerEmbedExample[]
 ): string {
-  const lines: string[] = [];
-  const defaultLevel = levels[0] ?? 'inline';
-
-  for (const ex of examples) {
-    const level = ex.level ?? defaultLevel;
-    const tag = formatTag(name, ex.data);
-    if (level === 'inline') {
-      lines.push(`${ex.label}: Lorem ipsum ${tag} dolor sit amet.\n`);
-    } else {
-      lines.push(`${ex.label}:\n\n${tag}\n`);
-    }
-  }
-
-  return lines.join('\n');
+  return examples
+    .map(example => {
+      const level = example.level ?? levels[0] ?? 'inline';
+      const tag = formatTag(name, example.data);
+      if (level === 'inline') {
+        return `${example.label}: Lorem ipsum ${tag} dolor sit amet.\n`;
+      }
+      return `${example.label}:\n\n${tag}\n`;
+    })
+    .join('\n');
 }
 
 export function EmbedRegistry() {
