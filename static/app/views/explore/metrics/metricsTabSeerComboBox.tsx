@@ -113,16 +113,15 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
         pageDatetime: pageFilters.selection.datetime,
       });
 
-      // seerVisualizeFunctions handles the arrays of visualize functions, because the
-      // responses are coded for one or the other at the moment
+      // Seer responses only return equations or functions at the moment, but equations need special handling
+      // to generate its base metricQueries.
       const seerVisualizeFunctions = (result.visualizations ?? []).flatMap(viz =>
         viz.yAxes
           .filter(yAxis => !isEquation(yAxis))
           .map(yAxis => new VisualizeFunction(yAxis, {chartType: viz.chartType}))
       );
 
-      // Develop the metric queries for equations, this is kind of iffy because it would break
-      // flat mapping if there were multiple equations. Is there a better way to handle this?
+      // Parse out the metric queries required for equations.
       const seerEquationMetricQueries = (result.visualizations ?? []).flatMap(viz =>
         viz.yAxes.filter(isEquation).flatMap(yAxis => {
           const parsed = parseAggregateExpression(yAxis);
@@ -252,9 +251,10 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       // aggregate or query filters above so the panel matches what was queried).
       const hasEquation = seerEquationMetricQueries.length > 0;
       const newEncodedMetrics = metricQueries
-        // When Seer returned an equation, drop the interacted-with row since the
+        // When Seer returns an equation, drop the interacted-with row since the
         // equation and its sub-components fully replace it. The interacted row is the
-        // one that matches the queryParams of the current metric query panel.
+        // one that matches the queryParams of the currently opened metric query
+        // panel's combobox.
         .filter((mq: BaseMetricQuery) => !(hasEquation && mq.queryParams === queryParams))
         .map((mq: BaseMetricQuery) => {
           if (mq.queryParams === queryParams) {
@@ -300,6 +300,9 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
       }
 
       const navigateWithMetrics = (encodedMetrics: string[]) => {
+        // Single navigate with both metric params and datetime — previously
+        // setQueryParams and navigate were separate calls, and the second
+        // navigate overwrote the first with stale location.
         navigate(
           {
             ...location,
