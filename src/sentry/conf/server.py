@@ -479,6 +479,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.processing_errors",
     "sentry.uptime",
     "sentry.tempest",
+    "sentry.ai_monitoring",
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
@@ -2280,6 +2281,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.cursor.integration.CursorAgentIntegrationProvider",
     "sentry.integrations.claude_code.integration.ClaudeCodeAgentIntegrationProvider",
     "sentry.integrations.datadog.integration.DatadogIntegrationProvider",
+    "sentry.integrations.gcp.integration.GcpIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
 )

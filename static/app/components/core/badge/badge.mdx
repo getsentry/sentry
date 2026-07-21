@@ -12,7 +12,15 @@ resources:
 
 import {useState} from 'react';
 
-import {AlertBadge, DeployBadge, FeatureBadge, Tag} from '@sentry/scraps/badge';
+import {
+  AlertBadge,
+  DeployBadge,
+  FeatureBadge,
+  ProjectsBadge,
+  Tag,
+} from '@sentry/scraps/badge';
+import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {IconCheckmark, IconCircle, IconRefresh, IconWarning} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
@@ -22,6 +30,75 @@ export const documentation = import('!!type-loader!@sentry/scraps/badge');
 
 Badges are a contextual highlighted text components that support specific use cases like
 `FeatureBadge`, `AlertBadge`, and `DeployBadge`.
+
+## ProjectsBadge
+
+`ProjectsBadge` renders a fixed 16×16 badge of the project platform icons. It's used
+by secondary-navigation items and breadcrumb crumbs to give each a recognizable glyph
+while keeping every leading slot the same size.
+
+The badge adapts to how many platform slugs you pass in `projectPlatforms`:
+
+- **0 platforms** — a "my projects" glyph, or an "all projects" glyph when `allProjects`
+  is set.
+- **1 platform** — a single bordered platform icon.
+- **2+ platforms** — the first two platforms as stacked icons (extra platforms are not
+  shown).
+
+<Storybook.Grid>
+  <Flex align="center" gap="sm">
+    <ProjectsBadge projectPlatforms={[]} />
+    <Text variant="muted">My projects (0)</Text>
+  </Flex>
+  <Flex align="center" gap="sm">
+    <ProjectsBadge projectPlatforms={[]} allProjects />
+    <Text variant="muted">All projects (0)</Text>
+  </Flex>
+  <Flex align="center" gap="sm">
+    <ProjectsBadge projectPlatforms={['javascript']} />
+    <Text variant="muted">1 platform</Text>
+  </Flex>
+  <Flex align="center" gap="sm">
+    <ProjectsBadge projectPlatforms={['python', 'javascript']} />
+    <Text variant="muted">2 platforms</Text>
+  </Flex>
+  <Flex align="center" gap="sm">
+    <ProjectsBadge projectPlatforms={['react', 'node', 'python']} />
+    <Text variant="muted">3 platforms (first two shown)</Text>
+  </Flex>
+</Storybook.Grid>
+```tsx
+{/* No projects selected */}
+<ProjectsBadge projectPlatforms={[]} />
+{/* All projects */}
+<ProjectsBadge projectPlatforms={[]} allProjects />
+{/* A single project */}
+<ProjectsBadge projectPlatforms={['javascript']} />
+{/* Multiple projects — first two platforms are stacked */}
+<ProjectsBadge projectPlatforms={['python', 'javascript']} />
+```
+
+Platform slugs are passed straight through to `PlatformIcon` from `platformicons`, so any
+supported platform renders:
+
+<Storybook.Grid>
+  {['javascript', 'python', 'ruby', 'php', 'java', 'go', 'rust', 'node'].map(platform => (
+    <Flex key={platform} align="center" gap="sm">
+      <ProjectsBadge projectPlatforms={[platform]} />
+      <Text variant="muted">{platform}</Text>
+    </Flex>
+  ))}
+</Storybook.Grid>
+
+### Accessibility
+
+The badge renders `aria-hidden` — it's decorative, and its meaning is carried by the label
+it sits beside.
+
+### Developer responsibilities
+
+- Always pair `ProjectsBadge` with a visible text label. Never rely on the badge alone to
+  convey which saved view, project, or item a crumb or link points to.
 
 ## FeatureBadge
 

@@ -102,6 +102,37 @@ describe('slot', () => {
     expect(screen.getByTestId('sidebar-root')).toBeInTheDocument();
   });
 
+  it('reports whether an Outlet has consumers', async () => {
+    const SlotModule = slot(['content'] as const);
+
+    function TestSlot({withConsumer}: {withConsumer: boolean}) {
+      return (
+        <SlotModule.Provider>
+          <SlotModule.Outlet name="content">
+            {(props, hasConsumers) => (
+              <div
+                {...props}
+                role="status"
+                aria-label={hasConsumers ? 'has consumer' : 'no consumers'}
+              />
+            )}
+          </SlotModule.Outlet>
+          {withConsumer ? (
+            <SlotModule name="content">
+              <span>content</span>
+            </SlotModule>
+          ) : null}
+        </SlotModule.Provider>
+      );
+    }
+
+    const {rerender} = render(<TestSlot withConsumer={false} />);
+    expect(screen.getByRole('status', {name: 'no consumers'})).toBeInTheDocument();
+
+    rerender(<TestSlot withConsumer />);
+    expect(await screen.findByRole('status', {name: 'has consumer'})).toBeInTheDocument();
+  });
+
   it('Outlet registers and unregisters the element on mount/unmount', () => {
     const SlotModule = slot(['panel'] as const);
 

@@ -551,13 +551,6 @@ class TransactionsForProjectResponse(BaseModel):
     transactions: list[Transaction]
 
 
-class PrAttributionResponse(BaseModel):
-    """`record_pr_attribution` returns `{"attribution_id": <id or null>}`. None
-    is emitted when the pr-metrics-attribution feature is disabled for the org."""
-
-    attribution_id: int | None
-
-
 class UpdatePrMetricsSuccessResponse(BaseModel):
     """`update_pr_metrics` success: `{"success": true}`. The `success` literal is
     the discriminator against the error shape below."""
@@ -866,6 +859,7 @@ class MonitoringProviderConnectionData(BaseModel):
     identity_id: int | None = None
     auth_method: str
     refreshable: bool = True
+    gcp_project_ids: list[str] | None = None
 
     def __getitem__(self, key: str) -> Any:
         return self.dict()[key]

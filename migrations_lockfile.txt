@@ -5,6 +5,8 @@ ahead of you.
 To resolve this, rebase against latest master and regenerate your migration. This file
 will then be regenerated, and you should be able to merge without conflicts.
 
+ai_monitoring: 0001_create_ai_conversation_metadata
+
 discover: 0001_squashed_0003_discover_json_field
 
 explore: 0010_remove_last_received_from_attribute_context
